@@ -79,7 +79,7 @@ canvas or selected region, so fitting a large image does not discard its detail.
 
 Select the mesh's [UV islands](selection.md#select-uv-islands) and ask the agent to create a texture inside them. In this example, the agent generated the Rubik's cube colors and tiles on a Drawing layer. The white lettering was then painted by hand on a separate layer, with [Live Update](saving.md) showing the result on the cube in Scene view.
 
-<a href="../Images/uv-rubik-cube.png"><img src="../Images/uv-rubik-cube.png" alt="An agent-generated Rubik's cube texture with hand-painted lettering on a separate layer, shown on a cube in Unity" width="720"></a>
+<a href="{{ '/Images/uv-rubik-cube.png' | relative_url }}"><img src="{{ '/Images/uv-rubik-cube.png' | relative_url }}" alt="An agent-generated Rubik's cube texture with hand-painted lettering on a separate layer, shown on a cube in Unity" width="720"></a>
 
 ## Connect an agent
 

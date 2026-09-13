@@ -41,4 +41,4 @@ next_page: "ru/getting-started.md"
 
 Комбинируй градиенты, [Noise](noise.md) и [Shader Processor](shader-fx.md), чтобы создавать маски для энергетических колец, вспышек и других эффектов. В этом кольце яркий ободок сочетается с тонкими радиальными полосами; слои позволяют отдельно настраивать форму и детали.
 
-<a href="../Images/vfx-energy-ring.png"><img src="../Images/vfx-energy-ring.png" alt="Текстура энергетического кольца для VFX в WhimTex: слои градиентов и шума, Shader Processor и превью кругового градиента" width="720"></a>
+<a href="{{ '/Images/vfx-energy-ring.png' | relative_url }}"><img src="{{ '/Images/vfx-energy-ring.png' | relative_url }}" alt="Текстура энергетического кольца для VFX в WhimTex: слои градиентов и шума, Shader Processor и превью кругового градиента" width="720"></a>

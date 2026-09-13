@@ -44,7 +44,7 @@ See [seamless painting](symmetry.md).
 
 Enable **UV** in the footer and assign a **Mesh** to see its UV island outlines over the image. The UV panel lets you choose the channel, submesh, line color and opacity. The outlines follow zoom, pan and view rotation and never appear in exports. To paint a specific part of the model, use [UV Island selection](selection.md#select-uv-islands).
 
-<a href="../Images/uv-rubik-cube.png"><img src="../Images/uv-rubik-cube.png" alt="Painting a Rubik's cube texture in WhimTex with its UV outlines visible and the textured cube beside it in Unity Scene view" width="720"></a>
+<a href="{{ '/Images/uv-rubik-cube.png' | relative_url }}"><img src="{{ '/Images/uv-rubik-cube.png' | relative_url }}" alt="Painting a Rubik's cube texture in WhimTex with its UV outlines visible and the textured cube beside it in Unity Scene view" width="720"></a>
 
 Use the UV outlines to place details on the right faces. With [Live Update](saving.md) enabled, you can see brush edits on the model in Scene view as you paint.
 
@@ -96,7 +96,7 @@ Pencil always shows crisp pixels at full quality, so you can place individual pi
 2. Turn on **Live Update** (the circle button) in the preview footer, next to **Post FX**.
 3. Paint or adjust layers: objects using that texture update in Scene View.
 
-<a href="../Images/uv-rubik-cube.png"><img src="../Images/uv-rubik-cube.png" alt="Live Update in WhimTex: white lettering painted across the cube's texture appears on the model in Unity Scene view" width="720"></a>
+<a href="{{ '/Images/uv-rubik-cube.png' | relative_url }}"><img src="{{ '/Images/uv-rubik-cube.png' | relative_url }}" alt="Live Update in WhimTex: white lettering painted across the cube's texture appears on the model in Unity Scene view" width="720"></a>
 
 The white lettering crosses two faces in the texture; Live Update lets you check how it wraps around the cube while painting.
 

@@ -51,7 +51,7 @@ next_page: "ru/preview.md"
 которую можно перемещать, масштабировать и поворачивать. Вращение идёт вокруг центра, отдельного Pivot нет.
 Повторное нажатие кнопки или выбор другого инструмента завершает этот режим. Escape отменяет текущее перетаскивание.
 
-<a href="../Images/shader-processor-transform.png"><img src="../Images/shader-processor-transform.png" alt="Shader Processor в WhimTex с пресетом Spherize и зелёной рамкой Transform 2D на превью" width="720"></a>
+<a href="{{ '/Images/shader-processor-transform.png' | relative_url }}"><img src="{{ '/Images/shader-processor-transform.png' | relative_url }}" alt="Shader Processor в WhimTex с пресетом Spherize и зелёной рамкой Transform 2D на превью" width="720"></a>
 
 Рамка меняет эффект, а не трансформ слоя. Её назначение зависит от эффекта: расположение изображения,
 масштаб узора или область воздействия. Сама по себе рамка не обрезает результат как маска.

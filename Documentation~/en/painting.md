@@ -42,7 +42,7 @@ for its tip. Zoom in to see its exact pixel outline.
 With **Brush** selected, open the upper arrow on the right edge of the preview to show
 **Brushes**. It shares the drawer with Post FX: opening one closes the other.
 
-<a href="../Images/brush-settings.png"><img src="../Images/brush-settings.png" alt="WhimTex Brushes drawer with a neon red stroke, stamp controls, tint, blend mode and live brush preview" width="720"></a>
+<a href="{{ '/Images/brush-settings.png' | relative_url }}"><img src="{{ '/Images/brush-settings.png' | relative_url }}" alt="WhimTex Brushes drawer with a neon red stroke, stamp controls, tint, blend mode and live brush preview" width="720"></a>
 
 All brush preset controls are available here: **Size** is in **Tip**, and **Opacity / Flow**
 are in **Color**. The preview header provides shortcuts to the same settings.

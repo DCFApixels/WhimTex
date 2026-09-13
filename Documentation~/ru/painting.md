@@ -47,7 +47,7 @@ next_page: "ru/selection.md"
 Выбери **Brush** и открой верхнюю стрелочку у правого края превью — появится панель
 **Brushes**. Она делит место с Post FX: открытие одной панели закрывает другую.
 
-<a href="../Images/brush-settings.png"><img src="../Images/brush-settings.png" alt="Панель Brushes в WhimTex: красный неоновый мазок, настройки отпечатков, tint, смешивание и пробный мазок" width="720"></a>
+<a href="{{ '/Images/brush-settings.png' | relative_url }}"><img src="{{ '/Images/brush-settings.png' | relative_url }}" alt="Панель Brushes в WhimTex: красный неоновый мазок, настройки отпечатков, tint, смешивание и пробный мазок" width="720"></a>
 
 Волнистый мазок внизу показывает текущую кисть и меняется вместе с её настройками.
 Большие наконечники уменьшаются до размера образца; ластик показывает стирание серой

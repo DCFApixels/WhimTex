@@ -20,7 +20,7 @@ next_page: "ru/color.md"
 
 Включи **UV** в футере и назначь **Mesh**, чтобы увидеть контуры UV-островов поверх изображения. В панели UV можно выбрать канал, Submesh, цвет и прозрачность линий. Контуры следуют за масштабом, перемещением и поворотом вида и не попадают в экспорт. Чтобы рисовать по конкретной части модели, используй [выделение UV-островов](selection.md#выделить-uv-острова).
 
-<a href="../Images/uv-rubik-cube.png"><img src="../Images/uv-rubik-cube.png" alt="Рисование на текстуре кубика Рубика в WhimTex: контуры UV-развёртки и куб с этой текстурой рядом в Scene view Unity" width="720"></a>
+<a href="{{ '/Images/uv-rubik-cube.png' | relative_url }}"><img src="{{ '/Images/uv-rubik-cube.png' | relative_url }}" alt="Рисование на текстуре кубика Рубика в WhimTex: контуры UV-развёртки и куб с этой текстурой рядом в Scene view Unity" width="720"></a>
 
 Контуры UV помогают размещать детали на нужных гранях. С включённым [Live Update](saving.md) правки кистью видны на модели в Scene view прямо во время рисования.
 
@@ -96,7 +96,7 @@ mip-уровни, если они есть. Генерацию mipmap эта н�
 2. Включи **Live Update** (кнопку с кружком) внизу превью, рядом с **Post FX**.
 3. Рисуй или меняй слои: объекты с этой текстурой обновляются в Scene View.
 
-<a href="../Images/uv-rubik-cube.png"><img src="../Images/uv-rubik-cube.png" alt="Live Update в WhimTex: белая надпись на текстуре сразу видна на кубе в Scene view Unity" width="720"></a>
+<a href="{{ '/Images/uv-rubik-cube.png' | relative_url }}"><img src="{{ '/Images/uv-rubik-cube.png' | relative_url }}" alt="Live Update в WhimTex: белая надпись на текстуре сразу видна на кубе в Scene view Unity" width="720"></a>
 
 Белая надпись проходит через две грани на текстуре; Live Update позволяет прямо во время рисования проверить, как она огибает куб.
 
