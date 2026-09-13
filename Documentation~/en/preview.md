@@ -29,6 +29,10 @@ View rotation does not rotate the layers or affect saving and export.
 Turn on **Tiled** to see repeated copies of the image and paint across its edges.
 See [seamless painting](symmetry.md).
 
+## Mesh UV overlay
+
+Enable **UV** in the footer and assign a **Mesh** to see its UV island outlines over the image. The UV panel lets you choose the channel, submesh, line color and opacity. The outlines follow zoom, pan and view rotation and never appear in exports. To paint a specific part of the model, use [UV Island selection](selection.md#select-uv-islands).
+
 ## Guides
 
 Guides that are horizontal or vertical in the current preview appear bright cyan; angled guides use a softer blue-gray. The colors update as you rotate the view, without changing snapping.

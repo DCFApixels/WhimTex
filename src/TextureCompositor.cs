@@ -14,6 +14,9 @@ namespace DCFApixels.SpriteEditor
 
         public int width = 512;
         public int height = 512;
+        [SerializeField, HideInInspector] internal Mesh uvReferenceMesh;
+        [SerializeField, HideInInspector] internal int uvReferenceChannel;
+        [SerializeField, HideInInspector] internal int uvReferenceSubmesh = -1;
         [SerializeReference] public List<Layer> layers = new List<Layer>();
         [SerializeField, HideInInspector] private List<ShaderFX> embeddedShaderFX = new List<ShaderFX>();
 

@@ -15,7 +15,7 @@ namespace DCFApixels.SpriteEditor
         private AreaSelectionManipulator areaSelectionManipulator;
         private AreaSelectionOverlay areaSelectionOverlay;
         private SelectionCombine areaSelectionMode;
-        private enum MarqueeShape { Rectangle, Ellipse }
+        private enum MarqueeShape { Rectangle, Ellipse, UvIsland }
         [SerializeField] private MarqueeShape marqueeShape;
         private static AreaClipboard areaClipboard;
         private sealed class AreaClipboard
@@ -140,6 +140,11 @@ namespace DCFApixels.SpriteEditor
             row.Add(SpriteEditorUI.CreateButton("Copy", () => CopyAreaSelection(false)));
             row.Add(SpriteEditorUI.CreateButton("Copy Merged", () => CopyAreaSelection(true)));
             row.Add(SpriteEditorUI.CreateButton("Paste", PasteAreaSelection));
+            var contentFill = SpriteEditorUI.CreateButton("Content-Aware Fill", OpenContentAwareFill);
+            contentFill.tooltip = "Fill the selection or an inner border using nearby texture details. Creates a new Drawing Layer.";
+            toolkitHeaderBindings.Add(() => contentFill.SetEnabled(GetAreaSelection() is CanvasSelection s &&
+                s.Active && s.Bounds.width > 0 && s.Bounds.height > 0));
+            row.Add(contentFill);
             if (tool == PreviewTool.PolygonSelect)
                 row.Add(SpriteEditorUI.CreateButton("Close", () => areaSelectionManipulator?.CompletePolygon()));
             var status = new Label();

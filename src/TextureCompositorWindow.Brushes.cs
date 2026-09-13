@@ -18,7 +18,7 @@ namespace DCFApixels.SpriteEditor
             brushTab = new Button(() =>
             {
                 brushesExpanded = !brushesExpanded;
-                if (brushesExpanded) postFxExpanded = false;
+                if (brushesExpanded) postFxExpanded = uvExpanded = false;
                 RefreshPostFxPanel();
             }) { tooltip = "Brushes: tip, spacing, scatter, size variation, tint and blending." };
             brushTab.AddToClassList("sprite-editor-post-fx-tab");

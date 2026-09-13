@@ -46,13 +46,15 @@ namespace DCFApixels.SpriteEditor
             postFxTab = new Button(() =>
             {
                 postFxExpanded = !postFxExpanded;
-                if (postFxExpanded) brushesExpanded = false;
+                if (postFxExpanded) brushesExpanded = uvExpanded = false;
                 RefreshPostFxPanel();
             })
                 { tooltip = "Show or hide post-processing settings. Closing this panel keeps Post FX enabled." };
             postFxTab.AddToClassList("sprite-editor-post-fx-tab");
             tabs.Add(postFxTab);
+            BuildUvTab(tabs);
             BuildBrushDrawer(panel);
+            BuildUvDrawer(panel);
             postFxDrawer = new VisualElement();
             postFxDrawer.AddToClassList("sprite-editor-post-fx-drawer");
             postFxDrawer.Add(CreatePaneHeader("Post FX", "postFxTitle"));
@@ -74,7 +76,7 @@ namespace DCFApixels.SpriteEditor
                 else
                 {
                     postFxDirty = true;
-                    if (postFxExpanded) brushesExpanded = false;
+                    if (postFxExpanded) brushesExpanded = uvExpanded = false;
                 }
                 RefreshPostFxPanel();
                 if (postFxEnabled) RenderPostFx();
@@ -191,7 +193,8 @@ namespace DCFApixels.SpriteEditor
             bool brushAvailable = previewTool == PreviewTool.Brush;
             if (!brushAvailable) brushesExpanded = false;
             if (brushesExpanded) postFxExpanded = false;
-            postFxOverlay?.EnableInClassList("sprite-editor-post-fx-overlay--hidden", !postFxEnabled && !brushAvailable);
+            postFxOverlay?.EnableInClassList("sprite-editor-post-fx-overlay--hidden", !postFxEnabled && !brushAvailable && !uvEnabled);
+            RefreshUvPanel();
             brushTab?.EnableInClassList("sprite-editor-post-fx-drawer--hidden", !brushAvailable);
             if (brushTab != null) brushTab.text = brushesExpanded ? "›" : "‹";
             brushDrawer?.EnableInClassList("sprite-editor-post-fx-drawer--hidden", !brushAvailable || !brushesExpanded);

@@ -85,6 +85,12 @@ namespace DCFApixels.SpriteEditor
                 SpriteEditorUI.ConsumeEvent(evt);
                 owner.Focus(); target.Focus();
                 if (evt.button == 1) { RemoveVertex(); return; }
+                if (owner.IsUvSelectionTool)
+                {
+                    owner.SelectUvIsland(evt.localPosition, evt.shiftKey && evt.altKey ? SelectionCombine.Intersect :
+                        evt.shiftKey ? SelectionCombine.Add : evt.altKey ? SelectionCombine.Subtract : owner.areaSelectionMode);
+                    return;
+                }
                 if (!HasGesture)
                 {
                     combine = evt.shiftKey && evt.altKey ? SelectionCombine.Intersect : evt.shiftKey ? SelectionCombine.Add :
@@ -110,6 +116,8 @@ namespace DCFApixels.SpriteEditor
             }
             private void Move(PointerMoveEvent evt)
             {
+                if (owner.IsUvSelectionTool && evt.pressedButtons == 0)
+                    owner.SetUvHovered(owner.PickUvIsland(evt.localPosition));
                 if (!owner.IsAreaSelectionTool || !HasGesture || owner.compositor == null ||
                     (owner.previewZoomManipulator?.IsNavigating ?? false)) return;
                 if (RectangleDragging && (evt.pointerId != pointer || (evt.pressedButtons & 1) == 0)) { Cancel(); return; }

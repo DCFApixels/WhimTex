@@ -34,6 +34,40 @@ You can also hold:
 `Ctrl+A` selects the whole canvas. `Ctrl+Shift+I` selects the opposite area.
 `Ctrl+D` removes the selection so you can paint everywhere again.
 
+## Select UV islands
+
+Use a model's UV layout to paint individual parts of its texture:
+
+1. Enable **UV** in the preview footer and assign a **Mesh**. Expand the model asset in Project to find its meshes.
+2. Choose **UV Channel** (usually **UV0**) and optionally a **Submesh** to show one material slot.
+3. Hold or drag **Area Select** (`M`) and release over **UV Island**, or click **Select UV Islands** in the UV panel.
+4. Click anywhere inside an island. `Shift` adds islands, `Alt` subtracts, and `Shift+Alt` intersects.
+5. Switch to Brush, Pencil or Fill to work inside the selected area. Copy and cut work with the same selection; `Ctrl+D` clears it.
+
+Only island boundaries are drawn, including holes; triangle diagonals are hidden. Small dots and hover highlights appear only in UV Island mode, so they do not intercept brush strokes. Holes remain outside the selection.
+
+The Mesh reference and channel/submesh choices are saved with the document. **Line Color** and **Opacity** control the overlay. Close the side panel to keep drawing with the outlines visible; disable **UV** to hide them without clearing the selection. The overlay is never included in saved texture pixels or exports and does not edit the mesh.
+
+Only the **0–1 UV tile** on the main canvas is shown and selectable, including when Tiled preview is enabled. If islands overlap, they share the same texture pixels: painting changes every model surface using those coordinates. Clicking an overlap consistently chooses the first matching island. **Refresh UV** reloads the layout if a procedural mesh changed without updating its asset.
+
+## Fill from existing texture details
+
+Select the area to rebuild, then click **Content-Aware Fill** above the canvas while a selection tool is active.
+It reuses details already in the image: useful for filling holes, extending texture patterns and touching up UV borders, not for inventing new objects.
+
+1. Choose **Source**: **Visible Composition**, or **Selected Layer** (the layer selected when the fill window opened).
+2. Set **Fill Area** to **Entire Selection**, or **Inner Border**. **Border Width (px)** fills a strip inward from the selection contour, leaving the center and everything outside untouched.
+3. Enable **Transparent Only** to keep visible pixels and fill only empty areas.
+4. Choose where to sample: **Nearby** with **Sampling Distance (px)**, **Whole Image**, or **Custom Selection**. For a custom source, make another selection in the main window, then click **Use Current Selection as Sampling Area**. Your original fill area stays fixed.
+5. Click **Preview**. Compare with **Show Before**, or try **New Variation**. Higher **Quality** takes longer.
+6. Click **Apply** to add the filled pixels as a new Drawing layer above the stack. **Cancel** stops processing without changing the document.
+
+Sampling Distance only changes where details are borrowed from; it does not expand the fill area. Keep unwanted objects out of the sampling region. Source pixels must be visible and outside the pixels being filled; the untouched center of an Inner Border can also supply details.
+
+Enable **Invert Selection** to fill outside the captured selection instead. Inversion happens before **Inner Border**, so its strip follows the inverted area (including the canvas boundary). The selection on the canvas and a custom sampling selection stay unchanged. Selecting the entire canvas and then inverting leaves nothing to fill.
+
+This is a flat-texture operation: it does not match corresponding edges across a model's 3D seams. Large or very structured missing areas may need smaller selections and several passes. The selection and sampling region's combined bounding rectangle is limited to 4 million pixels per pass. If the source changes while the window is open, generate a fresh preview before applying.
+
 ## Select a layer on the canvas
 
 Choose **Layer Select** (`V`, formerly No Tool) and click the image. The topmost layer whose alpha

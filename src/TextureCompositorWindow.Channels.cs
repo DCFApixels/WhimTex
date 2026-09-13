@@ -37,6 +37,7 @@ namespace DCFApixels.SpriteEditor
             footer.Add(channels);
             channels.Add(BuildLiveOutputButton());
             channels.Add(BuildPostFxButton());
+            channels.Add(BuildUvButton());
             channels.Add(SpriteEditorColorInputs.CreateToggleControl());
             var exposure = new FloatField("EV") { value = previewExposure, tooltip = "Preview exposure only, in stops. Does not affect painting, fill sampling or export." };
             exposure.AddToClassList("sprite-editor-preview-exposure");

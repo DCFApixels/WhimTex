@@ -2013,3 +2013,27 @@
     background-color: #2e619e;
     color: #eeeeee;
 }
+.sprite-editor-content-fill {
+    padding: 8px;
+}
+.sprite-editor-content-fill-field {
+    margin-bottom: 3px;
+}
+.sprite-editor-content-fill-message {
+    white-space: normal;
+    margin-top: 5px;
+    margin-bottom: 7px;
+}
+.sprite-editor-content-fill-preview {
+    flex-grow: 1;
+    min-height: 140px;
+    background-color: rgb(30, 30, 30);
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
+.sprite-editor-content-fill-actions {
+    flex-direction: row;
+}
+.sprite-editor-content-fill-actions > Button {
+    flex-grow: 1;
+}

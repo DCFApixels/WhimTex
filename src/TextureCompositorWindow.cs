@@ -145,6 +145,9 @@ namespace DCFApixels.SpriteEditor
             postFxEnabled = false;
             postFxExpanded = true;
             brushesExpanded = false;
+            uvEnabled = uvExpanded = false;
+            uvLineColor = new Color(.35f, .85f, 1f, 1f);
+            uvLineOpacity = .65f;
             postFxSettings = new PostFxPreviewSettings();
             postFxMessage = null;
             postFxFailed = false;
@@ -205,6 +208,7 @@ namespace DCFApixels.SpriteEditor
 
         private void OnDisable()
         {
+            uvMap = null; uvCachedMesh = null; uvCachedDocument = null;
             SpriteEditorApi.CloseLiveSession(agentSessionId);
             ReleaseBrushStrokePreview();
             EditorApplication.delayCall -= RestoreBrushTipAfterReload;

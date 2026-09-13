@@ -253,6 +253,7 @@ namespace DCFApixels.SpriteEditor
             BuildPreviewTransformTool();
             previewEyedropper = new PreviewEyedropperManipulator(this);
             toolkitPreviewCanvas.AddManipulator(previewEyedropper);
+            BuildUvOverlay();
             BuildAreaSelectionTools();
             BuildShapeTool();
             toolkitPreviewCanvas.RegisterCallback<PointerDownEvent>(OnPreviewPointerDown);
@@ -1592,7 +1593,9 @@ namespace DCFApixels.SpriteEditor
                 }
                 else if (IsAreaSelectionTool)
                 {
-                    toolkitPreviewFooter.text = previewTool == PreviewTool.RectangleSelect
+                    toolkitPreviewFooter.text = IsUvSelectionTool
+                        ? "Click UV island • Shift add • Alt subtract • Ctrl+C copy • Ctrl+D deselect"
+                        : previewTool == PreviewTool.RectangleSelect
                         ? "Drag select • Shift add • Alt subtract • Ctrl+C copy • Ctrl+V paste • Ctrl+D deselect"
                         : "Click vertices • Enter/double-click close • Backspace remove vertex • Esc cancel • Ctrl+D deselect";
                 }
