@@ -14,6 +14,7 @@ namespace DCFApixels.SpriteEditor
 
         public int width = 512;
         public int height = 512;
+        public FilterMode outputFilter = FilterMode.Bilinear;
         [SerializeField, HideInInspector] internal Mesh uvReferenceMesh;
         [SerializeField, HideInInspector] internal int uvReferenceChannel;
         [SerializeField, HideInInspector] internal int uvReferenceSubmesh = -1;
@@ -328,6 +329,8 @@ namespace DCFApixels.SpriteEditor
         {
             width = Mathf.Clamp(width, MinimumOutputSize, MaximumOutputSize);
             height = Mathf.Clamp(height, MinimumOutputSize, MaximumOutputSize);
+            if (outputFilter != FilterMode.Point && outputFilter != FilterMode.Bilinear && outputFilter != FilterMode.Trilinear)
+                outputFilter = FilterMode.Bilinear;
             layers ??= new List<Layer>();
             HashSet<string> usedIds = new HashSet<string>();
             NormalizeLayers(layers, usedIds);
@@ -399,7 +402,7 @@ namespace DCFApixels.SpriteEditor
             Texture2D texture = new Texture2D(source.width, source.height, TextureFormat.RGBA32, false)
             {
                 hideFlags = HideFlags.HideAndDontSave,
-                filterMode = FilterMode.Bilinear,
+                filterMode = source.filterMode,
                 wrapMode = TextureWrapMode.Clamp
             };
             try
@@ -432,7 +435,9 @@ namespace DCFApixels.SpriteEditor
             RenderTexture composite = RenderComposite(outputWidth, outputHeight, scaleMultiplier);
             try
             {
-                return HdrUtility.ReadLinear(composite);
+                Texture2D result = HdrUtility.ReadLinear(composite);
+                result.filterMode = outputFilter;
+                return result;
             }
             finally
             {
@@ -462,6 +467,7 @@ namespace DCFApixels.SpriteEditor
                     scaleMultiplier,
                     new HashSet<Layer>());
                 EndDiagnostics();
+                accumulator.filterMode = outputFilter;
                 return accumulator;
             }
             catch

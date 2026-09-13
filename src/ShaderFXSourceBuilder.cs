@@ -155,6 +155,46 @@ namespace DCFApixels.SpriteEditor
             return result.ToString();
         }
 
+        internal static string ExportIncludes(string source, string sourcePath)
+        {
+            var builder = new ShaderFXSourceBuilder();
+            var active = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            int characters = 0;
+            string Expand(string text, string path, int depth)
+            {
+                if (depth > 32 || !active.Add(path)) throw new IOException("Cyclic or excessively nested shader includes cannot be exported.");
+                characters += text.Length;
+                if (characters > MaximumCharacters) throw new IOException("Exported HLSL exceeds 2 MiB.");
+                var result = new StringBuilder();
+                using var reader = new StringReader(text);
+                bool block = false;
+                string line;
+                while ((line = reader.ReadLine()) != null)
+                {
+                    var include = Include.Match(MaskComments(line, ref block));
+                    if (include.Success)
+                    {
+                        string requested = include.Groups[2].Value;
+                        string resolved = builder.Resolve(requested, path);
+                        string physical = builder.PhysicalPath(resolved);
+                        if (File.Exists(physical))
+                        {
+                            if (new FileInfo(physical).Length > MaximumCharacters) throw new IOException("Included HLSL exceeds 2 MiB.");
+                            result.AppendLine(Expand(File.ReadAllText(physical), resolved, depth + 1));
+                            continue;
+                        }
+                        if (requested.StartsWith(".", StringComparison.Ordinal) || requested.StartsWith("Assets/", StringComparison.Ordinal) || requested.StartsWith("Packages/", StringComparison.Ordinal))
+                            throw new IOException("Missing shader include: " + resolved);
+                        // Engine includes (UnityCG.cginc etc.) remain engine dependencies.
+                    }
+                    result.AppendLine(line);
+                }
+                active.Remove(path);
+                return result.ToString();
+            }
+            return Expand(source, sourcePath, 0);
+        }
+
         private string Resolve(string requested, string sourcePath)
         {
             requested = requested.Replace('\\', '/');
@@ -163,6 +203,14 @@ namespace DCFApixels.SpriteEditor
                 throw new InvalidOperationException($"Use a project, package or relative library path: {requested}.");
             string relative = requested.StartsWith("Assets/", StringComparison.Ordinal) || requested.StartsWith("Packages/", StringComparison.Ordinal)
                 ? requested : Path.GetDirectoryName(sourcePath).Replace('\\', '/') + "/" + requested;
+            if (Path.IsPathRooted(sourcePath) && !requested.StartsWith("Assets/", StringComparison.Ordinal) &&
+                !requested.StartsWith("Packages/", StringComparison.Ordinal))
+            {
+                string userPath = Path.GetFullPath(relative);
+                if (!PresetLibraryPaths.IsInside(userPath, ShaderFXCatalog.Folder))
+                    throw new InvalidOperationException($"Library path escapes the user ShaderFX folder: {requested}.");
+                return userPath.Replace('\\', '/');
+            }
             string absolute = Path.GetFullPath(Path.Combine(projectRoot, relative));
             string prefix = Path.GetFullPath(projectRoot).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
             if (!absolute.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))

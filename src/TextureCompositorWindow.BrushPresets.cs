@@ -48,11 +48,12 @@ namespace DCFApixels.SpriteEditor
                 foreach (string path in paths)
                 {
                     string selected = path;
-                    menu.AddItem(new GUIContent(Path.GetFileNameWithoutExtension(path)), path == selectedBrushPreset,
+                    menu.AddItem(new GUIContent(BrushPresetLibrary.MenuLabel(path), path), path == selectedBrushPreset,
                         () => LoadBrushPreset(selected));
                 }
                 menu.AddSeparator("");
                 menu.AddItem(new GUIContent("Save As…"), false, SaveBrushPresetAs);
+                menu.AddItem(new GUIContent("Save to Project…"), false, () => SaveBrushPresetAs(true));
                 bool canOverwrite = !string.IsNullOrEmpty(selectedBrushPreset) && File.Exists(selectedBrushPreset);
                 if (canOverwrite)
                 {
@@ -92,11 +93,17 @@ namespace DCFApixels.SpriteEditor
 
         private void SaveBrushPresetAs()
         {
+            SaveBrushPresetAs(false);
+        }
+
+        private void SaveBrushPresetAs(bool project)
+        {
             try
             {
-                Directory.CreateDirectory(BrushPresetLibrary.Folder);
+                string folder = project ? Application.dataPath : BrushPresetLibrary.Folder;
+                Directory.CreateDirectory(folder);
                 string name = string.IsNullOrEmpty(selectedBrushPreset) ? "Brush" : Path.GetFileNameWithoutExtension(selectedBrushPreset);
-                string path = EditorUtility.SaveFilePanel("Save Brush Preset", BrushPresetLibrary.Folder, name, BrushPresetLibrary.Extension);
+                string path = EditorUtility.SaveFilePanel("Save Brush Preset", folder, name, BrushPresetLibrary.Extension);
                 if (!string.IsNullOrEmpty(path)) SaveBrushPreset(path);
             }
             catch (Exception exception) { ShowBrushPresetError(exception); }

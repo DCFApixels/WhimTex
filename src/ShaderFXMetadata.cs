@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text.RegularExpressions;
+using UnityEditor;
 using UnityEngine;
 
 namespace DCFApixels.SpriteEditor
@@ -77,12 +78,36 @@ namespace DCFApixels.SpriteEditor
                             p.type = kind == "color" ? ShaderFXParameterType.Color : ShaderFXParameterType.Vector;
                             p.colorValue = new Color(p.vectorValue.x, p.vectorValue.y, p.vectorValue.z, p.vectorValue.w);
                             break;
-                        case "texture2D": p.type = ShaderFXParameterType.Texture2D; break;
-                        case "transform2D": p.type = ShaderFXParameterType.Transform2D; break;
+                        case "texture2D":
+                            p.type = ShaderFXParameterType.Texture2D;
+                            if (value.Length != 0)
+                            {
+                                var reference = Regex.Match(value, "^\"guid:([0-9a-fA-F]{32}):(-?[0-9]+)\"$");
+                                if (!reference.Success || !long.TryParse(reference.Groups[2].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out long localId))
+                                    throw new FormatException("Expected a texture reference: \"guid:<asset GUID>:<local file ID>\".");
+                                string path = AssetDatabase.GUIDToAssetPath(reference.Groups[1].Value);
+                                if (!string.IsNullOrEmpty(path))
+                                    foreach (var asset in AssetDatabase.LoadAllAssetsAtPath(path))
+                                        if (asset is Texture2D texture && AssetDatabase.TryGetGUIDAndLocalFileIdentifier(texture, out string _, out long id) && id == localId)
+                                        { p.textureValue = texture; break; }
+                            }
+                            break;
+                        case "transform2D":
+                            p.type = ShaderFXParameterType.Transform2D;
+                            if (value.Length != 0)
+                            {
+                                if (!value.StartsWith("(") || !value.EndsWith(")")) throw new FormatException("Expected (x, y, width, height, angle).");
+                                string[] components = value.Substring(1, value.Length - 2).Split(',');
+                                if (components.Length != 5) throw new FormatException("Expected five transform components.");
+                                p.transformValue = new ShaderFXTransform
+                                {
+                                    position = new Vector2(Number(components[0]), Number(components[1])),
+                                    size = new Vector2(Number(components[2]), Number(components[3])), rotation = Number(components[4])
+                                };
+                            }
+                            break;
                     }
                     if (kind != "float" && bounded) throw new FormatException("Ranges apply only to float parameters.");
-                    if ((kind == "texture2D" || kind == "transform2D") && value.Length != 0)
-                        throw new FormatException("Texture and transform parameters use implicit defaults; omit '= value'.");
                     result.Add(p);
                     if (result.Count > 128) throw new FormatException("At most 128 parameters are supported.");
                 }

@@ -22,7 +22,7 @@ to see changes in your scene as you paint, or export when you need a separate im
 [English user guide](en/index.md){: .btn .btn-primary }
 [Руководство на русском](ru/index.md){: .btn }
 
-<img class="hero-image" src="{{ '/Images/sprite-editor-heart.jpg' | relative_url }}" alt="WhimTex showing a layered heart in Tiled preview" width="720">
+<img class="hero-image" src="{{ '/Images/whimtex-heart.png' | relative_url }}" alt="WhimTex showing a layered heart with a gradient, outline, highlight and SDF rim light" width="720">
 
 ## Choose your starting point
 

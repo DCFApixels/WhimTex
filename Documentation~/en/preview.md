@@ -16,6 +16,15 @@ Changing the view does not resize the document.
 
 In the footer, **Live Quality**, **Live Update**, **Post FX** and **UV** are on the left. **HDR**, **EV**, **Debug** and **RGBA** are on the right, with tool hints between them.
 
+## Image filtering
+
+**Canvas → Filter** selects the final image's filtering: **Point** keeps pixels crisp,
+**Bilinear** smooths pixel transitions, and **Trilinear** also blends mip levels when
+available. This does not enable mipmaps. The setting is saved with the document and
+applies to its output texture, Live Update and images exported into project Assets.
+PNG/JPEG/EXR files themselves do not store a sampling mode for other applications.
+Pencil temporarily shows the preview with Point filtering without changing this setting.
+
 ## Move around
 
 - Hold the mouse wheel and drag to pan.

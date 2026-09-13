@@ -39,7 +39,7 @@ namespace DCFApixels.SpriteEditor
             left.Add(context);
             footer.RegisterCallback<GeometryChangedEvent>(evt =>
                 footer.EnableInClassList("sprite-editor-preview-footer--compact", evt.newRect.width < 600f));
-            toolkitPreviewFooter = new Label();
+            toolkitPreviewFooter = new PreviewFooterHintLabel();
             toolkitPreviewFooter.AddToClassList("sprite-editor-preview-status");
             footer.Add(toolkitPreviewFooter);
             var right = new VisualElement { name = "previewFooterRight" };
@@ -104,6 +104,33 @@ namespace DCFApixels.SpriteEditor
             group.AddToClassList("sprite-editor-preview-footer-group");
             if (separated) group.AddToClassList("sprite-editor-preview-footer-group--separated");
             return group;
+        }
+
+        private sealed class PreviewFooterHintLabel : Label
+        {
+            private string measuredText;
+            private float measuredWidth;
+
+            public PreviewFooterHintLabel()
+            {
+                RegisterCallback<GeometryChangedEvent>(_ =>
+                {
+                    measuredText = null;
+                    RefreshVisibility();
+                });
+            }
+
+            public void RefreshVisibility()
+            {
+                if (panel == null) return;
+                if (measuredText != text)
+                {
+                    measuredWidth = MeasureTextSize(text, 0, MeasureMode.Undefined, 0, MeasureMode.Undefined).x;
+                    measuredText = text;
+                }
+                EnableInClassList("sprite-editor-preview-status--hidden",
+                    string.IsNullOrEmpty(text) || !(measuredWidth <= contentRect.width));
+            }
         }
 
         private VisualElement BuildPreviewQualityControl()

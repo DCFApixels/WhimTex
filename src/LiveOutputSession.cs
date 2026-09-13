@@ -9,6 +9,7 @@ namespace DCFApixels.SpriteEditor
     internal sealed class LiveOutputSession : IDisposable
     {
         private readonly Texture2D target;
+        private readonly FilterMode savedFilter;
         private RenderTexture staging;
         private bool published;
 
@@ -22,9 +23,15 @@ namespace DCFApixels.SpriteEditor
                 target.format != TextureFormat.RGBAFloat)
                 throw new InvalidOperationException("Save the compositor again to update its output texture format.");
             this.target = target;
+            savedFilter = target.filterMode;
         }
 
         internal bool Matches(Texture2D texture) => target == texture;
+
+        internal void SetFilter(FilterMode filter)
+        {
+            if (target != null) target.filterMode = filter;
+        }
 
         internal void Publish(RenderTexture source)
         {
@@ -96,6 +103,7 @@ namespace DCFApixels.SpriteEditor
             }
             finally
             {
+                if (target != null) target.filterMode = savedFilter;
                 published = false;
                 ReleaseStaging();
                 SceneView.RepaintAll();

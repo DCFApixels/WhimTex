@@ -148,7 +148,7 @@ namespace DCFApixels.SpriteEditor
             defaultFolder.AddToClassList("sprite-editor-user-settings-folder-button");
             folderRow.Add(defaultFolder);
             scroll.Add(folderRow);
-            var folderNote = new Label("Shared across projects. Brush presets are stored in the Brushes subfolder. Changing the path does not move files.");
+            var folderNote = new Label("Shared across projects. Brushes and Shader FX use the Brushes and ShaderFX subfolders. Presets in the project are also available. Changing the path does not move files.");
             folderNote.AddToClassList("sprite-editor-user-settings-note");
             scroll.Add(folderNote);
             AddHeading(scroll, "Reset Settings");

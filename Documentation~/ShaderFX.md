@@ -63,6 +63,18 @@ Included files remain external dependencies even after embedding.
 Standalone Shader FX assets also appear in the catalog and are copied, not shared.
 The legacy **+ Reference** workflow is unchanged. ShaderLab shaders are not auto-enrolled by this HLSL catalog.
 
+The user library's `ShaderFX` subfolder is also scanned recursively when opening the catalog.
+The same first-line marker is required. These external presets are embedded copies, not GUID-linked
+sources. Custom includes are expanded when adding a user preset; Unity includes stay external.
+Relative includes in a user preset must stay within the configured `ShaderFX` folder.
+Project/catalog discovery still uses AssetDatabase and import notifications.
+
+**Save HLSL Preset…** exports the current code with parameter declarations rewritten to current
+values, retaining float bounds and existing categories; the file name supplies the last category segment.
+Manual parameters are emitted as declarations too. Custom includes are expanded for portability
+(cyclic or oversized include trees are rejected). Engine includes remain external. Files can be saved
+under user `ShaderFX` or project `Assets`. Existing effects are not detached or switched to the saved file.
+
 ### Parameter declarations
 
 ```hlsl
@@ -74,10 +86,15 @@ The legacy **+ Reference** workflow is unchanged. ShaderLab shaders are not auto
 // @param color _Tint = (1, 1, 1, 1)
 // @param texture2D _Mask
 // @param transform2D _Area
+// @param transform2D _PlacedArea = (0.5, 0.5, 0.75, 0.75, 30)
 ```
 
 No semicolons on metadata lines. Float/vector/color declarations require a finite default; defaults
-outside the declared range are errors. Texture defaults to white; Transform2D defaults to the whole input.
+outside the declared range are errors. With no initializer, Texture defaults to white and Transform2D
+to the whole input. Transform2D accepts `(x, y, width, height, angleDegrees)` in normalized input units.
+Texture2D accepts `= "guid:<32-digit asset GUID>:<local file ID>"`; the exporter uses this form for
+assigned textures, including texture subassets. It requires persistent texture assets. A texture
+reference absent from the current project falls back to white; the image is not embedded in HLSL.
 Two distinct range boundaries produce a slider with numeric input; one boundary produces a limited
 numeric field. Equal boundaries fix the number. Ranges apply only to floats.
 Labels are derived from names: `_NoiseScale` becomes **Noise Scale**. `float4` is four raw components;

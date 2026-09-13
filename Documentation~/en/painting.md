@@ -114,6 +114,12 @@ tip, so you can copy it to another computer's Brushes folder without importing t
 texture. Overwriting keeps the previous file as `.sebrush.bak`; to restore it, rename that
 backup to a different name ending in `.sebrush`.
 
+The selector also finds `.sebrush` files anywhere in the project's **Assets** or installed
+packages. Use **Save to Project…** in the selector menu, or copy a preset into an Assets
+folder to share it with the project. **User** and **Project** keep the two sources distinct;
+subfolders are supported. Presets supplied by packages can be used, but save your changes
+as a new user or project preset.
+
 ## Color and erasing
 
 

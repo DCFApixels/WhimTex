@@ -21,7 +21,7 @@ namespace DCFApixels.SpriteEditor
         [NonSerialized] private ScrollView toolkitSettingsScroll;
         [NonSerialized] private VisualElement toolkitLayerFooter;
         [NonSerialized] private SpritePreviewElement toolkitPreviewCanvas;
-        [NonSerialized] private Label toolkitPreviewFooter;
+        [NonSerialized] private PreviewFooterHintLabel toolkitPreviewFooter;
         [NonSerialized] private VisualElement toolkitPreviewErrorRoot;
         [NonSerialized] private ObjectField toolkitDocumentField;
         [NonSerialized] private VisualElement toolkitLayerHierarchyRoot;
@@ -424,6 +424,17 @@ namespace DCFApixels.SpriteEditor
                     ApplyToolkitChange("Change Sprite Canvas Height", () => compositor.height = value);
             });
             toolkitCanvasToolbar.Add(height);
+            var filter = new EnumField("Filter", compositor.outputFilter) { name = "canvasOutputFilter" };
+            filter.AddToClassList("sprite-editor-canvas-filter");
+            filter.tooltip = "Final image filtering, saved with the document. Point keeps pixels sharp; Bilinear smooths them. Trilinear blends mip levels when available (this does not generate mipmaps). Pencil temporarily uses Point in the preview only.";
+            toolkitSettingsBindings.Track(filter, () => (Enum)compositor.outputFilter);
+            filter.RegisterValueChangedCallback(evt =>
+            {
+                var value = (FilterMode)evt.newValue;
+                if (compositor.outputFilter != value)
+                    ApplyToolkitChange("Change Canvas Filter", () => compositor.outputFilter = value);
+            });
+            toolkitCanvasToolbar.Add(filter);
             AddTiledPreviewControl();
 
             toolkitPreviewActions = new VisualElement();
@@ -1622,6 +1633,7 @@ namespace DCFApixels.SpriteEditor
                         ? (tiledPreview ? "Tiled canvas • seamless brush and eraser • auto refresh" : "Transparent canvas • auto refresh")
                         : "Rendering preview…";
                 }
+                toolkitPreviewFooter.RefreshVisibility();
             }
         }
 

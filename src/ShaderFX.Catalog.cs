@@ -79,11 +79,13 @@ namespace DCFApixels.SpriteEditor
                 }
                 catch { DestroyImmediate(copy); throw; }
             }
-            var effect = CreateAgentDraft(owner, ShaderFXCatalog.ReadSource(entry.path), new List<ShaderFXParameter>());
+            string source = ShaderFXCatalog.ReadSource(entry.path);
+            if (entry.user) source = ShaderFXSourceBuilder.ExportIncludes(source, entry.path);
+            var effect = CreateAgentDraft(owner, source, new List<ShaderFXParameter>());
             effect.name = entry.menuPath.Substring(entry.menuPath.LastIndexOf('/') + 1);
-            effect.catalogGuid = entry.guid;
-            effect.catalogSourcePath = entry.path;
-            effect.catalogDependencyHash = effect.CatalogHash(entry.path);
+            effect.catalogGuid = entry.user ? null : entry.guid;
+            effect.catalogSourcePath = entry.user ? null : entry.path;
+            effect.catalogDependencyHash = entry.user ? null : effect.CatalogHash(entry.path);
             try { effect.ApplyAgentDraft(); return effect; }
             catch { DestroyImmediate(effect); throw; }
         }

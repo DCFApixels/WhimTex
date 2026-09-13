@@ -38,7 +38,7 @@ Save the editable composition and its ready-to-use texture in one asset. Assign 
 and enable **Live Update** to see edits in your scene; export a separate image only when you need one.
 
 <p align="center">
-  <a href="Documentation~/Images/sprite-editor-heart.jpg"><img src="Documentation~/Images/sprite-editor-heart.jpg" alt="WhimTex with the Heart document in tiled painting mode" width="720"></a>
+  <a href="Documentation~/Images/whimtex-heart.png"><img src="Documentation~/Images/whimtex-heart.png" alt="WhimTex showing a layered heart with a gradient, outline, highlight and SDF rim light" width="720"></a>
 </p>
 
 > [!NOTE]

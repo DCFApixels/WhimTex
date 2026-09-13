@@ -22,6 +22,14 @@ try
         Check(color.childCount==4,"RGBA in separate group");
         for(int i=0;i<4;i++)Check(((UnityEngine.UIElements.Button)color[i]).text==new[]{"R","G","B","A"}[i],"RGBA order unchanged");
         Check(footer.ClassListContains("sprite-editor-preview-footer--compact")== (width<600),"Compact breakpoint");
+        var hint=(UnityEngine.UIElements.Label)footer[1];
+        var refreshHint=hint.GetType().GetMethod("RefreshVisibility");
+        foreach(string text in new[]{"Add a layer to start",new string('W',300),"", "Ready"})
+        {
+            hint.text=text;refreshHint.Invoke(hint,null);
+            float required=hint.MeasureTextSize(text,0,UnityEngine.UIElements.VisualElement.MeasureMode.Undefined,0,UnityEngine.UIElements.VisualElement.MeasureMode.Undefined).x;
+            Check(hint.ClassListContains("sprite-editor-preview-status--hidden") == (text.Length==0||!(required<=hint.contentRect.width)),"Hide the entire hint only when empty or too wide");
+        }
         foreach(var group in new[]{updates,context,inspection,color})
         {
             Check(group.worldBound.xMin>=footer.worldBound.xMin-.1f&&group.worldBound.xMax<=footer.worldBound.xMax+.1f,"Group fits horizontally at "+width+": "+group.name);

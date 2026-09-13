@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.IO.Compression;
+using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 
@@ -37,10 +38,31 @@ namespace DCFApixels.SpriteEditor
 
         internal static string[] List()
         {
-            if (!Directory.Exists(Folder)) return Array.Empty<string>();
-            string[] files = Directory.GetFiles(Folder, "*." + Extension, SearchOption.TopDirectoryOnly);
+            var paths = new HashSet<string>(Application.platform == RuntimePlatform.WindowsEditor ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+            foreach (string path in PresetLibraryPaths.ProjectFiles(Extension)) paths.Add(PresetLibraryPaths.PhysicalPath(path));
+            foreach (string path in PresetLibraryPaths.UserFiles(Folder, Extension)) paths.Add(Path.GetFullPath(path));
+            string[] files = new string[paths.Count];
+            paths.CopyTo(files);
             Array.Sort(files, StringComparer.OrdinalIgnoreCase);
             return files;
+        }
+
+        internal static string MenuLabel(string path)
+        {
+            string label;
+            if (PresetLibraryPaths.IsInside(path, Folder))
+                label = "User/" + Path.GetRelativePath(Folder, path).Replace('\\', '/');
+            else
+            {
+                string assetPath = PresetLibraryPaths.AssetPath(path);
+                if (assetPath == null)
+                    foreach (string candidate in PresetLibraryPaths.ProjectFiles(Extension))
+                        if (string.Equals(PresetLibraryPaths.PhysicalPath(candidate), path,
+                            Application.platform == RuntimePlatform.WindowsEditor ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
+                        { assetPath = candidate; break; }
+                label = "Project/" + (assetPath ?? Path.GetFileName(path));
+            }
+            return label.Substring(0, label.Length - Path.GetExtension(path).Length);
         }
 
         internal static void Save(string path, PaintToolSettings settings, bool overwrite)
@@ -52,7 +74,7 @@ namespace DCFApixels.SpriteEditor
             byte[] pixels = CaptureTip(settings.dynamics.tip, preset);
             byte[] json = Encoding.UTF8.GetBytes(JsonUtility.ToJson(preset));
             if (json.Length > MaxJsonBytes) throw new IOException("Brush settings are too large.");
-            Directory.CreateDirectory(Folder);
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
             string temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
             try
             {
@@ -72,16 +94,12 @@ namespace DCFApixels.SpriteEditor
                 else File.Move(temporary, path);
             }
             finally { if (File.Exists(temporary)) File.Delete(temporary); }
+            PresetLibraryPaths.ImportSavedFile(path);
         }
 
         internal static string ValidateDestination(string path)
         {
-            string full = Path.GetFullPath(path);
-            var comparison = Application.platform == RuntimePlatform.WindowsEditor ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
-            if (!string.Equals(Path.GetDirectoryName(full), Folder, comparison) ||
-                !string.Equals(Path.GetExtension(full), "." + Extension, StringComparison.OrdinalIgnoreCase))
-                throw new IOException("Save brush presets directly inside the Brushes folder using the .sebrush extension.");
-            return full;
+            return PresetLibraryPaths.ValidateDestination(path, Folder, Extension);
         }
 
         internal static Preset Load(string path, out Texture2D tip)

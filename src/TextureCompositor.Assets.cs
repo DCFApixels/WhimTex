@@ -29,6 +29,7 @@ namespace DCFApixels.SpriteEditor
             if (source == null || outputTexture == null || !AssetDatabase.Contains(this)) return;
             if (liveOutput != null && !liveOutput.Matches(outputTexture)) StopLiveOutput();
             liveOutput ??= new LiveOutputSession(outputTexture);
+            liveOutput.SetFilter(outputFilter);
             liveOutput.Publish(source);
             NotifyOutputTextureChanged();
         }
@@ -138,7 +139,6 @@ namespace DCFApixels.SpriteEditor
                 }
                 else
                 {
-                    rendered.filterMode = outputTexture.filterMode;
                     rendered.wrapModeU = outputTexture.wrapModeU;
                     rendered.wrapModeV = outputTexture.wrapModeV;
                     rendered.anisoLevel = outputTexture.anisoLevel;

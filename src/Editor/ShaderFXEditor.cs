@@ -62,6 +62,28 @@ namespace DCFApixels.SpriteEditor
             root.Add(status);
             Button apply = new Button { text = "Apply", tooltip = "Compile the code and parameter declarations; re-read included libraries. Embedded FX save with the document." };
             root.Add(apply);
+            root.Add(new Button(() =>
+            {
+                if (SpriteEditorApi.IsShaderFXContentLocked(effect)) return;
+                root.Focus();
+                serializedObject.ApplyModifiedProperties();
+                try
+                {
+                    System.IO.Directory.CreateDirectory(ShaderFXCatalog.Folder);
+                    string path = EditorUtility.SaveFilePanel("Save HLSL Preset", ShaderFXCatalog.Folder, effect.name, "hlsl");
+                    if (string.IsNullOrEmpty(path)) return;
+                    bool overwrite = System.IO.File.Exists(path);
+                    if (overwrite && !EditorUtility.DisplayDialog("Overwrite HLSL Preset", "Replace this preset? A .bak copy will be kept.", "Overwrite", "Cancel")) return;
+                    ShaderFXPresetWriter.Save(path, effect, overwrite);
+                    status.messageType = HelpBoxMessageType.Info;
+                    status.text = "HLSL preset saved. Find it in + Preset.";
+                }
+                catch (System.Exception error) { EditorUtility.DisplayDialog("Shader FX Presets", error.Message, "OK"); }
+            })
+            {
+                text = "Save HLSL Preset…",
+                tooltip = "Save code with current parameter values as defaults in the user ShaderFX folder or project Assets. Texture defaults reference project assets; they are not embedded."
+            });
 
             TextField diagnostics = new TextField
             {

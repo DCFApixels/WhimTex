@@ -1238,7 +1238,7 @@ namespace DCFApixels.SpriteEditor
             return true;
         }
 
-        private static void ImportExportedTextureIfNeeded(string path, bool asSprite)
+        private void ImportExportedTextureIfNeeded(string path, bool asSprite)
         {
             string fullPath = Path.GetFullPath(path).Replace('\\', '/');
             string assetsPath = Path.GetFullPath(Application.dataPath).Replace('\\', '/');
@@ -1256,7 +1256,7 @@ namespace DCFApixels.SpriteEditor
                 importer.alphaIsTransparency = asSprite;
                 importer.mipmapEnabled = false;
                 importer.wrapMode = TextureWrapMode.Clamp;
-                importer.filterMode = FilterMode.Bilinear;
+                importer.filterMode = compositor != null ? compositor.outputFilter : FilterMode.Bilinear;
                 importer.SaveAndReimport();
             }
 

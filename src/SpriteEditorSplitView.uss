@@ -920,6 +920,18 @@
     flex-shrink: 1;
 }
 
+.sprite-editor-canvas-filter {
+    flex-basis: 142px;
+    min-width: 122px;
+    flex-shrink: 1;
+}
+
+.sprite-editor-canvas-filter > .unity-base-field__label {
+    min-width: 34px;
+    width: 34px;
+    flex-shrink: 0;
+}
+
 .sprite-editor-eyedropper-lens {
     position: absolute;
     left: 0;
@@ -1595,9 +1607,12 @@
     flex-shrink: 1;
     min-width: 0;
     overflow: hidden;
-    text-overflow: ellipsis;
     -unity-text-align: middle-center;
     font-size: 10px;
+}
+
+.sprite-editor-preview-status--hidden {
+    visibility: hidden;
 }
 
 .sprite-editor-preview-quality {

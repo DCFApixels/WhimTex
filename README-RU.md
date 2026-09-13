@@ -39,7 +39,7 @@
 только когда оно нужно.
 
 <p align="center">
-  <a href="Documentation~/Images/sprite-editor-heart.jpg"><img src="Documentation~/Images/sprite-editor-heart.jpg" alt="WhimTex с документом Heart в режиме тайлового рисования" width="720"></a>
+  <a href="Documentation~/Images/whimtex-heart.png"><img src="Documentation~/Images/whimtex-heart.png" alt="WhimTex: сердечко из слоёв с градиентом, обводкой, бликом и краевой подсветкой через SDF" width="720"></a>
 </p>
 
 > [!NOTE]

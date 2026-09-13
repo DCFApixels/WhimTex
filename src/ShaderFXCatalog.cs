@@ -13,7 +13,10 @@ namespace DCFApixels.SpriteEditor
         {
             internal string guid, path, menuPath, source, error, hash;
             internal ShaderFX asset;
+            internal bool user;
         }
+
+        internal static string Folder => Path.GetFullPath(Path.Combine(SpriteEditorUserSettings.PresetsFolder, "ShaderFX"));
 
         private static readonly Dictionary<string, Entry> entries = new Dictionary<string, Entry>(StringComparer.Ordinal);
         private static bool initialized;
@@ -33,7 +36,7 @@ namespace DCFApixels.SpriteEditor
             return File.ReadAllText(physical);
         }
 
-        private static void Inspect(string path)
+        private static void Inspect(string path, bool user = false)
         {
             entries.Remove(path);
             if (path.EndsWith(".hlsl", StringComparison.OrdinalIgnoreCase))
@@ -49,12 +52,12 @@ namespace DCFApixels.SpriteEditor
                     using var reader = new StreamReader(physical);
                     // Discovery reads only the first physical line of unrelated HLSL files.
                     if (!ShaderFXMetadata.TryHeader(reader.ReadLine(), out string menuPath)) return;
-                    var entry = new Entry { path = path, guid = AssetDatabase.AssetPathToGUID(path), menuPath = menuPath };
+                    var entry = new Entry { path = path, guid = user ? null : AssetDatabase.AssetPathToGUID(path), menuPath = menuPath, user = user };
                     try
                     {
                         entry.source = ReadSource(path);
                         ShaderFXMetadata.Parse(entry.source, true, out _);
-                        entry.hash = AssetDatabase.GetAssetDependencyHash(path).ToString();
+                        entry.hash = user ? Hash128.Compute(entry.source).ToString() : AssetDatabase.GetAssetDependencyHash(path).ToString();
                     }
                     catch (Exception error) { entry.error = error.Message; }
                     entries[path] = entry;
@@ -79,6 +82,12 @@ namespace DCFApixels.SpriteEditor
                     if (path.EndsWith(".hlsl", StringComparison.OrdinalIgnoreCase)) Inspect(path);
                 foreach (string guid in AssetDatabase.FindAssets("t:ShaderFX")) Inspect(AssetDatabase.GUIDToAssetPath(guid));
             }
+            // User files are outside AssetDatabase. Refresh on opening the menu, not every repaint.
+            var stale = new List<string>();
+            foreach (var pair in entries) if (pair.Value.user) stale.Add(pair.Key);
+            foreach (string path in stale) entries.Remove(path);
+            foreach (string path in PresetLibraryPaths.UserFiles(Folder, "hlsl"))
+                if (PresetLibraryPaths.AssetPath(path) == null) Inspect(path, true);
             var list = new List<Entry>(entries.Values);
             list.Sort((a, b) => string.Compare(a.menuPath, b.menuPath, StringComparison.OrdinalIgnoreCase));
             return list;
@@ -92,12 +101,20 @@ namespace DCFApixels.SpriteEditor
             foreach (var entry in list)
             {
                 bool duplicate = false;
-                foreach (var other in list) if (other != entry && other.menuPath == entry.menuPath) { duplicate = true; break; }
-                string label = entry.menuPath + (duplicate ? " (" + entry.path.Replace('/', '›') + ")" : "");
+                string label = (entry.user ? "User/" : "") + entry.menuPath;
+                foreach (var other in list) if (other != entry && (other.user ? "User/" : "") + other.menuPath == label) { duplicate = true; break; }
+                if (duplicate) label += " (" + entry.path.Replace('\\', '›').Replace('/', '›') + ")";
                 var content = new GUIContent(label, entry.error ?? entry.path);
                 if (entry.error != null) menu.AddDisabledItem(content);
                 else menu.AddItem(content, false, () => select(entry));
             }
+            menu.AddSeparator("");
+            menu.AddItem(new GUIContent("Open User Shader FX Folder"), false, () =>
+            {
+                try { Directory.CreateDirectory(Folder); EditorUtility.RevealInFinder(Folder); }
+                catch (Exception error) { EditorUtility.DisplayDialog("Shader FX Presets", error.Message, "OK"); }
+            });
+            menu.AddItem(new GUIContent("Library Settings…"), false, SpriteEditorUserSettingsWindow.Open);
             menu.ShowAsContext();
         }
 

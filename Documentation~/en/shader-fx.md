@@ -19,7 +19,7 @@ You can use an existing effect and adjust its parameters without writing code.
 1. Select the layer you want to change.
 2. Use **+ Preset ▾** in its FX section and choose an effect by category.
 3. Adjust the effect's exposed sliders, colors or textures.
-4. HLSL effects follow their source file. Choose **Embed Copy** if you want to edit their code independently inside the document.
+4. Project HLSL effects follow their source file. Choose **Embed Copy** if you want to edit their code independently inside the document.
 
 Each catalog effect has its own settings. The included **Color → Gain** adjusts brightness and tint;
 **Transform → UV Transform** repositions the incoming image.
@@ -28,6 +28,22 @@ Effects added to the project become available automatically; no preset folder se
 **+ Reference** is still available for choosing an asset manually. Its settings are shared with other
 places using that asset; **Embed** makes an independent copy.
 When several effects are present, their order matters.
+
+## Save your own preset
+
+In the effect's code editor, click **Save HLSL Preset…**. This creates an `.hlsl` file
+with the current parameter values as defaults, including colors and Transform 2D.
+The file name becomes the preset name. You can save in the user library's **ShaderFX**
+subfolder or anywhere under the project's **Assets** folder. Overwriting keeps a `.bak` copy.
+
+Set the shared library location in **User Settings → Presets Folder**. Its **Brushes**
+and **ShaderFX** subfolders hold the two kinds of presets. You can also place existing
+HLSL presets in ShaderFX or its subfolders; reopen **+ Preset** to see them under **User**.
+User presets are copied into the document; later changes to their files do not change
+effects you have already added. Project HLSL effects still follow their source files.
+
+Texture defaults are references, not embedded images. To use them in another project,
+also transfer the referenced texture assets with their `.meta` files, or assign replacements.
 
 ## Adjust an effect on the canvas
 

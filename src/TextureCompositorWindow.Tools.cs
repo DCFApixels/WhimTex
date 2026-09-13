@@ -42,9 +42,10 @@ namespace DCFApixels.SpriteEditor
 
         private void ApplyPreviewTextureFilter()
         {
-            FilterMode filter = previewTool == PreviewTool.Pencil ? FilterMode.Point : FilterMode.Bilinear;
+            FilterMode filter = previewTool == PreviewTool.Pencil ? FilterMode.Point : compositor != null ? compositor.outputFilter : FilterMode.Bilinear;
             if (previewTexture != null) previewTexture.filterMode = filter;
             if (channelPreviewTexture != null) channelPreviewTexture.filterMode = filter;
+            if (postFxTexture != null) postFxTexture.filterMode = filter;
         }
 
         private static PreviewTool ParsePreviewTool(string value)
