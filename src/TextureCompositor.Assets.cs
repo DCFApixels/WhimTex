@@ -16,13 +16,21 @@ namespace DCFApixels.SpriteEditor
         public Sprite OutputSprite => outputSprite;
 
         [NonSerialized] private LiveOutputSession liveOutput;
+        internal static event Action<CompositorOutputChange> OutputTextureChanged;
+
+        private void NotifyOutputTextureChanged()
+        {
+            if (outputTexture != null && OutputTextureChanged != null)
+                OutputTextureChanged.Invoke(new CompositorOutputChange(this));
+        }
 
         internal void PublishLiveOutput(RenderTexture source)
         {
-            if (outputTexture == null || !AssetDatabase.Contains(this)) return;
+            if (source == null || outputTexture == null || !AssetDatabase.Contains(this)) return;
             if (liveOutput != null && !liveOutput.Matches(outputTexture)) StopLiveOutput();
             liveOutput ??= new LiveOutputSession(outputTexture);
             liveOutput.Publish(source);
+            NotifyOutputTextureChanged();
         }
 
         internal void StopLiveOutput()
@@ -30,6 +38,7 @@ namespace DCFApixels.SpriteEditor
             LiveOutputSession previous = liveOutput;
             liveOutput = null;
             previous?.Dispose();
+            if (previous != null) NotifyOutputTextureChanged();
         }
 
         internal bool HasUnsavedAssetChanges()
@@ -164,6 +173,7 @@ namespace DCFApixels.SpriteEditor
                 AssetDatabase.WriteImportSettingsIfDirty(path);
                 AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
                 TextureCompositorProjectPreview.ClearCache();
+                NotifyOutputTextureChanged();
                 Changed?.Invoke(this);
             }
             finally

@@ -15,8 +15,9 @@ assert.match(read('Documentation~/_config.yml'), /^repository: DCFApixels\/WhimT
 assert.equal(JSON.parse(read('src/DCFApixels.SpriteEditor.asmdef')).name, 'DCFApixels.SpriteEditor');
 const window = read('src/TextureCompositorWindow.cs');
 assert.ok(window.includes('[MenuItem("Window/WhimTex")]'));
-assert.match(window, /void OnEnable\(\)\s*\{\s*titleContent = SpriteEditorBranding.WindowTitle\("WhimTex"\)/,
+assert.match(window, /void OnEnable\(\)\s*\{\s*RefreshDocumentTitle\(true\)/,
   'Restored windows update their persisted title without resetting their document');
+assert.match(read('src/TextureCompositorWindow.DocumentTitle.cs'), /SpriteEditorBranding.WindowTitle\(title\)/);
 const commands = read('src/Automation/Pipeline/SpriteEditorCommands.cs');
 for (const id of ['begin', 'sessions', 'live', 'lock', 'describe', 'execute', 'render', 'inspect', 'import_image'])
   assert.ok(commands.includes(`"sprite_editor_${id}"`), `Stable CLI command: ${id}`);
@@ -52,7 +53,7 @@ for (const file of ['README.md', 'README-RU.md'])
   assert.ok(read(file).includes('src="Documentation~/Images/whimtex-logo.svg"'));
 const iconGuid = read('src/WhimTexIcon.png.meta').match(/^guid: (\w+)$/m)[1];
 assert.ok(read('src/SpriteEditorBranding.cs').includes(`GUIDToAssetPath("${iconGuid}")`));
-for (const file of ['src/TextureCompositorWindow.cs', 'src/SpriteEditorUserSettingsWindow.cs',
+for (const file of ['src/TextureCompositorWindow.DocumentTitle.cs', 'src/SpriteEditorUserSettingsWindow.cs',
   'src/ModifierEditorWindow.cs', 'src/Utils.cs'])
   assert.ok(read(file).includes('SpriteEditorBranding.WindowTitle('), `${file}: branded title`);
 for (const [file, size] of [

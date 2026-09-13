@@ -209,7 +209,7 @@ namespace DCFApixels.SpriteEditor
             toolbar.AddToClassList("sprite-editor-tools");
             toolbar.EnableInClassList("sprite-editor-tools--light", !EditorGUIUtility.isProSkin);
             previewNoneButton = CreatePreviewToolButton("noTool", PreviewTool.None,
-                "No Tool (V). View the composition without painting, pattern guides or transform handles.");
+                "Layer Select (V). Click visible pixels to select a layer. Click a selected group again to select inside it. Shift toggles selection; Ctrl selects nested layers directly. Click empty space to deselect.");
             previewBrushButton = CreatePreviewToolButton("brushTool", PreviewTool.Brush,
                 "Brush (B). Paint on the selected Drawing layer. Choose Brush/Eraser in the header; RMB temporarily erases.");
             previewPencilButton = CreatePreviewToolButton("pencilTool", PreviewTool.Pencil,

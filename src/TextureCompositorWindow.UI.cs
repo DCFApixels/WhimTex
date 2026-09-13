@@ -628,6 +628,7 @@ namespace DCFApixels.SpriteEditor
             });
             row.RegisterCallback<PointerDownEvent>(evt =>
             {
+                if (TryOpenFileLayerDocument(row, layer, evt)) return;
                 if (evt.button == 0 && IsFocusedLayerTextControl(FindLayerDragControl(row, evt.target as VisualElement)))
                     return;
                 if (TrySelectLayerAlpha(row, layer, evt)) return;
@@ -839,6 +840,8 @@ namespace DCFApixels.SpriteEditor
             int depth)
         {
             VisualElement row = CreateToolkitLayerRow(layer, depth);
+            if (layer.Behaviour is FileLayerBehaviour)
+                row.tooltip = "If this texture belongs to a compositor, double-click the thumbnail or row background to open it in another WhimTex tab.";
 
             row.Add(CreateLayerVisibilityButton(layer));
             VisualElement nameCell = CreateLayerNameCell(row, depth, layer);
@@ -1421,6 +1424,7 @@ namespace DCFApixels.SpriteEditor
             AddAreaSelectionSettings(PreviewTool.PolygonSelect);
 
             VisualElement emptyRow = SpriteEditorUI.CreateToolbar();
+            AddLayerPickSettings(emptyRow);
             toolkitHeaderBindings.Add(() => emptyRow.EnableInClassList("sprite-editor-tool-options--hidden",
                 previewTool != PreviewTool.None || previewSettingsTool != PreviewTool.None));
             toolkitPreviewHeader.Add(emptyRow);
@@ -1608,6 +1612,7 @@ namespace DCFApixels.SpriteEditor
         private void OnPreviewPointerDown(PointerDownEvent evt)
         {
             previewPointerControl = evt.ctrlKey;
+            if (HandleLayerPickPointerDown(evt)) return;
             if (HandlePaintConversionPrompt(evt)) return;
             if (HandleFillPointerDown(evt)) return;
             DrawingLayerBehaviour layer = GetSelectedLayer()?.Behaviour as DrawingLayerBehaviour;

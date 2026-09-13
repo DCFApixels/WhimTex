@@ -14,6 +14,11 @@ namespace DCFApixels.SpriteEditor
         private SliderInt checkerSize;
         private TextField presetsFolder;
         private Toggle cleanBackground;
+        private Slider layerPickAlpha;
+        private Slider snapRadius;
+        private ColorField guideAlignedColor;
+        private ColorField guideAngledColor;
+        private ColorField guideActiveColor;
 
         internal static void Open()
         {
@@ -74,6 +79,41 @@ namespace DCFApixels.SpriteEditor
             var reset = new Button(SpriteEditorUserSettings.ResetPreviewAppearance) { text = "Reset Preview Appearance" };
             reset.AddToClassList("sprite-editor-user-settings-reset");
             scroll.Add(reset);
+            AddHeading(scroll, "Layer Select");
+            layerPickAlpha = new Slider("Alpha ≥ %", 0f, 100f)
+            {
+                showInputField = true,
+                tooltip = "Minimum visible alpha when selecting layers on the canvas with Layer Select (V). Default: 10%. Fully transparent pixels are always ignored."
+            };
+            layerPickAlpha.AddToClassList("sprite-editor-user-settings-color");
+            layerPickAlpha.RegisterValueChangedCallback(evt =>
+            {
+                SpriteEditorUserSettings.LayerPickAlphaThreshold = evt.newValue * .01f;
+                layerPickAlpha.SetValueWithoutNotify(SpriteEditorUserSettings.LayerPickAlphaThreshold * 100f);
+            });
+            scroll.Add(layerPickAlpha);
+            AddHeading(scroll, "Guides & Snapping");
+            snapRadius = new Slider("Snap Radius (px)", SpriteEditorUserSettings.MinimumSnapRadius, SpriteEditorUserSettings.MaximumSnapRadius)
+            {
+                showInputField = true,
+                tooltip = "Snapping distance in UI pixels, independent of canvas zoom. Applies to guides, intersections, canvas edges and pivot anchors. Default: 8. Does not change angular snapping or guide click targets."
+            };
+            snapRadius.AddToClassList("sprite-editor-user-settings-color");
+            snapRadius.RegisterValueChangedCallback(evt =>
+            {
+                SpriteEditorUserSettings.SnapRadius = evt.newValue;
+                snapRadius.SetValueWithoutNotify(SpriteEditorUserSettings.SnapRadius);
+            });
+            scroll.Add(snapRadius);
+            guideAlignedColor = AddColor(scroll, "Aligned Guides", value => SpriteEditorUserSettings.GuideAlignedColor = value);
+            guideAlignedColor.tooltip = "Idle guides parallel to the current preview's horizontal or vertical axis.";
+            guideAngledColor = AddColor(scroll, "Angled Guides", value => SpriteEditorUserSettings.GuideAngledColor = value);
+            guideAngledColor.tooltip = "Idle guides at other angles in the current preview.";
+            guideActiveColor = AddColor(scroll, "Active Guide", value => SpriteEditorUserSettings.GuideActiveColor = value);
+            guideActiveColor.tooltip = "A hovered, selected or dragged guide. A guide about to be deleted stays red.";
+            var resetGuides = new Button(SpriteEditorUserSettings.ResetGuidesAndSnapping) { text = "Reset Guides & Snapping" };
+            resetGuides.AddToClassList("sprite-editor-user-settings-reset");
+            scroll.Add(resetGuides);
             AddHeading(scroll, "Presets");
             var folderRow = new VisualElement();
             folderRow.AddToClassList("sprite-editor-user-settings-folder-row");
@@ -139,6 +179,11 @@ namespace DCFApixels.SpriteEditor
         private void RefreshValues()
         {
             cleanBackground?.SetValueWithoutNotify(!SpriteEditorUserSettings.ShowManta);
+            layerPickAlpha?.SetValueWithoutNotify(SpriteEditorUserSettings.LayerPickAlphaThreshold * 100f);
+            snapRadius?.SetValueWithoutNotify(SpriteEditorUserSettings.SnapRadius);
+            guideAlignedColor?.SetValueWithoutNotify(SpriteEditorUserSettings.GuideAlignedColor);
+            guideAngledColor?.SetValueWithoutNotify(SpriteEditorUserSettings.GuideAngledColor);
+            guideActiveColor?.SetValueWithoutNotify(SpriteEditorUserSettings.GuideActiveColor);
             checkerLight?.SetValueWithoutNotify(SpriteEditorUserSettings.CheckerLight);
             checkerDark?.SetValueWithoutNotify(SpriteEditorUserSettings.CheckerDark);
             invalidPixels?.SetValueWithoutNotify(SpriteEditorUserSettings.InvalidPixels);

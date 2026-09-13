@@ -30,6 +30,20 @@ You can also hold:
 `Ctrl+A` selects the whole canvas. `Ctrl+Shift+I` selects the opposite area.
 `Ctrl+D` removes the selection so you can paint everywhere again.
 
+## Select a layer on the canvas
+
+Choose **Layer Select** (`V`, formerly No Tool) and click the image. The topmost layer whose alpha
+meets **Alpha ≥ %** is selected; transparent areas let you pick layers below. The default threshold is **10%**.
+Change it in the tool's preview toolbar or **User Settings → Layer Select**; both controls share the same preference.
+Even at 0%, fully transparent pixels are ignored.
+
+- `Shift+click` toggles a layer in the selection. `Shift+click` on empty space leaves the selection unchanged.
+- Click a group to select it, then click again to pick a child under the cursor. Repeated clicks enter nested groups one level at a time; `Ctrl+click` picks a nested layer directly. Its parent groups open in Layers.
+- Click empty space to deselect. Picking does not move or paint anything.
+
+Picking respects transforms, layer FX, Swizzle, clipping masks and layer/group opacity. Hidden layers are skipped.
+It uses each layer's own alpha, not the final color produced by its blend mode or preview Post FX.
+
 ## Select a layer's shape
 
 Hold `Ctrl` and click a layer thumbnail or the group's arrow.

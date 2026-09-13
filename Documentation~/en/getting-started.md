@@ -30,6 +30,8 @@ https://github.com/DCFApixels/WhimTex.git
 
 Double-click the saved asset to continue editing. You do not need to export it first.
 
+Each WhimTex tab shows its document's name. New documents start as **Untitled**; after saving, the tab uses the filename. An asterisk marks unsaved changes.
+
 Dropping a texture into an empty document sets the canvas size to that texture's dimensions in Unity.
 The same happens when you add **File** as the only layer and assign its first **Source Texture**.
 Later texture replacements leave the canvas size unchanged. When dropping several textures at once,
@@ -45,7 +47,7 @@ Pan by holding the mouse wheel and dragging. Scroll to zoom; **Fit** shows the w
 
 | Tool | Key | Use it to… |
 | :--- | :---: | :--- |
-| No Tool | `V` | View the image without editing handles. |
+| Layer Select | `V` | Click visible pixels to select a layer. |
 | Transform | `T` | Move, resize and rotate a layer. |
 | Rectangle Select | `M` | Select a rectangular area. |
 | Polygonal Lasso | `L` | Select an area by clicking around its outline. |

@@ -9,6 +9,14 @@ namespace DCFApixels.SpriteEditor
     {
         [NonSerialized] private bool liveOutputEnabled;
         [NonSerialized] private Button liveOutputButton;
+        [NonSerialized] private bool outputDependencyDirty;
+
+        private void OnOutputTextureChanged(CompositorOutputChange change)
+        {
+            if (compositor == null || !change.ShouldRefresh(compositor)) return;
+            outputDependencyDirty = true;
+            RequestPreview();
+        }
 
         private bool CanPublishLiveOutput => compositor != null &&
             compositor.OutputTexture != null && AssetDatabase.Contains(compositor);
@@ -40,7 +48,7 @@ namespace DCFApixels.SpriteEditor
             liveOutputButton.SetEnabled(CanPublishLiveOutput);
             liveOutputButton.EnableInClassList("sprite-editor-channel-button--enabled", liveOutputEnabled);
             liveOutputButton.tooltip = CanPublishLiveOutput
-                ? "Live Update: show edits on objects using this compositor texture. Turning off restores the saved image. Save writes the changes; material references stay unchanged."
+                ? "Live Update: show edits on objects and in File layers using this compositor texture. Turning off restores the saved image. Save writes the changes; texture references stay unchanged."
                 : "Live Update: save the compositor first, then assign its texture to a material.";
         }
 

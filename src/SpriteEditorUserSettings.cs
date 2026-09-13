@@ -14,6 +14,72 @@ namespace DCFApixels.SpriteEditor
         private const string ShowMantaKey = "DCFApixels.SpriteEditor.Preview.ShowManta";
         private const string PostFxBackgroundKey = "DCFApixels.SpriteEditor.Preview.PostFxBackground";
         private const string PresetsFolderKey = "DCFApixels.SpriteEditor.PresetsFolder";
+        private const string LayerPickAlphaKey = "DCFApixels.SpriteEditor.LayerPickAlphaThreshold";
+        private const string SnapRadiusKey = "DCFApixels.SpriteEditor.SnapRadius";
+        private const string GuideAlignedKey = "DCFApixels.SpriteEditor.Guides.AlignedColor";
+        private const string GuideAngledKey = "DCFApixels.SpriteEditor.Guides.AngledColor";
+        private const string GuideActiveKey = "DCFApixels.SpriteEditor.Guides.ActiveColor";
+        internal const float DefaultSnapRadius = 8f;
+        internal const float MinimumSnapRadius = 1f;
+        internal const float MaximumSnapRadius = 64f;
+        private static float snapRadius = NormalizeSnapRadius(EditorPrefs.GetFloat(SnapRadiusKey, DefaultSnapRadius));
+        private static float NormalizeSnapRadius(float value) => float.IsNaN(value) || float.IsInfinity(value)
+            ? DefaultSnapRadius : Mathf.Clamp(value, MinimumSnapRadius, MaximumSnapRadius);
+        internal static float SnapRadius
+        {
+            get => snapRadius;
+            set
+            {
+                value = NormalizeSnapRadius(value);
+                if (value == snapRadius) return;
+                snapRadius = value;
+                EditorPrefs.SetFloat(SnapRadiusKey, value);
+                Changed?.Invoke();
+            }
+        }
+        private static Color? guideAlignedColor = Load(GuideAlignedKey);
+        private static Color? guideAngledColor = Load(GuideAngledKey);
+        private static Color? guideActiveColor = Load(GuideActiveKey);
+        internal static Color GuideAlignedColor
+        {
+            get => guideAlignedColor ?? new Color(.2f, .85f, 1f);
+            set => Save(GuideAlignedKey, ref guideAlignedColor, value);
+        }
+        internal static Color GuideAngledColor
+        {
+            get => guideAngledColor ?? new Color(.5f, .7f, .8f);
+            set => Save(GuideAngledKey, ref guideAngledColor, value);
+        }
+        internal static Color GuideActiveColor
+        {
+            get => guideActiveColor ?? new Color(.2f, .85f, 1f);
+            set => Save(GuideActiveKey, ref guideActiveColor, value);
+        }
+        internal static void ResetGuidesAndSnapping()
+        {
+            EditorPrefs.DeleteKey(SnapRadiusKey);
+            snapRadius = DefaultSnapRadius;
+            EditorPrefs.DeleteKey(GuideAlignedKey);
+            EditorPrefs.DeleteKey(GuideAngledKey);
+            EditorPrefs.DeleteKey(GuideActiveKey);
+            guideAlignedColor = guideAngledColor = guideActiveColor = null;
+            Changed?.Invoke();
+        }
+        internal const float DefaultLayerPickAlphaThreshold = .1f;
+        private static float layerPickAlphaThreshold = NormalizePickAlpha(EditorPrefs.GetFloat(LayerPickAlphaKey, DefaultLayerPickAlphaThreshold));
+        private static float NormalizePickAlpha(float value) => float.IsNaN(value) || float.IsInfinity(value) ? DefaultLayerPickAlphaThreshold : Mathf.Clamp01(value);
+        internal static float LayerPickAlphaThreshold
+        {
+            get => layerPickAlphaThreshold;
+            set
+            {
+                value = NormalizePickAlpha(value);
+                if (value == layerPickAlphaThreshold) return;
+                layerPickAlphaThreshold = value;
+                EditorPrefs.SetFloat(LayerPickAlphaKey, value);
+                Changed?.Invoke();
+            }
+        }
         internal static string DefaultPresetsFolder => Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DCFApixels", "SpriteEditor", "Presets");
         internal static string PresetsFolder => EditorPrefs.GetString(PresetsFolderKey, DefaultPresetsFolder);
@@ -141,6 +207,9 @@ namespace DCFApixels.SpriteEditor
         {
             EditorPrefs.DeleteKey(PresetsFolderKey);
             ResetPreviewAppearance();
+            LayerPickAlphaThreshold = DefaultLayerPickAlphaThreshold;
+            EditorPrefs.DeleteKey(LayerPickAlphaKey);
+            ResetGuidesAndSnapping();
         }
 
         internal static void ResetPreviewAppearance()

@@ -4,7 +4,7 @@ namespace DCFApixels.SpriteEditor
 {
     public sealed partial class TextureCompositorWindow
     {
-        private const float GuideSnapPixels = 8f;
+        private static float GuideSnapPixels => SpriteEditorUserSettings.SnapRadius;
         private bool CanSnapPreviewGuides => !previewGuidesHidden && previewGuidesSnap && HasPreviewLayers &&
             previewGuidesDocument == compositor && previewGuides.Count > 0 && toolkitPreviewCanvas != null &&
             toolkitPreviewCanvas.PixelScale > .00001f;

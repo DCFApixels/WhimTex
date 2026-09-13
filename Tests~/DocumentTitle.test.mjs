@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+const read = name => readFileSync(new URL(`../src/${name}`, import.meta.url), 'utf8');
+const source = read('TextureCompositorWindow.DocumentTitle.cs');
+const window = read('TextureCompositorWindow.cs');
+assert.match(source, /OnProjectChange\(\) => RefreshDocumentTitle\(true\)/);
+assert.match(source, /titleDocument == compositor && titleDocumentName == documentName/);
+assert.match(source, /Path.GetFileNameWithoutExtension\(path\)/);
+assert.match(source, /if \(string.IsNullOrWhiteSpace\(title\)\) title = "Untitled"/);
+assert.match(source, /content.tooltip = .*"WhimTex — "/);
+assert.match(source, /SpriteEditorBranding.WindowTitle\(title\)/);
+assert.match(window, /result.name = "Untitled"/);
+assert.match(window, /UpdateUnsavedChangesState\(\)\s*\{\s*RefreshDocumentTitle\(\)/);
+assert.ok(!window.includes('titleContent = SpriteEditorBranding.WindowTitle("WhimTex")'));
+assert.ok(!source.includes('hasUnsavedChanges ='), 'Unity retains ownership of the unsaved asterisk');
+console.log('Document tab naming, asset-rename refresh, Untitled and branding contracts passed.');

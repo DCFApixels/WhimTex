@@ -33,6 +33,11 @@ or drop it between rows to choose its position. A newly assigned image keeps its
 Assigning an HDR texture to a File layer sets **Color Range** and **Blend Range** to **HDR**.
 You can change both afterwards in **Color & Blending**.
 
+If a File layer uses another compositor's output texture, double-click its thumbnail or the row background
+to open that compositor without replacing your current document. An already open document is focused;
+otherwise Unity attempts to add a WhimTex tab beside an existing WhimTex window, falling back to a separate window.
+Double-clicking text or number fields still edits those fields.
+
 ## Draw a shape
 
 Choose **Shape** (`U`), pick a shape in the Preview header, then drag to create it.

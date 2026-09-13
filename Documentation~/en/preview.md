@@ -33,11 +33,14 @@ See [seamless painting](symmetry.md).
 
 Guides that are horizontal or vertical in the current preview appear bright cyan; angled guides use a softer blue-gray. The colors update as you rotate the view, without changing snapping.
 
+In **User Settings → Guides & Snapping**, choose colors for **Aligned Guides**, **Angled Guides** and the **Active Guide** (hovered, selected or dragged). A guide about to be deleted stays red.
+**Snap Radius (px)** sets the attraction distance for guides, intersections, canvas edges and pivot anchors: 1–64 UI pixels, default 8, independent of zoom. Angular snapping is unchanged. These preferences apply across windows and are saved between sessions; **Reset Guides & Snapping** restores their defaults.
+
 Drag from the thin strip on the left of Preview to create a vertical guide, or from the top strip for a horizontal one.
 The new line is parallel to the strip even on a rotated canvas; afterwards it moves, zooms and rotates with the canvas.
 
 Drag an existing line to reposition it. Drop it back on either strip or outside Preview to remove it; `Esc` cancels the drag.
-You can create guides from the edge strips with any tool. Only **Zoom**, **Transform** and **No Tool** can grab existing lines to move or drag-delete them. Painting, filling and selection tools ignore existing guides; the lines stay visible.
+You can create guides from the edge strips with any tool. Only **Zoom**, **Transform** and **Layer Select** can grab existing lines to move or drag-delete them. Painting, filling and area-selection tools ignore existing guides; the lines stay visible.
 Click a guide to select it: arrow keys nudge it, `Shift` increases the step tenfold, and `Delete` removes it. Click elsewhere or press `Esc` to deselect. Double-click a guide to enter an exact **Position (px)** and **Angle (°)**. Angles are relative to the canvas: 0° is horizontal, 90° is vertical. For those two orientations, Position is the distance from the top or left edge; at other angles it is the signed perpendicular distance from the top-left corner.
 
 Right-click a guide to **Edit**, **Duplicate** or **Delete** it. Right-click either edge strip for the shared controls:
@@ -81,6 +84,17 @@ Live Update shows the composition without EV, channel-display masks, Debug or pr
 While editing it uses preview quality, then refines the result when you stop.
 If you resize the canvas, the live image fits the saved texture size until you save again.
 Live Update starts off when you open the window and turns off when you switch documents or reload scripts.
+
+### Use a compositor inside another document
+
+Assign the saved compositor's output texture to a **File** layer in another document.
+Saving the source refreshes the receiving window automatically. To see changes while editing, enable
+**Live Update in the source window**. The receiving window does not need Live Update enabled just to display them.
+Turning Live Update off restores the saved image in the receiving window too.
+
+For a chain of documents, enable Live Update in each intermediate window that should pass its updated
+result onwards. **Save As** creates a new asset; existing File layers keep referencing the original.
+Automatic refresh across cyclic links, such as A using B while B uses A, is disabled to prevent feedback loops.
 
 ## Check brightness and channels
 

@@ -162,8 +162,7 @@ namespace DCFApixels.SpriteEditor
             previewTool = tool;
             selectedPreviewGuide = -1;
             EditorPrefs.SetString(PreviewToolPrefKey, tool.ToString());
-            if (tool != PreviewTool.None)
-                previewSettingsTool = tool;
+            previewSettingsTool = tool;
             lineAnchorLayer = null;
             if (changePixelPreview) RequestPreview(immediate: true);
             RefreshToolkitInterface();
@@ -240,8 +239,8 @@ namespace DCFApixels.SpriteEditor
             private const int MoveHandle = 8;
             private const int RotateHandle = 9;
             private const int PivotHandle = 10;
-            private const float PivotSnapDistance = 10f;
-            private const float CanvasSnapDistance = 8f;
+            private static float PivotSnapDistance => SpriteEditorUserSettings.SnapRadius;
+            private static float CanvasSnapDistance => SpriteEditorUserSettings.SnapRadius;
             private readonly TextureCompositorWindow owner;
             private Layer layer;
             private LayerBehaviour gestureBehaviour;

@@ -151,12 +151,20 @@ assert.match(read('TextureCompositorWindow.cs'), /ClearPreviewGuides\(\);\s*prev
 assert.ok(!/\bUndo\.|RenderTexture|MarkChanged|SetDirty/.test(src), 'Guides remain window-local and outside the render/Undo pipeline');
 assert.match(src, /sprite-editor-preview-surface/);
 assert.match(src, /ViewChanged \+= previewGuideOverlay.MarkDirtyRepaint/);
-const colorExpression = src.match(/Color lineColor = ([\s\S]*?);/)[1];
-const guideColor = new Function('aligned', 'highlight', 'deleting', 'Color', `return ${colorExpression.replace(/(\d)f\b/g, '$1')};`);
+const colorBody = src.match(/Color lineColor = ([\s\S]*?)\s*for \(int pass/)[1];
+const evaluateGuideColor = new Function('aligned', 'highlight', 'deleting', 'Color', 'SpriteEditorUserSettings',
+    `let lineColor = ${colorBody.replace(/(\d)f\b/g, '$1')} return lineColor;`);
 class Color { constructor(r, g, b, a) { Object.assign(this, { r, g, b, a }); } }
+const palette = {
+    get GuideAlignedColor() { return new Color(.2, .85, 1, 1); },
+    get GuideAngledColor() { return new Color(.5, .7, .8, 1); },
+    get GuideActiveColor() { return new Color(1, .6, .2, 1); },
+};
+const guideColor = (aligned, highlight, deleting, Color) => evaluateGuideColor(aligned, highlight, deleting, Color, palette);
 assert.ok(guideColor(true, false, false, Color).a > guideColor(false, false, false, Color).a);
 for (const aligned of [false, true]) {
     assert.equal(guideColor(aligned, true, false, Color).a, 1, 'Hover/selection remains visible');
+    assert.deepEqual(guideColor(aligned, true, false, Color), palette.GuideActiveColor, 'Active guide uses the configured color');
     assert.deepEqual(guideColor(aligned, true, true, Color), new Color(1, .35, .25, .9), 'Deletion color takes priority');
 }
 const styles = read('SpriteEditorSplitView.uss');

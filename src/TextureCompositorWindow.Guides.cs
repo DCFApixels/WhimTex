@@ -325,9 +325,10 @@ namespace DCFApixels.SpriteEditor
                 Vector2 direction = owner.previewViewport.ToViewDelta(new Vector2(-guide.normal.y, guide.normal.x));
                 if (!ClipLine(bounds, point, direction, out Vector2 a, out Vector2 b)) return;
                 bool aligned = Mathf.Min(Mathf.Abs(direction.x), Mathf.Abs(direction.y)) <= .0001f;
-                Color lineColor = deleting ? new Color(1f, .35f, .25f, .9f) :
-                    aligned ? new Color(.2f, .85f, 1f, highlight ? 1f : .8f) :
-                    new Color(.5f, .7f, .8f, highlight ? 1f : .55f);
+                Color lineColor = highlight ? SpriteEditorUserSettings.GuideActiveColor :
+                    aligned ? SpriteEditorUserSettings.GuideAlignedColor : SpriteEditorUserSettings.GuideAngledColor;
+                lineColor.a = highlight ? 1f : aligned ? .8f : .55f;
+                if (deleting) lineColor = new Color(1f, .35f, .25f, .9f);
                 for (int pass = 0; pass < 2; pass++)
                 {
                     painter.lineWidth = pass == 0 ? 3f : 1f;

@@ -82,7 +82,7 @@ namespace DCFApixels.SpriteEditor
         public static void ShowWindow()
         {
             var window = GetWindow<TextureCompositorWindow>("WhimTex");
-            window.titleContent = SpriteEditorBranding.WindowTitle("WhimTex");
+            window.RefreshDocumentTitle(true);
         }
 
         public void AddItemsToMenu(GenericMenu menu)
@@ -174,7 +174,6 @@ namespace DCFApixels.SpriteEditor
                 return;
 
             TextureCompositorWindow window = GetWindow<TextureCompositorWindow>("WhimTex");
-            window.titleContent = SpriteEditorBranding.WindowTitle("WhimTex");
             if (window.compositor != target)
             {
                 if (!window.ResolveUnsavedTemporaryDocument())
@@ -188,13 +187,14 @@ namespace DCFApixels.SpriteEditor
                 window.RefreshToolkitInterface();
             }
 
+            window.RefreshDocumentTitle(true);
             window.Show();
             window.Focus();
         }
 
         private void OnEnable()
         {
-            titleContent = SpriteEditorBranding.WindowTitle("WhimTex");
+            RefreshDocumentTitle(true);
             previewExposure = 0f;
             LoadPreviewToolSettings();
             LoadPaintToolSettings();
@@ -205,6 +205,7 @@ namespace DCFApixels.SpriteEditor
             paintingPreviewScale = ClampPaintingPreviewScale(
                 EditorPrefs.GetFloat(PaintingPreviewScalePrefKey, DefaultPaintingPreviewScale));
             TextureCompositor.Changed += OnCompositorChanged;
+            TextureCompositor.OutputTextureChanged += OnOutputTextureChanged;
             SpriteEditorUserSettings.Changed += OnPreviewAppearanceChanged;
             AssemblyReloadEvents.beforeAssemblyReload += StopLiveOutput;
             EditorApplication.quitting += StopLiveOutput;
@@ -236,6 +237,7 @@ namespace DCFApixels.SpriteEditor
             ResetAreaSelection();
             paintSettings?.ReleasePresetTip();
             TextureCompositor.Changed -= OnCompositorChanged;
+            TextureCompositor.OutputTextureChanged -= OnOutputTextureChanged;
             SpriteEditorUserSettings.Changed -= OnPreviewAppearanceChanged;
             AssemblyReloadEvents.beforeAssemblyReload -= StopLiveOutput;
             EditorApplication.quitting -= StopLiveOutput;
@@ -258,6 +260,8 @@ namespace DCFApixels.SpriteEditor
         private void OnPreviewAppearanceChanged()
         {
             toolkitPreviewCanvas?.RefreshBackdropVisibility();
+            toolkitHeaderBindings.Refresh();
+            previewGuideOverlay?.MarkDirtyRepaint();
             postFxDirty = true;
             postFxBackgroundField?.SetValueWithoutNotify(SpriteEditorUserSettings.PostFxBackground);
             toolkitPreviewCanvas?.RefreshCheckerColors();
@@ -277,6 +281,7 @@ namespace DCFApixels.SpriteEditor
 
         private void UpdateUnsavedChangesState()
         {
+            RefreshDocumentTitle();
             RefreshLiveOutputButton();
             hasUnsavedChanges = HasPreviewLayers &&
                 (HasDocumentChanges() || paintingLayer != null ||
@@ -1052,6 +1057,11 @@ namespace DCFApixels.SpriteEditor
 
         private void UpdatePreview()
         {
+            if (outputDependencyDirty)
+            {
+                outputDependencyDirty = false;
+                ReleaseEffectCache();
+            }
             ReleasePreview(keepChannelBuffer: true);
             previewError = null;
             if (compositor == null)
@@ -1114,7 +1124,7 @@ namespace DCFApixels.SpriteEditor
         private TextureCompositor CreateTemporaryCompositor()
         {
             TextureCompositor result = CreateInstance<TextureCompositor>();
-            result.name = "Unsaved Texture Compositor";
+            result.name = "Untitled";
             result.hideFlags = HideFlags.HideAndDontSave;
             result.NormalizeModel();
             temporaryDocumentDirty = false;
@@ -1141,6 +1151,7 @@ namespace DCFApixels.SpriteEditor
             ClearPreviewGuides();
             previewGuidesDocument = next;
             compositor = next;
+            outputDependencyDirty = false;
             compositor.NormalizeModel();
             SelectOnlyLayer(null);
             temporaryDocumentDirty = false;
@@ -1199,7 +1210,7 @@ namespace DCFApixels.SpriteEditor
 
             string defaultName = compositor != null && !string.IsNullOrWhiteSpace(compositor.name)
                 ? compositor.name
-                : "TextureCompositor";
+                : "Untitled";
             string path = EditorUtility.SaveFilePanelInProject(
                 "Save Texture Compositor",
                 defaultName,
