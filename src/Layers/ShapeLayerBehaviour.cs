@@ -21,6 +21,22 @@ namespace DCFApixels.SpriteEditor
         [NonSerialized] private Vector4[] polygonVertices;
         [NonSerialized] private int cachedVertexCount;
         [NonSerialized] private float cachedInnerRadius;
+        [NonSerialized] private ProceduralLayerThumbnail thumbnail;
+
+        public override Texture2D GetPreviewTexture(int size)
+        {
+            var hash = new HashCode();
+            hash.Add(kind); hash.Add(fillColor); hash.Add(fill); hash.Add(stroke); hash.Add(strokeColor);
+            hash.Add(strokeWidth); hash.Add(GetCornerRoundness()); hash.Add(sides); hash.Add(innerRadius); hash.Add(filterMode);
+            thumbnail ??= new ProceduralLayerThumbnail();
+            return thumbnail.Get(this, size, hash.ToHashCode());
+        }
+
+        internal override void ReleaseTransientResources()
+        {
+            thumbnail?.Dispose();
+            thumbnail = null;
+        }
 
         private void SetPolygon(Material material)
         {

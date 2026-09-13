@@ -55,6 +55,7 @@ namespace DCFApixels.SpriteEditor
 
         private void OnDisable()
         {
+            ReleaseLayerThumbnails();
             StopLiveOutput();
             ReleaseLayerResources(layers, preserveDrawingPixels: true);
             ReleaseDiagnostics();
@@ -62,6 +63,7 @@ namespace DCFApixels.SpriteEditor
 
         private void OnDestroy()
         {
+            ReleaseLayerThumbnails();
             ReleaseLayerResources(layers);
             foreach (ShaderFX effect in embeddedShaderFX)
                 if (effect != null && effect.EmbeddedOwner == this && !AssetDatabase.Contains(effect))

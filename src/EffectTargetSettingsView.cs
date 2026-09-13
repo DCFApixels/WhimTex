@@ -82,15 +82,22 @@ namespace DCFApixels.SpriteEditor
             target.AddManipulator(new TargetDropManipulator(this, effect));
             root.Add(target);
             HelpBox status = SpriteEditorUI.AddHelpBox(root, string.Empty, HelpBoxMessageType.Info);
-            void Refresh()
+            Layer RefreshThumbnail()
             {
-                EnsureEffectTargetOptions(effect);
+                if (compositor == null) return null;
                 Layer source = string.IsNullOrEmpty(effect.TargetLayerId) ? null : compositor.FindLayer(effect.TargetLayerId);
-                Texture2D thumbnail = source?.GetPreviewTexture(18);
+                Texture2D thumbnail = compositor.GetLayerThumbnail(source, 18);
                 if (preview.image != thumbnail) preview.image = thumbnail;
                 preview.EnableInClassList("sprite-editor-hidden", thumbnail == null);
                 fallback.EnableInClassList("sprite-editor-hidden", source == null || thumbnail != null || source?.IsGroup == true);
                 groupIcon.EnableInClassList("sprite-editor-hidden", !(source?.IsGroup == true) || thumbnail != null);
+                return source;
+            }
+            target.schedule.Execute(() => RefreshThumbnail()).Every(200);
+            void Refresh()
+            {
+                EnsureEffectTargetOptions(effect);
+                Layer source = RefreshThumbnail();
                 bool choicesChanged = target.choices.Count != effectTargetLabels.Length;
                 for (int i = 0; !choicesChanged && i < effectTargetLabels.Length; i++)
                     choicesChanged = target.choices[i] != effectTargetLabels[i];

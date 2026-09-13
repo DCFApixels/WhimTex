@@ -554,6 +554,7 @@ namespace DCFApixels.SpriteEditor
             toolkitInspectorEffectTarget?.Invalidate();
             toolkitLayerTree.Clear();
             toolkitLayerTree.AddRange(toolkitNextLayerTree);
+            compositor?.RefreshThumbnailStructure();
             toolkitLayerHierarchyRoot.Clear();
             toolkitLayerEndDropZone = null;
             if (compositor == null || compositor.layers.Count == 0)
@@ -848,19 +849,42 @@ namespace DCFApixels.SpriteEditor
 
             Image thumbnail = new Image
             {
-                image = layer.GetPreviewTexture(18),
+                image = compositor.GetLayerThumbnail(layer, 18, EffectsAreInteractive),
                 scaleMode = ScaleMode.ScaleToFit,
                 pickingMode = PickingMode.Ignore
             };
             thumbnail.AddToClassList("sprite-editor-layer-thumbnail");
             nameCell.Add(thumbnail);
+            if (layer.Behaviour is FileLayerBehaviour fileLayer)
+            {
+                var referenceAccent = new VisualElement { pickingMode = PickingMode.Ignore };
+                referenceAccent.AddToClassList("sprite-editor-compositor-reference-accent");
+                referenceAccent.AddToClassList("sprite-editor-hidden");
+                row.Add(referenceAccent);
+                Texture2D checkedSource = null;
+                string checkedPath = null;
+                toolkitLayerBindings.Add(() =>
+                {
+                    Texture2D source = fileLayer.sourceTexture;
+                    string path = source != null ? AssetDatabase.GetAssetPath(source) : string.Empty;
+                    if (ReferenceEquals(source, checkedSource) && path == checkedPath) return;
+                    checkedSource = source;
+                    checkedPath = path;
+                    referenceAccent.EnableInClassList("sprite-editor-hidden", TextureCompositor.FindDocument(source) == null);
+                });
+            }
             if (layer.Behaviour == null)
             {
                 var missing = new Label("!") { tooltip = "Missing behaviour — select this layer to restore it.", pickingMode = PickingMode.Ignore };
                 missing.AddToClassList("sprite-editor-missing-thumbnail");
                 nameCell.Add(missing);
             }
-            toolkitLayerBindings.Add(() => thumbnail.image = layer.GetPreviewTexture(18));
+            void RefreshThumbnail() => thumbnail.image = compositor.GetLayerThumbnail(layer, 18, EffectsAreInteractive);
+            toolkitLayerBindings.Add(RefreshThumbnail);
+            // Also finish deferred refreshes after the last input event. UI Toolkit pauses
+            // this callback when the row is detached; only thumbnails are polled, not the inspector.
+            if (layer.Behaviour is TargetedLayerBehaviour || layer.Behaviour is ShaderProcessorLayerBehaviour)
+                thumbnail.schedule.Execute(RefreshThumbnail).Every(200);
 
             TextField name = new TextField { isDelayed = true };
             name.AddToClassList("sprite-editor-layer-name");

@@ -62,6 +62,15 @@
     background-color: #474747;
 }
 
+.sprite-editor-compositor-reference-accent {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: rgba(224, 143, 70, 0.7);
+}
+
 .sprite-editor-layer-table-header {
     flex-direction: row;
     align-items: center;

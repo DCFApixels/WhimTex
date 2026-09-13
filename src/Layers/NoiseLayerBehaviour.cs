@@ -37,6 +37,27 @@ namespace DCFApixels.SpriteEditor
         public OutputEncoding encoding;
         public bool inverted;
 
+        [NonSerialized] private ProceduralLayerThumbnail thumbnail;
+
+        public override Texture2D GetPreviewTexture(int size)
+        {
+            var hash = new HashCode();
+            hash.Add(noiseType); hash.Add(whiteNoiseColor); hash.Add(whiteNoiseSize);
+            hash.Add(dimensions); hash.Add(direction); hash.Add(seed); hash.Add(scale); hash.Add(offset);
+            hash.Add(fractal); hash.Add(octaves); hash.Add(lacunarity); hash.Add(gain);
+            hash.Add(weightedStrength); hash.Add(pingPongStrength);
+            hash.Add(cellularDistance); hash.Add(cellularReturn); hash.Add(cellularJitter);
+            hash.Add(warp); hash.Add(warpStrength); hash.Add(encoding); hash.Add(inverted); hash.Add(filterMode);
+            thumbnail ??= new ProceduralLayerThumbnail();
+            return thumbnail.Get(this, size, hash.ToHashCode());
+        }
+
+        internal override void ReleaseTransientResources()
+        {
+            thumbnail?.Dispose();
+            thumbnail = null;
+        }
+
         public override string ToString() => "Noise";
 
         internal static float Limit(float value, float min, float max, float fallback)

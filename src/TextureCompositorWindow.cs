@@ -226,6 +226,7 @@ namespace DCFApixels.SpriteEditor
             ClearLayerDragData();
             ReleasePreview();
             ReleaseEffectCache();
+            compositor?.ReleaseLayerThumbnails();
             toolkitPreviewCanvas?.ReleaseCheckerTexture();
             toolkitPreviewCanvas?.ReleaseToolCursor();
             ReleasePostFx();
@@ -1125,6 +1126,7 @@ namespace DCFApixels.SpriteEditor
             ClearLayerDragData();
             lineAnchorLayer = null;
             TextureCompositor previous = compositor;
+            previous?.ReleaseLayerThumbnails();
             if (agentSessionDocument != next) SpriteEditorApi.CloseLiveSession(agentSessionId);
             StopLiveOutput();
             ReleaseEffectCache();

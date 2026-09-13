@@ -25,12 +25,16 @@ namespace DCFApixels.SpriteEditor
         private readonly List<Entry> unused = new List<Entry>();
         private TextureCompositor document;
         private DrawingLayerBehaviour liveDrawing;
+        private readonly bool snapshotShaders;
         private long clock, frame;
         internal long BudgetBytes { get; set; } = DefaultBudget;
         internal long Bytes { get; private set; }
         internal int Count => entries.Count;
         internal int Hits { get; private set; }
         internal int Misses { get; private set; }
+
+        internal EffectRenderCache() : this(false) { }
+        internal EffectRenderCache(bool snapshotShaders) => this.snapshotShaders = snapshotShaders;
 
         internal void BeginFrame(TextureCompositor owner, DrawingLayerBehaviour painting = null)
         {
@@ -87,17 +91,42 @@ namespace DCFApixels.SpriteEditor
         internal ulong Stamp(Layer layer)
         {
             if (layer == null) return 1;
-            if (layer?.Behaviour is ShaderProcessorLayerBehaviour) return 0;
+            if (!snapshotShaders && layer?.Behaviour is ShaderProcessorLayerBehaviour) return 0;
             if (stamps.TryGetValue(layer, out ulong ready)) return ready;
             if (!visiting.Add(layer)) return 0;
             try
             {
                 // Arbitrary material/code FX may depend on time or external resources. Do not memoize them.
-                if (layer.modifiers != null)
+                if (!snapshotShaders && layer.modifiers != null)
                     foreach (var modifier in layer.modifiers) if (modifier != null) return stamps[layer] = 0;
                 ulong hash = 14695981039346656037UL;
                 string settings = JsonUtility.ToJson(layer);
                 foreach (char c in settings) hash = Mix(hash, c);
+                if (snapshotShaders && layer.modifiers != null)
+                    foreach (var modifier in layer.modifiers)
+                    {
+                        if (modifier == null) continue;
+                        hash = Mix(hash, unchecked((ulong)UnityEditor.EditorUtility.GetDirtyCount(modifier)));
+                        if (modifier is ShaderFX shaderFX)
+                        {
+                            foreach (char c in JsonUtility.ToJson(modifier)) hash = Mix(hash, c);
+                            foreach (var parameter in shaderFX.Parameters)
+                                if (parameter?.textureValue != null) hash = Mix(hash, parameter.textureValue.updateCount);
+                        }
+                        if (modifier is Material material)
+                        {
+                            hash = Mix(hash, unchecked((ulong)(material.shader != null ? UnityEditor.EditorUtility.GetDirtyCount(material.shader) : 0)));
+                            foreach (string property in material.GetTexturePropertyNames())
+                            {
+                                Texture input = material.GetTexture(property);
+                                if (input != null)
+                                {
+                                    hash = Mix(hash, unchecked((ulong)input.GetHashCode()));
+                                    hash = Mix(hash, input.updateCount);
+                                }
+                            }
+                        }
+                    }
                 Texture texture = layer.SamplingSource;
                 if (texture != null)
                 {
@@ -125,6 +154,14 @@ namespace DCFApixels.SpriteEditor
                     if (dependency == 0) return stamps[layer] = 0;
                     hash = Mix(hash, dependency);
                 }
+                if (snapshotShaders && layer?.Behaviour is ShaderProcessorLayerBehaviour &&
+                    document.TryFindLayer(layer, out var container, out int index))
+                    for (int i = index + 1; i < container.Count; i++)
+                    {
+                        ulong dependency = Stamp(container[i]);
+                        if (dependency == 0) return stamps[layer] = 0;
+                        hash = Mix(hash, dependency);
+                    }
                 if (layer.clippingMask)
                 {
                     ulong dependency = Stamp(document.GetClippingBase(layer));
