@@ -36,6 +36,7 @@ namespace DCFApixels.SpriteEditor
             var context = CreatePreviewFooterGroup("previewFooterContext", true);
             context.Add(BuildPostFxButton());
             context.Add(BuildUvButton());
+            context.Add(BuildGuidesButton());
             left.Add(context);
             footer.RegisterCallback<GeometryChangedEvent>(evt =>
                 footer.EnableInClassList("sprite-editor-preview-footer--compact", evt.newRect.width < 600f));

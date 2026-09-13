@@ -75,6 +75,12 @@ Results are not saved automatically. Check the image and save when ready.
 Generated images on new Drawing layers keep their original resolution. Transform fits them to the
 canvas or selected region, so fitting a large image does not discard its detail.
 
+## From generation to painting on a model
+
+Select the mesh's [UV islands](selection.md#select-uv-islands) and ask the agent to create a texture inside them. In this example, the agent generated the Rubik's cube colors and tiles on a Drawing layer. The white lettering was then painted by hand on a separate layer, with [Live Update](saving.md) showing the result on the cube in Scene view.
+
+<a href="../Images/uv-rubik-cube.png"><img src="../Images/uv-rubik-cube.png" alt="An agent-generated Rubik's cube texture with hand-painted lettering on a separate layer, shown on a cube in Unity" width="720"></a>
+
 ## Connect an agent
 
 Give the agent the repository's [agent instructions](https://github.com/DCFApixels/WhimTex/blob/main/AGENTS.md).

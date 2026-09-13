@@ -13,6 +13,38 @@ namespace DCFApixels.SpriteEditor
         private readonly List<PreviewGuide[]> previewGuideUndo = new List<PreviewGuide[]>();
         private readonly List<PreviewGuide[]> previewGuideRedo = new List<PreviewGuide[]>();
         private const int MaxPreviewGuides = 256;
+        private Button previewGuidesButton;
+
+        private Button BuildGuidesButton()
+        {
+            previewGuidesButton = new Button(() => SetPreviewGuidesHidden(!previewGuidesHidden))
+            {
+                text = "Guides"
+            };
+            previewGuidesButton.AddToClassList("sprite-editor-channel-button");
+            previewGuidesButton.AddToClassList("sprite-editor-guides-button");
+            RefreshPreviewGuidesButton();
+            return previewGuidesButton;
+        }
+
+        private void RefreshPreviewGuidesButton()
+        {
+            if (previewGuidesButton == null) return;
+            previewGuidesButton.EnableInClassList("sprite-editor-channel-button--enabled", !previewGuidesHidden);
+            previewGuidesButton.tooltip = previewGuidesHidden
+                ? "Show guides and restore guide snapping."
+                : "Hide guides and temporarily disable guide snapping.";
+        }
+
+        private void SetPreviewGuidesHidden(bool hidden)
+        {
+            if (previewGuidesHidden == hidden) return;
+            previewGuideManipulator?.Cancel();
+            previewGuidesHidden = hidden;
+            selectedPreviewGuide = -1;
+            RefreshPreviewGuidesButton();
+            RefreshPreviewGuides();
+        }
 
         private void RememberPreviewGuides()
         {
@@ -91,10 +123,7 @@ namespace DCFApixels.SpriteEditor
             menu.AddItem(new GUIContent("Show Guides"), !previewGuidesHidden, () =>
             {
                 if (!Current()) return;
-                previewGuideManipulator?.Cancel();
-                previewGuidesHidden = !previewGuidesHidden;
-                selectedPreviewGuide = -1;
-                RefreshPreviewGuides();
+                SetPreviewGuidesHidden(!previewGuidesHidden);
             });
             menu.AddItem(new GUIContent("Lock Guides"), previewGuidesLocked, () =>
             {

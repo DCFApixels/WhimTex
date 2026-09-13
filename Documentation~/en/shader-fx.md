@@ -51,6 +51,8 @@ Effects with a Transform 2D parameter offer **Edit on Canvas**. Select it to sho
 then move, resize or rotate the frame. Rotation is around its center; there is no pivot control.
 Click the button again or switch tools to leave this mode. Escape cancels the current drag.
 
+<a href="../Images/shader-processor-transform.png"><img src="../Images/shader-processor-transform.png" alt="WhimTex Shader Processor using a Spherize preset with a green Transform 2D frame on the preview" width="720"></a>
+
 The frame edits the effect, not the layer transform. Its purpose depends on the effect:
 it may place an image, change a pattern's scale, or define a local area. It is not automatically a mask.
 

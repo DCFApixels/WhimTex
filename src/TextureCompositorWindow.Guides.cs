@@ -193,7 +193,7 @@ namespace DCFApixels.SpriteEditor
                     SpriteEditorUI.ConsumeEvent(evt);
                     return;
                 }
-                owner.previewGuidesHidden = false;
+                owner.SetPreviewGuidesHidden(false);
                 movingIndex = hit;
                 pending = hit >= 0 ? owner.previewGuides[hit] : new PreviewGuide
                 {

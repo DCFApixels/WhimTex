@@ -590,7 +590,8 @@
     background-color: var(--whimtex-header);
 }
 
-.unity-button.sprite-editor-channel-button.sprite-editor-post-fx-button {
+.unity-button.sprite-editor-channel-button.sprite-editor-post-fx-button,
+.unity-button.sprite-editor-channel-button.sprite-editor-guides-button {
     width: 52px;
     min-width: 52px;
 }
