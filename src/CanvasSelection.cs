@@ -78,6 +78,28 @@ namespace DCFApixels.SpriteEditor
             for (int y = y0; y < y1; y++) FillSpan(values, y, x0, x1, wrap);
             Set(values, combine);
         }
+        internal void Ellipse(Vector2 a, Vector2 b, SelectionCombine combine, bool wrap)
+        {
+            ValidateSize();
+            var values = new byte[Width * Height];
+            Vector2 center = (a + b) * .5f;
+            Vector2 radius = new Vector2(Mathf.Abs(b.x - a.x), Mathf.Abs(b.y - a.y)) * .5f;
+            if (radius.x > 0f && radius.y > 0f)
+            {
+                int y0 = Mathf.CeilToInt(center.y - radius.y - .5f), y1 = Mathf.CeilToInt(center.y + radius.y - .5f);
+                if (wrap && (long)y1 - y0 > Height * 16L)
+                    throw new InvalidOperationException("The ellipse spans too many canvas repeats. Zoom in before selecting.");
+                if (!wrap) { y0 = Math.Max(0, y0); y1 = Math.Min(Height, y1); }
+                for (int y = y0; y < y1; y++)
+                {
+                    float dy = (y + .5f - center.y) / radius.y;
+                    float halfSpan = radius.x * Mathf.Sqrt(Mathf.Max(0f, 1f - dy * dy));
+                    FillSpan(values, y, Mathf.CeilToInt(center.x - halfSpan - .5f),
+                        Mathf.CeilToInt(center.x + halfSpan - .5f), wrap);
+                }
+            }
+            Set(values, combine);
+        }
         internal void Polygon(IReadOnlyList<Vector2> points, SelectionCombine combine, bool wrap)
         {
             ValidateSize();

@@ -691,11 +691,11 @@ namespace DCFApixels.SpriteEditor
             menu.ShowAsContext();
         }
 
-        private void AddLayer(List<Layer> container, int insertionIndex, Layer layer)
+        private void AddLayer(List<Layer> container, int insertionIndex, Layer layer, string namePrefix = null)
         {
             ExecuteModelChange("Add Sprite Layer", () =>
             {
-                layer.layerName = compositor.AllocateLayerName(layer);
+                layer.layerName = compositor.AllocateLayerName(layer, namePrefix);
                 if (layer?.Behaviour is DrawingLayerBehaviour drawing)
                     drawing.InitializeCanvas(compositor.width, compositor.height);
                 insertionIndex = Mathf.Clamp(insertionIndex, 0, container.Count);

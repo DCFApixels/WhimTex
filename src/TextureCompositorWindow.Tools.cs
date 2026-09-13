@@ -224,7 +224,9 @@ namespace DCFApixels.SpriteEditor
             toolbar.Add(previewNoneButton);
             toolbar.Add(previewTransformButton);
             previewRectangleSelectButton = CreatePreviewToolButton("rectangleSelectTool", PreviewTool.RectangleSelect,
-                "Rectangle Select (M). Drag an area. Shift adds, Alt subtracts; Ctrl+D deselects. Selection limits painting and filling.");
+                "Area Select (M). Hold or drag this button to choose Rectangle or Ellipse, then release over its icon. Shift before dragging adds; press Shift during dragging for a square/circle. Alt subtracts; Ctrl+D deselects. Selection limits painting and filling.");
+            marqueePicker = new ShapePickerManipulator(this, true);
+            previewRectangleSelectButton.AddManipulator(marqueePicker);
             previewPolygonSelectButton = CreatePreviewToolButton("polygonSelectTool", PreviewTool.PolygonSelect,
                 "Polygonal Lasso (L). Click vertices; Enter, double-click or click the first point to close. Backspace/RMB removes a vertex; Escape cancels.");
             toolbar.Add(previewRectangleSelectButton);
@@ -249,8 +251,12 @@ namespace DCFApixels.SpriteEditor
             button.AddToClassList("sprite-editor-tool-button");
             if (tool == PreviewTool.Shape)
                 button.Add(shapeToolIcon = new ShapeToolIcon(shapeToolSettings?.kind ?? ShapeLayerBehaviour.ShapeKind.Rectangle));
+            else if (tool == PreviewTool.RectangleSelect)
+                button.Add(marqueeToolIcon = new PreviewToolIcon(tool, marqueeShape == MarqueeShape.Ellipse));
             else
                 button.Add(new PreviewToolIcon(tool));
+            if (tool == PreviewTool.Shape || tool == PreviewTool.RectangleSelect)
+                button.Add(new ToolDropdownMarker());
             return button;
         }
 
@@ -261,6 +267,7 @@ namespace DCFApixels.SpriteEditor
             PreviewTool displayedTool = previewTool;
             Layer selected = hasLayers ? GetSelectedLayer() : null;
             shapeToolIcon?.SetKind(shapeToolSettings?.kind ?? ShapeLayerBehaviour.ShapeKind.Rectangle);
+            marqueeToolIcon?.SetEllipse(marqueeShape == MarqueeShape.Ellipse);
             previewShapeButton?.EnableInClassList("sprite-editor-tool-button--selected", displayedTool == PreviewTool.Shape);
             previewShapeButton?.EnableInClassList("sprite-editor-tool-button--unavailable", compositor == null);
             previewRectangleSelectButton?.EnableInClassList("sprite-editor-tool-button--selected", displayedTool == PreviewTool.RectangleSelect);
@@ -295,13 +302,22 @@ namespace DCFApixels.SpriteEditor
         private sealed class PreviewToolIcon : VisualElement
         {
             private readonly PreviewTool tool;
+            private bool ellipse;
 
-            internal PreviewToolIcon(PreviewTool tool)
+            internal PreviewToolIcon(PreviewTool tool, bool ellipse = false)
             {
                 this.tool = tool;
+                this.ellipse = ellipse;
                 pickingMode = PickingMode.Ignore;
                 AddToClassList("sprite-editor-tool-icon");
                 generateVisualContent += Draw;
+            }
+
+            internal void SetEllipse(bool value)
+            {
+                if (ellipse == value) return;
+                ellipse = value;
+                MarkDirtyRepaint();
             }
 
             private void Draw(MeshGenerationContext context)
@@ -325,7 +341,10 @@ namespace DCFApixels.SpriteEditor
                 else if (tool == PreviewTool.Pencil)
                     DrawPencil(painter);
                 else if (tool == PreviewTool.RectangleSelect)
-                    DrawRectangleSelect(painter);
+                {
+                    if (ellipse) DrawEllipseSelect(painter);
+                    else DrawRectangleSelect(painter);
+                }
                 else if (tool == PreviewTool.PolygonSelect)
                     DrawPolygonSelect(painter);
                 else
@@ -349,6 +368,22 @@ namespace DCFApixels.SpriteEditor
                 painter.Stroke();
             }
 
+            private void DrawEllipseSelect(Painter2D painter)
+            {
+                painter.lineCap = LineCap.Butt;
+                painter.BeginPath();
+                for (int i = 0; i < 12; i++)
+                {
+                    float start = i * Mathf.PI / 6f;
+                    for (int j = 0; j <= 3; j++)
+                    {
+                        float angle = start + j * Mathf.PI / 27f;
+                        Vector2 point = P(12f + Mathf.Cos(angle) * 9f, 12f + Mathf.Sin(angle) * 8f);
+                        if (j == 0) painter.MoveTo(point); else painter.LineTo(point);
+                    }
+                }
+                painter.Stroke();
+            }
             private void DrawRectangleSelect(Painter2D painter)
             {
                 painter.lineCap = LineCap.Butt;

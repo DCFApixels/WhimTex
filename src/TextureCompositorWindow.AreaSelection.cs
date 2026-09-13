@@ -15,6 +15,8 @@ namespace DCFApixels.SpriteEditor
         private AreaSelectionManipulator areaSelectionManipulator;
         private AreaSelectionOverlay areaSelectionOverlay;
         private SelectionCombine areaSelectionMode;
+        private enum MarqueeShape { Rectangle, Ellipse }
+        [SerializeField] private MarqueeShape marqueeShape;
         private static AreaClipboard areaClipboard;
         private sealed class AreaClipboard
         {

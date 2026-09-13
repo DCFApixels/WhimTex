@@ -12,13 +12,17 @@ next_page: "en/symmetry.md"
 # Area selections
 
 Select an area to paint, erase or fill without touching the rest of the image.
-Use **Rectangle Select** (`M`) for a rectangle or **Polygonal Lasso** (`L`) for a shape with straight sides.
+Use **Area Select** (`M`) for a rectangle or ellipse, or **Polygonal Lasso** (`L`) for a shape with straight sides.
 
 ## Make and adjust a selection
 
-Drag with Rectangle Select. With Lasso, click around the outline and finish with
+Hold or drag the Area Select toolbar button to open its shape list. Release over **Rectangle** or **Ellipse**, then drag on the canvas. The button shows the chosen shape; `M` returns to it.
+
+With Lasso, click around the outline and finish with
 `Enter`, a double-click or a click on the first point.
 `Backspace` or a right-click removes the last point; `Escape` cancels the unfinished outline.
+
+For a **square or circle**, start dragging, then hold `Shift`. Release `Shift` to return to free proportions. Holding `Shift` before starting instead adds to the selection. To add a square or circle, choose **Add** above the canvas and press `Shift` during the drag.
 
 Choose **Replace**, **Add**, **Subtract** or **Intersect** above the canvas.
 You can also hold:

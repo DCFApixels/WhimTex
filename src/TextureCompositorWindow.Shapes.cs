@@ -204,8 +204,9 @@ namespace DCFApixels.SpriteEditor
                     int index = 0;
                     if (insertionAnchor != null && document.TryFindLayer(insertionAnchor, out var selectedContainer, out int selectedIndex))
                     { container = selectedContainer; index = selectedIndex; }
+                    string namePrefix = shape.kind.ToString();
                     Cancel();
-                    owner.AddLayer(container, index, layer);
+                    owner.AddLayer(container, index, layer, namePrefix);
                 }
                 else Cancel();
                 SpriteEditorUI.ConsumeEvent(evt);

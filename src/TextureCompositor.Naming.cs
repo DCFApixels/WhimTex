@@ -24,10 +24,12 @@ namespace DCFApixels.SpriteEditor
             LayerTypeRegistry.Find(layer?.Behaviour?.GetType())?.NamePrefix ??
             (layer?.IsGroup == true ? "Group" : layer?.Behaviour == null ? "Missing Behaviour" : ObjectNames.NicifyVariableName(layer.Behaviour.GetType().Name));
 
-        internal string AllocateLayerName(Layer layer) => AllocateName(LayerNamePrefix(layer));
+        private static readonly string[] ShapeNamePrefixes = Enum.GetNames(typeof(ShapeLayerBehaviour.ShapeKind));
+
+        internal string AllocateLayerName(Layer layer, string displayPrefix = null) => AllocateName(LayerNamePrefix(layer), displayPrefix);
         internal string AllocateGroupName() => AllocateName("Group");
 
-        private string AllocateName(string prefix)
+        private string AllocateName(string prefix, string displayPrefix = null)
         {
             SynchronizeNextAutomaticNumbers();
             LayerNameCounter counter = GetNameCounter(prefix);
@@ -35,7 +37,7 @@ namespace DCFApixels.SpriteEditor
             if (number == int.MaxValue)
                 throw new InvalidOperationException("Layer name counter is exhausted.");
             counter.next++;
-            return prefix + " " + number;
+            return (displayPrefix ?? prefix) + " " + number;
         }
 
         private string AllocateDuplicateName(Layer source)
@@ -87,6 +89,13 @@ namespace DCFApixels.SpriteEditor
                     if (name.StartsWith(prefix + " ", StringComparison.Ordinal) &&
                         int.TryParse(name.Substring(prefix.Length + 1), out int number))
                         counter.next = SynchronizeCounter(counter.next, number);
+                    // Shape names may retain an earlier kind after the user changes Properties.
+                    // All kinds still advance the one Shape counter, including imported layers.
+                    if (layer.Behaviour is ShapeLayerBehaviour)
+                        foreach (string shapePrefix in ShapeNamePrefixes)
+                            if (name.StartsWith(shapePrefix + " ", StringComparison.Ordinal) &&
+                                int.TryParse(name.Substring(shapePrefix.Length + 1), out int shapeNumber))
+                                counter.next = SynchronizeCounter(counter.next, shapeNumber);
                     int copySuffix = name.LastIndexOf(" Copy ", StringComparison.Ordinal);
                     if (copySuffix >= 0 && int.TryParse(name.Substring(copySuffix + 6), out int copyNumber))
                         nextCopyNumber = SynchronizeCounter(nextCopyNumber, copyNumber);

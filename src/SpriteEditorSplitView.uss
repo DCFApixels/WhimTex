@@ -312,6 +312,15 @@
     flex-shrink: 0;
 }
 
+.sprite-editor-tool-dropdown-marker {
+    position: absolute;
+    right: 1px;
+    bottom: 1px;
+    width: 4px;
+    height: 4px;
+    opacity: 0.65;
+}
+
 .sprite-editor-tool-options--hidden {
     display: none;
 }

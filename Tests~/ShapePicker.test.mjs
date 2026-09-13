@@ -2,13 +2,13 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 const read = p => readFileSync(new URL('../src/' + p, import.meta.url), 'utf8');
 const source = read('TextureCompositorWindow.ShapePicker.cs');
-const itemBody = source.split('private static int ItemAt(Vector2 local)')[1].split('private void UpdateHover')[0];
+const itemBody = source.split('private int ItemAt(Vector2 local)')[1].split('private void UpdateHover')[0];
 const itemAt = new Function('local', 'Inset', 'ItemSize', 'Kinds', 'Mathf',
     itemBody.slice(itemBody.indexOf('{') + 1, itemBody.lastIndexOf('}')).replace(/-1;/g, '-1;'));
 let checks = 0;
-for (let x = -5; x <= 40; x += .5) for (let y = -5; y <= 165; y += .5) {
-    const result = itemAt({x,y}, 3, 30, {Length:5}, {FloorToInt:Math.floor});
-    const expected = x >= 3 && x < 33 && y >= 3 && y < 153 ? Math.floor((y - 3) / 30) : -1;
+for (const count of [2, 5]) for (let x = -5; x <= 40; x += .5) for (let y = -5; y <= 165; y += .5) {
+    const result = itemAt({x,y}, 3, 30, {Length:count}, {FloorToInt:Math.floor});
+    const expected = x >= 3 && x < 33 && y >= 3 && y < 3 + count * 30 ? Math.floor((y - 3) / 30) : -1;
     assert.equal(result, expected);
     checks++;
 }

@@ -41,6 +41,7 @@ Double-clicking text or number fields still edits those fields.
 ## Draw a shape
 
 Choose **Shape** (`U`), pick a shape in the Preview header, then drag to create it.
+New layers are named after the figure, such as **Rectangle 1**, **Line 2**, or **Star 3**, with one shared numbering sequence for all shapes.
 You can also hold the Shape tool button briefly, or drag from it, to open an icon list on its right.
 Move over a figure and release to select it. Releasing outside the list cancels the choice.
 Each drag adds a separate Shape layer, including in an empty document.

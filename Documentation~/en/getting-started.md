@@ -51,7 +51,7 @@ Pan by holding the mouse wheel and dragging. Scroll to zoom; **Fit** shows the w
 | :--- | :---: | :--- |
 | Layer Select | `V` | Click visible pixels to select a layer. |
 | Transform | `T` | Move, resize and rotate a layer. |
-| Rectangle Select | `M` | Select a rectangular area. |
+| Area Select | `M` | Select a rectangle or ellipse. Hold the tool button to choose the shape. |
 | Polygonal Lasso | `L` | Select an area by clicking around its outline. |
 | Brush / Pencil | `B` / `P` | Paint soft strokes or crisp pixels. |
 | Fill | `G` | Fill an area with color. |

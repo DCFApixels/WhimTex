@@ -26,6 +26,18 @@ void Point(DCFApixels.SpriteEditor.DrawingLayerBehaviour layer, object parameter
 }
 try
 {
+    foreach (bool ellipse in new[] { false, true })
+    {
+    if (ellipse)
+    {
+        var selectionType = drawingType.Assembly.GetType("DCFApixels.SpriteEditor.CanvasSelection", true);
+        var combineType = drawingType.Assembly.GetType("DCFApixels.SpriteEditor.SelectionCombine", true);
+        var selection = System.Activator.CreateInstance(selectionType, flags, null, new object[] { 16, 16 }, null);
+        Call(selection, "Ellipse", new UnityEngine.Vector2(0, 2), new UnityEngine.Vector2(12, 14), System.Enum.Parse(combineType, "Replace"), false);
+        var coverage = (byte[])selectionType.GetProperty("Coverage", flags).GetValue(selection);
+        for (int i = 0; i < colors.Length; i++) colors[i].r = coverage[i];
+        mask.SetPixels32(colors); mask.Apply(false, false);
+    }
     foreach (bool pencil in new[] { false, true })
     foreach (bool transformed in new[] { false, true })
     {
@@ -39,7 +51,8 @@ try
             for (int y = 0; y < 16; y++)
             for (int x = 0; x < 16; x++)
             {
-                bool outside = transformed ? x < 8 : x >= 8;
+                int index = transformed ? (15 - y) * 16 + 15 - x : y * 16 + x;
+                bool outside = colors[index].r == 0;
                 if (outside) Check(Stored(layer).GetPixel(x, y).a < .001f, "Brush/pencil obeys transformed canvas selection");
             }
             Check(Stored(layer).GetPixel(transformed ? 10 : 5, 8).a > .9f, "Selected source pixels are painted");
@@ -50,17 +63,19 @@ try
         }
         finally { Call(layer, "ReleaseTransientResources"); }
     }
+    }
     var document = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.SpriteEditor.TextureCompositor>();
     document.hideFlags = UnityEngine.HideFlags.HideAndDontSave; document.width = document.height = 16;
     try
     {
         var fill = new DCFApixels.SpriteEditor.ColorFillLayerBehaviour { color = new UnityEngine.Color(1,0,0,.5f), enabled = false, opacity = 0f };
-        document.layers.Add(fill);
-        var alpha = (UnityEngine.Texture2D)Call(document, "RenderAreaSelectionAlphaSource", fill);
+        DCFApixels.SpriteEditor.Layer fillLayer = fill;
+        document.layers.Add(fillLayer);
+        var alpha = (UnityEngine.Texture2D)Call(document, "RenderAreaSelectionAlphaSource", fillLayer);
         try { Check(System.Math.Abs(alpha.GetPixel(8,8).a - .5f) < .01f, "Alpha selection ignores outer visibility and opacity"); }
         finally { UnityEngine.Object.DestroyImmediate(alpha); }
         fill.enabled = true; fill.opacity = .5f;
-        var copy = (UnityEngine.Texture2D)Call(document, "RenderAreaSelectionSource", fill);
+        var copy = (UnityEngine.Texture2D)Call(document, "RenderAreaSelectionSource", fillLayer);
         try { Check(System.Math.Abs(copy.GetPixel(8,8).a - .25f) < .01f, "Copy source bakes opacity"); }
         finally { UnityEngine.Object.DestroyImmediate(copy); }
     }

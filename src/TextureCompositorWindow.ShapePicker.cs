@@ -8,7 +8,32 @@ namespace DCFApixels.SpriteEditor
     public sealed partial class TextureCompositorWindow
     {
         private ShapePickerManipulator shapePicker;
+        private ShapePickerManipulator marqueePicker;
+        private PreviewToolIcon marqueeToolIcon;
         private ShapeToolIcon shapeToolIcon;
+
+        private sealed class ToolDropdownMarker : VisualElement
+        {
+            internal ToolDropdownMarker()
+            {
+                pickingMode = PickingMode.Ignore;
+                AddToClassList("sprite-editor-tool-dropdown-marker");
+                generateVisualContent += Draw;
+            }
+            private void Draw(MeshGenerationContext context)
+            {
+                Rect r = contentRect;
+                if (r.width <= 0f || r.height <= 0f) return;
+                var p = context.painter2D;
+                p.fillColor = resolvedStyle.color;
+                p.BeginPath();
+                p.MoveTo(new Vector2(r.xMax, r.yMin));
+                p.LineTo(new Vector2(r.xMax, r.yMax));
+                p.LineTo(new Vector2(r.xMin, r.yMax));
+                p.ClosePath();
+                p.Fill();
+            }
+        }
 
         private sealed class ShapeToolIcon : VisualElement
         {
@@ -70,17 +95,25 @@ namespace DCFApixels.SpriteEditor
             private const int HoldMilliseconds = 160;
             private const float DragDistance = 3f;
             private const float ItemSize = 30f, Inset = 3f;
-            private static readonly ShapeLayerBehaviour.ShapeKind[] Kinds =
-                (ShapeLayerBehaviour.ShapeKind[])Enum.GetValues(typeof(ShapeLayerBehaviour.ShapeKind));
+            private readonly ShapeLayerBehaviour.ShapeKind[] Kinds;
+            private readonly bool marquee;
             private readonly TextureCompositorWindow owner;
-            private readonly VisualElement[] items = new VisualElement[Kinds.Length];
+            private readonly VisualElement[] items;
             private VisualElement menu, root;
             private IVisualElementScheduledItem hold;
             private int pointer = -1, hovered = -1;
             private Vector2 press, current, menuPosition;
             private bool IsPressed => pointer >= 0;
 
-            internal ShapePickerManipulator(TextureCompositorWindow owner) => this.owner = owner;
+            internal ShapePickerManipulator(TextureCompositorWindow owner, bool marquee = false)
+            {
+                this.owner = owner;
+                this.marquee = marquee;
+                Kinds = marquee
+                    ? new[] { ShapeLayerBehaviour.ShapeKind.Rectangle, ShapeLayerBehaviour.ShapeKind.Ellipse }
+                    : (ShapeLayerBehaviour.ShapeKind[])Enum.GetValues(typeof(ShapeLayerBehaviour.ShapeKind));
+                items = new VisualElement[Kinds.Length];
+            }
             protected override void RegisterCallbacksOnTarget()
             {
                 target.RegisterCallback<PointerDownEvent>(Down, TrickleDown.TrickleDown);
@@ -119,15 +152,17 @@ namespace DCFApixels.SpriteEditor
             {
                 hold?.Pause(); hold = null;
                 if (!IsPressed || target.panel == null || !target.HasPointerCapture(pointer) || menu != null) return;
-                menu = new VisualElement { name = "shapePicker", pickingMode = PickingMode.Ignore };
+                menu = new VisualElement { name = marquee ? "marqueePicker" : "shapePicker", pickingMode = PickingMode.Ignore };
                 menu.AddToClassList("sprite-editor-shape-picker");
                 menu.EnableInClassList("sprite-editor-shape-picker--light", !EditorGUIUtility.isProSkin);
                 for (int i = 0; i < Kinds.Length; i++)
                 {
                     var item = new VisualElement { tooltip = Kinds[i].ToString(), pickingMode = PickingMode.Ignore };
                     item.AddToClassList("sprite-editor-shape-picker-item");
-                    item.EnableInClassList("sprite-editor-shape-picker-item--selected", owner.shapeToolSettings.kind == Kinds[i]);
-                    item.Add(new ShapeToolIcon(Kinds[i]));
+                    item.EnableInClassList("sprite-editor-shape-picker-item--selected", marquee
+                        ? (int)owner.marqueeShape == i : owner.shapeToolSettings.kind == Kinds[i]);
+                    if (marquee) item.Add(new PreviewToolIcon(PreviewTool.RectangleSelect, i == 1));
+                    else item.Add(new ShapeToolIcon(Kinds[i]));
                     items[i] = item;
                     menu.Add(item);
                 }
@@ -140,7 +175,7 @@ namespace DCFApixels.SpriteEditor
                 root.Add(menu);
                 UpdateHover();
             }
-            private static int ItemAt(Vector2 local)
+            private int ItemAt(Vector2 local)
             {
                 if (local.x < Inset || local.x >= Inset + ItemSize || local.y < Inset || local.y >= Inset + Kinds.Length * ItemSize) return -1;
                 return Mathf.FloorToInt((local.y - Inset) / ItemSize);
@@ -176,10 +211,18 @@ namespace DCFApixels.SpriteEditor
                 Cancel();
                 if (selection >= 0)
                 {
-                    owner.shapeManipulator?.Cancel();
-                    owner.shapeToolSettings.kind = Kinds[selection];
+                    if (marquee)
+                    {
+                        owner.areaSelectionManipulator?.Cancel();
+                        owner.marqueeShape = (MarqueeShape)selection;
+                    }
+                    else
+                    {
+                        owner.shapeManipulator?.Cancel();
+                        owner.shapeToolSettings.kind = Kinds[selection];
+                    }
                 }
-                if (selection >= 0 || click) owner.SetPreviewTool(PreviewTool.Shape);
+                if (selection >= 0 || click) owner.SetPreviewTool(marquee ? PreviewTool.RectangleSelect : PreviewTool.Shape);
                 SpriteEditorUI.ConsumeEvent(evt);
             }
             internal void Cancel()

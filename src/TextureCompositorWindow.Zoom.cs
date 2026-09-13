@@ -132,6 +132,7 @@ namespace DCFApixels.SpriteEditor
         {
             previewGuideManipulator?.Cancel();
             shapePicker?.Cancel();
+            marqueePicker?.Cancel();
             shapeManipulator?.Cancel();
             previewZoomManipulator?.Cancel();
         }

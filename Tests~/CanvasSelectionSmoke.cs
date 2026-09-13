@@ -46,4 +46,36 @@ var other = new byte[64]; other[0] = 128;
 Call("Set", other, Mode("Intersect")); Check(Mask()[0] == 64, "Soft intersection multiplies coverage");
 other = new byte[64]; other[0] = 128;
 Call("Set", other, Mode("Subtract")); Check(Mask()[0] == 32, "Soft subtraction");
+void Ellipse(float x0, float y0, float x1, float y1, string mode = "Replace", bool wrap = false) =>
+    Call("Ellipse", new UnityEngine.Vector2(x0, y0), new UnityEngine.Vector2(x1, y1), Mode(mode), wrap);
+Ellipse(0, 0, 8, 8);
+Check(Count() == 52 && Mask()[0] == 0 && Sample(.5f, .5f) == 1f, "Ellipse excludes bounding-box corners");
+var circle = (byte[])Mask().Clone();
+Ellipse(8, 8, 0, 0);
+Check(System.Linq.Enumerable.SequenceEqual(circle, Mask()), "Ellipse is independent of drag direction");
+Ellipse(0, 0, 8, 8, "Subtract"); Check(Count() == 0, "Ellipse subtraction");
+Ellipse(0, 0, 8, 8, "Add"); Check(Count() == 52, "Ellipse addition");
+Rect(0, 0, 4, 8);
+Ellipse(0, 0, 8, 8, "Intersect"); Check(Count() == 26, "Ellipse intersection");
+Ellipse(4, 0, 4, 8); Check(Count() == 0, "Zero-width ellipse is empty");
+Ellipse(0, 4, 8, 4); Check(Count() == 0, "Zero-height ellipse is empty");
+for (int n = 0; n < 80; n++)
+{
+    float x0 = n % 9 - 4, y0 = n % 7 - 3;
+    float rx = 1 + n % 6, ry = 1 + n % 5;
+    bool wrap = (n & 1) != 0;
+    Ellipse(x0, y0, x0 + rx * 2, y0 + ry * 2, "Replace", wrap);
+    for (int y = 0; y < 8; y++) for (int x = 0; x < 8; x++)
+    {
+        bool expected = false;
+        for (int ty = wrap ? -3 : 0; ty <= (wrap ? 3 : 0); ty++)
+        for (int tx = wrap ? -3 : 0; tx <= (wrap ? 3 : 0); tx++)
+        {
+            float dx = (x + .5f + tx * 8 - x0 - rx) / rx;
+            float dy = (y + .5f + ty * 8 - y0 - ry) / ry;
+            expected |= dx * dx + dy * dy < 1f;
+        }
+        Check((Mask()[y * 8 + x] != 0) == expected, "Ellipse matches analytic coverage, including clipping and repeats");
+    }
+}
 return "Canvas selection checks passed: " + checks;

@@ -14,6 +14,9 @@ namespace DCFApixels.SpriteEditor
             private int pointer = -1;
             private SelectionCombine combine;
             private bool wrap;
+            private bool shiftStartsCombine;
+            private Vector2 pointerPosition;
+            internal bool EllipseDragging { get; private set; }
             internal bool RectangleDragging => pointer >= 0;
             internal bool HasGesture => RectangleDragging || Vertices.Count > 0;
             internal AreaSelectionManipulator(TextureCompositorWindow owner) { this.owner = owner; }
@@ -25,6 +28,8 @@ namespace DCFApixels.SpriteEditor
                 target.RegisterCallback<PointerCaptureOutEvent>(Lost);
                 target.RegisterCallback<PointerCancelEvent>(Interrupted);
                 target.RegisterCallback<DetachFromPanelEvent>(Detached);
+                target.RegisterCallback<KeyDownEvent>(KeyDown);
+                target.RegisterCallback<KeyUpEvent>(KeyUp);
             }
             protected override void UnregisterCallbacksFromTarget()
             {
@@ -35,6 +40,8 @@ namespace DCFApixels.SpriteEditor
                 target.UnregisterCallback<PointerCaptureOutEvent>(Lost);
                 target.UnregisterCallback<PointerCancelEvent>(Interrupted);
                 target.UnregisterCallback<DetachFromPanelEvent>(Detached);
+                target.UnregisterCallback<KeyDownEvent>(KeyDown);
+                target.UnregisterCallback<KeyUpEvent>(KeyUp);
             }
             private Vector2 CanvasPoint(Vector2 point, bool disableSnap)
             {
@@ -43,6 +50,33 @@ namespace DCFApixels.SpriteEditor
                 Vector2 documentPoint = new Vector2((point.x - image.x) / Mathf.Max(.0001f, image.width) * owner.compositor.width,
                     (1f - (point.y - image.y) / Mathf.Max(.0001f, image.height)) * owner.compositor.height);
                 return disableSnap ? documentPoint : owner.SnapPreviewGuidePoint(documentPoint, owner.previewTool == PreviewTool.RectangleSelect);
+            }
+            private static Vector2 ConstrainMarquee(Vector2 start, Vector2 end)
+            {
+                Vector2 delta = end - start;
+                float size = Mathf.Max(Mathf.Abs(delta.x), Mathf.Abs(delta.y));
+                return start + new Vector2(delta.x < 0f ? -size : size, delta.y < 0f ? -size : size);
+            }
+            private void UpdateCurrent(Vector2 position, bool shift, bool control)
+            {
+                pointerPosition = position;
+                if (!shift) shiftStartsCombine = false;
+                Current = CanvasPoint(position, control);
+                if (RectangleDragging && shift && !shiftStartsCombine)
+                    Current = ConstrainMarquee(Start, Current);
+                owner.areaSelectionOverlay?.MarkDirtyRepaint();
+            }
+            private void KeyDown(KeyDownEvent evt)
+            {
+                if (!RectangleDragging || (evt.keyCode != KeyCode.LeftShift && evt.keyCode != KeyCode.RightShift)) return;
+                UpdateCurrent(pointerPosition, true, evt.ctrlKey);
+                SpriteEditorUI.ConsumeEvent(evt);
+            }
+            private void KeyUp(KeyUpEvent evt)
+            {
+                if (!RectangleDragging || (evt.keyCode != KeyCode.LeftShift && evt.keyCode != KeyCode.RightShift)) return;
+                UpdateCurrent(pointerPosition, evt.shiftKey, evt.ctrlKey);
+                SpriteEditorUI.ConsumeEvent(evt);
             }
             private void Down(PointerDownEvent evt)
             {
@@ -62,7 +96,10 @@ namespace DCFApixels.SpriteEditor
                 Current = CanvasPoint(evt.localPosition, evt.ctrlKey);
                 if (owner.previewTool == PreviewTool.RectangleSelect)
                 {
+                    shiftStartsCombine = evt.shiftKey;
+                    pointerPosition = evt.localPosition;
                     Start = Current; pointer = evt.pointerId;
+                    EllipseDragging = owner.marqueeShape == MarqueeShape.Ellipse;
                     target.CapturePointer(pointer);
                 }
                 else if (Vertices.Count >= 3 && (evt.clickCount > 1 ||
@@ -76,19 +113,22 @@ namespace DCFApixels.SpriteEditor
                 if (!owner.IsAreaSelectionTool || !HasGesture || owner.compositor == null ||
                     (owner.previewZoomManipulator?.IsNavigating ?? false)) return;
                 if (RectangleDragging && (evt.pointerId != pointer || (evt.pressedButtons & 1) == 0)) { Cancel(); return; }
-                Current = CanvasPoint(evt.localPosition, evt.ctrlKey);
-                owner.areaSelectionOverlay?.MarkDirtyRepaint();
+                UpdateCurrent(evt.localPosition, evt.shiftKey, evt.ctrlKey);
                 evt.StopImmediatePropagation();
             }
             private void Up(PointerUpEvent evt)
             {
                 if (evt.button != 0 || pointer != evt.pointerId) return;
-                Current = CanvasPoint(evt.localPosition, evt.ctrlKey);
+                UpdateCurrent(evt.localPosition, evt.shiftKey, evt.ctrlKey);
                 Vector2 a = Start, b = Current;
-                var operation = combine; bool tiled = wrap;
+                var operation = combine; bool tiled = wrap, ellipse = EllipseDragging;
                 bool click = (a - b).magnitude * owner.toolkitPreviewCanvas.PixelScale < 3f;
                 Cancel();
-                if (!click) owner.ChangeAreaSelection(s => s.Rectangle(a, b, operation, tiled));
+                if (!click) owner.ChangeAreaSelection(s =>
+                {
+                    if (ellipse) s.Ellipse(a, b, operation, tiled);
+                    else s.Rectangle(a, b, operation, tiled);
+                });
                 else if (operation == SelectionCombine.Replace) owner.ChangeAreaSelection(s => s.Clear());
                 SpriteEditorUI.ConsumeEvent(evt);
             }
@@ -236,7 +276,22 @@ namespace DCFApixels.SpriteEditor
                     }
                 }
                 var gesture = owner.areaSelectionManipulator;
-                if (gesture != null && gesture.RectangleDragging)
+                if (gesture != null && gesture.RectangleDragging && gesture.EllipseDragging)
+                {
+                    Vector2 center = (gesture.Start + gesture.Current) * .5f;
+                    Vector2 radius = (gesture.Current - gesture.Start) * .5f;
+                    float viewRadius = Mathf.Max(Mathf.Abs(radius.x), Mathf.Abs(radius.y)) * owner.toolkitPreviewCanvas.PixelScale;
+                    int segments = Mathf.Clamp(Mathf.CeilToInt(Mathf.PI * Mathf.Sqrt(viewRadius)), 24, 512);
+                    Vector2 previous = PreviewPoint(center + new Vector2(radius.x, 0f), image);
+                    for (int i = 1; i <= segments; i++)
+                    {
+                        float angle = i * Mathf.PI * 2f / segments;
+                        Vector2 next = PreviewPoint(center + new Vector2(Mathf.Cos(angle) * radius.x, Mathf.Sin(angle) * radius.y), image);
+                        AddVisible(previous, next);
+                        previous = next;
+                    }
+                }
+                else if (gesture != null && gesture.RectangleDragging)
                 {
                     Vector2 a = PreviewPoint(gesture.Start, image), b = PreviewPoint(gesture.Current, image);
                     Vector2 c = PreviewPoint(new Vector2(gesture.Current.x, gesture.Start.y), image);
@@ -259,16 +314,19 @@ namespace DCFApixels.SpriteEditor
                 painter.lineWidth = 1f; painter.strokeColor = Color.white;
                 painter.BeginPath();
                 int budget = 16384;
+                float dashPhase = 0f;
                 foreach (Vector4 e in visibleEdges)
                 {
                     Vector2 a = new Vector2(e.x, e.y), d = new Vector2(e.z - e.x, e.w - e.y);
                     float length = d.magnitude;
                     if (length < .0001f) continue;
-                    for (float t = 0f; t < length && budget > 0; t += 8f, budget--)
+                    for (float t = -dashPhase; t < length && budget > 0; t += 8f, budget--)
                     {
-                        painter.MoveTo(a + d * (t / length));
+                        if (t + 4f <= 0f) continue;
+                        painter.MoveTo(a + d * (Mathf.Max(0f, t) / length));
                         painter.LineTo(a + d * (Mathf.Min(t + 4f, length) / length));
                     }
+                    dashPhase = (dashPhase + length) % 8f;
                 }
                 painter.Stroke();
             }

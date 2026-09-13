@@ -326,7 +326,9 @@ for (const name of ['SnapPreviewGuidePoint', 'SnapPreviewGuideMove', 'SnapPrevie
     assert.ok(transform.includes(`owner.${name}(`));
 assert.match(transform, /else if \(!disableSnap\)\s*next.rotation = owner.SnapPreviewGuideRotation/);
 const selection = read('TextureCompositorWindow.AreaSelectionView.cs');
-assert.equal((selection.match(/CanvasPoint\(evt.localPosition, evt.ctrlKey\)/g) ?? []).length, 3);
+assert.equal((selection.match(/CanvasPoint\(evt.localPosition, evt.ctrlKey\)/g) ?? []).length, 1);
+assert.equal((selection.match(/UpdateCurrent\(evt.localPosition, evt.shiftKey, evt.ctrlKey\)/g) ?? []).length, 2);
+assert.match(selection, /Current = CanvasPoint\(position, control\)/);
 assert.match(selection, /disableSnap \? documentPoint : owner.SnapPreviewGuidePoint\(documentPoint, owner.previewTool == PreviewTool.RectangleSelect\)/);
 const commands = read('TextureCompositorWindow.GuideCommands.cs');
 function commandBody(name) {
