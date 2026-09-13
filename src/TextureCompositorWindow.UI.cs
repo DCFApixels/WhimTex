@@ -310,12 +310,9 @@ namespace DCFApixels.SpriteEditor
             toolbar.AddToClassList("sprite-editor-document-header");
             toolbar.EnableInClassList("sprite-editor-document-header--light", !EditorGUIUtility.isProSkin);
 
-            toolbar.Add(SpriteEditorUI.CreateToolbarButton("New", () =>
-            {
-                if (!ResolveUnsavedTemporaryDocument())
-                    return;
-                SetCompositor(CreateTemporaryCompositor());
-            }, 46f));
+            var newDocument = SpriteEditorUI.CreateToolbarButton("New", () => OpenNewDocument(), 46f);
+            newDocument.tooltip = "Create a new document in a separate WhimTex tab. The current document stays open.";
+            toolbar.Add(newDocument);
 
             toolkitDocumentField = new ObjectField
             {

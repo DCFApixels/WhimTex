@@ -119,7 +119,7 @@ namespace DCFApixels.SpriteEditor
         {
             if (!CanHandleAreaCommand(evt.commandName, evt.target as VisualElement)) return;
             SpriteEditorUI.ConsumeEvent(evt);
-            if (evt.commandName == "Copy") CopyAreaSelection(false);
+            if (evt.commandName == "Copy") CopySelection(false);
             else if (evt.commandName == "Paste") PasteAreaSelection();
             else ChangeAreaSelection(s => s.All());
         }
@@ -137,7 +137,7 @@ namespace DCFApixels.SpriteEditor
             row.Add(SpriteEditorUI.CreateButton("All", () => ChangeAreaSelection(s => s.All())));
             row.Add(SpriteEditorUI.CreateButton("Deselect", () => ChangeAreaSelection(s => s.Clear())));
             row.Add(SpriteEditorUI.CreateButton("Invert", () => ChangeAreaSelection(s => s.Invert())));
-            row.Add(SpriteEditorUI.CreateButton("Copy", () => CopyAreaSelection(false)));
+            row.Add(SpriteEditorUI.CreateButton("Copy", () => CopySelection(false)));
             row.Add(SpriteEditorUI.CreateButton("Copy Merged", () => CopyAreaSelection(true)));
             row.Add(SpriteEditorUI.CreateButton("Paste", PasteAreaSelection));
             var contentFill = SpriteEditorUI.CreateButton("Content-Aware Fill", OpenContentAwareFill);
@@ -160,6 +160,8 @@ namespace DCFApixels.SpriteEditor
         }
         private bool HandleAreaSelectionKey(KeyDownEvent evt)
         {
+            if (compositor == null || IsTextInputTarget(evt.target as VisualElement) ||
+                IsTextInputTarget(rootVisualElement.panel?.focusController?.focusedElement as VisualElement)) return false;
             bool action = evt.ctrlKey || evt.commandKey;
             if (!action && areaSelectionManipulator != null && areaSelectionManipulator.HasGesture)
             {
@@ -170,7 +172,7 @@ namespace DCFApixels.SpriteEditor
             }
             else if (action && !evt.altKey)
             {
-                if (evt.keyCode == KeyCode.C) CopyAreaSelection(evt.shiftKey);
+                if (evt.keyCode == KeyCode.C) CopySelection(evt.shiftKey);
                 else if (evt.keyCode == KeyCode.V && !evt.shiftKey) PasteAreaSelection();
                 else if (evt.keyCode == KeyCode.D && !evt.shiftKey) ChangeAreaSelection(s => s.Clear());
                 else if (evt.keyCode == KeyCode.A && !evt.shiftKey) ChangeAreaSelection(s => s.All());
@@ -205,6 +207,27 @@ namespace DCFApixels.SpriteEditor
             SpriteEditorUI.ConsumeEvent(evt);
             return true;
         }
+        private void CopySelection(bool merged)
+        {
+            if (compositor == null) return;
+            if (merged || GetAreaSelection().Active)
+            {
+                CopyAreaSelection(merged);
+                return;
+            }
+            areaSelectionManipulator?.Cancel();
+            FinishPaintingStroke(); FinishPreviewTransform();
+            try
+            {
+                NormalizeLayerSelection();
+                var roots = GetSelectedRoots();
+                LayerClipboard.Copy(compositor, roots);
+                areaClipboard = null;
+                ShowNotification(new GUIContent(roots.Count == 1 ? "Layer copied" : "Layers copied"));
+            }
+            catch (Exception exception) { ShowNotification(new GUIContent("Copy failed: " + exception.Message)); }
+        }
+
         private void CopyAreaSelection(bool merged)
         {
             if (!HasPreviewLayers) return;
@@ -232,6 +255,7 @@ namespace DCFApixels.SpriteEditor
                 }
                 areaClipboard = new AreaClipboard { pixels = copy, region = region,
                     canvas = new Vector2Int(selection.Width, selection.Height), systemRevision = ImageClipboard.Revision };
+                LayerClipboard.Clear();
                 ShowNotification(new GUIContent("Copied to WhimTex clipboard"));
             }
             catch (Exception exception) { ShowNotification(new GUIContent("Copy failed: " + exception.Message)); }
@@ -245,6 +269,12 @@ namespace DCFApixels.SpriteEditor
             Texture2D texture = null;
             try
             {
+                TextureCompositor copiedLayers = LayerClipboard.Current;
+                if (copiedLayers != null)
+                {
+                    PasteCopiedLayers(copiedLayers);
+                    return;
+                }
                 if (areaClipboard == null || areaClipboard.systemRevision != ImageClipboard.Revision)
                 {
                     texture = ImageClipboard.ReadImage();

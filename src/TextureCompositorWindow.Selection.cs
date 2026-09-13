@@ -271,6 +271,29 @@ namespace DCFApixels.SpriteEditor
             }
         }
 
+        private void PasteCopiedLayers(TextureCompositor snapshot)
+        {
+            applyingToolkitChange = true;
+            try
+            {
+                Dictionary<Layer, Layer> copies = compositor.PasteLayers(snapshot);
+                SelectOnlyLayer(null);
+                foreach (Layer source in snapshot.layers)
+                    if (copies.TryGetValue(source, out Layer copy)) ActivateSelectedLayer(copy.Id);
+                foreach (Layer copy in copies.Values)
+                    if (copy.IsGroup) groupExpansion[copy.Id] = true;
+                selectionAnchorId = selectedLayerId;
+                temporaryDocumentDirty |= !AssetDatabase.Contains(compositor);
+                lineAnchorLayer = null;
+                RequestPreview();
+            }
+            finally
+            {
+                applyingToolkitChange = false;
+                RefreshToolkitInterface();
+            }
+        }
+
         private void DeleteLayers(List<Layer> layers)
         {
             FinishPreviewTransform();

@@ -8,14 +8,38 @@ namespace DCFApixels.SpriteEditor
     public sealed partial class TextureCompositor
     {
         internal Dictionary<Layer, Layer> DuplicateLayers(List<Layer> requested)
+            => CopyLayersFrom(this, requested, true, "Duplicate Sprite Layers");
+
+        internal TextureCompositor CaptureLayerClipboard(List<Layer> requested)
         {
-            const string undoName = "Duplicate Sprite Layers";
+            var snapshot = CreateInstance<TextureCompositor>();
+            snapshot.hideFlags = HideFlags.HideAndDontSave;
+            snapshot.name = "WhimTex Layer Clipboard";
+            snapshot.width = width;
+            snapshot.height = height;
+            try
+            {
+                snapshot.CopyLayersFrom(this, requested, false, null);
+                return snapshot;
+            }
+            catch { DestroyImmediate(snapshot); throw; }
+        }
+
+        internal Dictionary<Layer, Layer> PasteLayers(TextureCompositor snapshot)
+            => CopyLayersFrom(snapshot, snapshot.layers, false, "Paste Layers");
+
+        private Dictionary<Layer, Layer> CopyLayersFrom(TextureCompositor sourceDocument,
+            List<Layer> requested, bool duplicate, string undoName)
+        {
+            bool recordUndo = undoName != null;
             HashSet<Layer> selected = new HashSet<Layer>(requested);
             List<Layer> roots = new List<Layer>();
-            CollectRoots(layers);
+            CollectRoots(sourceDocument.layers);
             Dictionary<Layer, Layer> copies = new Dictionary<Layer, Layer>();
             if (roots.Count == 0)
                 return copies;
+            if (roots.Exists(SpriteEditorApi.ContainsReservation))
+                throw new InvalidOperationException("Finish or cancel generation before copying these layers.");
 
             Dictionary<string, string> copiedIds = new Dictionary<string, string>();
             Dictionary<ShaderFX, ShaderFX> effects = new Dictionary<ShaderFX, ShaderFX>();
@@ -33,41 +57,61 @@ namespace DCFApixels.SpriteEditor
                 }
                 foreach (Layer copy in copies.Values)
                     if (copy?.Behaviour is TargetedLayerBehaviour effect &&
-                        !string.IsNullOrEmpty(effect.TargetLayerId) &&
-                        copiedIds.TryGetValue(effect.TargetLayerId, out string targetId))
-                        effect.TargetLayerId = targetId;
+                        !string.IsNullOrEmpty(effect.TargetLayerId))
+                    {
+                        if (copiedIds.TryGetValue(effect.TargetLayerId, out string targetId))
+                            effect.TargetLayerId = targetId;
+                        else if (!duplicate)
+                            effect.TargetLayerId = null;
+                    }
 
-                Undo.IncrementCurrentGroup();
-                undoGroup = Undo.GetCurrentGroup();
-                Undo.SetCurrentGroupName(undoName);
+                if (recordUndo)
+                {
+                    Undo.IncrementCurrentGroup();
+                    undoGroup = Undo.GetCurrentGroup();
+                    Undo.SetCurrentGroupName(undoName);
+                }
                 foreach (DrawingLayerBehaviour drawing in drawings)
                     drawing.MakeTexturePersistent(this);
                 foreach (ShaderFX effect in effects.Values)
                     effect.PersistEmbedded(this);
-                foreach (Texture2D texture in textures)
-                    Undo.RegisterCreatedObjectUndo(texture, undoName);
-                foreach (ShaderFX effect in effects.Values)
-                    effect.RegisterCreatedCopyUndo(undoName);
-                Undo.RegisterCompleteObjectUndo(this, undoName);
-                foreach (KeyValuePair<Layer, Layer> pair in copies)
-                    pair.Value.layerName = AllocateDuplicateName(pair.Key);
+                if (recordUndo)
+                {
+                    foreach (Texture2D texture in textures)
+                        Undo.RegisterCreatedObjectUndo(texture, undoName);
+                    foreach (ShaderFX effect in effects.Values)
+                        effect.RegisterCreatedCopyUndo(undoName);
+                    Undo.RegisterCompleteObjectUndo(this, undoName);
+                }
+                if (duplicate)
+                    foreach (KeyValuePair<Layer, Layer> pair in copies)
+                        pair.Value.layerName = AllocateDuplicateName(pair.Key);
                 embeddedShaderFX.AddRange(effects.Values);
-                InsertCopies(layers);
+                if (duplicate) InsertCopies(layers);
+                else
+                    for (int i = 0; i < roots.Count; i++) layers.Insert(i, copies[roots[i]]);
                 foreach (KeyValuePair<TargetedLayerBehaviour, Layer> input in previousInputs)
                 {
                     Layer target = input.Value;
                     if (target != null && copies.TryGetValue(target, out Layer targetCopy))
                         target = targetCopy;
+                    else if (!duplicate)
+                        target = null;
                     if (TryFindLayer(input.Key, out List<Layer> container, out int index) &&
-                        (index + 1 < container.Count ? container[index + 1] : null) != target)
+                        ((!duplicate && target == null) ||
+                         (index + 1 < container.Count ? container[index + 1] : null) != target))
                     {
                         input.Key.inputMode = EffectInputMode.Specific;
                         input.Key.TargetLayerId = target?.Id;
                     }
                 }
-                MarkChanged();
-                Undo.FlushUndoRecordObjects();
-                Undo.CollapseUndoOperations(undoGroup);
+                if (recordUndo)
+                {
+                    MarkChanged();
+                    Undo.FlushUndoRecordObjects();
+                    Undo.CollapseUndoOperations(undoGroup);
+                }
+                else NormalizeModel();
                 return copies;
             }
             catch
@@ -120,7 +164,7 @@ namespace DCFApixels.SpriteEditor
                     drawings.Add(drawing);
                 }
                 if (source?.Behaviour is TargetedLayerBehaviour sourceEffect && sourceEffect.inputMode == EffectInputMode.Previous &&
-                    TryFindLayer(source, out List<Layer> sourceContainer, out int sourceIndex))
+                    sourceDocument.TryFindLayer(source, out List<Layer> sourceContainer, out int sourceIndex))
                     previousInputs.Add((TargetedLayerBehaviour)copy,
                         sourceIndex + 1 < sourceContainer.Count ? sourceContainer[sourceIndex + 1] : null);
                 if (copy.modifiers != null)

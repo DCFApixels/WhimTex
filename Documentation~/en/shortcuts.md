@@ -36,7 +36,7 @@ next_page: "en/automation.md"
 | `U` · `Shift`-drag with Shape | Shape tool · equal proportions / 45° line angles. |
 | `Shift`-drag / `Shift`-click while painting | Axis line / connect endpoints. |
 | `Ctrl`-click a thumbnail/group arrow | Select alpha. |
-| `Ctrl+C` / `Ctrl+Shift+C` / `Ctrl+V` | Copy layer / copy merged / paste. |
+| `Ctrl+C` / `Ctrl+Shift+C` / `Ctrl+V` | Copy selected layers (or selected pixels) / copy merged pixels / paste, including between windows. |
 | `Ctrl+A` / `Ctrl+D` / `Ctrl+Shift+I` | Select all / deselect / invert area. |
 | `Shift` / `Alt` / `Shift+Alt` with selection tools | Add / subtract / intersect. |
 | `Enter` / `Backspace` / `Escape` with Lasso | Close / remove vertex / cancel. |

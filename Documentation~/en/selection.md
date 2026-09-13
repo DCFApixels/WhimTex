@@ -92,12 +92,19 @@ You can use a hidden layer as the shape.
 
 | Shortcut | Action |
 | :--- | :--- |
-| `Ctrl+C` | Copy the selected area from the active layer. |
+| `Ctrl+C` | Copy the selected area from the active layer; without an area selection, copy the selected layers. |
 | `Ctrl+Shift+C` | Copy what is visible in that area across all layers. |
-| `Ctrl+V` | Paste onto a new Drawing layer. |
+| `Ctrl+V` | Insert copied layers, or paste copied pixels onto a new Drawing layer. |
 
-Without a selection, copy uses the whole canvas. You can paste between WhimTex windows.
-On a canvas of the same size, the copy keeps its position; on a different-sized canvas, it is centered.
+To transfer editable layers, deselect the canvas with `Ctrl+D`, select one or more rows in **Layers**, then press `Ctrl+C`.
+Switch to another WhimTex window and press `Ctrl+V`. Copies appear at the top of the stack with their names,
+settings, group contents, embedded FX and Drawing pixels. Each paste is independent; the source window can be closed after copying.
+Drawing textures keep their stored resolution. Layer transforms keep their values on the destination canvas.
+Copy effects together with their target layers to preserve those links; targets outside the copied set must be assigned again.
+The layer clipboard lasts until another copy, a script reload or closing Unity. Text fields keep normal text copy/paste.
+
+With an area selection, only its pixels are copied. On a canvas of the same size, these keep their position;
+on a different-sized canvas, they are centered. `Ctrl+Shift+C` without an area selection copies the whole visible canvas as pixels.
 
 On Windows, you can also copy an image in another application or take a screenshot with `Win+Shift+S`,
 then click the WhimTex preview and press `Ctrl+V`. It becomes a new Drawing layer, centered at its original

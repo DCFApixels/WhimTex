@@ -5,6 +5,16 @@ namespace DCFApixels.SpriteEditor
 {
     public sealed partial class TextureCompositorWindow
     {
+        private TextureCompositorWindow OpenNewDocument()
+        {
+            FinishPreviewTransform();
+            FinishPaintingStroke();
+            var window = CreateWindow<TextureCompositorWindow>("WhimTex", typeof(TextureCompositorWindow));
+            window.RefreshDocumentTitle(true);
+            window.Focus();
+            return window;
+        }
+
         private bool TryOpenFileLayerDocument(VisualElement row, Layer layer, PointerDownEvent evt)
         {
             if (evt.button != 0 || evt.clickCount != 2 || evt.altKey || evt.ctrlKey || evt.commandKey || evt.shiftKey ||

@@ -22,7 +22,7 @@ https://github.com/DCFApixels/WhimTex.git
 
 ## Make your first image
 
-1. Open **Window → WhimTex**, click **New**, and set the canvas **W / H**.
+1. Open **Window → WhimTex** and set the canvas **W / H**. **New** creates another empty document in a separate tab, keeping the current document open.
 2. Drag a texture from Project onto the Preview, or click **Page +** at the bottom of Layers to create a Drawing layer.
 3. Choose **Transform** (`T`) to arrange the image, or **Brush** (`B`) to paint.
 4. Press `Ctrl+S` and choose where to save the document.
