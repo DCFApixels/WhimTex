@@ -110,7 +110,13 @@ namespace DCFApixels.SpriteEditor
             AddPostFxFloat(manual, "Near", postFxSettings.near, .001f, 100000, value => postFxSettings.near = value);
             AddPostFxFloat(manual, "Far", postFxSettings.far, .01f, 1000000, value => postFxSettings.far = value);
             root.Add(SpriteEditorUI.CreateHeading("Background"));
-            AddPostFxEnum(root, "Mode", postFxSettings.backgroundMode, value => postFxSettings.backgroundMode = value);
+            var backgroundMode = SpriteEditorUI.ConfigureField(new EnumField("Mode", SpriteEditorUserSettings.PostFxBackgroundMode)
+            {
+                name = "postFxBackgroundMode",
+                tooltip = "Shared with User Settings and all WhimTex windows."
+            });
+            backgroundMode.RegisterValueChangedCallback(evt => SpriteEditorUserSettings.PostFxBackgroundMode = (PostFxBackground)evt.newValue);
+            root.Add(backgroundMode);
             postFxBackgroundField = SpriteEditorUI.ConfigureField(new ColorField("Color")
             {
                 name = "postFxBackground",
@@ -142,7 +148,8 @@ namespace DCFApixels.SpriteEditor
             root.Add(new Button(() => { postFxDirty = true; nextPostFxCheck = 0; }) { text = "Refresh Post FX" });
             refreshPostFxFields = () =>
             {
-                bool checkerBackground = postFxSettings.backgroundMode == PostFxBackground.Checkerboard;
+                backgroundMode.SetValueWithoutNotify(SpriteEditorUserSettings.PostFxBackgroundMode);
+                bool checkerBackground = SpriteEditorUserSettings.PostFxBackgroundMode == PostFxBackground.Checkerboard;
                 postFxBackgroundField.EnableInClassList("sprite-editor-post-fx-field--hidden", checkerBackground);
                 checkerInfo.EnableInClassList("sprite-editor-post-fx-field--hidden", !checkerBackground);
                 camera.style.display = postFxSettings.source == PostFxSource.GameCamera ? DisplayStyle.Flex : DisplayStyle.None;
@@ -257,6 +264,7 @@ namespace DCFApixels.SpriteEditor
                 postFxTexture.filterMode = previewTexture.filterMode;
                 float zoom = toolkitPreviewCanvas != null ? toolkitPreviewCanvas.PixelScale : 1f;
                 var canvasSize = compositor != null ? new Vector2(compositor.width, compositor.height) : new Vector2(previewTexture.width, previewTexture.height);
+                postFxSettings.backgroundMode = SpriteEditorUserSettings.PostFxBackgroundMode;
                 postFxMessage = postFxBackend.Render(new PostFxPreviewRequest(postFxSettings, previewTexture, SpriteEditorUserSettings.PostFxBackground, zoom, canvasSize), postFxTexture);
                 postFxValid = true;
                 postFxFailed = false;

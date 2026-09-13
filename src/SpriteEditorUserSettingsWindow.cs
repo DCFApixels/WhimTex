@@ -11,6 +11,7 @@ namespace DCFApixels.SpriteEditor
         private ColorField checkerDark;
         private ColorField invalidPixels;
         private ColorField postFxBackground;
+        private EnumField postFxBackgroundMode;
         private SliderInt checkerSize;
         private TextField presetsFolder;
         private Toggle cleanBackground;
@@ -71,6 +72,14 @@ namespace DCFApixels.SpriteEditor
             invalidPixels = AddColor(scroll, "Invalid Pixels", value => SpriteEditorUserSettings.InvalidPixels = value);
             invalidPixels.tooltip = "Display color for the accumulated numeric-error mask when Debug is enabled. Does not change image pixels or exports.";
             AddHeading(scroll, "Post FX Preview");
+            postFxBackgroundMode = new EnumField("Background Mode", SpriteEditorUserSettings.PostFxBackgroundMode)
+            {
+                name = "postFxBackgroundMode",
+                tooltip = "Solid Color or Checkerboard behind the composition before Post FX. Shared with the Post FX panel in every window."
+            };
+            postFxBackgroundMode.AddToClassList("sprite-editor-user-settings-color");
+            postFxBackgroundMode.RegisterValueChangedCallback(evt => SpriteEditorUserSettings.PostFxBackgroundMode = (PostFxBackground)evt.newValue);
+            scroll.Add(postFxBackgroundMode);
             postFxBackground = AddColor(scroll, "Background", value => SpriteEditorUserSettings.PostFxBackground = value);
             postFxBackground.tooltip = "Opaque fill behind the composition before Post FX. Shared with the Post FX panel. Original alpha is still used for depth; document pixels and exports are unchanged.";
             var note = new Label("Saved for your user account. Applies to all WhimTex windows; documents and exports are unaffected.");
@@ -188,6 +197,8 @@ namespace DCFApixels.SpriteEditor
             checkerDark?.SetValueWithoutNotify(SpriteEditorUserSettings.CheckerDark);
             invalidPixels?.SetValueWithoutNotify(SpriteEditorUserSettings.InvalidPixels);
             postFxBackground?.SetValueWithoutNotify(SpriteEditorUserSettings.PostFxBackground);
+            postFxBackgroundMode?.SetValueWithoutNotify(SpriteEditorUserSettings.PostFxBackgroundMode);
+            postFxBackground?.SetEnabled(SpriteEditorUserSettings.PostFxBackgroundMode == PostFxBackground.SolidColor);
             checkerSize?.SetValueWithoutNotify(SpriteEditorUserSettings.CheckerSize);
             presetsFolder?.SetValueWithoutNotify(SpriteEditorUserSettings.PresetsFolder);
         }

@@ -33,6 +33,9 @@ The original cameras and profiles are not changed.
 Choose **Solid Color** or **Checkerboard**.
 The background fills transparent areas before post-processing, so glow and similar effects
 have a visible backdrop. You can adjust its appearance here or in **User Settings…**.
+In **User Settings → Post FX Preview**, **Background Mode** and **Background** share the
+same settings with this panel and apply to all WhimTex windows. Checkerboard colors and
+cell size are under **Transparency Checkerboard**. Your choices are remembered between sessions.
 
 ## Try depth-based effects
 

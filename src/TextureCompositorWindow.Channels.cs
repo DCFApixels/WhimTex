@@ -26,19 +26,29 @@ namespace DCFApixels.SpriteEditor
         {
             VisualElement footer = new VisualElement();
             footer.AddToClassList("sprite-editor-preview-footer");
-            footer.Add(BuildPreviewQualityControl());
+            var left = new VisualElement { name = "previewFooterLeft" };
+            left.AddToClassList("sprite-editor-preview-footer-side");
+            footer.Add(left);
+            var updates = CreatePreviewFooterGroup("previewFooterUpdates");
+            updates.Add(BuildPreviewQualityControl());
+            updates.Add(BuildLiveOutputButton());
+            left.Add(updates);
+            var context = CreatePreviewFooterGroup("previewFooterContext", true);
+            context.Add(BuildPostFxButton());
+            context.Add(BuildUvButton());
+            left.Add(context);
             footer.RegisterCallback<GeometryChangedEvent>(evt =>
-                footer.EnableInClassList("sprite-editor-preview-footer--compact", evt.newRect.width < 560f));
+                footer.EnableInClassList("sprite-editor-preview-footer--compact", evt.newRect.width < 600f));
             toolkitPreviewFooter = new Label();
             toolkitPreviewFooter.AddToClassList("sprite-editor-preview-status");
             footer.Add(toolkitPreviewFooter);
-            VisualElement channels = new VisualElement();
-            channels.AddToClassList("sprite-editor-preview-channels");
-            footer.Add(channels);
-            channels.Add(BuildLiveOutputButton());
-            channels.Add(BuildPostFxButton());
-            channels.Add(BuildUvButton());
-            channels.Add(SpriteEditorColorInputs.CreateToggleControl());
+            var right = new VisualElement { name = "previewFooterRight" };
+            right.AddToClassList("sprite-editor-preview-footer-side");
+            right.AddToClassList("sprite-editor-preview-channels");
+            footer.Add(right);
+            var inspection = CreatePreviewFooterGroup("previewFooterInspection");
+            right.Add(inspection);
+            inspection.Add(SpriteEditorColorInputs.CreateToggleControl());
             var exposure = new FloatField("EV") { value = previewExposure, tooltip = "Preview exposure only, in stops. Does not affect painting, fill sampling or export." };
             exposure.AddToClassList("sprite-editor-preview-exposure");
             exposure.EnableInClassList("sprite-editor-preview-exposure--adjusted", previewExposure != 0f);
@@ -49,7 +59,7 @@ namespace DCFApixels.SpriteEditor
                 exposure.EnableInClassList("sprite-editor-preview-exposure--adjusted", previewExposure != 0f);
                 UpdateChannelPreview(); UpdateToolkitPreviewPresentation();
             });
-            channels.Add(exposure);
+            inspection.Add(exposure);
             var debug = new Button(() =>
             {
                 previewDebug = !previewDebug;
@@ -63,7 +73,9 @@ namespace DCFApixels.SpriteEditor
                 debug.EnableInClassList("sprite-editor-channel-button--enabled", previewDebug);
                 debug.EnableInClassList("sprite-editor-channel-button--error", compositor != null && compositor.HasNumericErrors);
             }).Every(150);
-            channels.Add(debug);
+            inspection.Add(debug);
+            var channels = CreatePreviewFooterGroup("previewFooterColor", true);
+            right.Add(channels);
             channelButtons = new Button[4];
             string[] labels = { "R", "G", "B", "A" };
             for (int i = 0; i < labels.Length; i++)
@@ -84,6 +96,14 @@ namespace DCFApixels.SpriteEditor
             }
             RefreshChannelButtons();
             return footer;
+        }
+
+        private static VisualElement CreatePreviewFooterGroup(string name, bool separated = false)
+        {
+            var group = new VisualElement { name = name };
+            group.AddToClassList("sprite-editor-preview-footer-group");
+            if (separated) group.AddToClassList("sprite-editor-preview-footer-group--separated");
+            return group;
         }
 
         private VisualElement BuildPreviewQualityControl()

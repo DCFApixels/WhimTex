@@ -14,6 +14,8 @@ next_page: "en/color.md"
 Use the Preview to inspect your image up close, check seams or look at individual channels.
 Changing the view does not resize the document.
 
+In the footer, **Live Quality**, **Live Update**, **Post FX** and **UV** are on the left. **HDR**, **EV**, **Debug** and **RGBA** are on the right, with tool hints between them.
+
 ## Move around
 
 - Hold the mouse wheel and drag to pan.
@@ -69,7 +71,8 @@ Guides never appear in exports. They stay in the current window, including scrip
 
 ## Balance detail and responsiveness
 
-Lower **Live Quality** in the footer if painting on a large image feels slow.
+**Live Quality** defaults to **100%**. Your manually chosen value is remembered.
+Lower it in the footer if painting on a large image feels slow.
 Save and export still use full resolution.
 
 Pencil always shows crisp pixels at full quality, so you can place individual pixels accurately.

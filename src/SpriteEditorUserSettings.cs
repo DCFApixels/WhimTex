@@ -13,6 +13,7 @@ namespace DCFApixels.SpriteEditor
         private const string SizeKey = "DCFApixels.SpriteEditor.Preview.CheckerSize";
         private const string ShowMantaKey = "DCFApixels.SpriteEditor.Preview.ShowManta";
         private const string PostFxBackgroundKey = "DCFApixels.SpriteEditor.Preview.PostFxBackground";
+        private const string PostFxBackgroundModeKey = "DCFApixels.SpriteEditor.Preview.PostFxBackgroundMode";
         private const string PresetsFolderKey = "DCFApixels.SpriteEditor.PresetsFolder";
         private const string LayerPickAlphaKey = "DCFApixels.SpriteEditor.LayerPickAlphaThreshold";
         private const string SnapRadiusKey = "DCFApixels.SpriteEditor.SnapRadius";
@@ -124,6 +125,21 @@ namespace DCFApixels.SpriteEditor
             Changed?.Invoke();
         }
         private static Color? postFxBackground = Load(PostFxBackgroundKey);
+        private static PostFxBackground postFxBackgroundMode = NormalizePostFxBackgroundMode((PostFxBackground)EditorPrefs.GetInt(PostFxBackgroundModeKey, 0));
+        private static PostFxBackground NormalizePostFxBackgroundMode(PostFxBackground value) =>
+            value == DCFApixels.SpriteEditor.PostFxBackground.Checkerboard ? value : DCFApixels.SpriteEditor.PostFxBackground.SolidColor;
+        internal static PostFxBackground PostFxBackgroundMode
+        {
+            get => postFxBackgroundMode;
+            set
+            {
+                value = NormalizePostFxBackgroundMode(value);
+                if (postFxBackgroundMode == value) return;
+                postFxBackgroundMode = value;
+                EditorPrefs.SetInt(PostFxBackgroundModeKey, (int)value);
+                Changed?.Invoke();
+            }
+        }
         internal static Color PostFxBackground
         {
             get => postFxBackground ?? Color.black;
@@ -221,6 +237,8 @@ namespace DCFApixels.SpriteEditor
             EditorPrefs.DeleteKey(ErrorKey);
             EditorPrefs.DeleteKey(SizeKey);
             EditorPrefs.DeleteKey(PostFxBackgroundKey);
+            EditorPrefs.DeleteKey(PostFxBackgroundModeKey);
+            postFxBackgroundMode = DCFApixels.SpriteEditor.PostFxBackground.SolidColor;
             postFxBackground = null;
             checkerSize = DefaultCheckerSize;
             checkerLight = checkerDark = invalidPixels = null;
