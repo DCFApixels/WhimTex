@@ -21,9 +21,25 @@ Set("{\"seed\":2147483647,\"noiseType\":\"Cellular\",\"scale\":12.5,\"offset\":[
 Check(layer.seed == int.MaxValue && layer.offset.y == -4 && layer.inverted, "Set parameters");
 var copy = new DCFApixels.SpriteEditor.NoiseLayerBehaviour();
 setter.Invoke(null, new object[] { copy, snapshot.Invoke(null, new object[] { layer }) });
-Check(UnityEngine.JsonUtility.ToJson(layer) == UnityEngine.JsonUtility.ToJson(copy), "Settings round trip");
+Check(snapshot.Invoke(null, new object[] { layer }).ToString() == snapshot.Invoke(null, new object[] { copy }).ToString(), "Settings round trip");
 Set("{\"seed\":-2147483648}");
 Check(layer.seed == int.MinValue && layer.scale == 12.5f, "Partial update and full seed range");
+Set("{\"noiseType\":\"WhiteNoise\",\"whiteNoiseColor\":\"Color\",\"whiteNoiseSize\":4}");
+Check(layer.noiseType == DCFApixels.SpriteEditor.NoiseLayerBehaviour.NoiseType.WhiteNoise &&
+    layer.whiteNoiseColor == DCFApixels.SpriteEditor.NoiseLayerBehaviour.WhiteNoiseColor.Color && layer.whiteNoiseSize == 4,
+    "White Noise settings");
+setter.Invoke(null, new object[] { copy, snapshot.Invoke(null, new object[] { layer }) });
+Check(snapshot.Invoke(null, new object[] { layer }).ToString() == snapshot.Invoke(null, new object[] { copy }).ToString(), "White Noise settings round trip");
+Reject("{\"whiteNoiseColor\":\"Unknown\"}");
+Reject("{\"whiteNoiseSize\":0}");
+Reject("{\"whiteNoiseSize\":1025}");
+Check(DCFApixels.SpriteEditor.SpriteEditorApi.Describe().Contains("noiseWhiteColors"), "White color discovery");
+Set("{\"noiseType\":\"BlueNoise\"}");
+Check(layer.noiseType == DCFApixels.SpriteEditor.NoiseLayerBehaviour.NoiseType.BlueNoise && layer.whiteNoiseSize == 4,
+    "Blue Noise shares grain settings");
+setter.Invoke(null, new object[] { copy, snapshot.Invoke(null, new object[] { layer }) });
+Check(snapshot.Invoke(null, new object[] { layer }).ToString() == snapshot.Invoke(null, new object[] { copy }).ToString(), "Blue Noise settings round trip");
+Check(DCFApixels.SpriteEditor.SpriteEditorApi.Describe().Contains("BlueNoise"), "Blue Noise discovery");
 foreach (string json in new[] { "{\"scale\":0}", "{\"octaves\":9}", "{\"octaves\":1.5}", "{\"offset\":[10001,0]}",
     "{\"seed\":2147483648}", "{\"noiseType\":\"Unknown\"}", "{\"warp\":\"Unknown\"}", "{\"cellularJitter\":2}", "{\"unused\":true}" }) Reject(json);
 Check(DCFApixels.SpriteEditor.SpriteEditorApi.Describe().Contains("noiseDefaults"), "Discovery");

@@ -6,7 +6,8 @@ namespace DCFApixels.SpriteEditor
     [Serializable]
     public sealed class NoiseLayerBehaviour : LayerBehaviour
     {
-        public enum NoiseType { OpenSimplex2, OpenSimplex2S, Cellular, Perlin, ValueCubic, Value }
+        public enum NoiseType { OpenSimplex2, OpenSimplex2S, Cellular, Perlin, ValueCubic, Value, WhiteNoise, BlueNoise }
+        public enum WhiteNoiseColor { Monochrome, Color }
         public enum FractalType { None, FBm, Ridged, PingPong }
         public enum CellularDistance { Euclidean, EuclideanSquared, Manhattan, Hybrid }
         public enum CellularReturn { CellValue, Distance, Distance2, Distance2Add, Distance2Sub, Distance2Mul, Distance2Div }
@@ -15,6 +16,8 @@ namespace DCFApixels.SpriteEditor
         public enum NoiseDimensions { TwoD, OneD }
 
         public NoiseType noiseType;
+        public WhiteNoiseColor whiteNoiseColor;
+        public float whiteNoiseSize = 1f;
         public NoiseDimensions dimensions;
         public float direction;
         public int seed = 1337;
@@ -51,10 +54,21 @@ namespace DCFApixels.SpriteEditor
                 Limit(offset.x, -10000f, 10000f, 0f), Limit(offset.y, -10000f, 10000f, 0f)));
             material.SetFloat("_NoiseScale", Limit(scale, .01f, 1000f, 8f));
             float radians = Limit(direction, -180f, 180f, 0f) * Mathf.Deg2Rad;
+            float axisX = Mathf.Cos(radians), axisY = Mathf.Sin(radians);
+            if (Mathf.Abs(axisX) < 0.000001f) axisX = 0f;
+            if (Mathf.Abs(axisY) < 0.000001f) axisY = 0f;
             material.SetInteger("_NoiseOneD", dimensions == NoiseDimensions.OneD ? 1 : 0);
-            material.SetVector("_NoiseAxis", new Vector4(Mathf.Cos(radians), Mathf.Sin(radians), 0f, 0f));
+            material.SetVector("_NoiseAxis", new Vector4(axisX, axisY, 0f, 0f));
             material.SetInteger("_NoiseSeed", seed);
-            material.SetInteger("_NoiseType", Mathf.Clamp((int)noiseType, 0, 5));
+            material.SetInteger("_NoiseType", Mathf.Clamp((int)noiseType, 0, 7));
+            if (noiseType == NoiseType.BlueNoise)
+            {
+                material.SetTexture("_BlueNoise2D", dimensions == NoiseDimensions.TwoD ? BlueNoiseTextures.TwoD : null);
+                material.SetTexture("_BlueNoise1D", dimensions == NoiseDimensions.OneD ? BlueNoiseTextures.OneD : null);
+            }
+            material.SetInteger("_WhiteNoiseColor", whiteNoiseColor == WhiteNoiseColor.Color ? 1 : 0);
+            material.SetVector("_WhiteNoiseGrid", new Vector4(width, height,
+                Limit(whiteNoiseSize, 1f, 1024f, 1f), 0f));
             material.SetInteger("_NoiseFractal", Mathf.Clamp((int)fractal, 0, 3));
             material.SetInteger("_NoiseOctaves", Mathf.Clamp(octaves, 1, 8));
             material.SetVector("_NoiseFractalSettings", new Vector4(Limit(lacunarity, 1f, 4f, 2f),

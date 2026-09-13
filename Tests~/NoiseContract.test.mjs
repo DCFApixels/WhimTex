@@ -20,7 +20,9 @@ const mappings = {
 };
 for (const [type, constants] of Object.entries(mappings)) {
     const entries = layer.match(new RegExp(`public enum ${type} \\{([^}]+)\\}`))[1].split(',').map(s => s.trim());
-    assert.equal(entries.length, constants.length, type);
+    assert.equal(entries.length, constants.length + (type === 'NoiseType' ? 2 : 0), type);
+    if (type === 'NoiseType') assert.equal(entries[6], 'WhiteNoise', 'White Noise appends without renumbering FastNoiseLite algorithms');
+    if (type === 'NoiseType') assert.equal(entries[7], 'BlueNoise', 'Blue Noise appends without renumbering previous algorithms');
     constants.forEach((name, index) => {
         if (name === null) return;
         const value = Number(fnl.match(new RegExp(`#define ${name} (\\d+)\\b`))[1]);
@@ -35,6 +37,10 @@ for (const [, field] of layer.matchAll(/^        public (?:\w+) (\w+)(?:\s*=.*)?
 }
 assert.match(layer, /SetInteger\("_NoiseSeed", seed\)/, 'No lossy float conversion of seed');
 assert.match(shader, /#pragma target 4\.5/);
+assert.match(shader, /if \(_NoiseType == 6 \|\| _NoiseType == 7\)/);
+assert.ok(shader.indexOf('WhiteNoise(i.uv)') < shader.indexOf('fnl_state state'), 'White Noise bypasses fractal and warp');
+assert.match(ui, /fractalChoice.EnableInClassList\("sprite-editor-hidden", isWhite\)/);
+assert.match(ui, /warpChoice.EnableInClassList\("sprite-editor-hidden", isWhite\)/);
 assert.match(shader, /return float4\(rgb, 1\.0\)/);
 assert.match(shader, /if \(_NoiseEncoding == 0\) rgb = SpriteDecode\(rgb\)/);
 assert.doesNotMatch(layer, /ReadPixels|GetPixels|SetPixels|GetRawTextureData/);

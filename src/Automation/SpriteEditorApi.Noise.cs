@@ -9,8 +9,10 @@ namespace DCFApixels.SpriteEditor
         {
             Keys(value, "noiseType", "seed", "scale", "offset", "fractal", "octaves", "lacunarity", "gain",
                 "weightedStrength", "pingPongStrength", "cellularDistance", "cellularReturn", "cellularJitter",
-                "warp", "warpStrength", "encoding", "inverted", "dimensions", "direction");
+                "warp", "warpStrength", "encoding", "inverted", "dimensions", "direction", "whiteNoiseColor", "whiteNoiseSize");
             layer.noiseType = Enum(value, "noiseType", layer.noiseType);
+            layer.whiteNoiseColor = Enum(value, "whiteNoiseColor", layer.whiteNoiseColor);
+            layer.whiteNoiseSize = Number(value, "whiteNoiseSize", layer.whiteNoiseSize, 1f, 1024f);
             layer.dimensions = Enum(value, "dimensions", layer.dimensions);
             layer.direction = Number(value, "direction", layer.direction, -180f, 180f);
             layer.seed = Int(value, "seed", layer.seed, int.MinValue, int.MaxValue);
@@ -40,6 +42,7 @@ namespace DCFApixels.SpriteEditor
         private static JObject NoiseSnapshot(NoiseLayerBehaviour layer) => new JObject
         {
             ["noiseType"] = layer.noiseType.ToString(), ["seed"] = layer.seed,
+            ["whiteNoiseColor"] = layer.whiteNoiseColor.ToString(), ["whiteNoiseSize"] = layer.whiteNoiseSize,
             ["dimensions"] = layer.dimensions.ToString(), ["direction"] = layer.direction,
             ["scale"] = layer.scale, ["offset"] = Json(layer.offset),
             ["fractal"] = layer.fractal.ToString(), ["octaves"] = layer.octaves,

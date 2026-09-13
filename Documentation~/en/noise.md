@@ -30,17 +30,36 @@ For finer control, **Lacunarity** changes the spacing between detail scales and 
 changes how strongly the smaller details show.
 With Cellular, try **Distance**, **Return** and **Jitter** to change the shape and regularity of the cells.
 
-## Striped noise
+## White noise
 
+Choose **Noise Type → White Noise** for random grain without smooth transitions.
+**Color → Monochrome** produces grayscale grain; **Color → Color** gives independent red, green and blue values.
+**Grain Size (px)** starts at one canvas pixel; increase it for larger square grains.
+Use **Seed** to get a different pattern and **Offset** to move it in pixels.
+Fractal and Domain Warp do not apply to White Noise; their settings are retained when switching types.
+White Noise also supports **Dimensions → 1D** for random bands with adjustable direction.
+
+## Blue noise
+
+Choose **Noise Type → Blue Noise** for more evenly distributed grain with fewer random clumps.
+It is useful for dither masks and fine speckles. **Monochrome / Color**, **Grain Size (px)**,
+**Offset**, **Inverted** and **Output** work as they do for White Noise; **1D** creates bands.
+Choose **Linear Data** for a dither mask, or **Color Values** for a visible texture.
+
+Blue Noise repeats every **128 grains** horizontally and vertically, or every **256 grains** in 1D.
+Large grains can make this repetition visible. Seed rearranges the pattern while preserving its distribution.
+Fractal and Domain Warp do not apply to Blue Noise.
+
+## Striped noise
 Choose **Dimensions → 1D** to create straight noise stripes instead of a two-dimensional pattern.
 **Direction (deg)** rotates the direction of variation: 0 gives vertical stripes, 90 gives horizontal stripes.
 Scale controls their width. Offset X moves through the pattern; Offset Y chooses a different slice of noise.
-Seed, Noise Type, Fractal and Domain Warp remain available; Warp changes the variation but keeps the stripes straight.
+For other noise types, Seed, Noise Type, Fractal and Domain Warp remain available; Warp changes the variation but keeps the stripes straight.
 Switch back to **2D** for the usual pattern without losing the direction setting.
 
 ## Color texture or height map?
 
-Choose **Encoding → Color Values** when using the noise as a visible grayscale image.
+Choose **Output → Color Values** when using the noise as a visible image.
 Choose **Linear Data** when using it as a height map or packing it into texture channels.
 
 To create surface relief:

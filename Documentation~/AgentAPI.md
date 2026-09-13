@@ -327,7 +327,7 @@ Inactive type-specific settings are retained when `kind` changes. SVG import/exp
 
 Use `type:"noise"` with partial `settings.noise` updates. `describe` exposes `noiseDefaults`,
 `noiseTypes`, `noiseFractals`, `noiseCellularDistances`, `noiseCellularReturns`, `noiseWarps`
-and `noiseEncodings`, `noiseDimensions`. `inspect` returns all generator parameters. No new operation or protocol version is required.
+and `noiseEncodings`, `noiseDimensions`, `noiseWhiteColors`. `inspect` returns all generator parameters. No new operation or protocol version is required.
 
 ```json
 {"op":"add","type":"noise","as":"height","settings":{"noise":{
@@ -338,12 +338,14 @@ and `noiseEncodings`, `noiseDimensions`. `inspect` returns all generator paramet
 
 | Setting | Values / limits |
 | :--- | :--- |
-| `noiseType` | OpenSimplex2, OpenSimplex2S, Cellular, Perlin, ValueCubic, Value |
+| `noiseType` | OpenSimplex2, OpenSimplex2S, Cellular, Perlin, ValueCubic, Value, WhiteNoise, BlueNoise |
+| `whiteNoiseColor` | Monochrome (default), Color (independent RGB); shared by WhiteNoise and BlueNoise |
+| `whiteNoiseSize` | 1–1024 canvas pixels per grain, default 1; shared by WhiteNoise and BlueNoise |
 | `dimensions` | TwoD (default), OneD (straight stripes, a 2D noise slice) |
 | `direction` | −180–180 degrees, default 0; OneD only; 0 varies horizontally (vertical stripes), 90 varies vertically |
 | `seed` | Signed 32-bit integer; passed to the shader as an integer, not a float |
 | `scale` | 0.01–1000 noise-space units across the shorter canvas side |
-| `offset` | `[x,y]`, each −10000–10000 noise-space units |
+| `offset` | `[x,y]`, each −10000–10000 noise-space units (canvas pixels for WhiteNoise/BlueNoise) |
 | `fractal` | None, FBm, Ridged, PingPong |
 | `octaves`, `lacunarity`, `gain` | Integer 1–8; 1–4; 0–1 |
 | `weightedStrength`, `pingPongStrength` | 0–1; 0.01–8 |
@@ -351,10 +353,20 @@ and `noiseEncodings`, `noiseDimensions`. `inspect` returns all generator paramet
 | `cellularReturn` | CellValue, Distance, Distance2, Distance2Add, Distance2Sub, Distance2Mul, Distance2Div |
 | `cellularJitter` | 0–1 |
 | `warp`, `warpStrength` | None, OpenSimplex2, OpenSimplex2Reduced, BasicGrid; 0–100 noise-space units |
-| `encoding` | ColorValues (display grayscale) or LinearData (raw normalized scalar) |
+| `encoding` | ColorValues (display colors) or LinearData (raw normalized values) |
 | `inverted` | Boolean |
 
-RGB repeats the normalized scalar; alpha is 1. Output is remapped from signed noise to 0–1 and clamped.
+RGB repeats the normalized scalar, except WhiteNoise/BlueNoise with Color which generates independent RGB; alpha is 1.
+FastNoiseLite output is remapped from signed noise to 0–1 and clamped.
+WhiteNoise hashes discrete canvas-space cells with the signed integer seed. It ignores `scale`, fractal,
+cellular and warp settings without resetting them; `whiteNoiseSize` controls its grain size instead.
+It supports inversion, encoding and OneD direction, and keeps its grid independent of preview resolution.
+BlueNoise uses WhimTex-generated periodic void-and-cluster rank tables: 128×128 RGB in 2D and
+a separate 256-sample RGB sequence in 1D. Seed hashes select translations/reflections (plus axis swaps in 2D),
+not an expensive runtime rebake. Each channel has a separately generated rank table. Grain coordinates,
+ignored settings, encoding and inversion match WhiteNoise. Legacy `whiteNoise*` field names are retained
+for both grain types. Offset Y in 1D selects a seeded variation of the sequence.
+The tables use 8-bit uniform ranks; use LinearData for raw dither thresholds.
 For masks/channel packing, prefer LinearData and apply the existing Swizzle/blend settings.
 For a Normal Map or SDF source, add the effect above Noise and assign `Previous` or a specific target as usual.
 Domain Warp uses a single warp pass; noise fractal settings affect the subsequent noise evaluation.

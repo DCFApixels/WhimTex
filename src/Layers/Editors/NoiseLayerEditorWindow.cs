@@ -44,6 +44,10 @@ namespace DCFApixels.SpriteEditor
             }
 
             Choice(root, "Noise Type", () => layer.noiseType, value => layer.noiseType = value);
+            var white = new VisualElement();
+            Choice(white, "Color", () => layer.whiteNoiseColor, value => layer.whiteNoiseColor = value);
+            Number(white, "Grain Size (px)", () => layer.whiteNoiseSize, value => layer.whiteNoiseSize = value, 1f, 1024f);
+            root.Add(white);
             var dimensions = SpriteEditorUI.ConfigureField(new PopupField<string>("Dimensions",
                 new System.Collections.Generic.List<string> { "2D", "1D" }, layer.dimensions == NoiseLayerBehaviour.NoiseDimensions.OneD ? 1 : 0));
             bindings.Track(dimensions, () => layer.dimensions == NoiseLayerBehaviour.NoiseDimensions.OneD ? "1D" : "2D");
@@ -58,9 +62,10 @@ namespace DCFApixels.SpriteEditor
             bindings.Track(seed, () => layer.seed);
             seed.RegisterValueChangedCallback(evt => applyChange("Change Noise Seed", () => layer.seed = evt.newValue));
             root.Add(seed);
-            Number(root, "Scale", () => layer.scale, value => layer.scale = value, .01f, 1000f);
+            var scale = new VisualElement();
+            Number(scale, "Scale", () => layer.scale, value => layer.scale = value, .01f, 1000f);
+            root.Add(scale);
             var offset = SpriteEditorUI.ConfigureField(new Vector2Field("Offset"));
-            offset.tooltip = "Noise-space offset. Scale is measured across the shorter canvas side; preview resolution does not change the pattern.";
             bindings.Track(offset, () => layer.offset);
             offset.RegisterValueChangedCallback(evt => applyChange("Change Noise Offset", () => layer.offset = new Vector2(
                 NoiseLayerBehaviour.Limit(evt.newValue.x, -10000f, 10000f, layer.offset.x),
@@ -73,7 +78,7 @@ namespace DCFApixels.SpriteEditor
             Slider(cellular, "Jitter", () => layer.cellularJitter, value => layer.cellularJitter = value, 0f, 1f);
             root.Add(cellular);
 
-            Choice(root, "Fractal", () => layer.fractal, value => layer.fractal = value);
+            var fractalChoice = Choice(root, "Fractal", () => layer.fractal, value => layer.fractal = value);
             var fractal = new VisualElement();
             var octaves = SpriteEditorUI.ConfigureField(new SliderInt("Octaves", 1, 8) { showInputField = true });
             bindings.Track(octaves, () => layer.octaves);
@@ -87,12 +92,12 @@ namespace DCFApixels.SpriteEditor
             fractal.Add(pingPong);
             root.Add(fractal);
 
-            Choice(root, "Domain Warp", () => layer.warp, value => layer.warp = value);
+            var warpChoice = Choice(root, "Domain Warp", () => layer.warp, value => layer.warp = value);
             var warp = new VisualElement();
             Number(warp, "Warp Strength", () => layer.warpStrength, value => layer.warpStrength = value, 0f, 100f);
             root.Add(warp);
             var encoding = Choice(root, "Output", () => layer.encoding, value => layer.encoding = value);
-            encoding.tooltip = "Color Values: grayscale display values. Linear Data: raw 0–1 values for masks, height maps and channel packing.";
+            encoding.tooltip = "Color Values: display colors. Linear Data: raw 0–1 values for masks, height maps and channel packing.";
             var inverted = SpriteEditorUI.ConfigureField(new Toggle("Inverted"));
             bindings.Track(inverted, () => layer.inverted);
             inverted.RegisterValueChangedCallback(evt => applyChange("Invert Noise", () => layer.inverted = evt.newValue));
@@ -100,11 +105,19 @@ namespace DCFApixels.SpriteEditor
 
             bindings.Add(() =>
             {
+                bool isWhite = layer.noiseType == NoiseLayerBehaviour.NoiseType.WhiteNoise
+                    || layer.noiseType == NoiseLayerBehaviour.NoiseType.BlueNoise;
+                white.EnableInClassList("sprite-editor-hidden", !isWhite);
+                scale.EnableInClassList("sprite-editor-hidden", isWhite);
+                fractalChoice.EnableInClassList("sprite-editor-hidden", isWhite);
+                warpChoice.EnableInClassList("sprite-editor-hidden", isWhite);
+                offset.tooltip = isWhite ? "Move the grain in canvas pixels."
+                    : "Noise-space offset. Scale is measured across the shorter canvas side; preview resolution does not change the pattern.";
                 axis.EnableInClassList("sprite-editor-hidden", layer.dimensions != NoiseLayerBehaviour.NoiseDimensions.OneD);
                 cellular.EnableInClassList("sprite-editor-hidden", layer.noiseType != NoiseLayerBehaviour.NoiseType.Cellular);
-                fractal.EnableInClassList("sprite-editor-hidden", layer.fractal == NoiseLayerBehaviour.FractalType.None);
+                fractal.EnableInClassList("sprite-editor-hidden", isWhite || layer.fractal == NoiseLayerBehaviour.FractalType.None);
                 pingPong.EnableInClassList("sprite-editor-hidden", layer.fractal != NoiseLayerBehaviour.FractalType.PingPong);
-                warp.EnableInClassList("sprite-editor-hidden", layer.warp == NoiseLayerBehaviour.WarpType.None);
+                warp.EnableInClassList("sprite-editor-hidden", isWhite || layer.warp == NoiseLayerBehaviour.WarpType.None);
             });
         }
     }
