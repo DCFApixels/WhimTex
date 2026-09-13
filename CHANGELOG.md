@@ -4,6 +4,40 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+## [0.9.5] - 2026-09-13
+
+### Added
+
+- Mesh UV outlines and UV-island selection for painting textures on models.
+- Content-Aware Fill with sampling controls, inner-border filling and selection inversion.
+- Editable shape layers, per-corner rectangle rounding and elliptical selections.
+- Canvas rotation, exact zoom and angle controls, guides, intersection snapping and a Guides visibility button in the preview footer.
+- Automatic HLSL effect catalogs, editable Transform 2D shader parameters and distortion presets.
+- Shader presets saved from the code editor, shared user/project preset libraries and project brush presets.
+- White and blue noise in monochrome or color, directional 1D noise and a Make Seamless effect.
+- Windows clipboard image paste, cross-window layer copying with Drawing content, and alpha-aware layer picking.
+- Document-named tabs, new documents in adjacent tabs and live updates between linked compositors.
+- Documentation screenshots covering brushes, Shader Processor, VFX, UV, agent generation and Live Update.
+
+### Changed
+
+- Unified Gaussian and Motion Blur under a Blur layer with a mode selector.
+- Added outline offset and center fill, improved antialiased contours, and exposed canvas output filtering.
+- Refined brush controls, the preview footer, user settings and the empty-document workflow; Live Quality now defaults to 100%.
+- Added WhimTex manta branding, optional preview decoration and cached layer thumbnails.
+- Separated persistent layer identity from its behaviour, with missing-behaviour replacement and matching-parameter recovery.
+
+### Fixed
+
+- Desktop eyedropper positioning and sampled-color consistency, and Drawing content preservation across script reloads.
+- Render-target restoration, gradient performance and gradient-mode persistence.
+- Disabled Shader Processor visibility, layer dragging and dropping into empty list space.
+- Documentation screenshot URLs and GitHub Pages publication.
+
+### Compatibility
+
+- Documents created before the Layer/Behaviour redesign are incompatible with the current layer format. No automatic migration is provided; keep a backup and export important results before updating.
+
 ## [0.9.0] - 2026-09-11
 
 ### Changed
