@@ -15,7 +15,7 @@ namespace DCFApixels.SpriteEditor
         }
 
         [SerializeField] private List<PreviewGuide> previewGuides = new List<PreviewGuide>();
-        [SerializeField] private TextureCompositor previewGuidesDocument;
+        [NonSerialized] private TextureCompositor previewGuidesDocument;
         private PreviewGuideManipulator previewGuideManipulator;
         private VisualElement previewGuideOverlay;
 
@@ -25,7 +25,6 @@ namespace DCFApixels.SpriteEditor
         private void BuildPreviewGuides()
         {
             previewGuides ??= new List<PreviewGuide>();
-            if (previewGuidesDocument != compositor) ClearPreviewGuides();
             previewGuidesDocument = compositor;
             previewGuideOverlay = new VisualElement { pickingMode = PickingMode.Ignore };
             previewGuideOverlay.AddToClassList("sprite-editor-guides-overlay");

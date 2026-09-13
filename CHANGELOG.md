@@ -4,6 +4,10 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Preview guides are preserved when the window rebuilds after a script reload, even when its runtime document reference needs rebinding.
+
 ## [0.9.5] - 2026-09-13
 
 ### Added
