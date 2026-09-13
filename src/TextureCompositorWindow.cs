@@ -170,26 +170,7 @@ namespace DCFApixels.SpriteEditor
 
         public static void Open(TextureCompositor target)
         {
-            if (target == null)
-                return;
-
-            TextureCompositorWindow window = GetWindow<TextureCompositorWindow>("WhimTex");
-            if (window.compositor != target)
-            {
-                if (!window.ResolveUnsavedTemporaryDocument())
-                    return;
-                window.SetCompositor(target);
-            }
-            else
-            {
-                target.NormalizeModel();
-                window.RequestPreview(true);
-                window.RefreshToolkitInterface();
-            }
-
-            window.RefreshDocumentTitle(true);
-            window.Show();
-            window.Focus();
+            OpenReferencedDocument(target);
         }
 
         private void OnEnable()

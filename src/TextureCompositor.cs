@@ -196,17 +196,27 @@ namespace DCFApixels.SpriteEditor
             if (layer == null || !TryFindLayer(layer, out List<Layer> container, out int index))
                 return null;
 
-            GetPreviewDimensions(maxSize, out int previewWidth, out int previewHeight, out float scaleMultiplier);
-            if (preserveGroupColor && layer?.AsGroup() is Layer group)
-                return RenderGroupEffectInput(group, previewWidth, previewHeight, scaleMultiplier,
-                    new HashSet<Layer>(), preserveColor: true, includeDisabled: includeDisabled);
-            return RenderStandalone(
-                container,
-                index,
-                previewWidth,
-                previewHeight,
-                scaleMultiplier,
-                new HashSet<Layer>(), includeDisabled: includeDisabled);
+            // Unlike RenderComposite, these paths enter layer rendering directly.
+            // Do not leave their temporary output bound in the caller's render state.
+            RenderTexture previous = RenderTexture.active;
+            try
+            {
+                GetPreviewDimensions(maxSize, out int previewWidth, out int previewHeight, out float scaleMultiplier);
+                if (preserveGroupColor && layer?.AsGroup() is Layer group)
+                    return RenderGroupEffectInput(group, previewWidth, previewHeight, scaleMultiplier,
+                        new HashSet<Layer>(), preserveColor: true, includeDisabled: includeDisabled);
+                return RenderStandalone(
+                    container,
+                    index,
+                    previewWidth,
+                    previewHeight,
+                    scaleMultiplier,
+                    new HashSet<Layer>(), includeDisabled: includeDisabled);
+            }
+            finally
+            {
+                RenderTexture.active = previous;
+            }
         }
 
         internal Layer FindLayer(string id)
@@ -221,6 +231,7 @@ namespace DCFApixels.SpriteEditor
             if (layer == null || !TryFindLayer(layer, out List<Layer> container, out int index))
                 throw new InvalidOperationException("The layer no longer belongs to this composition.");
 
+            RenderTexture previous = RenderTexture.active;
             RenderTexture rendered = null;
             try
             {
@@ -249,6 +260,8 @@ namespace DCFApixels.SpriteEditor
             }
             finally
             {
+                // Unbind our output before returning it to Unity's temporary pool.
+                RenderTexture.active = previous;
                 if (rendered != null)
                     RenderTexture.ReleaseTemporary(rendered);
             }

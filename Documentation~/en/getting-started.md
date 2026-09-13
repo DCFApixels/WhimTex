@@ -29,6 +29,8 @@ https://github.com/DCFApixels/WhimTex.git
 5. Use the saved asset as a texture in Unity, or expand it in Project and drag **Output Sprite** into a sprite field.
 
 Double-click the saved asset to continue editing. You do not need to export it first.
+It opens in its own WhimTex window without replacing your current document.
+If it is already open, Unity focuses that window instead of opening a duplicate.
 
 Each WhimTex tab shows its document's name. New documents start as **Untitled**; after saving, the tab uses the filename. An asterisk marks unsaved changes.
 

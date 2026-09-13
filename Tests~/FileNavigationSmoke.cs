@@ -13,6 +13,8 @@ document.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
 document.width = document.height = 32;
 document.name = "Reference Test";
 DCFApixels.SpriteEditor.TextureCompositorWindow created = null;
+DCFApixels.SpriteEditor.TextureCompositorWindow secondWindow = null;
+DCFApixels.SpriteEditor.TextureCompositor secondDocument = null;
 int checks = 0;
 void Check(bool condition) { if (!condition) throw new System.Exception("File navigation check failed: " + checks); checks++; }
 try
@@ -31,6 +33,23 @@ try
     Check(!documents.ContainsKey(created));
     Check(open.Invoke(null, new object[] { document }) == created);
     Check(UnityEngine.Resources.FindObjectsOfTypeAll<DCFApixels.SpriteEditor.TextureCompositorWindow>().Length == originals.Length + 1);
+    DCFApixels.SpriteEditor.TextureCompositorWindow.Open(null);
+    DCFApixels.SpriteEditor.TextureCompositorWindow.Open(document);
+    Check(UnityEditor.EditorWindow.focusedWindow == created);
+    Check(UnityEngine.Resources.FindObjectsOfTypeAll<DCFApixels.SpriteEditor.TextureCompositorWindow>().Length == originals.Length + 1);
+    secondDocument = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.SpriteEditor.TextureCompositor>();
+    secondDocument.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
+    secondDocument.width = secondDocument.height = 32;
+    secondDocument.name = "Second Document Test";
+    DCFApixels.SpriteEditor.TextureCompositorWindow.Open(secondDocument);
+    foreach (var item in UnityEngine.Resources.FindObjectsOfTypeAll<DCFApixels.SpriteEditor.TextureCompositorWindow>())
+        if (field.GetValue(item) == secondDocument) secondWindow = item;
+    Check(secondWindow != null && secondWindow != created && !documents.ContainsKey(secondWindow));
+    Check(field.GetValue(created) == document);
+    Check(UnityEditor.EditorWindow.focusedWindow == secondWindow);
+    DCFApixels.SpriteEditor.TextureCompositorWindow.Open(document);
+    Check(UnityEditor.EditorWindow.focusedWindow == created);
+    Check(UnityEngine.Resources.FindObjectsOfTypeAll<DCFApixels.SpriteEditor.TextureCompositorWindow>().Length == originals.Length + 2);
     var parentField = typeof(UnityEditor.EditorWindow).GetField("m_Parent", instanceFlags);
     bool dockAvailable = false, sharesTabs = false;
     if (parentField != null)
@@ -47,6 +66,8 @@ try
 }
 finally
 {
+    if (secondWindow != null) secondWindow.Close();
+    if (secondDocument != null) UnityEngine.Object.DestroyImmediate(secondDocument);
     if (created != null) created.Close();
     if (document != null) UnityEngine.Object.DestroyImmediate(document);
     if (previousFocus != null) previousFocus.Focus();
