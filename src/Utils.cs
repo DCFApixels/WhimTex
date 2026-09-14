@@ -87,10 +87,12 @@ namespace DCFApixels.SpriteEditor
 
     public enum TransformTilingMode
     {
+        Source = 3,
         Clip = 0,
         Repeat = 1,
         Mirror = 2,
-        Source = 3
+        Clamp = 4,
+        Unbounded = 5
     }
 
     public enum LayerFilterMode
@@ -130,7 +132,7 @@ namespace DCFApixels.SpriteEditor
             this = Default;
         }
 
-        internal bool TryFitOriginalAspect(Vector2 canvasSize, Vector2 sourceSize, out TextureTransform fitted)
+        internal bool TryFitOriginalAspect(Vector2 canvasSize, Vector2 sourceSize, out TextureTransform fitted, bool originalSize = false)
         {
             fitted = this;
             if (!Finite(canvasSize) || !Finite(sourceSize) || !Finite(scale) || !Finite(pivot) ||
@@ -139,7 +141,7 @@ namespace DCFApixels.SpriteEditor
                 Mathf.Abs(scale.x) < 0.000001f || Mathf.Abs(scale.y) < 0.000001f)
                 return false;
 
-            double fit = Math.Min(
+            double fit = originalSize ? 1d : Math.Min(
                 Math.Abs((double)scale.x) * canvasSize.x / sourceSize.x,
                 Math.Abs((double)scale.y) * canvasSize.y / sourceSize.y);
             Vector2 nextScale = new Vector2(

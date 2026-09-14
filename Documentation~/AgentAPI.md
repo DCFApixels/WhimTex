@@ -525,7 +525,7 @@ Transform patches support `position:[x,y]`, `scale:[x,y]`, `pivot:[u,v]`, `rotat
 - Rotation is counterclockwise degrees.
 - Pivot is bottom-left UV: `[0.5,0.5]` is the center.
 - Scale `[1,1]` means the full canvas-sized source rectangle; negative values mirror, zero is rejected.
-- Tiling is `Clip`, `Repeat`, `Mirror` or `Source`. `Source` reads the source texture's U/V wrap modes.
+- Tiling is `Source`, `Clip`, `Repeat`, `Mirror`, `Clamp` or `Unbounded`. `Source` reads the source texture's U/V wrap modes. `Clamp` extends edge pixels. `Unbounded` continues Noise, Gradient, Color Fill and Shape calculations outside 0–1 UV; raster layers use Clip.
 - `reset` is applied before the other fields, Original Aspect after them.
 - Changing pivot through this API uses raw transform semantics; it does not compensate position.
 

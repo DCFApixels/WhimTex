@@ -11,6 +11,7 @@ Shader "Hidden/TextureCompositor/Noise"
             #pragma fragment frag
             #include "UnityCG.cginc"
             #include "HdrColor.cginc"
+            #include "ProceduralUv.cginc"
             #include "ThirdParty/FastNoiseLite.hlsl"
 
             float4 _NoiseDomain, _NoiseFractalSettings;
@@ -80,6 +81,7 @@ Shader "Hidden/TextureCompositor/Noise"
 
             float4 frag(v2f_img i) : SV_Target
             {
+                i.uv = ProceduralSourceUv(i.uv);
                 if (_NoiseType == 6 || _NoiseType == 7)
                 {
                     float3 rgb = _NoiseType == 7 ? BlueNoise(i.uv) : WhiteNoise(i.uv);

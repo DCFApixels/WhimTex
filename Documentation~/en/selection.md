@@ -111,7 +111,11 @@ then click the WhimTex preview and press `Ctrl+V`. It becomes a new Drawing laye
 pixel size without cropping the stored image. In an empty document, the canvas takes the image's dimensions.
 PNG transparency is preserved. System image paste supports images up to 16 megapixels and your GPU's texture-size limit.
 Copying inside WhimTex takes priority until you copy something else to the system clipboard.
-This imports image contents, not a copied file path or a web link; drag a file into the preview to import it instead.
+You can also copy a direct HTTP(S) image link and press `Ctrl+V`: WhimTex downloads the PNG or JPEG
+as an independent Drawing layer, keeping its original pixels and transparency. It fits inside the canvas,
+centered with its proportions preserved, using the layer transform rather than resizing the image. The same size limits apply;
+downloads are limited to 64 MB. Links to web pages are not supported. Closing the window or switching documents
+cancels the download. To import a local file, drag it into the preview.
 
 A selection stays active when you change tools or layers. It is not saved with the document.
 If painting seems blocked, try `Ctrl+D`.

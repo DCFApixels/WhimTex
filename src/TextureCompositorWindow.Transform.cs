@@ -78,7 +78,8 @@ namespace DCFApixels.SpriteEditor
             tilingGroup.Add(CreateCompactLabel("Tiling", 38f));
             EnumField tiling = CompactField(new EnumField(TransformTilingMode.Clip), 100f);
             tiling.tooltip = "Clip: transparent outside the frame. Repeat: tile. Mirror: reflected tiles. " +
-                "Source: inherit the texture's wrap modes; Clamp extends edge pixels instead of clipping.";
+                "Source: inherit texture wrap modes. Clamp: extend edge pixels. " +
+                "Unbounded: continue procedural UVs; raster layers use Clip.";
             toolkitHeaderBindings.Track(tiling, () => (Enum)(GetSelectedLayer()?.transform.tiling ?? TransformTilingMode.Clip));
             toolkitHeaderBindings.Add(() => tiling.SetEnabled(IsPreviewToolAvailable(PreviewTool.Transform)));
             BindPreviewSettingsRow(row, PreviewTool.Transform);
@@ -119,6 +120,14 @@ namespace DCFApixels.SpriteEditor
                     FinishPaintingStroke();
                     ApplyToolkitChange(undoName, change);
                 }, toolkitHeaderBindings));
+            row.Add(SpriteEditorUI.CreateOriginalAspectButton(
+                GetSelectedLayer, () => compositor,
+                (undoName, change) =>
+                {
+                    FinishPreviewTransform();
+                    FinishPaintingStroke();
+                    ApplyToolkitChange(undoName, change);
+                }, toolkitHeaderBindings, originalSize: true));
             Button reset = SpriteEditorUI.CreateButton("Reset", () =>
             {
                 Layer selected = GetSelectedLayer();

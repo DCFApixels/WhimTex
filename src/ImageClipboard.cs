@@ -57,6 +57,44 @@ namespace DCFApixels.SpriteEditor
                 throw new InvalidOperationException("Clipboard image exceeds the supported texture size (16 megapixels maximum).");
         }
 
+        internal static Texture2D DecodeWebImage(byte[] bytes)
+        {
+            if (bytes != null && bytes.Length >= 8 && BitConverter.ToUInt64(bytes, 0) == 0x0A1A0A0D474E5089UL)
+                return DecodePng(bytes);
+            // Read JPEG dimensions before handing potentially huge images to the native decoder.
+            if (bytes != null && bytes.Length > 4 && bytes[0] == 255 && bytes[1] == 216)
+            {
+                int p = 2;
+                while (p + 3 < bytes.Length)
+                {
+                    if (bytes[p++] != 255) break;
+                    while (p < bytes.Length && bytes[p] == 255) p++;
+                    if (p >= bytes.Length) break;
+                    int marker = bytes[p++];
+                    if (marker == 217 || marker == 218) break;
+                    if (marker == 1 || (marker >= 208 && marker <= 215)) continue;
+                    if (p + 1 >= bytes.Length) break;
+                    int length = (bytes[p] << 8) | bytes[p + 1];
+                    if (length < 2 || length > bytes.Length - p) break;
+                    if (marker >= 192 && marker <= 207 && marker != 196 && marker != 200 && marker != 204)
+                    {
+                        if (length < 8) break;
+                        ValidateDimensions((bytes[p + 5] << 8) | bytes[p + 6], (bytes[p + 3] << 8) | bytes[p + 4]);
+                        var texture = CreateTexture(2, 2);
+                        try
+                        {
+                            if (!ImageConversion.LoadImage(texture, bytes, false)) throw new InvalidOperationException("Cannot decode JPEG image.");
+                            ValidateDimensions(texture.width, texture.height);
+                            return texture;
+                        }
+                        catch { UnityEngine.Object.DestroyImmediate(texture); throw; }
+                    }
+                    p += length;
+                }
+            }
+            throw new InvalidOperationException("The link must return a PNG or JPEG image, not a web page.");
+        }
+
         internal static Texture2D DecodePng(byte[] bytes)
         {
             if (bytes == null || bytes.Length < 33 || BitConverter.ToUInt64(bytes, 0) != 0x0A1A0A0D474E5089UL ||

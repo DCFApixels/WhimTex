@@ -270,6 +270,7 @@ namespace DCFApixels.SpriteEditor
             try
             {
                 string clipboardText = GUIUtility.systemCopyBuffer;
+                if (TryPasteImageUrl(clipboardText)) return;
                 if (SpriteEditorApi.IsProceduralClipboard(clipboardText))
                 {
                     using var generated = SpriteEditorApi.ReadProceduralClipboard(clipboardText, compositor.width, compositor.height);

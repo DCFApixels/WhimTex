@@ -50,7 +50,9 @@ namespace DCFApixels.SpriteEditor
             {
                 RenderTexture.active = source;
                 GL.Clear(true, true, LinearColor);
-                return ApplyTransformAndModifiers(source, context);
+                var renderedContext = context.applyTransform && transform.tiling == TransformTilingMode.Unbounded
+                    ? ProceduralUv.WithoutTransform(context) : context;
+                return ApplyTransformAndModifiers(source, renderedContext);
             }
             finally
             {

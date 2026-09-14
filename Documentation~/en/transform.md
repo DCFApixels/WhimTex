@@ -16,6 +16,9 @@ Drag the frame to move it, an edge or corner to resize, and the round handle to 
 For exact values, expand **Transform** in Layer Settings.
 
 **Original Aspect** restores the image's original proportions.
+
+**Original Size** in the Transform toolbar also restores its pixel size: one source pixel equals one canvas pixel.
+It preserves the image center, rotation, pivot and flips. Generated layers use the canvas size.
 **Reset** returns the transform to its starting state.
 
 ## Position and pivot
@@ -35,6 +38,10 @@ Hold `Shift` to move along one axis, resize proportionally or rotate in 15° ste
 - **Repeat** tiles the image.
 - **Mirror** alternates reflected copies.
 - **Source** follows the source texture's setting.
+- **Clamp** stretches the outermost pixels beyond the image bounds.
+- **Unbounded** continues Noise, Gradient, Color Fill and Shape calculations outside the frame.
+  File, Drawing and raster effects use Clip instead. Gradient colors still follow their keys;
+  this does not extrapolate new colors beyond the first or last key.
 
 **Filter** controls edge smoothness. Choose **Point** for pixel art or **Bilinear** for smooth scaling.
 **Source** follows the texture's filter; **Trilinear** is another smoothing option for textures that support it.

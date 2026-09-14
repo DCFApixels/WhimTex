@@ -116,7 +116,9 @@ shader calculations use linear working space. Use `colorRange`/`blendRange: "HDR
 ### Transform
 
 `transform` accepts `position: [x,y]`, `scale: [x,y]`, `pivot: [x,y]`, `rotation` in degrees,
-and `tiling: "Clip" | "Repeat" | "Mirror" | "Source"`.
+and `tiling: "Source" | "Clip" | "Repeat" | "Mirror" | "Clamp" | "Unbounded"`.
+`Clamp` extends edge pixels. `Unbounded` evaluates Noise, Gradient, Color Fill and Shape beyond 0–1 UV;
+other raster layers fall back to Clip. Gradient keys still bound the available colors.
 Position is an offset in canvas pixels: default `[0,0]`, positive X right, positive Y up.
 Pivot is normalized bottom-left UV, default `[0.5,0.5]`; scale `[1,1]` covers the canvas.
 Rotation is counterclockwise. Changing pivot does not compensate position. Negative scale mirrors an axis;

@@ -182,7 +182,7 @@ namespace DCFApixels.SpriteEditor
             }
         }
 
-        internal bool TryGetOriginalAspectTransform(TextureCompositor owner, out TextureTransform fitted)
+        internal bool TryGetOriginalAspectTransform(TextureCompositor owner, out TextureTransform fitted, bool originalSize = false)
         {
             fitted = transform;
             if (owner == null || IsGroup)
@@ -195,7 +195,7 @@ namespace DCFApixels.SpriteEditor
                 return false;
             if (source != null)
                 sourceSize = new Vector2(source.width, source.height);
-            return transform.TryFitOriginalAspect(canvasSize, sourceSize, out fitted);
+            return transform.TryFitOriginalAspect(canvasSize, sourceSize, out fitted, originalSize);
         }
 
         internal void CopyRasterizedIdentityFrom(Layer source)
@@ -275,7 +275,7 @@ namespace DCFApixels.SpriteEditor
                     transformMaterial.SetVector("_Position", new Vector4(scaledPosition.x, scaledPosition.y, 0f, 0f));
                     transformMaterial.SetVector("_Scale", new Vector4(applied.scale.x, applied.scale.y, 0f, 0f));
                     transformMaterial.SetFloat("_Rotation", applied.rotation * Mathf.Deg2Rad);
-                    transformMaterial.SetInt("_ClipOutside", applied.tiling == TransformTilingMode.Clip ? 1 : 0);
+                    transformMaterial.SetInt("_ClipOutside", applied.tiling == TransformTilingMode.Clip || applied.tiling == TransformTilingMode.Unbounded ? 1 : 0);
                     transformMaterial.SetInt("_WrapModeU", (int)wrapU);
                     transformMaterial.SetInt("_WrapModeV", (int)wrapV);
                     transformMaterial.SetInt("_FilterMode", (int)resolvedFilter);

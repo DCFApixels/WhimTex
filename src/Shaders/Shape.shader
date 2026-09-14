@@ -54,7 +54,7 @@ Shader "Hidden/TextureCompositor/Shape"
                 // TransformTilingMode: Clip, Repeat, Mirror, Source (clamp).
                 if (_ShapeTiling == 1) uv = frac(uv);
                 else if (_ShapeTiling == 2) uv = 1 - abs(frac(uv * .5) * 2 - 1);
-                else if (_ShapeTiling == 3) uv = saturate(uv);
+                else if (_ShapeTiling == 3 || _ShapeTiling == 4) uv = saturate(uv);
                 float2 halfSize = max(abs(_ShapeScale) * _CanvasSize * .5, 1e-5);
                 float2 p = (uv - .5) * halfSize * 2;
                 float distance;

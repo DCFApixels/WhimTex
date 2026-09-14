@@ -11,6 +11,7 @@ Shader "Hidden/TextureCompositor/Gradient"
             #pragma fragment frag
             #include "UnityCG.cginc"
             #include "HdrColor.cginc"
+            #include "ProceduralUv.cginc"
 
             sampler2D _GradientPalette;
             float4 _GradientPalette_TexelSize;
@@ -22,7 +23,7 @@ Shader "Hidden/TextureCompositor/Gradient"
             {
                 // Canonical pixel centers avoid interpolator error selecting the other
                 // side of the angular seam, especially on odd-sized canvases.
-                float2 pixel = floor(uv * _GradientOutputSize) + .5;
+                float2 pixel = _UnboundedUv != 0 ? uv * _GradientOutputSize : floor(uv * _GradientOutputSize) + .5;
                 uv = pixel / _GradientOutputSize;
                 if (_GradientType == 0) return uv.y;
                 if (_GradientType == 1) return uv.x;
@@ -41,7 +42,7 @@ Shader "Hidden/TextureCompositor/Gradient"
 
             float4 frag(v2f_img input) : SV_Target
             {
-                float t = saturate(Coordinate(input.uv));
+                float t = saturate(Coordinate(ProceduralSourceUv(input.uv)));
                 int row = 0;
                 // Fixed gradients select the right key within an interval, retaining the
                 // preceding interval at its exact endpoint (Unity Gradient semantics).

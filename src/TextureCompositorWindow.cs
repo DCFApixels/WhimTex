@@ -208,6 +208,7 @@ namespace DCFApixels.SpriteEditor
 
         private void OnDisable()
         {
+            CancelImageUrlPaste();
             uvMap = null; uvCachedMesh = null; uvCachedDocument = null;
             SpriteEditorApi.CloseLiveSession(agentSessionId);
             ReleaseBrushStrokePreview();
@@ -1123,6 +1124,7 @@ namespace DCFApixels.SpriteEditor
             if (next == null || next == compositor)
                 return;
 
+            if (imageUrlRequest != null) { CancelImageUrlPaste(); RemoveNotification(); }
             CancelPreviewEyedropper();
             CancelPreviewZoomGesture();
             previewViewport.Reset();

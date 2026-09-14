@@ -107,9 +107,11 @@ namespace DCFApixels.SpriteEditor
             // This is an owned transient surface, never the imported source texture.
             surface.filterMode = ResolveFilterMode();
 
+            // Unpremultiply at source resolution. Resampling to the output size before
+            // the transform loses details that a magnified/cropped layer still needs.
             RenderTexture straight = RenderTexture.GetTemporary(
-                context.width,
-                context.height,
+                surface.width,
+                surface.height,
                 0,
                 RenderTextureFormat.ARGBHalf,
                 RenderTextureReadWrite.Linear);

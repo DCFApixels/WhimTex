@@ -349,7 +349,8 @@ namespace DCFApixels.SpriteEditor
             rotation.tooltip = "Clockwise visual rotation in degrees.";
             EnumField tiling = ConfigureField(new EnumField("Tiling", TransformTilingMode.Clip));
             tiling.tooltip = "Clip = transparent outside the frame; Repeat = tile; Mirror = reflected tiles; " +
-                "Source = the source texture's wrap modes, including separate U/V settings. Source Clamp extends edge pixels, unlike Clip.";
+                "Source = source texture wrap modes; Clamp = extend edge pixels; " +
+                "Unbounded = continue procedural UVs (raster layers use Clip).";
             EnumField filter = ConfigureField(new EnumField("Filter", LayerFilterMode.Source));
             filter.tooltip = "Source = inherit the texture's Filter Mode (default); Point = sharp pixels; " +
                 "Bilinear = smooth; Trilinear = smooth mip transitions when the source has mipmaps. Independent of Tiling; does not change texture import settings.";
@@ -437,21 +438,23 @@ namespace DCFApixels.SpriteEditor
             Func<Layer> readLayer,
             Func<TextureCompositor> readCompositor,
             Action<string, Action> applyChange,
-            ValueBindings bindings)
+            ValueBindings bindings,
+            bool originalSize = false)
         {
-            Button button = CreateButton("Original Aspect", () =>
+            Button button = CreateButton(originalSize ? "Original Size" : "Original Aspect", () =>
             {
                 Layer layer = readLayer();
-                if (layer == null || !layer.TryGetOriginalAspectTransform(readCompositor(), out TextureTransform fitted) ||
+                if (layer == null || !layer.TryGetOriginalAspectTransform(readCompositor(), out TextureTransform fitted, originalSize) ||
                     fitted.Equals(layer.transform))
                     return;
-                applyChange("Restore Original Aspect", () => layer.transform = fitted);
+                applyChange(originalSize ? "Restore Original Size" : "Restore Original Aspect", () => layer.transform = fitted);
             });
-            button.tooltip = "Fit the source aspect ratio inside the current frame by shrinking one axis. " +
+            button.tooltip = (originalSize ? "Set one source pixel to one canvas pixel. " :
+                "Fit the source aspect ratio inside the current frame by shrinking one axis. ") +
                 "Preserve image center, pivot, rotation, and flips. Generated layers use the canvas ratio. " +
                 "Requires a source image for File layers and nonzero scale.";
             bindings.Add(() => button.SetEnabled(
-                readLayer() is Layer layer && layer.TryGetOriginalAspectTransform(readCompositor(), out _)));
+                readLayer() is Layer layer && layer.TryGetOriginalAspectTransform(readCompositor(), out _, originalSize)));
             return button;
         }
     }

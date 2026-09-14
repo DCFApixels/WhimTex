@@ -112,8 +112,9 @@ namespace DCFApixels.SpriteEditor
             try
             {
                 GL.sRGBWrite = false;
+                var renderedContext = ProceduralUv.Prepare(material, transform, context);
                 Graphics.Blit(null, source, material, 0);
-                return ApplyTransformAndModifiers(source, context);
+                return ApplyTransformAndModifiers(source, renderedContext);
             }
             finally
             {
