@@ -12,7 +12,22 @@ This page is the complete starting contract for a browser AI generating editable
 **WhimTex, the Unity sprite and texture editor**. No Unity connection or file generation is required.
 Return a JSON object for the user to copy and paste, or HLSL for a shader-only request.
 This feature is available in WhimTex 0.9.6 and later. Drawing layers that download an image from a
-link require WhimTex 0.10.0 or later.
+link require WhimTex 0.10.1 or later.
+
+## Where to start
+
+**Ready-to-copy JSON files live in `Documentation~/Examples/Clipboard/`.**
+Open the [example index](../Examples/Clipboard/README.md), choose a recipe for the requested task,
+and read its actual `.json` file before adapting it. These are clipboard examples, not the live API
+examples in the parent directory.
+
+For an image URL followed by a shader effect, start with
+[Stone wall: Drawing + Shader Processor](../Examples/Clipboard/stone-wall-retro.json).
+The [recipe list below](#complete-examples-and-validation) covers procedural shapes, VFX and targeted effects.
+
+Reading order: instructions → example files → [common mistakes](#common-mistakes) →
+[full specification](#full-specification). The specification is at the bottom of this page;
+examples illustrate it, but do not define extra fields.
 
 ## Instructions for an AI assistant
 
@@ -46,6 +61,69 @@ paste without adding a partial tree. Custom HLSL requires confirmation before co
 Only accept code you trust: valid HLSL can still be expensive enough to stall the GPU.
 A Drawing layer with `url` downloads its image before anything is pasted, and those links require a
 confirmation that names the hosts. If a download fails, nothing is inserted.
+
+## Complete examples and validation
+
+These are reference recipes for AI authors, not a user-guide gallery or built-in presets.
+See the [example index](../Examples/Clipboard/README.md) for what each recipe demonstrates.
+
+- [Neon ring: Shape + Blur in a group](../Examples/Clipboard/neon-ring.json)
+- [Shock wave: radial streaks from Gradient, Blue Noise and inline FX](../Examples/Clipboard/shock-wave.json)
+- [Car wheel: layered primitive shapes](../Examples/Clipboard/car-wheel.json)
+- [Forked lightning: procedural particle sprite and glow](../Examples/Clipboard/forked-lightning.json)
+- [Heart: minimal properties, clipping, SDF, Outline and primitive highlights](../Examples/Clipboard/heart.json)
+- [Mystic fog: Noise, hidden source, Blur and Gradient](../Examples/Clipboard/mystic-fog.json)
+- [Stone wall: linked Drawing image + pixelation, posterization and Bayer dithering](../Examples/Clipboard/stone-wall-retro.json)
+- [Retro posterization Processor](../Examples/Clipboard/retro-processor.json)
+- [Local distortion with editable Transform 2D](../Examples/Clipboard/local-distortion.json)
+- [JSON Schema: exact field names, types and enum values](layers.schema.json)
+
+The schema checks structure; Unity additionally checks references, increasing gradient times,
+nonzero scales, total limits, Normal Map cross-field constraints and shader compilation.
+For Normal Map, `whiteLevel > blackLevel` and `largeRadius >= mediumRadius` are required.
+
+## A prompt users can copy
+
+> Read the WhimTex JSON/HLSL authoring guide at https://dcfapixels.github.io/WhimTex/ai-authoring/.
+> Create a 512 × 512 magical ring texture using editable procedural layers, grouped and named in English.
+> Return one complete clipboard JSON code block. Use only documented fields; only direct http(s) image
+> links are allowed as external references, and no local files or asset paths.
+
+If that page is not published yet, provide the guide from the repository's current development branch
+or paste its contents into the chat. Search indexing and raw-README comments are discovery aids,
+not requirements and not guarantees that an AI has read the specification.
+
+## Common mistakes
+
+Check these before returning JSON. This is a reading checklist, not proof of validation or compilation.
+
+| Mistake | Use instead |
+| --- | --- |
+| `"type": "fx"` | `"type": "shaderProcessor"` for the lower stack; `fx` is an array on a non-group layer. |
+| `properties.url` | Put `url` directly on the Drawing layer, alongside `type` and `properties`. |
+| A Markdown link such as `"[image](https://…)"`, or an HTML image page | A plain absolute HTTP(S) URL that returns PNG/JPEG image data. |
+| A full-image Drawing layer above its Processor | Place the Processor first: layer arrays run top to bottom. |
+| `opacity: 80` | `opacity: 0.8`; opacity ranges from 0 to 1. |
+| `// @param Strength (Range 0 1) = 0.5` | `// @param float _Strength = 0.5 [0 .. 1]`. |
+| Extra or reordered arguments in `ApplyFX` | Exactly `float4 ApplyFX(float2 uv, float4 color)`. |
+| `SampleTexture(uv)` or an invented `texelSize` argument | `SampleInput(uv)`; documented sizes are `_InputSize` and `_CanvasSize`. |
+| GLSL `mix(a, b, t)` | HLSL `lerp(a, b, t)`. |
+| Redeclaring a uniform already declared by `@param` | Let WhimTex generate that uniform. |
+| Markdown escapes such as `\_`, `\*` or `\&` inside JSON strings | Plain `_`, `*`, `&`. Use JSON escapes such as `\n` only where needed. |
+| Giving a linked Drawing layer `transform.scale` | Omit scale: WhimTex derives it from the downloaded image and canvas. |
+| Putting `fx` directly on a group | Put a Shader Processor inside an isolated group. |
+| Using real document GUIDs, `@id`, or targets outside the pasted tree | Use a unique local `id` and the same plain string in `target`. |
+
+If a field or function is not documented, do not guess it from another editor or shader language.
+If the user reports an error, correct the complete JSON using the exact error path/message.
+A schema check does not verify shader compilation, image availability or the visual result.
+
+## Full specification
+
+The sections below specify the clipboard JSON and embedded HLSL contract, not live-agent requests.
+For every accepted property and exact structural constraints, including advanced Normal Map settings,
+see [`Documentation~/AI/layers.schema.json`](layers.schema.json). The additional semantic constraints
+described here are checked by WhimTex; the schema alone is not a complete runtime validator.
 
 ## JSON envelope
 
@@ -249,33 +327,3 @@ is decoded before compilation. **Clipboard HLSL cannot use `#` directives, inclu
 or asset GUIDs.** These restrictions do not change manually authored HLSL elsewhere in the editor.
 
 For additional engine-specific authoring details, see [Shader authoring](../ShaderFX.md).
-
-## Complete examples and validation
-
-These are reference recipes for AI authors, not a user-guide gallery or built-in presets.
-See the [example index](../Examples/Clipboard/README.md) for what each recipe demonstrates.
-
-- [Neon ring: Shape + Blur in a group](../Examples/Clipboard/neon-ring.json)
-- [Shock wave: radial streaks from Gradient, Blue Noise and inline FX](../Examples/Clipboard/shock-wave.json)
-- [Car wheel: layered primitive shapes](../Examples/Clipboard/car-wheel.json)
-- [Forked lightning: procedural particle sprite and glow](../Examples/Clipboard/forked-lightning.json)
-- [Heart: minimal properties, clipping, SDF, Outline and primitive highlights](../Examples/Clipboard/heart.json)
-- [Mystic fog: Noise, hidden source, Blur and Gradient](../Examples/Clipboard/mystic-fog.json)
-- [Retro posterization Processor](../Examples/Clipboard/retro-processor.json)
-- [Local distortion with editable Transform 2D](../Examples/Clipboard/local-distortion.json)
-- [JSON Schema: exact field names, types and enum values](layers.schema.json)
-
-The schema checks structure; Unity additionally checks references, increasing gradient times,
-nonzero scales, total limits, Normal Map cross-field constraints and shader compilation.
-For Normal Map, `whiteLevel > blackLevel` and `largeRadius >= mediumRadius` are required.
-
-## A prompt users can copy
-
-> Read the WhimTex JSON/HLSL authoring guide at https://dcfapixels.github.io/WhimTex/ai-authoring/.
-> Create a 512 × 512 magical ring texture using editable procedural layers, grouped and named in English.
-> Return one complete clipboard JSON code block. Use only documented fields; only direct http(s) image
-> links are allowed as external references, and no local files or asset paths.
-
-If that page is not published yet, provide the guide from the repository's current development branch
-or paste its contents into the chat. Search indexing and raw-README comments are discovery aids,
-not requirements and not guarantees that an AI has read the specification.
