@@ -6,6 +6,7 @@ or a user-guide gallery. Read the [authoring contract](../../AI/README.md) befor
 | Example | What to learn |
 | --- | --- |
 | [Neon ring](neon-ring.json) | A Shape and a targeted Blur inside a group. |
+| [Shock wave](shock-wave.json) | Radial and circular Gradients shaping one-dimensional Blue Noise into an uneven energy ring. |
 | [Car wheel](car-wheel.json) | A layered illustration built entirely from ellipses and a five-point star. |
 | [Forked lightning](forked-lightning.json) | A procedural particle sprite with embedded HLSL, editable parameters, transparency and separate glow. |
 | [Heart](heart.json) | Parameterized heart silhouette, clipping Gradient, SDF rim light, Outline and two ellipse highlights feeding a Blur. |

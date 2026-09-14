@@ -1,0 +1,84 @@
+{
+  "format": "whimtex.layers",
+  "version": 1,
+  "layers": [
+    {
+      "type": "group",
+      "name": "Shock Wave",
+      "children": [
+        {
+          "type": "shaderProcessor",
+          "name": "Contrast Boost",
+          "fx": [
+            {
+              "name": "Contrast Boost FX",
+              "code": "float4 ApplyFX(float2 uv, float4 color)\n{\n    return color * color;\n}"
+            }
+          ]
+        },
+        {
+          "type": "gradient",
+          "name": "Outline",
+          "properties": {
+            "blend": "Screen",
+            "gradient": [
+              { "time": 0.8117647, "color": [0, 0, 0, 1] },
+              { "time": 0.917647064, "color": [0.4528302, 0.4528302, 0.4528302, 1] },
+              { "time": 0.9852903, "color": [1, 1, 1, 1] },
+              { "time": 1, "color": [0, 0, 0, 1] }
+            ],
+            "gradientOptions": { "type": "Radial" }
+          }
+        },
+        {
+          "type": "gradient",
+          "name": "Fade",
+          "properties": {
+            "blend": "Multiply",
+            "gradient": [
+              { "time": 0.135301754, "color": [0, 0, 0, 1] },
+              { "time": 0.9676509, "color": [0.8301887, 0.8301887, 0.8301887, 1] },
+              { "time": 1, "color": [0, 0, 0, 1] }
+            ],
+            "gradientOptions": {
+              "type": "Radial",
+              "mode": "PerceptualBlend"
+            }
+          }
+        },
+        {
+          "type": "gradient",
+          "name": "Streak Variation",
+          "properties": {
+            "blend": "Multiply",
+            "gradient": [
+              { "time": 0.008819715, "color": [1, 1, 1, 1] },
+              { "time": 1, "color": [0, 0, 0, 1] }
+            ],
+            "gradientOptions": {
+              "type": "Circular",
+              "repetitions": 10,
+              "wrap": "PingPong"
+            }
+          }
+        },
+        {
+          "type": "noise",
+          "name": "Streak Noise",
+          "properties": {
+            "noise": {
+              "noiseType": "BlueNoise",
+              "dimensions": "OneD"
+            }
+          },
+          "fx": [
+            {
+              "name": "To Polar",
+              "code": "// @whimtex-effect Distortion/Polar Coordinates/To Polar\n// @param float _AngleOffset = 0\n// @param float _RadialOffset = 0\n// @param transform2D _Area\n\nfloat4 ApplyFX(float2 uv, float4 color)\n{\n    float2 p = (_Area_ToLocal(uv) - 0.5) * 2.0;\n    float radius = length(p);\n    // The center has no unique angle. Choose zero without evaluating atan2(0, 0).\n    float angle = 0.0;\n    if (radius > 0.0) angle = atan2(p.y, p.x) / 6.28318530718;\n    // Only the angular coordinate wraps; radius continues beyond the frame.\n    float2 sampleUV = float2(frac(angle - _AngleOffset / 360.0), radius - _RadialOffset);\n    return SampleInput(sampleUV);\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

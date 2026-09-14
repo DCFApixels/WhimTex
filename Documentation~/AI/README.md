@@ -233,6 +233,7 @@ These are reference recipes for AI authors, not a user-guide gallery or built-in
 See the [example index](../Examples/Clipboard/README.md) for what each recipe demonstrates.
 
 - [Neon ring: Shape + Blur in a group](../Examples/Clipboard/neon-ring.json)
+- [Shock wave: radial streaks from Gradient, Blue Noise and inline FX](../Examples/Clipboard/shock-wave.json)
 - [Car wheel: layered primitive shapes](../Examples/Clipboard/car-wheel.json)
 - [Forked lightning: procedural particle sprite and glow](../Examples/Clipboard/forked-lightning.json)
 - [Heart: minimal properties, clipping, SDF, Outline and primitive highlights](../Examples/Clipboard/heart.json)
