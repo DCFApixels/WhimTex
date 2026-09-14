@@ -10,7 +10,7 @@ alternate: ru/ai-authoring.md
 # Create layers with browser AI
 
 Ask a browser AI for an editable texture, copy its JSON and paste it into WhimTex.
-No connection to Unity is needed. Available in development builds after the original 0.9.5 release.
+No connection to Unity is needed. Available in WhimTex 0.9.6 and later.
 
 1. Give the AI the [authoring guide](../AI/README.md) and describe your texture. Ask for **WhimTex clipboard JSON**, with useful parts on named layers.
 2. Copy the returned JSON code block.

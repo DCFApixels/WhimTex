@@ -11,7 +11,7 @@ description: "Generate WhimTex procedural texture layers, groups and HLSL Shader
 This page is the complete starting contract for a browser AI generating editable textures for
 **WhimTex, the Unity sprite and texture editor**. No Unity connection or file generation is required.
 Return a JSON object for the user to copy and paste, or HLSL for a shader-only request.
-This feature is available in development builds after the original 0.9.5 release.
+This feature is available in WhimTex 0.9.6 and later.
 
 ## Instructions for an AI assistant
 

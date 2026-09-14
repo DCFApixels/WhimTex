@@ -13,5 +13,5 @@ then paste with **Ctrl+V** in WhimTex. For shader-only requests return HLSL for 
 Do not substitute Unity serialized JSON, ShaderLab, or the live-agent operation protocol.
 Do not claim to have inserted or tested anything when you only generated text.
 
-The instructions in this repository describe the checked-out version. Clipboard support is under
-development after 0.9.5; use a build containing this feature, not the original 0.9.5 release.
+The instructions in this repository describe the checked-out version. Procedural JSON clipboard
+support requires WhimTex 0.9.6 or later.

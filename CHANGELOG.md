@@ -4,14 +4,20 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+## [0.9.6] - 2026-09-14
+
 ### Added
 
 - Paste procedural layers, groups and embedded HLSL effects from browser-generated JSON with Ctrl+V. Local targets are remapped; paste and optional canvas resizing share one Undo. Existing documents can accept or decline the supplied size.
 - Discoverable AI authoring guide, clipboard JSON Schema and complete examples, linked visibly and in raw README comments.
+- Paste PNG/JPEG images from direct HTTP(S) links as independent Drawing layers, preserving source resolution and fitting their transform to the canvas.
+- Original Size button in the Transform toolbar for restoring one source pixel per canvas pixel.
+- Clamp and Unbounded tiling modes, with procedural continuation for Noise, Gradient, Color Fill and Shape; existing serialized tiling values are preserved.
 
 ### Fixed
 
 - Preview guides are preserved when the window rebuilds after a script reload, even when its runtime document reference needs rebinding.
+- Drawing layers retain source resolution until their transform is applied, preventing premature loss of detail.
 
 ## [0.9.5] - 2026-09-13
 
