@@ -4,6 +4,21 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+## [0.10.3] - 2026-09-14
+
+### Added
+
+- Linked-image clipboard example with a stone wall source and editable pixelation, posterization and Bayer dithering.
+
+### Changed
+
+- Clearer AI authoring entry points, direct paths to example recipes, and a common-mistakes checklist before the full JSON/HLSL specification.
+
+### Fixed
+
+- Centered pixel-block sampling and unbiased Bayer thresholds in the stone wall example; its Drawing layer uses Point filtering.
+- Corrected rename compatibility notes and the minimum version for linked Drawing images; removed machine-specific paths from test guidance and preview outputs.
+
 ## [0.10.2] - 2026-09-14
 
 ### Fixed
