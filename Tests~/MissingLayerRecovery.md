@@ -4,7 +4,8 @@ No project compilation is initiated by the tests. Recompile manually in the inte
 
 - Static checks: `node --test --experimental-test-isolation=none "Tests~/*.test.mjs"`.
 - Optional runtime check: execute `MissingLayerRecoverySmoke.cs` through Pipeline `eval_file` in
-  `D:\DCFA\Projects\Test6.6` after recompilation. It uses transient objects and does not save assets.
+  the intended Unity project after recompilation, explicitly passing its absolute path through
+  `--project-path`. It uses transient objects and does not save assets.
 
 Manual checks on a disposable copy of a document containing missing layer types:
 

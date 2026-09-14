@@ -12,6 +12,7 @@ or a user-guide gallery. Read the [authoring contract](../../AI/README.md) befor
 | [Heart](heart.json) | Parameterized heart silhouette, clipping Gradient, SDF rim light, Outline and two ellipse highlights feeding a Blur. |
 | [Mystic fog](mystic-fog.json) | Noise, a hidden source and a coloring gradient. |
 | [Retro processor](retro-processor.json) | A standalone Processor acting on an existing lower stack. |
+| [Stone wall: posterize + dither](stone-wall-retro.json) | A Drawing layer downloaded from a direct image URL, with pixelation and Bayer dithering in a Processor above it. |
 | [Local distortion](local-distortion.json) | An editable Transform 2D shader parameter. |
 
 Use only the parts needed for the requested result. Omit default properties such as identity Swizzle,
@@ -23,3 +24,17 @@ Do not infer that every recipe needs a shader: the wheel and neon ring need none
 
 Files are complete clipboard envelopes; copy their JSON content, not their filename or this table.
 Schema checks cover every JSON file here. The Unity smoke test also loads, compiles and renders these examples.
+
+## Linked image + Shader Processor
+
+![Stone wall source image](stone-wall.png)
+
+This is the **source image**, before the effect. Copy [stone-wall-retro.json](stone-wall-retro.json)
+to download it into a Drawing layer and apply the Processor above it. Adjust Posterize Levels,
+Pixel Size and Dither Strength to change the retro look. The canvas is 1024 × 1024; the source
+image retains its original resolution and is fitted with the layer transform.
+
+The `url` is a plain direct PNG link to this repository, not a Markdown link or a GitHub file page.
+Pasting requires internet access and may ask you to allow the download host. The image must be
+published on `main` before its download URL works. This example is intentionally not fully procedural:
+the Drawing layer contains the downloaded pixels; the Processor remains editable HLSL.

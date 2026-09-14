@@ -2,7 +2,8 @@
 
 Compile the package manually in Unity first. Do not launch a build, force refresh or request project
 compilation to run these tests. Execute the complete C# snippets with the connected Editor's existing
-C# execution facility, targeting `D:\DCFA\Projects\Test6.6` explicitly. They create transient objects only.
+C# execution facility, explicitly passing the intended Unity project's absolute path through
+`--project-path`. They create transient objects only.
 
 - `GaussianBlurApiSmoke.cs`: defaults, partial updates, snapshot round trip and validation failures.
 - `GaussianBlurSmoke.cs`: GPU vs CPU impulse kernel, transparent RGB rejection, HDR intensity,

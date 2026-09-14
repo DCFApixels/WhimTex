@@ -15,11 +15,13 @@ Clipboard paste does not execute the operations described on this page.
 
 WhimTex is installed as `com.dcfapixels.whimtex`, its namespace is `DCFApixels.WhimTex` and its
 assemblies are `DCFApixels.WhimTex*` (previously `com.dcfa_pixels.sprite-editor` and
-`DCFApixels.SpriteEditor`). Documents and preferences saved under the older names keep working: the
-moved types carry `MovedFrom` markers, and the `whimtex_*` commands and persisted preference
-keys were deliberately left unchanged. The rename does not change the API version,
-shader identifiers or saved user preferences. The subsequent Layer/Behaviour redesign changes
-the serialized document format without migrating earlier documents; the JSON command contract remains v1.
+`DCFApixels.SpriteEditor`). The 0.10.0 rename preserves documents from the preceding
+Layer/Behaviour format through `MovedFrom` markers. It does not migrate documents from before
+that redesign. Update integrations to the `WhimTexApi` type and `whimtex_*` commands;
+the JSON command contract remains v1.
+Preference keys were renamed to `DCFApixels.WhimTex.*` without migrating old values, so user
+settings revert to defaults. Presets in the old default folder remain discoverable while the
+new default folder does not exist; a custom preset-folder path must be selected again.
 {: .no_toc }
 
 <details markdown="1">

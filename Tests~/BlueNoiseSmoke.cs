@@ -94,7 +94,9 @@ try
             pixels[y * 512 + x + 256] = rgb[i].r < .1f ? UnityEngine.Color.white : UnityEngine.Color.black;
         }
         preview.SetPixels32(pixels); preview.Apply();
-        System.IO.File.WriteAllBytes("D:/DCFA/Projects/Test6.6/Temp/WhimTexBlueNoiseComparison.png", UnityEngine.ImageConversion.EncodeToPNG(preview));
+        string folder = System.IO.Path.GetFullPath(System.IO.Path.Combine(UnityEngine.Application.dataPath, "../Temp"));
+        System.IO.Directory.CreateDirectory(folder);
+        System.IO.File.WriteAllBytes(System.IO.Path.Combine(folder, "WhimTexBlueNoiseComparison.png"), UnityEngine.ImageConversion.EncodeToPNG(preview));
     }
     finally { UnityEngine.Object.DestroyImmediate(preview); }
     return "Blue Noise GPU checks passed: " + checks + "; comparison: Temp/WhimTexBlueNoiseComparison.png (white left, blue right)";

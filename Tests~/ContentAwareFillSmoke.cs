@@ -86,7 +86,9 @@ try
     for(int y=0;y<ph;y++)for(int x=0;x<pw;x++)
     { output[y*pw*2+x]=pattern[y*pw+x];output[y*pw*2+pw+x]=a[y*pw+x]; }
     preview.SetPixels(output);preview.Apply();
-    System.IO.File.WriteAllBytes("D:/DCFA/Projects/Test6.6/Temp/WhimTexContentFillTest.png",UnityEngine.ImageConversion.EncodeToPNG(preview));
+    string folder=System.IO.Path.GetFullPath(System.IO.Path.Combine(UnityEngine.Application.dataPath,"../Temp"));
+    System.IO.Directory.CreateDirectory(folder);
+    System.IO.File.WriteAllBytes(System.IO.Path.Combine(folder,"WhimTexContentFillTest.png"),UnityEngine.ImageConversion.EncodeToPNG(preview));
 }
 finally { UnityEngine.Object.DestroyImmediate(preview); }
 return $"Content-Aware Fill: {checks} checks passed; two 97x73 patterned fills: {watch.ElapsedMilliseconds}ms. Visual: Temp/WhimTexContentFillTest.png";

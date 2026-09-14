@@ -10,7 +10,9 @@ foreach(var item in UnityEngine.Resources.FindObjectsOfTypeAll(fillType))
     try
     {
         texture.SetPixels(UnityEditorInternal.InternalEditorUtility.ReadScreenPixel(rect.position,w,h));texture.Apply();
-        string path="D:/DCFA/Projects/Test6.6/Temp/WhimTexContentFillUi.png";
+        string folder=System.IO.Path.GetFullPath(System.IO.Path.Combine(UnityEngine.Application.dataPath,"../Temp"));
+        System.IO.Directory.CreateDirectory(folder);
+        string path=System.IO.Path.Combine(folder,"WhimTexContentFillUi.png");
         System.IO.File.WriteAllBytes(path,UnityEngine.ImageConversion.EncodeToPNG(texture));return path;
     }
     finally{UnityEngine.Object.DestroyImmediate(texture);}

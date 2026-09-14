@@ -1,11 +1,14 @@
 # Content-aware fill regression
 
-Run with the connected Unity Editor only, explicitly targeting Test6.6:
+Run with the connected Unity Editor only. Set the absolute path of the intended Unity project
+explicitly; do not rely on automatic selection when several Editors are open:
 
 ```powershell
-unity command eval_file --file "D:/DCFA/Projects/Test6.6/Packages/com.dcfapixels.whimtex/Tests~/ContentAwareFillSmoke.cs" --project-path "D:/DCFA/Projects/Test6.6" --format json
-unity command eval_file --file "D:/DCFA/Projects/Test6.6/Packages/com.dcfapixels.whimtex/Tests~/ContentFillUiSetup.cs" --project-path "D:/DCFA/Projects/Test6.6" --format json
-unity command eval_file --file "D:/DCFA/Projects/Test6.6/Packages/com.dcfapixels.whimtex/Tests~/ContentFillUiSmoke.cs" --project-path "D:/DCFA/Projects/Test6.6" --format json
+$testProjectPath = "D:/Projects/MyGame" # Replace with the intended Unity project root.
+$testFolder = Join-Path $testProjectPath "Packages/com.dcfapixels.whimtex/Tests~"
+unity command eval_file --file (Join-Path $testFolder "ContentAwareFillSmoke.cs") --project-path $testProjectPath --format json
+unity command eval_file --file (Join-Path $testFolder "ContentFillUiSetup.cs") --project-path $testProjectPath --format json
+unity command eval_file --file (Join-Path $testFolder "ContentFillUiSmoke.cs") --project-path $testProjectPath --format json
 ```
 
 The setup creates a temporary unsaved window; the UI smoke closes it and restores previous focus, including on test failures. It doesn't create project assets or change scenes. Optional `ContentFillUiCapture.cs` captures the test settings window if it is actually visible on screen (do not mistake an occluding application for the fill UI).

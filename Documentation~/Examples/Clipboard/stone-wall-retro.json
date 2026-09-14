@@ -1,0 +1,28 @@
+{
+  "format": "whimtex.layers",
+  "version": 1,
+  "canvas": {
+    "width": 1024,
+    "height": 1024
+  },
+  "layers": [
+    {
+      "type": "shaderProcessor",
+      "name": "Posterize + Dither",
+      "fx": [
+        {
+          "name": "PosterizeDitherPixelate",
+          "code": "// @param float _PosterizeLevels = 6 [2 .. 16]\n// @param float _PixelSize = 4 [1 .. 32]\n// @param float _DitherStrength = 1.0 [0 .. 1]\n\nstatic const float BayerMatrix[16] = {\n     0.0,  8.0,  2.0, 10.0,\n    12.0,  4.0, 14.0,  6.0,\n     3.0, 11.0,  1.0,  9.0,\n    15.0,  7.0, 13.0,  5.0\n};\n\nfloat SampleBayer(float2 pixelCoord) {\n    int2 cell = int2(pixelCoord - 4.0 * floor(pixelCoord / 4.0));\n    return (BayerMatrix[cell.y * 4 + cell.x] + 0.5) / 16.0 - 0.5;\n}\n\nfloat4 ApplyFX(float2 uv, float4 color) {\n    float2 canvasSize = max(_CanvasSize.xy, float2(1.0, 1.0));\n    float pixelSize = max(1.0, floor(_PixelSize));\n\n    // Sample each block at its center, including partial blocks at the canvas edges.\n    float2 canvasPixel = clamp(uv * canvasSize, 0.0, canvasSize - 0.5);\n    float2 pixelCoord = floor(canvasPixel / pixelSize);\n    float2 blockStart = pixelCoord * pixelSize;\n    float2 blockEnd = min(blockStart + pixelSize, canvasSize);\n    float2 snappedUV = (blockStart + blockEnd) * 0.5 / canvasSize;\n    float4 sampled = SampleInput(snappedUV);\n\n    // Centered Bayer thresholds: zero mean, one threshold per coarse block.\n    float bayer = SampleBayer(pixelCoord) * _DitherStrength;\n\n    // Posterization with dithering.\n    float levels = max(2.0, floor(_PosterizeLevels));\n    float steps = levels - 1.0;\n    float3 dithered = sampled.rgb + bayer / steps;\n    float3 posterized = floor(dithered * steps + 0.5) / steps;\n    return float4(saturate(posterized), sampled.a);\n}"
+        }
+      ]
+    },
+    {
+      "type": "drawing",
+      "name": "Stone Wall",
+      "url": "https://raw.githubusercontent.com/DCFApixels/WhimTex/main/Documentation%7E/Examples/Clipboard/stone-wall.png",
+      "properties": {
+        "filter": "Point"
+      }
+    }
+  ]
+}
