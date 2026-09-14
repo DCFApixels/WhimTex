@@ -14,6 +14,8 @@ namespace DCFApixels.WhimTex
             internal TextureCompositor Document;
             internal bool HasCanvas;
             internal readonly List<ShaderFX> Effects = new List<ShaderFX>();
+            // Drawing layers that own no pixels yet: the image is fetched before the tree is pasted.
+            internal readonly List<(string url, Layer layer)> Images = new List<(string, Layer)>();
             internal void Compile()
             {
                 foreach (var effect in Effects)
@@ -22,10 +24,29 @@ namespace DCFApixels.WhimTex
             }
             public void Dispose()
             {
-                if (Document != null) UnityEngine.Object.DestroyImmediate(Document);
+                if (Document != null)
+                {
+                    // Decoded images belong to the detached layers and are not destroyed with the document.
+                    DestroyOwnedTextures(Document.layers);
+                    UnityEngine.Object.DestroyImmediate(Document);
+                }
                 foreach (var effect in Effects)
                     if (effect != null) UnityEngine.Object.DestroyImmediate(effect);
+                Effects.Clear();
+                Images.Clear();
                 Document = null;
+            }
+
+            private static void DestroyOwnedTextures(List<Layer> layers)
+            {
+                foreach (Layer layer in layers)
+                {
+                    if (layer == null) continue;
+                    if (layer.Behaviour is DrawingLayerBehaviour drawing && drawing.StoredTexture != null &&
+                        !UnityEditor.AssetDatabase.Contains(drawing.StoredTexture))
+                        UnityEngine.Object.DestroyImmediate(drawing.StoredTexture);
+                    if (layer.AsGroup() is Layer group) DestroyOwnedTextures(group.layers);
+                }
             }
         }
 
@@ -92,11 +113,11 @@ namespace DCFApixels.WhimTex
                         try
                         {
                             var node = Obj(item, item.Path);
-                            Keys(node, "id", "type", "name", "properties", "transform", "children", "target", "fx");
+                            Keys(node, "id", "type", "name", "properties", "transform", "children", "target", "fx", "url");
                             string type = Text(node, "type");
                             Require(type == "color" || type == "gradient" || type == "noise" || type == "shape" ||
                                 type == "outline" || type == "sdf" || type == "normalMap" || type == "blur" ||
-                                type == "makeSeamless" || type == "shaderProcessor" || type == "group",
+                                type == "makeSeamless" || type == "shaderProcessor" || type == "drawing" || type == "group",
                                 "Unsupported procedural layer type: " + type);
                             Layer layer = LayerTypeRegistry.Find(type).CreateLayer();
                             layer.AssignNewId();
@@ -124,6 +145,18 @@ namespace DCFApixels.WhimTex
                                 var transform = Obj(node["transform"], "transform");
                                 Keys(transform, "position", "scale", "pivot", "rotation", "tiling");
                                 SetTransform(result.Document, layer, transform);
+                            }
+                            if (node["url"] != null)
+                            {
+                                Require(layer.Behaviour is DrawingLayerBehaviour, "url is only supported on Drawing layers.");
+                                Require(result.Images.Count < 16, "At most 16 linked images per paste.");
+                                Require(Uri.TryCreate(Text(node, "url"), UriKind.Absolute, out Uri link) &&
+                                    (link.Scheme == "http" || link.Scheme == "https"), "url must be an absolute http or https link.");
+                                Require(node["transform"]?["scale"] == null,
+                                    "A URL Drawing layer derives its scale from the downloaded image; set position, pivot, rotation or tiling instead.");
+                                // A decoded web image is 8-bit sRGB, exactly like the plain URL paste.
+                                if (node["properties"]?["colorRange"] == null) layer.colorRange = LayerColorRange.Standard;
+                                result.Images.Add((link.AbsoluteUri, layer));
                             }
                             if (layer.Behaviour is TargetedLayerBehaviour effect)
                             {

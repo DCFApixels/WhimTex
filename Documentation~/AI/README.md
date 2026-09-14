@@ -11,14 +11,16 @@ description: "Generate WhimTex procedural texture layers, groups and HLSL Shader
 This page is the complete starting contract for a browser AI generating editable textures for
 **WhimTex, the Unity sprite and texture editor**. No Unity connection or file generation is required.
 Return a JSON object for the user to copy and paste, or HLSL for a shader-only request.
-This feature is available in WhimTex 0.9.6 and later.
+This feature is available in WhimTex 0.9.6 and later. Drawing layers that download an image from a
+link require WhimTex 0.10.0 or later.
 
 ## Instructions for an AI assistant
 
 1. For a composition, return **one valid JSON object** in a `json` code block. No comments, trailing
    commas, Markdown or prose inside JSON. Use the field names and enum strings below exactly.
-2. Use only procedural layers. Do not invent a Drawing/File layer, image URL, Base64 payload,
-   asset GUID, Unity type name, asset path, live-agent request or filesystem operation.
+2. Use only procedural layers and, when the image must come from the web, a Drawing layer with a `url`.
+   Do not invent a File layer, Base64 payload, asset GUID, Unity type name, asset path, live-agent
+   request or filesystem operation.
 3. Keep useful parts editable: prefer Shape, Gradient, Noise and targeted effects over one huge shader.
    Use a named group for a multi-layer composition. Avoid excessive layers, blur radii or shader loops.
 4. Layer arrays are **top to bottom**, exactly like the Layers panel. FX arrays run **first to last**.
@@ -42,6 +44,8 @@ Existing image and cross-window layer clipboard workflows remain available for o
 Unknown fields, invalid values, duplicate IDs, missing/cyclic targets and invalid HLSL reject the
 paste without adding a partial tree. Custom HLSL requires confirmation before compilation.
 Only accept code you trust: valid HLSL can still be expensive enough to stall the GPU.
+A Drawing layer with `url` downloads its image before anything is pasted, and those links require a
+confirmation that names the hosts. If a download fails, nothing is inserted.
 
 ## JSON envelope
 
@@ -74,7 +78,8 @@ On an empty document the size applies immediately. On a nonempty document with a
 Resize changes the canvas, not an instruction to bake/resample all existing layers.
 
 Limits: 1 MiB of JSON text, 128 layers total, 8 nested groups, 16 custom shaders total,
-65,536 characters and 32 parameters per shader. These limits are not performance guarantees.
+65,536 characters and 32 parameters per shader, 16 linked images. Each linked image is at most 64 MB
+and 16 megapixels, and must be a PNG or JPEG. These limits are not performance guarantees.
 Do not embed a `$schema` property: the envelope accepts only the fields shown above.
 
 ## Layer fields
@@ -83,7 +88,7 @@ Every layer requires `type`. All other fields are optional; omitted settings use
 
 | Field | Meaning |
 | --- | --- |
-| `type` | `color`, `gradient`, `noise`, `shape`, `outline`, `sdf`, `normalMap`, `blur`, `makeSeamless`, `shaderProcessor`, `group` |
+| `type` | `color`, `gradient`, `noise`, `shape`, `outline`, `sdf`, `normalMap`, `blur`, `makeSeamless`, `shaderProcessor`, `drawing`, `group` |
 | `name` | Display name, at most 128 characters |
 | `id` | Unique local string, 1..64 characters; only needed for references |
 | `properties` | Common settings and the type-specific settings below |
@@ -91,6 +96,7 @@ Every layer requires `type`. All other fields are optional; omitted settings use
 | `children` | Groups only; if present, a nonempty array in top-to-bottom order |
 | `target` | Local ID, without `@`, for Outline/SDF/Normal Map/Blur/Make Seamless |
 | `fx` | Non-group layers only: array of `{ "name": "Optional name", "code": "HLSL source" }` |
+| `url` | Drawing layers only: absolute `http`/`https` link to a PNG or JPEG, downloaded on paste |
 
 Targets may refer forward or backward in the JSON. Hidden sources still work. With no `target`,
 a targeted effect uses the next sibling below it. Prefer explicit targets for predictable portable results.
@@ -123,6 +129,22 @@ Position is an offset in canvas pixels: default `[0,0]`, positive X right, posit
 Pivot is normalized bottom-left UV, default `[0.5,0.5]`; scale `[1,1]` covers the canvas.
 Rotation is counterclockwise. Changing pivot does not compensate position. Negative scale mirrors an axis;
 absolute scale components must be at least 0.00001. No group transform.
+
+### Drawing layers and linked images
+
+A Drawing layer owns its pixels. `{ "type": "drawing" }` adds an empty layer the user can paint on,
+and adding `url` downloads that link before the paste and fills the layer with the image:
+
+- the texture keeps its **source resolution**; the image is never resampled to the canvas,
+- `transform.scale` is **derived** from the image and the canvas, so do not set it. `position`, `pivot`,
+  `rotation` and `tiling` are kept, and the fitted scale preserves the placement you asked for,
+- the link is fetched **once, at paste time**, and nothing about the URL is stored in the document, so
+  the saved composition never depends on the network,
+- a confirmation lists the hosts before any download starts. If one download fails, nothing is pasted,
+- the whole tree, images included, lands as a single Undo step.
+
+PNG and JPEG only. `properties.brush` is not available from the clipboard: pasted Drawing layers start
+empty unless they carry a `url`.
 
 ### Shape, Color and Gradient
 

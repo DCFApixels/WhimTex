@@ -491,6 +491,21 @@ namespace DCFApixels.WhimTex
             }
         }
 
+        // Adopts an already decoded image as this layer's own pixels. The texture keeps its source
+        // resolution, so callers fit the transform instead of resampling it to the canvas.
+        internal void AdoptStoredTexture(Texture2D texture)
+        {
+            if (pixels != null && !AssetDatabase.Contains(pixels))
+                UnityEngine.Object.DestroyImmediate(pixels);
+            pixels = texture;
+            if (pixels == null)
+                return;
+            unchecked { pixelsRevision++; }
+            pixels.name = GetTextureName();
+            pixels.hideFlags = HideFlags.HideAndDontSave;
+            ReleasePaintSurface();
+        }
+
         internal void CloneStoredTexture()
         {
             SyncSurfaceToTexture();

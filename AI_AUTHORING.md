@@ -14,4 +14,5 @@ Do not substitute Unity serialized JSON, ShaderLab, or the live-agent operation 
 Do not claim to have inserted or tested anything when you only generated text.
 
 The instructions in this repository describe the checked-out version. Procedural JSON clipboard
-support requires WhimTex 0.9.6 or later.
+support requires WhimTex 0.9.6 or later; Drawing layers that download an image from a link require
+0.10.0 or later.

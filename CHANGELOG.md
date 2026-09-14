@@ -4,6 +4,12 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-09-14
+
+### Added
+
+- Clipboard JSON can add a Drawing layer that downloads its image from a direct HTTP(S) link: `{"type": "drawing", "url": "https://…"}`. WhimTex confirms the hosts first, fetches every linked image before inserting anything, keeps each image at its source resolution and fits the layer transform to the canvas. The whole tree, images included, lands as a single Undo step, and nothing is pasted if a download fails.
+
 ## [0.10.0] - 2026-09-14
 
 ### Added

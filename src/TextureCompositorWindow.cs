@@ -1124,7 +1124,7 @@ namespace DCFApixels.WhimTex
             if (next == null || next == compositor)
                 return;
 
-            if (imageUrlRequest != null) { CancelImageUrlPaste(); RemoveNotification(); }
+            if (HasPendingImageUrl) { CancelImageUrlPaste(); RemoveNotification(); }
             CancelPreviewEyedropper();
             CancelPreviewZoomGesture();
             previewViewport.Reset();

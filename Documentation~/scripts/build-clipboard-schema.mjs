@@ -51,20 +51,22 @@ const extra = {
   blur: { blur: ref('blur') }, makeSeamless: { makeSeamless: ref('makeSeamless') }, normalMap: { normalMap: ref('normalMap') },
   outline: { metric, color: rgba, outlineWidth: number(0, 16384), outlineSoftness: number(0, 16384), outlinePosition: enumeration('Layers/OutlineLayerBehaviour.cs', 'OutlinePosition'), outlineOffset: number(-16384, 16384), fillCenter: bool, fillColor: rgba },
   sdf: { metric, sourceChannel: enumeration('Layers/SDFLayerBehaviour.cs', 'SourceChannel'), threshold: integer(0, 255), distancePosition: enumeration('Layers/SDFLayerBehaviour.cs', 'DistancePosition'), inverted: bool, maxDistance: number(0, 16384), gradient: ref('gradient') },
-  shaderProcessor: {}, group: { compositing: choice('PassThrough Isolated') }
+  shaderProcessor: {}, drawing: {}, group: { compositing: choice('PassThrough Isolated') }
 };
 defs.layer = { oneOf: Object.entries(extra).map(([type, properties]) => {
   const fields = { type: { const: type }, id: { ...str(64), minLength: 1 }, name: str(128), properties: object({ ...common, ...properties, ...(type !== 'group' ? { filter: choice('Source Point Bilinear Trilinear') } : {}) }) };
   if (type === 'group') fields.children = { type: 'array', minItems: 1, maxItems: 128, items: ref('layer') };
   else { fields.transform = ref('transform'); fields.fx = { type: 'array', maxItems: 16, items: ref('fx') }; }
   if (['outline', 'sdf', 'blur', 'normalMap', 'makeSeamless'].includes(type)) fields.target = { ...str(64), minLength: 1 };
+  if (type === 'drawing') fields.url = { type: 'string', maxLength: 2048, pattern: '^https?://',
+    description: 'Absolute http(s) link to a PNG or JPEG. It is downloaded on paste after a confirmation, the layer keeps the source resolution, and its transform scale is fitted to the canvas, so do not set transform.scale.' };
   if (type === 'shaderProcessor') fields.properties.properties.clippingMask = { const: false };
   return object(fields, ['type']);
 }) };
 const schema = {
   $schema: 'https://json-schema.org/draft/2020-12/schema',
   title: 'WhimTex procedural clipboard layers, version 1',
-  description: '1 MiB maximum; 128 total layers, 8 nested groups, 16 total shaders. IDs must be unique, targets must resolve without cycles. Canvas at most 16,777,216 pixels. Unity also checks cross-field and shader constraints.',
+  description: '1 MiB maximum; 128 total layers, 8 nested groups, 16 total shaders, 16 linked images. IDs must be unique, targets must resolve without cycles. Canvas at most 16,777,216 pixels. A Drawing layer with url downloads one image (PNG or JPEG, at most 64 MB and 16 megapixels) after a confirmation. Unity also checks cross-field and shader constraints.',
   ...object({ format: { const: 'whimtex.layers' }, version: { const: 1 }, canvas: object({ width: integer(1, 16384), height: integer(1, 16384) }, ['width', 'height']), layers: { type: 'array', minItems: 1, maxItems: 128, items: ref('layer') } }, ['format', 'version', 'layers']),
   $defs: defs
 };

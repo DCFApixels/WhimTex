@@ -18,7 +18,8 @@ function matches(rule, value) {
     (rule.required ?? []).every(k => k in value) && Object.entries(value).every(([k, v]) => k in rule.properties && matches(rule.properties[k], v));
   if (rule.type === 'array') return Array.isArray(value) && value.length >= (rule.minItems ?? 0) && value.length <= (rule.maxItems ?? Infinity) &&
     value.every((v, i) => matches(rule.prefixItems?.[i] ?? rule.items, v));
-  if (rule.type === 'string') return typeof value === 'string' && value.length >= (rule.minLength ?? 0) && value.length <= (rule.maxLength ?? Infinity);
+  if (rule.type === 'string') return typeof value === 'string' && value.length >= (rule.minLength ?? 0) &&
+    value.length <= (rule.maxLength ?? Infinity) && (!rule.pattern || new RegExp(rule.pattern).test(value));
   if (rule.type === 'boolean') return typeof value === 'boolean';
   if (rule.type === 'number' || rule.type === 'integer') return typeof value === 'number' && Number.isFinite(value) &&
     (rule.type !== 'integer' || Number.isInteger(value)) && value >= rule.minimum && value <= rule.maximum;
@@ -39,7 +40,22 @@ const paste = read('src/TextureCompositorWindow.AreaSelection.cs');
 assert.ok(paste.indexOf('IsProceduralClipboard(clipboardText)') < paste.indexOf('TextureCompositor copiedLayers = LayerClipboard.Current'));
 assert.match(paste, /IsTextInputTarget\(target\)/);
 assert.match(paste, /resize && HasPreviewLayers/);
-assert.match(paste, /generated\.Compile\(\);\s*PasteCopiedLayers\(generated\.Document, resize\)/);
+assert.ok(paste.indexOf('generated.Compile()') < paste.indexOf('PasteProceduralClipboard(generated, resize)'),
+  'Effects compile before the tree is handed to the paste');
+assert.match(paste, /if \(!handedOver\) generated\.Dispose\(\)/, 'A refused paste releases its temporary document');
+const linked = read('src/TextureCompositorWindow.ImageUrl.cs');
+assert.match(linked, /TryGetOriginalAspectTransform\(/, 'A downloaded image is fitted, not resampled to the canvas');
+assert.ok(!linked.includes('placement.scale'), 'The hand-rolled fit math is gone');
+assert.match(linked, /ImageUrlMaximumBytes = 64 \* 1024 \* 1024/);
+assert.match(linked, /jsonPasteData|clipboardPasteData/, 'Linked images are pasted by the download batch');
+const parser = read('src/Automation/WhimTexApi.Clipboard.cs');
+assert.match(parser, /url is only supported on Drawing layers/);
+assert.match(parser, /derives its scale from the downloaded image/);
+assert.match(parser, /link\.Scheme == "http" \|\| link\.Scheme == "https"/);
+assert.equal(matches(schema, { format: 'whimtex.layers', version: 1, layers: [{ type: 'drawing', url: 'https://example.com/a.png' }] }), true);
+assert.equal(matches(schema, { format: 'whimtex.layers', version: 1, layers: [{ type: 'drawing', url: 'ftp://example.com/a.png' }] }), false);
+assert.equal(matches(schema, { format: 'whimtex.layers', version: 1, layers: [{ type: 'drawing', url: 'https://example.com/a.png', transform: { scale: [2, 2] } }] }), true,
+  'Only Unity rejects an explicit scale on a linked layer');
 for (const name of ['README.md', 'README-RU.md']) {
   assert.match(read(name), /^<!--[\s\S]*?AI_AUTHORING\.md[\s\S]*?-->/);
   assert.match(read(name).replace(/<!--[\s\S]*?-->/g, ''), /\]\(AI_AUTHORING\.md\)/);

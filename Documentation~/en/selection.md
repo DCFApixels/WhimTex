@@ -116,6 +116,9 @@ as an independent Drawing layer, keeping its original pixels and transparency. I
 centered with its proportions preserved, using the layer transform rather than resizing the image. The same size limits apply;
 downloads are limited to 64 MB. Links to web pages are not supported. Closing the window or switching documents
 cancels the download. To import a local file, drag it into the preview.
+A direct link can also arrive inside clipboard JSON, as a Drawing layer with `url`. WhimTex then asks
+for confirmation, naming the hosts, downloads every linked image, and inserts the whole tree, images
+included, as one Undo step.
 
 A selection stays active when you change tools or layers. It is not saved with the document.
 If painting seems blocked, try `Ctrl+D`.

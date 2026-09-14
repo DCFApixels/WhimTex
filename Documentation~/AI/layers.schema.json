@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "WhimTex procedural clipboard layers, version 1",
-  "description": "1 MiB maximum; 128 total layers, 8 nested groups, 16 total shaders. IDs must be unique, targets must resolve without cycles. Canvas at most 16,777,216 pixels. Unity also checks cross-field and shader constraints.",
+  "description": "1 MiB maximum; 128 total layers, 8 nested groups, 16 total shaders, 16 linked images. IDs must be unique, targets must resolve without cycles. Canvas at most 16,777,216 pixels. A Drawing layer with url downloads one image (PNG or JPEG, at most 64 MB and 16 megapixels) after a confirmation. Unity also checks cross-field and shader constraints.",
   "type": "object",
   "additionalProperties": false,
   "properties": {
@@ -2184,6 +2184,136 @@
               "items": {
                 "$ref": "#/$defs/fx"
               }
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "drawing"
+            },
+            "id": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            },
+            "name": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "clippingMask": {
+                  "type": "boolean"
+                },
+                "opacity": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "blend": {
+                  "type": "string",
+                  "enum": [
+                    "Normal",
+                    "Multiply",
+                    "Overwrite",
+                    "None",
+                    "Add",
+                    "Subtract",
+                    "Divide",
+                    "Screen",
+                    "Overlay",
+                    "Darken",
+                    "Lighten",
+                    "Dodge",
+                    "Burn",
+                    "LinearDodge",
+                    "LinearBurn",
+                    "LinearLight",
+                    "LinearLightAddSub",
+                    "VividLight",
+                    "PinLight",
+                    "HardMix",
+                    "HardLight",
+                    "SoftLight",
+                    "Difference",
+                    "Exclusion",
+                    "Negation"
+                  ]
+                },
+                "colorRange": {
+                  "type": "string",
+                  "enum": [
+                    "Standard",
+                    "HDR"
+                  ]
+                },
+                "blendRange": {
+                  "type": "string",
+                  "enum": [
+                    "Standard",
+                    "HDR"
+                  ]
+                },
+                "swizzle": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "R",
+                      "G",
+                      "B",
+                      "A",
+                      "1-R",
+                      "1-G",
+                      "1-B",
+                      "1-A",
+                      "0",
+                      "1",
+                      "R * A",
+                      "G * A",
+                      "B * A"
+                    ]
+                  },
+                  "minItems": 4,
+                  "maxItems": 4
+                },
+                "filter": {
+                  "type": "string",
+                  "enum": [
+                    "Source",
+                    "Point",
+                    "Bilinear",
+                    "Trilinear"
+                  ]
+                }
+              }
+            },
+            "transform": {
+              "$ref": "#/$defs/transform"
+            },
+            "fx": {
+              "type": "array",
+              "maxItems": 16,
+              "items": {
+                "$ref": "#/$defs/fx"
+              }
+            },
+            "url": {
+              "type": "string",
+              "maxLength": 2048,
+              "pattern": "^https?://",
+              "description": "Absolute http(s) link to a PNG or JPEG. It is downloaded on paste after a confirmation, the layer keeps the source resolution, and its transform scale is fitted to the canvas, so do not set transform.scale."
             }
           },
           "required": [

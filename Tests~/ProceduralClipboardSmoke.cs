@@ -45,7 +45,34 @@ public static class ProceduralClipboardSmoke
         }
         const string head = "{\"format\":\"whimtex.layers\",\"version\":1,\"layers\":";
         Reject(head + "[]}");
-        Reject(head + "[{\"type\":\"drawing\"}]}");
+        // A Drawing layer is either empty or points at a link that is fetched before the paste.
+        Reject(head + "[{\"type\":\"drawing\",\"url\":\"ftp://example.com/a.png\"}]}");
+        Reject(head + "[{\"type\":\"drawing\",\"url\":\"/local/a.png\"}]}");
+        Reject(head + "[{\"type\":\"drawing\",\"url\":\"not a link\"}]}");
+        Reject(head + "[{\"type\":\"color\",\"url\":\"https://example.com/a.png\"}]}");
+        Reject(head + "[{\"type\":\"drawing\",\"url\":\"https://example.com/a.png\",\"transform\":{\"scale\":[2,2]}}]}");
+        using (var empty = (IDisposable)Build(head + "[{\"type\":\"drawing\"}]}"))
+            Check(Document(empty).layers.Count == 1, "An empty Drawing layer is allowed.");
+        using (var linked = (IDisposable)Build(head + "[{\"type\":\"drawing\",\"url\":\"https://example.com/a.png\"},{\"type\":\"color\"}]}"))
+        {
+            var images = (IList)linked.GetType().GetField("Images", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(linked);
+            Check(images != null && images.Count == 1, "A Drawing layer link is queued for download.");
+            Check(Document(linked).layers.Count == 2, "The link keeps its place in the tree.");
+        }
+        string LinkLayers(int count)
+        {
+            var text = new System.Text.StringBuilder(head + "[");
+            for (int i = 0; i < count; i++)
+            {
+                if (i > 0) text.Append(',');
+                text.Append("{\"type\":\"drawing\",\"url\":\"https://example.com/a.png\"}");
+            }
+            return text.Append("]}").ToString();
+        }
+        Reject(LinkLayers(17));
+        using (var sixteen = (IDisposable)Build(LinkLayers(16)))
+            Check(((IList)sixteen.GetType().GetField("Images", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(sixteen)).Count == 16,
+                "Sixteen linked images are accepted.");
         Reject(head + "[{\"type\":\"file\",\"properties\":{\"source\":\"Assets/x.png\"}}]}");
         Reject(head + "[{\"type\":\"color\",\"properties\":{\"opacity\":2}}]}");
         Reject(head + "[{\"type\":\"color\",\"properties\":{\"unknown\":1}}]}");
@@ -158,6 +185,41 @@ public static class ProceduralClipboardSmoke
             Undo.ClearUndo(document);
         }
         finally { UnityEngine.Object.DestroyImmediate(window); }
-        return $"Procedural clipboard: {checks} checks passed; examples, HLSL, validation, IDs, targets, Undo/Redo and canvas resize.";
+        // A linked Drawing layer keeps the downloaded resolution: the paste must not resample it to the canvas.
+        var adopt = typeof(DrawingLayerBehaviour).GetMethod("AdoptStoredTexture", Hidden);
+        var stored = typeof(DrawingLayerBehaviour).GetProperty("StoredTexture", Hidden);
+        var fit = typeof(Layer).GetMethod("TryGetOriginalAspectTransform", Hidden);
+        var linkedDestination = ScriptableObject.CreateInstance<TextureCompositor>();
+        linkedDestination.hideFlags = HideFlags.HideAndDontSave;
+        linkedDestination.width = 64; linkedDestination.height = 64;
+        try
+        {
+            using (var data = (IDisposable)Build(head + "[{\"type\":\"drawing\",\"url\":\"https://example.com/a.png\"}]}"))
+            {
+                Layer linked = Document(data).layers[0];
+                var image = new Texture2D(96, 48, TextureFormat.RGBA32, false, false) { hideFlags = HideFlags.HideAndDontSave };
+                adopt.Invoke(linked.Behaviour, new object[] { image });
+                object[] fitted = { Document(data), null, false };
+                Check((bool)fit.Invoke(linked, fitted), "A linked layer did not fit its transform.");
+                linked.transform = (TextureTransform)fitted[1];
+                Check(Mathf.Abs(linked.transform.scale.x - 1f) < .0001f && Mathf.Abs(linked.transform.scale.y - .5f) < .0001f,
+                    "A 96x48 image was not fitted to a 64x64 canvas.");
+                paste.Invoke(linkedDestination, new object[] { Document(data) });
+                var pasted = (DrawingLayerBehaviour)linkedDestination.layers[0].Behaviour;
+                var pastedTexture = (Texture2D)stored.GetValue(pasted);
+                Check(pastedTexture != null && pastedTexture.width == 96 && pastedTexture.height == 48,
+                    "The pasted image lost its source resolution.");
+                Check(pastedTexture != image, "The pasted layer shares the downloaded texture.");
+                Render(linkedDestination);
+            }
+            Undo.PerformUndo();
+            Check(linkedDestination.layers.Count == 0, "Linked paste Undo failed.");
+        }
+        finally
+        {
+            Undo.ClearUndo(linkedDestination);
+            UnityEngine.Object.DestroyImmediate(linkedDestination);
+        }
+        return $"Procedural clipboard: {checks} checks passed; examples, HLSL, validation, IDs, targets, Undo/Redo, canvas resize and linked image resolution.";
     }
 }
