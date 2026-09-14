@@ -11,6 +11,10 @@ next_page: "en/troubleshooting.md"
 
 # Automation
 
+Using a browser AI without a Unity connection? See [Create layers with browser AI](ai-authoring.md):
+copy procedural layer JSON and paste it with Ctrl+V. The [authoring contract](../AI/README.md)
+also covers HLSL Shader FX. The connected-agent workflow below can additionally insert images and edit existing documents.
+
 An agent can help assemble a document: add images as layers, arrange them, apply effects
 or make simple painted marks. You can then open the result in WhimTex and continue by hand.
 

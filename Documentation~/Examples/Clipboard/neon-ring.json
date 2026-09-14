@@ -1,0 +1,21 @@
+{
+  "format": "whimtex.layers",
+  "version": 1,
+  "canvas": { "width": 512, "height": 512 },
+  "layers": [
+    {
+      "type": "group", "name": "Neon Ring", "properties": { "compositing": "Isolated" },
+      "children": [
+        {
+          "type": "shape", "id": "ring", "name": "Bright Rim",
+          "properties": { "shape": { "kind": "Ellipse", "fill": false, "stroke": true, "strokeColor": [0.4, 0.9, 1, 1], "strokeWidth": 8 } },
+          "transform": { "scale": [0.7, 0.7] }
+        },
+        {
+          "type": "blur", "name": "Glow", "target": "ring",
+          "properties": { "blend": "Add", "blur": { "mode": "Gaussian", "radius": 18, "strength": 2 } }
+        }
+      ]
+    }
+  ]
+}

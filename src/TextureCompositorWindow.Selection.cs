@@ -271,12 +271,22 @@ namespace DCFApixels.SpriteEditor
             }
         }
 
-        private void PasteCopiedLayers(TextureCompositor snapshot)
+        private void PasteCopiedLayers(TextureCompositor snapshot, bool resizeCanvas = false)
         {
             applyingToolkitChange = true;
+            Undo.IncrementCurrentGroup();
+            int pasteUndo = Undo.GetCurrentGroup();
+            Undo.SetCurrentGroupName("Paste Layers");
             try
             {
+                if (resizeCanvas)
+                {
+                    Undo.RegisterCompleteObjectUndo(compositor, "Paste Layers");
+                    compositor.width = snapshot.width;
+                    compositor.height = snapshot.height;
+                }
                 Dictionary<Layer, Layer> copies = compositor.PasteLayers(snapshot);
+                Undo.CollapseUndoOperations(pasteUndo);
                 SelectOnlyLayer(null);
                 foreach (Layer source in snapshot.layers)
                     if (copies.TryGetValue(source, out Layer copy)) ActivateSelectedLayer(copy.Id);
@@ -287,8 +297,14 @@ namespace DCFApixels.SpriteEditor
                 lineAnchorLayer = null;
                 RequestPreview();
             }
+            catch
+            {
+                Undo.RevertAllDownToGroup(pasteUndo);
+                throw;
+            }
             finally
             {
+                Undo.IncrementCurrentGroup();
                 applyingToolkitChange = false;
                 RefreshToolkitInterface();
             }

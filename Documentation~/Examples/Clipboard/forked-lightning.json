@@ -1,0 +1,44 @@
+{
+  "format": "whimtex.layers",
+  "version": 1,
+  "canvas": {
+    "width": 256,
+    "height": 512
+  },
+  "layers": [
+    {
+      "type": "group",
+      "name": "Forked Lightning",
+      "properties": {
+        "compositing": "Isolated"
+      },
+      "children": [
+        {
+          "type": "color",
+          "id": "bolt",
+          "name": "Electric Filament",
+          "fx": [
+            {
+              "name": "Lightning Generator",
+              "code": "// @param float _Seed = 7 [0 .. 100]\n// @param float _Width = 0.008 [0.002 .. 0.025]\n// @param float _Jaggedness = 0.13 [0 .. 0.25]\n// @param float _ForkSpread = 0.22 [0 .. 0.35]\n// @param color _Tint = (0.18, 0.48, 1, 1)\n\nfloat BoltHash(float n)\n{\n    return frac(sin(n * 127.1 + _Seed * 31.7) * 43758.5453);\n}\n\nfloat BoltNoise(float y, float frequency)\n{\n    float p = y * frequency;\n    float i = floor(p);\n    return lerp(BoltHash(i), BoltHash(i + 1), frac(p)) * 2 - 1;\n}\n\nfloat BoltPath(float y)\n{\n    return 0.5 + _Jaggedness * (BoltNoise(y, 11) + 0.3 * BoltNoise(y + 2, 29));\n}\n\nfloat4 ApplyFX(float2 uv, float4 color)\n{\n    float y = uv.y;\n    float envelope = smoothstep(0.02, 0.15, y) * (1 - smoothstep(0.86, 0.98, y));\n    float width = _Width * (0.25 + 0.75 * envelope);\n    float distanceToBolt = abs(uv.x - BoltPath(y));\n\n    float t1 = saturate((y - 0.36) / 0.40);\n    float branch1 = BoltPath(y) + _ForkSpread * t1;\n    float d1 = abs(uv.x - branch1);\n    float mask1 = step(0.36, y) * (1 - smoothstep(0.67, 0.76, y));\n\n    float t2 = saturate((y - 0.57) / 0.28);\n    float branch2 = BoltPath(y) - _ForkSpread * t2 * 0.85;\n    float d2 = abs(uv.x - branch2);\n    float mask2 = step(0.57, y) * (1 - smoothstep(0.77, 0.85, y));\n\n    float aa = max(fwidth(uv.x), 0.0001);\n    float core = 1 - smoothstep(width, width + aa, distanceToBolt);\n    float fork1 = (1 - smoothstep(width * 0.5, width * 0.5 + aa, d1)) * mask1;\n    float fork2 = (1 - smoothstep(width * 0.4, width * 0.4 + aa, d2)) * mask2;\n    float filament = max(core, max(fork1, fork2));\n\n    float aura = exp2(-distanceToBolt / max(width * 3, 0.0001));\n    aura = max(aura, exp2(-d1 / max(width * 2, 0.0001)) * mask1 * 0.65);\n    aura = max(aura, exp2(-d2 / max(width * 2, 0.0001)) * mask2 * 0.5);\n\n    float alpha = saturate(filament + aura * 0.35) * envelope * _Tint.a;\n    float3 rgb = lerp(_Tint.rgb, float3(0.92, 0.97, 1), filament);\n    return float4(rgb, alpha);\n}"
+            }
+          ]
+        },
+        {
+          "type": "blur",
+          "name": "Electric Bloom",
+          "target": "bolt",
+          "properties": {
+            "opacity": 0.75,
+            "blend": "Add",
+            "blur": {
+              "mode": "Gaussian",
+              "radius": 12,
+              "strength": 2
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

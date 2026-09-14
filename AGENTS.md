@@ -1,5 +1,9 @@
 # WhimTex asset authoring
 
+For browser/text-only AI generation of procedural layer clipboard JSON or HLSL effects,
+start with [AI_AUTHORING.md](AI_AUTHORING.md) and [the self-contained contract](Documentation~/AI/README.md).
+This is distinct from the connected live-editing API below.
+
 WhimTex is the public product name. The package ID `com.dcfa_pixels.sprite-editor`,
 `DCFApixels.SpriteEditor` namespace, `sprite_editor_*` commands and persisted identifiers
 are compatibility contracts, not branding to rename. The canonical repository is

@@ -1,0 +1,2316 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WhimTex procedural clipboard layers, version 1",
+  "description": "1 MiB maximum; 128 total layers, 8 nested groups, 16 total shaders. IDs must be unique, targets must resolve without cycles. Canvas at most 16,777,216 pixels. Unity also checks cross-field and shader constraints.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "format": {
+      "const": "whimtex.layers"
+    },
+    "version": {
+      "const": 1
+    },
+    "canvas": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16384
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16384
+        }
+      },
+      "required": [
+        "width",
+        "height"
+      ]
+    },
+    "layers": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 128,
+      "items": {
+        "$ref": "#/$defs/layer"
+      }
+    }
+  },
+  "required": [
+    "format",
+    "version",
+    "layers"
+  ],
+  "$defs": {
+    "color": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "number",
+          "minimum": -107,
+          "maximum": 107
+        },
+        {
+          "type": "number",
+          "minimum": -107,
+          "maximum": 107
+        },
+        {
+          "type": "number",
+          "minimum": -107,
+          "maximum": 107
+        },
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      ],
+      "items": false,
+      "minItems": 4,
+      "maxItems": 4
+    },
+    "gradient": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "time": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "color": {
+            "type": "array",
+            "prefixItems": [
+              {
+                "type": "number",
+                "minimum": -107,
+                "maximum": 107
+              },
+              {
+                "type": "number",
+                "minimum": -107,
+                "maximum": 107
+              },
+              {
+                "type": "number",
+                "minimum": -107,
+                "maximum": 107
+              },
+              {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            ],
+            "items": false,
+            "minItems": 4,
+            "maxItems": 4
+          }
+        },
+        "required": [
+          "time",
+          "color"
+        ]
+      },
+      "description": "Stops must have strictly increasing times."
+    },
+    "gradientOptions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "Vertical",
+            "Horizontal",
+            "Radial",
+            "Circular",
+            "Diamond",
+            "Square"
+          ]
+        },
+        "center": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": -1000000,
+            "maximum": 1000000
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "radius": {
+          "type": "number",
+          "minimum": 0.00001,
+          "maximum": 1000
+        },
+        "repetitions": {
+          "type": "number",
+          "minimum": 0.00001,
+          "maximum": 1000
+        },
+        "wrap": {
+          "type": "string",
+          "enum": [
+            "Repeat",
+            "PingPong"
+          ]
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "Blend",
+            "Fixed",
+            "PerceptualBlend"
+          ]
+        }
+      }
+    },
+    "noise": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "noiseType": {
+          "type": "string",
+          "enum": [
+            "OpenSimplex2",
+            "OpenSimplex2S",
+            "Cellular",
+            "Perlin",
+            "ValueCubic",
+            "Value",
+            "WhiteNoise",
+            "BlueNoise"
+          ]
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "scale": {
+          "type": "number",
+          "minimum": 0.01,
+          "maximum": 1000
+        },
+        "offset": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": -10000,
+            "maximum": 10000
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "fractal": {
+          "type": "string",
+          "enum": [
+            "None",
+            "FBm",
+            "Ridged",
+            "PingPong"
+          ]
+        },
+        "octaves": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "lacunarity": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 4
+        },
+        "gain": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "weightedStrength": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "pingPongStrength": {
+          "type": "number",
+          "minimum": 0.01,
+          "maximum": 8
+        },
+        "cellularDistance": {
+          "type": "string",
+          "enum": [
+            "Euclidean",
+            "EuclideanSquared",
+            "Manhattan",
+            "Hybrid"
+          ]
+        },
+        "cellularReturn": {
+          "type": "string",
+          "enum": [
+            "CellValue",
+            "Distance",
+            "Distance2",
+            "Distance2Add",
+            "Distance2Sub",
+            "Distance2Mul",
+            "Distance2Div"
+          ]
+        },
+        "cellularJitter": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "warp": {
+          "type": "string",
+          "enum": [
+            "None",
+            "OpenSimplex2",
+            "OpenSimplex2Reduced",
+            "BasicGrid"
+          ]
+        },
+        "warpStrength": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "encoding": {
+          "type": "string",
+          "enum": [
+            "ColorValues",
+            "LinearData"
+          ]
+        },
+        "inverted": {
+          "type": "boolean"
+        },
+        "dimensions": {
+          "type": "string",
+          "enum": [
+            "TwoD",
+            "OneD"
+          ]
+        },
+        "direction": {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180
+        },
+        "whiteNoiseColor": {
+          "type": "string",
+          "enum": [
+            "Monochrome",
+            "Color"
+          ]
+        },
+        "whiteNoiseSize": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 1024
+        }
+      }
+    },
+    "blur": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "Gaussian",
+            "Linear",
+            "Circular"
+          ]
+        },
+        "strength": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "radius": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 256
+        },
+        "distance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 512
+        },
+        "angle": {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180
+        },
+        "arc": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 360
+        },
+        "center": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "direction": {
+          "type": "string",
+          "enum": [
+            "Centered",
+            "Forward",
+            "Backward"
+          ]
+        },
+        "edges": {
+          "type": "string",
+          "enum": [
+            "Transparent",
+            "Clamp",
+            "Repeat",
+            "Mirror"
+          ]
+        }
+      }
+    },
+    "shape": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "Rectangle",
+            "Ellipse",
+            "Polygon",
+            "Star",
+            "Line"
+          ]
+        },
+        "fill": {
+          "type": "boolean"
+        },
+        "fillColor": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "type": "number",
+              "minimum": -107,
+              "maximum": 107
+            },
+            {
+              "type": "number",
+              "minimum": -107,
+              "maximum": 107
+            },
+            {
+              "type": "number",
+              "minimum": -107,
+              "maximum": 107
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          ],
+          "items": false,
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "stroke": {
+          "type": "boolean"
+        },
+        "strokeColor": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "type": "number",
+              "minimum": -107,
+              "maximum": 107
+            },
+            {
+              "type": "number",
+              "minimum": -107,
+              "maximum": 107
+            },
+            {
+              "type": "number",
+              "minimum": -107,
+              "maximum": 107
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          ],
+          "items": false,
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "strokeWidth": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 8192
+        },
+        "roundness": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "cornerRoundness": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "linkCorners": {
+          "type": "boolean"
+        },
+        "sides": {
+          "type": "integer",
+          "minimum": 3,
+          "maximum": 32
+        },
+        "innerRadius": {
+          "type": "number",
+          "minimum": 0.01,
+          "maximum": 1
+        }
+      }
+    },
+    "makeSeamless": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "horizontal": {
+          "type": "string",
+          "enum": [
+            "Off",
+            "LeftToRight",
+            "RightToLeft"
+          ]
+        },
+        "vertical": {
+          "type": "string",
+          "enum": [
+            "Off",
+            "BottomToTop",
+            "TopToBottom"
+          ]
+        },
+        "blendWidth": {
+          "type": "number",
+          "minimum": 0.001,
+          "maximum": 0.5
+        },
+        "falloff": {
+          "type": "number",
+          "minimum": 0.25,
+          "maximum": 4
+        }
+      }
+    },
+    "normalMap": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "HeightMap",
+            "Texture"
+          ]
+        },
+        "sourceChannel": {
+          "type": "string",
+          "enum": [
+            "Luminance",
+            "Red",
+            "Green",
+            "Blue",
+            "Alpha",
+            "Maximum"
+          ]
+        },
+        "inputSpace": {
+          "type": "string",
+          "enum": [
+            "ColorValues",
+            "Linear"
+          ]
+        },
+        "edges": {
+          "type": "string",
+          "enum": [
+            "Clamp",
+            "Repeat",
+            "Mirror"
+          ]
+        },
+        "derivative": {
+          "type": "string",
+          "enum": [
+            "Sobel",
+            "Scharr",
+            "CentralDifference"
+          ]
+        },
+        "alphaMode": {
+          "type": "string",
+          "enum": [
+            "Opaque",
+            "Source"
+          ]
+        },
+        "output": {
+          "type": "string",
+          "enum": [
+            "Normal",
+            "Height"
+          ]
+        },
+        "encoding": {
+          "type": "string",
+          "enum": [
+            "PackedColor",
+            "LinearData"
+          ]
+        },
+        "strength": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 128
+        },
+        "blackLevel": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "whiteLevel": {
+          "type": "number",
+          "minimum": 0.0001,
+          "maximum": 16
+        },
+        "gamma": {
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 8
+        },
+        "smoothing": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 64
+        },
+        "mediumRadius": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 128
+        },
+        "largeRadius": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 512
+        },
+        "fineDetail": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 8
+        },
+        "mediumDetail": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 8
+        },
+        "largeDetail": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 8
+        },
+        "lightRemoval": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "inverted": {
+          "type": "boolean"
+        },
+        "flipX": {
+          "type": "boolean"
+        },
+        "flipY": {
+          "type": "boolean"
+        },
+        "ignoreTransparent": {
+          "type": "boolean"
+        }
+      }
+    },
+    "transform": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "position": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": -1000000,
+            "maximum": 1000000
+          },
+          "minItems": 2,
+          "maxItems": 2,
+          "description": "Canvas-pixel offset; default [0,0], X right, Y up."
+        },
+        "scale": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": -1000000,
+            "maximum": 1000000
+          },
+          "minItems": 2,
+          "maxItems": 2,
+          "description": "Each absolute component must be at least 0.00001."
+        },
+        "pivot": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": -1000000,
+            "maximum": 1000000
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "rotation": {
+          "type": "number",
+          "minimum": -360000,
+          "maximum": 360000
+        },
+        "tiling": {
+          "type": "string",
+          "enum": [
+            "Clip",
+            "Repeat",
+            "Mirror",
+            "Source"
+          ]
+        }
+      }
+    },
+    "fx": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "Self-contained ApplyFX HLSL. Declare values with // @param. No #, backslashes or asset GUIDs. At most 32 parameters."
+        }
+      },
+      "required": [
+        "code"
+      ]
+    },
+    "layer": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "color"
+            },
+            "id": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            },
+            "name": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "clippingMask": {
+                  "type": "boolean"
+                },
+                "opacity": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "blend": {
+                  "type": "string",
+                  "enum": [
+                    "Normal",
+                    "Multiply",
+                    "Overwrite",
+                    "None",
+                    "Add",
+                    "Subtract",
+                    "Divide",
+                    "Screen",
+                    "Overlay",
+                    "Darken",
+                    "Lighten",
+                    "Dodge",
+                    "Burn",
+                    "LinearDodge",
+                    "LinearBurn",
+                    "LinearLight",
+                    "LinearLightAddSub",
+                    "VividLight",
+                    "PinLight",
+                    "HardMix",
+                    "HardLight",
+                    "SoftLight",
+                    "Difference",
+                    "Exclusion",
+                    "Negation"
+                  ]
+                },
+                "colorRange": {
+                  "type": "string",
+                  "enum": [
+                    "Standard",
+                    "HDR"
+                  ]
+                },
+                "blendRange": {
+                  "type": "string",
+                  "enum": [
+                    "Standard",
+                    "HDR"
+                  ]
+                },
+                "swizzle": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "R",
+                      "G",
+                      "B",
+                      "A",
+                      "1-R",
+                      "1-G",
+                      "1-B",
+                      "1-A",
+                      "0",
+                      "1",
+                      "R * A",
+                      "G * A",
+                      "B * A"
+                    ]
+                  },
+                  "minItems": 4,
+                  "maxItems": 4
+                },
+                "color": {
+                  "type": "array",
+                  "prefixItems": [
+                    {
+                      "type": "number",
+                      "minimum": -107,
+                      "maximum": 107
+                    },
+                    {
+                      "type": "number",
+                      "minimum": -107,
+                      "maximum": 107
+                    },
+                    {
+                      "type": "number",
+                      "minimum": -107,
+                      "maximum": 107
+                    },
+                    {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    }
+                  ],
+                  "items": false,
+                  "minItems": 4,
+                  "maxItems": 4
+                },
+                "filter": {
+                  "type": "string",
+                  "enum": [
+                    "Source",
+                    "Point",
+                    "Bilinear",
+                    "Trilinear"
+                  ]
+                }
+              }
+            },
+            "transform": {
+              "$ref": "#/$defs/transform"
+            },
+            "fx": {
+              "type": "array",
+              "maxItems": 16,
+              "items": {
+                "$ref": "#/$defs/fx"
+              }
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "gradient"
+            },
+            "id": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            },
+            "name": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "clippingMask": {
+                  "type": "boolean"
+                },
+                "opacity": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "blend": {
+                  "type": "string",
+                  "enum": [
+                    "Normal",
+                    "Multiply",
+                    "Overwrite",
+                    "None",
+                    "Add",
+                    "Subtract",
+                    "Divide",
+                    "Screen",
+                    "Overlay",
+                    "Darken",
+                    "Lighten",
+                    "Dodge",
+                    "Burn",
+                    "LinearDodge",
+                    "LinearBurn",
+                    "LinearLight",
+                    "LinearLightAddSub",
+                    "VividLight",
+                    "PinLight",
+                    "HardMix",
+                    "HardLight",
+                    "SoftLight",
+                    "Difference",
+                    "Exclusion",
+                    "Negation"
+                  ]
+                },
+                "colorRange": {
+                  "type": "string",
+                  "enum": [
+                    "Standard",
+                    "HDR"
+                  ]
+                },
+                "blendRange": {
+                  "type": "string",
+                  "enum": [
+                    "Standard",
+                    "HDR"
+                  ]
+                },
+                "swizzle": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "R",
+                      "G",
+                      "B",
+                      "A",
+                      "1-R",
+                      "1-G",
+                      "1-B",
+                      "1-A",
+                      "0",
+                      "1",
+                      "R * A",
+                      "G * A",
+                      "B * A"
+                    ]
+                  },
+                  "minItems": 4,
+                  "maxItems": 4
+                },
+                "gradient": {
+                  "$ref": "#/$defs/gradient"
+                },
+                "gradientOptions": {
+                  "$ref": "#/$defs/gradientOptions"
+                },
+                "filter": {
+                  "type": "string",
+                  "enum": [
+                    "Source",
+                    "Point",
+                    "Bilinear",
+                    "Trilinear"
+                  ]
+                }
+              }
+            },
+            "transform": {
+              "$ref": "#/$defs/transform"
+            },
+            "fx": {
+              "type": "array",
+              "maxItems": 16,
+              "items": {
+                "$ref": "#/$defs/fx"
+              }
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "noise"
+            },
+            "id": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            },
+            "name": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "clippingMask": {
+                  "type": "boolean"
+                },
+                "opacity": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "blend": {
+                  "type": "string",
+                  "enum": [
+                    "Normal",
+                    "Multiply",
+                    "Overwrite",
+                    "None",
+                    "Add",
+                    "Subtract",
+                    "Divide",
+                    "Screen",
+                    "Overlay",
+                    "Darken",
+                    "Lighten",
+                    "Dodge",
+                    "Burn",
+                    "LinearDodge",
+                    "LinearBurn",
+                    "LinearLight",
+                    "LinearLightAddSub",
+                    "VividLight",
+                    "PinLight",
+                    "HardMix",
+                    "HardLight",
+                    "SoftLight",
+                    "Difference",
+                    "Exclusion",
+                    "Negation"
+                  ]
+                },
+                "colorRange": {
+                  "type": "string",
+                  "enum": [
+                    "Standard",
+                    "HDR"
+                  ]
+                },
+                "blendRange": {
+                  "type": "string",
+                  "enum": [
+                    "Standard",
+                    "HDR"
+                  ]
+                },
+                "swizzle": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "R",
+                      "G",
+                      "B",
+                      "A",
+                      "1-R",
+                      "1-G",
+                      "1-B",
+                      "1-A",
+                      "0",
+                      "1",
+                      "R * A",
+                      "G * A",
+                      "B * A"
+                    ]
+                  },
+                  "minItems": 4,
+                  "maxItems": 4
+                },
+                "noise": {
+                  "$ref": "#/$defs/noise"
+                },
+                "filter": {
+                  "type": "string",
+                  "enum": [
+                    "Source",
+                    "Point",
+                    "Bilinear",
+                    "Trilinear"
+                  ]
+                }
+              }
+            },
+            "transform": {
+              "$ref": "#/$defs/transform"
+            },
+            "fx": {
+              "type": "array",
+              "maxItems": 16,
+              "items": {
+                "$ref": "#/$defs/fx"
+              }
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "shape"
+            },
+            "id": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            },
+            "name": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "clippingMask": {
+                  "type": "boolean"
+                },
+                "opacity": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "blend": {
+                  "type": "string",
+                  "enum": [
+                    "Normal",
+                    "Multiply",
+                    "Overwrite",
+                    "None",
+                    "Add",
+                    "Subtract",
+                    "Divide",
+                    "Screen",
+                    "Overlay",
+                    "Darken",
+                    "Lighten",
+                    "Dodge",
+                    "Burn",
+                    "LinearDodge",
+                    "LinearBurn",
+                    "LinearLight",
+                    "LinearLightAddSub",
+                    "VividLight",
+                    "PinLight",
+                    "HardMix",
+                    "HardLight",
+                    "SoftLight",
+                    "Difference",
+                    "Exclusion",
+                    "Negation"
+                  ]
+                },
+                "colorRange": {
+                  "type": "string",
+                  "enum": [
+                    "Standard",
+                    "HDR"
+                  ]
+                },
+                "blendRange": {
+                  "type": "string",
+                  "enum": [
+                    "Standard",
+                    "HDR"
+                  ]
+                },
+                "swizzle": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "R",
+                      "G",
+                      "B",
+                      "A",
+                      "1-R",
+                      "1-G",
+                      "1-B",
+                      "1-A",
+                      "0",
+                      "1",
+                      "R * A",
+                      "G * A",
+                      "B * A"
+                    ]
+                  },
+                  "minItems": 4,
+                  "maxItems": 4
+                },
+                "shape": {
+                  "$ref": "#/$defs/shape"
+                },
+                "filter": {
+                  "type": "string",
+                  "enum": [
+                    "Source",
+                    "Point",
+                    "Bilinear",
+                    "Trilinear"
+                  ]
+                }
+              }
+            },
+            "transform": {
+              "$ref": "#/$defs/transform"
+            },
+            "fx": {
+              "type": "array",
+              "maxItems": 16,
+              "items": {
+                "$ref": "#/$defs/fx"
+              }
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "blur"
+            },
+            "id": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            },
+            "name": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "clippingMask": {
+                  "type": "boolean"
+                },
+                "opacity": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "blend": {
+                  "type": "string",
+                  "enum": [
+                    "Normal",
+                    "Multiply",
+                    "Overwrite",
+                    "None",
+                    "Add",
+                    "Subtract",
+                    "Divide",
+                    "Screen",
+                    "Overlay",
+                    "Darken",
+                    "Lighten",
+                    "Dodge",
+                    "Burn",
+                    "LinearDodge",
+                    "LinearBurn",
+                    "LinearLight",
+                    "LinearLightAddSub",
+                    "VividLight",
+                    "PinLight",
+                    "HardMix",
+                    "HardLight",
+                    "SoftLight",
+                    "Difference",
+                    "Exclusion",
+                    "Negation"
+                  ]
+                },
+                "colorRange": {
+                  "type": "string",
+                  "enum": [
+                    "Standard",
+                    "HDR"
+                  ]
+                },
+                "blendRange": {
+                  "type": "string",
+                  "enum": [
+                    "Standard",
+                    "HDR"
+                  ]
+                },
+                "swizzle": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "R",
+                      "G",
+                      "B",
+                      "A",
+                      "1-R",
+                      "1-G",
+                      "1-B",
+                      "1-A",
+                      "0",
+                      "1",
+                      "R * A",
+                      "G * A",
+                      "B * A"
+                    ]
+                  },
+                  "minItems": 4,
+                  "maxItems": 4
+                },
+                "blur": {
+                  "$ref": "#/$defs/blur"
+                },
+                "filter": {
+                  "type": "string",
+                  "enum": [
+                    "Source",
+                    "Point",
+                    "Bilinear",
+                    "Trilinear"
+                  ]
+                }
+              }
+            },
+            "transform": {
+              "$ref": "#/$defs/transform"
+            },
+            "fx": {
+              "type": "array",
+              "maxItems": 16,
+              "items": {
+                "$ref": "#/$defs/fx"
+              }
+            },
+            "target": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "makeSeamless"
+            },
+            "id": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            },
+            "name": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "clippingMask": {
+                  "type": "boolean"
+                },
+                "opacity": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "blend": {
+                  "type": "string",
+                  "enum": [
+                    "Normal",
+                    "Multiply",
+                    "Overwrite",
+                    "None",
+                    "Add",
+                    "Subtract",
+                    "Divide",
+                    "Screen",
+                    "Overlay",
+                    "Darken",
+                    "Lighten",
+                    "Dodge",
+                    "Burn",
+                    "LinearDodge",
+                    "LinearBurn",
+                    "LinearLight",
+                    "LinearLightAddSub",
+                    "VividLight",
+                    "PinLight",
+                    "HardMix",
+                    "HardLight",
+                    "SoftLight",
+                    "Difference",
+                    "Exclusion",
+                    "Negation"
+                  ]
+                },
+                "colorRange": {
+                  "type": "string",
+                  "enum": [
+                    "Standard",
+                    "HDR"
+                  ]
+                },
+                "blendRange": {
+                  "type": "string",
+                  "enum": [
+                    "Standard",
+                    "HDR"
+                  ]
+                },
+                "swizzle": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "R",
+                      "G",
+                      "B",
+                      "A",
+                      "1-R",
+                      "1-G",
+                      "1-B",
+                      "1-A",
+                      "0",
+                      "1",
+                      "R * A",
+                      "G * A",
+                      "B * A"
+                    ]
+                  },
+                  "minItems": 4,
+                  "maxItems": 4
+                },
+                "makeSeamless": {
+                  "$ref": "#/$defs/makeSeamless"
+                },
+                "filter": {
+                  "type": "string",
+                  "enum": [
+                    "Source",
+                    "Point",
+                    "Bilinear",
+                    "Trilinear"
+                  ]
+                }
+              }
+            },
+            "transform": {
+              "$ref": "#/$defs/transform"
+            },
+            "fx": {
+              "type": "array",
+              "maxItems": 16,
+              "items": {
+                "$ref": "#/$defs/fx"
+              }
+            },
+            "target": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "normalMap"
+            },
+            "id": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            },
+            "name": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "clippingMask": {
+                  "type": "boolean"
+                },
+                "opacity": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "blend": {
+                  "type": "string",
+                  "enum": [
+                    "Normal",
+                    "Multiply",
+                    "Overwrite",
+                    "None",
+                    "Add",
+                    "Subtract",
+                    "Divide",
+                    "Screen",
+                    "Overlay",
+                    "Darken",
+                    "Lighten",
+                    "Dodge",
+                    "Burn",
+                    "LinearDodge",
+                    "LinearBurn",
+                    "LinearLight",
+                    "LinearLightAddSub",
+                    "VividLight",
+                    "PinLight",
+                    "HardMix",
+                    "HardLight",
+                    "SoftLight",
+                    "Difference",
+                    "Exclusion",
+                    "Negation"
+                  ]
+                },
+                "colorRange": {
+                  "type": "string",
+                  "enum": [
+                    "Standard",
+                    "HDR"
+                  ]
+                },
+                "blendRange": {
+                  "type": "string",
+                  "enum": [
+                    "Standard",
+                    "HDR"
+                  ]
+                },
+                "swizzle": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "R",
+                      "G",
+                      "B",
+                      "A",
+                      "1-R",
+                      "1-G",
+                      "1-B",
+                      "1-A",
+                      "0",
+                      "1",
+                      "R * A",
+                      "G * A",
+                      "B * A"
+                    ]
+                  },
+                  "minItems": 4,
+                  "maxItems": 4
+                },
+                "normalMap": {
+                  "$ref": "#/$defs/normalMap"
+                },
+                "filter": {
+                  "type": "string",
+                  "enum": [
+                    "Source",
+                    "Point",
+                    "Bilinear",
+                    "Trilinear"
+                  ]
+                }
+              }
+            },
+            "transform": {
+              "$ref": "#/$defs/transform"
+            },
+            "fx": {
+              "type": "array",
+              "maxItems": 16,
+              "items": {
+                "$ref": "#/$defs/fx"
+              }
+            },
+            "target": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "outline"
+            },
+            "id": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            },
+            "name": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "clippingMask": {
+                  "type": "boolean"
+                },
+                "opacity": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "blend": {
+                  "type": "string",
+                  "enum": [
+                    "Normal",
+                    "Multiply",
+                    "Overwrite",
+                    "None",
+                    "Add",
+                    "Subtract",
+                    "Divide",
+                    "Screen",
+                    "Overlay",
+                    "Darken",
+                    "Lighten",
+                    "Dodge",
+                    "Burn",
+                    "LinearDodge",
+                    "LinearBurn",
+                    "LinearLight",
+                    "LinearLightAddSub",
+                    "VividLight",
+                    "PinLight",
+                    "HardMix",
+                    "HardLight",
+                    "SoftLight",
+                    "Difference",
+                    "Exclusion",
+                    "Negation"
+                  ]
+                },
+                "colorRange": {
+                  "type": "string",
+                  "enum": [
+                    "Standard",
+                    "HDR"
+                  ]
+                },
+                "blendRange": {
+                  "type": "string",
+                  "enum": [
+                    "Standard",
+                    "HDR"
+                  ]
+                },
+                "swizzle": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "R",
+                      "G",
+                      "B",
+                      "A",
+                      "1-R",
+                      "1-G",
+                      "1-B",
+                      "1-A",
+                      "0",
+                      "1",
+                      "R * A",
+                      "G * A",
+                      "B * A"
+                    ]
+                  },
+                  "minItems": 4,
+                  "maxItems": 4
+                },
+                "metric": {
+                  "type": "string",
+                  "enum": [
+                    "EuclideanExact",
+                    "EuclideanApproximate",
+                    "Manhattan",
+                    "Chebyshev",
+                    "EuclideanAntialiased"
+                  ]
+                },
+                "color": {
+                  "type": "array",
+                  "prefixItems": [
+                    {
+                      "type": "number",
+                      "minimum": -107,
+                      "maximum": 107
+                    },
+                    {
+                      "type": "number",
+                      "minimum": -107,
+                      "maximum": 107
+                    },
+                    {
+                      "type": "number",
+                      "minimum": -107,
+                      "maximum": 107
+                    },
+                    {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    }
+                  ],
+                  "items": false,
+                  "minItems": 4,
+                  "maxItems": 4
+                },
+                "outlineWidth": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 16384
+                },
+                "outlineSoftness": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 16384
+                },
+                "outlinePosition": {
+                  "type": "string",
+                  "enum": [
+                    "Outside",
+                    "Inside",
+                    "Center"
+                  ]
+                },
+                "outlineOffset": {
+                  "type": "number",
+                  "minimum": -16384,
+                  "maximum": 16384
+                },
+                "fillCenter": {
+                  "type": "boolean"
+                },
+                "fillColor": {
+                  "type": "array",
+                  "prefixItems": [
+                    {
+                      "type": "number",
+                      "minimum": -107,
+                      "maximum": 107
+                    },
+                    {
+                      "type": "number",
+                      "minimum": -107,
+                      "maximum": 107
+                    },
+                    {
+                      "type": "number",
+                      "minimum": -107,
+                      "maximum": 107
+                    },
+                    {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    }
+                  ],
+                  "items": false,
+                  "minItems": 4,
+                  "maxItems": 4
+                },
+                "filter": {
+                  "type": "string",
+                  "enum": [
+                    "Source",
+                    "Point",
+                    "Bilinear",
+                    "Trilinear"
+                  ]
+                }
+              }
+            },
+            "transform": {
+              "$ref": "#/$defs/transform"
+            },
+            "fx": {
+              "type": "array",
+              "maxItems": 16,
+              "items": {
+                "$ref": "#/$defs/fx"
+              }
+            },
+            "target": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "sdf"
+            },
+            "id": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            },
+            "name": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "clippingMask": {
+                  "type": "boolean"
+                },
+                "opacity": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "blend": {
+                  "type": "string",
+                  "enum": [
+                    "Normal",
+                    "Multiply",
+                    "Overwrite",
+                    "None",
+                    "Add",
+                    "Subtract",
+                    "Divide",
+                    "Screen",
+                    "Overlay",
+                    "Darken",
+                    "Lighten",
+                    "Dodge",
+                    "Burn",
+                    "LinearDodge",
+                    "LinearBurn",
+                    "LinearLight",
+                    "LinearLightAddSub",
+                    "VividLight",
+                    "PinLight",
+                    "HardMix",
+                    "HardLight",
+                    "SoftLight",
+                    "Difference",
+                    "Exclusion",
+                    "Negation"
+                  ]
+                },
+                "colorRange": {
+                  "type": "string",
+                  "enum": [
+                    "Standard",
+                    "HDR"
+                  ]
+                },
+                "blendRange": {
+                  "type": "string",
+                  "enum": [
+                    "Standard",
+                    "HDR"
+                  ]
+                },
+                "swizzle": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "R",
+                      "G",
+                      "B",
+                      "A",
+                      "1-R",
+                      "1-G",
+                      "1-B",
+                      "1-A",
+                      "0",
+                      "1",
+                      "R * A",
+                      "G * A",
+                      "B * A"
+                    ]
+                  },
+                  "minItems": 4,
+                  "maxItems": 4
+                },
+                "metric": {
+                  "type": "string",
+                  "enum": [
+                    "EuclideanExact",
+                    "EuclideanApproximate",
+                    "Manhattan",
+                    "Chebyshev",
+                    "EuclideanAntialiased"
+                  ]
+                },
+                "sourceChannel": {
+                  "type": "string",
+                  "enum": [
+                    "Alpha",
+                    "Red",
+                    "Green",
+                    "Blue",
+                    "Luminance"
+                  ]
+                },
+                "threshold": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 255
+                },
+                "distancePosition": {
+                  "type": "string",
+                  "enum": [
+                    "Outside",
+                    "Inside",
+                    "Center",
+                    "Signed"
+                  ]
+                },
+                "inverted": {
+                  "type": "boolean"
+                },
+                "maxDistance": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 16384
+                },
+                "gradient": {
+                  "$ref": "#/$defs/gradient"
+                },
+                "filter": {
+                  "type": "string",
+                  "enum": [
+                    "Source",
+                    "Point",
+                    "Bilinear",
+                    "Trilinear"
+                  ]
+                }
+              }
+            },
+            "transform": {
+              "$ref": "#/$defs/transform"
+            },
+            "fx": {
+              "type": "array",
+              "maxItems": 16,
+              "items": {
+                "$ref": "#/$defs/fx"
+              }
+            },
+            "target": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "shaderProcessor"
+            },
+            "id": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            },
+            "name": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "clippingMask": {
+                  "const": false
+                },
+                "opacity": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "blend": {
+                  "type": "string",
+                  "enum": [
+                    "Normal",
+                    "Multiply",
+                    "Overwrite",
+                    "None",
+                    "Add",
+                    "Subtract",
+                    "Divide",
+                    "Screen",
+                    "Overlay",
+                    "Darken",
+                    "Lighten",
+                    "Dodge",
+                    "Burn",
+                    "LinearDodge",
+                    "LinearBurn",
+                    "LinearLight",
+                    "LinearLightAddSub",
+                    "VividLight",
+                    "PinLight",
+                    "HardMix",
+                    "HardLight",
+                    "SoftLight",
+                    "Difference",
+                    "Exclusion",
+                    "Negation"
+                  ]
+                },
+                "colorRange": {
+                  "type": "string",
+                  "enum": [
+                    "Standard",
+                    "HDR"
+                  ]
+                },
+                "blendRange": {
+                  "type": "string",
+                  "enum": [
+                    "Standard",
+                    "HDR"
+                  ]
+                },
+                "swizzle": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "R",
+                      "G",
+                      "B",
+                      "A",
+                      "1-R",
+                      "1-G",
+                      "1-B",
+                      "1-A",
+                      "0",
+                      "1",
+                      "R * A",
+                      "G * A",
+                      "B * A"
+                    ]
+                  },
+                  "minItems": 4,
+                  "maxItems": 4
+                },
+                "filter": {
+                  "type": "string",
+                  "enum": [
+                    "Source",
+                    "Point",
+                    "Bilinear",
+                    "Trilinear"
+                  ]
+                }
+              }
+            },
+            "transform": {
+              "$ref": "#/$defs/transform"
+            },
+            "fx": {
+              "type": "array",
+              "maxItems": 16,
+              "items": {
+                "$ref": "#/$defs/fx"
+              }
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "group"
+            },
+            "id": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            },
+            "name": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "clippingMask": {
+                  "type": "boolean"
+                },
+                "opacity": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "blend": {
+                  "type": "string",
+                  "enum": [
+                    "Normal",
+                    "Multiply",
+                    "Overwrite",
+                    "None",
+                    "Add",
+                    "Subtract",
+                    "Divide",
+                    "Screen",
+                    "Overlay",
+                    "Darken",
+                    "Lighten",
+                    "Dodge",
+                    "Burn",
+                    "LinearDodge",
+                    "LinearBurn",
+                    "LinearLight",
+                    "LinearLightAddSub",
+                    "VividLight",
+                    "PinLight",
+                    "HardMix",
+                    "HardLight",
+                    "SoftLight",
+                    "Difference",
+                    "Exclusion",
+                    "Negation"
+                  ]
+                },
+                "colorRange": {
+                  "type": "string",
+                  "enum": [
+                    "Standard",
+                    "HDR"
+                  ]
+                },
+                "blendRange": {
+                  "type": "string",
+                  "enum": [
+                    "Standard",
+                    "HDR"
+                  ]
+                },
+                "swizzle": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "R",
+                      "G",
+                      "B",
+                      "A",
+                      "1-R",
+                      "1-G",
+                      "1-B",
+                      "1-A",
+                      "0",
+                      "1",
+                      "R * A",
+                      "G * A",
+                      "B * A"
+                    ]
+                  },
+                  "minItems": 4,
+                  "maxItems": 4
+                },
+                "compositing": {
+                  "type": "string",
+                  "enum": [
+                    "PassThrough",
+                    "Isolated"
+                  ]
+                }
+              }
+            },
+            "children": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 128,
+              "items": {
+                "$ref": "#/$defs/layer"
+              }
+            }
+          },
+          "required": [
+            "type"
+          ]
+        }
+      ]
+    }
+  }
+}

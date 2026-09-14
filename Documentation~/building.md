@@ -22,6 +22,7 @@ From the repository's `Documentation~` directory:
 ```sh
 bundle install
 node scripts/check-docs.mjs source
+node scripts/build-clipboard-schema.mjs --check
 bundle exec just-the-docs rake search:init
 bundle exec jekyll serve --baseurl /WhimTex --host 127.0.0.1
 ```
@@ -85,6 +86,8 @@ This image-conversion helper does not start Unity or trigger a refresh.
   editable work. Do not narrate UI layout mechanics, caching, storage internals, Undo implementation,
   or past fixes. Programming details belong in the separate technical reference.
 - Exclude engineering references from site search so artist queries lead to practical guides.
+- The self-contained `AI/README.md` is intentionally searchable and included in the sitemap: it is the public entry point for browser AI authoring. Its matching EN/RU workflow pages remain artist-facing.
+- After changing clipboard fields, run `node scripts/build-clipboard-schema.mjs` and `node ../Tests~/ProceduralClipboard.test.mjs`. Run `Tests~/ProceduralClipboardSmoke.cs` through Unity Pipeline separately to validate parsing, rendering and Undo against the editor.
 - Keep README as an introduction, installation, quick start and a map to these guides.
 - Do not duplicate API tables into both languages. Explain workflows bilingually; link the shared contract.
 - Keep dependency sources and licenses in the repository notices when updating the theme.

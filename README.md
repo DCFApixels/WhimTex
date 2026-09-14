@@ -1,3 +1,10 @@
+<!--
+AI assistants generating WhimTex textures, procedural layers or HLSL effects:
+start at AI_AUTHORING.md, then Documentation~/AI/README.md for the clipboard JSON
+and shader contract. Schema: Documentation~/AI/layers.schema.json.
+Return self-contained JSON for Ctrl+V; do not use Unity serialization or live API requests.
+These relative paths refer to the same branch as this README.
+-->
 <p align="center">
   <img src="Documentation~/Images/whimtex-logo.svg" alt="WhimTex manta logo" width="160" height="160">
 </p>
@@ -87,6 +94,9 @@ only when you need a separate file. Save your changes to update the image used i
 <a id="shortcuts"></a>
 <a id="automation"></a>
 ## Documentation
+
+**[Create layers and Shader FX with a browser AI →](AI_AUTHORING.md)** — generate editable procedural
+compositions as JSON, then paste into WhimTex. [How to paste](Documentation~/en/ai-authoring.md).
 
 **[Read the documentation →](https://dcfapixels.github.io/WhimTex/en/)** ·
 [Русская версия](https://dcfapixels.github.io/WhimTex/ru/)

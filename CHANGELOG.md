@@ -4,6 +4,11 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Paste procedural layers, groups and embedded HLSL effects from browser-generated JSON with Ctrl+V. Local targets are remapped; paste and optional canvas resizing share one Undo. Existing documents can accept or decline the supplied size.
+- Discoverable AI authoring guide, clipboard JSON Schema and complete examples, linked visibly and in raw README comments.
+
 ### Fixed
 
 - Preview guides are preserved when the window rebuilds after a script reload, even when its runtime document reference needs rebinding.

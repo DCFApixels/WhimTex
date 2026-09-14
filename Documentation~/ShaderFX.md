@@ -9,6 +9,9 @@ search_exclude: true
 
 # Shader authoring
 
+For browser AI generation, start with the [JSON layers and HLSL authoring guide](AI/README.md).
+It is self-contained and includes clipboard-ready examples.
+
 Use **+ Shader FX** in a layer's settings, write `ApplyFX`, and click **Apply**.
 Code and parameters can live inside the document. For an effect on the already-composited
 stack below a position, add a **Shader Processor** layer instead.

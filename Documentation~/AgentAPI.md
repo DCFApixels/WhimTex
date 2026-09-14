@@ -10,6 +10,9 @@ permalink: /reference/agentapi/
 
 # WhimTex: agent API v1
 
+For a browser AI without a Unity connection, use the separate [clipboard JSON/HLSL contract](AI/README.md).
+Clipboard paste does not execute the operations described on this page.
+
 WhimTex retains the package ID `com.dcfa_pixels.sprite-editor`, the `DCFApixels.SpriteEditor`
 namespace and all `sprite_editor_*` commands. The product rename does not change the API version,
 shader identifiers or saved user preferences. The subsequent Layer/Behaviour redesign changes

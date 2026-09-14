@@ -269,6 +269,22 @@ namespace DCFApixels.SpriteEditor
             Texture2D texture = null;
             try
             {
+                string clipboardText = GUIUtility.systemCopyBuffer;
+                if (SpriteEditorApi.IsProceduralClipboard(clipboardText))
+                {
+                    using var generated = SpriteEditorApi.ReadProceduralClipboard(clipboardText, compositor.width, compositor.height);
+                    bool resize = generated.HasCanvas && (compositor.width != generated.Document.width || compositor.height != generated.Document.height);
+                    if (resize && HasPreviewLayers)
+                        resize = EditorUtility.DisplayDialog("Canvas size from JSON",
+                            $"Change canvas from {compositor.width} × {compositor.height} to {generated.Document.width} × {generated.Document.height}?\n\nKeep Current still pastes the layers without resizing the canvas.",
+                            "Apply Size", "Keep Current");
+                    if (generated.Effects.Count > 0 && !EditorUtility.DisplayDialog("Paste custom Shader FX",
+                        $"This JSON contains {generated.Effects.Count} custom GPU shader(s). Only paste code you trust: expensive shaders can freeze rendering.\n\nCompile and paste?",
+                        "Compile and Paste", "Cancel")) return;
+                    generated.Compile();
+                    PasteCopiedLayers(generated.Document, resize);
+                    return;
+                }
                 TextureCompositor copiedLayers = LayerClipboard.Current;
                 if (copiedLayers != null)
                 {
