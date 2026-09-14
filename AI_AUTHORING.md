@@ -1,6 +1,7 @@
 # WhimTex AI authoring — start here
 
-Want to generate **WhimTex procedural layers as clipboard JSON** or **HLSL Shader FX**?
+Want to generate **WhimTex layers as clipboard JSON** — procedural layers, or a Drawing layer with
+`url` that fetches an image from a direct http(s) link — or **HLSL Shader FX**?
 Read the [self-contained authoring guide](Documentation~/AI/README.md).
 It specifies the actual clipboard format, parameter names, HLSL interface and ready-to-copy examples.
 

@@ -65,7 +65,7 @@ defs.layer = { oneOf: Object.entries(extra).map(([type, properties]) => {
 }) };
 const schema = {
   $schema: 'https://json-schema.org/draft/2020-12/schema',
-  title: 'WhimTex procedural clipboard layers, version 1',
+  title: 'WhimTex clipboard layer JSON, version 1',
   description: '1 MiB maximum; 128 total layers, 8 nested groups, 16 total shaders, 16 linked images. IDs must be unique, targets must resolve without cycles. Canvas at most 16,777,216 pixels. A Drawing layer with url downloads one image (PNG or JPEG, at most 64 MB and 16 megapixels) after a confirmation. Unity also checks cross-field and shader constraints.',
   ...object({ format: { const: 'whimtex.layers' }, version: { const: 1 }, canvas: object({ width: integer(1, 16384), height: integer(1, 16384) }, ['width', 'height']), layers: { type: 'array', minItems: 1, maxItems: 128, items: ref('layer') } }, ['format', 'version', 'layers']),
   $defs: defs

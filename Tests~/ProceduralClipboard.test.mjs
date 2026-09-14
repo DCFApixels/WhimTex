@@ -62,4 +62,17 @@ for (const name of ['README.md', 'README-RU.md']) {
 }
 assert.equal(matches(schema, { format: 'whimtex.layers', version: 1, layers: [{ type: 'file' }] }), false);
 assert.equal(matches(schema, { format: 'whimtex.layers', version: 1, layers: [{ type: 'noise', properties: { noise: { scale: '3' } } }] }), false);
+// A linked Drawing layer must be discoverable from every entry point an AI reads first.
+for (const file of ['README.md', 'README-RU.md', 'AI_AUTHORING.md', 'AGENTS.md'])
+  assert.match(read(file), /url/, file + ' must name the linked Drawing layer (url)');
+assert.match(guide, /Drawing layer that has a `url`/, 'The authoring guide must state the linked Drawing layer');
+for (const [name, text] of [['AI/README.md', guide],
+                            ['en/ai-authoring.md', read('Documentation~/en/ai-authoring.md')],
+                            ['ru/ai-authoring.md', read('Documentation~/ru/ai-authoring.md')]]) {
+  for (const blocked of ['no external assets', 'self-contained JSON', 'cannot supply texture assets', 'only procedural layers'])
+    assert.ok(!text.toLowerCase().includes(blocked), name + ' still tells an AI that images are impossible: ' + blocked);
+}
+for (const file of ['Documentation~/en/automation.md', 'Documentation~/ru/automation.md'])
+  for (const blocked of ['additionally insert images', 'дополнительно умеет вставлять изображения'])
+    assert.ok(!read(file).toLowerCase().includes(blocked), file + ' must not reserve image insertion for the connected agent');
 console.log('Procedural clipboard: schema, documentation examples, shared property keys and paste routing passed.');

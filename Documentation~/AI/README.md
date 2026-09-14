@@ -18,9 +18,9 @@ link require WhimTex 0.10.0 or later.
 
 1. For a composition, return **one valid JSON object** in a `json` code block. No comments, trailing
    commas, Markdown or prose inside JSON. Use the field names and enum strings below exactly.
-2. Use only procedural layers and, when the image must come from the web, a Drawing layer with a `url`.
-   Do not invent a File layer, Base64 payload, asset GUID, Unity type name, asset path, live-agent
-   request or filesystem operation.
+2. Compose with procedural layers, and bring a bitmap in with a Drawing layer that has a `url`
+   (a direct `http(s)` link to a PNG or JPEG). Do not invent a File layer, Base64 payload, asset GUID,
+   Unity type name, asset path, live-agent request or filesystem operation.
 3. Keep useful parts editable: prefer Shape, Gradient, Noise and targeted effects over one huge shader.
    Use a named group for a multi-layer composition. Avoid excessive layers, blur radii or shader loops.
 4. Layer arrays are **top to bottom**, exactly like the Layers panel. FX arrays run **first to last**.
@@ -232,7 +232,8 @@ Do not redeclare these or generated parameters/helpers. Do not use invented time
 
 No semicolon on metadata lines. Ranges apply to floats only. Defaults must be finite and inside bounds.
 `float4` is a raw vector; `color` is a color picker. Texture parameters without a source default to white;
-the user may assign them later, but clipboard JSON cannot supply texture assets.
+the user may assign them later. Clipboard JSON cannot bind an asset texture to a shader parameter: a
+Drawing layer with a `url` is the way to bring an image into the pasted tree.
 Names generate labels: `_NoiseScale` → Noise Scale. No need for a second uniform declaration.
 
 Transform2D uses `(centerX, centerY, width, height, angleDegrees)` in normalized input units.
@@ -272,7 +273,8 @@ For Normal Map, `whiteLevel > blackLevel` and `largeRadius >= mediumRadius` are 
 
 > Read the WhimTex JSON/HLSL authoring guide at https://dcfapixels.github.io/WhimTex/ai-authoring/.
 > Create a 512 × 512 magical ring texture using editable procedural layers, grouped and named in English.
-> Return one complete clipboard JSON code block. Use only documented fields and no external assets.
+> Return one complete clipboard JSON code block. Use only documented fields; only direct http(s) image
+> links are allowed as external references, and no local files or asset paths.
 
 If that page is not published yet, provide the guide from the repository's current development branch
 or paste its contents into the chat. Search indexing and raw-README comments are discovery aids,

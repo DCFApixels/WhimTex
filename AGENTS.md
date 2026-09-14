@@ -1,7 +1,8 @@
 # WhimTex asset authoring
 
-For browser/text-only AI generation of procedural layer clipboard JSON or HLSL effects,
-start with [AI_AUTHORING.md](AI_AUTHORING.md) and [the self-contained contract](Documentation~/AI/README.md).
+For browser/text-only AI generation of clipboard layer JSON (procedural layers, plus Drawing layers
+with `url` that fetch an image from a direct link) or HLSL effects,
+start with [AI_AUTHORING.md](AI_AUTHORING.md) and [the complete authoring contract](Documentation~/AI/README.md).
 This is distinct from the connected live-editing API below.
 
 WhimTex is the public product name, the package ID is `com.dcfapixels.whimtex`, the code lives in

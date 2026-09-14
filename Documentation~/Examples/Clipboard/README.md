@@ -16,7 +16,9 @@ or a user-guide gallery. Read the [authoring contract](../../AI/README.md) befor
 
 Use only the parts needed for the requested result. Omit default properties such as identity Swizzle,
 Normal blending and Standard ranges unless they differ from defaults. Keep local IDs only where referenced.
-The heart is the cleaned-up recipe: no Shader Processor 1, no Drawing layer, and no external assets.
+The heart is the cleaned-up recipe: no Shader Processor 1, no Drawing layer, and nothing external.
+That describes this one recipe, not the format: a Drawing layer is allowed, and it may fetch a PNG or
+JPEG from a direct http(s) link with `url`. See the [authoring contract](../../AI/README.md).
 Do not infer that every recipe needs a shader: the wheel and neon ring need none.
 
 Files are complete clipboard envelopes; copy their JSON content, not their filename or this table.

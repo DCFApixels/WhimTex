@@ -21,9 +21,9 @@ For example: “Create a blue magical ring on a transparent background, with an 
 separate glow. Use a 512 × 512 canvas and return WhimTex clipboard JSON.”
 
 The result can contain shapes, gradients, noise, groups, outlines, blur, normal maps, custom
-Shader FX, and a Drawing layer that downloads an image from a direct HTTP(S) link. It cannot include
-local files, Base64 payloads or painted pixels: those still use ordinary image paste, drag and drop,
-or a [connected agent](automation.md).
+Shader FX, and a Drawing layer that downloads an image from a direct HTTP(S) link (`"type": "drawing"`
+with `url`). It cannot include local files, Base64 payloads or painted pixels: those still use ordinary
+image paste, drag and drop, or a [connected agent](automation.md).
 
 The layers appear above the existing composition. A canvas selection does not crop them.
 If JSON supplies a size, an empty document adopts it. For an existing composition, choose **Apply Size**

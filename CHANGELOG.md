@@ -4,6 +4,12 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+## [0.10.2] - 2026-09-14
+
+### Fixed
+
+- Corrected the agent-facing documentation, which still told an AI assistant that clipboard JSON cannot include an image. The README comment for AI assistants no longer asks for `self-contained` JSON, the schema is titled `clipboard layer JSON` instead of `procedural clipboard layers`, and the authoring contract states the linked Drawing layer (`"type": "drawing"` with `url`) next to procedural layers instead of presenting procedural layers as the only option.
+
 ## [0.10.1] - 2026-09-14
 
 ### Added

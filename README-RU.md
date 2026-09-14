@@ -1,8 +1,9 @@
 <!--
-AI assistants generating WhimTex textures, procedural layers or HLSL effects:
+AI assistants generating WhimTex textures, procedural layers, images from links or HLSL effects:
 start at AI_AUTHORING.md, then Documentation~/AI/README.md for the clipboard JSON
 and shader contract. Schema: Documentation~/AI/layers.schema.json.
-Return self-contained JSON for Ctrl+V; do not use Unity serialization or live API requests.
+Return clipboard JSON for Ctrl+V. A Drawing layer with `url` may fetch a PNG or JPEG from a direct http(s) link.
+Do not use Unity serialization or live API requests.
 These relative paths refer to the same branch as this README.
 -->
 <p align="center">
