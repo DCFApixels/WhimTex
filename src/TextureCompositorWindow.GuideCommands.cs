@@ -3,7 +3,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
@@ -21,8 +21,8 @@ namespace DCFApixels.SpriteEditor
             {
                 text = "Guides"
             };
-            previewGuidesButton.AddToClassList("sprite-editor-channel-button");
-            previewGuidesButton.AddToClassList("sprite-editor-guides-button");
+            previewGuidesButton.AddToClassList("whimtex-channel-button");
+            previewGuidesButton.AddToClassList("whimtex-guides-button");
             RefreshPreviewGuidesButton();
             return previewGuidesButton;
         }
@@ -30,7 +30,7 @@ namespace DCFApixels.SpriteEditor
         private void RefreshPreviewGuidesButton()
         {
             if (previewGuidesButton == null) return;
-            previewGuidesButton.EnableInClassList("sprite-editor-channel-button--enabled", !previewGuidesHidden);
+            previewGuidesButton.EnableInClassList("whimtex-channel-button--enabled", !previewGuidesHidden);
             previewGuidesButton.tooltip = previewGuidesHidden
                 ? "Show guides and restore guide snapping."
                 : "Hide guides and temporarily disable guide snapping.";
@@ -189,7 +189,7 @@ namespace DCFApixels.SpriteEditor
                 }
             }
             RefreshPreviewGuides();
-            SpriteEditorUI.ConsumeEvent(evt);
+            WhimTexUI.ConsumeEvent(evt);
             return true;
         }
 

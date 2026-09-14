@@ -103,9 +103,9 @@ assert.match(zoom, /SetPreviewRotation\(evt.newValue\);\s*previewRotationField.S
 assert.match(zoom, /SetViewRotation\(degrees, snap: false\)/);
 assert.match(zoom, /!HasPreviewLayers \|\| float.IsNaN\(degrees\) \|\| float.IsInfinity\(degrees\)/);
 assert.match(zoom, /previewRotationField.SetValueWithoutNotify\(displayedPreviewRotation\)/);
-const styles = read('SpriteEditorSplitView.uss');
-assert.match(styles, /\.sprite-editor-view-field\s*\{\s*width: 130px;/);
-assert.match(styles, /\.sprite-editor-view-field > \.unity-base-field__label\s*\{\s*min-width: 0;/);
+const styles = read('WhimTexSplitView.uss');
+assert.match(styles, /\.whimtex-view-field\s*\{\s*width: 130px;/);
+assert.match(styles, /\.whimtex-view-field > \.unity-base-field__label\s*\{\s*min-width: 0;/);
 assert.match(zoom, /new FloatField\("Zoom %"\)\s*\{\s*isDelayed = true/);
 assert.match(zoom, /SetPreviewZoomPercent\(evt.newValue\);\s*previewZoomPercent.SetValueWithoutNotify\(toolkitPreviewCanvas.PixelScale \* 100f\)/);
 assert.match(zoom, /percent <= 0f \|\| float.IsNaN\(percent\) \|\| float.IsInfinity\(percent\)/);

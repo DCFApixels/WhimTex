@@ -1,10 +1,10 @@
 var flags=System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Public;
-var type=typeof(DCFApixels.SpriteEditor.TextureCompositorWindow);
-DCFApixels.SpriteEditor.TextureCompositorWindow window=null;
-foreach(var candidate in UnityEngine.Resources.FindObjectsOfTypeAll<DCFApixels.SpriteEditor.TextureCompositorWindow>()) if(candidate.name=="WhimTex UV smoke") window=candidate;
+var type=typeof(DCFApixels.WhimTex.TextureCompositorWindow);
+DCFApixels.WhimTex.TextureCompositorWindow window=null;
+foreach(var candidate in UnityEngine.Resources.FindObjectsOfTypeAll<DCFApixels.WhimTex.TextureCompositorWindow>()) if(candidate.name=="WhimTex UV smoke") window=candidate;
 if(window==null) throw new System.Exception("Run UvUiSetup.cs first.");
-var doc=(DCFApixels.SpriteEditor.TextureCompositor)type.GetField("compositor",flags).GetValue(window);
-var mesh=(UnityEngine.Mesh)typeof(DCFApixels.SpriteEditor.TextureCompositor).GetField("uvReferenceMesh",flags).GetValue(doc);
+var doc=(DCFApixels.WhimTex.TextureCompositor)type.GetField("compositor",flags).GetValue(window);
+var mesh=(UnityEngine.Mesh)typeof(DCFApixels.WhimTex.TextureCompositor).GetField("uvReferenceMesh",flags).GetValue(doc);
 var previous=window.rootVisualElement.userData as UnityEditor.EditorWindow;
 int checks=0;
 void Check(bool value,string label){if(!value)throw new System.Exception(label);checks++;}
@@ -25,7 +25,7 @@ try
     Call("RefreshUvReference"); Check(object.ReferenceEquals(map,Read("uvMap")),"Idle reference refresh reuses geometry");
     var image=(UnityEngine.Rect)canvas.GetType().GetProperty("ImageRect").GetValue(canvas);
     UnityEngine.Vector2 Point(float u,float v)=> (UnityEngine.Vector2)canvas.GetType().GetMethod("ToView").Invoke(canvas,new object[]{new UnityEngine.Vector2(image.x+u*image.width,image.yMax-v*image.height)});
-    var combine=type.Assembly.GetType("DCFApixels.SpriteEditor.SelectionCombine");
+    var combine=type.Assembly.GetType("DCFApixels.WhimTex.SelectionCombine");
     Check((int)Call("PickUvIsland",Point(.3f,.4f))==0,"Pick main island");
     Check((int)Call("PickUvIsland",Point(.75f,.35f))==1,"Pick second island");
     Call("SelectUvIsland",Point(.3f,.4f),System.Enum.Parse(combine,"Replace"));
@@ -49,7 +49,7 @@ try
     Check(!(bool)type.GetProperty("IsUvSelectionTool",flags).GetValue(window),"Brush is not UV selection tool");
     Check((int)Read("uvHoveredIsland")==-1,"Brush clears UV hover marker");
     Write("brushesExpanded",true);Write("uvExpanded",false); Call("RefreshPostFxPanel");
-    Check(drawer.ClassListContains("sprite-editor-post-fx-drawer--hidden"),"Brush drawer hides UV drawer");
+    Check(drawer.ClassListContains("whimtex-post-fx-drawer--hidden"),"Brush drawer hides UV drawer");
     Write("uvEnabled",false); Call("RefreshPostFxPanel");
     for(int i=0;i<before.Length;i++) Check(before[i]==Pixels()[i],"Hiding UV/switching tool preserves selection");
     return $"UV UI: {checks} checks passed: panel, cache, rotated picking, selection operations, paint isolation. Fixture closed.";

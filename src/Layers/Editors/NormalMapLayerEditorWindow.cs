@@ -4,12 +4,12 @@ using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed class NormalMapLayerEditorWindow : LayerEditorWindowBase
     {
         private enum SettingsView { Simple, Advanced }
-        private const string AdvancedViewKey = "SpriteEditor.NormalMap.AdvancedView";
+        private const string AdvancedViewKey = "DCFApixels.WhimTex.NormalMap.AdvancedView";
         private static readonly NormalMapLayerBehaviour Defaults = new NormalMapLayerBehaviour();
         protected override Type EditedLayerType => typeof(NormalMapLayerBehaviour);
         protected override string PreviewTitle => "Preview (Normal Map)";
@@ -19,30 +19,30 @@ namespace DCFApixels.SpriteEditor
             BuildFields(root, (NormalMapLayerBehaviour)source, Compositor, ApplyLayerChange, SettingsBindings, AddEffectTarget);
 
         internal static void BuildFields(VisualElement root, NormalMapLayerBehaviour layer, TextureCompositor compositor,
-            Action<string, Action> applyChange, SpriteEditorUI.ValueBindings bindings,
+            Action<string, Action> applyChange, WhimTexUI.ValueBindings bindings,
             Action<VisualElement, TargetedLayerBehaviour> addEffectTarget)
         {
-            SpriteEditorUI.ApplyWindowStyles(root);
+            WhimTexUI.ApplyWindowStyles(root);
             addEffectTarget(root, layer);
             var settings = new VisualElement { name = "normalMapSettings" };
-            settings.AddToClassList("sprite-editor-normal-map-settings");
+            settings.AddToClassList("whimtex-normal-map-settings");
             root.Add(settings);
-            var view = SpriteEditorUI.ConfigureField(new EnumField("Settings",
+            var view = WhimTexUI.ConfigureField(new EnumField("Settings",
                 SessionState.GetBool(AdvancedViewKey, false) ? SettingsView.Advanced : SettingsView.Simple));
             view.name = "normalMapSettingsView";
             view.tooltip = "Changes only the visible controls. Hidden settings keep their values and still affect the result.";
             settings.Add(view);
             var advancedNotice = new Button(() => view.value = SettingsView.Advanced)
                 { name = "normalMapAdvancedNotice", text = "Advanced settings modified — show" };
-            advancedNotice.AddToClassList("sprite-editor-normal-map-notice");
+            advancedNotice.AddToClassList("whimtex-normal-map-notice");
             settings.Add(advancedNotice);
             VisualElement Section(string title, bool advanced = false)
             {
                 var section = new VisualElement();
-                section.AddToClassList("sprite-editor-normal-map-section");
-                if (advanced) section.AddToClassList("sprite-editor-normal-map-advanced");
+                section.AddToClassList("whimtex-normal-map-section");
+                if (advanced) section.AddToClassList("whimtex-normal-map-advanced");
                 var heading = new Label(title);
-                heading.AddToClassList("sprite-editor-normal-map-heading");
+                heading.AddToClassList("whimtex-normal-map-heading");
                 section.Add(heading);
                 settings.Add(section);
                 return section;
@@ -50,39 +50,39 @@ namespace DCFApixels.SpriteEditor
             VisualElement current = Section("Source");
             void Choice<T>(string label, Func<T> get, Action<T> set, string tip = null, bool advanced = false) where T : Enum
             {
-                var field = SpriteEditorUI.ConfigureField(new EnumField(label, get()));
+                var field = WhimTexUI.ConfigureField(new EnumField(label, get()));
                 field.tooltip = tip;
                 bindings.Track(field, () => (Enum)get());
                 field.RegisterValueChangedCallback(evt => applyChange("Change Normal Map " + label, () => set((T)evt.newValue)));
-                if (advanced) field.AddToClassList("sprite-editor-normal-map-advanced");
+                if (advanced) field.AddToClassList("whimtex-normal-map-advanced");
                 current.Add(field);
             }
             void Number(string label, Func<float> get, Action<float> set, float min, float max, string tip = null,
                 bool advanced = false)
             {
-                var field = SpriteEditorUI.ConfigureField(new Slider(label, min, max) { showInputField = true });
+                var field = WhimTexUI.ConfigureField(new Slider(label, min, max) { showInputField = true });
                 field.tooltip = tip;
                 field.SetValueWithoutNotify(get());
                 bindings.Track(field, get);
                 field.RegisterValueChangedCallback(evt => applyChange("Change Normal Map " + label,
                     () => set(Mathf.Clamp(evt.newValue, min, max))));
-                if (advanced) field.AddToClassList("sprite-editor-normal-map-advanced");
+                if (advanced) field.AddToClassList("whimtex-normal-map-advanced");
                 current.Add(field);
             }
             void Flag(string label, Func<bool> get, Action<bool> set, string tip = null, bool advanced = false)
             {
-                var field = SpriteEditorUI.ConfigureField(new Toggle(label));
+                var field = WhimTexUI.ConfigureField(new Toggle(label));
                 field.tooltip = tip;
                 field.SetValueWithoutNotify(get());
                 bindings.Track(field, get);
                 field.RegisterValueChangedCallback(evt => applyChange("Change Normal Map " + label, () => set(evt.newValue)));
-                if (advanced) field.AddToClassList("sprite-editor-normal-map-advanced");
+                if (advanced) field.AddToClassList("whimtex-normal-map-advanced");
                 current.Add(field);
             }
             Choice("Generation", () => layer.mode, v => layer.mode = v,
                 "Texture infers height from image contrast at multiple scales; it cannot recover true geometry or reliably separate lighting from surface color.");
             var explanation = new Label();
-            explanation.AddToClassList("sprite-editor-normal-map-hint");
+            explanation.AddToClassList("whimtex-normal-map-hint");
             current.Add(explanation);
             Choice("Source Channel", () => layer.sourceChannel, v => layer.sourceChannel = v);
             Choice("Input Space", () => layer.inputSpace, v => layer.inputSpace = v,
@@ -127,8 +127,8 @@ namespace DCFApixels.SpriteEditor
             {
                 bool advanced = SessionState.GetBool(AdvancedViewKey, false);
                 view.SetValueWithoutNotify(advanced ? SettingsView.Advanced : SettingsView.Simple);
-                settings.EnableInClassList("sprite-editor-normal-map-simple", !advanced);
-                advancedNotice.EnableInClassList("sprite-editor-normal-map-hidden", advanced || !HasAdvancedOverrides(layer));
+                settings.EnableInClassList("whimtex-normal-map-simple", !advanced);
+                advancedNotice.EnableInClassList("whimtex-normal-map-hidden", advanced || !HasAdvancedOverrides(layer));
                 advancedNotice.text = layer.output == NormalMapLayerBehaviour.OutputMode.Height
                     ? "Advanced settings modified · Height output — show" : "Advanced settings modified — show";
                 bool texture = layer.mode == NormalMapLayerBehaviour.GenerationMode.Texture;

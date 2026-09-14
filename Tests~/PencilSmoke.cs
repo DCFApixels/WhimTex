@@ -1,8 +1,8 @@
 // Opt-in eval after manual compilation. Uses temporary textures only; no asset writes or Undo operations.
 const System.Reflection.BindingFlags Hidden = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-var drawingType = typeof(DCFApixels.SpriteEditor.DrawingLayerBehaviour);
-var settingsType = drawingType.Assembly.GetType("DCFApixels.SpriteEditor.PaintToolSettings", true);
-var shapeType = drawingType.Assembly.GetType("DCFApixels.SpriteEditor.PencilShape", true);
+var drawingType = typeof(DCFApixels.WhimTex.DrawingLayerBehaviour);
+var settingsType = drawingType.Assembly.GetType("DCFApixels.WhimTex.PaintToolSettings", true);
+var shapeType = drawingType.Assembly.GetType("DCFApixels.WhimTex.PencilShape", true);
 int checks = 0;
 void Check(bool condition, string message)
 {
@@ -19,9 +19,9 @@ object Parameters(int size, string shape, bool erase = false, UnityEngine.Color?
     settingsType.GetField("brushSpacing").SetValue(settings, 4f);
     return Call(settings, "GetPencilParameters", erase, color ?? UnityEngine.Color.red);
 }
-UnityEngine.Texture2D Pixels(DCFApixels.SpriteEditor.DrawingLayerBehaviour layer) =>
+UnityEngine.Texture2D Pixels(DCFApixels.WhimTex.DrawingLayerBehaviour layer) =>
     (UnityEngine.Texture2D)drawingType.GetProperty("StoredTexture", Hidden).GetValue(layer);
-void Point(DCFApixels.SpriteEditor.DrawingLayerBehaviour layer, UnityEngine.Vector2 uv, object parameters)
+void Point(DCFApixels.WhimTex.DrawingLayerBehaviour layer, UnityEngine.Vector2 uv, object parameters)
 {
     Call(layer, "BeginStroke", uv);
     try { Call(layer, "PaintPoint", uv, 16, 16, parameters); }
@@ -36,7 +36,7 @@ var previous = UnityEngine.RenderTexture.active;
 foreach (string shape in new[] { "Circle", "Square", "Diamond" })
 foreach (int size in new[] { 1, 2, 3, 4, 7, 8 })
 {
-    var layer = new DCFApixels.SpriteEditor.DrawingLayerBehaviour();
+    var layer = new DCFApixels.WhimTex.DrawingLayerBehaviour();
     try
     {
         var uv = new UnityEngine.Vector2(8.5f / 16f, 8.5f / 16f);
@@ -58,7 +58,7 @@ foreach (var end in new[] { new UnityEngine.Vector2(14, 11), new UnityEngine.Vec
     new UnityEngine.Vector2(2, 5), new UnityEngine.Vector2(5, 2), new UnityEngine.Vector2(14, 5),
     new UnityEngine.Vector2(5, 14), new UnityEngine.Vector2(2, 11), new UnityEngine.Vector2(11, 2) })
 {
-    var layer = new DCFApixels.SpriteEditor.DrawingLayerBehaviour();
+    var layer = new DCFApixels.WhimTex.DrawingLayerBehaviour();
     try
     {
         var startUv = new UnityEngine.Vector2(8.5f / 16, 8.5f / 16);
@@ -82,7 +82,7 @@ foreach (var end in new[] { new UnityEngine.Vector2(14, 11), new UnityEngine.Vec
 }
 foreach (string shape in new[] { "Circle", "Square", "Diamond" })
 {
-    var layer = new DCFApixels.SpriteEditor.DrawingLayerBehaviour { colorRange = DCFApixels.SpriteEditor.LayerColorRange.HDR };
+    var layer = new DCFApixels.WhimTex.DrawingLayerBehaviour { colorRange = DCFApixels.WhimTex.LayerColorRange.HDR };
     try
     {
         var parameters = Call(Parameters(5, shape, false, new UnityEngine.Color(2, 0, 0, 1)), "WithCanvasWrap");
@@ -101,8 +101,8 @@ foreach (string shape in new[] { "Circle", "Square", "Diamond" })
 }
 foreach (int size in new[] { 1, 2, 4 })
 {
-    var layer = new DCFApixels.SpriteEditor.DrawingLayerBehaviour
-    { repeatMode = DCFApixels.SpriteEditor.PaintRepeatMode.Mirror, mirrorAcrossVerticalAxis = true };
+    var layer = new DCFApixels.WhimTex.DrawingLayerBehaviour
+    { repeatMode = DCFApixels.WhimTex.PaintRepeatMode.Mirror, mirrorAcrossVerticalAxis = true };
     try
     {
         Point(layer, new UnityEngine.Vector2(3.5f / 16, 8.5f / 16), Parameters(size, "Square"));

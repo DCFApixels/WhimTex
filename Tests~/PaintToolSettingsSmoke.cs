@@ -1,5 +1,5 @@
-var windowType = typeof(DCFApixels.SpriteEditor.TextureCompositorWindow);
-var type = windowType.Assembly.GetType("DCFApixels.SpriteEditor.PaintToolSettings", true);
+var windowType = typeof(DCFApixels.WhimTex.TextureCompositorWindow);
+var type = windowType.Assembly.GetType("DCFApixels.WhimTex.PaintToolSettings", true);
 var settings = System.Activator.CreateInstance(type, true);
 int checks = 0;
 void Check(bool value, string message)
@@ -8,8 +8,8 @@ void Check(bool value, string message)
     checks++;
 }
 T Read<T>(object source, string name) => (T)type.GetField(name).GetValue(source);
-var first = new DCFApixels.SpriteEditor.DrawingLayerBehaviour();
-var second = new DCFApixels.SpriteEditor.DrawingLayerBehaviour();
+var first = new DCFApixels.WhimTex.DrawingLayerBehaviour();
+var second = new DCFApixels.WhimTex.DrawingLayerBehaviour();
 first.brushSize = 9;
 second.brushSize = 91;
 first.repeatCount = 3;
@@ -27,8 +27,8 @@ foreach (int size in new[] { 1, 5, 15, 19, 20, 50, 100, 500, 4096 })
 }
 type.GetField("pencilSize").SetValue(settings, 5);
 Check(Read<bool>(settings, "fillContiguous"), "Shared fill defaults to contiguous");
-Check(Read<DCFApixels.SpriteEditor.FillSampleMode>(settings, "fillSampleMode") ==
-    DCFApixels.SpriteEditor.FillSampleMode.CurrentLayer, "Shared fill defaults to current-layer sampling");
+Check(Read<DCFApixels.WhimTex.FillSampleMode>(settings, "fillSampleMode") ==
+    DCFApixels.WhimTex.FillSampleMode.CurrentLayer, "Shared fill defaults to current-layer sampling");
 type.GetField("brushSize").SetValue(settings, 47f);
 type.GetField("fillTolerance").SetValue(settings, 123);
 type.GetField("brushColor").SetValue(settings, UnityEngine.Color.red);

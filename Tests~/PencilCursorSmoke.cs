@@ -1,7 +1,7 @@
 // Opt-in eval after manual compilation. Pure contour/UI-local checks; no assets, windows, GPU or Undo changes.
 const System.Reflection.BindingFlags Hidden = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
 const System.Reflection.BindingFlags StaticHidden = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic;
-var type = typeof(DCFApixels.SpriteEditor.TextureCompositorWindow).Assembly.GetType("DCFApixels.SpriteEditor.PencilCursorElement", true);
+var type = typeof(DCFApixels.WhimTex.TextureCompositorWindow).Assembly.GetType("DCFApixels.WhimTex.PencilCursorElement", true);
 var build = type.GetMethod("BuildContour", StaticHidden);
 var shapeType = build.GetParameters()[2].ParameterType;
 int checks = 0;

@@ -1,14 +1,14 @@
 // Optional visual fixture. Run UvUiSmoke.cs afterwards to verify and close it.
 var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public;
-var type = typeof(DCFApixels.SpriteEditor.TextureCompositorWindow);
-foreach (var existing in UnityEngine.Resources.FindObjectsOfTypeAll<DCFApixels.SpriteEditor.TextureCompositorWindow>())
+var type = typeof(DCFApixels.WhimTex.TextureCompositorWindow);
+foreach (var existing in UnityEngine.Resources.FindObjectsOfTypeAll<DCFApixels.WhimTex.TextureCompositorWindow>())
     if (existing.name == "WhimTex UV smoke") throw new System.Exception("UV smoke window already exists; finish it first.");
 var previous = UnityEditor.EditorWindow.focusedWindow;
-var window = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.SpriteEditor.TextureCompositorWindow>();
+var window = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositorWindow>();
 window.name = "WhimTex UV smoke";
-var document = (DCFApixels.SpriteEditor.TextureCompositor)type.GetField("compositor",flags).GetValue(window);
+var document = (DCFApixels.WhimTex.TextureCompositor)type.GetField("compositor",flags).GetValue(window);
 document.width=512; document.height=512;
-document.layers.Add(new DCFApixels.SpriteEditor.Layer(new DCFApixels.SpriteEditor.ColorFillLayerBehaviour { color = new UnityEngine.Color(.24f,.25f,.3f,1) }));
+document.layers.Add(new DCFApixels.WhimTex.Layer(new DCFApixels.WhimTex.ColorFillLayerBehaviour { color = new UnityEngine.Color(.24f,.25f,.3f,1) }));
 var mesh=new UnityEngine.Mesh {name="UV smoke mesh",hideFlags=UnityEngine.HideFlags.HideAndDontSave};
 mesh.vertices=new[]{new UnityEngine.Vector3(.08f,.1f,0),new UnityEngine.Vector3(.48f,.1f,0),new UnityEngine.Vector3(.48f,.85f,0),new UnityEngine.Vector3(.08f,.85f,0),
     new UnityEngine.Vector3(.6f,.18f,0),new UnityEngine.Vector3(.92f,.25f,0),new UnityEngine.Vector3(.85f,.55f,0),new UnityEngine.Vector3(.62f,.5f,0),
@@ -16,7 +16,7 @@ mesh.vertices=new[]{new UnityEngine.Vector3(.08f,.1f,0),new UnityEngine.Vector3(
 var uvs=new UnityEngine.Vector2[mesh.vertexCount];
 for(int i=0;i<uvs.Length;i++) uvs[i]=new UnityEngine.Vector2(mesh.vertices[i].x,mesh.vertices[i].y);
 mesh.uv=uvs; mesh.triangles=new[]{0,1,2,0,2,3,4,5,6,4,6,7,8,9,10};
-typeof(DCFApixels.SpriteEditor.TextureCompositor).GetField("uvReferenceMesh",flags).SetValue(document,mesh);
+typeof(DCFApixels.WhimTex.TextureCompositor).GetField("uvReferenceMesh",flags).SetValue(document,mesh);
 type.GetField("uvEnabled",flags).SetValue(window,true);
 type.GetField("uvExpanded",flags).SetValue(window,true);
 type.GetField("postFxExpanded",flags).SetValue(window,false);

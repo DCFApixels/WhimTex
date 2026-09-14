@@ -6,7 +6,7 @@ using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
@@ -14,12 +14,12 @@ namespace DCFApixels.SpriteEditor
 
         private void AddPaintColorFields(VisualElement row)
         {
-            ColorField primary = CompactField(SpriteEditorColorInputs.Bind(new ColorField(), toolkitHeaderBindings, () => paintSettings.brushColor), 54f);
+            ColorField primary = CompactField(WhimTexColorInputs.Bind(new ColorField(), toolkitHeaderBindings, () => paintSettings.brushColor), 54f);
             primary.tooltip = PrimaryBrushColorContent.tooltip;
             primary.RegisterValueChangedCallback(evt => ApplyPaintToolChange(
                 () => paintSettings.brushColor = evt.newValue));
             row.Add(primary);
-            ColorField secondary = CompactField(SpriteEditorColorInputs.Bind(new ColorField(), toolkitHeaderBindings, () => paintSettings.secondaryBrushColor), 54f);
+            ColorField secondary = CompactField(WhimTexColorInputs.Bind(new ColorField(), toolkitHeaderBindings, () => paintSettings.secondaryBrushColor), 54f);
             secondary.tooltip = SecondaryBrushColorContent.tooltip;
             secondary.RegisterValueChangedCallback(evt => ApplyPaintToolChange(
                 () => paintSettings.secondaryBrushColor = evt.newValue));
@@ -28,40 +28,40 @@ namespace DCFApixels.SpriteEditor
 
         private void AddFillSettings()
         {
-            VisualElement row = SpriteEditorUI.CreateToolbar();
-            row.AddToClassList("sprite-editor-fill-settings");
+            VisualElement row = WhimTexUI.CreateToolbar();
+            row.AddToClassList("whimtex-fill-settings");
             BindPreviewSettingsRow(row, PreviewTool.Fill);
             AddPaintColorFields(row);
             Toggle allLayers = new Toggle("All Layers");
-            allLayers.AddToClassList("sprite-editor-fill-all-layers");
+            allLayers.AddToClassList("whimtex-fill-all-layers");
             allLayers.tooltip = "On: sample the full-resolution visible composition. Off: sample this layer's stored pixels. Both paint only this Drawing layer.";
             toolkitHeaderBindings.Track(allLayers, () => paintSettings.fillSampleMode == FillSampleMode.AllLayers);
             allLayers.RegisterValueChangedCallback(evt => ApplyPaintToolChange(
                 () => paintSettings.fillSampleMode = evt.newValue ? FillSampleMode.AllLayers : FillSampleMode.CurrentLayer));
             row.Add(allLayers);
             Toggle contiguous = new Toggle("Contiguous");
-            contiguous.AddToClassList("sprite-editor-fill-contiguous");
+            contiguous.AddToClassList("whimtex-fill-contiguous");
             contiguous.tooltip = "On: fill only the connected area at the clicked pixel. Off: fill all similar pixels across the layer, even in separate areas. Uses the All Layers setting and Tolerance.";
             toolkitHeaderBindings.Track(contiguous, () => paintSettings.fillContiguous);
             contiguous.RegisterValueChangedCallback(evt => ApplyPaintToolChange(
                 () => paintSettings.fillContiguous = evt.newValue));
             row.Add(contiguous);
             Slider tolerance = new Slider("Tolerance", 0f, 255f) { showInputField = true };
-            tolerance.AddToClassList("sprite-editor-fill-tolerance");
+            tolerance.AddToClassList("whimtex-fill-tolerance");
             tolerance.tooltip = "Color/alpha similarity to the clicked pixel (0–255). Low values stop at small differences; high values include more colors. Contiguous limits matching to the connected area.";
             toolkitHeaderBindings.Track(tolerance, () => (float)paintSettings.fillTolerance);
             tolerance.RegisterValueChangedCallback(evt => ApplyPaintToolChange(
                 () => paintSettings.fillTolerance = Mathf.Clamp(Mathf.RoundToInt(evt.newValue), 0, 255)));
             row.Add(tolerance);
             Toggle antialias = new Toggle("Antialias");
-            antialias.AddToClassList("sprite-editor-fill-antialias");
+            antialias.AddToClassList("whimtex-fill-antialias");
             antialias.tooltip = "Soften the fill edge with partial pixel coverage. Disable for hard pixel-art edges.";
             toolkitHeaderBindings.Track(antialias, () => paintSettings.fillAntialias);
             antialias.RegisterValueChangedCallback(evt => ApplyPaintToolChange(
                 () => paintSettings.fillAntialias = evt.newValue));
             row.Add(antialias);
             IntegerField expand = new IntegerField("Expand (px)");
-            expand.AddToClassList("sprite-editor-fill-expand");
+            expand.AddToClassList("whimtex-fill-expand");
             expand.tooltip = "Grow the detected area by 0–32 source pixels to overlap outlines. Unlike Tolerance, this does not change which colors are connected.";
             toolkitHeaderBindings.Track(expand, () => paintSettings.fillExpand);
             expand.RegisterValueChangedCallback(evt => ApplyPaintToolChange(
@@ -75,7 +75,7 @@ namespace DCFApixels.SpriteEditor
             if (!IsPreviewFillEnabled || evt.button != 0 || evt.altKey || compositor == null)
                 return false;
             if (!PreviewContainsPaintPoint(evt.localPosition)) return false;
-            SpriteEditorUI.ConsumeEvent(evt);
+            WhimTexUI.ConsumeEvent(evt);
             Focus();
             toolkitPreviewCanvas.Focus();
             DrawingLayerBehaviour layer = (DrawingLayerBehaviour)GetSelectedLayer();
@@ -95,7 +95,7 @@ namespace DCFApixels.SpriteEditor
                 }
             }
             Vector4 channels = PreviewChannelMask;
-            Color foreground = SpriteEditorColorInputs.DisplayColor(paintSettings.brushColor);
+            Color foreground = WhimTexColorInputs.DisplayColor(paintSettings.brushColor);
             Color color = HdrUtility.DecodePaintColor(HdrUtility.ApplyChannelMask(foreground, channels));
             if (color.a == 0) return true;
             FinishPaintingStroke();

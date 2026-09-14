@@ -6,12 +6,12 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
-using static DCFApixels.SpriteEditor.AgentJson;
+using static DCFApixels.WhimTex.AgentJson;
 using Object = UnityEngine.Object;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
-    public static partial class SpriteEditorApi
+    public static partial class WhimTexApi
     {
         public const int ProtocolVersion = 1;
         private const string UndoName = "WhimTex API Batch";
@@ -49,9 +49,9 @@ namespace DCFApixels.SpriteEditor
         private static JObject Failure(Exception exception) => new JObject
         {
             ["apiVersion"] = ProtocolVersion, ["success"] = false,
-            ["errorCode"] = exception is SpriteEditorApiException api ? api.Code : exception is JsonException ? "invalid_json" : "operation_failed",
+            ["errorCode"] = exception is WhimTexApiException api ? api.Code : exception is JsonException ? "invalid_json" : "operation_failed",
             ["error"] = exception.Message,
-            ["applied"] = exception is SpriteEditorApiException failed && failed.Code == "rollback_failed", ["saved"] = false
+            ["applied"] = exception is WhimTexApiException failed && failed.Code == "rollback_failed", ["saved"] = false
         };
 
         private static JObject Success() => new JObject { ["apiVersion"] = ProtocolVersion, ["success"] = true };

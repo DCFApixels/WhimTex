@@ -81,7 +81,7 @@ remains explicit. The native `.asset` remains the authoritative, fully editable 
 ## Editor-side API
 
 ```csharp
-PsdExportReport report = SpriteEditorPsdExporter.Export(
+PsdExportReport report = WhimTexPsdExporter.Export(
     document,
     absolutePsdPath,
     overwrite: false,
@@ -115,5 +115,5 @@ node Tests~/PsdWriter/read-fixture.cjs <absolute-ag-psd-module-path> <temporary-
 ```
 
 `Tests~/PsdExportSmoke.cs` is an opt-in Editor check **after manual compilation**. It creates temporary
-in-memory documents and PSDs only under a unique `Temp/SpriteEditor/` folder, checking real rendering,
+in-memory documents and PSDs only under a unique `Temp/WhimTex/` folder, checking real rendering,
 source preservation, overwrite protection, cancellation and cleanup. It does not save Unity assets.

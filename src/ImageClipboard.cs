@@ -2,7 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     internal static class ImageClipboard
     {

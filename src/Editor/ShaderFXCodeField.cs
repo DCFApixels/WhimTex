@@ -5,7 +5,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     internal sealed class ShaderFXCodeField : TextField
     {
@@ -54,7 +54,7 @@ namespace DCFApixels.SpriteEditor
             verticalScrollerVisibility = ScrollerVisibility.Auto;
             textSelection.selectAllOnFocus = false;
             textSelection.selectAllOnMouseUp = false;
-            AddToClassList("sprite-editor-shader-fx-code");
+            AddToClassList("whimtex-shader-fx-code");
             SetValueWithoutNotify(effect.Code ?? string.Empty);
             CaptureBefore();
             RegisterCallback<ChangeEvent<string>>(OnChanged);
@@ -180,7 +180,7 @@ namespace DCFApixels.SpriteEditor
                 ((evt.keyCode == KeyCode.Z && evt.shiftKey) || (evt.keyCode == KeyCode.Y && !evt.shiftKey));
             if (undo || redo)
             {
-                SpriteEditorUI.ConsumeEvent(evt);
+                WhimTexUI.ConsumeEvent(evt);
                 PerformHistory(redo);
                 return;
             }
@@ -197,14 +197,14 @@ namespace DCFApixels.SpriteEditor
         {
             if (evt.commandName != "Undo" && evt.commandName != "Redo")
                 return;
-            SpriteEditorUI.ConsumeEvent(evt);
+            WhimTexUI.ConsumeEvent(evt);
         }
 
         private void OnExecuteCommand(ExecuteCommandEvent evt)
         {
             if (evt.commandName == "Undo" || evt.commandName == "Redo")
             {
-                SpriteEditorUI.ConsumeEvent(evt);
+                WhimTexUI.ConsumeEvent(evt);
                 PerformHistory(evt.commandName == "Redo");
                 return;
             }

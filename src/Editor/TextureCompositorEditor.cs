@@ -4,7 +4,7 @@ using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     [CustomEditor(typeof(TextureCompositor))]
     public sealed class TextureCompositorEditor : Editor
@@ -24,7 +24,7 @@ namespace DCFApixels.SpriteEditor
             root.Add(open);
 
             TextureCompositor document = (TextureCompositor)target;
-            SpriteEditorUI.ApplyWindowStyles(root);
+            WhimTexUI.ApplyWindowStyles(root);
             Button save = new Button(() =>
             {
                 serializedObject.ApplyModifiedProperties();
@@ -37,14 +37,14 @@ namespace DCFApixels.SpriteEditor
                 "Double-click either to edit the layers.", HelpBoxMessageType.Info));
 
             Image preview = new Image { scaleMode = ScaleMode.ScaleToFit, pickingMode = PickingMode.Ignore };
-            preview.AddToClassList("sprite-editor-saved-output-preview");
+            preview.AddToClassList("whimtex-saved-output-preview");
             root.Add(preview);
             void RefreshOutputPreview()
             {
                 if (document == null)
                     return;
                 preview.image = document.OutputTexture;
-                preview.EnableInClassList("sprite-editor-saved-output-preview--empty", document.OutputTexture == null);
+                preview.EnableInClassList("whimtex-saved-output-preview--empty", document.OutputTexture == null);
                 preview.MarkDirtyRepaint();
             }
             RefreshOutputPreview();

@@ -3,7 +3,7 @@ using Unity.Collections;
 using Unity.Jobs;
 using UnityEngine;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     internal static class HdrFloodFillUtility
     {

@@ -2,9 +2,9 @@
 // No saved assets or preference changes. Run only when no edits are in progress.
 const System.Reflection.BindingFlags Hidden = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
 const System.Reflection.BindingFlags StaticHidden = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic;
-var drawingType = typeof(DCFApixels.SpriteEditor.DrawingLayerBehaviour);
-var settingsType = drawingType.Assembly.GetType("DCFApixels.SpriteEditor.PaintToolSettings", true);
-var apiType = typeof(DCFApixels.SpriteEditor.SpriteEditorApi);
+var drawingType = typeof(DCFApixels.WhimTex.DrawingLayerBehaviour);
+var settingsType = drawingType.Assembly.GetType("DCFApixels.WhimTex.PaintToolSettings", true);
+var apiType = typeof(DCFApixels.WhimTex.WhimTexApi);
 var setBrush = apiType.GetMethod("SetBrush", StaticHidden);
 var jsonType = setBrush.GetParameters()[1].ParameterType;
 object Json(string value) => jsonType.GetMethod("Parse", new[] { typeof(string) }).Invoke(null, new object[] { value });
@@ -25,7 +25,7 @@ object Preferences(float size, float hardness, float spacing, Color color)
     settingsType.GetField("brushColor").SetValue(settings, color);
     return settings;
 }
-var legacy = new DCFApixels.SpriteEditor.DrawingLayerBehaviour { brushSize = 15, brushHardness = 0.4f, brushSpacing = 0.3f, brushColor = Color.red };
+var legacy = new DCFApixels.WhimTex.DrawingLayerBehaviour { brushSize = 15, brushHardness = 0.4f, brushSpacing = 0.3f, brushColor = Color.red };
 var preferences = Preferences(15, 0.4f, 0.3f, Color.red);
 var interactive = Call(preferences, "GetStrokeParameters", false, null);
 var saved = Call(legacy, "GetStrokeParameters", false);
@@ -64,9 +64,9 @@ Undo.IncrementCurrentGroup();
 RenderTexture previousActive = RenderTexture.active;
 for (int mode = 0; mode < 4; mode++)
 {
-    var document = ScriptableObject.CreateInstance<DCFApixels.SpriteEditor.TextureCompositor>();
-    var uiLayer = new DCFApixels.SpriteEditor.DrawingLayerBehaviour();
-    var apiLayer = new DCFApixels.SpriteEditor.DrawingLayerBehaviour();
+    var document = ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>();
+    var uiLayer = new DCFApixels.WhimTex.DrawingLayerBehaviour();
+    var apiLayer = new DCFApixels.WhimTex.DrawingLayerBehaviour();
     Texture2D Pixels(object layer) => (Texture2D)drawingType.GetField("pixels", Hidden).GetValue(layer);
     try
     {

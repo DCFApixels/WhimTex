@@ -1,7 +1,7 @@
 // Opt-in only after the user has compiled Unity. Transient objects; no imports or asset saves.
 using System;
 using UnityEngine;
-using DCFApixels.SpriteEditor;
+using DCFApixels.WhimTex;
 
 var document = ScriptableObject.CreateInstance<TextureCompositor>();
 document.hideFlags = HideFlags.HideAndDontSave;

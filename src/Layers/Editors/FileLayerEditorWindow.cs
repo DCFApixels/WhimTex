@@ -4,7 +4,7 @@ using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed class FileLayerEditorWindow : LayerEditorWindowBase
     {
@@ -22,10 +22,10 @@ namespace DCFApixels.SpriteEditor
 
         internal static void BuildFields(
             VisualElement root, FileLayerBehaviour layer, TextureCompositor compositor,
-            Action<string, Action> applyChange, SpriteEditorUI.ValueBindings bindings)
+            Action<string, Action> applyChange, WhimTexUI.ValueBindings bindings)
         {
 
-            ObjectField texture = SpriteEditorUI.ConfigureField(new ObjectField("Source Texture")) as ObjectField;
+            ObjectField texture = WhimTexUI.ConfigureField(new ObjectField("Source Texture")) as ObjectField;
             texture.objectType = typeof(Texture2D);
             texture.allowSceneObjects = false;
             texture.SetValueWithoutNotify(layer.sourceTexture);
@@ -52,10 +52,10 @@ namespace DCFApixels.SpriteEditor
 
         internal static void BuildFields(
             VisualElement root, ColorFillLayerBehaviour layer, TextureCompositor compositor,
-            Action<string, Action> applyChange, SpriteEditorUI.ValueBindings bindings)
+            Action<string, Action> applyChange, WhimTexUI.ValueBindings bindings)
         {
 
-            ColorField color = SpriteEditorUI.ConfigureField(SpriteEditorColorInputs.Bind(new ColorField("Color"), bindings, () => layer.color));
+            ColorField color = WhimTexUI.ConfigureField(WhimTexColorInputs.Bind(new ColorField("Color"), bindings, () => layer.color));
             color.RegisterValueChangedCallback(evt =>
                 applyChange("Change Fill Color", () => layer.color = evt.newValue));
             root.Add(color);

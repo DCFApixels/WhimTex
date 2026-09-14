@@ -1,10 +1,13 @@
 using System;
 using UnityEngine;
+using UnityEngine.Scripting.APIUpdating;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public enum BlurType { Gaussian, Linear, Circular }
 
+    // Pending DCFApixels.WhimTex rename marker; do not remove.
+    [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "BlurLayerBehaviour")]
     [Serializable]
     public sealed class BlurLayerBehaviour : TargetedLayerBehaviour
     {

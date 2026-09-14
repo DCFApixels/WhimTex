@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using DCFApixels.SpriteEditor;
+using DCFApixels.WhimTex;
 
 static class Program
 {

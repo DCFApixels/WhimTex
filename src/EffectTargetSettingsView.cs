@@ -4,21 +4,21 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     // Shared retained target selector for the embedded inspector and standalone Edit windows.
     internal sealed class EffectTargetSettingsView
     {
         private readonly TextureCompositor compositor;
         private readonly Action<string, Action> applyChange;
-        private readonly SpriteEditorUI.ValueBindings bindings;
+        private readonly WhimTexUI.ValueBindings bindings;
         private string[] effectTargetIds;
         private string[] effectTargetLabels;
         private string effectTargetOptionsForLayerId;
         private string effectTargetOptionsForTargetId;
 
         internal EffectTargetSettingsView(TextureCompositor compositor,
-            Action<string, Action> applyChange, SpriteEditorUI.ValueBindings bindings)
+            Action<string, Action> applyChange, WhimTexUI.ValueBindings bindings)
         {
             this.compositor = compositor;
             this.applyChange = applyChange;
@@ -27,7 +27,7 @@ namespace DCFApixels.SpriteEditor
 
         internal void Build(VisualElement root, TargetedLayerBehaviour effect)
         {
-            EnumField input = SpriteEditorUI.ConfigureField(new EnumField("Input", effect.inputMode));
+            EnumField input = WhimTexUI.ConfigureField(new EnumField("Input", effect.inputMode));
             bindings.Track(input, () => (Enum)effect.inputMode);
             input.RegisterValueChangedCallback(evt =>
             {
@@ -37,31 +37,31 @@ namespace DCFApixels.SpriteEditor
 
             EnsureEffectTargetOptions(effect);
             int selectedIndex = FindEffectTargetIndex(effect.TargetLayerId);
-            PopupField<string> target = SpriteEditorUI.ConfigureField(
+            PopupField<string> target = WhimTexUI.ConfigureField(
                 new PopupField<string>("Target", new List<string>(effectTargetLabels), selectedIndex));
-            target.AddToClassList("sprite-editor-effect-target");
-            target.Q(className: "unity-base-popup-field__arrow")?.AddToClassList("sprite-editor-effect-target-arrow");
-            target.Q(className: "unity-base-popup-field__text")?.AddToClassList("sprite-editor-effect-target-text");
-            target.EnableInClassList("sprite-editor-effect-target--light", !EditorGUIUtility.isProSkin);
+            target.AddToClassList("whimtex-effect-target");
+            target.Q(className: "unity-base-popup-field__arrow")?.AddToClassList("whimtex-effect-target-arrow");
+            target.Q(className: "unity-base-popup-field__text")?.AddToClassList("whimtex-effect-target-text");
+            target.EnableInClassList("whimtex-effect-target--light", !EditorGUIUtility.isProSkin);
             VisualElement targetInput = target.Q(className: "unity-base-field__input");
             var preview = new Image { scaleMode = ScaleMode.ScaleToFit, pickingMode = PickingMode.Ignore };
-            preview.AddToClassList("sprite-editor-effect-target-preview");
+            preview.AddToClassList("whimtex-effect-target-preview");
             var fallback = new LayerActionIcon(LayerActionIcon.Kind.Effects) { pickingMode = PickingMode.Ignore };
-            fallback.AddToClassList("sprite-editor-effect-target-fallback");
+            fallback.AddToClassList("whimtex-effect-target-fallback");
             var groupIcon = new LayerActionIcon(LayerActionIcon.Kind.Group) { pickingMode = PickingMode.Ignore };
-            groupIcon.AddToClassList("sprite-editor-effect-target-fallback");
+            groupIcon.AddToClassList("whimtex-effect-target-fallback");
             var icon = new VisualElement { pickingMode = PickingMode.Ignore };
-            icon.AddToClassList("sprite-editor-effect-target-icon");
+            icon.AddToClassList("whimtex-effect-target-icon");
             icon.Add(preview);
             icon.Add(fallback);
             icon.Add(groupIcon);
             targetInput.Insert(0, icon);
             var selector = new VisualElement { pickingMode = PickingMode.Ignore };
-            selector.AddToClassList("sprite-editor-effect-target-selector");
+            selector.AddToClassList("whimtex-effect-target-selector");
             var ring = new VisualElement { pickingMode = PickingMode.Ignore };
-            ring.AddToClassList("sprite-editor-effect-target-ring");
+            ring.AddToClassList("whimtex-effect-target-ring");
             var dot = new VisualElement { pickingMode = PickingMode.Ignore };
-            dot.AddToClassList("sprite-editor-effect-target-dot");
+            dot.AddToClassList("whimtex-effect-target-dot");
             ring.Add(dot);
             selector.Add(ring);
             targetInput.Add(selector);
@@ -81,16 +81,16 @@ namespace DCFApixels.SpriteEditor
             target.tooltip = "Select a source, or drop a layer/group from this document. A multi-selection uses its active layer.";
             target.AddManipulator(new TargetDropManipulator(this, effect));
             root.Add(target);
-            HelpBox status = SpriteEditorUI.AddHelpBox(root, string.Empty, HelpBoxMessageType.Info);
+            HelpBox status = WhimTexUI.AddHelpBox(root, string.Empty, HelpBoxMessageType.Info);
             Layer RefreshThumbnail()
             {
                 if (compositor == null) return null;
                 Layer source = string.IsNullOrEmpty(effect.TargetLayerId) ? null : compositor.FindLayer(effect.TargetLayerId);
                 Texture2D thumbnail = compositor.GetLayerThumbnail(source, 18);
                 if (preview.image != thumbnail) preview.image = thumbnail;
-                preview.EnableInClassList("sprite-editor-hidden", thumbnail == null);
-                fallback.EnableInClassList("sprite-editor-hidden", source == null || thumbnail != null || source?.IsGroup == true);
-                groupIcon.EnableInClassList("sprite-editor-hidden", !(source?.IsGroup == true) || thumbnail != null);
+                preview.EnableInClassList("whimtex-hidden", thumbnail == null);
+                fallback.EnableInClassList("whimtex-hidden", source == null || thumbnail != null || source?.IsGroup == true);
+                groupIcon.EnableInClassList("whimtex-hidden", !(source?.IsGroup == true) || thumbnail != null);
                 return source;
             }
             target.schedule.Execute(() => RefreshThumbnail()).Every(200);
@@ -241,7 +241,7 @@ namespace DCFApixels.SpriteEditor
             {
                 bool valid = GetSource() != null;
                 DragAndDrop.visualMode = valid ? DragAndDropVisualMode.Link : DragAndDropVisualMode.Rejected;
-                target.EnableInClassList("sprite-editor-effect-target--drop", valid);
+                target.EnableInClassList("whimtex-effect-target--drop", valid);
                 evt.StopImmediatePropagation();
             }
 
@@ -268,7 +268,7 @@ namespace DCFApixels.SpriteEditor
                 }
             }
 
-            private void Clear() => target.RemoveFromClassList("sprite-editor-effect-target--drop");
+            private void Clear() => target.RemoveFromClassList("whimtex-effect-target--drop");
             private void OnLeave(DragLeaveEvent evt) => Clear();
             private void OnExited(DragExitedEvent evt) => Clear();
             private void OnDetach(DetachFromPanelEvent evt) => Clear();

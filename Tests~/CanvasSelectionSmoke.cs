@@ -1,7 +1,7 @@
 // Opt-in after manual compilation. Pure selection data; no assets, windows or Undo changes.
-var assembly = typeof(DCFApixels.SpriteEditor.TextureCompositor).Assembly;
-var type = assembly.GetType("DCFApixels.SpriteEditor.CanvasSelection", true);
-var combine = assembly.GetType("DCFApixels.SpriteEditor.SelectionCombine", true);
+var assembly = typeof(DCFApixels.WhimTex.TextureCompositor).Assembly;
+var type = assembly.GetType("DCFApixels.WhimTex.CanvasSelection", true);
+var combine = assembly.GetType("DCFApixels.WhimTex.SelectionCombine", true);
 var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
 var selection = System.Activator.CreateInstance(type, flags, null, new object[] { 8, 8 }, null);
 int checks = 0;

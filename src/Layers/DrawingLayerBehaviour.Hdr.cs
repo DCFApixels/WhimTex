@@ -2,7 +2,7 @@ using Unity.Collections;
 using UnityEditor;
 using UnityEngine;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class DrawingLayerBehaviour
     {

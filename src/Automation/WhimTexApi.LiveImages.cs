@@ -6,12 +6,12 @@ using Newtonsoft.Json.Linq;
 using Unity.Collections;
 using UnityEditor;
 using UnityEngine;
-using static DCFApixels.SpriteEditor.AgentJson;
+using static DCFApixels.WhimTex.AgentJson;
 using Object = UnityEngine.Object;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
-    public static partial class SpriteEditorApi
+    public static partial class WhimTexApi
     {
         private static void CaptureLiveInput(LiveJob job, TextureCompositorWindow window, JObject request)
         {
@@ -47,7 +47,7 @@ namespace DCFApixels.SpriteEditor
                 ["coordinates"] = "region: bottom-left canvas pixels; PNG: normal top-left image orientation" };
             if (source == "none" && job.mask == null) return;
             RequireGraphics();
-            string folder = "Temp/SpriteEditor/Agent/" + job.id + "/";
+            string folder = "Temp/WhimTex/Agent/" + job.id + "/";
             Texture2D rendered = null, crop = null;
             try
             {
@@ -95,8 +95,8 @@ namespace DCFApixels.SpriteEditor
 
         private static string WriteLiveBytes(byte[] bytes, string path)
         {
-            Require(path != null && path.StartsWith("Temp/SpriteEditor/", StringComparison.Ordinal) &&
-                path.EndsWith(".png", StringComparison.OrdinalIgnoreCase), "Preview path must be Temp/SpriteEditor/*.png.");
+            Require(path != null && path.StartsWith("Temp/WhimTex/", StringComparison.Ordinal) &&
+                path.EndsWith(".png", StringComparison.OrdinalIgnoreCase), "Preview path must be Temp/WhimTex/*.png.");
             ValidateSegments(path);
             string full = FullPath(path); RejectLinks(full);
             Directory.CreateDirectory(Path.GetDirectoryName(full));
@@ -134,7 +134,7 @@ namespace DCFApixels.SpriteEditor
                 }
                 var result = Success();
                 result["outputPath"] = WriteLivePng(texture, Text(request, "outputPath",
-                    "Temp/SpriteEditor/Agent/preview-" + Guid.NewGuid().ToString("N") + ".png"));
+                    "Temp/WhimTex/Agent/preview-" + Guid.NewGuid().ToString("N") + ".png"));
                 result["width"] = texture.width; result["height"] = texture.height;
                 return result;
             }

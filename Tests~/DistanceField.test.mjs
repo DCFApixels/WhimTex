@@ -154,15 +154,15 @@ for (let i = 0; i < shifted.length - 16; i++) assert.ok(Math.abs(shifted[i].a - 
 for (const filled of [false, true]) for (const soft of [0, 1, 10]) for (const width of [0, .5, 4])
     assert.ok(renderRow({ filled, soft, width, fillAlpha: .4, borderAlpha: .7 }).every(c => c.a >= 0 && c.a <= 1 && Number.isFinite(c.r)));
 for (const name of ['outlineOffset', 'fillCenter', 'fillColor']) {
-    assert.ok(read('src/Automation/SpriteEditorApi.Layers.cs').includes(`settings, "${name}"`) || read('src/Automation/SpriteEditorApi.Layers.cs').includes(`settings["${name}"]`));
-    assert.ok(read('src/Automation/SpriteEditorApi.Inspect.cs').includes(`settings["${name}"]`));
+    assert.ok(read('src/Automation/WhimTexApi.Layers.cs').includes(`settings, "${name}"`) || read('src/Automation/WhimTexApi.Layers.cs').includes(`settings["${name}"]`));
+    assert.ok(read('src/Automation/WhimTexApi.Inspect.cs').includes(`settings["${name}"]`));
 }
-assert.ok(read('src/SpriteEditorPsdExporter.cs').includes('!layer.fillCenter && layer.outlineOffset == 0f'));
+assert.ok(read('src/WhimTexPsdExporter.cs').includes('!layer.fillCenter && layer.outlineOffset == 0f'));
 assert.ok(sdf.includes('RequiresColorInput => sourceChannel != SourceChannel.Alpha'));
 assert.ok(read('src/EffectRenderCache.cs').includes('if (effect.RequiresColorInput) colorSources.Add(input)'));
 assert.ok(read('src/TextureCompositor.cs').includes('effect.RequiresColorInput, includeDisabled: true'));
 const enums = read('src/Utils.cs');
 for (const [name, value] of [['EuclideanExact', 0], ['EuclideanApproximate', 1], ['Manhattan', 2], ['Chebyshev', 3], ['EuclideanAntialiased', 4]])
     assert.ok(enums.includes(`${name} = ${value}`));
-assert.ok(read('src/Automation/SpriteEditorApi.Inspect.cs').includes('System.Enum.GetNames(typeof(DistanceMetric))'));
+assert.ok(read('src/Automation/WhimTexApi.Inspect.cs').includes('System.Enum.GetNames(typeof(DistanceMetric))'));
 console.log(`Distance field: ${checks} extracted EDT vs brute-force checks, AA/Outline and source/API contracts passed (Unity/Burst/GPU not executed).`);

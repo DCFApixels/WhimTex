@@ -6,7 +6,7 @@ using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed class ModifierEditorWindow : EditorWindow
     {
@@ -25,7 +25,7 @@ namespace DCFApixels.SpriteEditor
         public static void Open(Layer layer, TextureCompositor compositor)
         {
             ModifierEditorWindow window = CreateInstance<ModifierEditorWindow>();
-            window.titleContent = SpriteEditorBranding.WindowTitle("FX — " + layer?.layerName);
+            window.titleContent = WhimTexBranding.WindowTitle("FX — " + layer?.layerName);
             window.compositor = compositor;
             window.layer = layer;
             window.layerId = layer?.Id;
@@ -36,15 +36,15 @@ namespace DCFApixels.SpriteEditor
 
         private void OnEnable()
         {
-            titleContent = SpriteEditorBranding.WindowTitle(titleContent.text);
+            titleContent = WhimTexBranding.WindowTitle(titleContent.text);
             TextureCompositor.Changed += OnCompositorChanged;
-            SpriteEditorApi.LiveEditLocksChanged += RefreshAgentLock;
+            WhimTexApi.LiveEditLocksChanged += RefreshAgentLock;
         }
 
         private void OnDisable()
         {
             TextureCompositor.Changed -= OnCompositorChanged;
-            SpriteEditorApi.LiveEditLocksChanged -= RefreshAgentLock;
+            WhimTexApi.LiveEditLocksChanged -= RefreshAgentLock;
         }
 
         public void CreateGUI()
@@ -54,11 +54,11 @@ namespace DCFApixels.SpriteEditor
             RefreshAgentLock();
         }
 
-        private void RefreshAgentLock() => rootVisualElement.SetEnabled(!SpriteEditorApi.IsLayerContentLocked(compositor, layer));
+        private void RefreshAgentLock() => rootVisualElement.SetEnabled(!WhimTexApi.IsLayerContentLocked(compositor, layer));
 
         private void Update()
         {
-            if (refreshRequested && (modifiersList == null || !SpriteEditorUI.HasPointerCaptureWithin(modifiersList)))
+            if (refreshRequested && (modifiersList == null || !WhimTexUI.HasPointerCaptureWithin(modifiersList)))
                 RefreshInterface();
         }
 
@@ -80,7 +80,7 @@ namespace DCFApixels.SpriteEditor
             displayedModifiers.Clear();
             VisualElement root = rootVisualElement;
             root.Clear();
-            SpriteEditorUI.ApplyWindowStyles(root);
+            WhimTexUI.ApplyWindowStyles(root);
             root.style.paddingLeft = 8f;
             root.style.paddingRight = 8f;
             root.style.paddingTop = 8f;
@@ -88,15 +88,15 @@ namespace DCFApixels.SpriteEditor
 
             if (!valid)
             {
-                SpriteEditorUI.AddHelpBox(
+                WhimTexUI.AddHelpBox(
                     root,
                     "The edited layer no longer exists in this compositor.",
                     HelpBoxMessageType.Info);
-                root.Add(SpriteEditorUI.CreateButton("Close", Close));
+                root.Add(WhimTexUI.CreateButton("Close", Close));
                 return;
             }
 
-            SpriteEditorUI.AddHelpBox(
+            WhimTexUI.AddHelpBox(
                 root,
                 "Materials and Shader FX are applied in list order after the layer transform. Select an entry and click Edit to open its Inspector.",
                 HelpBoxMessageType.Info);
@@ -135,21 +135,21 @@ namespace DCFApixels.SpriteEditor
             root.Add(modifiersList);
             RememberModifierItems();
 
-            VisualElement buttons = SpriteEditorUI.CreateRow();
-            buttons.AddToClassList("sprite-editor-modifier-buttons");
+            VisualElement buttons = WhimTexUI.CreateRow();
+            buttons.AddToClassList("whimtex-modifier-buttons");
             buttons.style.justifyContent = Justify.FlexEnd;
             buttons.style.marginTop = 6f;
-            buttons.Add(SpriteEditorUI.CreateButton("Add", AddModifier, 64f));
-            buttons.Add(SpriteEditorUI.CreateButton("New Shader FX", CreateShaderFX));
-            buttons.Add(SpriteEditorUI.CreateButton("Preset ▾", () => ShaderFXCatalog.ShowMenu(entry =>
+            buttons.Add(WhimTexUI.CreateButton("Add", AddModifier, 64f));
+            buttons.Add(WhimTexUI.CreateButton("New Shader FX", CreateShaderFX));
+            buttons.Add(WhimTexUI.CreateButton("Preset ▾", () => ShaderFXCatalog.ShowMenu(entry =>
             {
                 if (!ResolveLayer()) return;
                 ApplyChange("Add Catalog FX", () => compositor.AddCatalogShaderFX(layer, entry));
                 RefreshModifierItems();
             })));
-            buttons.Add(SpriteEditorUI.CreateButton("Edit", EditSelectedModifier));
-            buttons.Add(SpriteEditorUI.CreateButton("Remove", RemoveSelectedModifier, 72f));
-            buttons.Add(SpriteEditorUI.CreateButton("Close", Close, 64f));
+            buttons.Add(WhimTexUI.CreateButton("Edit", EditSelectedModifier));
+            buttons.Add(WhimTexUI.CreateButton("Remove", RemoveSelectedModifier, 72f));
+            buttons.Add(WhimTexUI.CreateButton("Close", Close, 64f));
             root.Add(buttons);
         }
 
@@ -265,7 +265,7 @@ namespace DCFApixels.SpriteEditor
 
         private void ApplyChange(string undoName, Action change)
         {
-            if (compositor == null || change == null || SpriteEditorApi.IsLayerContentLocked(compositor, layer))
+            if (compositor == null || change == null || WhimTexApi.IsLayerContentLocked(compositor, layer))
                 return;
 
             Undo.RecordObject(compositor, undoName);

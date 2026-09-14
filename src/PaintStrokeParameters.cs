@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     internal enum PencilShape { Circle, Square, Diamond }
 

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class ShaderFX
     {
@@ -100,7 +100,7 @@ namespace DCFApixels.SpriteEditor
         internal void ReloadCatalogSource(bool force = false)
         {
             if (!IsCatalogLinked) return;
-            if (SpriteEditorApi.IsShaderFXContentLocked(this)) { catalogReloadPending |= force; return; }
+            if (WhimTexApi.IsShaderFXContentLocked(this)) { catalogReloadPending |= force; return; }
             catalogReloadPending = false;
             string path = CatalogPath;
             string hash = CatalogHash(path);

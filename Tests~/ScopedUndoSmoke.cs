@@ -2,8 +2,8 @@
 // Do not run during editing. No assets are saved; tool preferences are restored.
 
 const System.Reflection.BindingFlags Hidden = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-var documentType = typeof(DCFApixels.SpriteEditor.TextureCompositor);
-var windowType = typeof(DCFApixels.SpriteEditor.TextureCompositorWindow);
+var documentType = typeof(DCFApixels.WhimTex.TextureCompositor);
+var windowType = typeof(DCFApixels.WhimTex.TextureCompositorWindow);
 var changed = documentType.GetEvent("Changed", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
 object Call(object target, string name, params object[] args) => target.GetType().GetMethod(name, Hidden).Invoke(target, args);
 int checks = 0, firstNotifications = 0, secondNotifications = 0;
@@ -26,16 +26,16 @@ void End(int group)
     Undo.IncrementCurrentGroup();
     firstNotifications = secondNotifications = 0;
 }
-const string Preferences = "DCFApixels.SpriteEditor.PaintToolSettings";
+const string Preferences = "DCFApixels.WhimTex.PaintToolSettings";
 bool hadPreferences = EditorPrefs.HasKey(Preferences);
 string preferences = EditorPrefs.GetString(Preferences, "");
-var first = ScriptableObject.CreateInstance<DCFApixels.SpriteEditor.TextureCompositor>();
-var second = ScriptableObject.CreateInstance<DCFApixels.SpriteEditor.TextureCompositor>();
+var first = ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>();
+var second = ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>();
 var unrelated = new Texture2D(1, 1) { hideFlags = HideFlags.HideAndDontSave };
 Texture2D pixels = null;
-DCFApixels.SpriteEditor.TextureCompositorWindow window = null;
-DCFApixels.SpriteEditor.ShaderFX effect = null;
-Action<DCFApixels.SpriteEditor.TextureCompositor> handler = document =>
+DCFApixels.WhimTex.TextureCompositorWindow window = null;
+DCFApixels.WhimTex.ShaderFX effect = null;
+Action<DCFApixels.WhimTex.TextureCompositor> handler = document =>
 {
     if (document == first) firstNotifications++;
     if (document == second) secondNotifications++;
@@ -70,8 +70,8 @@ try
     pixels = new Texture2D(2, 2, TextureFormat.RGBA32, false) { hideFlags = HideFlags.HideAndDontSave };
     pixels.SetPixels(new[] { Color.red, Color.red, Color.red, Color.red });
     pixels.Apply();
-    var drawing = new DCFApixels.SpriteEditor.DrawingLayerBehaviour();
-    typeof(DCFApixels.SpriteEditor.DrawingLayerBehaviour).GetField("pixels", Hidden).SetValue(drawing, pixels);
+    var drawing = new DCFApixels.WhimTex.DrawingLayerBehaviour();
+    typeof(DCFApixels.WhimTex.DrawingLayerBehaviour).GetField("pixels", Hidden).SetValue(drawing, pixels);
     first.layers.Add(drawing);
     Call(first, "MarkChanged");
     group = Begin("Texture-only legacy edit");
@@ -89,7 +89,7 @@ try
     Check(pixels.GetPixel(0, 0).g > 0.99f && firstNotifications == 1 && secondNotifications == 0,
         "Texture-only Redo refreshes its owner once");
 
-    effect = ScriptableObject.CreateInstance<DCFApixels.SpriteEditor.ShaderFX>();
+    effect = ScriptableObject.CreateInstance<DCFApixels.WhimTex.ShaderFX>();
     effect.hideFlags = HideFlags.HideAndDontSave;
     drawing.modifiers.Add(effect);
     Call(first, "MarkChanged");
@@ -100,7 +100,7 @@ try
     Undo.PerformUndo();
     Check(firstNotifications == 1 && secondNotifications == 0, "FX Undo notifies only consuming documents");
 
-    window = ScriptableObject.CreateInstance<DCFApixels.SpriteEditor.TextureCompositorWindow>();
+    window = ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositorWindow>();
     object settings = windowType.GetField("paintSettings", Hidden).GetValue(window);
     group = Begin("Edit before tool settings");
     Undo.RecordObject(first, "Edit before tool settings");

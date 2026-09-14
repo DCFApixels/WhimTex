@@ -3,15 +3,15 @@ import { readFileSync } from 'node:fs';
 
 const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 const ui = read('src/TextureCompositorWindow.UI.cs');
-const uss = read('src/SpriteEditorSplitView.uss');
+const uss = read('src/WhimTexSplitView.uss');
 assert.ok(!/toolkitPreviewCanvas\.style\.margin(?:Left|Right|Top|Bottom)\s*=/.test(ui));
-assert.match(uss, /\.sprite-editor-layers-footer,\s*\.sprite-editor-preview-footer\s*\{\s*height: 26px;/);
+assert.match(uss, /\.whimtex-layers-footer,\s*\.whimtex-preview-footer\s*\{\s*height: 26px;/);
 const preview = ui.slice(ui.indexOf('private sealed class SpritePreviewElement'));
 assert.ok(preview.indexOf('Add(backdrop);') < preview.indexOf('Add(insetShadow);'));
 assert.ok(preview.indexOf('Add(insetShadow);') < preview.indexOf('Add(checker);'));
 assert.ok(preview.indexOf('Add(insetShadow);') < preview.indexOf('RefreshBackdropVisibility();'));
 for (const element of ['backdrop', 'insetShadow'])
-    assert.ok(preview.includes(`${element}.EnableInClassList("sprite-editor-preview-backdrop--hidden", !SpriteEditorUserSettings.ShowManta);`));
+    assert.ok(preview.includes(`${element}.EnableInClassList("whimtex-preview-backdrop--hidden", !WhimTexUserSettings.ShowManta);`));
 assert.ok(preview.indexOf('Add(checker);') < preview.indexOf('Add(image);'));
 const shadow = preview.split('private sealed class PreviewInsetShadow')[1].split('public void RefreshBackdropVisibility')[0];
 assert.ok(shadow.includes('pickingMode = PickingMode.Ignore;'));

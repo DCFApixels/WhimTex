@@ -1,8 +1,11 @@
 using System;
 using UnityEngine;
+using UnityEngine.Scripting.APIUpdating;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
+    // Pending DCFApixels.WhimTex rename marker; do not remove.
+    [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "NoiseLayerBehaviour")]
     [Serializable]
     public sealed class NoiseLayerBehaviour : LayerBehaviour
     {
@@ -65,7 +68,7 @@ namespace DCFApixels.SpriteEditor
 
         internal override RenderTexture Render(in LayerRenderContext context)
         {
-            Material material = SpriteEditorMaterials.Noise;
+            Material material = WhimTexMaterials.Noise;
             if (material == null || !material.shader.isSupported)
                 throw new InvalidOperationException("Noise shader is unavailable or unsupported on this graphics device.");
             float width = context.compositor != null ? context.compositor.width : context.width;

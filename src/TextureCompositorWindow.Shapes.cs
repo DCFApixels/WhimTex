@@ -4,7 +4,7 @@ using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
@@ -22,11 +22,11 @@ namespace DCFApixels.SpriteEditor
         private void AddShapeSettings()
         {
             shapeToolSettings ??= new ShapeLayerBehaviour();
-            var row = SpriteEditorUI.CreateToolbar();
-            row.AddToClassList("sprite-editor-fill-settings");
+            var row = WhimTexUI.CreateToolbar();
+            row.AddToClassList("whimtex-fill-settings");
             BindPreviewSettingsRow(row, PreviewTool.Shape);
             var kind = new EnumField(shapeToolSettings.kind);
-            kind.AddToClassList("sprite-editor-shape-kind");
+            kind.AddToClassList("whimtex-shape-kind");
             kind.tooltip = "Drag to create a new Shape layer. Shift: equal proportions / 45-degree line. Ctrl: no guide snapping.";
             toolkitHeaderBindings.Track(kind, () => (Enum)shapeToolSettings.kind);
             kind.RegisterValueChangedCallback(evt =>
@@ -38,8 +38,8 @@ namespace DCFApixels.SpriteEditor
             row.Add(kind);
             void Color(string label, Func<Color> get, Action<Color> set)
             {
-                var field = SpriteEditorColorInputs.Bind(new ColorField(label), toolkitHeaderBindings, get);
-                field.AddToClassList("sprite-editor-shape-color");
+                var field = WhimTexColorInputs.Bind(new ColorField(label), toolkitHeaderBindings, get);
+                field.AddToClassList("whimtex-shape-color");
                 field.RegisterValueChangedCallback(evt => { shapeManipulator?.Cancel(); set(evt.newValue); });
                 row.Add(field);
             }
@@ -54,7 +54,7 @@ namespace DCFApixels.SpriteEditor
             row.Add(stroke);
             Color("", () => shapeToolSettings.strokeColor, value => shapeToolSettings.strokeColor = value);
             var width = new FloatField("Width") { tooltip = "Inside stroke width in canvas pixels." };
-            width.AddToClassList("sprite-editor-view-field");
+            width.AddToClassList("whimtex-view-field");
             toolkitHeaderBindings.Track(width, () => shapeToolSettings.strokeWidth);
             width.RegisterValueChangedCallback(evt =>
             {
@@ -110,7 +110,7 @@ namespace DCFApixels.SpriteEditor
             {
                 this.owner = owner;
                 overlay = new VisualElement { pickingMode = PickingMode.Ignore };
-                overlay.AddToClassList("sprite-editor-area-overlay");
+                overlay.AddToClassList("whimtex-area-overlay");
                 overlay.generateVisualContent += Draw;
             }
             protected override void RegisterCallbacksOnTarget()
@@ -160,8 +160,8 @@ namespace DCFApixels.SpriteEditor
                 insertionAnchor = owner.GetSelectedLayer();
                 var settings = owner.shapeToolSettings;
                 shape = new ShapeLayerBehaviour { kind = settings.kind, fill = settings.fill, stroke = settings.stroke,
-                    fillColor = SpriteEditorColorInputs.DisplayColor(settings.fillColor),
-                    strokeColor = SpriteEditorColorInputs.DisplayColor(settings.strokeColor),
+                    fillColor = WhimTexColorInputs.DisplayColor(settings.fillColor),
+                    strokeColor = WhimTexColorInputs.DisplayColor(settings.strokeColor),
                     strokeWidth = settings.strokeWidth, roundness = settings.roundness,
                     cornerRoundness = settings.cornerRoundness, linkCorners = settings.linkCorners, sides = Mathf.Clamp(settings.sides, 3, 32),
                     innerRadius = ShapeLayerBehaviour.Limit(settings.innerRadius, .01f, 1f, .5f) };
@@ -170,7 +170,7 @@ namespace DCFApixels.SpriteEditor
                 pointer = evt.pointerId;
                 target.CapturePointer(pointer);
                 Update(evt.localPosition, evt.shiftKey, evt.ctrlKey);
-                SpriteEditorUI.ConsumeEvent(evt);
+                WhimTexUI.ConsumeEvent(evt);
             }
             private bool Valid => document != null && owner.compositor == document && owner.previewTool == PreviewTool.Shape &&
                 dimensions == new Vector2(document.width, document.height);
@@ -185,7 +185,7 @@ namespace DCFApixels.SpriteEditor
                 if (!IsDragging || evt.pointerId != pointer) return;
                 if (!Valid || (evt.pressedButtons & 1) == 0) Cancel();
                 else Update(evt.localPosition, evt.shiftKey, evt.ctrlKey);
-                SpriteEditorUI.ConsumeEvent(evt);
+                WhimTexUI.ConsumeEvent(evt);
             }
             private void Up(PointerUpEvent evt)
             {
@@ -209,7 +209,7 @@ namespace DCFApixels.SpriteEditor
                     owner.AddLayer(container, index, layer, namePrefix);
                 }
                 else Cancel();
-                SpriteEditorUI.ConsumeEvent(evt);
+                WhimTexUI.ConsumeEvent(evt);
             }
             internal void Cancel()
             {
@@ -224,7 +224,7 @@ namespace DCFApixels.SpriteEditor
             private void Geometry(GeometryChangedEvent evt) => Cancel();
             private void Key(KeyDownEvent evt)
             {
-                if (IsDragging && evt.keyCode == KeyCode.Escape) { Cancel(); SpriteEditorUI.ConsumeEvent(evt); }
+                if (IsDragging && evt.keyCode == KeyCode.Escape) { Cancel(); WhimTexUI.ConsumeEvent(evt); }
             }
             private void Draw(MeshGenerationContext context)
             {

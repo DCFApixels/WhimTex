@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
@@ -12,13 +12,13 @@ namespace DCFApixels.SpriteEditor
             {
                 tooltip = "Minimum visible alpha for picking a layer. Default: 10%. Shift toggles selection; Ctrl selects inside groups. Shared with User Settings."
             };
-            threshold.AddToClassList("sprite-editor-view-field");
-            threshold.AddToClassList("sprite-editor-zoom-percent");
-            toolkitHeaderBindings.Track(threshold, () => SpriteEditorUserSettings.LayerPickAlphaThreshold * 100f);
+            threshold.AddToClassList("whimtex-view-field");
+            threshold.AddToClassList("whimtex-zoom-percent");
+            toolkitHeaderBindings.Track(threshold, () => WhimTexUserSettings.LayerPickAlphaThreshold * 100f);
             threshold.RegisterValueChangedCallback(evt =>
             {
-                SpriteEditorUserSettings.LayerPickAlphaThreshold = evt.newValue * .01f;
-                threshold.SetValueWithoutNotify(SpriteEditorUserSettings.LayerPickAlphaThreshold * 100f);
+                WhimTexUserSettings.LayerPickAlphaThreshold = evt.newValue * .01f;
+                threshold.SetValueWithoutNotify(WhimTexUserSettings.LayerPickAlphaThreshold * 100f);
             });
             row.Add(threshold);
         }
@@ -29,7 +29,7 @@ namespace DCFApixels.SpriteEditor
                 evt.pressedButtons != 1 || evt.target != toolkitPreviewCanvas ||
                 !toolkitPreviewCanvas.contentRect.Contains(evt.localPosition) ||
                 (previewZoomManipulator?.IsDragging ?? false) || (previewGuideManipulator?.IsDragging ?? false)) return false;
-            SpriteEditorUI.ConsumeEvent(evt);
+            WhimTexUI.ConsumeEvent(evt);
             Focus();
             toolkitPreviewCanvas.Focus();
             Rect image = toolkitPreviewCanvas.ImageRect;
@@ -40,7 +40,7 @@ namespace DCFApixels.SpriteEditor
             try
             {
                 Layer hit = compositor.PickLayerAtPixel(Mathf.FloorToInt(uv.x * compositor.width), Mathf.FloorToInt(uv.y * compositor.height),
-                    SpriteEditorUserSettings.LayerPickAlphaThreshold, evt.ctrlKey || evt.commandKey,
+                    WhimTexUserSettings.LayerPickAlphaThreshold, evt.ctrlKey || evt.commandKey,
                     !evt.shiftKey && selectedLayerIds.Count == 1 ? GetSelectedLayer() : null);
                 if (evt.shiftKey)
                 {

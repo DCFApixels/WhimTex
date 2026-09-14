@@ -11,7 +11,7 @@ const up = tool.split('private void Up(')[1].split('internal void Cancel()')[0];
 assert.doesNotMatch(down, /AddLayer\(|\.layers\.Add\(|Undo\./, 'Reservation exists only in gesture-local state');
 assert.doesNotMatch(down, /!owner.HasPreviewLayers/, 'Shapes can create the first layer');
 assert.match(down, /shape = new ShapeLayerBehaviour/);
-assert.match(down, /SpriteEditorColorInputs.DisplayColor\(settings.fillColor\)/);
+assert.match(down, /WhimTexColorInputs.DisplayColor\(settings.fillColor\)/);
 assert.match(tool, /canvas.ToCanvas\(position\)/, 'Creation uses inverse view rotation');
 assert.match(tool, /control \? p : owner.SnapPreviewGuidePoint\(p\)/);
 assert.match(tool, /owner.compositor == document && owner.previewTool == PreviewTool.Shape/);
@@ -27,7 +27,7 @@ for (const event of ['PointerDown', 'PointerMove', 'PointerUp', 'PointerCaptureO
     assert.match(tool, new RegExp(`RegisterCallback<${event}Event>`));
     assert.match(tool, new RegExp(`UnregisterCallback<${event}Event>`));
 }
-assert.match(tool, /evt.keyCode == KeyCode.Escape\) \{ Cancel\(\); SpriteEditorUI.ConsumeEvent/);
+assert.match(tool, /evt.keyCode == KeyCode.Escape\) \{ Cancel\(\); WhimTexUI.ConsumeEvent/);
 assert.match(read('TextureCompositorWindow.Api.cs'), /window.shapeManipulator != null && window.shapeManipulator.IsDragging/);
 assert.match(read('TextureCompositorWindow.Zoom.cs'), /CancelPreviewZoomGesture\(\)[\s\S]*?shapeManipulator\?\.Cancel\(\)/);
 assert.match(behaviour, /RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear/);
@@ -44,8 +44,8 @@ assert.match(inspector, /width.SetEnabled\(layer.stroke\)/);
 assert.match(inspector, /new FloatField\("Stroke Width \(px\)"\)/);
 assert.doesNotMatch(inspector, /Number\("Stroke Width/);
 for (const key of ['kind', 'fill', 'fillColor', 'stroke', 'strokeColor', 'strokeWidth', 'roundness', 'sides', 'innerRadius']) {
-    assert.ok(read('Automation/SpriteEditorApi.Shape.cs').includes(`["${key}"]`), key + ' snapshot');
+    assert.ok(read('Automation/WhimTexApi.Shape.cs').includes(`["${key}"]`), key + ' snapshot');
 }
-assert.match(read('Automation/SpriteEditorApi.Layers.cs'), /key == "shape" && layer\?\.Behaviour is ShapeLayerBehaviour/);
-assert.match(read('Automation/SpriteEditorApi.Inspect.cs'), /\["shapeKinds"\]/);
+assert.match(read('Automation/WhimTexApi.Layers.cs'), /key == "shape" && layer\?\.Behaviour is ShapeLayerBehaviour/);
+assert.match(read('Automation/WhimTexApi.Inspect.cs'), /\["shapeKinds"\]/);
 console.log('Shape integration: gesture lifecycle, rotated coordinates, HDR, API and shader resource contracts passed. GPU checks are separate.');

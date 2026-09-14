@@ -6,7 +6,7 @@ using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
@@ -121,10 +121,10 @@ namespace DCFApixels.SpriteEditor
             {
                 var root = rootVisualElement;
                 root.Clear();
-                SpriteEditorUI.ApplyWindowStyles(root);
-                root.AddToClassList("sprite-editor-content-fill");
+                WhimTexUI.ApplyWindowStyles(root);
+                root.AddToClassList("whimtex-content-fill");
                 var description = new Label("Rebuild the selected area from existing texture details. The result is added as a new Drawing Layer.");
-                description.AddToClassList("sprite-editor-content-fill-message"); root.Add(description);
+                description.AddToClassList("whimtex-content-fill-message"); root.Add(description);
                 settings = new VisualElement(); root.Add(settings);
                 AddEnum("Source", source, value => source = value);
                 AddEnum("Fill Area", area, value => area = value);
@@ -148,15 +148,15 @@ namespace DCFApixels.SpriteEditor
                 AddEnum("Quality", quality, value => quality = value);
                 var seedField = new IntegerField("Variation") { value = seed, name = "variation" };
                 seedField.RegisterValueChangedCallback(e => { seed = e.newValue; ChangedSettings(); }); settings.Add(seedField);
-                foreach (var field in settings.Children()) field.AddToClassList("sprite-editor-content-fill-field");
+                foreach (var field in settings.Children()) field.AddToClassList("whimtex-content-fill-field");
                 image = new Image { scaleMode = ScaleMode.ScaleToFit };
-                image.AddToClassList("sprite-editor-content-fill-preview"); root.Add(image);
+                image.AddToClassList("whimtex-content-fill-preview"); root.Add(image);
                 beforeToggle = new Toggle("Show Before");
                 beforeToggle.RegisterValueChangedCallback(e => { showBefore = e.newValue; RefreshImage(); }); root.Add(beforeToggle);
                 progress = new ProgressBar { title = "", lowValue = 0, highValue = 100 }; root.Add(progress);
                 message = new Label("Selection captured. Choose settings, then click Preview.");
-                message.AddToClassList("sprite-editor-content-fill-message"); root.Add(message);
-                var buttons = new VisualElement(); buttons.AddToClassList("sprite-editor-content-fill-actions"); root.Add(buttons);
+                message.AddToClassList("whimtex-content-fill-message"); root.Add(message);
+                var buttons = new VisualElement(); buttons.AddToClassList("whimtex-content-fill-actions"); root.Add(buttons);
                 generateButton = new Button(Generate) { text = "Preview" }; buttons.Add(generateButton);
                 variationButton = new Button(() => { seed = unchecked(seed + 1); settings.Q<IntegerField>("variation").SetValueWithoutNotify(seed); Generate(); }) { text = "New Variation" }; buttons.Add(variationButton);
                 applyButton = new Button(Apply) { text = "Apply" }; buttons.Add(applyButton);

@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public enum SwizzleChannel { R, G, B, A, OneMinusR, OneMinusG, OneMinusB, OneMinusA, Zero, One, RMultiplyA, GMultiplyA, BMultiplyA }
 

@@ -8,8 +8,8 @@ const paint = read('src/Layers/DrawingLayerBehaviour.cs');
 const shader = read('src/Shaders/PaintBrush.shader');
 const blend = read('src/Shaders/Blend.shader');
 const ui = read('src/TextureCompositorWindow.PostFx.cs');
-const api = read('src/Automation/SpriteEditorApi.Paint.cs');
-const inspect = read('src/Automation/SpriteEditorApi.Inspect.cs');
+const api = read('src/Automation/WhimTexApi.Paint.cs');
+const inspect = read('src/Automation/WhimTexApi.Inspect.cs');
 let checks = 0;
 function near(a, b) { assert.ok(Math.abs(a - b) < 1e-7, a + ' != ' + b); checks++; }
 
@@ -68,8 +68,10 @@ assert.ok(shader.includes('float3 color : TEXCOORD5;'));
 assert.ok(shader.includes('output.color = float4(input.color, input.size.y);'));
 assert.match(shader, /brushDelta \/ _TipAspect/);
 assert.ok(ui.indexOf('BuildBrushTab(tabs)') < ui.indexOf('tabs.Add(postFxTab)'));
-assert.match(ui, /if \(postFxExpanded\) brushesExpanded = false/);
-assert.match(ui, /if \(brushesExpanded\) postFxExpanded = false/);
+assert.match(ui, /if \(postFxExpanded\) brushesExpanded = (?:uvExpanded = )?false/,
+  'Expanding Post FX collapses Brushes');
+assert.match(ui, /if \(brushesExpanded\) postFxExpanded = false/,
+  'Expanding Brushes collapses Post FX');
 assert.ok(!dynamics.includes('public Color tint'), 'No constant tint setting');
 assert.ok(!brush.includes('dynamics.tint;'), 'No hidden constant tint multiplier');
 assert.ok(!read('src/TextureCompositorWindow.Brushes.cs').includes('new ColorField("Tint")'));
@@ -214,7 +216,7 @@ for (const [section, fields] of [
 assert.ok(settingsSource.includes('dynamics.ResetTint();'));
 assert.ok(drawerSource.includes('ApplyPaintToolChange(reset);'));
 assert.ok(drawerSource.includes('brushSettingsBindings?.Refresh(true);'));
-assert.match(read('src/SpriteEditorSplitView.uss'), /\.sprite-editor-brush-section-header\s*\{[^}]*background-color: rgba\(0, 0, 0, 0.15\)/);
+assert.match(read('src/WhimTexSplitView.uss'), /\.whimtex-brush-section-header\s*\{[^}]*background-color: rgba\(0, 0, 0, 0.15\)/);
 const movementAngle = new Function('dx', 'dy', 'previous', scalarJs(body('internal static float MovementAngle')).replace('Mathf.Atan2', 'Math.atan2'));
 for (const [dx,dy,expected] of [[1,0,0],[0,1,Math.PI/2],[-1,0,Math.PI],[0,-1,-Math.PI/2],[1,1,Math.PI/4]])
   near(movementAngle(dx,dy,0),expected);

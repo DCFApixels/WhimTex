@@ -63,11 +63,11 @@ assert.match(layer, /RenderTexture.ReleaseTemporary\(result\)/);
 assert.match(layer, /GL.sRGBWrite = srgb/);
 assert.match(layer, /horizontal == HorizontalDirection.Off && vertical == VerticalDirection.Off/);
 assert.match(read('src/LayerTypeRegistry.cs'), /new Entry\("makeSeamless", "Make Seamless", "Make Seamless", "Make Seamless", typeof\(MakeSeamlessLayerBehaviour\)/);
-assert.match(read('src/Automation/SpriteEditorApi.Layers.cs'), /SetMakeSeamless\(seamless,/);
-assert.match(read('src/Automation/SpriteEditorApi.Inspect.cs'), /LayerTypeRegistry.Find\(layer\?\.Behaviour\?\.GetType\(\)\)\?\.ApiId/);
-assert.match(read('src/Automation/SpriteEditorApi.Inspect.cs'), /settings\["makeSeamless"\] = MakeSeamlessSnapshot/);
+assert.match(read('src/Automation/WhimTexApi.Layers.cs'), /SetMakeSeamless\(seamless,/);
+assert.match(read('src/Automation/WhimTexApi.Inspect.cs'), /LayerTypeRegistry.Find\(layer\?\.Behaviour\?\.GetType\(\)\)\?\.ApiId/);
+assert.match(read('src/Automation/WhimTexApi.Inspect.cs'), /settings\["makeSeamless"\] = MakeSeamlessSnapshot/);
 for (const key of ['horizontal','vertical','blendWidth','falloff']) {
-    const api = read('src/Automation/SpriteEditorApi.MakeSeamless.cs');
+    const api = read('src/Automation/WhimTexApi.MakeSeamless.cs');
     assert.ok(api.includes(`["${key}"] = layer.${key}`));
     assert.ok(api.includes(`(value, "${key}", layer.${key}`));
 }
@@ -93,5 +93,5 @@ for (const [edge, [axis, selected]] of Object.entries(mappings)) {
 }
 assert.match(editor, /bindings.Add\(Refresh\)/);
 assert.match(editor, /new Button\(\(\) => applyChange\("Change Seamless Direction", toggle\)\)/);
-assert.match(editor, /EnableInClassList\("sprite-editor-seamless-edge--selected", selected\(\)\)/);
+assert.match(editor, /EnableInClassList\("whimtex-seamless-edge--selected", selected\(\)\)/);
 console.log('Seamless edge selector: extracted toggle logic, destination mapping and shared bindings passed.');

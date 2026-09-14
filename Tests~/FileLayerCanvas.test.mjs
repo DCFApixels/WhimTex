@@ -37,5 +37,5 @@ assert.equal(canInitialize.call(second, sole), false, 'Only the first item of a 
 
 assert.match(read('src/TextureCompositorWindow.TextureDrop.cs'), /AssignSourceTexture\(texture, owner.compositor, initializeCanvas: true\)/);
 assert.match(read('src/Layers/Editors/FileLayerEditorWindow.cs'), /AssignSourceTexture\(evt.newValue as Texture2D, compositor, initializeCanvas: true\)/);
-assert.match(read('src/Automation/SpriteEditorApi.Layers.cs'), /file.AssignSourceTexture\(texture, document\);/);
+assert.match(read('src/Automation/WhimTexApi.Layers.cs'), /file.AssignSourceTexture\(texture, document\);/);
 console.log('File layer canvas initialization: extracted eligibility and source checks passed (Unity not executed).');

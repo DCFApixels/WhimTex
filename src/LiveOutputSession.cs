@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     internal sealed class LiveOutputSession : IDisposable
     {
@@ -74,7 +74,7 @@ namespace DCFApixels.SpriteEditor
             bool previousSrgbWrite = GL.sRGBWrite;
             try
             {
-                Material conversion = SpriteEditorMaterials.Hdr;
+                Material conversion = WhimTexMaterials.Hdr;
                 conversion.SetFloat("_Saturate", GraphicsFormatUtility.IsHDRFormat(target.graphicsFormat) ? 0f : 1f);
                 conversion.SetFloat("_Encode", target.isDataSRGB ? 1f : 0f);
                 conversion.SetFloat("_UseSwizzle", 0f);

@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
@@ -23,7 +23,7 @@ namespace DCFApixels.SpriteEditor
                 !IsLayerDragArea(row, evt.target as VisualElement)) return false;
             TextureCompositor document = TextureCompositor.FindDocument(file.sourceTexture);
             if (document == null) return false;
-            SpriteEditorUI.ConsumeEvent(evt);
+            WhimTexUI.ConsumeEvent(evt);
             activeLayerDrag?.Cancel();
             FinishPreviewTransform();
             FinishPaintingStroke();

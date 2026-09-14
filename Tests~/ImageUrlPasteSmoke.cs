@@ -2,7 +2,7 @@
 using System;
 using System.Reflection;
 using UnityEngine;
-using DCFApixels.SpriteEditor;
+using DCFApixels.WhimTex;
 
 public static class ImageUrlPasteSmoke
 {
@@ -10,7 +10,7 @@ public static class ImageUrlPasteSmoke
     static void Check(bool value, string message) { checks++; if (!value) throw new Exception(message); }
     public static string Main()
     {
-        var type = typeof(TextureCompositor).Assembly.GetType("DCFApixels.SpriteEditor.ImageClipboard");
+        var type = typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.ImageClipboard");
         var decode = type.GetMethod("DecodeWebImage", BindingFlags.NonPublic | BindingFlags.Static);
         Texture2D Read(byte[] bytes) => (Texture2D)decode.Invoke(null, new object[] { bytes });
         void Reject(byte[] bytes)

@@ -3,7 +3,7 @@ using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     /// <summary>Linear working pixels; explicit conversion at encoded image boundaries.</summary>
     internal static class HdrUtility

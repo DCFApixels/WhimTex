@@ -1,7 +1,7 @@
 var checks = 0;
-var fixture = "Assets/SpriteEditorApiSmoke_" + System.Guid.NewGuid().ToString("N");
+var fixture = "Assets/WhimTexApiSmoke_" + System.Guid.NewGuid().ToString("N");
 var projectRoot = System.IO.Directory.GetParent(UnityEngine.Application.dataPath).FullName;
-var temp = System.IO.Path.Combine(projectRoot, "Temp/SpriteEditor");
+var temp = System.IO.Path.Combine(projectRoot, "Temp/WhimTex");
 System.IO.Directory.CreateDirectory(temp);
 var sourcePng = System.IO.Path.Combine(temp, System.Guid.NewGuid().ToString("N") + ".png");
 var image = new UnityEngine.Texture2D(32, 16, UnityEngine.TextureFormat.RGBA32, false);
@@ -16,7 +16,7 @@ try
 finally { UnityEngine.Object.DestroyImmediate(image); }
 
 // Resolve the API's JSON assembly explicitly: some Editor packages embed another copy.
-var jsonType = typeof(DCFApixels.SpriteEditor.SpriteEditorApi)
+var jsonType = typeof(DCFApixels.WhimTex.WhimTexApi)
     .GetMethod("SetBrush", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)
     .GetParameters()[1].ParameterType;
 object Json(string value) => jsonType.GetMethod("Parse", new[] { typeof(string) }).Invoke(null, new object[] { value });
@@ -47,7 +47,7 @@ object Ok(string response)
     Check(Flag(result, "success"), result.ToString());
     return result;
 }
-object Inspect() => Ok(DCFApixels.SpriteEditor.SpriteEditorApi.Inspect(fixture + "/Icon.asset"));
+object Inspect() => Ok(DCFApixels.WhimTex.WhimTexApi.Inspect(fixture + "/Icon.asset"));
 object Batch(string operations)
 {
     var request = Json("{\"apiVersion\":1,\"save\":false,\"operations\":" + operations + "}");
@@ -57,7 +57,7 @@ object Batch(string operations)
 }
 void Reject(object request, string code)
 {
-    var result = Json(DCFApixels.SpriteEditor.SpriteEditorApi.ExecuteJson(request.ToString()));
+    var result = Json(DCFApixels.WhimTex.WhimTexApi.ExecuteJson(request.ToString()));
     Check(!Flag(result, "success") && Text(result, "errorCode") == code, "Expected " + code + ": " + result);
 }
 string LayerId(object document, string name)
@@ -68,8 +68,8 @@ string LayerId(object document, string name)
 }
 UnityEngine.Color Pixel(string suffix, int x, int y)
 {
-    var result = Ok(DCFApixels.SpriteEditor.SpriteEditorApi.Render(fixture + "/Icon.asset",
-        "Temp/SpriteEditor/" + System.Guid.NewGuid().ToString("N") + "-" + suffix + ".png", 64));
+    var result = Ok(DCFApixels.WhimTex.WhimTexApi.Render(fixture + "/Icon.asset",
+        "Temp/WhimTex/" + System.Guid.NewGuid().ToString("N") + "-" + suffix + ".png", 64));
     var texture = new UnityEngine.Texture2D(2, 2);
     try
     {
@@ -79,7 +79,7 @@ UnityEngine.Color Pixel(string suffix, int x, int y)
     finally { UnityEngine.Object.DestroyImmediate(texture); }
 }
 
-Ok(DCFApixels.SpriteEditor.SpriteEditorApi.ImportImage(sourcePng, fixture + "/source.png"));
+Ok(DCFApixels.WhimTex.WhimTexApi.ImportImage(sourcePng, fixture + "/source.png"));
 var create = Json(@"{
   'apiVersion':1, 'create':true, 'width':64, 'height':64,
   'operations':[
@@ -94,10 +94,10 @@ var create = Json(@"{
 Set(create, "assetPath", fixture + "/Icon.asset");
 Set(At(create, "operations", 1, "settings"), "source", fixture + "/source.png");
 Set(create, "dryRun", true);
-Ok(DCFApixels.SpriteEditor.SpriteEditorApi.ExecuteJson(create.ToString()));
+Ok(DCFApixels.WhimTex.WhimTexApi.ExecuteJson(create.ToString()));
 Check(!System.IO.File.Exists(System.IO.Path.Combine(projectRoot, fixture, "Icon.asset")), "Dry run does not create a document");
 Set(create, "dryRun", false);
-var created = Ok(DCFApixels.SpriteEditor.SpriteEditorApi.ExecuteJson(create.ToString()));
+var created = Ok(DCFApixels.WhimTex.WhimTexApi.ExecuteJson(create.ToString()));
 var doc = At(created, "document");
 Check(Flag(doc, "hasOutputTexture") && Flag(doc, "hasOutputSprite"), "Output texture and sprite exist");
 Check(((System.Collections.ICollection)At(doc, "layers")).Count == 4, "Four layers including a group child");
@@ -125,7 +125,7 @@ var effectCycle = Batch("[{\"op\":\"add\",\"type\":\"sdf\",\"as\":\"a\"},{\"op\"
 Reject(effectCycle, "invalid_target");
 
 var edit = Batch("[{\"op\":\"set\",\"layer\":\"" + inkId + "\",\"settings\":{\"opacity\":0.5}}]");
-Ok(DCFApixels.SpriteEditor.SpriteEditorApi.ExecuteJson(edit.ToString()));
+Ok(DCFApixels.WhimTex.WhimTexApi.ExecuteJson(edit.ToString()));
 Reject(edit, "revision_conflict");
 UnityEditor.Undo.PerformUndo();
 Check(Pixel("undo-opacity", 12, 56).a > 0.9f, "Undo restores opacity");
@@ -133,7 +133,7 @@ UnityEditor.Undo.PerformRedo();
 Check(System.Math.Abs(Pixel("redo-opacity", 12, 56).a - 0.5f) < 0.03f, "Redo restores opacity edit");
 
 var paint = Batch("[{\"op\":\"stroke\",\"layer\":\"" + inkId + "\",\"brush\":{\"color\":[0,1,0,1],\"size\":5,\"hardness\":1},\"points\":[[40,8],[52,8]]}]");
-Ok(DCFApixels.SpriteEditor.SpriteEditorApi.ExecuteJson(paint.ToString()));
+Ok(DCFApixels.WhimTex.WhimTexApi.ExecuteJson(paint.ToString()));
 Check(Pixel("paint", 44, 56).g > 0.9f, "API brush paints a second stroke");
 UnityEditor.Undo.PerformUndo();
 Check(Pixel("undo-paint", 44, 56).a < 0.01f, "Undo restores pixels without a WhimTex window");
@@ -141,10 +141,10 @@ UnityEditor.Undo.PerformRedo();
 Check(Pixel("redo-paint", 44, 56).g > 0.9f, "Redo restores drawing pixels");
 
 var transform = Batch("[{\"op\":\"transform\",\"layer\":\"" + imageId + "\",\"transform\":{\"position\":[10,-4],\"rotation\":30}}]");
-Ok(DCFApixels.SpriteEditor.SpriteEditorApi.ExecuteJson(transform.ToString()));
+Ok(DCFApixels.WhimTex.WhimTexApi.ExecuteJson(transform.ToString()));
 var save = Batch("[]");
 Set(save, "save", true);
-Ok(DCFApixels.SpriteEditor.SpriteEditorApi.ExecuteJson(save.ToString()));
+Ok(DCFApixels.WhimTex.WhimTexApi.ExecuteJson(save.ToString()));
 var reloaded = Inspect();
 Check(Flag(reloaded, "document", "hasOutputTexture") && Flag(reloaded, "document", "hasOutputSprite"), "Rebaked subassets remain available");
 return new { success = true, checks, fixture, sourcePng };

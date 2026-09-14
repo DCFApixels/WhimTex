@@ -2,11 +2,11 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Newtonsoft.Json.Linq;
-using static DCFApixels.SpriteEditor.AgentJson;
+using static DCFApixels.WhimTex.AgentJson;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
-    public static partial class SpriteEditorApi
+    public static partial class WhimTexApi
     {
         // Deliberately not an ExecuteJson envelope: clipboard data can only create a detached tree.
         internal sealed class ProceduralClipboard : IDisposable

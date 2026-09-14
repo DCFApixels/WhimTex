@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using UnityEditor;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
@@ -20,7 +20,7 @@ namespace DCFApixels.SpriteEditor
             string path = compositor != null ? AssetDatabase.GetAssetPath(compositor) : null;
             string title = !string.IsNullOrEmpty(path) ? Path.GetFileNameWithoutExtension(path) : documentName;
             if (string.IsNullOrWhiteSpace(title)) title = "Untitled";
-            var content = SpriteEditorBranding.WindowTitle(title);
+            var content = WhimTexBranding.WindowTitle(title);
             content.tooltip = string.IsNullOrEmpty(path) ? "WhimTex — " + title : "WhimTex — " + path;
             titleContent = content;
         }

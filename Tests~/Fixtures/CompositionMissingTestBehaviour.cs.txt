@@ -1,7 +1,7 @@
 // Copy into src only for the opt-in native missing-type test; remove after setup.
 using System;
 using UnityEngine;
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     [Serializable]
     internal sealed class CompositionMissingTestBehaviour : LayerBehaviour

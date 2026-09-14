@@ -1,13 +1,13 @@
 // Opt-in after manual compilation. Transient objects only; no asset writes or Undo.
 var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-var compositorType = typeof(DCFApixels.SpriteEditor.TextureCompositor);
-var document = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.SpriteEditor.TextureCompositor>();
+var compositorType = typeof(DCFApixels.WhimTex.TextureCompositor);
+var document = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>();
 document.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
 document.width = 33; document.height = 25;
 var texture = new UnityEngine.Texture2D(33,25,UnityEngine.TextureFormat.RGBAFloat,false,true);
 texture.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
-var source = new DCFApixels.SpriteEditor.FileLayerBehaviour { sourceTexture = texture, colorRange = DCFApixels.SpriteEditor.LayerColorRange.HDR };
-var motion = new DCFApixels.SpriteEditor.BlurLayerBehaviour { mode = DCFApixels.SpriteEditor.BlurType.Linear, distance = 8, colorRange = DCFApixels.SpriteEditor.LayerColorRange.HDR };
+var source = new DCFApixels.WhimTex.FileLayerBehaviour { sourceTexture = texture, colorRange = DCFApixels.WhimTex.LayerColorRange.HDR };
+var motion = new DCFApixels.WhimTex.BlurLayerBehaviour { mode = DCFApixels.WhimTex.BlurType.Linear, distance = 8, colorRange = DCFApixels.WhimTex.LayerColorRange.HDR };
 document.layers.Add(motion); document.layers.Add(source);
 compositorType.GetMethod("NormalizeModel",flags).Invoke(document,null);
 int checks = 0;
@@ -60,37 +60,37 @@ try
     var baseline=Render();source.enabled=false;
     Same(baseline,Render(),.001f,"Hidden source remains usable");source.enabled=true;
     motion.distance=0;Check(Render()[12*33+16].a>.999f,"Zero distance identity");motion.distance=8;
-    motion.direction=DCFApixels.SpriteEditor.BlurLayerBehaviour.MotionDirection.Forward;
+    motion.direction=DCFApixels.WhimTex.BlurLayerBehaviour.MotionDirection.Forward;
     var forward=Render();Check(forward[12*33+20].a>.1f && forward[12*33+12].a<.001,"Forward direction");
-    motion.direction=DCFApixels.SpriteEditor.BlurLayerBehaviour.MotionDirection.Backward;
+    motion.direction=DCFApixels.WhimTex.BlurLayerBehaviour.MotionDirection.Backward;
     var backward=Render();Check(backward[12*33+12].a>.1f && backward[12*33+20].a<.001,"Backward direction");
-    motion.direction=DCFApixels.SpriteEditor.BlurLayerBehaviour.MotionDirection.Centered;
-    motion.mode=DCFApixels.SpriteEditor.BlurType.Circular;
+    motion.direction=DCFApixels.WhimTex.BlurLayerBehaviour.MotionDirection.Centered;
+    motion.mode=DCFApixels.WhimTex.BlurType.Circular;
     motion.arc=180;Check(Render()[12*33+16].a>.999f,"Circular center fixed");
     motion.arc=0;Check(Render()[12*33+16].a>.999f,"Zero arc identity");
     // A point to the right of center sweeps upward when moving forward.
     System.Array.Clear(input,0,input.Length);input[12*33+22]=new UnityEngine.Color(4,0,0,1);Upload(input);
-    motion.arc=90;motion.direction=DCFApixels.SpriteEditor.BlurLayerBehaviour.MotionDirection.Forward;
+    motion.arc=90;motion.direction=DCFApixels.WhimTex.BlurLayerBehaviour.MotionDirection.Forward;
     var spin=Render();Check(spin[18*33+16].a>.01f && spin[6*33+16].a<.002f,"Circular forward is counterclockwise on a nonsquare canvas");
     motion.center=new UnityEngine.Vector2(22.5f/33f,12.5f/25f);
     Check(Render()[12*33+22].a>.995f,"Offset center fixed");
     motion.center=new UnityEngine.Vector2(.5f,.5f);
     for(int i=0;i<input.Length;i++) input[i]=new UnityEngine.Color(.25f,.5f,2f,.7f);Upload(input);
-    foreach(var mode in new[]{DCFApixels.SpriteEditor.BlurType.Linear,DCFApixels.SpriteEditor.BlurType.Circular})
-    foreach(var edge in new[]{DCFApixels.SpriteEditor.BlurLayerBehaviour.EdgeMode.Clamp,
-        DCFApixels.SpriteEditor.BlurLayerBehaviour.EdgeMode.Repeat,DCFApixels.SpriteEditor.BlurLayerBehaviour.EdgeMode.Mirror})
+    foreach(var mode in new[]{DCFApixels.WhimTex.BlurType.Linear,DCFApixels.WhimTex.BlurType.Circular})
+    foreach(var edge in new[]{DCFApixels.WhimTex.BlurLayerBehaviour.EdgeMode.Clamp,
+        DCFApixels.WhimTex.BlurLayerBehaviour.EdgeMode.Repeat,DCFApixels.WhimTex.BlurLayerBehaviour.EdgeMode.Mirror})
     {
         motion.mode=mode;motion.edges=edge;motion.arc=190;
         Same(input,Render(),.004f,"Constant image under "+mode+" "+edge);
     }
-    motion.mode=DCFApixels.SpriteEditor.BlurType.Linear;
-    motion.direction=DCFApixels.SpriteEditor.BlurLayerBehaviour.MotionDirection.Centered;
-    motion.edges=DCFApixels.SpriteEditor.BlurLayerBehaviour.EdgeMode.Transparent;
+    motion.mode=DCFApixels.WhimTex.BlurType.Linear;
+    motion.direction=DCFApixels.WhimTex.BlurLayerBehaviour.MotionDirection.Centered;
+    motion.edges=DCFApixels.WhimTex.BlurLayerBehaviour.EdgeMode.Transparent;
     Check(Render()[0].a<.6f,"Transparent boundary fades");
     System.Array.Clear(input,0,input.Length);input[12*33]=new UnityEngine.Color(1,0,0,1);Upload(input);
-    motion.edges=DCFApixels.SpriteEditor.BlurLayerBehaviour.EdgeMode.Repeat;
+    motion.edges=DCFApixels.WhimTex.BlurLayerBehaviour.EdgeMode.Repeat;
     var seam = Render(); Check(seam[12*33+32].a>.01f,"Repeat crosses seam: alpha=" + seam[12*33+32].a + ", left=" + seam[12*33].a);
-    motion.edges=DCFApixels.SpriteEditor.BlurLayerBehaviour.EdgeMode.Clamp;
+    motion.edges=DCFApixels.WhimTex.BlurLayerBehaviour.EdgeMode.Clamp;
     Check(Render()[12*33+32].a<.001f,"Clamp does not cross seam");
     return "Motion Blur GPU checks passed: "+checks;
 }

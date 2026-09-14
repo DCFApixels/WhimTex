@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     internal sealed class LayerActionIcon : VisualElement
     {
@@ -13,7 +13,7 @@ namespace DCFApixels.SpriteEditor
         {
             this.kind = kind;
             pickingMode = PickingMode.Ignore;
-            AddToClassList("sprite-editor-layer-action-icon");
+            AddToClassList("whimtex-layer-action-icon");
             generateVisualContent += Draw;
         }
 

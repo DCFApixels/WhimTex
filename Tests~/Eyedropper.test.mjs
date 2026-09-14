@@ -3,13 +3,13 @@ import { readFileSync } from 'node:fs';
 const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 const eye = read('src/TextureCompositorWindow.Eyedropper.cs');
 const window = read('src/TextureCompositorWindow.cs');
-const uss = read('src/SpriteEditorSplitView.uss');
-const lensStyle = uss.match(/\.sprite-editor-eyedropper-lens\s*\{([^}]+)\}/)[1];
+const uss = read('src/WhimTexSplitView.uss');
+const lensStyle = uss.match(/\.whimtex-eyedropper-lens\s*\{([^}]+)\}/)[1];
 for (const edge of ['left', 'top', 'right', 'bottom']) assert.match(lensStyle, new RegExp(`\\b${edge}: 0;`));
 assert.ok(!/\b(?:width|height):/.test(lensStyle.replace(/border-width:[^;]+;/g, '')),
     'Lens background fills the actual popup instead of leaving an unstyled strip');
 for (const part of ['sample', 'swatch']) {
-    const style = uss.match(new RegExp(`\\.sprite-editor-eyedropper-${part}\\s*\\{([^}]+)\\}`))[1];
+    const style = uss.match(new RegExp(`\\.whimtex-eyedropper-${part}\\s*\\{([^}]+)\\}`))[1];
     assert.ok(style.includes('left: 50%') && style.includes('margin-left: -44px') && style.includes('width: 88px'));
 }
 assert.ok(eye.includes('InternalEditorUtility.ReadScreenPixelUnderCursor(point, SampleSide, SampleSide)'));
@@ -17,7 +17,7 @@ assert.equal((eye.match(/InternalEditorUtility.ReadScreenPixelUnderCursor\(/g) ?
     'Picking and magnification share one 11x11 screen read; no independent 1x1 rounding');
 assert.ok(!/RenderPreview|EyeDropper.Start|KeyCode.Escape|DllImport|globalEventHandler/.test(eye));
 assert.ok(!/DrawIcon|iconRect|target.Add\(lens\)/.test(eye));
-assert.ok(!uss.includes('sprite-editor-eyedropper-cursor'));
+assert.ok(!uss.includes('whimtex-eyedropper-cursor'));
 assert.ok(eye.includes('private sealed class ScreenEyedropperWindow : EditorWindow'));
 assert.ok(eye.includes('ShowPopup()'));
 assert.ok(eye.includes('GetBoundsOfDesktopAtPoint(point)'));

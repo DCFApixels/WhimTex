@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     internal sealed class ProceduralLayerThumbnail : IDisposable
     {

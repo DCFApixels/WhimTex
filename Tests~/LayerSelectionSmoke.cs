@@ -1,15 +1,15 @@
 // Opt-in after manual compilation. Tests only temporary in-memory layer trees.
-var document = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.SpriteEditor.TextureCompositor>();
-var operations = typeof(DCFApixels.SpriteEditor.TextureCompositor).Assembly.GetType(
-    "DCFApixels.SpriteEditor.LayerSelectionOperations", true);
+var document = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>();
+var operations = typeof(DCFApixels.WhimTex.TextureCompositor).Assembly.GetType(
+    "DCFApixels.WhimTex.LayerSelectionOperations", true);
 var flags = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic;
 int checks = 0;
 void Check(bool value, string name) { if (!value) throw new System.Exception(name); checks++; }
 object Call(string method, params object[] args) => operations.GetMethod(method, flags).Invoke(null, args);
-System.Collections.Generic.List<DCFApixels.SpriteEditor.Layer> Layers(params DCFApixels.SpriteEditor.Layer[] values)
-    => new System.Collections.Generic.List<DCFApixels.SpriteEditor.Layer>(values);
-bool Same(System.Collections.Generic.List<DCFApixels.SpriteEditor.Layer> actual,
-    params DCFApixels.SpriteEditor.Layer[] expected)
+System.Collections.Generic.List<DCFApixels.WhimTex.Layer> Layers(params DCFApixels.WhimTex.Layer[] values)
+    => new System.Collections.Generic.List<DCFApixels.WhimTex.Layer>(values);
+bool Same(System.Collections.Generic.List<DCFApixels.WhimTex.Layer> actual,
+    params DCFApixels.WhimTex.Layer[] expected)
 {
     if (actual.Count != expected.Length) return false;
     for (int i = 0; i < expected.Length; i++) if (!object.ReferenceEquals(actual[i], expected[i])) return false;
@@ -17,20 +17,20 @@ bool Same(System.Collections.Generic.List<DCFApixels.SpriteEditor.Layer> actual,
 }
 try
 {
-    var a = new DCFApixels.SpriteEditor.ColorFillLayerBehaviour { layerName = "A" };
-    var b = new DCFApixels.SpriteEditor.ColorFillLayerBehaviour { layerName = "B" };
-    var c = new DCFApixels.SpriteEditor.ColorFillLayerBehaviour { layerName = "C" };
-    var d = new DCFApixels.SpriteEditor.ColorFillLayerBehaviour { layerName = "D" };
-    var e = new DCFApixels.SpriteEditor.ColorFillLayerBehaviour { layerName = "E" };
-    var group = new DCFApixels.SpriteEditor.GroupLayerBehaviour();
-    var nested = new DCFApixels.SpriteEditor.GroupLayerBehaviour();
+    var a = new DCFApixels.WhimTex.ColorFillLayerBehaviour { layerName = "A" };
+    var b = new DCFApixels.WhimTex.ColorFillLayerBehaviour { layerName = "B" };
+    var c = new DCFApixels.WhimTex.ColorFillLayerBehaviour { layerName = "C" };
+    var d = new DCFApixels.WhimTex.ColorFillLayerBehaviour { layerName = "D" };
+    var e = new DCFApixels.WhimTex.ColorFillLayerBehaviour { layerName = "E" };
+    var group = new DCFApixels.WhimTex.GroupLayerBehaviour();
+    var nested = new DCFApixels.WhimTex.GroupLayerBehaviour();
 
     // Every flat selection, including empty/all, at both boundaries and with gaps.
     var original = Layers(a, b, c, d, e);
     for (int mask = 0; mask < 32; mask++)
     foreach (int direction in new[] { -1, 1 })
     {
-        document.layers = new System.Collections.Generic.List<DCFApixels.SpriteEditor.Layer>(original);
+        document.layers = new System.Collections.Generic.List<DCFApixels.WhimTex.Layer>(original);
         var selected = Layers();
         foreach (var item in original)
             if ((mask & (1 << original.IndexOf(item))) != 0) selected.Add(item);
@@ -61,12 +61,12 @@ try
     nested.layers = Layers(b, c);
     group.layers = Layers(a, nested);
     document.layers = Layers(group, d);
-    var chosen = new System.Collections.Generic.HashSet<DCFApixels.SpriteEditor.Layer>(Layers(group, nested, b, d));
-    var roots = (System.Collections.Generic.List<DCFApixels.SpriteEditor.Layer>)Call("Collect", document.layers, chosen, true);
-    var all = (System.Collections.Generic.List<DCFApixels.SpriteEditor.Layer>)Call("Collect", document.layers, chosen, false);
+    var chosen = new System.Collections.Generic.HashSet<DCFApixels.WhimTex.Layer>(Layers(group, nested, b, d));
+    var roots = (System.Collections.Generic.List<DCFApixels.WhimTex.Layer>)Call("Collect", document.layers, chosen, true);
+    var all = (System.Collections.Generic.List<DCFApixels.WhimTex.Layer>)Call("Collect", document.layers, chosen, false);
     Check(Same(roots, group, d), "Selected descendants must not be processed twice");
     Check(Same(all, group, nested, b, d), "Per-layer actions keep explicit nested selection in tree order");
-    var expanded = (System.Collections.Generic.List<DCFApixels.SpriteEditor.Layer>)Call("Ungroup", document, all);
+    var expanded = (System.Collections.Generic.List<DCFApixels.WhimTex.Layer>)Call("Ungroup", document, all);
     Check(Same(document.layers, a, b, c, d), "Nested ungroup processes deepest groups first");
     Check(expanded.Count == 4 && !expanded.Contains(group) && !expanded.Contains(nested), "Ungroup selects resulting layers once");
 
@@ -95,7 +95,7 @@ try
     foreach (var item in document.layers)
     {
         item.swizzle = default;
-        item.blendMode = DCFApixels.SpriteEditor.BlendMode.Multiply;
+        item.blendMode = DCFApixels.WhimTex.BlendMode.Multiply;
         item.opacity = .42f;
     }
     Call("ApplyChannelPreset", document, Layers(e,c,a));
@@ -104,7 +104,7 @@ try
     {
         for (int channel = 0; channel < 4; channel++)
             Check((int)rgb[index].swizzle[channel] == (channel == 3 ? 9 : channel == index ? 10 : 8), "RGB routes each source R times A in tree order");
-        Check(rgb[index].blendMode == (index < 2 ? DCFApixels.SpriteEditor.BlendMode.Add : DCFApixels.SpriteEditor.BlendMode.Multiply), "Only upper selected layers change blending");
+        Check(rgb[index].blendMode == (index < 2 ? DCFApixels.WhimTex.BlendMode.Add : DCFApixels.WhimTex.BlendMode.Multiply), "Only upper selected layers change blending");
         Check(rgb[index].opacity == .42f, "Preset preserves opacity");
     }
     Check(b.swizzle.IsIdentity && d.swizzle.IsIdentity, "Unselected layers remain unchanged");
@@ -116,22 +116,22 @@ try
     for (int index = 0; index < 4; index++)
         for (int channel = 0; channel < 4; channel++)
             Check((int)rgba[index].swizzle[channel] == (channel == index ? 10 : 8), "RGBA routes source R times A to every assigned channel, including alpha");
-    Check(a.blendMode == DCFApixels.SpriteEditor.BlendMode.Add && b.blendMode == DCFApixels.SpriteEditor.BlendMode.Multiply,
+    Check(a.blendMode == DCFApixels.WhimTex.BlendMode.Add && b.blendMode == DCFApixels.WhimTex.BlendMode.Multiply,
         "RGBA does not rewrite blending");
     group.layers = Layers(a);
-    group.compositing = DCFApixels.SpriteEditor.GroupCompositing.PassThrough;
+    group.compositing = DCFApixels.WhimTex.GroupCompositing.PassThrough;
     document.layers = Layers(group,b);
     Call("ApplyChannelPreset", document, Layers(b,group));
-    Check(group.compositing == DCFApixels.SpriteEditor.GroupCompositing.Isolated && group.blendMode == DCFApixels.SpriteEditor.BlendMode.Add,
+    Check(group.compositing == DCFApixels.WhimTex.GroupCompositing.Isolated && group.blendMode == DCFApixels.WhimTex.BlendMode.Add,
         "RGB makes group Add effective");
-    Check(group.swizzle[0] == DCFApixels.SpriteEditor.SwizzleChannel.RMultiplyA && b.swizzle[1] == DCFApixels.SpriteEditor.SwizzleChannel.RMultiplyA,
+    Check(group.swizzle[0] == DCFApixels.WhimTex.SwizzleChannel.RMultiplyA && b.swizzle[1] == DCFApixels.WhimTex.SwizzleChannel.RMultiplyA,
         "A selected group counts once and unselected descendants do not consume channels");
     Call("ApplyChannelPreset", document, Layers(b,a,group));
-    Check(group.swizzle[0] == DCFApixels.SpriteEditor.SwizzleChannel.RMultiplyA && a.swizzle[1] == DCFApixels.SpriteEditor.SwizzleChannel.RMultiplyA &&
-        b.swizzle[2] == DCFApixels.SpriteEditor.SwizzleChannel.RMultiplyA, "Explicitly selected descendants count separately in tree order");
-    Check(group.swizzle[3] == DCFApixels.SpriteEditor.SwizzleChannel.One, "Three nested selections automatically use RGB");
+    Check(group.swizzle[0] == DCFApixels.WhimTex.SwizzleChannel.RMultiplyA && a.swizzle[1] == DCFApixels.WhimTex.SwizzleChannel.RMultiplyA &&
+        b.swizzle[2] == DCFApixels.WhimTex.SwizzleChannel.RMultiplyA, "Explicitly selected descendants count separately in tree order");
+    Check(group.swizzle[3] == DCFApixels.WhimTex.SwizzleChannel.One, "Three nested selections automatically use RGB");
     Call("ApplyChannelPreset", document, Layers(b));
-    Check(b.swizzle[0] == DCFApixels.SpriteEditor.SwizzleChannel.RMultiplyA && b.swizzle[3] == DCFApixels.SpriteEditor.SwizzleChannel.One,
+    Check(b.swizzle[0] == DCFApixels.WhimTex.SwizzleChannel.RMultiplyA && b.swizzle[3] == DCFApixels.WhimTex.SwizzleChannel.One,
         "Single selection automatically uses the first RGB channel");
     return new { success = true, checks };
 }

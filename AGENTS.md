@@ -4,9 +4,12 @@ For browser/text-only AI generation of procedural layer clipboard JSON or HLSL e
 start with [AI_AUTHORING.md](AI_AUTHORING.md) and [the self-contained contract](Documentation~/AI/README.md).
 This is distinct from the connected live-editing API below.
 
-WhimTex is the public product name. The package ID `com.dcfa_pixels.sprite-editor`,
-`DCFApixels.SpriteEditor` namespace, `sprite_editor_*` commands and persisted identifiers
-are compatibility contracts, not branding to rename. The canonical repository is
+WhimTex is the public product name, the package ID is `com.dcfapixels.whimtex`, the code lives in
+the `DCFApixels.WhimTex` namespace and the assemblies are `DCFApixels.WhimTex*`. The `whimtex_*`
+commands, the `whimtex-live` skill ID and the `Temp/WhimTex/` preview folder are the established
+agent-facing names. Types that moved out of `DCFApixels.SpriteEditor` carry `MovedFrom` markers —
+keep them, so documents saved before the rename keep loading. UI Toolkit CSS classes use the
+`whimtex-` prefix; keep new styles and element names in that form. The canonical repository is
 `DCFApixels/WhimTex`; documentation is hosted at `https://dcfapixels.github.io/WhimTex/`.
 
 ## Versioning
@@ -24,7 +27,7 @@ upstream source in both READMEs. Preserve original copyright headers, include th
 license text and notices, and record the source version in `ThirdPartyNotices.md`.
 
 For requests to create or edit **WhimTex compositor assets**, use the editor-side
-`DCFApixels.SpriteEditor.SpriteEditorApi`, not generated Unity YAML or simulated mouse clicks.
+`DCFApixels.WhimTex.WhimTexApi`, not generated Unity YAML or simulated mouse clicks.
 This guidance is for authoring images; ordinary plugin source-code tasks do not require running it.
 
 For path-based asset authoring, read [Documentation~/AgentAPI.md](Documentation~/AgentAPI.md) for command syntax, JSON operations,
@@ -32,21 +35,21 @@ coordinates, safety/Undo semantics and complete workflows. Examples live in
 [Documentation~/Examples](Documentation~/Examples).
 
 For work in an **already open window**, including unsaved documents and selected-region edits, first read
-the portable [live-editing skill](Skills~/sprite-editor-live/SKILL.md). Its fast-start contract allows
-`sprite_editor_begin` to reserve and capture context in one call, before full inspection or prompt preparation.
+the portable [live-editing skill](Skills~/whimtex-live/SKILL.md). Its fast-start contract allows
+`whimtex_begin` to reserve and capture context in one call, before full inspection or prompt preparation.
 Read [Documentation~/LiveAgentAPI.md](Documentation~/LiveAgentAPI.md) for subsequent steps or advanced options.
 Reserve a named layer before lengthy generation;
 preserve user edits to its placement/name/visibility. Choose the sampled source from the user's request.
 Live image completion inserts owned Drawing pixels directly, without importing a separate File source.
 For inline shader authoring, use live `fx` requests; do not create a separate shader file by default.
-Acquire `sprite_editor_lock` for FX/settings edits on an existing layer and release it on completion or abandonment.
+Acquire `whimtex_lock` for FX/settings edits on an existing layer and release it on completion or abandonment.
 
-- Discover `sprite_editor_*` commands on the intended running Editor. Always pass the explicit
+- Discover `whimtex_*` commands on the intended running Editor. Always pass the explicit
   Unity project path. The Pipeline adapter is optional; direct C# API calls work without it.
 - Respect the project's compilation and asset-editing rules. Missing commands are not permission
   to install packages, start another Editor, recompile, or modify an unrelated project.
 - For a generated image, first use an available image-generation tool, then import the resulting
-  local PNG/JPEG with `sprite_editor_import_image`. Reuse the returned asset path in a File layer.
+  local PNG/JPEG with `whimtex_import_image`. Reuse the returned asset path in a File layer.
   The API does not generate images or download URLs.
 - Prefer File layers and nondestructive transforms. Drawing strokes are useful for touch-ups,
   masks and simple procedural marks, not a substitute for an image-generation tool.

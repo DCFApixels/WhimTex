@@ -8,7 +8,7 @@ using ProjectItemId = UnityEngine.EntityId;
 using ProjectItemId = System.Int32;
 #endif
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     [InitializeOnLoad]
     internal static class TextureCompositorProjectPreview

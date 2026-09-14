@@ -3,20 +3,20 @@ import { readFileSync } from 'node:fs';
 import { snapshot } from './UssCascadeSnapshot.mjs';
 const read = p => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 // New controls are not a restyle of the existing cascade.
-const styles = read('src/SpriteEditorSplitView.uss')
-    .replace(/\.sprite-editor-missing-thumbnail\s*\{[^}]*\}/g, '')
-    .replace(/\.sprite-editor-view-field(?:\s*>\s*\.unity-base-field__label)?\s*\{[^}]*\}/g, '')
-    .replace(/\.sprite-editor-guides?-[^{]+\{[^}]*\}/g, '')
-    .replace(/\.sprite-editor-shape-(?:kind|color|picker[\w-]*|corners|corner[\w-]*)(?:\s*>\s*\.unity-base-field__label)?\s*\{[^}]*\}/g, '');
+const styles = read('src/WhimTexSplitView.uss')
+    .replace(/\.whimtex-missing-thumbnail\s*\{[^}]*\}/g, '')
+    .replace(/\.whimtex-view-field(?:\s*>\s*\.unity-base-field__label)?\s*\{[^}]*\}/g, '')
+    .replace(/\.whimtex-guides?-[^{]+\{[^}]*\}/g, '')
+    .replace(/\.whimtex-shape-(?:kind|color|picker[\w-]*|corners|corner[\w-]*)(?:\s*>\s*\.unity-base-field__label)?\s*\{[^}]*\}/g, '');
 const baseline = JSON.parse(read('Tests~/UssCascadeBaseline.json'));
 assert.deepEqual(snapshot(styles), baseline, 'Exact USS values, selectors/specificity and conflicting property order must remain unchanged');
 assert.notDeepEqual(snapshot(styles.replace('--whimtex-surface: #383838', '--whimtex-surface: #393939')), baseline);
 assert.notDeepEqual(snapshot(styles.replace('height: 26px', 'height: 27px')), baseline);
-const shared = read('src/SpriteEditorUI.cs');
-assert.match(shared, /root.AddToClassList\("sprite-editor-theme"\)/);
+const shared = read('src/WhimTexUI.cs');
+assert.match(shared, /root.AddToClassList\("whimtex-theme"\)/);
 const target = read('src/EffectTargetSettingsView.cs');
 for (const part of ['arrow','text'])
-    assert.ok(target.includes(`target.Q(className: "unity-base-popup-field__${part}")?.AddToClassList("sprite-editor-effect-target-${part}")`));
+    assert.ok(target.includes(`target.Q(className: "unity-base-popup-field__${part}")?.AddToClassList("whimtex-effect-target-${part}")`));
 assert.match(target, /if \(status.style.display.value != display\) status.style.display = display/);
 assert.match(target, /if \(status.messageType != messageType\) status.messageType = messageType/);
 assert.match(target, /else if \(source\?\.IsGroup == true\)/);

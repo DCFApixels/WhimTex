@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class DrawingLayerBehaviour
     {
@@ -24,7 +24,7 @@ namespace DCFApixels.SpriteEditor
                     from = to;
                 }
                 straight = HdrUtility.Temporary(width, height);
-                Material conversion = SpriteEditorMaterials.AlphaConversion;
+                Material conversion = WhimTexMaterials.AlphaConversion;
                 if (conversion == null) return;
                 conversion.SetFloat("_Mode", 1f);
                 Graphics.Blit(surface, straight, conversion);

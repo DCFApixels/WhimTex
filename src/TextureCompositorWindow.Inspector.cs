@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
@@ -19,7 +19,7 @@ namespace DCFApixels.SpriteEditor
         [NonSerialized] private bool toolkitInspectorLocked;
         [NonSerialized] private EffectTargetSettingsView toolkitInspectorEffectTarget;
         [NonSerialized] private LayerShaderFXView toolkitInspectorShaderFX;
-        private readonly SpriteEditorUI.ValueBindings toolkitInspectorBindings = new SpriteEditorUI.ValueBindings();
+        private readonly WhimTexUI.ValueBindings toolkitInspectorBindings = new WhimTexUI.ValueBindings();
 
         private void ResetToolkitLayerInspector()
         {
@@ -38,7 +38,7 @@ namespace DCFApixels.SpriteEditor
                 return;
 
             Layer selected = GetSelectedLayer();
-            bool locked = SpriteEditorApi.IsLayerContentLocked(compositor, selected);
+            bool locked = WhimTexApi.IsLayerContentLocked(compositor, selected);
             string title = selected == null ? "Layer Settings" : selected.layerName;
             if (toolkitLayerSettingsTitle != null && toolkitLayerSettingsTitle.text != title)
                 toolkitLayerSettingsTitle.text = title;
@@ -74,32 +74,32 @@ namespace DCFApixels.SpriteEditor
         {
             if (layer == null)
             {
-                SpriteEditorUI.AddHelpBox(root, "Select a layer below to edit its settings.", HelpBoxMessageType.Info);
+                WhimTexUI.AddHelpBox(root, "Select a layer below to edit its settings.", HelpBoxMessageType.Info);
                 return;
             }
 
             if (layer.Behaviour == null) { BuildMissingBehaviourInspector(root, layer); return; }
             if (layer?.Behaviour is PendingLayerBehaviour pending)
             {
-                var status = new HelpBox(SpriteEditorApi.LiveReservationStatus(pending), HelpBoxMessageType.Info);
+                var status = new HelpBox(WhimTexApi.LiveReservationStatus(pending), HelpBoxMessageType.Info);
                 root.Add(status);
-                toolkitInspectorBindings.Add(() => status.text = SpriteEditorApi.LiveReservationStatus(pending));
-                var cancel = new Button(() => SpriteEditorApi.CancelLiveReservation(compositor, pending)) { text = "Cancel Generation" };
+                toolkitInspectorBindings.Add(() => status.text = WhimTexApi.LiveReservationStatus(pending));
+                var cancel = new Button(() => WhimTexApi.CancelLiveReservation(compositor, pending)) { text = "Cancel Generation" };
                 root.Add(cancel);
                 return;
             }
 
-            if (SpriteEditorApi.IsLayerContentLocked(compositor, layer))
+            if (WhimTexApi.IsLayerContentLocked(compositor, layer))
             {
                 root.Add(new HelpBox("The agent is editing this layer. You can rename, hide or move it. Cancel the edit to unlock its settings.", HelpBoxMessageType.Info));
-                root.Add(new Button(() => SpriteEditorApi.CancelLayerEdit(compositor, layer)) { text = "Cancel Agent Edit" });
+                root.Add(new Button(() => WhimTexApi.CancelLayerEdit(compositor, layer)) { text = "Cancel Agent Edit" });
                 var settings = new VisualElement();
                 root.Add(settings);
                 settings.SetEnabled(false);
                 root = settings;
             }
             Action<string, Action> apply = InspectorChangeFor(layer);
-            toolkitInspectorShaderFX = SpriteEditorUI.BuildLayerInspectorSections(root, layer, compositor,
+            toolkitInspectorShaderFX = WhimTexUI.BuildLayerInspectorSections(root, layer, compositor,
                 apply, toolkitInspectorBindings, properties => BuildToolkitLayerProperties(properties, layer, apply),
                 colorSettingsExpanded, value => colorSettingsExpanded = value,
                 layerPropertiesExpanded, value => layerPropertiesExpanded = value,
@@ -116,7 +116,7 @@ namespace DCFApixels.SpriteEditor
                     !ReferenceEquals(compositor.FindLayer(layer.Id), layer) ||
                     !ReferenceEquals(layer.Behaviour, behaviour) ||
                     !ReferenceEquals(GetSelectedLayer(), layer) ||
-                    SpriteEditorApi.IsLayerContentLocked(compositor, layer))
+                    WhimTexApi.IsLayerContentLocked(compositor, layer))
                 {
                     toolkitRefreshRequested = true;
                     return;
@@ -130,7 +130,7 @@ namespace DCFApixels.SpriteEditor
             switch (layer?.Behaviour)
             {
                 case ShaderProcessorLayerBehaviour:
-                    SpriteEditorUI.AddHelpBox(root, "Processes the composited layers below. Normal blends between the original and processed image using Opacity. In a Pass Through group, the external backdrop is included. Add or edit Shader FX below.", HelpBoxMessageType.Info);
+                    WhimTexUI.AddHelpBox(root, "Processes the composited layers below. Normal blends between the original and processed image using Opacity. In a Pass Through group, the external backdrop is included. Add or edit Shader FX below.", HelpBoxMessageType.Info);
                     break;
                 case DrawingLayerBehaviour drawing:
                     DrawingLayerEditorWindow.BuildFields(root, drawing, compositor, apply, toolkitInspectorBindings);

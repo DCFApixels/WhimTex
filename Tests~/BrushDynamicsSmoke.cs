@@ -1,8 +1,8 @@
 // Opt-in after manual compilation. Runs against the real GPU brush; no asset saves or imports.
 
 var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
-var assembly = typeof(DCFApixels.SpriteEditor.DrawingLayerBehaviour).Assembly;
-var settingsType = assembly.GetType("DCFApixels.SpriteEditor.PaintToolSettings", true);
+var assembly = typeof(DCFApixels.WhimTex.DrawingLayerBehaviour).Assembly;
+var settingsType = assembly.GetType("DCFApixels.WhimTex.PaintToolSettings", true);
 object Call(object target, string name, params object[] args) =>
     target.GetType().GetMethod(name, flags).Invoke(target, args);
 void Set(object target, string name, object value)
@@ -24,7 +24,7 @@ object Settings()
     Set(result, "brushSpacing", .25f);
     return result;
 }
-void Stroke(DCFApixels.SpriteEditor.DrawingLayerBehaviour layer, object settings, int stamps, bool erase = false)
+void Stroke(DCFApixels.WhimTex.DrawingLayerBehaviour layer, object settings, int stamps, bool erase = false)
 {
     object parameters = Call(settings, "GetStrokeParameters", erase, (UnityEngine.Color?)UnityEngine.Color.white);
     var center = new UnityEngine.Vector2(.5f, .5f);
@@ -36,18 +36,18 @@ void Stroke(DCFApixels.SpriteEditor.DrawingLayerBehaviour layer, object settings
     }
     finally { Call(layer, "EndStroke"); }
 }
-UnityEngine.Color Pixel(DCFApixels.SpriteEditor.DrawingLayerBehaviour layer, int x = 16, int y = 16) =>
-    ((UnityEngine.Texture2D)typeof(DCFApixels.SpriteEditor.DrawingLayerBehaviour).GetProperty("StoredTexture", flags).GetValue(layer)).GetPixel(x, y);
+UnityEngine.Color Pixel(DCFApixels.WhimTex.DrawingLayerBehaviour layer, int x = 16, int y = 16) =>
+    ((UnityEngine.Texture2D)typeof(DCFApixels.WhimTex.DrawingLayerBehaviour).GetProperty("StoredTexture", flags).GetValue(layer)).GetPixel(x, y);
 int checks = 0;
 void Check(bool value, string message) { if (!value) throw new System.Exception(message); checks++; }
 void Near(float actual, float expected, string message) =>
     Check(UnityEngine.Mathf.Abs(actual - expected) < .016f, message + ": " + actual + " != " + expected);
-void Release(DCFApixels.SpriteEditor.DrawingLayerBehaviour layer) => Call(layer, "ReleaseTransientResources");
+void Release(DCFApixels.WhimTex.DrawingLayerBehaviour layer) => Call(layer, "ReleaseTransientResources");
 
 foreach (float opacity in new[] { 1f, .4f })
 foreach (float flow in new[] { 1f, .1f })
 {
-    var layer = new DCFApixels.SpriteEditor.DrawingLayerBehaviour();
+    var layer = new DCFApixels.WhimTex.DrawingLayerBehaviour();
     object settings = Settings(), dynamics = Get(settings, "dynamics");
     Set(dynamics, "opacity", opacity); Set(dynamics, "flow", flow);
     try
@@ -66,7 +66,7 @@ foreach (float flow in new[] { 1f, .1f })
     finally { Release(layer); }
 }
 
-float SurfaceRed(DCFApixels.SpriteEditor.DrawingLayerBehaviour layer)
+float SurfaceRed(DCFApixels.WhimTex.DrawingLayerBehaviour layer)
 {
     var previous = UnityEngine.RenderTexture.active;
     var readback = new UnityEngine.Texture2D(32, 32, UnityEngine.TextureFormat.RGBAFloat, false, true);
@@ -81,7 +81,7 @@ float SurfaceRed(DCFApixels.SpriteEditor.DrawingLayerBehaviour layer)
 foreach (string application in new[] { "Stroke", "Stamp" })
 foreach (float opacity in new[] { 1f, .5f })
 {
-    var layer = new DCFApixels.SpriteEditor.DrawingLayerBehaviour();
+    var layer = new DCFApixels.WhimTex.DrawingLayerBehaviour();
     object settings = Settings(), dynamics = Get(settings, "dynamics");
     try
     {
@@ -92,7 +92,7 @@ foreach (float opacity in new[] { 1f, .5f })
         tint.SetKeys(new[] { new UnityEngine.GradientColorKey(gray, 0f), new UnityEngine.GradientColorKey(gray, 1f) },
             new[] { new UnityEngine.GradientAlphaKey(1f, 0f), new UnityEngine.GradientAlphaKey(1f, 1f) });
         Set(dynamics, "tintGradient", tint);
-        Set(dynamics, "blend", DCFApixels.SpriteEditor.BlendMode.Multiply);
+        Set(dynamics, "blend", DCFApixels.WhimTex.BlendMode.Multiply);
         Set(dynamics, "blendApplication", System.Enum.Parse(Get(dynamics, "blendApplication").GetType(), application));
         Set(dynamics, "opacity", opacity);
         Stroke(layer, settings, 2);
@@ -173,7 +173,7 @@ foreach (float opacity in new[] { 1f, .5f })
     Check(((UnityEngine.Gradient)Get(restoredOffset, "tipGradient")).Equals(sdfGradient), "SDF gradient survives serialization");
     Check(Get(restoredOffset, "proceduralMode").ToString() == "SdfGradient", "Procedural mode survives serialization");
     Set(dynamics, "rotationMode", System.Enum.Parse(Get(dynamics, "rotationMode").GetType(), "StrokeDirection"));
-    Set(dynamics, "blend", DCFApixels.SpriteEditor.BlendMode.Multiply);
+    Set(dynamics, "blend", DCFApixels.WhimTex.BlendMode.Multiply);
     Set(dynamics, "blendApplication", System.Enum.Parse(Get(dynamics, "blendApplication").GetType(), "Stamp"));
     Call(settings, "ResetBrushTip");
     Near((float)Get(settings, "brushHardness"), .8f, "Tip resets hardness");
@@ -206,7 +206,7 @@ foreach (float opacity in new[] { 1f, .5f })
     Check((float)Get(settings, "brushSize") == 16f, "Section resets preserve size");
 }
 
-var tinted = new DCFApixels.SpriteEditor.DrawingLayerBehaviour();
+var tinted = new DCFApixels.WhimTex.DrawingLayerBehaviour();
 try
 {
     var settings = Settings();
@@ -247,7 +247,7 @@ for (int y = 0; y < 4; y++) for (int x = 0; x < 4; x++) pixels[y * 4 + x] = x < 
 tip.SetPixels(pixels); tip.Apply(false, false);
 try
 {
-    var layer = new DCFApixels.SpriteEditor.DrawingLayerBehaviour();
+    var layer = new DCFApixels.WhimTex.DrawingLayerBehaviour();
     object settings = Settings(), dynamics = Get(settings, "dynamics");
     Set(dynamics, "tip", tip);
     Set(dynamics, "tipChannel", System.Enum.Parse(Get(dynamics, "tipChannel").GetType(), "Color"));
@@ -257,7 +257,7 @@ try
         Near(Pixel(layer, 12).r, 1f, "Color tip red");
         Near(Pixel(layer, 12).g, 0f, "Color tip tint");
         Near(Pixel(layer, 20).a, 0f, "Tip alpha cuts footprint");
-        var rotated = new DCFApixels.SpriteEditor.DrawingLayerBehaviour();
+        var rotated = new DCFApixels.WhimTex.DrawingLayerBehaviour();
         try
         {
             Set(dynamics, "angleJitter", 180f);
@@ -279,7 +279,7 @@ try
 finally { UnityEngine.Object.DestroyImmediate(tip); }
 
 // Exercise actual C# spacing with different pointer event densities.
-var spacingType = assembly.GetType("DCFApixels.SpriteEditor.BrushSpacingState", true);
+var spacingType = assembly.GetType("DCFApixels.WhimTex.BrushSpacingState", true);
 int Samples(double[] lengths)
 {
     object state = System.Activator.CreateInstance(spacingType);

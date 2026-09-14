@@ -3,7 +3,7 @@ using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed class BlurLayerEditorWindow : LayerEditorWindowBase
     {
@@ -15,11 +15,11 @@ namespace DCFApixels.SpriteEditor
             BuildFields(root, (BlurLayerBehaviour)source, Compositor, ApplyLayerChange, SettingsBindings, AddEffectTarget);
 
         internal static void BuildFields(VisualElement root, BlurLayerBehaviour layer, TextureCompositor compositor,
-            Action<string, Action> applyChange, SpriteEditorUI.ValueBindings bindings,
+            Action<string, Action> applyChange, WhimTexUI.ValueBindings bindings,
             Action<VisualElement, TargetedLayerBehaviour> addEffectTarget)
         {
             addEffectTarget(root, layer);
-            var mode = SpriteEditorUI.ConfigureField(new EnumField("Mode", layer.mode));
+            var mode = WhimTexUI.ConfigureField(new EnumField("Mode", layer.mode));
             bindings.Track(mode, () => (Enum)layer.mode);
             mode.RegisterValueChangedCallback(evt => applyChange("Change Blur Mode",
                 () => layer.mode = (BlurType)evt.newValue));
@@ -27,7 +27,7 @@ namespace DCFApixels.SpriteEditor
 
             void Slider(VisualElement parent, string label, string tooltip, Func<float> get, Action<float> set, float min, float max)
             {
-                var field = SpriteEditorUI.ConfigureField(new Slider(label, min, max) { showInputField = true, tooltip = tooltip });
+                var field = WhimTexUI.ConfigureField(new Slider(label, min, max) { showInputField = true, tooltip = tooltip });
                 bindings.Track(field, get);
                 field.RegisterValueChangedCallback(evt => applyChange("Change Blur " + label,
                     () => set(MotionBlurRenderer.Limit(evt.newValue, min, max, get()))));
@@ -52,7 +52,7 @@ namespace DCFApixels.SpriteEditor
             var circular = new VisualElement();
             Slider(circular, "Arc (deg)", "Total rotation swept by the blur. Zero leaves the source unchanged.",
                 () => layer.arc, value => layer.arc = value, 0f, 360f);
-            var center = SpriteEditorUI.ConfigureField(new Vector2Field("Center"));
+            var center = WhimTexUI.ConfigureField(new Vector2Field("Center"));
             center.tooltip = "Normalized canvas position: (0, 0) bottom-left, (1, 1) top-right. Independent of the output Transform pivot.";
             bindings.Track(center, () => layer.center);
             center.RegisterValueChangedCallback(evt => applyChange("Change Blur Center", () => layer.center = new Vector2(
@@ -61,13 +61,13 @@ namespace DCFApixels.SpriteEditor
             circular.Add(center);
             root.Add(circular);
 
-            var direction = SpriteEditorUI.ConfigureField(new EnumField("Direction", layer.direction));
+            var direction = WhimTexUI.ConfigureField(new EnumField("Direction", layer.direction));
             direction.tooltip = "Centered spreads both ways. Forward follows Angle in Linear mode and turns counterclockwise in Circular mode; Backward reverses it.";
             bindings.Track(direction, () => (Enum)layer.direction);
             direction.RegisterValueChangedCallback(evt => applyChange("Change Blur Direction",
                 () => layer.direction = (BlurLayerBehaviour.MotionDirection)evt.newValue));
             root.Add(direction);
-            var edges = SpriteEditorUI.ConfigureField(new EnumField("Edges", layer.edges));
+            var edges = WhimTexUI.ConfigureField(new EnumField("Edges", layer.edges));
             edges.tooltip = "Sampling outside the source canvas, independent of tiled preview and Transform tiling.";
             bindings.Track(edges, () => (Enum)layer.edges);
             edges.RegisterValueChangedCallback(evt => applyChange("Change Blur Edges",
@@ -76,10 +76,10 @@ namespace DCFApixels.SpriteEditor
 
             bindings.Add(() =>
             {
-                gaussian.EnableInClassList("sprite-editor-hidden", layer.mode != BlurType.Gaussian);
-                direction.EnableInClassList("sprite-editor-hidden", layer.mode == BlurType.Gaussian);
-                linear.EnableInClassList("sprite-editor-hidden", layer.mode != BlurType.Linear);
-                circular.EnableInClassList("sprite-editor-hidden", layer.mode != BlurType.Circular);
+                gaussian.EnableInClassList("whimtex-hidden", layer.mode != BlurType.Gaussian);
+                direction.EnableInClassList("whimtex-hidden", layer.mode == BlurType.Gaussian);
+                linear.EnableInClassList("whimtex-hidden", layer.mode != BlurType.Linear);
+                circular.EnableInClassList("whimtex-hidden", layer.mode != BlurType.Circular);
             });
         }
     }

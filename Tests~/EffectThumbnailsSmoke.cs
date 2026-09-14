@@ -1,7 +1,7 @@
 // Unity Pipeline eval_file. Transient documents/textures only; no scene, asset or Undo edits.
 var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-var type = typeof(DCFApixels.SpriteEditor.TextureCompositor);
-var document = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.SpriteEditor.TextureCompositor>();
+var type = typeof(DCFApixels.WhimTex.TextureCompositor);
+var document = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>();
 document.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
 document.width = document.height = 64;
 var texture = new UnityEngine.Texture2D(64, 64, UnityEngine.TextureFormat.RGBA32, false);
@@ -10,26 +10,26 @@ var pixels = new UnityEngine.Color[4096];
 for (int y = 0; y < 64; y++) for (int x = 0; x < 64; x++)
     pixels[y * 64 + x] = new UnityEngine.Color(x / 63f, .25f, .1f, x > 12 && x < 52 && y > 12 && y < 52 ? 1 : 0);
 texture.SetPixels(pixels); texture.Apply(false, false);
-var source = new DCFApixels.SpriteEditor.FileLayerBehaviour { sourceTexture = texture };
-var sdf = new DCFApixels.SpriteEditor.SDFLayerBehaviour();
-var outline = new DCFApixels.SpriteEditor.OutlineLayerBehaviour { outlineWidth = 8 };
-var normal = new DCFApixels.SpriteEditor.NormalMapLayerBehaviour();
-var blur = new DCFApixels.SpriteEditor.BlurLayerBehaviour { radius = 8 };
-var seamless = new DCFApixels.SpriteEditor.MakeSeamlessLayerBehaviour();
-var processor = new DCFApixels.SpriteEditor.ShaderProcessorLayerBehaviour();
-var effects = new DCFApixels.SpriteEditor.TargetedLayerBehaviour[] { sdf, outline, normal, blur, seamless };
+var source = new DCFApixels.WhimTex.FileLayerBehaviour { sourceTexture = texture };
+var sdf = new DCFApixels.WhimTex.SDFLayerBehaviour();
+var outline = new DCFApixels.WhimTex.OutlineLayerBehaviour { outlineWidth = 8 };
+var normal = new DCFApixels.WhimTex.NormalMapLayerBehaviour();
+var blur = new DCFApixels.WhimTex.BlurLayerBehaviour { radius = 8 };
+var seamless = new DCFApixels.WhimTex.MakeSeamlessLayerBehaviour();
+var processor = new DCFApixels.WhimTex.ShaderProcessorLayerBehaviour();
+var effects = new DCFApixels.WhimTex.TargetedLayerBehaviour[] { sdf, outline, normal, blur, seamless };
 document.layers.Add(processor);
 foreach (var effect in effects) document.layers.Add(effect);
 document.layers.Add(source);
 void Normalize() => type.GetMethod("NormalizeModel", flags).Invoke(document, null);
 Normalize();
-foreach (var effect in effects) { effect.inputMode = DCFApixels.SpriteEditor.EffectInputMode.Specific; effect.TargetLayerId = source.Id; }
+foreach (var effect in effects) { effect.inputMode = DCFApixels.WhimTex.EffectInputMode.Specific; effect.TargetLayerId = source.Id; }
 int checks = 0;
 void Check(bool value, string message) { if (!value) throw new System.Exception(message); checks++; }
 object Cache() => type.GetField("layerThumbnails", flags).GetValue(document);
 void Invalidate() { var cache = Cache(); if (cache != null) cache.GetType().GetMethod("Invalidate", flags).Invoke(cache, null); }
 int Renders() { var cache = Cache(); return cache == null ? 0 : (int)cache.GetType().GetProperty("RenderCount", flags).GetValue(cache); }
-UnityEngine.Texture2D Get(DCFApixels.SpriteEditor.Layer layer, bool deferred = false, int size = 18) =>
+UnityEngine.Texture2D Get(DCFApixels.WhimTex.Layer layer, bool deferred = false, int size = 18) =>
     (UnityEngine.Texture2D)type.GetMethod("GetLayerThumbnail", flags).Invoke(document, new object[] { layer, size, deferred });
 var previous = UnityEngine.RenderTexture.active;
 bool srgb = UnityEngine.GL.sRGBWrite;
@@ -63,7 +63,7 @@ try
     source.enabled = false; outline.enabled = false; Invalidate();
     Check(Get(outline) != null, "Hidden effect processes hidden source for its thumbnail");
     source.enabled = true; outline.enabled = true;
-    var group = new DCFApixels.SpriteEditor.GroupLayerBehaviour { enabled = false };
+    var group = new DCFApixels.WhimTex.GroupLayerBehaviour { enabled = false };
     document.layers.Remove(source); group.layers.Add(source); document.layers.Add(group); Normalize();
     foreach (var effect in effects) effect.TargetLayerId = group.Id;
     Invalidate();
@@ -80,7 +80,7 @@ try
     Check(Renders() == before, "Shader Processor snapshot is not continuously rendered");
     sdf.inverted = !sdf.inverted; Invalidate();
     Check(Get(processor) != null && processorImage == null, "Shader Processor tracks layers below it");
-    var normalCacheType = type.Assembly.GetType("DCFApixels.SpriteEditor.EffectRenderCache");
+    var normalCacheType = type.Assembly.GetType("DCFApixels.WhimTex.EffectRenderCache");
     var normalCache = System.Activator.CreateInstance(normalCacheType, true);
     try
     {
@@ -101,7 +101,7 @@ try
     sdf.TargetLayerId = blur.Id; blur.TargetLayerId = sdf.Id; Invalidate(); Get(sdf);
     before = Renders(); Invalidate(); Get(sdf); Check(Renders() == before, "Cyclic source does not trigger repeated rendering");
     sdf.TargetLayerId = blur.TargetLayerId = group.Id; Invalidate(); Check(Get(sdf) != null, "Thumbnail recovers after cycle is removed");
-    var replaced = Get(blur); blur.Owner.SetBehaviour(new DCFApixels.SpriteEditor.ColorFillLayerBehaviour());
+    var replaced = Get(blur); blur.Owner.SetBehaviour(new DCFApixels.WhimTex.ColorFillLayerBehaviour());
     type.GetMethod("RefreshThumbnailStructure", flags).Invoke(document, null);
     Check(replaced == null, "Changing to a non-effect behaviour releases cached effect thumbnail");
     var final = Get(normal);

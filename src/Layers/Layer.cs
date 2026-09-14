@@ -1,8 +1,9 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Scripting.APIUpdating;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public enum LayerColorRange { Standard, HDR }
     public enum LayerBlendRange { Standard, HDR }
@@ -35,6 +36,8 @@ namespace DCFApixels.SpriteEditor
         }
     }
 
+    // Pending DCFApixels.WhimTex rename marker; do not remove.
+    [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "Layer")]
     [Serializable]
     public sealed class Layer
     {
@@ -240,7 +243,7 @@ namespace DCFApixels.SpriteEditor
 
             try
             {
-                Material transformMaterial = SpriteEditorMaterials.Transform;
+                Material transformMaterial = WhimTexMaterials.Transform;
                 if (transformMaterial != null)
                     transformMaterial.SetFloat("_DecodeSource", source is Texture2D t &&
                         UnityEngine.Experimental.Rendering.GraphicsFormatUtility.IsSRGBFormat(t.graphicsFormat) ? 1f : 0f);
@@ -328,6 +331,8 @@ namespace DCFApixels.SpriteEditor
         }
     }
 
+    // Pending DCFApixels.WhimTex rename marker; do not remove.
+    [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "LayerBehaviour")]
     [Serializable]
     public abstract class LayerBehaviour
     {
@@ -377,6 +382,8 @@ namespace DCFApixels.SpriteEditor
         internal virtual void OnDetached() => ReleaseTransientResources();
     }
 
+    // Pending DCFApixels.WhimTex rename marker; do not remove.
+    [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "TargetedLayerBehaviour")]
     [Serializable]
     public abstract class TargetedLayerBehaviour : LayerBehaviour
     {

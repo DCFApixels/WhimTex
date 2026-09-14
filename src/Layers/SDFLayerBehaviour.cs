@@ -6,9 +6,12 @@ using Unity.Jobs;
 using Unity.Jobs.LowLevel.Unsafe;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.Scripting.APIUpdating;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
+    // Pending DCFApixels.WhimTex rename marker; do not remove.
+    [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "SDFLayerBehaviour")]
     [Serializable]
     public sealed class SDFLayerBehaviour : TargetedLayerBehaviour
     {

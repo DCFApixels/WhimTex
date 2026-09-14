@@ -31,7 +31,7 @@ const guide = read('Documentation~/AI/README.md');
 for (const match of guide.matchAll(/```json\s*\n([\s\S]*?)\n```/g))
   assert.ok(matches(schema, JSON.parse(match[1])), 'Guide JSON does not match schema');
 for (const [name, file] of Object.entries({ noise: 'Noise', shape: 'Shape', blur: 'Blur', normalMap: 'NormalMap', makeSeamless: 'MakeSeamless' })) {
-  const source = read(`src/Automation/SpriteEditorApi.${file}.cs`);
+  const source = read(`src/Automation/WhimTexApi.${file}.cs`);
   const declared = [...source.match(/Keys\(value,([\s\S]*?)\);/)[1].matchAll(/"([^"]+)"/g)].map(m => m[1]).sort();
   assert.deepEqual(Object.keys(schema.$defs[name].properties).sort(), declared, `${name} keys differ from implementation`);
 }

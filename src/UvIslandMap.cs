@@ -5,7 +5,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     // Read-only UV topology. Position + UV identifies split vertices, not UV alone.
     internal sealed class UvIslandMap

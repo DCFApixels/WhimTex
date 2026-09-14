@@ -2,7 +2,7 @@
 using System;
 using System.Reflection;
 using UnityEngine;
-using DCFApixels.SpriteEditor;
+using DCFApixels.WhimTex;
 
 public static class TilingSmoke
 {

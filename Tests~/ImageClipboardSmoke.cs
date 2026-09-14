@@ -1,5 +1,5 @@
 // Unity Pipeline eval_file. Tests synthetic data only: never reads or changes the OS clipboard.
-var type = typeof(DCFApixels.SpriteEditor.TextureCompositor).Assembly.GetType("DCFApixels.SpriteEditor.ImageClipboard", true);
+var type = typeof(DCFApixels.WhimTex.TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.ImageClipboard", true);
 var flags = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic;
 int checks = 0;
 void Check(bool ok, string message) { if (!ok) throw new System.Exception(message); checks++; }
@@ -63,16 +63,16 @@ var masks = Dib(32, false, true); Write(masks, 44, 0xFF0000); Reject("DecodeDib"
 Write(masks, 44, 0); Reject("DecodeDib", masks);
 var palette = Dib(24, false, false); Write(palette, 32, int.MaxValue); Reject("DecodeDib", palette);
 var source = Decode("DecodeDib", Dib(24, false, false));
-var document = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.SpriteEditor.TextureCompositor>();
+var document = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>();
 document.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
 UnityEngine.Texture2D rendered = null;
 try
 {
     document.width = document.height = 8;
-    var drawing = (DCFApixels.SpriteEditor.DrawingLayerBehaviour)typeof(DCFApixels.SpriteEditor.DrawingLayerBehaviour)
+    var drawing = (DCFApixels.WhimTex.DrawingLayerBehaviour)typeof(DCFApixels.WhimTex.DrawingLayerBehaviour)
         .GetMethod("FromMergedTexture", flags).Invoke(null, new object[] { source });
-    drawing.colorRange = DCFApixels.SpriteEditor.LayerColorRange.Standard;
-    var placement = DCFApixels.SpriteEditor.TextureTransform.Default;
+    drawing.colorRange = DCFApixels.WhimTex.LayerColorRange.Standard;
+    var placement = DCFApixels.WhimTex.TextureTransform.Default;
     placement.scale = new UnityEngine.Vector2(.25f, .25f);
     drawing.transform = placement;
     document.layers.Add(drawing);

@@ -149,10 +149,10 @@ assert.ok(ui.indexOf('BuildPreviewGuides();') < ui.indexOf('BuildPreviewZoomTool
 assert.match(ui, /KeyCode.Escape && previewGuideManipulator\?\.IsDragging == true/);
 assert.match(read('TextureCompositorWindow.cs'), /ClearPreviewGuides\(\);\s*previewGuidesDocument = next;\s*compositor = next/);
 assert.ok(!/\bUndo\.|RenderTexture|MarkChanged|SetDirty/.test(src), 'Guides remain window-local and outside the render/Undo pipeline');
-assert.match(src, /sprite-editor-preview-surface/);
+assert.match(src, /whimtex-preview-surface/);
 assert.match(src, /ViewChanged \+= previewGuideOverlay.MarkDirtyRepaint/);
 const colorBody = src.match(/Color lineColor = ([\s\S]*?)\s*for \(int pass/)[1];
-const evaluateGuideColor = new Function('aligned', 'highlight', 'deleting', 'Color', 'SpriteEditorUserSettings',
+const evaluateGuideColor = new Function('aligned', 'highlight', 'deleting', 'Color', 'WhimTexUserSettings',
     `let lineColor = ${colorBody.replace(/(\d)f\b/g, '$1')} return lineColor;`);
 class Color { constructor(r, g, b, a) { Object.assign(this, { r, g, b, a }); } }
 const palette = {
@@ -167,7 +167,7 @@ for (const aligned of [false, true]) {
     assert.deepEqual(guideColor(aligned, true, false, Color), palette.GuideActiveColor, 'Active guide uses the configured color');
     assert.deepEqual(guideColor(aligned, true, true, Color), new Color(1, .35, .25, .9), 'Deletion color takes priority');
 }
-const styles = read('SpriteEditorSplitView.uss');
-assert.match(styles, /\.sprite-editor-guide-rail--left\s*\{[^}]*width: 8px;/);
-assert.match(styles, /\.sprite-editor-guide-rail--top\s*\{[^}]*height: 8px;/);
+const styles = read('WhimTexSplitView.uss');
+assert.match(styles, /\.whimtex-guide-rail--left\s*\{[^}]*width: 8px;/);
+assert.match(styles, /\.whimtex-guide-rail--top\s*\{[^}]*height: 8px;/);
 console.log(`Preview guides: ${checks} angle/position checks, extracted line clipping and input/lifecycle contracts passed (Unity not executed).`);

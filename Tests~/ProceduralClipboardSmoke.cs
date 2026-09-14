@@ -7,12 +7,12 @@ using System.IO;
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
-using DCFApixels.SpriteEditor;
+using DCFApixels.WhimTex;
 
 public static class ProceduralClipboardSmoke
 {
     const BindingFlags Hidden = BindingFlags.NonPublic | BindingFlags.Instance;
-    static readonly MethodInfo Read = typeof(SpriteEditorApi).GetMethod("ReadProceduralClipboard", BindingFlags.NonPublic | BindingFlags.Static);
+    static readonly MethodInfo Read = typeof(WhimTexApi).GetMethod("ReadProceduralClipboard", BindingFlags.NonPublic | BindingFlags.Static);
     static int checks;
     static void Check(bool value, string message) { checks++; if (!value) throw new Exception(message); }
     static object Build(string text) => Read.Invoke(null, new object[] { text, 128, 128 });
@@ -35,7 +35,7 @@ public static class ProceduralClipboardSmoke
     }
     public static string Main()
     {
-        string folder = "Packages/com.dcfa_pixels.sprite-editor/Documentation~/Examples/Clipboard";
+        string folder = "Packages/com.dcfapixels.whimtex/Documentation~/Examples/Clipboard";
         foreach (var file in Directory.GetFiles(folder, "*.json"))
         {
             using var data = (IDisposable)Build(File.ReadAllText(file));

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositor
     {
@@ -40,8 +40,8 @@ namespace DCFApixels.SpriteEditor
                 {
                     if (alphaOnly)
                     {
-                        SpriteEditorMaterials.EffectCache.SetFloat("_PackedAlpha", packedAlpha ? 1f : 0f);
-                        Graphics.Blit(cached, copy, SpriteEditorMaterials.EffectCache, 1);
+                        WhimTexMaterials.EffectCache.SetFloat("_PackedAlpha", packedAlpha ? 1f : 0f);
+                        Graphics.Blit(cached, copy, WhimTexMaterials.EffectCache, 1);
                     }
                     else Graphics.Blit(cached, copy);
                     return copy;
@@ -85,8 +85,8 @@ namespace DCFApixels.SpriteEditor
             var merged = ErrorTarget(numericErrors.width, numericErrors.height);
             try
             {
-                SpriteEditorMaterials.EffectCache.SetTexture("_Errors", numericErrors);
-                Graphics.Blit(errors, merged, SpriteEditorMaterials.EffectCache, 2);
+                WhimTexMaterials.EffectCache.SetTexture("_Errors", numericErrors);
+                Graphics.Blit(errors, merged, WhimTexMaterials.EffectCache, 2);
             }
             catch { RenderTexture.ReleaseTemporary(merged); throw; }
             RenderTexture.ReleaseTemporary(numericErrors);
@@ -121,8 +121,8 @@ namespace DCFApixels.SpriteEditor
             var mask = HdrUtility.Temporary(outputWidth, outputHeight);
             try
             {
-                SpriteEditorMaterials.EffectCache.SetFloat("_PackedAlpha", 0f);
-                Graphics.Blit(result, mask, SpriteEditorMaterials.EffectCache, 1);
+                WhimTexMaterials.EffectCache.SetFloat("_PackedAlpha", 0f);
+                Graphics.Blit(result, mask, WhimTexMaterials.EffectCache, 1);
                 return mask;
             }
             catch { RenderTexture.ReleaseTemporary(mask); throw; }

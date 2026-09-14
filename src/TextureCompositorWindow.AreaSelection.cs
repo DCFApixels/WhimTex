@@ -4,7 +4,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
@@ -113,42 +113,42 @@ namespace DCFApixels.SpriteEditor
         private void ValidateAreaCommand(ValidateCommandEvent evt)
         {
             if (!CanHandleAreaCommand(evt.commandName, evt.target as VisualElement)) return;
-            SpriteEditorUI.ConsumeEvent(evt);
+            WhimTexUI.ConsumeEvent(evt);
         }
         private void ExecuteAreaCommand(ExecuteCommandEvent evt)
         {
             if (!CanHandleAreaCommand(evt.commandName, evt.target as VisualElement)) return;
-            SpriteEditorUI.ConsumeEvent(evt);
+            WhimTexUI.ConsumeEvent(evt);
             if (evt.commandName == "Copy") CopySelection(false);
             else if (evt.commandName == "Paste") PasteAreaSelection();
             else ChangeAreaSelection(s => s.All());
         }
         private void AddAreaSelectionSettings(PreviewTool tool)
         {
-            var row = SpriteEditorUI.CreateToolbar();
-            row.AddToClassList("sprite-editor-area-settings");
+            var row = WhimTexUI.CreateToolbar();
+            row.AddToClassList("whimtex-area-settings");
             BindPreviewSettingsRow(row, tool);
             var mode = new EnumField(areaSelectionMode);
-            mode.AddToClassList("sprite-editor-area-mode");
+            mode.AddToClassList("whimtex-area-mode");
             mode.tooltip = "Selection operation. Shift adds, Alt subtracts, Shift+Alt intersects.";
             toolkitHeaderBindings.Track(mode, () => (Enum)areaSelectionMode);
             mode.RegisterValueChangedCallback(evt => areaSelectionMode = (SelectionCombine)evt.newValue);
             row.Add(mode);
-            row.Add(SpriteEditorUI.CreateButton("All", () => ChangeAreaSelection(s => s.All())));
-            row.Add(SpriteEditorUI.CreateButton("Deselect", () => ChangeAreaSelection(s => s.Clear())));
-            row.Add(SpriteEditorUI.CreateButton("Invert", () => ChangeAreaSelection(s => s.Invert())));
-            row.Add(SpriteEditorUI.CreateButton("Copy", () => CopySelection(false)));
-            row.Add(SpriteEditorUI.CreateButton("Copy Merged", () => CopyAreaSelection(true)));
-            row.Add(SpriteEditorUI.CreateButton("Paste", PasteAreaSelection));
-            var contentFill = SpriteEditorUI.CreateButton("Content-Aware Fill", OpenContentAwareFill);
+            row.Add(WhimTexUI.CreateButton("All", () => ChangeAreaSelection(s => s.All())));
+            row.Add(WhimTexUI.CreateButton("Deselect", () => ChangeAreaSelection(s => s.Clear())));
+            row.Add(WhimTexUI.CreateButton("Invert", () => ChangeAreaSelection(s => s.Invert())));
+            row.Add(WhimTexUI.CreateButton("Copy", () => CopySelection(false)));
+            row.Add(WhimTexUI.CreateButton("Copy Merged", () => CopyAreaSelection(true)));
+            row.Add(WhimTexUI.CreateButton("Paste", PasteAreaSelection));
+            var contentFill = WhimTexUI.CreateButton("Content-Aware Fill", OpenContentAwareFill);
             contentFill.tooltip = "Fill the selection or an inner border using nearby texture details. Creates a new Drawing Layer.";
             toolkitHeaderBindings.Add(() => contentFill.SetEnabled(GetAreaSelection() is CanvasSelection s &&
                 s.Active && s.Bounds.width > 0 && s.Bounds.height > 0));
             row.Add(contentFill);
             if (tool == PreviewTool.PolygonSelect)
-                row.Add(SpriteEditorUI.CreateButton("Close", () => areaSelectionManipulator?.CompletePolygon()));
+                row.Add(WhimTexUI.CreateButton("Close", () => areaSelectionManipulator?.CompletePolygon()));
             var status = new Label();
-            status.AddToClassList("sprite-editor-area-status");
+            status.AddToClassList("whimtex-area-status");
             toolkitHeaderBindings.Add(() =>
             {
                 CanvasSelection selected = GetAreaSelection();
@@ -180,14 +180,14 @@ namespace DCFApixels.SpriteEditor
                 else return false;
             }
             else return false;
-            SpriteEditorUI.ConsumeEvent(evt);
+            WhimTexUI.ConsumeEvent(evt);
             return true;
         }
         private bool TrySelectLayerAlpha(VisualElement row, Layer layer, PointerDownEvent evt)
         {
             if (evt.button != 0 || (!evt.ctrlKey && !evt.commandKey)) return false;
-            var thumbnail = row.Q<VisualElement>(className: "sprite-editor-layer-thumbnail") ??
-                row.Q<VisualElement>(className: "sprite-editor-group-foldout");
+            var thumbnail = row.Q<VisualElement>(className: "whimtex-layer-thumbnail") ??
+                row.Q<VisualElement>(className: "whimtex-group-foldout");
             if (thumbnail == null || !thumbnail.worldBound.Contains(evt.position)) return false;
             SelectionCombine combine = evt.shiftKey && evt.altKey ? SelectionCombine.Intersect :
                 evt.shiftKey ? SelectionCombine.Add : evt.altKey ? SelectionCombine.Subtract : SelectionCombine.Replace;
@@ -204,7 +204,7 @@ namespace DCFApixels.SpriteEditor
                 }
                 finally { if (rendered != null) DestroyImmediate(rendered); }
             });
-            SpriteEditorUI.ConsumeEvent(evt);
+            WhimTexUI.ConsumeEvent(evt);
             return true;
         }
         private void CopySelection(bool merged)
@@ -271,9 +271,9 @@ namespace DCFApixels.SpriteEditor
             {
                 string clipboardText = GUIUtility.systemCopyBuffer;
                 if (TryPasteImageUrl(clipboardText)) return;
-                if (SpriteEditorApi.IsProceduralClipboard(clipboardText))
+                if (WhimTexApi.IsProceduralClipboard(clipboardText))
                 {
-                    using var generated = SpriteEditorApi.ReadProceduralClipboard(clipboardText, compositor.width, compositor.height);
+                    using var generated = WhimTexApi.ReadProceduralClipboard(clipboardText, compositor.width, compositor.height);
                     bool resize = generated.HasCanvas && (compositor.width != generated.Document.width || compositor.height != generated.Document.height);
                     if (resize && HasPreviewLayers)
                         resize = EditorUtility.DisplayDialog("Canvas size from JSON",

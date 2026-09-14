@@ -1,11 +1,11 @@
 // Unity Pipeline eval_file. Transient objects only; no scene/asset writes or Undo.
 var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-var document = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.SpriteEditor.TextureCompositor>();
+var document = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>();
 document.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
 document.width = document.height = 512;
-var layer = new DCFApixels.SpriteEditor.GradientLayerBehaviour();
+var layer = new DCFApixels.WhimTex.GradientLayerBehaviour();
 var layerType = layer.GetType();
-var contextType = layerType.Assembly.GetType("DCFApixels.SpriteEditor.LayerRenderContext");
+var contextType = layerType.Assembly.GetType("DCFApixels.WhimTex.LayerRenderContext");
 var previous = UnityEngine.RenderTexture.active;
 bool srgb = UnityEngine.GL.sRGBWrite;
 var sentinel = UnityEngine.RenderTexture.GetTemporary(8, 8);
@@ -65,19 +65,19 @@ try
     foreach (UnityEngine.GradientMode mode in System.Enum.GetValues(typeof(UnityEngine.GradientMode)))
     {
         layer.gradient.mode = mode; layer.gradient.colorSpace = space;
-        var copy = DCFApixels.SpriteEditor.GradientUtility.Create(layer.gradient);
+        var copy = DCFApixels.WhimTex.GradientUtility.Create(layer.gradient);
         Check(!object.ReferenceEquals(copy, layer.gradient) && copy.Equals(layer.gradient),
             "Settings callback copies keys, mode and color space: " + mode + "/" + space);
         Check(copy.mode == mode && copy.colorSpace == space, "Copied interpolation metadata");
-        int originalHash = DCFApixels.SpriteEditor.GradientUtility.ComputeHash(copy);
+        int originalHash = DCFApixels.WhimTex.GradientUtility.ComputeHash(copy);
         copy.mode = mode == UnityEngine.GradientMode.Blend ? UnityEngine.GradientMode.Fixed : UnityEngine.GradientMode.Blend;
-        Check(originalHash != DCFApixels.SpriteEditor.GradientUtility.ComputeHash(copy), "Mode invalidates gradient hash");
+        Check(originalHash != DCFApixels.WhimTex.GradientUtility.ComputeHash(copy), "Mode invalidates gradient hash");
         Check(layer.gradient.mode == mode, "Independent copy does not modify original");
         copy.mode = mode;
         copy.colorSpace = space == UnityEngine.ColorSpace.Linear ? UnityEngine.ColorSpace.Gamma : UnityEngine.ColorSpace.Linear;
-        Check(originalHash != DCFApixels.SpriteEditor.GradientUtility.ComputeHash(copy), "Color space invalidates gradient hash");
-        foreach (DCFApixels.SpriteEditor.GradientLayerBehaviour.GradientType kind in
-            System.Enum.GetValues(typeof(DCFApixels.SpriteEditor.GradientLayerBehaviour.GradientType)))
+        Check(originalHash != DCFApixels.WhimTex.GradientUtility.ComputeHash(copy), "Color space invalidates gradient hash");
+        foreach (DCFApixels.WhimTex.GradientLayerBehaviour.GradientType kind in
+            System.Enum.GetValues(typeof(DCFApixels.WhimTex.GradientLayerBehaviour.GradientType)))
         {
             layer.gradientType = kind; layer.radius = .43f; layer.center = new UnityEngine.Vector2(.37f, .62f);
             layer.circularRepetitions = 3.2f;
@@ -87,12 +87,12 @@ try
         }
     }
     layer.gradient.mode = UnityEngine.GradientMode.Blend;
-    layer.gradientType = DCFApixels.SpriteEditor.GradientLayerBehaviour.GradientType.Circular;
+    layer.gradientType = DCFApixels.WhimTex.GradientLayerBehaviour.GradientType.Circular;
     layer.center = new UnityEngine.Vector2(.5f, .5f);
-    layer.circularWrapMode = DCFApixels.SpriteEditor.GradientLayerBehaviour.WrapMode.PingPong;
+    layer.circularWrapMode = DCFApixels.WhimTex.GradientLayerBehaviour.WrapMode.PingPong;
     Compare("Circular exact center and ping-pong");
     layer.circularRepetitions = 0; Compare("Zero repetitions");
-    layer.gradientType = DCFApixels.SpriteEditor.GradientLayerBehaviour.GradientType.Radial;
+    layer.gradientType = DCFApixels.WhimTex.GradientLayerBehaviour.GradientType.Radial;
     layer.radius = 0; Compare("Zero radius"); layer.radius = -.1f; Compare("Negative radius");
     layer.radius = .5f;
     layer.gradient = null; Compare("Null fallback");

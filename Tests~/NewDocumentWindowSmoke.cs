@@ -1,28 +1,28 @@
 // Unity Pipeline eval_file: temporary test tabs only; preserve all original documents.
-var type = typeof(DCFApixels.SpriteEditor.TextureCompositorWindow);
+var type = typeof(DCFApixels.WhimTex.TextureCompositorWindow);
 const System.Reflection.BindingFlags Flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
 var field = type.GetField("compositor", Flags);
 var parentField = typeof(EditorWindow).GetField("m_Parent", Flags);
 var previousFocus = EditorWindow.focusedWindow;
-var originals = Resources.FindObjectsOfTypeAll<DCFApixels.SpriteEditor.TextureCompositorWindow>();
-var originalDocuments = new System.Collections.Generic.Dictionary<DCFApixels.SpriteEditor.TextureCompositorWindow, object>();
+var originals = Resources.FindObjectsOfTypeAll<DCFApixels.WhimTex.TextureCompositorWindow>();
+var originalDocuments = new System.Collections.Generic.Dictionary<DCFApixels.WhimTex.TextureCompositorWindow, object>();
 foreach (var item in originals) originalDocuments[item] = field.GetValue(item);
-var origin = EditorWindow.CreateWindow<DCFApixels.SpriteEditor.TextureCompositorWindow>("New Document Test", type);
-var created = new System.Collections.Generic.List<DCFApixels.SpriteEditor.TextureCompositorWindow>();
-var document = (DCFApixels.SpriteEditor.TextureCompositor)field.GetValue(origin);
+var origin = EditorWindow.CreateWindow<DCFApixels.WhimTex.TextureCompositorWindow>("New Document Test", type);
+var created = new System.Collections.Generic.List<DCFApixels.WhimTex.TextureCompositorWindow>();
+var document = (DCFApixels.WhimTex.TextureCompositor)field.GetValue(origin);
 int checks = 0;
 void Check(bool value, string message) { if (!value) throw new Exception(message); checks++; }
 try
 {
-    document.layers.Add(new DCFApixels.SpriteEditor.Layer(new DCFApixels.SpriteEditor.ColorFillLayerBehaviour()));
+    document.layers.Add(new DCFApixels.WhimTex.Layer(new DCFApixels.WhimTex.ColorFillLayerBehaviour()));
     type.GetField("temporaryDocumentDirty", Flags).SetValue(origin, true);
     type.GetMethod("UpdateUnsavedChangesState", Flags).Invoke(origin, null);
     Check(origin.hasUnsavedChanges, "Source has unsaved edits");
     for (int i = 0; i < 2; i++)
     {
-        var next = (DCFApixels.SpriteEditor.TextureCompositorWindow)type.GetMethod("OpenNewDocument", Flags).Invoke(origin, null);
+        var next = (DCFApixels.WhimTex.TextureCompositorWindow)type.GetMethod("OpenNewDocument", Flags).Invoke(origin, null);
         created.Add(next);
-        var blank = (DCFApixels.SpriteEditor.TextureCompositor)field.GetValue(next);
+        var blank = (DCFApixels.WhimTex.TextureCompositor)field.GetValue(next);
         Check(next != origin && blank != document, "New window and document instances");
         Check(blank.layers.Count == 0 && !AssetDatabase.Contains(blank), "Empty unsaved document");
         Check(next.titleContent.text == "Untitled" && next.titleContent.image != null, "Default tab name and icon");

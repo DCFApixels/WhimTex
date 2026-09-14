@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositor
     {
@@ -36,7 +36,7 @@ namespace DCFApixels.SpriteEditor
         internal RenderTexture FinishStage(RenderTexture raw, bool saturate = false, LayerSwizzle swizzle = default)
         {
             if (raw == null) return null;
-            Material material = SpriteEditorMaterials.Hdr;
+            Material material = WhimTexMaterials.Hdr;
             RenderTexture result = null;
             try
             {
@@ -72,7 +72,7 @@ namespace DCFApixels.SpriteEditor
                 do
                 {
                     var next = ErrorTarget(Mathf.Max(1, (source.width + 1) / 2), Mathf.Max(1, (source.height + 1) / 2));
-                    Graphics.Blit(source, next, SpriteEditorMaterials.Hdr, 2);
+                    Graphics.Blit(source, next, WhimTexMaterials.Hdr, 2);
                     if (reduced != null) RenderTexture.ReleaseTemporary(reduced);
                     source = reduced = next;
                 } while (reduced.width > 1 || reduced.height > 1);

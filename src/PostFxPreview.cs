@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public enum PostFxSource { SceneView, GameCamera, Profile }
     public enum PostFxDepth { Solid, AlphaHeight, AlphaMask }
@@ -42,9 +42,9 @@ namespace DCFApixels.SpriteEditor
         public PostFxPreviewRequest(PostFxPreviewSettings settings, RenderTexture input, Color background, float zoom, Vector2 canvasSize = default)
         {
             this.settings = settings; this.input = input; this.background = background; this.zoom = zoom;
-            checkerLight = SpriteEditorUserSettings.CheckerLight;
-            checkerDark = SpriteEditorUserSettings.CheckerDark;
-            checkerSize = SpriteEditorUserSettings.CheckerSize;
+            checkerLight = WhimTexUserSettings.CheckerLight;
+            checkerDark = WhimTexUserSettings.CheckerDark;
+            checkerSize = WhimTexUserSettings.CheckerSize;
             this.canvasSize = canvasSize.x > 0 && canvasSize.y > 0 ? canvasSize :
                 input != null ? new Vector2(input.width, input.height) : Vector2.one;
         }

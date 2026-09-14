@@ -5,7 +5,7 @@ using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
@@ -34,7 +34,7 @@ namespace DCFApixels.SpriteEditor
                 if (uvEnabled) OpenUvDrawer();
                 else { uvExpanded = false; uvMap = null; uvCachedChannel = -1; RefreshPostFxPanel(); uvOverlay?.MarkDirtyRepaint(); }
             }) { text = "UV", tooltip = "Show mesh UV island outlines. Preview only; never included in the texture or export." };
-            uvButton.AddToClassList("sprite-editor-channel-button");
+            uvButton.AddToClassList("whimtex-channel-button");
             RefreshUvPanel();
             return uvButton;
         }
@@ -53,17 +53,17 @@ namespace DCFApixels.SpriteEditor
                 if (uvExpanded) brushesExpanded = postFxExpanded = false;
                 RefreshPostFxPanel();
             }) { tooltip = "Show or hide UV settings. Closing this panel keeps the UV outlines visible." };
-            uvTab.AddToClassList("sprite-editor-post-fx-tab"); tabs.Add(uvTab);
+            uvTab.AddToClassList("whimtex-post-fx-tab"); tabs.Add(uvTab);
         }
         private void BuildUvDrawer(VisualElement panel)
         {
             uvDrawer = new VisualElement { name = "uvDrawer" };
-            uvDrawer.AddToClassList("sprite-editor-post-fx-drawer");
+            uvDrawer.AddToClassList("whimtex-post-fx-drawer");
             uvDrawer.Add(CreatePaneHeader("UV", "uvTitle"));
             var fields = new ScrollView(ScrollViewMode.Vertical);
-            fields.AddToClassList("sprite-editor-post-fx-settings");
+            fields.AddToClassList("whimtex-post-fx-settings");
             uvDrawer.Add(fields); panel.Add(uvDrawer);
-            uvMeshField = SpriteEditorUI.ConfigureField(new ObjectField("Mesh")
+            uvMeshField = WhimTexUI.ConfigureField(new ObjectField("Mesh")
             {
                 objectType = typeof(Mesh), allowSceneObjects = false,
                 tooltip = "Drop a Mesh from the Project window. Expand a model asset to find its meshes. Stored with this document; the mesh is never modified."
@@ -71,17 +71,17 @@ namespace DCFApixels.SpriteEditor
             uvMeshField.RegisterValueChangedCallback(evt => ChangeUvReference(() =>
             { compositor.uvReferenceMesh = evt.newValue as Mesh; compositor.uvReferenceSubmesh = -1; }));
             fields.Add(uvMeshField);
-            uvChannelField = SpriteEditorUI.ConfigureField(new DropdownField("UV Channel",
+            uvChannelField = WhimTexUI.ConfigureField(new DropdownField("UV Channel",
                 new List<string> { "UV0", "UV1", "UV2", "UV3", "UV4", "UV5", "UV6", "UV7" }, 0));
             uvChannelField.RegisterValueChangedCallback(evt => ChangeUvReference(() => compositor.uvReferenceChannel = uvChannelField.index));
             fields.Add(uvChannelField);
-            uvSubmeshField = SpriteEditorUI.ConfigureField(new DropdownField("Submesh", new List<string> { "All" }, 0)
+            uvSubmeshField = WhimTexUI.ConfigureField(new DropdownField("Submesh", new List<string> { "All" }, 0)
             { tooltip = "Limit the overlay to one material slot, or show all submeshes." });
             uvSubmeshField.RegisterValueChangedCallback(evt => ChangeUvReference(() => compositor.uvReferenceSubmesh = uvSubmeshField.index - 1));
             fields.Add(uvSubmeshField);
-            var color = SpriteEditorUI.ConfigureField(new ColorField("Line Color") { value = uvLineColor, hdr = false, showAlpha = false });
+            var color = WhimTexUI.ConfigureField(new ColorField("Line Color") { value = uvLineColor, hdr = false, showAlpha = false });
             color.RegisterValueChangedCallback(evt => { uvLineColor = evt.newValue; uvOverlay?.MarkDirtyRepaint(); }); fields.Add(color);
-            var opacity = SpriteEditorUI.ConfigureField(new Slider("Opacity", 0f, 1f) { value = uvLineOpacity, showInputField = true });
+            var opacity = WhimTexUI.ConfigureField(new Slider("Opacity", 0f, 1f) { value = uvLineOpacity, showInputField = true });
             opacity.RegisterValueChangedCallback(evt =>
             { uvLineOpacity = float.IsNaN(evt.newValue) ? .65f : Mathf.Clamp01(evt.newValue); opacity.SetValueWithoutNotify(uvLineOpacity); uvOverlay?.MarkDirtyRepaint(); }); fields.Add(opacity);
             fields.Add(new Button(() =>
@@ -107,10 +107,10 @@ namespace DCFApixels.SpriteEditor
         }
         private void RefreshUvPanel()
         {
-            uvButton?.EnableInClassList("sprite-editor-channel-button--enabled", uvEnabled);
-            uvTab?.EnableInClassList("sprite-editor-post-fx-drawer--hidden", !uvEnabled);
+            uvButton?.EnableInClassList("whimtex-channel-button--enabled", uvEnabled);
+            uvTab?.EnableInClassList("whimtex-post-fx-drawer--hidden", !uvEnabled);
             if (uvTab != null) uvTab.text = uvExpanded ? "›" : "‹";
-            uvDrawer?.EnableInClassList("sprite-editor-post-fx-drawer--hidden", !uvEnabled || !uvExpanded);
+            uvDrawer?.EnableInClassList("whimtex-post-fx-drawer--hidden", !uvEnabled || !uvExpanded);
             uvDrawer?.SetEnabled(compositor != null);
         }
         private void RefreshUvReference()
@@ -152,7 +152,7 @@ namespace DCFApixels.SpriteEditor
         private void BuildUvOverlay()
         {
             uvOverlay = new VisualElement { name = "uvOverlay", pickingMode = PickingMode.Ignore };
-            uvOverlay.AddToClassList("sprite-editor-area-overlay");
+            uvOverlay.AddToClassList("whimtex-area-overlay");
             uvOverlay.generateVisualContent += DrawUvOverlay;
             toolkitPreviewCanvas.Add(uvOverlay);
             toolkitPreviewCanvas.ViewChanged += UvViewChanged;

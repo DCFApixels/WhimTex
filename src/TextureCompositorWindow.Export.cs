@@ -3,7 +3,7 @@ using System.IO;
 using UnityEditor;
 using UnityEngine;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
@@ -31,7 +31,7 @@ namespace DCFApixels.SpriteEditor
             if (string.IsNullOrEmpty(path)) return;
             try
             {
-                PsdExportReport report = SpriteEditorPsdExporter.Export(compositor, path, overwrite: true,
+                PsdExportReport report = WhimTexPsdExporter.Export(compositor, path, overwrite: true,
                     progress: (label, amount) =>
                     {
                         if (EditorUtility.DisplayCancelableProgressBar("Export layered PSD", label, amount))

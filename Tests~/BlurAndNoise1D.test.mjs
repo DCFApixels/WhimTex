@@ -4,7 +4,7 @@ import { test } from 'node:test';
 const read = p => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 const blur = read('src/Layers/BlurLayerBehaviour.cs');
 const ui = read('src/Layers/Editors/BlurLayerEditorWindow.cs');
-const api = read('src/Automation/SpriteEditorApi.Blur.cs');
+const api = read('src/Automation/WhimTexApi.Blur.cs');
 
 test('one serialized Blur type dispatches to the existing filters, applying output settings once', () => {
     assert.match(blur, /public sealed class BlurLayerBehaviour : TargetedLayerBehaviour/);
@@ -29,15 +29,15 @@ test('unified properties expose all settings and only hide inactive controls wit
         assert.ok(api.includes(`"${key}"`), `Setting ${key}`);
     }
     assert.ok(ui.includes('() => layer.mode = (BlurType)evt.newValue'));
-    assert.match(ui, /gaussian.EnableInClassList\("sprite-editor-hidden", layer.mode != BlurType.Gaussian\)/);
-    assert.match(ui, /direction.EnableInClassList\("sprite-editor-hidden", layer.mode == BlurType.Gaussian\)/);
-    assert.match(ui, /linear.EnableInClassList\("sprite-editor-hidden", layer.mode != BlurType.Linear\)/);
-    assert.match(ui, /circular.EnableInClassList\("sprite-editor-hidden", layer.mode != BlurType.Circular\)/);
+    assert.match(ui, /gaussian.EnableInClassList\("whimtex-hidden", layer.mode != BlurType.Gaussian\)/);
+    assert.match(ui, /direction.EnableInClassList\("whimtex-hidden", layer.mode == BlurType.Gaussian\)/);
+    assert.match(ui, /linear.EnableInClassList\("whimtex-hidden", layer.mode != BlurType.Linear\)/);
+    assert.match(ui, /circular.EnableInClassList\("whimtex-hidden", layer.mode != BlurType.Circular\)/);
     const window = read('src/TextureCompositorWindow.cs');
     assert.match(window, /new GUIContent\(descriptor.MenuName\)/);
     assert.match(window, /new GUIContent\("Add Inside\/" \+ descriptor.InsideMenuName\)/);
     assert.doesNotMatch(window, /new GUIContent\("(?:Add Inside\/)?(?:Gaussian Blur|Motion Blur)/);
-    const factory = read('src/Automation/SpriteEditorApi.Layers.cs');
+    const factory = read('src/Automation/WhimTexApi.Layers.cs');
     assert.match(factory, /LayerTypeRegistry.Find\(type\)/);
     assert.match(read('src/LayerTypeRegistry.cs'), /new Entry\("blur", "Blur", "Blur", "Blur", typeof\(BlurLayerBehaviour\)/);
     assert.doesNotMatch(factory, /"gaussianBlur"|"motionBlur"/);
@@ -50,7 +50,7 @@ test('1D noise projects before warp and keeps the original 2D path', () => {
     assert.match(shader, /p = float2\(dot\(centered, _NoiseAxis.xy\), 0.0\) \+ _NoiseDomain.zw/);
     assert.ok(shader.indexOf('dot(centered, _NoiseAxis.xy)') < shader.indexOf('fnlDomainWarp2D'));
     assert.match(read('src/Layers/NoiseLayerBehaviour.cs'), /enum NoiseDimensions \{ TwoD, OneD \}/);
-    assert.match(read('src/Layers/Editors/NoiseLayerEditorWindow.cs'), /axis.EnableInClassList\("sprite-editor-hidden", layer.dimensions != NoiseLayerBehaviour.NoiseDimensions.OneD\)/);
+    assert.match(read('src/Layers/Editors/NoiseLayerEditorWindow.cs'), /axis.EnableInClassList\("whimtex-hidden", layer.dimensions != NoiseLayerBehaviour.NoiseDimensions.OneD\)/);
 });
 
 test('1D domain stays constant along stripes on rectangular canvases and at any direction', () => {

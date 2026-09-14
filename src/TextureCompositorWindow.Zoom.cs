@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
@@ -33,8 +33,8 @@ namespace DCFApixels.SpriteEditor
 
         private void AddPreviewZoomSettings()
         {
-            VisualElement row = SpriteEditorUI.CreateToolbar();
-            row.AddToClassList("sprite-editor-zoom-settings");
+            VisualElement row = WhimTexUI.CreateToolbar();
+            row.AddToClassList("whimtex-zoom-settings");
             BindPreviewSettingsRow(row, PreviewTool.Zoom);
             previewZoomPercent = new FloatField("Zoom %")
             {
@@ -43,8 +43,8 @@ namespace DCFApixels.SpriteEditor
             };
             displayedPreviewScale = float.NaN;
             displayedPreviewRotation = float.NaN;
-            previewZoomPercent.AddToClassList("sprite-editor-zoom-percent");
-            previewZoomPercent.AddToClassList("sprite-editor-view-field");
+            previewZoomPercent.AddToClassList("whimtex-zoom-percent");
+            previewZoomPercent.AddToClassList("whimtex-view-field");
             previewZoomPercent.RegisterValueChangedCallback(evt =>
             {
                 SetPreviewZoomPercent(evt.newValue);
@@ -52,21 +52,21 @@ namespace DCFApixels.SpriteEditor
             });
             toolkitHeaderBindings.Add(RefreshPreviewZoomReadout);
             row.Add(previewZoomPercent);
-            row.Add(SpriteEditorUI.CreateButton("Fit", () => ChangePreviewZoom(true)));
-            row.Add(SpriteEditorUI.CreateButton("100%", () => ChangePreviewZoom(false)));
+            row.Add(WhimTexUI.CreateButton("Fit", () => ChangePreviewZoom(true)));
+            row.Add(WhimTexUI.CreateButton("100%", () => ChangePreviewZoom(false)));
             previewRotationField = new FloatField("Angle °")
             {
                 isDelayed = true,
                 tooltip = "View rotation in degrees. Enter an exact angle; no snapping is applied."
             };
-            previewRotationField.AddToClassList("sprite-editor-view-field");
+            previewRotationField.AddToClassList("whimtex-view-field");
             previewRotationField.RegisterValueChangedCallback(evt =>
             {
                 SetPreviewRotation(evt.newValue);
                 previewRotationField.SetValueWithoutNotify(previewViewport.Rotation);
             });
             row.Add(previewRotationField);
-            previewRotationReset = SpriteEditorUI.CreateButton("0°", () =>
+            previewRotationReset = WhimTexUI.CreateButton("0°", () =>
             {
                 SetPreviewRotation(0f);
                 toolkitPreviewCanvas.Focus();
@@ -153,7 +153,7 @@ namespace DCFApixels.SpriteEditor
             {
                 this.owner = owner;
                 selection = new VisualElement { pickingMode = PickingMode.Ignore };
-                selection.AddToClassList("sprite-editor-zoom-selection");
+                selection.AddToClassList("whimtex-zoom-selection");
                 selection.generateVisualContent += DrawSelection;
             }
 
@@ -206,7 +206,7 @@ namespace DCFApixels.SpriteEditor
             {
                 if (IsDragging)
                 {
-                    SpriteEditorUI.ConsumeEvent(evt);
+                    WhimTexUI.ConsumeEvent(evt);
                     return;
                 }
                 if (!owner.HasPreviewLayers || (evt.button != 2 && !(evt.button == 0 && owner.IsPreviewZoomEnabled)) ||
@@ -227,7 +227,7 @@ namespace DCFApixels.SpriteEditor
                 pointerId = evt.pointerId;
                 target.CapturePointer(pointerId);
                 owner.UpdatePreviewCursor(evt.localPosition, evt.altKey);
-                SpriteEditorUI.ConsumeEvent(evt);
+                WhimTexUI.ConsumeEvent(evt);
             }
 
             private void OnWheel(WheelEvent evt)
@@ -235,7 +235,7 @@ namespace DCFApixels.SpriteEditor
                 Vector2 point = target.WorldToLocal(evt.mousePosition);
                 if (!owner.HasPreviewLayers || !target.contentRect.Contains(point) || evt.delta.y == 0f ||
                     float.IsNaN(evt.delta.y) || float.IsInfinity(evt.delta.y)) return;
-                SpriteEditorUI.ConsumeEvent(evt);
+                WhimTexUI.ConsumeEvent(evt);
                 if (IsDragging && !panning) Cancel();
                 owner.shapeManipulator?.Cancel();
                 owner.FinishPreviewTransform();
@@ -287,7 +287,7 @@ namespace DCFApixels.SpriteEditor
                 }
                 Cancel();
                 owner.UpdatePreviewCursor(evt.localPosition, evt.altKey);
-                SpriteEditorUI.ConsumeEvent(evt);
+                WhimTexUI.ConsumeEvent(evt);
             }
 
             private void RotateTo(Vector2 point, bool disableSnap)

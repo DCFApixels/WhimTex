@@ -19,5 +19,5 @@ assert.doesNotMatch(view, /opacity.SetEnabled\(active\)|mode.SetEnabled\(active\
 const rows = read('TextureCompositorWindow.UI.cs');
 assert.match(rows, /ApplySelectedOpacity\(layer, evt.newValue\)/);
 assert.match(rows, /ApplySelectedBlend\(layer, \(BlendMode\)evt.newValue\)/);
-assert.match(read('SpriteEditorUI.cs'), /LayerColorSettingsView.Build\(root, layer, apply, bindings,/);
+assert.match(read('WhimTexUI.cs'), /LayerColorSettingsView.Build\(root, layer, apply, bindings,/);
 console.log('Color & Blending: duplicate controls, common values, Undo callbacks and group modes verified (source contracts).');

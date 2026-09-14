@@ -1,9 +1,9 @@
 // Run with Unity Pipeline eval_file. Uses transient objects only; no scene/asset writes.
 var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-var type = typeof(DCFApixels.SpriteEditor.TextureCompositor);
+var type = typeof(DCFApixels.WhimTex.TextureCompositor);
 var originalTarget = UnityEngine.RenderTexture.active;
 bool originalSrgb = UnityEngine.GL.sRGBWrite;
-var document = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.SpriteEditor.TextureCompositor>();
+var document = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>();
 document.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
 document.width = document.height = 16;
 var source = new UnityEngine.Texture2D(16, 16, UnityEngine.TextureFormat.RGBAHalf, false, true);
@@ -12,10 +12,10 @@ var colors = new UnityEngine.Color[256];
 for (int i = 0; i < colors.Length; i++) colors[i] = new UnityEngine.Color(.2f, .4f, .6f, 1f);
 source.SetPixels(colors);
 source.Apply(false, false);
-var file = new DCFApixels.SpriteEditor.FileLayerBehaviour { sourceTexture = source };
-var leaf = new DCFApixels.SpriteEditor.Layer(file);
-var groupBehaviour = new DCFApixels.SpriteEditor.GroupLayerBehaviour();
-var group = new DCFApixels.SpriteEditor.Layer(groupBehaviour);
+var file = new DCFApixels.WhimTex.FileLayerBehaviour { sourceTexture = source };
+var leaf = new DCFApixels.WhimTex.Layer(file);
+var groupBehaviour = new DCFApixels.WhimTex.GroupLayerBehaviour();
+var group = new DCFApixels.WhimTex.Layer(groupBehaviour);
 groupBehaviour.layers.Add(leaf);
 document.layers.Add(group);
 var sentinel = new UnityEngine.RenderTexture(8, 8, 0) { hideFlags = UnityEngine.HideFlags.HideAndDontSave };

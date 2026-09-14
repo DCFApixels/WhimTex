@@ -6,7 +6,7 @@ const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8'
 const fnl = read('src/Shaders/ThirdParty/FastNoiseLite.hlsl');
 const layer = read('src/Layers/NoiseLayerBehaviour.cs');
 const shader = read('src/Shaders/Noise.shader');
-const api = read('src/Automation/SpriteEditorApi.Noise.cs');
+const api = read('src/Automation/WhimTexApi.Noise.cs');
 const ui = read('src/Layers/Editors/NoiseLayerEditorWindow.cs');
 assert.equal(createHash('sha256').update(fnl).digest('hex'),
     '275f0e558ea7fd967dd0a3f47f14397759e9e6da403d11c290484707dfb8c2cb', 'Pinned upstream HLSL is unchanged');
@@ -39,8 +39,8 @@ assert.match(layer, /SetInteger\("_NoiseSeed", seed\)/, 'No lossy float conversi
 assert.match(shader, /#pragma target 4\.5/);
 assert.match(shader, /if \(_NoiseType == 6 \|\| _NoiseType == 7\)/);
 assert.ok(shader.indexOf('WhiteNoise(i.uv)') < shader.indexOf('fnl_state state'), 'White Noise bypasses fractal and warp');
-assert.match(ui, /fractalChoice.EnableInClassList\("sprite-editor-hidden", isWhite\)/);
-assert.match(ui, /warpChoice.EnableInClassList\("sprite-editor-hidden", isWhite\)/);
+assert.match(ui, /fractalChoice.EnableInClassList\("whimtex-hidden", isWhite\)/);
+assert.match(ui, /warpChoice.EnableInClassList\("whimtex-hidden", isWhite\)/);
 assert.match(shader, /return float4\(rgb, 1\.0\)/);
 assert.match(shader, /if \(_NoiseEncoding == 0\) rgb = SpriteDecode\(rgb\)/);
 assert.doesNotMatch(layer, /ReadPixels|GetPixels|SetPixels|GetRawTextureData/);
@@ -48,8 +48,8 @@ assert.doesNotMatch(ui, /\.Clear\(|\.isDelayed\s*=\s*true/);
 assert.match(ui, /ImmediatePreviewUpdates => true/);
 assert.match(read('src/Utils.cs'), /protected virtual bool ImmediatePreviewUpdates => false/);
 assert.match(read('src/TextureCompositorWindow.cs'), /immediate \|= GetSelectedLayer\(\)\?\.Behaviour is NoiseLayerBehaviour/);
-assert.match(read('src/SpriteEditorSplitView.uss'), /\.sprite-editor-hidden,\s*\.sprite-editor-brush-setting--hidden\s*\{\s*display: none;/);
+assert.match(read('src/WhimTexSplitView.uss'), /\.whimtex-hidden,\s*\.whimtex-brush-setting--hidden\s*\{\s*display: none;/);
 assert.match(read('src/LayerTypeRegistry.cs'), /new Entry\("noise", "Noise", "Noise", "Noise Layer", typeof\(NoiseLayerBehaviour\)/);
-assert.match(read('src/Automation/SpriteEditorApi.Layers.cs'), /LayerTypeRegistry.Find\(type\)/);
-assert.match(read('src/Automation/SpriteEditorApi.Inspect.cs'), /LayerTypeRegistry.Find\(layer\?\.Behaviour\?\.GetType\(\)\)\?\.ApiId/);
+assert.match(read('src/Automation/WhimTexApi.Layers.cs'), /LayerTypeRegistry.Find\(type\)/);
+assert.match(read('src/Automation/WhimTexApi.Inspect.cs'), /LayerTypeRegistry.Find\(layer\?\.Behaviour\?\.GetType\(\)\)\?\.ApiId/);
 console.log('Noise source contracts passed: pinned HLSL, enum/uniform mappings, API/UI coverage and live GPU path.');

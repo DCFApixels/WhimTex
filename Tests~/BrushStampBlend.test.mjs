@@ -69,6 +69,6 @@ assert.ok(brush.includes('material.SetFloat("_BrushStampAccumulation", 0f)'));
 const dynamics=read('src/BrushDynamics.cs');
 assert.ok(dynamics.includes('enum BrushBlendApplication { Stroke, Stamp }'));
 assert.ok(dynamics.includes('!erase && blend != BlendMode.Normal && blendApplication == BrushBlendApplication.Stamp'));
-assert.ok(read('src/Automation/SpriteEditorApi.Paint.cs').includes('dynamics.blendApplication = Enum(brush, "blendApplication", dynamics.blendApplication)'));
-assert.ok(read('src/Automation/SpriteEditorApi.Inspect.cs').includes('["blendApplication"] = dynamics.blendApplication.ToString()'));
+assert.ok(read('src/Automation/WhimTexApi.Paint.cs').includes('dynamics.blendApplication = Enum(brush, "blendApplication", dynamics.blendApplication)'));
+assert.ok(read('src/Automation/WhimTexApi.Inspect.cs').includes('["blendApplication"] = dynamics.blendApplication.ToString()'));
 console.log('Brush per-stamp blend scalar/reference/source checks passed: '+checks+' (Unity/GPU not executed).');

@@ -1,9 +1,9 @@
 using Newtonsoft.Json.Linq;
-using static DCFApixels.SpriteEditor.AgentJson;
+using static DCFApixels.WhimTex.AgentJson;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
-    public static partial class SpriteEditorApi
+    public static partial class WhimTexApi
     {
         private static void SetMakeSeamless(MakeSeamlessLayerBehaviour layer, JObject value)
         {

@@ -1,10 +1,10 @@
 using Newtonsoft.Json.Linq;
 using UnityEngine;
-using static DCFApixels.SpriteEditor.AgentJson;
+using static DCFApixels.WhimTex.AgentJson;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
-    public static partial class SpriteEditorApi
+    public static partial class WhimTexApi
     {
         private static void SetBlur(BlurLayerBehaviour layer, JObject value)
         {

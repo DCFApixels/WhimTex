@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     internal static class LayerSelectionOperations
     {

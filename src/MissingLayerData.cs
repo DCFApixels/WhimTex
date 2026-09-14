@@ -4,7 +4,7 @@ using System.Globalization;
 using System.IO;
 using Newtonsoft.Json.Linq;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     // Reads Unity's missing-reference diagnostic payload, never rewrites asset YAML.
     internal static class MissingLayerData

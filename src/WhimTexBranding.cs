@@ -1,9 +1,9 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
-    internal static class SpriteEditorBranding
+    internal static class WhimTexBranding
     {
         private static Texture2D icon;
         private static Texture2D previewBackdrop;

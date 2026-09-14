@@ -5,7 +5,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow : EditorWindow, IHasCustomMenu
     {
@@ -20,9 +20,9 @@ namespace DCFApixels.SpriteEditor
         private const float PreviewPaneMinWidth = 200f;
         private const float SettingsPaneMinWidth = 320f;
         private const float PanePadding = 8f;
-        private const string DraggedLayerIdKey = "DCFApixels.SpriteEditor.DraggedLayerId";
-        private const string DraggedCompositorIdKey = "DCFApixels.SpriteEditor.DraggedCompositorId";
-        private const string PaintingPreviewScalePrefKey = "DCFApixels.SpriteEditor.PaintingPreviewScale";
+        private const string DraggedLayerIdKey = "DCFApixels.WhimTex.DraggedLayerId";
+        private const string DraggedCompositorIdKey = "DCFApixels.WhimTex.DraggedCompositorId";
+        private const string PaintingPreviewScalePrefKey = "DCFApixels.WhimTex.PaintingPreviewScale";
 
         private static readonly Color DropIndicatorColor = new Color(0.20f, 0.58f, 0.95f, 1f);
         private static readonly Color GroupDropHighlightColor = new Color(0.20f, 0.58f, 0.95f, 0.22f);
@@ -87,7 +87,7 @@ namespace DCFApixels.SpriteEditor
 
         public void AddItemsToMenu(GenericMenu menu)
         {
-            menu.AddItem(new GUIContent("User Settings…"), false, SpriteEditorUserSettingsWindow.Open);
+            menu.AddItem(new GUIContent("User Settings…"), false, WhimTexUserSettingsWindow.Open);
         }
 
         internal static void ConfirmResetEditorSettings(EditorWindow notificationWindow)
@@ -115,8 +115,8 @@ namespace DCFApixels.SpriteEditor
             EditorPrefs.DeleteKey(PaintToolSettingsPrefKey);
             EditorPrefs.DeleteKey(PreviewToolPrefKey);
             EditorPrefs.DeleteKey(PreviewTransformReturnToolPrefKey);
-            SpriteEditorColorInputs.Reset();
-            SpriteEditorUserSettings.Reset();
+            WhimTexColorInputs.Reset();
+            WhimTexUserSettings.Reset();
             foreach (TextureCompositorWindow window in windows)
                 window.ResetEditorWindowSettings();
             notificationWindow?.ShowNotification(new GUIContent("WhimTex settings reset."));
@@ -190,7 +190,7 @@ namespace DCFApixels.SpriteEditor
                 EditorPrefs.GetFloat(PaintingPreviewScalePrefKey, DefaultPaintingPreviewScale));
             TextureCompositor.Changed += OnCompositorChanged;
             TextureCompositor.OutputTextureChanged += OnOutputTextureChanged;
-            SpriteEditorUserSettings.Changed += OnPreviewAppearanceChanged;
+            WhimTexUserSettings.Changed += OnPreviewAppearanceChanged;
             AssemblyReloadEvents.beforeAssemblyReload += StopLiveOutput;
             EditorApplication.quitting += StopLiveOutput;
             EditorApplication.projectChanged += OnLiveOutputProjectChanged;
@@ -210,7 +210,7 @@ namespace DCFApixels.SpriteEditor
         {
             CancelImageUrlPaste();
             uvMap = null; uvCachedMesh = null; uvCachedDocument = null;
-            SpriteEditorApi.CloseLiveSession(agentSessionId);
+            WhimTexApi.CloseLiveSession(agentSessionId);
             ReleaseBrushStrokePreview();
             EditorApplication.delayCall -= RestoreBrushTipAfterReload;
             EditorApplication.projectChanged -= RestoreBrushTipAfterReload;
@@ -224,7 +224,7 @@ namespace DCFApixels.SpriteEditor
             paintSettings?.ReleasePresetTip();
             TextureCompositor.Changed -= OnCompositorChanged;
             TextureCompositor.OutputTextureChanged -= OnOutputTextureChanged;
-            SpriteEditorUserSettings.Changed -= OnPreviewAppearanceChanged;
+            WhimTexUserSettings.Changed -= OnPreviewAppearanceChanged;
             AssemblyReloadEvents.beforeAssemblyReload -= StopLiveOutput;
             EditorApplication.quitting -= StopLiveOutput;
             EditorApplication.projectChanged -= OnLiveOutputProjectChanged;
@@ -250,7 +250,7 @@ namespace DCFApixels.SpriteEditor
             toolkitHeaderBindings.Refresh();
             previewGuideOverlay?.MarkDirtyRepaint();
             postFxDirty = true;
-            postFxBackgroundField?.SetValueWithoutNotify(SpriteEditorUserSettings.PostFxBackground);
+            postFxBackgroundField?.SetValueWithoutNotify(WhimTexUserSettings.PostFxBackground);
             refreshPostFxFields?.Invoke();
             toolkitPreviewCanvas?.RefreshCheckerColors();
             if (previewDebug)
@@ -535,7 +535,7 @@ namespace DCFApixels.SpriteEditor
 
         private void ClearDrawingLayer(DrawingLayerBehaviour layer)
         {
-            if (layer == null || compositor == null || SpriteEditorApi.IsLayerContentLocked(compositor, layer))
+            if (layer == null || compositor == null || WhimTexApi.IsLayerContentLocked(compositor, layer))
                 return;
             if (lineAnchorLayer == layer)
                 lineAnchorLayer = null;
@@ -782,16 +782,16 @@ namespace DCFApixels.SpriteEditor
                 menu.AddDisabledItem(new GUIContent("Move Out Of Group"));
 
             menu.AddItem(new GUIContent("Group Selected"), false, () => GroupLayers(roots));
-            if (roots.Exists(SpriteEditorApi.ContainsReservation))
+            if (roots.Exists(WhimTexApi.ContainsReservation))
             {
                 menu.AddSeparator(string.Empty);
                 menu.AddDisabledItem(new GUIContent("Content reserved for agent"));
                 foreach (var locked in targets)
-                    if (SpriteEditorApi.IsLayerContentLocked(compositor, locked))
+                    if (WhimTexApi.IsLayerContentLocked(compositor, locked))
                     {
                         menu.AddItem(new GUIContent("Cancel Agent Edit"), false, () =>
                         {
-                            foreach (var target in targets) SpriteEditorApi.CancelLayerEdit(compositor, target);
+                            foreach (var target in targets) WhimTexApi.CancelLayerEdit(compositor, target);
                         });
                         break;
                     }
@@ -811,7 +811,7 @@ namespace DCFApixels.SpriteEditor
                 ExecuteContextChange("Change Clipping Mask", () =>
                 {
                     foreach (Layer target in clippingTargets)
-                        if (!SpriteEditorApi.IsLayerContentLocked(compositor, target) &&
+                        if (!WhimTexApi.IsLayerContentLocked(compositor, target) &&
                             compositor.TryFindLayer(target, out _, out _)) target.clippingMask = !allClipped;
                 }));
             if (targets.Exists(target => target?.IsGroup == true))
@@ -860,7 +860,7 @@ namespace DCFApixels.SpriteEditor
 
         private void ConvertLayersToDrawing(List<Layer> layers, bool applyTransform, bool groupConfirmed = false)
         {
-            if (layers.Exists(SpriteEditorApi.ContainsReservation))
+            if (layers.Exists(WhimTexApi.ContainsReservation))
             { ShowNotification(new GUIContent("Finish or cancel generation before converting these layers.")); return; }
             FinishPreviewTransform();
             FinishPaintingStroke();
@@ -1134,7 +1134,7 @@ namespace DCFApixels.SpriteEditor
             lineAnchorLayer = null;
             TextureCompositor previous = compositor;
             previous?.ReleaseLayerThumbnails();
-            if (agentSessionDocument != next) SpriteEditorApi.CloseLiveSession(agentSessionId);
+            if (agentSessionDocument != next) WhimTexApi.CloseLiveSession(agentSessionId);
             StopLiveOutput();
             ReleaseEffectCache();
             ResetAreaSelection();
@@ -1232,7 +1232,7 @@ namespace DCFApixels.SpriteEditor
                     DestroyImmediate(copy);
                 return false;
             }
-            SpriteEditorApi.TransferLiveDocument(agentSessionId, compositor, copy);
+            WhimTexApi.TransferLiveDocument(agentSessionId, compositor, copy);
             agentSessionDocument = copy;
             SetCompositor(copy);
             Selection.activeObject = copy.OutputTexture;

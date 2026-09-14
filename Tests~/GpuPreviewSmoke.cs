@@ -3,7 +3,7 @@
 
 int checks = 0;
 const System.Reflection.BindingFlags InstanceHidden = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-var type = typeof(DCFApixels.SpriteEditor.TextureCompositor);
+var type = typeof(DCFApixels.WhimTex.TextureCompositor);
 var renderPreview = type.GetMethod("RenderPreview", InstanceHidden);
 var composePreview = type.GetMethod("ComposePreview", InstanceHidden);
 var copy = type.GetMethod("CopyToTexture2D", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
@@ -27,7 +27,7 @@ void EqualPixels(Texture2D a, Texture2D b)
     checks++;
 }
 
-var document = ScriptableObject.CreateInstance<DCFApixels.SpriteEditor.TextureCompositor>();
+var document = ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>();
 Texture2D source = null;
 RenderTexture sentinel = null;
 RenderTexture originalActive = RenderTexture.active;
@@ -44,16 +44,16 @@ try
             pixels[y * 32 + x] = new Color32((byte)(x * 8), (byte)(y * 16), 93,
                 (byte)(x > 3 && x < 28 && y > 2 && y < 13 ? 180 : 0));
     source.Apply(false, false);
-    var drawing = new DCFApixels.SpriteEditor.DrawingLayerBehaviour();
-    typeof(DCFApixels.SpriteEditor.DrawingLayerBehaviour).GetField("pixels", InstanceHidden).SetValue(drawing, source);
+    var drawing = new DCFApixels.WhimTex.DrawingLayerBehaviour();
+    typeof(DCFApixels.WhimTex.DrawingLayerBehaviour).GetField("pixels", InstanceHidden).SetValue(drawing, source);
     sentinel = RenderTexture.GetTemporary(2, 2);
     RenderTexture.active = sentinel;
 
     for (int mode = 0; mode < 4; mode++)
     {
         document.layers.Clear();
-        if (mode == 2) document.layers.Add(new DCFApixels.SpriteEditor.SDFLayerBehaviour());
-        if (mode == 3) document.layers.Add(new DCFApixels.SpriteEditor.OutlineLayerBehaviour());
+        if (mode == 2) document.layers.Add(new DCFApixels.WhimTex.SDFLayerBehaviour());
+        if (mode == 3) document.layers.Add(new DCFApixels.WhimTex.OutlineLayerBehaviour());
         if (mode != 0) document.layers.Add(drawing);
         foreach (int size in new[] { 32, 16, 1, 32 })
         {
@@ -70,7 +70,7 @@ try
                 var linear = (Texture2D)composePreview.Invoke(document, new object[] { size });
                 try
                 {
-                    var toLdr = type.Assembly.GetType("DCFApixels.SpriteEditor.HdrUtility")
+                    var toLdr = type.Assembly.GetType("DCFApixels.WhimTex.HdrUtility")
                         .GetMethod("ToLdr", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
                     legacy = (Texture2D)toLdr.Invoke(null, new object[] { linear, false });
                 }

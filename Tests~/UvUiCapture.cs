@@ -1,5 +1,5 @@
 // Optional screenshot of only the temporary test window, after UvUiSetup.cs.
-foreach(var window in UnityEngine.Resources.FindObjectsOfTypeAll<DCFApixels.SpriteEditor.TextureCompositorWindow>())
+foreach(var window in UnityEngine.Resources.FindObjectsOfTypeAll<DCFApixels.WhimTex.TextureCompositorWindow>())
 {
     if(window.name!="WhimTex UV smoke")continue;
     var rect=window.position;

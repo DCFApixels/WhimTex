@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class DrawingLayerBehaviour
     {
@@ -31,7 +31,7 @@ namespace DCFApixels.SpriteEditor
                 {
                     var colors = source.colorKeys;
                     for (int i = 0; i < colors.Length; i++)
-                        colors[i].color = SpriteEditorColorInputs.StandardColor(colors[i].color);
+                        colors[i].color = WhimTexColorInputs.StandardColor(colors[i].color);
                     evaluated = new Gradient { mode = source.mode, colorSpace = source.colorSpace };
                     evaluated.SetKeys(colors, source.alphaKeys);
                 }

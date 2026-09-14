@@ -1,5 +1,5 @@
-#ifndef SPRITE_EDITOR_HDR_COLOR_INCLUDED
-#define SPRITE_EDITOR_HDR_COLOR_INCLUDED
+#ifndef WHIMTEX_HDR_COLOR_INCLUDED
+#define WHIMTEX_HDR_COLOR_INCLUDED
 float3 SpriteEncode(float3 color)
 {
     float3 value = abs(color);

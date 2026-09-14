@@ -1,7 +1,7 @@
 // Opt-in after manual compilation. Temporary CPU textures/documents only; no windows, assets, Undo or reload triggered.
 const System.Reflection.BindingFlags Hidden = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-var drawingType = typeof(DCFApixels.SpriteEditor.DrawingLayerBehaviour);
-var documentType = typeof(DCFApixels.SpriteEditor.TextureCompositor);
+var drawingType = typeof(DCFApixels.WhimTex.DrawingLayerBehaviour);
+var documentType = typeof(DCFApixels.WhimTex.TextureCompositor);
 var pixelsField = drawingType.GetField("pixels", Hidden);
 var disable = documentType.GetMethod("OnDisable", Hidden);
 var enable = documentType.GetMethod("OnEnable", Hidden);
@@ -13,10 +13,10 @@ void Check(bool condition, string message)
 }
 foreach (var format in new[] { UnityEngine.TextureFormat.RGBA32, UnityEngine.TextureFormat.RGBAHalf })
 {
-    var document = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.SpriteEditor.TextureCompositor>();
+    var document = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>();
     document.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
     var textures = new System.Collections.Generic.List<UnityEngine.Texture2D>();
-    var layers = new System.Collections.Generic.List<DCFApixels.SpriteEditor.DrawingLayerBehaviour>();
+    var layers = new System.Collections.Generic.List<DCFApixels.WhimTex.DrawingLayerBehaviour>();
     try
     {
         for (int i = 0; i < 2; i++)
@@ -28,16 +28,16 @@ foreach (var format in new[] { UnityEngine.TextureFormat.RGBA32, UnityEngine.Tex
             texture.SetPixels(new[] { color, color, color, color });
             texture.Apply(false, false);
             textures.Add(texture);
-            var layer = new DCFApixels.SpriteEditor.DrawingLayerBehaviour();
+            var layer = new DCFApixels.WhimTex.DrawingLayerBehaviour();
             pixelsField.SetValue(layer, texture);
             layers.Add(layer);
         }
         document.layers.Add(layers[0]);
-        document.layers.Add(new DCFApixels.SpriteEditor.GroupLayerBehaviour
+        document.layers.Add(new DCFApixels.WhimTex.GroupLayerBehaviour
         {
-            layers = new System.Collections.Generic.List<DCFApixels.SpriteEditor.Layer> {
-                new DCFApixels.SpriteEditor.GroupLayerBehaviour {
-                    layers = new System.Collections.Generic.List<DCFApixels.SpriteEditor.Layer> { layers[1] }
+            layers = new System.Collections.Generic.List<DCFApixels.WhimTex.Layer> {
+                new DCFApixels.WhimTex.GroupLayerBehaviour {
+                    layers = new System.Collections.Generic.List<DCFApixels.WhimTex.Layer> { layers[1] }
                 }
             }
         });

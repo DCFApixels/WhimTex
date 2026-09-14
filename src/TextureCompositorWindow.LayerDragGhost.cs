@@ -2,7 +2,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
@@ -88,26 +88,26 @@ namespace DCFApixels.SpriteEditor
             public LayerDragGhost(VisualElement row, string layerName)
             {
                 pickingMode = PickingMode.Ignore;
-                AddToClassList("sprite-editor-layer-drag-ghost");
+                AddToClassList("whimtex-layer-drag-ghost");
                 style.width = row.worldBound.width;
                 style.height = row.worldBound.height;
                 background = row.resolvedStyle.backgroundColor;
                 generateVisualContent += DrawBackground;
 
-                Image thumbnail = row.Q<Image>(className: "sprite-editor-layer-thumbnail");
+                Image thumbnail = row.Q<Image>(className: "whimtex-layer-thumbnail");
                 if (thumbnail != null)
                     AddCopy(new Image { image = thumbnail.image, scaleMode = thumbnail.scaleMode }, thumbnail, row);
                 else
                 {
-                    VisualElement foldout = row.Q(className: "sprite-editor-group-foldout");
+                    VisualElement foldout = row.Q(className: "whimtex-group-foldout");
                     if (foldout != null) AddCopy(new Label(foldout.Q<Label>()?.text), foldout, row);
                 }
 
-                TextField name = row.Q<TextField>(className: "sprite-editor-layer-name");
+                TextField name = row.Q<TextField>(className: "whimtex-layer-name");
                 if (name != null)
                 {
                     var label = new Label(layerName ?? "");
-                    label.AddToClassList("sprite-editor-layer-drag-ghost-name");
+                    label.AddToClassList("whimtex-layer-drag-ghost-name");
                     // Copy the text element's geometry when available, without cloning the input.
                     VisualElement text = name.Q(className: "unity-text-element") ?? name;
                     label.style.color = text.resolvedStyle.color;
@@ -119,7 +119,7 @@ namespace DCFApixels.SpriteEditor
             private void AddCopy(VisualElement copy, VisualElement source, VisualElement row)
             {
                 copy.pickingMode = PickingMode.Ignore;
-                copy.AddToClassList("sprite-editor-layer-drag-ghost-part");
+                copy.AddToClassList("whimtex-layer-drag-ghost-part");
                 Rect rect = source.worldBound;
                 Vector2 position = rect.position - row.worldBound.position;
                 copy.style.translate = new Translate(position.x, position.y);

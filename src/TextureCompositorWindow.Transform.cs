@@ -3,7 +3,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
@@ -18,8 +18,8 @@ namespace DCFApixels.SpriteEditor
             get
             {
                 if (previewTransformFX == null || compositor == null || GetSelectedLayer() is not Layer selected ||
-                    !selected.modifiers.Contains(previewTransformFX) || SpriteEditorApi.IsLayerContentLocked(compositor, selected) ||
-                    SpriteEditorApi.IsShaderFXContentLocked(previewTransformFX)) return null;
+                    !selected.modifiers.Contains(previewTransformFX) || WhimTexApi.IsLayerContentLocked(compositor, selected) ||
+                    WhimTexApi.IsShaderFXContentLocked(previewTransformFX)) return null;
                 foreach (var p in previewTransformFX.Parameters)
                     if (p != null && p.id == previewTransformParameterId && p.type == ShaderFXParameterType.Transform2D) return p;
                 return null;
@@ -31,7 +31,7 @@ namespace DCFApixels.SpriteEditor
 
         internal static void EditFXTransform(ShaderFX effect, string parameterId)
         {
-            if (effect == null || SpriteEditorApi.IsShaderFXContentLocked(effect)) return;
+            if (effect == null || WhimTexApi.IsShaderFXContentLocked(effect)) return;
             bool found = false;
             foreach (var p in effect.Parameters)
                 found |= p != null && p.id == parameterId && p.type == ShaderFXParameterType.Transform2D;
@@ -39,7 +39,7 @@ namespace DCFApixels.SpriteEditor
             TextureCompositorWindow best = null;
             foreach (var window in Resources.FindObjectsOfTypeAll<TextureCompositorWindow>())
                 if (window.compositor != null && window.GetSelectedLayer() is Layer selected && selected.modifiers.Contains(effect) &&
-                    !SpriteEditorApi.IsLayerContentLocked(window.compositor, selected) &&
+                    !WhimTexApi.IsLayerContentLocked(window.compositor, selected) &&
                     (best == null || window == focusedWindow || best != focusedWindow && window.AgentFocusOrder > best.AgentFocusOrder)) best = window;
             if (best == null) { EditorUtility.DisplayDialog("FX Transform", "Select a layer using this FX in a WhimTex window first.", "OK"); return; }
             bool toggleOff = best.previewTransformFX == effect && best.previewTransformParameterId == parameterId;
@@ -55,7 +55,7 @@ namespace DCFApixels.SpriteEditor
 
         private bool IsPreviewTransformEnabled => previewTool == PreviewTool.Transform &&
             GetSelectedLayer() is Layer layer && layer.Behaviour != null && (!layer.IsGroup || PreviewFXParameter != null) &&
-            !SpriteEditorApi.IsLayerContentLocked(compositor, layer) && !SpriteEditorApi.ContainsReservation(layer);
+            !WhimTexApi.IsLayerContentLocked(compositor, layer) && !WhimTexApi.ContainsReservation(layer);
 
         private void BuildPreviewTransformTool()
         {
@@ -70,11 +70,11 @@ namespace DCFApixels.SpriteEditor
 
         private void AddPreviewTransformSettings()
         {
-            VisualElement row = SpriteEditorUI.CreateToolbar();
-            row.AddToClassList("sprite-editor-transform-settings");
+            VisualElement row = WhimTexUI.CreateToolbar();
+            row.AddToClassList("whimtex-transform-settings");
             toolkitHeaderBindings.Add(() => row.SetEnabled(PreviewFXParameter == null));
-            VisualElement tilingGroup = SpriteEditorUI.CreateRow();
-            tilingGroup.AddToClassList("sprite-editor-transform-option");
+            VisualElement tilingGroup = WhimTexUI.CreateRow();
+            tilingGroup.AddToClassList("whimtex-transform-option");
             tilingGroup.Add(CreateCompactLabel("Tiling", 38f));
             EnumField tiling = CompactField(new EnumField(TransformTilingMode.Clip), 100f);
             tiling.tooltip = "Clip: transparent outside the frame. Repeat: tile. Mirror: reflected tiles. " +
@@ -93,8 +93,8 @@ namespace DCFApixels.SpriteEditor
             });
             tilingGroup.Add(tiling);
             row.Add(tilingGroup);
-            VisualElement filterGroup = SpriteEditorUI.CreateRow();
-            filterGroup.AddToClassList("sprite-editor-transform-option");
+            VisualElement filterGroup = WhimTexUI.CreateRow();
+            filterGroup.AddToClassList("whimtex-transform-option");
             filterGroup.Add(CreateCompactLabel("Filter", 36f));
             EnumField filter = CompactField(new EnumField(LayerFilterMode.Source), 100f);
             filter.tooltip = "Source: inherit the texture's Filter Mode. Point: sharp pixels. Bilinear: smooth. " +
@@ -112,7 +112,7 @@ namespace DCFApixels.SpriteEditor
             });
             filterGroup.Add(filter);
             row.Add(filterGroup);
-            row.Add(SpriteEditorUI.CreateOriginalAspectButton(
+            row.Add(WhimTexUI.CreateOriginalAspectButton(
                 GetSelectedLayer, () => compositor,
                 (undoName, change) =>
                 {
@@ -120,7 +120,7 @@ namespace DCFApixels.SpriteEditor
                     FinishPaintingStroke();
                     ApplyToolkitChange(undoName, change);
                 }, toolkitHeaderBindings));
-            row.Add(SpriteEditorUI.CreateOriginalAspectButton(
+            row.Add(WhimTexUI.CreateOriginalAspectButton(
                 GetSelectedLayer, () => compositor,
                 (undoName, change) =>
                 {
@@ -128,7 +128,7 @@ namespace DCFApixels.SpriteEditor
                     FinishPaintingStroke();
                     ApplyToolkitChange(undoName, change);
                 }, toolkitHeaderBindings, originalSize: true));
-            Button reset = SpriteEditorUI.CreateButton("Reset", () =>
+            Button reset = WhimTexUI.CreateButton("Reset", () =>
             {
                 Layer selected = GetSelectedLayer();
                 if (selected == null || selected.IsGroup)
@@ -213,7 +213,7 @@ namespace DCFApixels.SpriteEditor
                 TogglePreviewTransform();
             else
                 return false;
-            SpriteEditorUI.ConsumeEvent(evt);
+            WhimTexUI.ConsumeEvent(evt);
             return true;
         }
 
@@ -248,8 +248,8 @@ namespace DCFApixels.SpriteEditor
             private const int MoveHandle = 8;
             private const int RotateHandle = 9;
             private const int PivotHandle = 10;
-            private static float PivotSnapDistance => SpriteEditorUserSettings.SnapRadius;
-            private static float CanvasSnapDistance => SpriteEditorUserSettings.SnapRadius;
+            private static float PivotSnapDistance => WhimTexUserSettings.SnapRadius;
+            private static float CanvasSnapDistance => WhimTexUserSettings.SnapRadius;
             private readonly TextureCompositorWindow owner;
             private Layer layer;
             private LayerBehaviour gestureBehaviour;

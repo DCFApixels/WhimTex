@@ -1,5 +1,5 @@
 {
-    "name": "DCFApixels.SpriteEditor",
+    "name": "DCFApixels.WhimTex",
     "rootNamespace": "DCFApixels",
     "references": [
         "Unity.Burst",

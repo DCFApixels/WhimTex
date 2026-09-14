@@ -5,8 +5,8 @@ int checks = 0;
 const System.Reflection.BindingFlags Hidden = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
 object Call(object target, string method, params object[] args) =>
     target.GetType().GetMethod(method, Hidden).Invoke(target, args);
-Texture2D Pixels(DCFApixels.SpriteEditor.DrawingLayerBehaviour layer) =>
-    (Texture2D)typeof(DCFApixels.SpriteEditor.DrawingLayerBehaviour).GetField("pixels", Hidden).GetValue(layer);
+Texture2D Pixels(DCFApixels.WhimTex.DrawingLayerBehaviour layer) =>
+    (Texture2D)typeof(DCFApixels.WhimTex.DrawingLayerBehaviour).GetField("pixels", Hidden).GetValue(layer);
 void Check(bool value, string message)
 {
     if (!value) throw new Exception(message);
@@ -25,21 +25,21 @@ void End(int group)
     Undo.CollapseUndoOperations(group);
     Undo.IncrementCurrentGroup();
 }
-DCFApixels.SpriteEditor.DrawingLayerBehaviour Drawing(Color color)
+DCFApixels.WhimTex.DrawingLayerBehaviour Drawing(Color color)
 {
-    var layer = new DCFApixels.SpriteEditor.DrawingLayerBehaviour();
+    var layer = new DCFApixels.WhimTex.DrawingLayerBehaviour();
     var texture = new Texture2D(2, 2, TextureFormat.RGBA32, false)
         { hideFlags = HideFlags.HideAndDontSave };
     texture.SetPixels(new[] { color, color, color, color });
     texture.Apply();
-    typeof(DCFApixels.SpriteEditor.DrawingLayerBehaviour).GetField("pixels", Hidden).SetValue(layer, texture);
+    typeof(DCFApixels.WhimTex.DrawingLayerBehaviour).GetField("pixels", Hidden).SetValue(layer, texture);
     return layer;
 }
 
 for (int mode = 0; mode < 3; mode++)
 {
-    var window = ScriptableObject.CreateInstance<DCFApixels.SpriteEditor.TextureCompositorWindow>();
-    var document = (DCFApixels.SpriteEditor.TextureCompositor)typeof(DCFApixels.SpriteEditor.TextureCompositorWindow).GetField("compositor", Hidden).GetValue(window);
+    var window = ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositorWindow>();
+    var document = (DCFApixels.WhimTex.TextureCompositor)typeof(DCFApixels.WhimTex.TextureCompositorWindow).GetField("compositor", Hidden).GetValue(window);
     try
     {
         Check(!window.hasUnsavedChanges, "A new untouched document has no close warning");
@@ -47,16 +47,16 @@ for (int mode = 0; mode < 3; mode++)
         Call(document, "MarkChanged");
         Call(window, "UpdateUnsavedChangesState");
         Check(!window.hasUnsavedChanges, "Canvas changes without layers do not enable the close warning");
-        DCFApixels.SpriteEditor.Layer root = Drawing(Color.red);
+        DCFApixels.WhimTex.Layer root = Drawing(Color.red);
         if (mode == 2)
-            root = new DCFApixels.SpriteEditor.GroupLayerBehaviour { layers = new List<DCFApixels.SpriteEditor.Layer> { root,
-                new DCFApixels.SpriteEditor.GroupLayerBehaviour { layers = new List<DCFApixels.SpriteEditor.Layer> { Drawing(Color.green) } } } };
+            root = new DCFApixels.WhimTex.GroupLayerBehaviour { layers = new List<DCFApixels.WhimTex.Layer> { root,
+                new DCFApixels.WhimTex.GroupLayerBehaviour { layers = new List<DCFApixels.WhimTex.Layer> { Drawing(Color.green) } } } };
         document.layers.Add(root);
         Call(document, "MarkChanged");
         Check(window.hasUnsavedChanges, "Document edits enable the close warning");
         string id = root.Id;
         int group = Begin("Lifecycle deletion");
-        Call(window, "DeleteLayers", new List<DCFApixels.SpriteEditor.Layer> { root });
+        Call(window, "DeleteLayers", new List<DCFApixels.WhimTex.Layer> { root });
         End(group);
         Check(document.layers.Count == 0, "Deletion removes the root");
         Call(window, "UpdateUnsavedChangesState");
@@ -65,12 +65,12 @@ for (int mode = 0; mode < 3; mode++)
         Check(document.layers.Count == 1 && document.layers[0].Id == id, "Undo restores the root identity");
         Call(window, "UpdateUnsavedChangesState");
         Check(window.hasUnsavedChanges, "Undo restoring a layer restores the close warning");
-        DCFApixels.SpriteEditor.DrawingLayerBehaviour restored = mode == 2 ? (DCFApixels.SpriteEditor.DrawingLayerBehaviour)((DCFApixels.SpriteEditor.GroupLayerBehaviour)document.layers[0]).layers[0]
-            : (DCFApixels.SpriteEditor.DrawingLayerBehaviour)document.layers[0];
+        DCFApixels.WhimTex.DrawingLayerBehaviour restored = mode == 2 ? (DCFApixels.WhimTex.DrawingLayerBehaviour)((DCFApixels.WhimTex.GroupLayerBehaviour)document.layers[0]).layers[0]
+            : (DCFApixels.WhimTex.DrawingLayerBehaviour)document.layers[0];
         Check(Pixels(restored) != null && Pixels(restored).GetPixel(0, 0).r > 0.99f, "Undo restores temporary pixels");
         if (mode == 2)
         {
-            var nested = (DCFApixels.SpriteEditor.DrawingLayerBehaviour)((DCFApixels.SpriteEditor.GroupLayerBehaviour)((DCFApixels.SpriteEditor.GroupLayerBehaviour)document.layers[0]).layers[1]).layers[0];
+            var nested = (DCFApixels.WhimTex.DrawingLayerBehaviour)((DCFApixels.WhimTex.GroupLayerBehaviour)((DCFApixels.WhimTex.GroupLayerBehaviour)document.layers[0]).layers[1]).layers[0];
             Check(Pixels(nested) != null && Pixels(nested).GetPixel(0, 0).g > 0.99f, "Undo restores nested pixels");
         }
         Undo.PerformRedo();
@@ -88,23 +88,23 @@ for (int mode = 0; mode < 3; mode++)
     }
 }
 
-var owner = ScriptableObject.CreateInstance<DCFApixels.SpriteEditor.TextureCompositor>();
-var external = ScriptableObject.CreateInstance<DCFApixels.SpriteEditor.ShaderFX>();
+var owner = ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>();
+var external = ScriptableObject.CreateInstance<DCFApixels.WhimTex.ShaderFX>();
 try
 {
     owner.hideFlags = HideFlags.HideAndDontSave;
-    var first = new DCFApixels.SpriteEditor.ColorFillLayerBehaviour();
-    var second = new DCFApixels.SpriteEditor.ColorFillLayerBehaviour();
+    var first = new DCFApixels.WhimTex.ColorFillLayerBehaviour();
+    var second = new DCFApixels.WhimTex.ColorFillLayerBehaviour();
     owner.layers.Add(first);
-    owner.layers.Add(new DCFApixels.SpriteEditor.GroupLayerBehaviour { layers = new List<DCFApixels.SpriteEditor.Layer> { second } });
-    var effect = (DCFApixels.SpriteEditor.ShaderFX)Call(owner, "AddEmbeddedShaderFX", first.Owner);
+    owner.layers.Add(new DCFApixels.WhimTex.GroupLayerBehaviour { layers = new List<DCFApixels.WhimTex.Layer> { second } });
+    var effect = (DCFApixels.WhimTex.ShaderFX)Call(owner, "AddEmbeddedShaderFX", first.Owner);
     second.modifiers.Add(effect);
     second.modifiers.Add(external);
     Shader template = Shader.Find("Hidden/InternalErrorShader");
     Check(template != null, "An existing shader is available for an in-memory clone");
     Shader shader = UnityEngine.Object.Instantiate(template);
     shader.hideFlags = HideFlags.HideAndDontSave;
-    var compiled = typeof(DCFApixels.SpriteEditor.ShaderFX).GetField("compiledShader", Hidden);
+    var compiled = typeof(DCFApixels.WhimTex.ShaderFX).GetField("compiledShader", Hidden);
     compiled.SetValue(effect, shader);
     first.modifiers.Remove(effect);
     Call(owner, "MarkChanged");
@@ -116,13 +116,13 @@ try
     End(group);
     Check(effect == null && shader == null && external != null, "Only the unused owned FX and shader are destroyed");
     Undo.PerformUndo();
-    var restoredLayer = ((DCFApixels.SpriteEditor.GroupLayerBehaviour)owner.layers[1]).layers[0];
-    var restoredEffect = restoredLayer.modifiers[0] as DCFApixels.SpriteEditor.ShaderFX;
+    var restoredLayer = ((DCFApixels.WhimTex.GroupLayerBehaviour)owner.layers[1]).layers[0];
+    var restoredEffect = restoredLayer.modifiers[0] as DCFApixels.WhimTex.ShaderFX;
     Check(restoredEffect != null && (Shader)compiled.GetValue(restoredEffect) != null, "Undo restores FX and its shader reference");
     Undo.PerformRedo();
-    Check(((DCFApixels.SpriteEditor.GroupLayerBehaviour)owner.layers[1]).layers[0].modifiers.Count == 0, "FX removal supports Redo");
+    Check(((DCFApixels.WhimTex.GroupLayerBehaviour)owner.layers[1]).layers[0].modifiers.Count == 0, "FX removal supports Redo");
     Undo.PerformUndo();
-    restoredEffect = ((DCFApixels.SpriteEditor.GroupLayerBehaviour)owner.layers[1]).layers[0].modifiers[0] as DCFApixels.SpriteEditor.ShaderFX;
+    restoredEffect = ((DCFApixels.WhimTex.GroupLayerBehaviour)owner.layers[1]).layers[0].modifiers[0] as DCFApixels.WhimTex.ShaderFX;
     Check(restoredEffect != null && (Shader)compiled.GetValue(restoredEffect) != null, "FX shader survives a second Undo");
 }
 finally

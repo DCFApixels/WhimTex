@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
@@ -27,8 +27,8 @@ namespace DCFApixels.SpriteEditor
             previewGuides ??= new List<PreviewGuide>();
             previewGuidesDocument = compositor;
             previewGuideOverlay = new VisualElement { pickingMode = PickingMode.Ignore };
-            previewGuideOverlay.AddToClassList("sprite-editor-guides-overlay");
-            previewGuideOverlay.AddToClassList("sprite-editor-preview-surface");
+            previewGuideOverlay.AddToClassList("whimtex-guides-overlay");
+            previewGuideOverlay.AddToClassList("whimtex-preview-surface");
             previewGuideManipulator = new PreviewGuideManipulator(this);
             toolkitPreviewCanvas.AddManipulator(previewGuideManipulator);
             previewGuideOverlay.generateVisualContent += previewGuideManipulator.Draw;
@@ -45,10 +45,10 @@ namespace DCFApixels.SpriteEditor
                 tooltip = vertical ? "Drag out a vertical guide. Right-click for guide settings."
                     : "Drag out a horizontal guide. Right-click for guide settings."
             };
-            rail.AddToClassList("sprite-editor-guide-rail");
-            rail.AddToClassList(vertical ? "sprite-editor-guide-rail--left" : "sprite-editor-guide-rail--top");
+            rail.AddToClassList("whimtex-guide-rail");
+            rail.AddToClassList(vertical ? "whimtex-guide-rail--left" : "whimtex-guide-rail--top");
             var grip = new VisualElement { pickingMode = PickingMode.Ignore };
-            grip.AddToClassList("sprite-editor-guide-grip");
+            grip.AddToClassList("whimtex-guide-grip");
             rail.Add(grip);
             previewGuideOverlay.Add(rail);
         }
@@ -163,7 +163,7 @@ namespace DCFApixels.SpriteEditor
             private void Down(PointerDownEvent evt)
             {
                 controlHeld = evt.ctrlKey;
-                if (IsDragging) { SpriteEditorUI.ConsumeEvent(evt); return; }
+                if (IsDragging) { WhimTexUI.ConsumeEvent(evt); return; }
                 if (evt.button != 0 && evt.button != 1) return;
                 if (!CanGrab(evt.ctrlKey, evt.altKey)) { owner.selectedPreviewGuide = -1; return; }
                 Vector2 point = evt.localPosition;
@@ -177,19 +177,19 @@ namespace DCFApixels.SpriteEditor
                 if (evt.button == 1)
                 {
                     owner.ShowPreviewGuideMenu(hit);
-                    SpriteEditorUI.ConsumeEvent(evt);
+                    WhimTexUI.ConsumeEvent(evt);
                     return;
                 }
                 if (hit >= 0 && evt.clickCount > 1)
                 {
                     PreviewGuideSettingsWindow.Open(owner, hit);
-                    SpriteEditorUI.ConsumeEvent(evt);
+                    WhimTexUI.ConsumeEvent(evt);
                     return;
                 }
                 if (rail >= 0 && owner.previewGuides.Count >= MaxPreviewGuides)
                 {
                     owner.ShowNotification(new GUIContent("Guide limit reached (256)."));
-                    SpriteEditorUI.ConsumeEvent(evt);
+                    WhimTexUI.ConsumeEvent(evt);
                     return;
                 }
                 owner.SetPreviewGuidesHidden(false);
@@ -206,7 +206,7 @@ namespace DCFApixels.SpriteEditor
                 Update(point);
                 owner.previewGuideOverlay.MarkDirtyRepaint();
                 owner.UpdatePreviewCursor(point, false);
-                SpriteEditorUI.ConsumeEvent(evt);
+                WhimTexUI.ConsumeEvent(evt);
             }
 
             private void Update(Vector2 point)
@@ -267,7 +267,7 @@ namespace DCFApixels.SpriteEditor
                 }
                 Cancel();
                 owner.UpdatePreviewCursor(evt.localPosition, evt.altKey);
-                SpriteEditorUI.ConsumeEvent(evt);
+                WhimTexUI.ConsumeEvent(evt);
             }
 
             internal void Cancel()
@@ -324,8 +324,8 @@ namespace DCFApixels.SpriteEditor
                 Vector2 direction = owner.previewViewport.ToViewDelta(new Vector2(-guide.normal.y, guide.normal.x));
                 if (!ClipLine(bounds, point, direction, out Vector2 a, out Vector2 b)) return;
                 bool aligned = Mathf.Min(Mathf.Abs(direction.x), Mathf.Abs(direction.y)) <= .0001f;
-                Color lineColor = highlight ? SpriteEditorUserSettings.GuideActiveColor :
-                    aligned ? SpriteEditorUserSettings.GuideAlignedColor : SpriteEditorUserSettings.GuideAngledColor;
+                Color lineColor = highlight ? WhimTexUserSettings.GuideActiveColor :
+                    aligned ? WhimTexUserSettings.GuideAlignedColor : WhimTexUserSettings.GuideAngledColor;
                 lineColor.a = highlight ? 1f : aligned ? .8f : .55f;
                 if (deleting) lineColor = new Color(1f, .35f, .25f, .9f);
                 for (int pass = 0; pass < 2; pass++)

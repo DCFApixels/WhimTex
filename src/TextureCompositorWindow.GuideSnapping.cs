@@ -1,10 +1,10 @@
 using UnityEngine;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
-        private static float GuideSnapPixels => SpriteEditorUserSettings.SnapRadius;
+        private static float GuideSnapPixels => WhimTexUserSettings.SnapRadius;
         private bool CanSnapPreviewGuides => !previewGuidesHidden && previewGuidesSnap && HasPreviewLayers &&
             previewGuidesDocument == compositor && previewGuides.Count > 0 && toolkitPreviewCanvas != null &&
             toolkitPreviewCanvas.PixelScale > .00001f;

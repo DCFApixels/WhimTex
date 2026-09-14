@@ -3,9 +3,12 @@ using System.Collections.Generic;
 using UnityEditor;
 using Unity.Collections;
 using UnityEngine;
+using UnityEngine.Scripting.APIUpdating;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
+    // Pending DCFApixels.WhimTex rename marker; do not remove.
+    [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "DrawingLayerBehaviour")]
     [Serializable]
     public sealed partial class DrawingLayerBehaviour : LayerBehaviour
     {
@@ -120,7 +123,7 @@ namespace DCFApixels.SpriteEditor
 
             try
             {
-                Material conversion = SpriteEditorMaterials.AlphaConversion;
+                Material conversion = WhimTexMaterials.AlphaConversion;
                 if (conversion == null)
                 {
                     Graphics.Blit(surface, straight);
@@ -462,7 +465,7 @@ namespace DCFApixels.SpriteEditor
             RenderTexture previous = RenderTexture.active;
             try
             {
-                Material conversion = SpriteEditorMaterials.AlphaConversion;
+                Material conversion = WhimTexMaterials.AlphaConversion;
                 if (conversion == null)
                 {
                     Graphics.Blit(paintSurface, straight);
@@ -585,7 +588,7 @@ namespace DCFApixels.SpriteEditor
                 RenderTexture previous = RenderTexture.active;
                 try
                 {
-                    Material conversion = SpriteEditorMaterials.AlphaConversion;
+                    Material conversion = WhimTexMaterials.AlphaConversion;
                     if (conversion == null)
                     {
                         Graphics.Blit(pixels, paintSurface);
@@ -994,7 +997,7 @@ namespace DCFApixels.SpriteEditor
                 if (target == null || stamps == null || stamps.Count == 0)
                     return;
 
-                Material material = SpriteEditorMaterials.PaintBrush;
+                Material material = WhimTexMaterials.PaintBrush;
                 if (material == null)
                     return;
 

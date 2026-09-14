@@ -2,17 +2,17 @@ using System;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     internal static class ShapeCornerSettingsView
     {
         internal static VisualElement Build(ShapeLayerBehaviour layer, Action<string, Action> apply,
-            SpriteEditorUI.ValueBindings bindings)
+            WhimTexUI.ValueBindings bindings)
         {
             var root = new VisualElement();
             root.Add(new Label("Roundness (%)"));
             var layout = new VisualElement();
-            layout.AddToClassList("sprite-editor-shape-corners");
+            layout.AddToClassList("whimtex-shape-corners");
             root.Add(layout);
             var diagram = new CornerDiagram();
             layout.Add(diagram);
@@ -25,8 +25,8 @@ namespace DCFApixels.SpriteEditor
                 int corner = i;
                 var field = new FloatField(labels[i]) { name = "corner" + i,
                     tooltip = names[i] + ": 0–100%. Drag the label to adjust. Corners are local to the shape, before Transform." };
-                field.AddToClassList("sprite-editor-shape-corner-field");
-                field.AddToClassList("sprite-editor-shape-corner-" + positions[i]);
+                field.AddToClassList("whimtex-shape-corner-field");
+                field.AddToClassList("whimtex-shape-corner-" + positions[i]);
                 fields[i] = field;
                 bindings.Track(field, () => layer.GetCornerRoundness()[corner] * 100f);
                 field.RegisterValueChangedCallback(evt =>
@@ -40,7 +40,7 @@ namespace DCFApixels.SpriteEditor
             }
             var icon = new CornerLinkIcon();
             var link = new Button(() => apply("Link Shape Corners", () => layer.linkCorners = !layer.linkCorners)) { name = "linkCorners" };
-            link.AddToClassList("sprite-editor-shape-corner-link");
+            link.AddToClassList("whimtex-shape-corner-link");
             link.Add(icon);
             layout.Add(link);
             bindings.Add(() =>
@@ -60,7 +60,7 @@ namespace DCFApixels.SpriteEditor
             internal CornerDiagram()
             {
                 pickingMode = PickingMode.Ignore;
-                AddToClassList("sprite-editor-shape-corner-diagram");
+                AddToClassList("whimtex-shape-corner-diagram");
                 generateVisualContent += Draw;
             }
             internal void SetCorners(Vector4 value)
@@ -101,7 +101,7 @@ namespace DCFApixels.SpriteEditor
             internal CornerLinkIcon()
             {
                 pickingMode = PickingMode.Ignore;
-                AddToClassList("sprite-editor-tool-icon");
+                AddToClassList("whimtex-tool-icon");
                 generateVisualContent += Draw;
             }
             internal void SetLinked(bool value)

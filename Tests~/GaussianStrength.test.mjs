@@ -5,7 +5,7 @@ const layer = read('src/Layers/GaussianBlurRenderer.cs');
 const settings = read('src/Layers/BlurLayerBehaviour.cs');
 const shader = read('src/Shaders/GaussianBlur.shader');
 const motion = read('src/Shaders/MotionBlur.shader');
-const api = read('src/Automation/SpriteEditorApi.Blur.cs');
+const api = read('src/Automation/WhimTexApi.Blur.cs');
 const ui = read('src/Layers/Editors/BlurLayerEditorWindow.cs');
 const finish = s => s.slice(s.indexOf('float4 unpremultiply('), s.indexOf('ENDCG')).trim();
 assert.equal(finish(shader), finish(motion), 'Gaussian and Motion use identical premultiplied mixing/density output');
@@ -39,5 +39,5 @@ assert.match(api, /\["strength"\] = layer\.strength/);
 assert.ok(ui.includes('Slider(root, "Strength (%)"'));
 assert.ok(ui.includes('() => layer.strength * 100f, value => layer.strength = value / 100f'));
 
-assert.match(read('src/Automation/SpriteEditorApi.Inspect.cs'), /BlurSnapshot\(new BlurLayerBehaviour\(\)\)/);
+assert.match(read('src/Automation/WhimTexApi.Inspect.cs'), /BlurSnapshot\(new BlurLayerBehaviour\(\)\)/);
 console.log(`Gaussian Strength: ${checks} density checks and Motion parity/UI/API/bypass contracts passed (Unity/GPU not executed).`);

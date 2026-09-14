@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     // The format writer has no dependency on Unity or on the compositor's layer model.
     internal static class PsdWriter

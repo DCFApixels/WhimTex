@@ -5,7 +5,7 @@ using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     internal sealed class LayerShaderFXView : VisualElement
     {
@@ -20,10 +20,10 @@ namespace DCFApixels.SpriteEditor
             this.layer = layer;
             this.owner = owner;
             this.applyChange = applyChange;
-            SpriteEditorUI.ApplyWindowStyles(this);
-            AddToClassList("sprite-editor-layer-fx");
+            WhimTexUI.ApplyWindowStyles(this);
+            AddToClassList("whimtex-layer-fx");
             VisualElement toolbar = new VisualElement();
-            toolbar.AddToClassList("sprite-editor-layer-fx-toolbar");
+            toolbar.AddToClassList("whimtex-layer-fx-toolbar");
             toolbar.Add(new Button(() => Change("Add Shader FX", () => owner.AddEmbeddedShaderFX(layer))) { text = "+ Shader FX" });
             toolbar.Add(new Button(() => ShaderFXCatalog.ShowMenu(entry => Change("Add Catalog FX", () => owner.AddCatalogShaderFX(layer, entry)))) { text = "+ Preset ▾", tooltip = "Effects from the project and your user ShaderFX preset folder." });
             toolbar.Add(new Button(() => Change("Add FX Reference", () => layer.modifiers.Add(null))) { text = "+ Reference" });
@@ -51,14 +51,14 @@ namespace DCFApixels.SpriteEditor
             UnityEngine.Object modifier = layer.modifiers[index];
             ShaderFX effect = modifier as ShaderFX;
             VisualElement card = new VisualElement();
-            card.AddToClassList("sprite-editor-layer-fx-entry");
+            card.AddToClassList("whimtex-layer-fx-entry");
             VisualElement toolbar = new VisualElement();
-            toolbar.AddToClassList("sprite-editor-layer-fx-toolbar");
+            toolbar.AddToClassList("whimtex-layer-fx-toolbar");
             bool embedded = effect != null && effect.EmbeddedOwner == owner;
             if (embedded)
             {
                 Label name = new Label($"{index + 1}. {effect.name}");
-                name.AddToClassList("sprite-editor-layer-fx-name");
+                name.AddToClassList("whimtex-layer-fx-name");
                 toolbar.Add(name);
             }
             else
@@ -67,7 +67,7 @@ namespace DCFApixels.SpriteEditor
                 {
                     objectType = typeof(UnityEngine.Object), allowSceneObjects = false
                 };
-                reference.AddToClassList("sprite-editor-layer-fx-name");
+                reference.AddToClassList("whimtex-layer-fx-name");
                 reference.SetValueWithoutNotify(modifier);
                 reference.RegisterValueChangedCallback(evt =>
                 {
@@ -116,7 +116,7 @@ namespace DCFApixels.SpriteEditor
 
         private void Change(string name, Action change)
         {
-            if (owner == null || !owner.TryFindLayer(layer, out _, out _) || SpriteEditorApi.IsLayerContentLocked(owner, layer))
+            if (owner == null || !owner.TryFindLayer(layer, out _, out _) || WhimTexApi.IsLayerContentLocked(owner, layer))
                 return;
             applyChange(name, change);
             Refresh();

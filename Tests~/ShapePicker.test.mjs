@@ -46,7 +46,7 @@ for (const event of ['PointerDown','PointerMove','PointerUp','PointerCaptureOut'
 assert.match(read('TextureCompositorWindow.Zoom.cs'),/shapePicker\?\.Cancel\(\)/);
 assert.match(read('TextureCompositorWindow.Tools.cs'),/shapeToolIcon\?\.SetKind/);
 assert.match(read('TextureCompositorWindow.Shapes.cs'),/shapeToolIcon\?\.SetKind/);
-const styles = read('SpriteEditorSplitView.uss');
-assert.match(styles,/\.sprite-editor-shape-picker \{\s*position: absolute;\s*width: 36px;\s*padding: 2px;\s*border-width: 1px;/);
-assert.match(styles,/\.sprite-editor-shape-picker-item \{\s*width: 30px;\s*height: 30px;/);
+const styles = read('WhimTexSplitView.uss');
+assert.match(styles,/\.whimtex-shape-picker \{\s*position: absolute;\s*width: 36px;\s*padding: 2px;\s*border-width: 1px;/);
+assert.match(styles,/\.whimtex-shape-picker-item \{\s*width: 30px;\s*height: 30px;/);
 console.log(`Shape picker: ${checks} extracted hit tests, cleanup/reentrancy and interaction contracts passed (native pointer input not simulated).`);

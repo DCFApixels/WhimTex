@@ -3,7 +3,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
@@ -17,7 +17,7 @@ namespace DCFApixels.SpriteEditor
             internal ToolDropdownMarker()
             {
                 pickingMode = PickingMode.Ignore;
-                AddToClassList("sprite-editor-tool-dropdown-marker");
+                AddToClassList("whimtex-tool-dropdown-marker");
                 generateVisualContent += Draw;
             }
             private void Draw(MeshGenerationContext context)
@@ -42,7 +42,7 @@ namespace DCFApixels.SpriteEditor
             {
                 this.kind = kind;
                 pickingMode = PickingMode.Ignore;
-                AddToClassList("sprite-editor-tool-icon");
+                AddToClassList("whimtex-tool-icon");
                 generateVisualContent += Draw;
             }
             internal void SetKind(ShapeLayerBehaviour.ShapeKind value)
@@ -146,20 +146,20 @@ namespace DCFApixels.SpriteEditor
                 root.RegisterCallback<GeometryChangedEvent>(Geometry);
                 target.CapturePointer(pointer);
                 hold = target.schedule.Execute(Open).StartingIn(HoldMilliseconds);
-                SpriteEditorUI.ConsumeEvent(evt);
+                WhimTexUI.ConsumeEvent(evt);
             }
             private void Open()
             {
                 hold?.Pause(); hold = null;
                 if (!IsPressed || target.panel == null || !target.HasPointerCapture(pointer) || menu != null) return;
                 menu = new VisualElement { name = marquee ? "marqueePicker" : "shapePicker", pickingMode = PickingMode.Ignore };
-                menu.AddToClassList("sprite-editor-shape-picker");
-                menu.EnableInClassList("sprite-editor-shape-picker--light", !EditorGUIUtility.isProSkin);
+                menu.AddToClassList("whimtex-shape-picker");
+                menu.EnableInClassList("whimtex-shape-picker--light", !EditorGUIUtility.isProSkin);
                 for (int i = 0; i < Kinds.Length; i++)
                 {
                     var item = new VisualElement { tooltip = marquee && i == 2 ? "UV Island" : Kinds[i].ToString(), pickingMode = PickingMode.Ignore };
-                    item.AddToClassList("sprite-editor-shape-picker-item");
-                    item.EnableInClassList("sprite-editor-shape-picker-item--selected", marquee
+                    item.AddToClassList("whimtex-shape-picker-item");
+                    item.EnableInClassList("whimtex-shape-picker-item--selected", marquee
                         ? (int)owner.marqueeShape == i : owner.shapeToolSettings.kind == Kinds[i]);
                     if (marquee) item.Add(new PreviewToolIcon(PreviewTool.RectangleSelect, i == 1, i == 2));
                     else item.Add(new ShapeToolIcon(Kinds[i]));
@@ -185,9 +185,9 @@ namespace DCFApixels.SpriteEditor
                 if (menu == null) return;
                 int next = ItemAt(root.WorldToLocal(current) - menuPosition);
                 if (hovered == next) return;
-                if (hovered >= 0) items[hovered].RemoveFromClassList("sprite-editor-shape-picker-item--hover");
+                if (hovered >= 0) items[hovered].RemoveFromClassList("whimtex-shape-picker-item--hover");
                 hovered = next;
-                if (hovered >= 0) items[hovered].AddToClassList("sprite-editor-shape-picker-item--hover");
+                if (hovered >= 0) items[hovered].AddToClassList("whimtex-shape-picker-item--hover");
             }
             private void Move(PointerMoveEvent evt)
             {
@@ -199,7 +199,7 @@ namespace DCFApixels.SpriteEditor
                     if (menu == null && (current - press).sqrMagnitude >= DragDistance * DragDistance) Open();
                     UpdateHover();
                 }
-                SpriteEditorUI.ConsumeEvent(evt);
+                WhimTexUI.ConsumeEvent(evt);
             }
             private void Up(PointerUpEvent evt)
             {
@@ -227,7 +227,7 @@ namespace DCFApixels.SpriteEditor
                     }
                 }
                 if (selection >= 0 || click) owner.SetPreviewTool(marquee ? PreviewTool.RectangleSelect : PreviewTool.Shape);
-                SpriteEditorUI.ConsumeEvent(evt);
+                WhimTexUI.ConsumeEvent(evt);
             }
             internal void Cancel()
             {
@@ -246,7 +246,7 @@ namespace DCFApixels.SpriteEditor
             }
             private void Key(KeyDownEvent evt)
             {
-                if (IsPressed && evt.keyCode == KeyCode.Escape) { Cancel(); SpriteEditorUI.ConsumeEvent(evt); }
+                if (IsPressed && evt.keyCode == KeyCode.Escape) { Cancel(); WhimTexUI.ConsumeEvent(evt); }
             }
             private void Lost(PointerCaptureOutEvent evt) { if (evt.pointerId == pointer) Cancel(); }
             private void Interrupted(PointerCancelEvent evt) => Cancel();

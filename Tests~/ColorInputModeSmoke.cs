@@ -1,8 +1,8 @@
 // Opt-in live-Editor eval after manual compilation. Detached fields only; no preferences/assets/Undo writes.
-var assembly = typeof(DCFApixels.SpriteEditor.TextureCompositor).Assembly;
+var assembly = typeof(DCFApixels.WhimTex.TextureCompositor).Assembly;
 var flags = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic;
-var inputs = assembly.GetType("DCFApixels.SpriteEditor.SpriteEditorColorInputs");
-var bindingsType = assembly.GetType("DCFApixels.SpriteEditor.SpriteEditorUI+ValueBindings");
+var inputs = assembly.GetType("DCFApixels.WhimTex.WhimTexColorInputs");
+var bindingsType = assembly.GetType("DCFApixels.WhimTex.WhimTexUI+ValueBindings");
 var bindings = Activator.CreateInstance(bindingsType, true);
 var mode = inputs.GetField("hdr", flags);
 bool originalMode = (bool)mode.GetValue(null);

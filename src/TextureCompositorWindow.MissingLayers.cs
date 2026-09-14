@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
@@ -21,7 +21,7 @@ namespace DCFApixels.SpriteEditor
                 names.Add(descriptor.MenuName);
             }
             var content = new VisualElement();
-            content.AddToClassList("sprite-editor-inspector-section-content");
+            content.AddToClassList("whimtex-inspector-section-content");
             root.Add(content);
             var replacement = new DropdownField("Replace with", names, 0);
             var transfer = new Toggle("Transfer saved settings") { value = record?.Data != null };

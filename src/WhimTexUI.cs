@@ -5,9 +5,9 @@ using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
-    internal static class SpriteEditorUI
+    internal static class WhimTexUI
     {
         private static StyleSheet splitViewStyles;
 
@@ -28,7 +28,7 @@ namespace DCFApixels.SpriteEditor
 
             if (!root.styleSheets.Contains(splitViewStyles))
                 root.styleSheets.Add(splitViewStyles);
-            root.AddToClassList("sprite-editor-theme");
+            root.AddToClassList("whimtex-theme");
             return true;
         }
 
@@ -63,15 +63,15 @@ namespace DCFApixels.SpriteEditor
                     split.contentContainer.style.paddingBottom = thickness;
                 }
             });
-            anchor.AddToClassList("sprite-editor-split-handle");
-            anchor.AddToClassList(columns ? "sprite-editor-split-handle--columns" : "sprite-editor-split-handle--rows");
-            anchor.EnableInClassList("sprite-editor-split-handle--light", !EditorGUIUtility.isProSkin);
-            line.AddToClassList("sprite-editor-split-line");
+            anchor.AddToClassList("whimtex-split-handle");
+            anchor.AddToClassList(columns ? "whimtex-split-handle--columns" : "whimtex-split-handle--rows");
+            anchor.EnableInClassList("whimtex-split-handle--light", !EditorGUIUtility.isProSkin);
+            line.AddToClassList("whimtex-split-line");
             line.pickingMode = PickingMode.Ignore;
             for (int i = 0; i < 3; i++)
             {
                 VisualElement dot = new VisualElement { pickingMode = PickingMode.Ignore };
-                dot.AddToClassList("sprite-editor-split-grip");
+                dot.AddToClassList("whimtex-split-grip");
                 line.Add(dot);
             }
             VisualElement hitArea = new VisualElement
@@ -79,7 +79,7 @@ namespace DCFApixels.SpriteEditor
                 name = "splitHitArea",
                 pickingMode = PickingMode.Position
             };
-            hitArea.AddToClassList("sprite-editor-split-hit-area");
+            hitArea.AddToClassList("whimtex-split-hit-area");
             anchor.Add(hitArea);
         }
 
@@ -274,11 +274,11 @@ namespace DCFApixels.SpriteEditor
             var section = new Foldout { text = title, name = name, value = available && expanded };
             section.SetEnabled(available);
             ApplyWindowStyles(section);
-            section.AddToClassList("sprite-editor-inspector-section");
-            section.EnableInClassList("sprite-editor-inspector-section--light", !EditorGUIUtility.isProSkin);
-            section.contentContainer.AddToClassList("sprite-editor-inspector-section-content");
+            section.AddToClassList("whimtex-inspector-section");
+            section.EnableInClassList("whimtex-inspector-section--light", !EditorGUIUtility.isProSkin);
+            section.contentContainer.AddToClassList("whimtex-inspector-section-content");
             var headerIcon = new LayerActionIcon(icon);
-            headerIcon.AddToClassList("sprite-editor-inspector-section-icon");
+            headerIcon.AddToClassList("whimtex-inspector-section-icon");
             section.hierarchy.Add(headerIcon);
             if (expansionChanged != null)
                 section.RegisterValueChangedCallback(evt =>
@@ -337,7 +337,7 @@ namespace DCFApixels.SpriteEditor
             TextureTransform read() => layer.transform;
             void write(TextureTransform value) => layer.transform = value;
             Foldout card = CreateInspectorSection("Transform", "transformSection", LayerActionIcon.Kind.Transform, false);
-            card.AddToClassList("sprite-editor-transform-card");
+            card.AddToClassList("whimtex-transform-card");
 
             Vector2Field pivot = ConfigureField(new Vector2Field("Pivot"));
             pivot.tooltip = "Normalized pivot inside the output canvas.";

@@ -1,5 +1,5 @@
 // Uses only the disposable window created by LayerPersistenceSetup, after layout has settled.
-var window = Resources.FindObjectsOfTypeAll<DCFApixels.SpriteEditor.TextureCompositorWindow>()
+var window = Resources.FindObjectsOfTypeAll<DCFApixels.WhimTex.TextureCompositorWindow>()
     .Single(w => w.titleContent.text == "WhimTex verification b4f21b35");
 var flags=System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic;
 var scroll=(UnityEngine.UIElements.ScrollView)window.GetType().GetField("toolkitSettingsScroll",flags).GetValue(window);

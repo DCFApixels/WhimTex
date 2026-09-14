@@ -180,7 +180,7 @@ Shader "Hidden/TextureCompositor/URPPreviewSurface"
         Pass
         {
             Name "NormalizeOutput"
-            Tags { "LightMode"="SpriteEditorNormalizeOutput" }
+            Tags { "LightMode"="WhimTexNormalizeOutput" }
             Cull Off ZWrite Off ZTest Always Blend Off
             HLSLPROGRAM
             #pragma target 3.5

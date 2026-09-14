@@ -4,11 +4,11 @@ using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
-    internal static class SpriteEditorColorInputs
+    internal static class WhimTexColorInputs
     {
-        private const string PreferenceKey = "DCFApixels.SpriteEditor.HdrColorInputs";
+        private const string PreferenceKey = "DCFApixels.WhimTex.HdrColorInputs";
         private static bool hdr = EditorPrefs.GetBool(PreferenceKey, false);
         private static event Action Changed;
 
@@ -44,7 +44,7 @@ namespace DCFApixels.SpriteEditor
         private static float PositiveFinite(float value) =>
             float.IsNaN(value) || float.IsInfinity(value) ? 0f : Mathf.Max(0f, value);
 
-        internal static ColorField Bind(ColorField field, SpriteEditorUI.ValueBindings bindings, Func<Color> read)
+        internal static ColorField Bind(ColorField field, WhimTexUI.ValueBindings bindings, Func<Color> read)
         {
             void Refresh()
             {
@@ -75,7 +75,7 @@ namespace DCFApixels.SpriteEditor
             return field;
         }
 
-        internal static GradientField Bind(GradientField field, SpriteEditorUI.ValueBindings bindings, Func<Gradient> read)
+        internal static GradientField Bind(GradientField field, WhimTexUI.ValueBindings bindings, Func<Gradient> read)
         {
             Gradient snapshot = null, display = null;
             bool lastHdr = Hdr;
@@ -114,12 +114,12 @@ namespace DCFApixels.SpriteEditor
         {
             Button button = new Button(() => Hdr = !Hdr) { text = "HDR" };
             button.name = "colorInputMode";
-            button.AddToClassList("sprite-editor-channel-button");
-            button.AddToClassList("sprite-editor-hdr-button");
+            button.AddToClassList("whimtex-channel-button");
+            button.AddToClassList("whimtex-hdr-button");
             button.tooltip = "HDR color input: on uses HDR colors; off uses Standard colors. " +
                 "Standard displays and paints colors without HDR intensity. Switching preserves stored colors; " +
                 "editing replaces the selected color. Existing layers, blending and export are unchanged.";
-            Observe(button, () => button.EnableInClassList("sprite-editor-channel-button--enabled", Hdr));
+            Observe(button, () => button.EnableInClassList("whimtex-channel-button--enabled", Hdr));
             return button;
         }
 

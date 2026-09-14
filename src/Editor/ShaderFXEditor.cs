@@ -2,7 +2,7 @@ using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     [CustomEditor(typeof(ShaderFX))]
     public sealed class ShaderFXEditor : Editor
@@ -38,15 +38,15 @@ namespace DCFApixels.SpriteEditor
         private static VisualElement BuildView(ShaderFX effect, SerializedObject serializedObject)
         {
             VisualElement root = new VisualElement { focusable = true };
-            SpriteEditorUI.ApplyWindowStyles(root);
-            root.AddToClassList("sprite-editor-shader-fx");
+            WhimTexUI.ApplyWindowStyles(root);
+            root.AddToClassList("whimtex-shader-fx");
             root.Add(new HelpBox(
                 "Implement float4 ApplyFX(float2 uv, float4 color). SampleInput(uv) reads the incoming layer. " +
                 "Use #include with Assets/Packages paths, or paths relative to the containing asset (Assets before the first save). " +
                 "UnityCG.cginc is already included.", HelpBoxMessageType.Info));
 
             Label heading = new Label("HLSL Code");
-            heading.AddToClassList("sprite-editor-shader-fx-heading");
+            heading.AddToClassList("whimtex-shader-fx-heading");
             root.Add(heading);
             ShaderFXCodeField code = new ShaderFXCodeField(effect);
             var codeFoldout = new Foldout { text = "Code", value = !effect.IsCatalogLinked };
@@ -64,7 +64,7 @@ namespace DCFApixels.SpriteEditor
             root.Add(apply);
             root.Add(new Button(() =>
             {
-                if (SpriteEditorApi.IsShaderFXContentLocked(effect)) return;
+                if (WhimTexApi.IsShaderFXContentLocked(effect)) return;
                 root.Focus();
                 serializedObject.ApplyModifiedProperties();
                 try
@@ -92,14 +92,14 @@ namespace DCFApixels.SpriteEditor
                 isReadOnly = true,
                 verticalScrollerVisibility = ScrollerVisibility.Auto
             };
-            diagnostics.AddToClassList("sprite-editor-shader-fx-diagnostics");
+            diagnostics.AddToClassList("whimtex-shader-fx-diagnostics");
             root.Add(diagnostics);
             var legacyParameters = new PropertyField(serializedObject.FindProperty("parameters"), "Parameters");
             var declaredParameters = new ShaderFXParameterView(effect);
             detach.clicked += () => { Undo.RecordObject(effect, "Embed FX Source"); effect.DetachCatalog(); EditorUtility.SetDirty(effect); effect.NotifyValuesChanged(); RefreshStatus(); };
             apply.clicked += () =>
             {
-                if (SpriteEditorApi.IsShaderFXContentLocked(effect)) return;
+                if (WhimTexApi.IsShaderFXContentLocked(effect)) return;
                 root.Focus();
                 serializedObject.ApplyModifiedProperties();
                 if (effect.IsCatalogLinked) effect.ReloadCatalogSource(true);
@@ -129,9 +129,9 @@ namespace DCFApixels.SpriteEditor
                     return;
                 code.SyncFromModel();
                 code.SetEnabled(!effect.IsCatalogLinked);
-                sourceButtons.EnableInClassList("sprite-editor-shader-fx-hidden", !effect.IsCatalogLinked);
-                legacyParameters.EnableInClassList("sprite-editor-shader-fx-hidden", effect.UsesCodeParameters);
-                declaredParameters.EnableInClassList("sprite-editor-shader-fx-hidden", !effect.UsesCodeParameters);
+                sourceButtons.EnableInClassList("whimtex-shader-fx-hidden", !effect.IsCatalogLinked);
+                legacyParameters.EnableInClassList("whimtex-shader-fx-hidden", effect.UsesCodeParameters);
+                declaredParameters.EnableInClassList("whimtex-shader-fx-hidden", !effect.UsesCodeParameters);
                 declaredParameters.Refresh();
                 status.messageType = effect.LastApplyFailed ? HelpBoxMessageType.Error : HelpBoxMessageType.Info;
                 status.text = effect.LastApplyFailed
@@ -149,9 +149,9 @@ namespace DCFApixels.SpriteEditor
                     effect.NotifyValuesChanged();
             });
             root.Bind(serializedObject);
-            void RefreshLock() => root.SetEnabled(!SpriteEditorApi.IsShaderFXContentLocked(effect));
-            root.RegisterCallback<AttachToPanelEvent>(_ => { SpriteEditorApi.LiveEditLocksChanged -= RefreshLock; SpriteEditorApi.LiveEditLocksChanged += RefreshLock; RefreshLock(); });
-            root.RegisterCallback<DetachFromPanelEvent>(_ => SpriteEditorApi.LiveEditLocksChanged -= RefreshLock);
+            void RefreshLock() => root.SetEnabled(!WhimTexApi.IsShaderFXContentLocked(effect));
+            root.RegisterCallback<AttachToPanelEvent>(_ => { WhimTexApi.LiveEditLocksChanged -= RefreshLock; WhimTexApi.LiveEditLocksChanged += RefreshLock; RefreshLock(); });
+            root.RegisterCallback<DetachFromPanelEvent>(_ => WhimTexApi.LiveEditLocksChanged -= RefreshLock);
             RefreshLock();
             RefreshStatus();
             return root;
@@ -164,8 +164,8 @@ namespace DCFApixels.SpriteEditor
         public override VisualElement CreatePropertyGUI(SerializedProperty property)
         {
             VisualElement root = new VisualElement();
-            SpriteEditorUI.ApplyWindowStyles(root);
-            root.AddToClassList("sprite-editor-shader-fx-parameter");
+            WhimTexUI.ApplyWindowStyles(root);
+            root.AddToClassList("whimtex-shader-fx-parameter");
             root.Add(new PropertyField(property.FindPropertyRelative(nameof(ShaderFXParameter.name)), "Name"));
             SerializedProperty type = property.FindPropertyRelative(nameof(ShaderFXParameter.type));
             root.Add(new PropertyField(type, "Type"));
@@ -180,7 +180,7 @@ namespace DCFApixels.SpriteEditor
                 SerializedProperty value = property.FindPropertyRelative(valueNames[i]);
                 if (valueNames[i] == nameof(ShaderFXParameter.colorValue))
                 {
-                    ColorField color = SpriteEditorColorInputs.Bind(new ColorField("Value"), value,
+                    ColorField color = WhimTexColorInputs.Bind(new ColorField("Value"), value,
                         () => ((ShaderFX)value.serializedObject.targetObject).NotifyValuesChanged());
                     color.AddToClassList(BaseField<UnityEngine.Color>.alignedFieldUssClassName);
                     fields[i] = color;
@@ -198,8 +198,8 @@ namespace DCFApixels.SpriteEditor
             void RefreshType(SerializedProperty current)
             {
                 for (int i = 0; i < fields.Length; i++)
-                    fields[i].EnableInClassList("sprite-editor-shader-fx-hidden", i != current.enumValueIndex);
-                editTransform.EnableInClassList("sprite-editor-shader-fx-hidden", current.enumValueIndex != (int)ShaderFXParameterType.Transform2D);
+                    fields[i].EnableInClassList("whimtex-shader-fx-hidden", i != current.enumValueIndex);
+                editTransform.EnableInClassList("whimtex-shader-fx-hidden", current.enumValueIndex != (int)ShaderFXParameterType.Transform2D);
             }
             root.TrackPropertyValue(type, RefreshType);
             RefreshType(type);

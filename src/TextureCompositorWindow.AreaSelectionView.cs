@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
@@ -70,19 +70,19 @@ namespace DCFApixels.SpriteEditor
             {
                 if (!RectangleDragging || (evt.keyCode != KeyCode.LeftShift && evt.keyCode != KeyCode.RightShift)) return;
                 UpdateCurrent(pointerPosition, true, evt.ctrlKey);
-                SpriteEditorUI.ConsumeEvent(evt);
+                WhimTexUI.ConsumeEvent(evt);
             }
             private void KeyUp(KeyUpEvent evt)
             {
                 if (!RectangleDragging || (evt.keyCode != KeyCode.LeftShift && evt.keyCode != KeyCode.RightShift)) return;
                 UpdateCurrent(pointerPosition, evt.shiftKey, evt.ctrlKey);
-                SpriteEditorUI.ConsumeEvent(evt);
+                WhimTexUI.ConsumeEvent(evt);
             }
             private void Down(PointerDownEvent evt)
             {
                 if (!owner.IsAreaSelectionTool || !owner.HasPreviewLayers ||
                     !target.contentRect.Contains(evt.localPosition) || (evt.button != 0 && evt.button != 1)) return;
-                SpriteEditorUI.ConsumeEvent(evt);
+                WhimTexUI.ConsumeEvent(evt);
                 owner.Focus(); target.Focus();
                 if (evt.button == 1) { RemoveVertex(); return; }
                 if (owner.IsUvSelectionTool)
@@ -138,7 +138,7 @@ namespace DCFApixels.SpriteEditor
                     else s.Rectangle(a, b, operation, tiled);
                 });
                 else if (operation == SelectionCombine.Replace) owner.ChangeAreaSelection(s => s.Clear());
-                SpriteEditorUI.ConsumeEvent(evt);
+                WhimTexUI.ConsumeEvent(evt);
             }
             internal void CompletePolygon()
             {
@@ -176,7 +176,7 @@ namespace DCFApixels.SpriteEditor
             {
                 this.owner = owner;
                 pickingMode = PickingMode.Ignore;
-                AddToClassList("sprite-editor-area-overlay");
+                AddToClassList("whimtex-area-overlay");
                 generateVisualContent += Draw;
             }
             internal void Invalidate()

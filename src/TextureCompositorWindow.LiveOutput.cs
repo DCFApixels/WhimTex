@@ -3,7 +3,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
@@ -30,12 +30,12 @@ namespace DCFApixels.SpriteEditor
                 else RequestPreview(true);
                 RefreshLiveOutputButton();
             });
-            liveOutputButton.AddToClassList("sprite-editor-channel-button");
-            liveOutputButton.AddToClassList("sprite-editor-live-output-button");
+            liveOutputButton.AddToClassList("whimtex-channel-button");
+            liveOutputButton.AddToClassList("whimtex-live-output-button");
             var indicator = new VisualElement { pickingMode = PickingMode.Ignore };
-            indicator.AddToClassList("sprite-editor-live-output-indicator");
+            indicator.AddToClassList("whimtex-live-output-indicator");
             var disc = new VisualElement { pickingMode = PickingMode.Ignore };
-            disc.AddToClassList("sprite-editor-live-output-disc");
+            disc.AddToClassList("whimtex-live-output-disc");
             indicator.Add(disc);
             liveOutputButton.Add(indicator);
             RefreshLiveOutputButton();
@@ -46,7 +46,7 @@ namespace DCFApixels.SpriteEditor
         {
             if (liveOutputButton == null) return;
             liveOutputButton.SetEnabled(CanPublishLiveOutput);
-            liveOutputButton.EnableInClassList("sprite-editor-channel-button--enabled", liveOutputEnabled);
+            liveOutputButton.EnableInClassList("whimtex-channel-button--enabled", liveOutputEnabled);
             liveOutputButton.tooltip = CanPublishLiveOutput
                 ? "Live Update: show edits on objects and in File layers using this compositor texture. Turning off restores the saved image. Save writes the changes; texture references stay unchanged."
                 : "Live Update: save the compositor first, then assign its texture to a material.";

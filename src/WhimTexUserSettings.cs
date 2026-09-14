@@ -3,23 +3,23 @@ using System.IO;
 using UnityEditor;
 using UnityEngine;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
-    internal static class SpriteEditorUserSettings
+    internal static class WhimTexUserSettings
     {
-        private const string LightKey = "DCFApixels.SpriteEditor.Preview.CheckerLight";
-        private const string DarkKey = "DCFApixels.SpriteEditor.Preview.CheckerDark";
-        private const string ErrorKey = "DCFApixels.SpriteEditor.Preview.InvalidPixels";
-        private const string SizeKey = "DCFApixels.SpriteEditor.Preview.CheckerSize";
-        private const string ShowMantaKey = "DCFApixels.SpriteEditor.Preview.ShowManta";
-        private const string PostFxBackgroundKey = "DCFApixels.SpriteEditor.Preview.PostFxBackground";
-        private const string PostFxBackgroundModeKey = "DCFApixels.SpriteEditor.Preview.PostFxBackgroundMode";
-        private const string PresetsFolderKey = "DCFApixels.SpriteEditor.PresetsFolder";
-        private const string LayerPickAlphaKey = "DCFApixels.SpriteEditor.LayerPickAlphaThreshold";
-        private const string SnapRadiusKey = "DCFApixels.SpriteEditor.SnapRadius";
-        private const string GuideAlignedKey = "DCFApixels.SpriteEditor.Guides.AlignedColor";
-        private const string GuideAngledKey = "DCFApixels.SpriteEditor.Guides.AngledColor";
-        private const string GuideActiveKey = "DCFApixels.SpriteEditor.Guides.ActiveColor";
+        private const string LightKey = "DCFApixels.WhimTex.Preview.CheckerLight";
+        private const string DarkKey = "DCFApixels.WhimTex.Preview.CheckerDark";
+        private const string ErrorKey = "DCFApixels.WhimTex.Preview.InvalidPixels";
+        private const string SizeKey = "DCFApixels.WhimTex.Preview.CheckerSize";
+        private const string ShowMantaKey = "DCFApixels.WhimTex.Preview.ShowManta";
+        private const string PostFxBackgroundKey = "DCFApixels.WhimTex.Preview.PostFxBackground";
+        private const string PostFxBackgroundModeKey = "DCFApixels.WhimTex.Preview.PostFxBackgroundMode";
+        private const string PresetsFolderKey = "DCFApixels.WhimTex.PresetsFolder";
+        private const string LayerPickAlphaKey = "DCFApixels.WhimTex.LayerPickAlphaThreshold";
+        private const string SnapRadiusKey = "DCFApixels.WhimTex.SnapRadius";
+        private const string GuideAlignedKey = "DCFApixels.WhimTex.Guides.AlignedColor";
+        private const string GuideAngledKey = "DCFApixels.WhimTex.Guides.AngledColor";
+        private const string GuideActiveKey = "DCFApixels.WhimTex.Guides.ActiveColor";
         internal const float DefaultSnapRadius = 8f;
         internal const float MinimumSnapRadius = 1f;
         internal const float MaximumSnapRadius = 64f;
@@ -81,8 +81,21 @@ namespace DCFApixels.SpriteEditor
                 Changed?.Invoke();
             }
         }
-        internal static string DefaultPresetsFolder => Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DCFApixels", "SpriteEditor", "Presets");
+        // Presets saved before the rename live in the legacy sibling folder. Keep using it while the
+        // new folder is absent, so renaming the package does not hide the user's brushes and effects.
+        private const string LegacyDataFolder = "SpriteEditor";
+        internal static string DefaultPresetsFolder
+        {
+            get
+            {
+                string root = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DCFApixels");
+                string folder = Path.Combine(root, "WhimTex", "Presets");
+                if (Directory.Exists(folder)) return folder;
+                string legacy = Path.Combine(root, LegacyDataFolder, "Presets");
+                return Directory.Exists(legacy) ? legacy : folder;
+            }
+        }
         internal static string PresetsFolder => EditorPrefs.GetString(PresetsFolderKey, DefaultPresetsFolder);
 
         internal static bool TrySetPresetsFolder(string value, out string error)
@@ -127,7 +140,7 @@ namespace DCFApixels.SpriteEditor
         private static Color? postFxBackground = Load(PostFxBackgroundKey);
         private static PostFxBackground postFxBackgroundMode = NormalizePostFxBackgroundMode((PostFxBackground)EditorPrefs.GetInt(PostFxBackgroundModeKey, 0));
         private static PostFxBackground NormalizePostFxBackgroundMode(PostFxBackground value) =>
-            value == DCFApixels.SpriteEditor.PostFxBackground.Checkerboard ? value : DCFApixels.SpriteEditor.PostFxBackground.SolidColor;
+            value == DCFApixels.WhimTex.PostFxBackground.Checkerboard ? value : DCFApixels.WhimTex.PostFxBackground.SolidColor;
         internal static PostFxBackground PostFxBackgroundMode
         {
             get => postFxBackgroundMode;
@@ -238,7 +251,7 @@ namespace DCFApixels.SpriteEditor
             EditorPrefs.DeleteKey(SizeKey);
             EditorPrefs.DeleteKey(PostFxBackgroundKey);
             EditorPrefs.DeleteKey(PostFxBackgroundModeKey);
-            postFxBackgroundMode = DCFApixels.SpriteEditor.PostFxBackground.SolidColor;
+            postFxBackgroundMode = DCFApixels.WhimTex.PostFxBackground.SolidColor;
             postFxBackground = null;
             checkerSize = DefaultCheckerSize;
             checkerLight = checkerDark = invalidPixels = null;

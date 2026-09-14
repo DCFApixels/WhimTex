@@ -4,7 +4,7 @@ const read = p => readFileSync(new URL('../src/' + p, import.meta.url), 'utf8');
 const ghost = read('TextureCompositorWindow.LayerDragGhost.cs');
 const ui = read('TextureCompositorWindow.UI.cs');
 const window = read('TextureCompositorWindow.cs');
-assert.match(read('SpriteEditorUI.cs'), /Properties \(\{TextureCompositor.LayerMenuName\(layer\)\}\)/);
+assert.match(read('WhimTexUI.cs'), /Properties \(\{TextureCompositor.LayerMenuName\(layer\)\}\)/);
 assert.match(read('TextureCompositor.Naming.cs'), /LayerTypeRegistry.Find\(layer\?\.Behaviour\?\.GetType\(\)\)\?\.MenuName/);
 const menu = window.slice(window.indexOf('private void ShowAddMenu'),window.indexOf('private void AddLayer'));
 const prefixes = read('TextureCompositor.Naming.cs');
@@ -27,7 +27,7 @@ assert.match(window, /private void ClearLayerDragData\(\)\s*\{\s*ClearLayerDragG
 assert.match(window, /private void OnLostFocus\(\)\s*\{\s*ClearLayerDragGhost\(\)/);
 assert.match(ghost, /OnPerform\(DragPerformEvent evt\) => owner.ClearLayerDragGhost\(\)/);
 assert.match(ghost, /new Color\(background.r, background.g, background.b, 0f\)/);
-assert.match(read('SpriteEditorSplitView.uss'), /\.sprite-editor-layer-drag-ghost\s*\{[^}]*opacity: 0.6/);
+assert.match(read('WhimTexSplitView.uss'), /\.whimtex-layer-drag-ghost\s*\{[^}]*opacity: 0.6/);
 console.log('Properties names and non-interactive drag ghost contracts passed. Visual Unity checks remain manual.');
 
 const target = read('EffectTargetSettingsView.cs');
@@ -45,9 +45,9 @@ assert.match(target, /GetDraggedLayerForDocument\(owner.compositor\)/);
 assert.match(target, /IsUsableEffectTarget\(effect, source.Id\)/);
 assert.match(target, /DragAndDropVisualMode.Link : DragAndDropVisualMode.Rejected/);
 assert.match(target, /TextureCompositorWindow.ClearDraggedLayerReference\(\)/);
-const styles = read('SpriteEditorSplitView.uss');
-assert.match(styles, /\.unity-base-popup-field__arrow\.sprite-editor-effect-target-arrow\s*\{\s*display: none/);
-assert.match(styles, /\.sprite-editor-effect-target\.sprite-editor-effect-target--drop > \.unity-base-field__input/);
+const styles = read('WhimTexSplitView.uss');
+assert.match(styles, /\.unity-base-popup-field__arrow\.whimtex-effect-target-arrow\s*\{\s*display: none/);
+assert.match(styles, /\.whimtex-effect-target\.whimtex-effect-target--drop > \.unity-base-field__input/);
 console.log('Object-style effect target: presentation, shared thumbnail and preserved selection/drop contracts passed.');
 
 const accent = ui.split('if (layer.Behaviour is FileLayerBehaviour fileLayer)')[1].split('if (layer.Behaviour == null)')[0];
@@ -57,7 +57,7 @@ assert.doesNotMatch(accent, /thumbnail.Add\(referenceAccent\)/);
 assert.match(accent, /ReferenceEquals\(source, checkedSource\) && path == checkedPath\) return/);
 assert.match(accent, /TextureCompositor.FindDocument\(source\) == null/);
 assert.doesNotMatch(accent, /new (Label|Image|Button)|RegisterCallback/);
-assert.match(styles, /\.sprite-editor-compositor-reference-accent \{\s*position: absolute;\s*left: 0;\s*top: 0;\s*bottom: 0;\s*width: 2px;\s*background-color: rgba\(224, 143, 70, 0.7\);/);
+assert.match(styles, /\.whimtex-compositor-reference-accent \{\s*position: absolute;\s*left: 0;\s*top: 0;\s*bottom: 0;\s*width: 2px;\s*background-color: rgba\(224, 143, 70, 0.7\);/);
 console.log('Linked compositor accent: File-only, cached source detection, non-interactive left row line passed.');
 
 const thumbnails = read('LayerThumbnailCache.cs');

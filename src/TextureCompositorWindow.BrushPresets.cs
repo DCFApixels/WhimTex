@@ -4,7 +4,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
@@ -15,12 +15,12 @@ namespace DCFApixels.SpriteEditor
         private void BuildBrushPresetControls(VisualElement parent)
         {
             var row = new VisualElement();
-            row.AddToClassList("sprite-editor-brush-preset-row");
+            row.AddToClassList("whimtex-brush-preset-row");
             brushPresetButton = new Button(ShowBrushPresets);
-            brushPresetButton.AddToClassList("sprite-editor-brush-preset-picker");
+            brushPresetButton.AddToClassList("whimtex-brush-preset-picker");
             row.Add(brushPresetButton);
             var save = new Button(SaveBrushPresetAs) { text = "Save As…", tooltip = "Save the brush and its tip as a portable preset. Palette colors are not included." };
-            save.AddToClassList("sprite-editor-brush-preset-save");
+            save.AddToClassList("whimtex-brush-preset-save");
             row.Add(save);
             parent.Add(row);
             RefreshBrushPresetButton();
@@ -67,7 +67,7 @@ namespace DCFApixels.SpriteEditor
                     try { Directory.CreateDirectory(BrushPresetLibrary.Folder); EditorUtility.RevealInFinder(BrushPresetLibrary.Folder); }
                     catch (Exception exception) { ShowBrushPresetError(exception); }
                 });
-                menu.AddItem(new GUIContent("Library Settings…"), false, SpriteEditorUserSettingsWindow.Open);
+                menu.AddItem(new GUIContent("Library Settings…"), false, WhimTexUserSettingsWindow.Open);
                 menu.ShowAsContext();
             }
             catch (Exception exception) { ShowBrushPresetError(exception); }

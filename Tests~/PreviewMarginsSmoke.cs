@@ -1,15 +1,15 @@
 // Opt-in after manual compilation. Temporary document/window, no saved assets.
 const System.Reflection.BindingFlags Hidden = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-var window = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.SpriteEditor.TextureCompositorWindow>();
+var window = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositorWindow>();
 var windowType = window.GetType();
-var document = (DCFApixels.SpriteEditor.TextureCompositor)windowType.GetField("compositor", Hidden).GetValue(window);
+var document = (DCFApixels.WhimTex.TextureCompositor)windowType.GetField("compositor", Hidden).GetValue(window);
 object Call(object target, string name, params object[] args) => target.GetType().GetMethod(name, Hidden).Invoke(target, args);
 int checks = 0;
 void Check(bool value, string message) { if (!value) throw new System.Exception(message); checks++; }
 try
 {
     document.width = document.height = 64;
-    var drawing = new DCFApixels.SpriteEditor.DrawingLayerBehaviour
+    var drawing = new DCFApixels.WhimTex.DrawingLayerBehaviour
     {
         brushSize = 16,
         brushHardness = 1,

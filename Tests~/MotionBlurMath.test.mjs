@@ -10,7 +10,7 @@ const layer = read('src/Layers/MotionBlurRenderer.cs');
 const settings = read('src/Layers/BlurLayerBehaviour.cs');
 const shader = read('src/Shaders/MotionBlur.shader');
 const ui = read('src/Layers/Editors/BlurLayerEditorWindow.cs');
-const api = read('src/Automation/SpriteEditorApi.Blur.cs');
+const api = read('src/Automation/WhimTexApi.Blur.cs');
 const fullLimit = +layer.match(/FullSampleLimit = (\d+)/)[1];
 const fastLimit = +layer.match(/InteractiveSampleLimit = (\d+)/)[1];
 const segments = (path, limit = fullLimit) => Math.max(1, Math.min(limit - 1, Math.ceil(path)));
@@ -126,7 +126,7 @@ assert.doesNotMatch(ui, /\.Clear\(|\.style\.|isDelayed/);
 assert.match(read('src/EffectRenderCache.cs'), /effect\.RequiresColorInput/);
 assert.match(read('src/TextureCompositor.cs'), /effect\.RequiresColorInput/);
 assert.match(read('src/LayerTypeRegistry.cs'), /new Entry\("blur", "Blur", "Blur", "Blur", typeof\(BlurLayerBehaviour\)/);
-assert.match(read('src/Automation/SpriteEditorApi.Inspect.cs'), /blurDefaults/);
+assert.match(read('src/Automation/WhimTexApi.Inspect.cs'), /blurDefaults/);
 assert.match(read('src/Utils.cs'), /DestroyImmediate\(motionBlurMaterial\)/);
 function strengthMix(source, blur, strength) {
   const premul = c => c.map((v, i) => i === 3 ? v : v * c[3]);

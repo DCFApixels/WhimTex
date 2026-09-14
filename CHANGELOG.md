@@ -4,6 +4,21 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-09-14
+
+### Added
+
+- Drop shadow around the canvas in the preview, offset slightly downward so the canvas reads as lifted. It is hidden in Tiled preview, where the canvas already fills the whole area.
+
+### Changed
+
+- Changed the package ID from `com.dcfa_pixels.sprite-editor` to `com.dcfapixels.whimtex`. Embedded installations keep working; update the dependency entry wherever the package is referenced by ID.
+- Renamed the code identity from `DCFApixels.SpriteEditor` to `DCFApixels.WhimTex`: the namespace, the `DCFApixels.WhimTex`, `.Pipeline` and `.URP` assembly definitions with their `WHIMTEX_*` defines, and the `SpriteEditor*` types and files (`WhimTexApi`, `WhimTexBranding`, `WhimTexColorInputs`, `WhimTexCommands`, `WhimTexMaterials`, `WhimTexPsdExporter`, `WhimTexUI`, `WhimTexUserSettings`, `WhimTexUserSettingsWindow`).
+- Renamed the UI Toolkit surface for the same reason: `sprite-editor-*` CSS classes and the workspace element names became `whimtex-*`, `SpriteEditorSplitView.uss` became `WhimTexSplitView.uss`, and the `SpriteEditorNormalizeOutput` shader pass tag became `WhimTexNormalizeOutput`. The USS cascade baseline was regenerated for the renamed selectors; that also absorbs the drift which had already been failing that check.
+- Renamed the agent-facing surface to match: the `sprite_editor_*` commands became `whimtex_*`, the `sprite-editor-live` skill ID and its `Skills~/whimtex-live/` folder became `whimtex-live`, the preview output folder moved to `Temp/WhimTex/`, and the persisted preference keys moved from `DCFApixels.SpriteEditor.*` to `DCFApixels.WhimTex.*`. Existing preference values are not migrated, so those settings fall back to their defaults.
+- Every document-persisted type carries `MovedFrom` markers for the old namespace and assembly, so documents and effects saved under `DCFApixels.SpriteEditor` keep their layers and effects without re-saving.
+- Moved the default preset folder from `%LocalAppData%/DCFApixels/SpriteEditor/Presets` to `%LocalAppData%/DCFApixels/WhimTex/Presets`. While the new folder does not exist the old one stays in use, so brushes and effects saved before the rename remain in the selector; move those files to the new folder to complete the switch.
+
 ## [0.9.6] - 2026-09-14
 
 ### Added
@@ -300,7 +315,7 @@ All notable changes to WhimTex are documented in this file.
   blend-mode mapping and a merged RGBA image. Uses per-row RLE and bounded raster memory.
 - Editable solid fills with masks, compatible gradient fills and Outline stroke effects on target-alpha snapshots.
   SDF, shader effects and incompatible procedural settings use raster fallbacks with conversion notes.
-- Editor-side `SpriteEditorPsdExporter.Export` API, cancellable export and atomic destination replacement.
+- Editor-side `WhimTexPsdExporter.Export` API, cancellable export and atomic destination replacement.
 - Standalone PSD writer checks, an optional independent-reader check and opt-in Editor export smoke tests.
 
 ## [0.6.0] - 2026-09-09

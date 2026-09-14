@@ -17,7 +17,7 @@ for(const entry of entries) {
 assert.doesNotMatch(registry,/new Entry\("pending"/);
 assert.match(registry,/Array.AsReadOnly/);
 assert.match(registry,/StringComparer.Ordinal/);
-assert.match(read('Automation/SpriteEditorApi.Layers.cs'),/descriptor.CreateLayer\(\)/);
-assert.match(read('Automation/SpriteEditorApi.Inspect.cs'),/foreach \(var descriptor in LayerTypeRegistry.Entries\)/);
+assert.match(read('Automation/WhimTexApi.Layers.cs'),/descriptor.CreateLayer\(\)/);
+assert.match(read('Automation/WhimTexApi.Inspect.cs'),/foreach \(var descriptor in LayerTypeRegistry.Entries\)/);
 assert.match(read('TextureCompositorWindow.MissingLayers.cs'),/types\[replacement.index\].CreateBehaviour\(\)/);
 console.log('Layer registry: all 13 factories, stable labels/order and shared consumers passed (source contracts only).');

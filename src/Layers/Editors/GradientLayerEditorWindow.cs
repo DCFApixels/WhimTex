@@ -4,7 +4,7 @@ using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed class GradientLayerEditorWindow : LayerEditorWindowBase
     {
@@ -22,10 +22,10 @@ namespace DCFApixels.SpriteEditor
 
         internal static void BuildFields(
             VisualElement root, GradientLayerBehaviour layer, TextureCompositor compositor,
-            Action<string, Action> applyChange, SpriteEditorUI.ValueBindings bindings)
+            Action<string, Action> applyChange, WhimTexUI.ValueBindings bindings)
         {
 
-            EnumField gradientType = SpriteEditorUI.ConfigureField(
+            EnumField gradientType = WhimTexUI.ConfigureField(
                 new EnumField("Gradient Type", layer.gradientType));
             bindings.Track(gradientType, () => (Enum)layer.gradientType);
             gradientType.RegisterValueChangedCallback(evt =>
@@ -36,32 +36,32 @@ namespace DCFApixels.SpriteEditor
             });
             root.Add(gradientType);
 
-            GradientField gradient = SpriteEditorUI.ConfigureField(SpriteEditorColorInputs.Bind(new GradientField("Gradient"), bindings, () => layer.gradient));
+            GradientField gradient = WhimTexUI.ConfigureField(WhimTexColorInputs.Bind(new GradientField("Gradient"), bindings, () => layer.gradient));
             gradient.RegisterValueChangedCallback(evt =>
                 applyChange("Change Gradient", () => layer.gradient = GradientUtility.Create(evt.newValue)));
             root.Add(gradient);
 
-            Vector2Field center = SpriteEditorUI.ConfigureField(new Vector2Field("Center"));
+            Vector2Field center = WhimTexUI.ConfigureField(new Vector2Field("Center"));
             bindings.Track(center, () => layer.center);
             center.RegisterValueChangedCallback(evt =>
                 applyChange("Change Gradient Center", () => layer.center = evt.newValue));
             root.Add(center);
 
-            FloatField radius = SpriteEditorUI.ConfigureField(new FloatField("Radius"));
+            FloatField radius = WhimTexUI.ConfigureField(new FloatField("Radius"));
             bindings.Track(radius, () => layer.radius);
             radius.RegisterValueChangedCallback(evt =>
                 applyChange("Change Gradient Radius", () => layer.radius = Mathf.Max(0f, evt.newValue)));
             root.Add(radius);
 
             VisualElement circularSettings = new VisualElement();
-            FloatField repetitions = SpriteEditorUI.ConfigureField(new FloatField("Repetitions"));
+            FloatField repetitions = WhimTexUI.ConfigureField(new FloatField("Repetitions"));
             bindings.Track(repetitions, () => layer.circularRepetitions);
             repetitions.RegisterValueChangedCallback(evt => applyChange(
                 "Change Gradient Repetitions",
                 () => layer.circularRepetitions = Mathf.Max(float.Epsilon, evt.newValue)));
             circularSettings.Add(repetitions);
 
-            EnumField wrapMode = SpriteEditorUI.ConfigureField(
+            EnumField wrapMode = WhimTexUI.ConfigureField(
                 new EnumField("Wrap Mode", layer.circularWrapMode));
             bindings.Track(wrapMode, () => (Enum)layer.circularWrapMode);
             wrapMode.RegisterValueChangedCallback(evt => applyChange(

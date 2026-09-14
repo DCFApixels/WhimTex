@@ -5,7 +5,7 @@ using System.Collections;
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
-using DCFApixels.SpriteEditor;
+using DCFApixels.WhimTex;
 
 public static class GuideReloadSmoke
 {

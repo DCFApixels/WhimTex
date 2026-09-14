@@ -5,7 +5,7 @@ using UnityEditorInternal;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
@@ -230,14 +230,14 @@ namespace DCFApixels.SpriteEditor
                 root.RegisterCallback<PointerUpEvent>(OnUp, TrickleDown.TrickleDown);
                 root.RegisterCallback<KeyUpEvent>(OnKeyUp, TrickleDown.TrickleDown);
                 root.RegisterCallback<KeyDownEvent>(OnKeyDown, TrickleDown.TrickleDown);
-                root.RegisterCallback<WheelEvent>(SpriteEditorUI.ConsumeEvent, TrickleDown.TrickleDown);
+                root.RegisterCallback<WheelEvent>(WhimTexUI.ConsumeEvent, TrickleDown.TrickleDown);
                 root.RegisterCallback<PointerCancelEvent>(_ => Finish(false));
             }
 
             private void BuildLens(VisualElement root)
             {
-                SpriteEditorUI.ApplyWindowStyles(root);
-                root.AddToClassList("sprite-editor-eyedropper-lens");
+                WhimTexUI.ApplyWindowStyles(root);
+                root.AddToClassList("whimtex-eyedropper-lens");
                 if (cursorTexture != null)
                     root.style.cursor = new UnityEngine.UIElements.Cursor
                     {
@@ -245,20 +245,20 @@ namespace DCFApixels.SpriteEditor
                         hotspot = new Vector2(2f, cursorTexture.height - 2f)
                     };
                 magnified = new Image { pickingMode = PickingMode.Ignore, scaleMode = ScaleMode.StretchToFill };
-                magnified.AddToClassList("sprite-editor-eyedropper-sample");
+                magnified.AddToClassList("whimtex-eyedropper-sample");
                 root.Add(magnified);
                 var grid = new VisualElement { pickingMode = PickingMode.Ignore };
-                grid.AddToClassList("sprite-editor-eyedropper-sample");
+                grid.AddToClassList("whimtex-eyedropper-sample");
                 grid.generateVisualContent += DrawGrid;
                 root.Add(grid);
                 swatch = new VisualElement { pickingMode = PickingMode.Ignore };
-                swatch.AddToClassList("sprite-editor-eyedropper-swatch");
+                swatch.AddToClassList("whimtex-eyedropper-swatch");
                 root.Add(swatch);
             }
 
             private void OnMove(PointerMoveEvent evt)
             {
-                SpriteEditorUI.ConsumeEvent(evt);
+                WhimTexUI.ConsumeEvent(evt);
                 if (closing || finishAfterPick) return;
                 if (evt.imguiEvent == null ||
                     (evt.imguiEvent.rawType != EventType.MouseMove && evt.imguiEvent.rawType != EventType.MouseDrag)) return;
@@ -276,7 +276,7 @@ namespace DCFApixels.SpriteEditor
 
             private void OnDown(PointerDownEvent evt)
             {
-                SpriteEditorUI.ConsumeEvent(evt);
+                WhimTexUI.ConsumeEvent(evt);
                 if (closing || finishAfterPick) return;
                 if (!evt.altKey) { Finish(true); return; }
                 try
@@ -295,7 +295,7 @@ namespace DCFApixels.SpriteEditor
 
             private void OnUp(PointerUpEvent evt)
             {
-                SpriteEditorUI.ConsumeEvent(evt);
+                WhimTexUI.ConsumeEvent(evt);
                 if (closing || finishAfterPick) return;
                 try
                 {
@@ -316,13 +316,13 @@ namespace DCFApixels.SpriteEditor
 
             private void OnKeyDown(KeyDownEvent evt)
             {
-                SpriteEditorUI.ConsumeEvent(evt);
+                WhimTexUI.ConsumeEvent(evt);
                 if (!evt.altKey) Finish(true);
             }
 
             private void OnKeyUp(KeyUpEvent evt)
             {
-                SpriteEditorUI.ConsumeEvent(evt);
+                WhimTexUI.ConsumeEvent(evt);
                 if (!evt.altKey) Finish(true);
             }
 

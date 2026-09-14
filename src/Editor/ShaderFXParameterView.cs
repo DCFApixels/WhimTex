@@ -5,7 +5,7 @@ using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     internal sealed class ShaderFXParameterView : VisualElement
     {
@@ -38,7 +38,7 @@ namespace DCFApixels.SpriteEditor
 
         private void Change(string id, Action<ShaderFXParameter> update)
         {
-            if (effect == null || SpriteEditorApi.IsShaderFXContentLocked(effect)) return;
+            if (effect == null || WhimTexApi.IsShaderFXContentLocked(effect)) return;
             var value = Find(id);
             if (value == null) return;
             Undo.RecordObject(effect, "Change FX Parameter");
@@ -81,7 +81,7 @@ namespace DCFApixels.SpriteEditor
                     int index = 0;
                     for (; index < effect.Parameters.Count; index++) if (effect.Parameters[index] == declaration) break;
                     var property = data.FindProperty("parameters").GetArrayElementAtIndex(index).FindPropertyRelative("colorValue");
-                    var color = SpriteEditorColorInputs.Bind(new ColorField(label), property, effect.NotifyValuesChanged);
+                    var color = WhimTexColorInputs.Bind(new ColorField(label), property, effect.NotifyValuesChanged);
                     Add(color);
                     color.RegisterCallback<DetachFromPanelEvent>(_ => data.Dispose());
                     break;

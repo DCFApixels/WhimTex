@@ -3,10 +3,10 @@ using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
-using DCFApixels.SpriteEditor;
+using DCFApixels.WhimTex;
 
 // Opt-in eval after manual compilation, with an active graphics device. Temporary objects only.
-var sessionType = typeof(TextureCompositor).Assembly.GetType("DCFApixels.SpriteEditor.LiveOutputSession", true);
+var sessionType = typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.LiveOutputSession", true);
 var constructor = sessionType.GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic, null, new[] { typeof(Texture2D) }, null);
 var publish = sessionType.GetMethod("Publish", BindingFlags.Instance | BindingFlags.NonPublic);
 int checks = 0;

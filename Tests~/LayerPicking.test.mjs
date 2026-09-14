@@ -4,8 +4,8 @@ const read = name => readFileSync(new URL(`../src/${name}`, import.meta.url), 'u
 const renderer = read('TextureCompositor.LayerPicking.cs');
 const window = read('TextureCompositorWindow.LayerPicking.cs');
 const ui = read('TextureCompositorWindow.UI.cs');
-const settings = read('SpriteEditorUserSettings.cs');
-const settingsWindow = read('SpriteEditorUserSettingsWindow.cs');
+const settings = read('WhimTexUserSettings.cs');
+const settingsWindow = read('WhimTexUserSettingsWindow.cs');
 const expression = renderer.match(/MeetsPickThreshold\(float alpha, float threshold\) => ([^;]+);/)[1];
 const hit = new Function('alpha', 'threshold', `return ${expression.replace(/(\d)f\b/g, '$1')};`);
 assert.equal(hit(0, 0), false);

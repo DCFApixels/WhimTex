@@ -3,7 +3,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
@@ -25,9 +25,9 @@ namespace DCFApixels.SpriteEditor
         private VisualElement BuildPreviewFooter()
         {
             VisualElement footer = new VisualElement();
-            footer.AddToClassList("sprite-editor-preview-footer");
+            footer.AddToClassList("whimtex-preview-footer");
             var left = new VisualElement { name = "previewFooterLeft" };
-            left.AddToClassList("sprite-editor-preview-footer-side");
+            left.AddToClassList("whimtex-preview-footer-side");
             footer.Add(left);
             var updates = CreatePreviewFooterGroup("previewFooterUpdates");
             updates.Add(BuildPreviewQualityControl());
@@ -39,25 +39,25 @@ namespace DCFApixels.SpriteEditor
             context.Add(BuildGuidesButton());
             left.Add(context);
             footer.RegisterCallback<GeometryChangedEvent>(evt =>
-                footer.EnableInClassList("sprite-editor-preview-footer--compact", evt.newRect.width < 600f));
+                footer.EnableInClassList("whimtex-preview-footer--compact", evt.newRect.width < 600f));
             toolkitPreviewFooter = new PreviewFooterHintLabel();
-            toolkitPreviewFooter.AddToClassList("sprite-editor-preview-status");
+            toolkitPreviewFooter.AddToClassList("whimtex-preview-status");
             footer.Add(toolkitPreviewFooter);
             var right = new VisualElement { name = "previewFooterRight" };
-            right.AddToClassList("sprite-editor-preview-footer-side");
-            right.AddToClassList("sprite-editor-preview-channels");
+            right.AddToClassList("whimtex-preview-footer-side");
+            right.AddToClassList("whimtex-preview-channels");
             footer.Add(right);
             var inspection = CreatePreviewFooterGroup("previewFooterInspection");
             right.Add(inspection);
-            inspection.Add(SpriteEditorColorInputs.CreateToggleControl());
+            inspection.Add(WhimTexColorInputs.CreateToggleControl());
             var exposure = new FloatField("EV") { value = previewExposure, tooltip = "Preview exposure only, in stops. Does not affect painting, fill sampling or export." };
-            exposure.AddToClassList("sprite-editor-preview-exposure");
-            exposure.EnableInClassList("sprite-editor-preview-exposure--adjusted", previewExposure != 0f);
+            exposure.AddToClassList("whimtex-preview-exposure");
+            exposure.EnableInClassList("whimtex-preview-exposure--adjusted", previewExposure != 0f);
             exposure.RegisterValueChangedCallback(evt =>
             {
                 previewExposure = float.IsNaN(evt.newValue) ? 0f : Mathf.Clamp(evt.newValue, -20f, 20f);
                 exposure.SetValueWithoutNotify(previewExposure);
-                exposure.EnableInClassList("sprite-editor-preview-exposure--adjusted", previewExposure != 0f);
+                exposure.EnableInClassList("whimtex-preview-exposure--adjusted", previewExposure != 0f);
                 UpdateChannelPreview(); UpdateToolkitPreviewPresentation();
             });
             inspection.Add(exposure);
@@ -66,13 +66,13 @@ namespace DCFApixels.SpriteEditor
                 previewDebug = !previewDebug;
                 UpdateChannelPreview(); UpdateToolkitPreviewPresentation();
             }) { tooltip = "Debug numeric errors: highlights invalid or overflowing components before they were replaced with zero. Preview only; choose the highlight color in User Settings." };
-            debug.AddToClassList("sprite-editor-channel-button");
-            debug.AddToClassList("sprite-editor-debug-button");
+            debug.AddToClassList("whimtex-channel-button");
+            debug.AddToClassList("whimtex-debug-button");
             debug.Add(new LayerActionIcon(LayerActionIcon.Kind.Bug));
             debug.schedule.Execute(() =>
             {
-                debug.EnableInClassList("sprite-editor-channel-button--enabled", previewDebug);
-                debug.EnableInClassList("sprite-editor-channel-button--error", compositor != null && compositor.HasNumericErrors);
+                debug.EnableInClassList("whimtex-channel-button--enabled", previewDebug);
+                debug.EnableInClassList("whimtex-channel-button--error", compositor != null && compositor.HasNumericErrors);
             }).Every(150);
             inspection.Add(debug);
             var channels = CreatePreviewFooterGroup("previewFooterColor", true);
@@ -89,9 +89,9 @@ namespace DCFApixels.SpriteEditor
                     : labels[i] + " channel: show in Preview and use the brush value; off paints this component as 0. " +
                       "A single RGB channel is shown in grayscale; A controls its transparency. " +
                       "Existing pixels are not changed by toggling. Eraser is unaffected.";
-                button.AddToClassList("sprite-editor-channel-button");
+                button.AddToClassList("whimtex-channel-button");
                 if (i < 3)
-                    button.AddToClassList("sprite-editor-channel-button--" + labels[i].ToLowerInvariant());
+                    button.AddToClassList("whimtex-channel-button--" + labels[i].ToLowerInvariant());
                 channelButtons[i] = button;
                 channels.Add(button);
             }
@@ -102,8 +102,8 @@ namespace DCFApixels.SpriteEditor
         private static VisualElement CreatePreviewFooterGroup(string name, bool separated = false)
         {
             var group = new VisualElement { name = name };
-            group.AddToClassList("sprite-editor-preview-footer-group");
-            if (separated) group.AddToClassList("sprite-editor-preview-footer-group--separated");
+            group.AddToClassList("whimtex-preview-footer-group");
+            if (separated) group.AddToClassList("whimtex-preview-footer-group--separated");
             return group;
         }
 
@@ -129,7 +129,7 @@ namespace DCFApixels.SpriteEditor
                     measuredWidth = MeasureTextSize(text, 0, MeasureMode.Undefined, 0, MeasureMode.Undefined).x;
                     measuredText = text;
                 }
-                EnableInClassList("sprite-editor-preview-status--hidden",
+                EnableInClassList("whimtex-preview-status--hidden",
                     string.IsNullOrEmpty(text) || !(measuredWidth <= contentRect.width));
             }
         }
@@ -137,9 +137,9 @@ namespace DCFApixels.SpriteEditor
         private VisualElement BuildPreviewQualityControl()
         {
             VisualElement control = new VisualElement { tooltip = LivePreviewQualityContent.tooltip };
-            control.AddToClassList("sprite-editor-preview-quality");
+            control.AddToClassList("whimtex-preview-quality");
             Label label = new Label("Live Quality");
-            label.AddToClassList("sprite-editor-preview-quality-label");
+            label.AddToClassList("whimtex-preview-quality-label");
             control.Add(label);
             Slider quality = new Slider(
                 MinimumPaintingPreviewScale * 100f, MaximumPaintingPreviewScale * 100f)
@@ -147,9 +147,9 @@ namespace DCFApixels.SpriteEditor
                 value = paintingPreviewScale * 100f,
                 tooltip = LivePreviewQualityContent.tooltip
             };
-            quality.AddToClassList("sprite-editor-preview-quality-slider");
+            quality.AddToClassList("whimtex-preview-quality-slider");
             Label value = new Label($"{paintingPreviewScale * 100f:0.#}%");
-            value.AddToClassList("sprite-editor-preview-quality-value");
+            value.AddToClassList("whimtex-preview-quality-value");
             previewQualitySlider = quality;
             previewQualityValue = value;
             quality.RegisterValueChangedCallback(evt =>
@@ -195,12 +195,12 @@ namespace DCFApixels.SpriteEditor
             if (channelButtons == null)
                 return;
             for (int i = 0; i < channelButtons.Length; i++)
-                channelButtons[i].EnableInClassList("sprite-editor-channel-button--enabled", (previewChannels & (1 << i)) != 0);
+                channelButtons[i].EnableInClassList("whimtex-channel-button--enabled", (previewChannels & (1 << i)) != 0);
         }
 
         private Color GetPaintingColor()
         {
-            Color color = SpriteEditorColorInputs.DisplayColor(paintSettings.brushColor);
+            Color color = WhimTexColorInputs.DisplayColor(paintSettings.brushColor);
             if (paintingErase)
                 return color;
             Vector4 mask = PreviewChannelMask;
@@ -214,7 +214,7 @@ namespace DCFApixels.SpriteEditor
                 ReleaseChannelPreview();
                 return;
             }
-            Material material = SpriteEditorMaterials.PreviewChannels;
+            Material material = WhimTexMaterials.PreviewChannels;
             if (material == null)
             {
                 ReleaseChannelPreview();
@@ -236,7 +236,7 @@ namespace DCFApixels.SpriteEditor
             material.SetVector("_Channels", PreviewChannelMask);
             material.SetFloat("_Exposure", Mathf.Pow(2f, previewExposure));
             material.SetFloat("_Debug", previewDebug ? 1f : 0f);
-            Color errorColor = SpriteEditorUserSettings.InvalidPixels;
+            Color errorColor = WhimTexUserSettings.InvalidPixels;
             material.SetVector("_ErrorColor", (Vector4)(QualitySettings.activeColorSpace == ColorSpace.Linear ? errorColor.linear : errorColor));
             material.SetTexture("_Errors", compositor != null && compositor.NumericErrorMask != null ? compositor.NumericErrorMask : Texture2D.blackTexture);
             RenderTexture previous = RenderTexture.active;

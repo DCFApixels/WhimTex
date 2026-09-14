@@ -28,9 +28,9 @@ assert.ok(shader.includes('lerp(BackgroundColor(input.uv),color.rgb,saturate(col
 assert.ok(shader.indexOf('output.depth = SurfaceDepth(color.a);') < shader.indexOf('lerp(BackgroundColor(input.uv)'));
 assert.ok(window.includes('new Vector2(compositor.width, compositor.height)'), 'Checker scale must not depend on Live Quality');
 const request = read('../src/PostFxPreview.cs');
-assert.ok(request.includes('checkerSize = SpriteEditorUserSettings.CheckerSize;'));
-assert.ok(request.includes('checkerLight = SpriteEditorUserSettings.CheckerLight;'));
-assert.ok(request.includes('checkerDark = SpriteEditorUserSettings.CheckerDark;'));
+assert.ok(request.includes('checkerSize = WhimTexUserSettings.CheckerSize;'));
+assert.ok(request.includes('checkerLight = WhimTexUserSettings.CheckerLight;'));
+assert.ok(request.includes('checkerDark = WhimTexUserSettings.CheckerDark;'));
 const checker = (x,y,size) => (Math.floor(x/size)+Math.floor(y/size))%2;
 assert.equal(checker(0,0,16),0);
 assert.equal(checker(16,0,16),1);

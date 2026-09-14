@@ -5,7 +5,7 @@ using UnityEditor;
 using PackageInfo = UnityEditor.PackageManager.PackageInfo;
 using UnityEngine;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     internal static class ShaderFXCatalog
     {
@@ -16,7 +16,7 @@ namespace DCFApixels.SpriteEditor
             internal bool user;
         }
 
-        internal static string Folder => Path.GetFullPath(Path.Combine(SpriteEditorUserSettings.PresetsFolder, "ShaderFX"));
+        internal static string Folder => Path.GetFullPath(Path.Combine(WhimTexUserSettings.PresetsFolder, "ShaderFX"));
 
         private static readonly Dictionary<string, Entry> entries = new Dictionary<string, Entry>(StringComparer.Ordinal);
         private static bool initialized;
@@ -114,7 +114,7 @@ namespace DCFApixels.SpriteEditor
                 try { Directory.CreateDirectory(Folder); EditorUtility.RevealInFinder(Folder); }
                 catch (Exception error) { EditorUtility.DisplayDialog("Shader FX Presets", error.Message, "OK"); }
             });
-            menu.AddItem(new GUIContent("Library Settings…"), false, SpriteEditorUserSettingsWindow.Open);
+            menu.AddItem(new GUIContent("Library Settings…"), false, WhimTexUserSettingsWindow.Open);
             menu.ShowAsContext();
         }
 

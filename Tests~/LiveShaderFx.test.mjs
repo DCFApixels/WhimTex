@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
-const source=read('src/Automation/SpriteEditorApi.LiveFx.cs');
+const source=read('src/Automation/WhimTexApi.LiveFx.cs');
 function body(text,signature) {
   const start=text.indexOf('{',text.indexOf(signature)); assert.ok(start>=0);
   let depth=1,end=start+1;
@@ -47,7 +47,7 @@ let code=body(source,'private static void ApplyLiveFx(')
   .replaceAll('(string)spec["code"]','spec["code"]')
   .replace('catch (Exception error)','catch (error)').replaceAll('error.Message','error.message');
 const create=(owner,code,parameters)=>({owner,code,parameters,Parameters:new List(parameters),ApplyAgentDraft(){if(code==='INVALID')throw Error('bad shader');}});
-const mutate=new Function('Require','Text','Int','Keys','Obj','List','ReadLiveFxParameters','RequireGraphics','ShaderFX','SpriteEditorApiException',
+const mutate=new Function('Require','Text','Int','Keys','Obj','List','ReadLiveFxParameters','RequireGraphics','ShaderFX','WhimTexApiException',
   `return (layer,token,owner,created)=>{${code}}`)(Require,Text,Int,Keys,v=>v,List,v=>v??[],()=>{}, {CreateAgentDraft:create},class extends Error{});
 const a={},b={}; const make=()=>({modifiers:new List([a,b]),IsGroup:false});
 let target=make(), created=new List();

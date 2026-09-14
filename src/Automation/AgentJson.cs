@@ -5,19 +5,19 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
-    internal sealed class SpriteEditorApiException : Exception
+    internal sealed class WhimTexApiException : Exception
     {
         public readonly string Code;
-        public SpriteEditorApiException(string code, string message) : base(message) => Code = code;
+        public WhimTexApiException(string code, string message) : base(message) => Code = code;
     }
 
     internal static class AgentJson
     {
         public static void Require(bool condition, string message, string code = "invalid_request")
         {
-            if (!condition) throw new SpriteEditorApiException(code, message);
+            if (!condition) throw new WhimTexApiException(code, message);
         }
 
         public static JObject Parse(string json)

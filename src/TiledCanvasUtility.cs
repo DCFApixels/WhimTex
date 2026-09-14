@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     internal static class TiledCanvasUtility
     {

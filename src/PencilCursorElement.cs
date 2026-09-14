@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     internal sealed class PencilCursorElement : VisualElement
     {
@@ -24,8 +24,8 @@ namespace DCFApixels.SpriteEditor
             name = "pencilCursor";
             pickingMode = PickingMode.Ignore;
             usageHints = UsageHints.DynamicTransform;
-            AddToClassList("sprite-editor-pencil-cursor");
-            AddToClassList("sprite-editor-pencil-cursor--hidden");
+            AddToClassList("whimtex-pencil-cursor");
+            AddToClassList("whimtex-pencil-cursor--hidden");
             generateVisualContent += Draw;
         }
 
@@ -33,7 +33,7 @@ namespace DCFApixels.SpriteEditor
         {
             if (shown == value) return;
             shown = value;
-            EnableInClassList("sprite-editor-pencil-cursor--hidden", !value);
+            EnableInClassList("whimtex-pencil-cursor--hidden", !value);
         }
 
         internal void SetState(int size, PencilShape shape, Vector2 center, Vector2 x, Vector2 y,

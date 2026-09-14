@@ -1,7 +1,7 @@
 using System;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed class ShaderProcessorLayerEditorWindow : LayerEditorWindowBase
     {
@@ -11,7 +11,7 @@ namespace DCFApixels.SpriteEditor
             OpenPropertiesWindow<ShaderProcessorLayerEditorWindow>(layer, compositor);
         protected override void BuildSettings(VisualElement root, Layer layer)
         {
-            SpriteEditorUI.AddHelpBox(root, "Processes the composited layers below. Add or edit its effects in FX.", HelpBoxMessageType.Info);
+            WhimTexUI.AddHelpBox(root, "Processes the composited layers below. Add or edit its effects in FX.", HelpBoxMessageType.Info);
         }
     }
 }

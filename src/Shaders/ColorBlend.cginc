@@ -1,5 +1,5 @@
-#ifndef SPRITE_EDITOR_COLOR_BLEND_INCLUDED
-#define SPRITE_EDITOR_COLOR_BLEND_INCLUDED
+#ifndef WHIMTEX_COLOR_BLEND_INCLUDED
+#define WHIMTEX_COLOR_BLEND_INCLUDED
 
 float3 bound(float3 c) { return _HdrBlend > 0.5 ? c : saturate(c); }
 

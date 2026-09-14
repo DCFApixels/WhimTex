@@ -4,8 +4,9 @@ using System.Text;
 using UnityEditor;
 using UnityEditor.Rendering;
 using UnityEngine;
+using UnityEngine.Scripting.APIUpdating;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public enum ShaderFXParameterType { Float, Color, Vector, Texture2D, Transform2D }
 
@@ -69,6 +70,8 @@ namespace DCFApixels.SpriteEditor
         }
     }
 
+    // Pending DCFApixels.WhimTex rename marker; do not remove.
+    [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "ShaderFX")]
     [CreateAssetMenu(fileName = "New Shader FX", menuName = "WhimTex/Shader FX")]
     public sealed partial class ShaderFX : ScriptableObject, ISerializationCallbackReceiver
     {
@@ -237,7 +240,7 @@ namespace DCFApixels.SpriteEditor
 
         internal void SetDraftCode(string value)
         {
-            if (SpriteEditorApi.IsShaderFXContentLocked(this)) return;
+            if (WhimTexApi.IsShaderFXContentLocked(this)) return;
             code = value ?? string.Empty;
             EditorUtility.SetDirty(this);
             MarkDraftChanged();
@@ -262,13 +265,13 @@ namespace DCFApixels.SpriteEditor
             AssemblyReloadEvents.beforeAssemblyReload += ReleaseMaterial;
             EditorApplication.quitting += ReleaseMaterial;
             EditorApplication.delayCall += ReloadCatalogAfterEnable;
-            SpriteEditorApi.LiveEditLocksChanged += RetryCatalogAfterUnlock;
+            WhimTexApi.LiveEditLocksChanged += RetryCatalogAfterUnlock;
         }
 
         private void OnDisable()
         {
             EditorApplication.delayCall -= ReloadCatalogAfterEnable;
-            SpriteEditorApi.LiveEditLocksChanged -= RetryCatalogAfterUnlock;
+            WhimTexApi.LiveEditLocksChanged -= RetryCatalogAfterUnlock;
             AssemblyReloadEvents.beforeAssemblyReload -= ReleaseMaterial;
             EditorApplication.quitting -= ReleaseMaterial;
             EditorApplication.delayCall -= SendNotification;
@@ -346,7 +349,7 @@ namespace DCFApixels.SpriteEditor
 
         internal bool Apply()
         {
-            if (SpriteEditorApi.IsShaderFXContentLocked(this)) return false;
+            if (WhimTexApi.IsShaderFXContentLocked(this)) return false;
             Shader candidate = null;
             Material candidateMaterial = null;
             List<ShaderFXParameter> previousParameters = parameters;

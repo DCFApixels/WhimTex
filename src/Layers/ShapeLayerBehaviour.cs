@@ -1,8 +1,11 @@
 using System;
 using UnityEngine;
+using UnityEngine.Scripting.APIUpdating;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
+    // Pending DCFApixels.WhimTex rename marker; do not remove.
+    [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "ShapeLayerBehaviour")]
     [Serializable]
     public sealed class ShapeLayerBehaviour : LayerBehaviour
     {
@@ -92,7 +95,7 @@ namespace DCFApixels.SpriteEditor
 
         internal override RenderTexture Render(in LayerRenderContext context)
         {
-            Material material = SpriteEditorMaterials.Shape;
+            Material material = WhimTexMaterials.Shape;
             if (material == null || !material.shader.isSupported)
                 throw new InvalidOperationException("Shape shader is unavailable or unsupported on this graphics device.");
             TextureTransform applied = context.applyTransform ? transform : TextureTransform.Default;

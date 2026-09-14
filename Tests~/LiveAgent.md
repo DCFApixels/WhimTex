@@ -43,5 +43,5 @@ Additional manual checks:
   completion must not recreate them in a different document.
 
 Do not use an existing artist document as a disposable fixture. Test saving/subassets in a separate
-fixture only when the user authorizes it. Generated test PNGs are under Temp/SpriteEditor and may be
+fixture only when the user authorizes it. Generated test PNGs are under Temp/WhimTex and may be
 removed after inspection; the script does not delete user files or clear global Undo history.

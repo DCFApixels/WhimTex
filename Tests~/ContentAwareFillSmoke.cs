@@ -1,6 +1,6 @@
 // Unity Pipeline eval_file: managed algorithm regression, no persistent assets.
 var f = System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Instance;
-var t = typeof(DCFApixels.SpriteEditor.TextureCompositor).Assembly.GetType("DCFApixels.SpriteEditor.ContentAwareFill", true);
+var t = typeof(DCFApixels.WhimTex.TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.ContentAwareFill", true);
 var inputType = t.GetNestedType("Input", f);
 int checks = 0;
 void Check(bool value, string message) { if (!value) throw new System.Exception(message); checks++; }

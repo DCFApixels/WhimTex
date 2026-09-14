@@ -2,7 +2,7 @@ using System;
 using UnityEditor;
 using UnityEngine;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     [Serializable]
     internal sealed class PaintToolSettings
@@ -154,7 +154,7 @@ namespace DCFApixels.SpriteEditor
         internal PaintStrokeParameters GetStrokeParameters(bool erase, Color? colorOverride = null)
         {
             return new PaintStrokeParameters(colorOverride ?? brushColor, brushSize, brushHardness, brushSpacing, erase,
-                dynamics: dynamics, standardColorInputs: !SpriteEditorColorInputs.Hdr);
+                dynamics: dynamics, standardColorInputs: !WhimTexColorInputs.Hdr);
         }
 
         internal PaintStrokeParameters GetPencilParameters(bool erase, Color? colorOverride = null)

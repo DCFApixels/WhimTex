@@ -5,7 +5,7 @@ using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
@@ -42,9 +42,9 @@ namespace DCFApixels.SpriteEditor
         [NonSerialized] private Button toolkitSaveButton;
         [NonSerialized] private Button toolkitSaveAsButton;
         [NonSerialized] private HelpBox toolkitPreviewError;
-        private readonly SpriteEditorUI.ValueBindings toolkitSettingsBindings = new SpriteEditorUI.ValueBindings();
-        private readonly SpriteEditorUI.ValueBindings toolkitHeaderBindings = new SpriteEditorUI.ValueBindings();
-        private readonly SpriteEditorUI.ValueBindings toolkitLayerBindings = new SpriteEditorUI.ValueBindings();
+        private readonly WhimTexUI.ValueBindings toolkitSettingsBindings = new WhimTexUI.ValueBindings();
+        private readonly WhimTexUI.ValueBindings toolkitHeaderBindings = new WhimTexUI.ValueBindings();
+        private readonly WhimTexUI.ValueBindings toolkitLayerBindings = new WhimTexUI.ValueBindings();
         private readonly List<LayerTreeEntry> toolkitLayerTree = new List<LayerTreeEntry>();
         private readonly List<LayerTreeEntry> toolkitNextLayerTree = new List<LayerTreeEntry>();
 
@@ -87,7 +87,7 @@ namespace DCFApixels.SpriteEditor
             root.UnregisterCallback<PointerDownEvent>(OnOpacityPointerDown, TrickleDown.TrickleDown);
             ResetOpacityEntry();
             root.Clear();
-            SpriteEditorUI.ApplyWindowStyles(root);
+            WhimTexUI.ApplyWindowStyles(root);
             toolkitBoundDocument = null;
             toolkitHeaderBuilt = false;
             toolkitSettingsBindings.Clear();
@@ -97,7 +97,7 @@ namespace DCFApixels.SpriteEditor
             toolkitLayerTree.Clear();
             root.focusable = true;
             root.style.flexGrow = 1f;
-            root.style.backgroundColor = SpriteEditorUI.PanelColor;
+            root.style.backgroundColor = WhimTexUI.PanelColor;
             root.RegisterCallback<KeyDownEvent>(OnToolkitKeyDown, TrickleDown.TrickleDown);
             RegisterAreaSelectionCommands(root);
             root.RegisterCallback<KeyUpEvent>(OnToolkitKeyUp, TrickleDown.TrickleDown);
@@ -108,8 +108,8 @@ namespace DCFApixels.SpriteEditor
             toolkitDocumentRoot.style.flexShrink = 0f;
             root.Add(toolkitDocumentRoot);
 
-            VisualElement workspace = new VisualElement { name = "spriteEditorWorkspace" };
-            workspace.AddToClassList("sprite-editor-workspace");
+            VisualElement workspace = new VisualElement { name = "whimTexWorkspace" };
+            workspace.AddToClassList("whimtex-workspace");
             root.Add(workspace);
             workspace.Add(BuildPreviewToolToolbar());
 
@@ -119,8 +119,8 @@ namespace DCFApixels.SpriteEditor
                 1,
                 Mathf.Max(SettingsPaneMinWidth, settingsPaneWidth),
                 TwoPaneSplitViewOrientation.Horizontal);
-            SpriteEditorUI.StyleSplitView(split);
-            split.AddToClassList("sprite-editor-workspace-split");
+            WhimTexUI.StyleSplitView(split);
+            split.AddToClassList("whimtex-workspace-split");
             split.style.flexGrow = 1f;
             split.style.minHeight = 0f;
             workspace.Add(split);
@@ -138,26 +138,26 @@ namespace DCFApixels.SpriteEditor
                 if (evt.newRect.width >= SettingsPaneMinWidth)
                     settingsPaneWidth = evt.newRect.width;
             });
-            settingsPane.AddToClassList("sprite-editor-settings-pane");
-            settingsPane.EnableInClassList("sprite-editor-settings-pane--light", !EditorGUIUtility.isProSkin);
+            settingsPane.AddToClassList("whimtex-settings-pane");
+            settingsPane.EnableInClassList("whimtex-settings-pane--light", !EditorGUIUtility.isProSkin);
             split.Add(settingsPane);
 
             TwoPaneSplitView settingsSplit = new TwoPaneSplitView(
                 0, Mathf.Max(100f, layerSettingsPaneHeight), TwoPaneSplitViewOrientation.Vertical);
-            SpriteEditorUI.StyleSplitView(settingsSplit);
+            WhimTexUI.StyleSplitView(settingsSplit);
             settingsSplit.name = "layer-settings-split";
             settingsSplit.style.flexGrow = 1f;
             settingsSplit.style.minHeight = 0f;
             settingsPane.Add(settingsSplit);
 
             VisualElement layerSettingsPane = new VisualElement();
-            layerSettingsPane.AddToClassList("sprite-editor-layer-settings-pane");
+            layerSettingsPane.AddToClassList("whimtex-layer-settings-pane");
             var layerSettingsHeader = new VisualElement();
-            layerSettingsHeader.AddToClassList("sprite-editor-pane-header");
-            layerSettingsHeader.AddToClassList("sprite-editor-layer-settings-header");
-            layerSettingsHeader.EnableInClassList("sprite-editor-pane-header--light", !EditorGUIUtility.isProSkin);
+            layerSettingsHeader.AddToClassList("whimtex-pane-header");
+            layerSettingsHeader.AddToClassList("whimtex-layer-settings-header");
+            layerSettingsHeader.EnableInClassList("whimtex-pane-header--light", !EditorGUIUtility.isProSkin);
             toolkitLayerSettingsTitle = new Label("Layer Settings") { name = "selectedLayerTitle", enableRichText = false };
-            toolkitLayerSettingsTitle.AddToClassList("sprite-editor-layer-settings-title");
+            toolkitLayerSettingsTitle.AddToClassList("whimtex-layer-settings-title");
             layerSettingsHeader.Add(toolkitLayerSettingsTitle);
             toolkitLayerGuidButton = new Button(() =>
             {
@@ -168,14 +168,14 @@ namespace DCFApixels.SpriteEditor
                     ShowNotification(new GUIContent("Layer GUID copied to clipboard."));
                 }
             }) { name = "copyLayerGuid", text = "GUID" };
-            toolkitLayerGuidButton.AddToClassList("sprite-editor-layer-guid-copy");
+            toolkitLayerGuidButton.AddToClassList("whimtex-layer-guid-copy");
             layerSettingsHeader.Add(toolkitLayerGuidButton);
             layerSettingsPane.Add(layerSettingsHeader);
             settingsSplit.Add(layerSettingsPane);
 
             toolkitLayerSettingsScroll = new ScrollView(ScrollViewMode.Vertical);
             toolkitLayerSettingsScroll.name = "selected-layer-settings";
-            toolkitLayerSettingsScroll.AddToClassList("sprite-editor-layer-inspector");
+            toolkitLayerSettingsScroll.AddToClassList("whimtex-layer-inspector");
             layerSettingsPane.RegisterCallback<GeometryChangedEvent>(evt =>
             {
                 if (evt.newRect.height >= 100f)
@@ -184,7 +184,7 @@ namespace DCFApixels.SpriteEditor
             layerSettingsPane.Add(toolkitLayerSettingsScroll);
 
             VisualElement layersPane = new VisualElement();
-            layersPane.AddToClassList("sprite-editor-layers-pane");
+            layersPane.AddToClassList("whimtex-layers-pane");
             layersPane.Add(CreatePaneHeader("Layers", "layersTitle"));
             settingsSplit.Add(layersPane);
 
@@ -193,8 +193,8 @@ namespace DCFApixels.SpriteEditor
 
             toolkitSettingsScroll = new ScrollView(ScrollViewMode.Vertical);
             toolkitSettingsScroll.name = "layer-list";
-            toolkitSettingsScroll.AddToClassList("sprite-editor-layer-list");
-            toolkitSettingsScroll.EnableInClassList("sprite-editor-layer-list--light", !EditorGUIUtility.isProSkin);
+            toolkitSettingsScroll.AddToClassList("whimtex-layer-list");
+            toolkitSettingsScroll.EnableInClassList("whimtex-layer-list--light", !EditorGUIUtility.isProSkin);
             toolkitSettingsScroll.AddManipulator(new ProjectTextureDropManipulator(this));
             toolkitSettingsScroll.AddManipulator(layerDragAutoScroll = new LayerDragAutoScrollManipulator(this, toolkitSettingsScroll));
             toolkitSettingsScroll.contentViewport.AddManipulator(new LayerListEndDropManipulator(this));
@@ -210,8 +210,8 @@ namespace DCFApixels.SpriteEditor
             });
 
             toolkitLayerFooter = new VisualElement { name = "layersFooter" };
-            toolkitLayerFooter.AddToClassList("sprite-editor-layers-footer");
-            toolkitLayerFooter.EnableInClassList("sprite-editor-layers-footer--light", !EditorGUIUtility.isProSkin);
+            toolkitLayerFooter.AddToClassList("whimtex-layers-footer");
+            toolkitLayerFooter.EnableInClassList("whimtex-layers-footer--light", !EditorGUIUtility.isProSkin);
             layersPane.Add(toolkitLayerFooter);
 
             RefreshToolkitInterface();
@@ -227,10 +227,10 @@ namespace DCFApixels.SpriteEditor
         {
             VisualElement pane = new VisualElement();
             pane.style.flexDirection = FlexDirection.Column;
-            pane.style.backgroundColor = SpriteEditorUI.PanelColor;
+            pane.style.backgroundColor = WhimTexUI.PanelColor;
 
-            toolkitCanvasToolbar = SpriteEditorUI.CreateToolbar();
-            toolkitCanvasToolbar.AddToClassList("sprite-editor-canvas-toolbar");
+            toolkitCanvasToolbar = WhimTexUI.CreateToolbar();
+            toolkitCanvasToolbar.AddToClassList("whimtex-canvas-toolbar");
             pane.Add(toolkitCanvasToolbar);
 
             toolkitPreviewHeader = new VisualElement();
@@ -242,7 +242,7 @@ namespace DCFApixels.SpriteEditor
             toolkitPreviewErrorRoot.style.paddingLeft = PanePadding;
             toolkitPreviewErrorRoot.style.paddingRight = PanePadding;
             pane.Add(toolkitPreviewErrorRoot);
-            toolkitPreviewError = SpriteEditorUI.AddHelpBox(toolkitPreviewErrorRoot, string.Empty, HelpBoxMessageType.Error);
+            toolkitPreviewError = WhimTexUI.AddHelpBox(toolkitPreviewErrorRoot, string.Empty, HelpBoxMessageType.Error);
             toolkitPreviewError.style.display = DisplayStyle.None;
 
             toolkitPreviewCanvas = new SpritePreviewElement(previewViewport);
@@ -304,13 +304,13 @@ namespace DCFApixels.SpriteEditor
         private void BuildToolkitDocumentArea()
         {
             toolkitDocumentRoot.Clear();
-            VisualElement toolbar = SpriteEditorUI.CreateToolbar();
+            VisualElement toolbar = WhimTexUI.CreateToolbar();
             toolbar.style.backgroundColor = StyleKeyword.Null;
             toolbar.style.borderBottomWidth = StyleKeyword.Null;
-            toolbar.AddToClassList("sprite-editor-document-header");
-            toolbar.EnableInClassList("sprite-editor-document-header--light", !EditorGUIUtility.isProSkin);
+            toolbar.AddToClassList("whimtex-document-header");
+            toolbar.EnableInClassList("whimtex-document-header--light", !EditorGUIUtility.isProSkin);
 
-            var newDocument = SpriteEditorUI.CreateToolbarButton("New", () => OpenNewDocument(), 46f);
+            var newDocument = WhimTexUI.CreateToolbarButton("New", () => OpenNewDocument(), 46f);
             newDocument.tooltip = "Create a new document in a separate WhimTex tab. The current document stays open.";
             toolbar.Add(newDocument);
 
@@ -343,23 +343,23 @@ namespace DCFApixels.SpriteEditor
                 }
             });
             toolbar.Add(toolkitDocumentField);
-            toolkitSaveButton = SpriteEditorUI.CreateToolbarButton("Save", SaveAsset, 46f);
+            toolkitSaveButton = WhimTexUI.CreateToolbarButton("Save", SaveAsset, 46f);
             toolkitSaveButton.tooltip = "Save layers and update the embedded full-resolution texture and sprite (Ctrl+S).";
             toolbar.Add(toolkitSaveButton);
-            toolkitSaveAsButton = SpriteEditorUI.CreateToolbarButton("Save As", () =>
+            toolkitSaveAsButton = WhimTexUI.CreateToolbarButton("Save As", () =>
             {
                 SaveAsAsset();
             }, 82f);
             toolbar.Add(toolkitSaveAsButton);
             toolkitSettingsBindings.Add(RefreshDocumentSaveControls);
             RefreshDocumentSaveControls();
-            Button export = SpriteEditorUI.CreateToolbarButton("Export", ShowExportMenu, 64f);
+            Button export = WhimTexUI.CreateToolbarButton("Export", ShowExportMenu, 64f);
             export.tooltip = "Export the flattened texture as PNG, JPEG, TGA, EXR, or a Unity Texture2D asset.";
             toolbar.Add(export);
-            Button userSettings = SpriteEditorUI.CreateToolbarButton(string.Empty, SpriteEditorUserSettingsWindow.Open, 26f);
+            Button userSettings = WhimTexUI.CreateToolbarButton(string.Empty, WhimTexUserSettingsWindow.Open, 26f);
             userSettings.name = "userSettingsButton";
             userSettings.tooltip = "User Settings";
-            userSettings.AddToClassList("sprite-editor-user-settings-button");
+            userSettings.AddToClassList("whimtex-user-settings-button");
             userSettings.Add(new LayerActionIcon(LayerActionIcon.Kind.Settings));
             toolbar.Add(userSettings);
             toolkitDocumentRoot.Add(toolbar);
@@ -369,8 +369,8 @@ namespace DCFApixels.SpriteEditor
                 name = "documentHeaderSeparator",
                 pickingMode = PickingMode.Ignore
             };
-            separator.AddToClassList("sprite-editor-document-separator");
-            separator.EnableInClassList("sprite-editor-document-separator--light", !EditorGUIUtility.isProSkin);
+            separator.AddToClassList("whimtex-document-separator");
+            separator.EnableInClassList("whimtex-document-separator--light", !EditorGUIUtility.isProSkin);
             toolkitDocumentRoot.Add(separator);
         }
 
@@ -390,11 +390,11 @@ namespace DCFApixels.SpriteEditor
         {
             toolkitCanvasToolbar.Clear();
             Label title = new Label("Canvas");
-            title.AddToClassList("sprite-editor-canvas-title");
+            title.AddToClassList("whimtex-canvas-title");
             toolkitCanvasToolbar.Add(title);
 
             IntegerField width = new IntegerField("W") { isDelayed = true };
-            width.AddToClassList("sprite-editor-canvas-size");
+            width.AddToClassList("whimtex-canvas-size");
             width.tooltip = "Canvas width in pixels. Press Enter or leave the field to apply.";
             width.SetValueWithoutNotify(compositor.width);
             toolkitSettingsBindings.Track(width, () => compositor.width);
@@ -409,7 +409,7 @@ namespace DCFApixels.SpriteEditor
             toolkitCanvasToolbar.Add(new Label("×") { pickingMode = PickingMode.Ignore });
 
             IntegerField height = new IntegerField("H") { isDelayed = true };
-            height.AddToClassList("sprite-editor-canvas-size");
+            height.AddToClassList("whimtex-canvas-size");
             height.tooltip = "Canvas height in pixels. Press Enter or leave the field to apply.";
             height.SetValueWithoutNotify(compositor.height);
             toolkitSettingsBindings.Track(height, () => compositor.height);
@@ -422,7 +422,7 @@ namespace DCFApixels.SpriteEditor
             });
             toolkitCanvasToolbar.Add(height);
             var filter = new EnumField("Filter", compositor.outputFilter) { name = "canvasOutputFilter" };
-            filter.AddToClassList("sprite-editor-canvas-filter");
+            filter.AddToClassList("whimtex-canvas-filter");
             filter.tooltip = "Final image filtering, saved with the document. Point keeps pixels sharp; Bilinear smooths them. Trilinear blends mip levels when available (this does not generate mipmaps). Pencil temporarily uses Point in the preview only.";
             toolkitSettingsBindings.Track(filter, () => (Enum)compositor.outputFilter);
             filter.RegisterValueChangedCallback(evt =>
@@ -435,7 +435,7 @@ namespace DCFApixels.SpriteEditor
             AddTiledPreviewControl();
 
             toolkitPreviewActions = new VisualElement();
-            toolkitPreviewActions.AddToClassList("sprite-editor-preview-actions");
+            toolkitPreviewActions.AddToClassList("whimtex-preview-actions");
             toolkitCanvasToolbar.Add(toolkitPreviewActions);
         }
 
@@ -454,7 +454,7 @@ namespace DCFApixels.SpriteEditor
         private VisualElement BuildLayerTableHeader()
         {
             var header = new VisualElement();
-            header.AddToClassList("sprite-editor-layer-table-header");
+            header.AddToClassList("whimtex-layer-table-header");
             var showAll = new Button(() =>
             {
                 if (compositor == null) return;
@@ -462,21 +462,21 @@ namespace DCFApixels.SpriteEditor
                 FinishPaintingStroke();
                 ApplyToolkitChange("Show All Layers", () => ShowAllLayers(compositor.layers));
             }) { tooltip = "Show all layers and groups" };
-            showAll.AddToClassList("sprite-editor-layer-enabled");
+            showAll.AddToClassList("whimtex-layer-enabled");
             showAll.Add(new LayerActionIcon(LayerActionIcon.Kind.Eye));
             header.Add(showAll);
             var name = new Label("Name");
-            name.AddToClassList("sprite-editor-layer-name-cell");
+            name.AddToClassList("whimtex-layer-name-cell");
             header.Add(name);
             var alpha = new VisualElement { tooltip = "Opacity" };
-            alpha.AddToClassList("sprite-editor-layer-opacity");
+            alpha.AddToClassList("whimtex-layer-opacity");
             alpha.Add(new LayerActionIcon(LayerActionIcon.Kind.Alpha));
             header.Add(alpha);
             var blend = new Label("Blend");
-            blend.AddToClassList("sprite-editor-layer-blend");
+            blend.AddToClassList("whimtex-layer-blend");
             header.Add(blend);
             var menuSpace = new VisualElement { pickingMode = PickingMode.Ignore };
-            menuSpace.AddToClassList("sprite-editor-layer-menu-space");
+            menuSpace.AddToClassList("whimtex-layer-menu-space");
             header.Add(menuSpace);
             return header;
         }
@@ -494,8 +494,8 @@ namespace DCFApixels.SpriteEditor
         private static Label CreatePaneHeader(string text, string name)
         {
             Label header = new Label(text) { name = name, enableRichText = false };
-            header.AddToClassList("sprite-editor-pane-header");
-            header.EnableInClassList("sprite-editor-pane-header--light", !EditorGUIUtility.isProSkin);
+            header.AddToClassList("whimtex-pane-header");
+            header.EnableInClassList("whimtex-pane-header--light", !EditorGUIUtility.isProSkin);
             return header;
         }
 
@@ -508,14 +508,14 @@ namespace DCFApixels.SpriteEditor
                 LayerActionIcon.Kind.AddDrawing,
                 "New Drawing Layer. Drop layers or groups here to create a merged Drawing copy; originals are kept.",
                 AddDrawingLayerForSelection);
-            drawing.name = "spriteEditorAddDrawingLayer";
+            drawing.name = "whimTexAddDrawingLayer";
             Button group = CreateLayerActionButton(
                 LayerActionIcon.Kind.Group, "Group selected layers", GroupSelectedLayer);
             Button delete = CreateLayerActionButton(
                 LayerActionIcon.Kind.Delete, "Delete selected layers", DeleteSelectedLayers);
-            drawing.AddToClassList("sprite-editor-layer-action--separated");
-            group.AddToClassList("sprite-editor-layer-action--separated");
-            delete.AddToClassList("sprite-editor-layer-action--separated");
+            drawing.AddToClassList("whimtex-layer-action--separated");
+            group.AddToClassList("whimtex-layer-action--separated");
+            delete.AddToClassList("whimtex-layer-action--separated");
             group.tooltip = "Group selected layers. You can also drop layers here.";
             delete.tooltip = "Delete selected layers. You can also drop layers here.";
             add.AddManipulator(new LayerFooterDropManipulator(this, LayerFooterDropAction.Duplicate));
@@ -537,7 +537,7 @@ namespace DCFApixels.SpriteEditor
         private static Button CreateLayerActionButton(LayerActionIcon.Kind icon, string tooltip, Action clicked)
         {
             Button button = new Button(clicked) { tooltip = tooltip };
-            button.AddToClassList("sprite-editor-layer-action");
+            button.AddToClassList("whimtex-layer-action");
             button.Add(new LayerActionIcon(icon));
             return button;
         }
@@ -568,7 +568,7 @@ namespace DCFApixels.SpriteEditor
             toolkitLayerEndDropZone = null;
             if (compositor == null || compositor.layers.Count == 0)
             {
-                SpriteEditorUI.AddHelpBox(
+                WhimTexUI.AddHelpBox(
                     toolkitLayerHierarchyRoot,
                     "Add a layer or group to start composing.",
                     HelpBoxMessageType.Info);
@@ -626,10 +626,10 @@ namespace DCFApixels.SpriteEditor
             row.userData = layer.Id;
             ApplyLayerSelectionStyle(row, layer.Id);
             VisualElement activeOutline = new VisualElement { pickingMode = PickingMode.Ignore };
-            activeOutline.AddToClassList("sprite-editor-layer-active-outline");
+            activeOutline.AddToClassList("whimtex-layer-active-outline");
             row.Add(activeOutline);
             var dropMarker = new VisualElement { pickingMode = PickingMode.Ignore };
-            dropMarker.AddToClassList("sprite-editor-layer-drop-marker");
+            dropMarker.AddToClassList("whimtex-layer-drop-marker");
             row.Add(dropMarker);
             toolkitLayerBindings.Add(() =>
             {
@@ -644,12 +644,12 @@ namespace DCFApixels.SpriteEditor
                 if (TrySelectLayerAlpha(row, layer, evt)) return;
                 if (evt.button == 0 && evt.altKey && TryToggleClippingAtBoundary(row, layer, evt.position))
                 {
-                    SpriteEditorUI.ConsumeEvent(evt);
+                    WhimTexUI.ConsumeEvent(evt);
                     return;
                 }
                 if (evt.button == 1)
                 {
-                    SpriteEditorUI.ConsumeEvent(evt);
+                    WhimTexUI.ConsumeEvent(evt);
                     FinishPreviewTransform();
                     FinishPaintingStroke();
                     Focus();
@@ -664,7 +664,7 @@ namespace DCFApixels.SpriteEditor
                     return;
                 for (VisualElement field = evt.target as VisualElement; field != null && field != row; field = field.parent)
                 {
-                    if (!field.ClassListContains("sprite-editor-layer-multi-edit")) continue;
+                    if (!field.ClassListContains("whimtex-layer-multi-edit")) continue;
                     if (!IsLayerSelected(layer.Id))
                     {
                         FinishPreviewTransform();
@@ -675,7 +675,7 @@ namespace DCFApixels.SpriteEditor
                     return;
                 }
                 if (evt.target is VisualElement menuTarget &&
-                    menuTarget.ClassListContains("sprite-editor-layer-menu-button"))
+                    menuTarget.ClassListContains("whimtex-layer-menu-button"))
                 {
                     if (!IsLayerSelected(layer.Id)) SelectLayerFromPointer(layer, evt);
                     return;
@@ -683,13 +683,13 @@ namespace DCFApixels.SpriteEditor
                 SelectLayerFromPointer(layer, evt);
                 if (evt.ctrlKey || evt.commandKey || evt.shiftKey)
                 {
-                    SpriteEditorUI.ConsumeEvent(evt);
+                    WhimTexUI.ConsumeEvent(evt);
                 }
             }, TrickleDown.TrickleDown);
             row.RegisterCallback<PointerUpEvent>(evt =>
             {
                 if (evt.button != 1) return;
-                SpriteEditorUI.ConsumeEvent(evt);
+                WhimTexUI.ConsumeEvent(evt);
                 if (compositor != null && compositor.TryFindLayer(layer, out List<Layer> container, out int index))
                     ShowLayerContextMenu(layer, container, index);
             }, TrickleDown.TrickleDown);
@@ -702,7 +702,7 @@ namespace DCFApixels.SpriteEditor
             if (FindLayerDragControl(row, element) != null) return true;
             for (; element != null && element != row; element = element.parent)
             {
-                if (element.ClassListContains("sprite-editor-group-foldout")) return true;
+                if (element.ClassListContains("whimtex-group-foldout")) return true;
                 if (element is Button || element.focusable || element.ClassListContains("unity-base-field"))
                     return false;
             }
@@ -712,9 +712,9 @@ namespace DCFApixels.SpriteEditor
         private static VisualElement FindLayerDragControl(VisualElement row, VisualElement element)
         {
             for (; element != null && element != row; element = element.parent)
-                if (element.ClassListContains("sprite-editor-layer-name") ||
-                    element.ClassListContains("sprite-editor-layer-opacity") ||
-                    element.ClassListContains("sprite-editor-layer-enabled"))
+                if (element.ClassListContains("whimtex-layer-name") ||
+                    element.ClassListContains("whimtex-layer-opacity") ||
+                    element.ClassListContains("whimtex-layer-enabled"))
                     return element;
             return null;
         }
@@ -729,7 +729,7 @@ namespace DCFApixels.SpriteEditor
         private VisualElement CreateLayerNameCell(VisualElement row, int depth, Layer layer)
         {
             var cell = new VisualElement();
-            cell.AddToClassList("sprite-editor-layer-name-cell");
+            cell.AddToClassList("whimtex-layer-name-cell");
             cell.style.paddingLeft = depth * ToolkitLayerIndent;
             if (layer == null) { row.Add(cell); return cell; }
             var clipping = new VisualElement { pickingMode = PickingMode.Ignore };
@@ -779,7 +779,7 @@ namespace DCFApixels.SpriteEditor
             int targetIndex = y <= 3f ? index - 1 : y >= row.layout.height - 3f ? index : -1;
             if (targetIndex < 0 || targetIndex + 1 >= container.Count) return false;
             Layer target = container[targetIndex];
-            if (target == null || SpriteEditorApi.IsLayerContentLocked(compositor, target) || target?.Behaviour is ShaderProcessorLayerBehaviour || container[targetIndex + 1]?.Behaviour is ShaderProcessorLayerBehaviour) return false;
+            if (target == null || WhimTexApi.IsLayerContentLocked(compositor, target) || target?.Behaviour is ShaderProcessorLayerBehaviour || container[targetIndex + 1]?.Behaviour is ShaderProcessorLayerBehaviour) return false;
             ExecuteContextChange("Change Clipping Mask", () => target.clippingMask = !target.clippingMask);
             return true;
         }
@@ -801,19 +801,19 @@ namespace DCFApixels.SpriteEditor
             row.Add(CreateLayerVisibilityButton(group));
             VisualElement nameCell = CreateLayerNameCell(row, depth, group);
             var foldout = new VisualElement { focusable = true, tooltip = "Expand or collapse group; drag to move; Ctrl-click to select group alpha" };
-            foldout.AddToClassList("sprite-editor-group-foldout");
-            foldout.EnableInClassList("sprite-editor-layer-menu-button--light", !EditorGUIUtility.isProSkin);
+            foldout.AddToClassList("whimtex-group-foldout");
+            foldout.EnableInClassList("whimtex-layer-menu-button--light", !EditorGUIUtility.isProSkin);
             foldout.Add(new Label(GetGroupExpanded(group) ? "▼" : "▶") { pickingMode = PickingMode.Ignore });
             foldout.RegisterCallback<KeyDownEvent>(evt =>
             {
                 if (evt.keyCode != KeyCode.Space && evt.keyCode != KeyCode.Return) return;
-                SpriteEditorUI.ConsumeEvent(evt);
+                WhimTexUI.ConsumeEvent(evt);
                 ToggleLayerGroup(group);
             });
             nameCell.Add(foldout);
 
             TextField name = new TextField { isDelayed = true, isReadOnly = group.Behaviour == null };
-            name.AddToClassList("sprite-editor-layer-name");
+            name.AddToClassList("whimtex-layer-name");
             name.SetValueWithoutNotify(group.layerName);
             toolkitLayerBindings.Track(name, () => group.layerName);
             name.RegisterValueChangedCallback(evt => ApplyToolkitChange(
@@ -823,19 +823,19 @@ namespace DCFApixels.SpriteEditor
 
             toolkitLayerBindings.Add(() => name.tooltip = $"{group.layers.Count} items");
             var opacity = new FloatField { isDelayed = true, tooltip = "Group opacity from 0 to 1." };
-            opacity.AddToClassList("sprite-editor-layer-opacity");
-            opacity.AddToClassList("sprite-editor-layer-multi-edit");
+            opacity.AddToClassList("whimtex-layer-opacity");
+            opacity.AddToClassList("whimtex-layer-multi-edit");
             toolkitLayerBindings.Track(opacity, () => group.opacity);
             opacity.RegisterValueChangedCallback(evt => ApplySelectedOpacity(group, evt.newValue));
             row.Add(opacity);
             var blend = LayerColorSettingsView.GroupBlend(group,
                 (mode, passThrough) => ApplySelectedBlend(group, mode, passThrough), toolkitLayerBindings);
-            blend.AddToClassList("sprite-editor-layer-blend");
-            blend.AddToClassList("sprite-editor-layer-multi-edit");
+            blend.AddToClassList("whimtex-layer-blend");
+            blend.AddToClassList("whimtex-layer-multi-edit");
             row.Add(blend);
             toolkitLayerBindings.Add(() =>
             {
-                bool editable = !SpriteEditorApi.IsLayerContentLocked(compositor, group);
+                bool editable = !WhimTexApi.IsLayerContentLocked(compositor, group);
                 opacity.SetEnabled(editable); blend.SetEnabled(editable);
             });
             row.Add(CreateLayerMenuButton(() => ShowLayerContextMenu(group, container, index)));
@@ -862,13 +862,13 @@ namespace DCFApixels.SpriteEditor
                 scaleMode = ScaleMode.ScaleToFit,
                 pickingMode = PickingMode.Ignore
             };
-            thumbnail.AddToClassList("sprite-editor-layer-thumbnail");
+            thumbnail.AddToClassList("whimtex-layer-thumbnail");
             nameCell.Add(thumbnail);
             if (layer.Behaviour is FileLayerBehaviour fileLayer)
             {
                 var referenceAccent = new VisualElement { pickingMode = PickingMode.Ignore };
-                referenceAccent.AddToClassList("sprite-editor-compositor-reference-accent");
-                referenceAccent.AddToClassList("sprite-editor-hidden");
+                referenceAccent.AddToClassList("whimtex-compositor-reference-accent");
+                referenceAccent.AddToClassList("whimtex-hidden");
                 row.Add(referenceAccent);
                 Texture2D checkedSource = null;
                 string checkedPath = null;
@@ -879,13 +879,13 @@ namespace DCFApixels.SpriteEditor
                     if (ReferenceEquals(source, checkedSource) && path == checkedPath) return;
                     checkedSource = source;
                     checkedPath = path;
-                    referenceAccent.EnableInClassList("sprite-editor-hidden", TextureCompositor.FindDocument(source) == null);
+                    referenceAccent.EnableInClassList("whimtex-hidden", TextureCompositor.FindDocument(source) == null);
                 });
             }
             if (layer.Behaviour == null)
             {
                 var missing = new Label("!") { tooltip = "Missing behaviour — select this layer to restore it.", pickingMode = PickingMode.Ignore };
-                missing.AddToClassList("sprite-editor-missing-thumbnail");
+                missing.AddToClassList("whimtex-missing-thumbnail");
                 nameCell.Add(missing);
             }
             void RefreshThumbnail() => thumbnail.image = compositor.GetLayerThumbnail(layer, 18, EffectsAreInteractive);
@@ -896,7 +896,7 @@ namespace DCFApixels.SpriteEditor
                 thumbnail.schedule.Execute(RefreshThumbnail).Every(200);
 
             TextField name = new TextField { isDelayed = true };
-            name.AddToClassList("sprite-editor-layer-name");
+            name.AddToClassList("whimtex-layer-name");
             name.SetValueWithoutNotify(layer.layerName);
             name.isReadOnly = layer.Behaviour == null;
             toolkitLayerBindings.Track(name, () => layer.layerName);
@@ -906,18 +906,18 @@ namespace DCFApixels.SpriteEditor
             nameCell.Add(name);
 
             FloatField opacity = new FloatField { isDelayed = true };
-            opacity.AddToClassList("sprite-editor-layer-multi-edit");
+            opacity.AddToClassList("whimtex-layer-multi-edit");
             opacity.tooltip = "Layer opacity from 0 to 1.";
-            opacity.AddToClassList("sprite-editor-layer-opacity");
+            opacity.AddToClassList("whimtex-layer-opacity");
             opacity.SetValueWithoutNotify(layer.opacity);
             toolkitLayerBindings.Track(opacity, () => layer.opacity);
             opacity.RegisterValueChangedCallback(evt => ApplySelectedOpacity(layer, evt.newValue));
             row.Add(opacity);
 
             EnumField blend = new EnumField(layer.blendMode);
-            blend.AddToClassList("sprite-editor-layer-multi-edit");
+            blend.AddToClassList("whimtex-layer-multi-edit");
             toolkitLayerBindings.Track(blend, () => (Enum)layer.blendMode);
-            blend.AddToClassList("sprite-editor-layer-blend");
+            blend.AddToClassList("whimtex-layer-blend");
             blend.RegisterValueChangedCallback(evt => ApplySelectedBlend(layer, (BlendMode)evt.newValue));
             row.Add(blend);
 
@@ -926,13 +926,13 @@ namespace DCFApixels.SpriteEditor
                 opacity.SetEnabled(false);
                 blend.SetEnabled(false);
                 var status = new Label("…") { pickingMode = PickingMode.Ignore };
-                status.AddToClassList("sprite-editor-layer-agent-status");
+                status.AddToClassList("whimtex-layer-agent-status");
                 nameCell.Add(status);
-                toolkitLayerBindings.Add(() => status.tooltip = SpriteEditorApi.LiveReservationStatus(pending));
+                toolkitLayerBindings.Add(() => status.tooltip = WhimTexApi.LiveReservationStatus(pending));
             }
             else toolkitLayerBindings.Add(() =>
             {
-                bool editable = !SpriteEditorApi.IsLayerContentLocked(compositor, layer);
+                bool editable = !WhimTexApi.IsLayerContentLocked(compositor, layer);
                 opacity.SetEnabled(editable); blend.SetEnabled(editable);
             });
 
@@ -964,16 +964,16 @@ namespace DCFApixels.SpriteEditor
         private Button CreateLayerVisibilityButton(Layer layer)
         {
             var button = new Button(() => ToggleLayerVisibility(layer));
-            button.AddToClassList("sprite-editor-layer-enabled");
+            button.AddToClassList("whimtex-layer-enabled");
             var eye = new LayerActionIcon(LayerActionIcon.Kind.Eye);
-            eye.AddToClassList("sprite-editor-layer-eye");
+            eye.AddToClassList("whimtex-layer-eye");
             var eyeOff = new LayerActionIcon(LayerActionIcon.Kind.EyeOff);
-            eyeOff.AddToClassList("sprite-editor-layer-eye-off");
+            eyeOff.AddToClassList("whimtex-layer-eye-off");
             button.Add(eye);
             button.Add(eyeOff);
             void Refresh()
             {
-                button.EnableInClassList("sprite-editor-layer-enabled--hidden", !layer.enabled);
+                button.EnableInClassList("whimtex-layer-enabled--hidden", !layer.enabled);
                 button.tooltip = layer?.IsGroup == true
                     ? (layer.enabled ? "Hide group and its descendants" : "Show group")
                     : (layer.enabled ? "Hide layer" : "Show layer");
@@ -992,12 +992,12 @@ namespace DCFApixels.SpriteEditor
         private static Button CreateLayerMenuButton(Action clicked)
         {
             Button button = new Button(clicked) { tooltip = "Layer menu" };
-            button.AddToClassList("sprite-editor-layer-menu-button");
-            button.EnableInClassList("sprite-editor-layer-menu-button--light", !EditorGUIUtility.isProSkin);
+            button.AddToClassList("whimtex-layer-menu-button");
+            button.EnableInClassList("whimtex-layer-menu-button--light", !EditorGUIUtility.isProSkin);
             for (int i = 0; i < 3; i++)
             {
                 VisualElement dot = new VisualElement { pickingMode = PickingMode.Ignore };
-                dot.AddToClassList("sprite-editor-layer-menu-dot");
+                dot.AddToClassList("whimtex-layer-menu-dot");
                 button.Add(dot);
             }
             return button;
@@ -1066,7 +1066,7 @@ namespace DCFApixels.SpriteEditor
                 owner.activeLayerDrag = this;
                 pressedControl = control;
                 for (var element = evt.target as VisualElement; element != null && element != target; element = element.parent)
-                    if (element.ClassListContains("sprite-editor-group-foldout"))
+                    if (element.ClassListContains("whimtex-group-foldout"))
                     {
                         pressedFoldout = element;
                         element.Focus();
@@ -1080,7 +1080,7 @@ namespace DCFApixels.SpriteEditor
                     pendingTextDown = PointerDownEvent.GetPooled(evt);
                 }
                 target.CapturePointer(pointerId);
-                SpriteEditorUI.ConsumeEvent(evt);
+                WhimTexUI.ConsumeEvent(evt);
             }
 
             private void OnPointerMove(PointerMoveEvent evt)
@@ -1095,7 +1095,7 @@ namespace DCFApixels.SpriteEditor
                 Vector2 delta = (Vector2)evt.position - start;
                 if (delta.sqrMagnitude < 16f)
                 {
-                    SpriteEditorUI.ConsumeEvent(evt);
+                    WhimTexUI.ConsumeEvent(evt);
                     return;
                 }
 
@@ -1141,7 +1141,7 @@ namespace DCFApixels.SpriteEditor
                     move.target = textInputTarget;
                     textInputTarget.SendEvent(move);
                 }
-                SpriteEditorUI.ConsumeEvent(evt);
+                WhimTexUI.ConsumeEvent(evt);
             }
 
             private void OnPointerUp(PointerUpEvent evt)
@@ -1153,7 +1153,7 @@ namespace DCFApixels.SpriteEditor
                     Release();
                     return;
                 }
-                SpriteEditorUI.ConsumeEvent(evt);
+                WhimTexUI.ConsumeEvent(evt);
                 VisualElement foldout = pressedFoldout;
                 VisualElement control = pressedControl;
                 Release();
@@ -1181,7 +1181,7 @@ namespace DCFApixels.SpriteEditor
                     opacity.Focus();
                     opacity.SelectAll();
                 }
-                else if (control.ClassListContains("sprite-editor-layer-enabled"))
+                else if (control.ClassListContains("whimtex-layer-enabled"))
                     owner.ToggleLayerVisibility(layer);
             }
 
@@ -1360,9 +1360,9 @@ namespace DCFApixels.SpriteEditor
 
             if (element.userData is string)
             {
-                element.EnableInClassList("sprite-editor-layer-row--drop-inside", insideGroup);
-                element.EnableInClassList("sprite-editor-layer-row--drop-before", !insideGroup && insertBefore);
-                element.EnableInClassList("sprite-editor-layer-row--drop-after", !insideGroup && !insertBefore);
+                element.EnableInClassList("whimtex-layer-row--drop-inside", insideGroup);
+                element.EnableInClassList("whimtex-layer-row--drop-before", !insideGroup && insertBefore);
+                element.EnableInClassList("whimtex-layer-row--drop-after", !insideGroup && !insertBefore);
                 return;
             }
 
@@ -1392,9 +1392,9 @@ namespace DCFApixels.SpriteEditor
             if (activeDropElement == null)
                 return;
 
-            activeDropElement.RemoveFromClassList("sprite-editor-layer-row--drop-inside");
-            activeDropElement.RemoveFromClassList("sprite-editor-layer-row--drop-before");
-            activeDropElement.RemoveFromClassList("sprite-editor-layer-row--drop-after");
+            activeDropElement.RemoveFromClassList("whimtex-layer-row--drop-inside");
+            activeDropElement.RemoveFromClassList("whimtex-layer-row--drop-before");
+            activeDropElement.RemoveFromClassList("whimtex-layer-row--drop-after");
 
             if (activeDropElement.userData is string layerId)
             {
@@ -1443,28 +1443,28 @@ namespace DCFApixels.SpriteEditor
         private void BuildToolkitPreviewHeader()
         {
             toolkitPreviewActions.Clear();
-            Button clear = SpriteEditorUI.CreateToolbarButton("Clear", () =>
+            Button clear = WhimTexUI.CreateToolbarButton("Clear", () =>
             {
                 if (GetSelectedLayer()?.Behaviour is DrawingLayerBehaviour drawing) ClearDrawingLayer(drawing);
             }, 46f);
-            toolkitHeaderBindings.Add(() => clear.SetEnabled(GetSelectedLayer()?.Behaviour is DrawingLayerBehaviour layer && !SpriteEditorApi.IsLayerContentLocked(compositor, layer)));
+            toolkitHeaderBindings.Add(() => clear.SetEnabled(GetSelectedLayer()?.Behaviour is DrawingLayerBehaviour layer && !WhimTexApi.IsLayerContentLocked(compositor, layer)));
             toolkitPreviewActions.Add(clear);
-            toolkitPreviewActions.Add(SpriteEditorUI.CreateToolbarButton("Refresh", () => RequestPreview(true), 64f));
+            toolkitPreviewActions.Add(WhimTexUI.CreateToolbarButton("Refresh", () => RequestPreview(true), 64f));
             AddPreviewTransformSettings();
             AddPreviewZoomSettings();
             AddShapeSettings();
             AddAreaSelectionSettings(PreviewTool.RectangleSelect);
             AddAreaSelectionSettings(PreviewTool.PolygonSelect);
 
-            VisualElement emptyRow = SpriteEditorUI.CreateToolbar();
+            VisualElement emptyRow = WhimTexUI.CreateToolbar();
             AddLayerPickSettings(emptyRow);
-            toolkitHeaderBindings.Add(() => emptyRow.EnableInClassList("sprite-editor-tool-options--hidden",
+            toolkitHeaderBindings.Add(() => emptyRow.EnableInClassList("whimtex-tool-options--hidden",
                 previewTool != PreviewTool.None || previewSettingsTool != PreviewTool.None));
             toolkitPreviewHeader.Add(emptyRow);
 
             AddFillSettings();
             AddPencilSettings();
-            VisualElement brushRow = SpriteEditorUI.CreateToolbar();
+            VisualElement brushRow = WhimTexUI.CreateToolbar();
             BindPreviewSettingsRow(brushRow, PreviewTool.Brush);
             EnumField tool = CompactField(new EnumField(paintSettings.tool), 72f);
             toolkitHeaderBindings.Track(tool, () => (Enum)paintSettings.tool);
@@ -1475,7 +1475,7 @@ namespace DCFApixels.SpriteEditor
             AddPaintColorFields(brushRow);
 
             FloatField size = CompactField(new FloatField("Size"), 76f);
-            size.AddToClassList("sprite-editor-brush-size");
+            size.AddToClassList("whimtex-brush-size");
             size.SetValueWithoutNotify(paintSettings.brushSize);
             toolkitHeaderBindings.Track(size, () => paintSettings.brushSize);
             size.RegisterValueChangedCallback(evt => ApplyPaintToolChange(
@@ -1491,7 +1491,7 @@ namespace DCFApixels.SpriteEditor
 
         private void AddPencilSettings()
         {
-            VisualElement row = SpriteEditorUI.CreateToolbar();
+            VisualElement row = WhimTexUI.CreateToolbar();
             BindPreviewSettingsRow(row, PreviewTool.Pencil);
             DropdownField mode = CompactField(new DropdownField(new List<string> { "Pencil", "Eraser" }, 0), 78f);
             toolkitHeaderBindings.Track(mode, () => paintSettings.tool == PaintToolMode.Eraser ? "Eraser" : "Pencil");
@@ -1500,7 +1500,7 @@ namespace DCFApixels.SpriteEditor
             row.Add(mode);
             AddPaintColorFields(row);
             IntegerField size = CompactField(new IntegerField("Size"), 76f);
-            size.AddToClassList("sprite-editor-brush-size");
+            size.AddToClassList("whimtex-brush-size");
             toolkitHeaderBindings.Track(size, () => paintSettings.pencilSize);
             size.RegisterValueChangedCallback(evt => ApplyPaintToolChange(
                 () => paintSettings.pencilSize = Mathf.Clamp(evt.newValue, 1, 4096)));
@@ -1661,7 +1661,7 @@ namespace DCFApixels.SpriteEditor
             bool erase = evt.button == 1 || paintSettings.tool == PaintToolMode.Eraser;
             if (!erase && (previewChannels & 8) == 0)
             {
-                SpriteEditorUI.ConsumeEvent(evt);
+                WhimTexUI.ConsumeEvent(evt);
                 return;
             }
             paintingMouseButton = evt.button;
@@ -1673,7 +1673,7 @@ namespace DCFApixels.SpriteEditor
             CapturePaintingGuide(evt.localPosition, evt.ctrlKey);
             if (!TryBeginPreviewStroke(GetPreviewPaintPosition(evt.localPosition, evt.shiftKey, evt.ctrlKey), evt.shiftKey)) FinishPaintingStroke();
             UpdatePreviewCursor(evt.localPosition, false);
-            SpriteEditorUI.ConsumeEvent(evt);
+            WhimTexUI.ConsumeEvent(evt);
         }
 
         private bool TryBeginPreviewStroke(Vector2 position, bool shift)
@@ -1731,7 +1731,7 @@ namespace DCFApixels.SpriteEditor
                 hasLastPaintingUv = false;
             }
 
-            SpriteEditorUI.ConsumeEvent(evt);
+            WhimTexUI.ConsumeEvent(evt);
         }
 
         private void PaintTowardsLayerPoint(Vector2 pointUv)
@@ -1816,7 +1816,7 @@ namespace DCFApixels.SpriteEditor
                 toolkitPreviewCanvas.ReleasePointer(evt.pointerId);
             FinishPaintingStroke();
             UpdatePreviewCursor(evt.localPosition, evt.altKey);
-            SpriteEditorUI.ConsumeEvent(evt);
+            WhimTexUI.ConsumeEvent(evt);
         }
 
         private void OnPreviewPointerCaptureOut(PointerCaptureOutEvent evt)
@@ -1881,7 +1881,7 @@ namespace DCFApixels.SpriteEditor
             if ((evt.ctrlKey || evt.commandKey) && !evt.altKey && !evt.shiftKey && evt.keyCode == KeyCode.S)
             {
                 ResetOpacityEntry();
-                SpriteEditorUI.ConsumeEvent(evt);
+                WhimTexUI.ConsumeEvent(evt);
                 if (compositor != null && AssetDatabase.Contains(compositor))
                     SaveAsset();
                 else
@@ -1898,7 +1898,7 @@ namespace DCFApixels.SpriteEditor
             if (evt.keyCode == KeyCode.Escape && previewGuideManipulator?.IsDragging == true)
             {
                 previewGuideManipulator.Cancel();
-                SpriteEditorUI.ConsumeEvent(evt);
+                WhimTexUI.ConsumeEvent(evt);
                 return;
             }
 
@@ -1911,7 +1911,7 @@ namespace DCFApixels.SpriteEditor
                 previewEyedropper?.UpdateModifier(true);
                 if (CanUsePreviewEyedropper)
                 {
-                    SpriteEditorUI.ConsumeEvent(evt);
+                    WhimTexUI.ConsumeEvent(evt);
                     return;
                 }
             }
@@ -1923,7 +1923,7 @@ namespace DCFApixels.SpriteEditor
             if (evt.keyCode == KeyCode.Escape && previewZoomManipulator != null && previewZoomManipulator.IsDragging)
             {
                 CancelPreviewZoomGesture();
-                SpriteEditorUI.ConsumeEvent(evt);
+                WhimTexUI.ConsumeEvent(evt);
                 return;
             }
 
@@ -1941,7 +1941,7 @@ namespace DCFApixels.SpriteEditor
             bool actionModifier = evt.ctrlKey || evt.commandKey;
             if (actionModifier && !evt.shiftKey && evt.keyCode == KeyCode.E)
             {
-                SpriteEditorUI.ConsumeEvent(evt);
+                WhimTexUI.ConsumeEvent(evt);
                 if (compositor != null) MergeSelectedLayers(GetSelectedRoots(), evt.altKey);
                 return;
             }
@@ -1957,7 +1957,7 @@ namespace DCFApixels.SpriteEditor
                     Undo.PerformUndo();
                 else
                     Undo.PerformRedo();
-                SpriteEditorUI.ConsumeEvent(evt);
+                WhimTexUI.ConsumeEvent(evt);
                 return;
             }
 
@@ -1968,7 +1968,7 @@ namespace DCFApixels.SpriteEditor
             if (swapColors)
             {
                 ApplyPaintToolChange(paintSettings.SwapBrushColors);
-                SpriteEditorUI.ConsumeEvent(evt);
+                WhimTexUI.ConsumeEvent(evt);
                 return;
             }
 
@@ -1985,7 +1985,7 @@ namespace DCFApixels.SpriteEditor
                 ApplyPaintToolChange(() => paintSettings.pencilSize = Mathf.Clamp(Mathf.RoundToInt(nextSize), 1, 4096));
             else
                 ApplyPaintToolChange(() => paintSettings.brushSize = nextSize);
-            SpriteEditorUI.ConsumeEvent(evt);
+            WhimTexUI.ConsumeEvent(evt);
         }
 
         private void OnToolkitKeyUp(KeyUpEvent evt)
@@ -2000,7 +2000,7 @@ namespace DCFApixels.SpriteEditor
                 previewEyedropper?.UpdateModifier(evt.altKey);
                 if (CanUsePreviewEyedropper)
                 {
-                    SpriteEditorUI.ConsumeEvent(evt);
+                    WhimTexUI.ConsumeEvent(evt);
                     return;
                 }
             }
@@ -2039,6 +2039,7 @@ namespace DCFApixels.SpriteEditor
             private bool toolCursorHidden;
             private readonly Image image;
             private readonly VisualElement tiledImage;
+            private readonly PreviewCanvasShadow canvasShadow;
             private readonly VisualElement overlay;
             private readonly PencilCursorElement pencilCursorElement;
             private Texture texture;
@@ -2066,7 +2067,7 @@ namespace DCFApixels.SpriteEditor
             public SpritePreviewElement(PreviewViewport viewport)
             {
                 this.viewport = viewport;
-                AddToClassList("sprite-editor-preview-canvas");
+                AddToClassList("whimtex-preview-canvas");
                 focusable = true;
                 style.minHeight = 96f;
                 style.backgroundColor = EditorGUIUtility.isProSkin
@@ -2075,20 +2076,23 @@ namespace DCFApixels.SpriteEditor
 
                 backdrop = new Image
                 {
-                    image = SpriteEditorBranding.PreviewBackdrop,
+                    image = WhimTexBranding.PreviewBackdrop,
                     scaleMode = ScaleMode.ScaleToFit,
                     pickingMode = PickingMode.Ignore,
                     focusable = false
                 };
-                backdrop.AddToClassList("sprite-editor-preview-backdrop");
+                backdrop.AddToClassList("whimtex-preview-backdrop");
                 Add(backdrop);
 
                 insetShadow = new PreviewInsetShadow();
                 Add(insetShadow);
                 RefreshBackdropVisibility();
 
+                canvasShadow = new PreviewCanvasShadow();
+                Add(canvasShadow);
+
                 checker = new VisualElement { pickingMode = PickingMode.Ignore };
-                checker.AddToClassList("sprite-editor-preview-surface");
+                checker.AddToClassList("whimtex-preview-surface");
                 checker.style.position = Position.Absolute;
                 checker.style.backgroundColor = EditorGUIUtility.isProSkin
                     ? new Color(0.26f, 0.26f, 0.26f, 1f)
@@ -2105,12 +2109,12 @@ namespace DCFApixels.SpriteEditor
                     pickingMode = PickingMode.Ignore
                 };
                 image.style.position = Position.Absolute;
-                image.AddToClassList("sprite-editor-preview-surface");
+                image.AddToClassList("whimtex-preview-surface");
                 Add(image);
 
                 tiledImage = new VisualElement { pickingMode = PickingMode.Ignore };
-                tiledImage.AddToClassList("sprite-editor-tiled-image");
-                tiledImage.AddToClassList("sprite-editor-preview-surface");
+                tiledImage.AddToClassList("whimtex-tiled-image");
+                tiledImage.AddToClassList("whimtex-preview-surface");
                 tiledImage.generateVisualContent += DrawTiledImage;
                 Add(tiledImage);
 
@@ -2133,7 +2137,7 @@ namespace DCFApixels.SpriteEditor
                 public PreviewInsetShadow()
                 {
                     pickingMode = PickingMode.Ignore;
-                    AddToClassList("sprite-editor-preview-inset-shadow");
+                    AddToClassList("whimtex-preview-inset-shadow");
                     generateVisualContent += Draw;
                 }
 
@@ -2171,10 +2175,75 @@ namespace DCFApixels.SpriteEditor
                 }
             }
 
+            private sealed class PreviewCanvasShadow : VisualElement
+            {
+                private const int Rings = 16;
+                private const float Spread = 30f;
+                private const float DropOffset = 8f;
+
+                public static Rect BoundsFor(Rect canvas) => new Rect(
+                    canvas.x - Spread,
+                    canvas.y - Spread + DropOffset,
+                    canvas.width + Spread * 2f,
+                    canvas.height + Spread * 2f);
+
+                public PreviewCanvasShadow()
+                {
+                    pickingMode = PickingMode.Ignore;
+                    AddToClassList("whimtex-preview-canvas-shadow");
+                    AddToClassList("whimtex-preview-surface");
+                    generateVisualContent += Draw;
+                }
+
+                private void Draw(MeshGenerationContext context)
+                {
+                    Rect bounds = contentRect;
+                    if (bounds.width <= Spread * 2f + 1f || bounds.height <= Spread * 2f + 1f) return;
+
+                    // Canvas footprint inside this element: Spread on the sides, Spread minus DropOffset
+                    // above and Spread plus DropOffset below, so the falloff is heavier under the canvas.
+                    float left = bounds.xMin + Spread;
+                    float top = bounds.yMin + Spread - DropOffset;
+                    float right = bounds.xMax - Spread;
+                    float bottom = bounds.yMax - Spread - DropOffset;
+
+                    // Same band mesh as PreviewInsetShadow: consecutive rings share vertices, so the
+                    // cubic fade interpolates smoothly instead of stepping. The peak sits on the
+                    // canvas edge and falls to nothing at the outer bounds.
+                    // 40% of the way from the soft variant (0.38) back toward the original strong one (0.78).
+                    float peak = EditorGUIUtility.isProSkin ? 0.54f : 0.19f;
+                    MeshWriteData mesh = context.Allocate((Rings + 1) * 4, Rings * 24);
+                    for (int ring = 0; ring <= Rings; ring++)
+                    {
+                        float t = ring / (float)Rings;
+                        float fade = (1f - t) * (1f - t) * (1f - t);
+                        Color32 tint = new Color(0f, 0f, 0f, peak * fade);
+                        mesh.SetNextVertex(new Vertex { position = new Vector3(Mathf.Lerp(left, bounds.xMin, t), Mathf.Lerp(top, bounds.yMin, t), Vertex.nearZ), tint = tint });
+                        mesh.SetNextVertex(new Vertex { position = new Vector3(Mathf.Lerp(right, bounds.xMax, t), Mathf.Lerp(top, bounds.yMin, t), Vertex.nearZ), tint = tint });
+                        mesh.SetNextVertex(new Vertex { position = new Vector3(Mathf.Lerp(right, bounds.xMax, t), Mathf.Lerp(bottom, bounds.yMax, t), Vertex.nearZ), tint = tint });
+                        mesh.SetNextVertex(new Vertex { position = new Vector3(Mathf.Lerp(left, bounds.xMin, t), Mathf.Lerp(bottom, bounds.yMax, t), Vertex.nearZ), tint = tint });
+                    }
+                    for (int ring = 0; ring < Rings; ring++)
+                    {
+                        for (int side = 0; side < 4; side++)
+                        {
+                            ushort a = (ushort)(ring * 4 + side);
+                            ushort b = (ushort)(ring * 4 + (side + 1) % 4);
+                            ushort c = (ushort)(b + 4);
+                            ushort d = (ushort)(a + 4);
+                            // Rings grow outwards here, the opposite of PreviewInsetShadow, so the
+                            // winding has to be reversed to keep the faces front-facing.
+                            mesh.SetNextIndex(a); mesh.SetNextIndex(c); mesh.SetNextIndex(b);
+                            mesh.SetNextIndex(a); mesh.SetNextIndex(d); mesh.SetNextIndex(c);
+                        }
+                    }
+                }
+            }
+
             public void RefreshBackdropVisibility()
             {
-                backdrop.EnableInClassList("sprite-editor-preview-backdrop--hidden", !SpriteEditorUserSettings.ShowManta);
-                insetShadow.EnableInClassList("sprite-editor-preview-backdrop--hidden", !SpriteEditorUserSettings.ShowManta);
+                backdrop.EnableInClassList("whimtex-preview-backdrop--hidden", !WhimTexUserSettings.ShowManta);
+                insetShadow.EnableInClassList("whimtex-preview-backdrop--hidden", !WhimTexUserSettings.ShowManta);
             }
 
             private void UpdateBackdropLayout()
@@ -2191,11 +2260,11 @@ namespace DCFApixels.SpriteEditor
             public void SetToolCursor(PreviewTool tool, bool hide, bool panning, MouseCursor transformCursor = MouseCursor.Pan, bool rotating = false)
             {
                 bool transforming = !panning && tool == PreviewTool.Transform;
-                EnableInClassList("sprite-editor-preview-cursor--pan", (panning && !rotating) || (transforming && transformCursor == MouseCursor.Pan));
-                EnableInClassList("sprite-editor-preview-cursor--zoom", !panning && tool == PreviewTool.Zoom);
-                EnableInClassList("sprite-editor-preview-cursor--scale", transforming && transformCursor == MouseCursor.ScaleArrow);
-                EnableInClassList("sprite-editor-preview-cursor--rotate", rotating || (transforming && transformCursor == MouseCursor.RotateArrow));
-                EnableInClassList("sprite-editor-preview-cursor--move", transforming && transformCursor == MouseCursor.MoveArrow);
+                EnableInClassList("whimtex-preview-cursor--pan", (panning && !rotating) || (transforming && transformCursor == MouseCursor.Pan));
+                EnableInClassList("whimtex-preview-cursor--zoom", !panning && tool == PreviewTool.Zoom);
+                EnableInClassList("whimtex-preview-cursor--scale", transforming && transformCursor == MouseCursor.ScaleArrow);
+                EnableInClassList("whimtex-preview-cursor--rotate", rotating || (transforming && transformCursor == MouseCursor.RotateArrow));
+                EnableInClassList("whimtex-preview-cursor--move", transforming && transformCursor == MouseCursor.MoveArrow);
                 if (toolCursorHidden == hide) return;
                 toolCursorHidden = hide;
                 if (!hide)
@@ -2229,7 +2298,7 @@ namespace DCFApixels.SpriteEditor
             {
                 if (canvasVisible == visible) return;
                 canvasVisible = visible;
-                EnableInClassList("sprite-editor-preview-canvas--empty", !visible);
+                EnableInClassList("whimtex-preview-canvas--empty", !visible);
                 if (visible) viewport.Reset();
                 UpdateImageLayout(true);
             }
@@ -2238,8 +2307,9 @@ namespace DCFApixels.SpriteEditor
             {
                 if (tiled == enabled) return;
                 tiled = enabled;
-                image.EnableInClassList("sprite-editor-preview-image--hidden", tiled);
-                tiledImage.EnableInClassList("sprite-editor-preview-image--visible", tiled);
+                image.EnableInClassList("whimtex-preview-image--hidden", tiled);
+                tiledImage.EnableInClassList("whimtex-preview-image--visible", tiled);
+                canvasShadow.EnableInClassList("whimtex-preview-canvas-shadow--hidden", tiled);
                 UpdateImageLayout(true);
             }
 
@@ -2333,6 +2403,7 @@ namespace DCFApixels.SpriteEditor
                 presentationRect = nextPresentation;
                 presentedRotation = viewport.Rotation;
                 PositionSurface(checker, presentationRect, !tiled);
+                PositionSurface(canvasShadow, PreviewCanvasShadow.BoundsFor(ImageRect), true);
                 PositionSurface(image, ImageRect, true);
                 PositionElement(tiledImage, contentRect);
                 PositionElement(overlay, contentRect);
@@ -2376,8 +2447,8 @@ namespace DCFApixels.SpriteEditor
             public void RefreshCheckerColors()
             {
                 if (checkerTexture == null) return;
-                Color light = SpriteEditorUserSettings.CheckerLight;
-                Color dark = SpriteEditorUserSettings.CheckerDark;
+                Color light = WhimTexUserSettings.CheckerLight;
+                Color dark = WhimTexUserSettings.CheckerDark;
                 checkerTexture.SetPixels(new[] { light, dark, dark, light });
                 checkerTexture.Apply(false, false);
                 checker.MarkDirtyRepaint();
@@ -2395,7 +2466,7 @@ namespace DCFApixels.SpriteEditor
                 Rect rect = checker.contentRect;
                 if (checkerTexture == null || rect.width <= 0f || rect.height <= 0f) return;
 
-                float period = 2f * SpriteEditorUserSettings.CheckerSize;
+                float period = 2f * WhimTexUserSettings.CheckerSize;
                 float u = rect.width / period;
                 float v = rect.height / period;
                 context.AllocateTempMesh(4, 6, out var vertices, out var indices);

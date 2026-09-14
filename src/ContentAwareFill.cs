@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     // Independent managed implementation of PatchMatch propagation/random search and patch voting.
     // No Unity objects or editor APIs are used by the worker.

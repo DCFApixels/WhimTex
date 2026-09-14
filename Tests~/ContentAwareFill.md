@@ -3,9 +3,9 @@
 Run with the connected Unity Editor only, explicitly targeting Test6.6:
 
 ```powershell
-unity command eval_file --file "D:/DCFA/Projects/Test6.6/Packages/com.dcfa_pixels.sprite-editor/Tests~/ContentAwareFillSmoke.cs" --project-path "D:/DCFA/Projects/Test6.6" --format json
-unity command eval_file --file "D:/DCFA/Projects/Test6.6/Packages/com.dcfa_pixels.sprite-editor/Tests~/ContentFillUiSetup.cs" --project-path "D:/DCFA/Projects/Test6.6" --format json
-unity command eval_file --file "D:/DCFA/Projects/Test6.6/Packages/com.dcfa_pixels.sprite-editor/Tests~/ContentFillUiSmoke.cs" --project-path "D:/DCFA/Projects/Test6.6" --format json
+unity command eval_file --file "D:/DCFA/Projects/Test6.6/Packages/com.dcfapixels.whimtex/Tests~/ContentAwareFillSmoke.cs" --project-path "D:/DCFA/Projects/Test6.6" --format json
+unity command eval_file --file "D:/DCFA/Projects/Test6.6/Packages/com.dcfapixels.whimtex/Tests~/ContentFillUiSetup.cs" --project-path "D:/DCFA/Projects/Test6.6" --format json
+unity command eval_file --file "D:/DCFA/Projects/Test6.6/Packages/com.dcfapixels.whimtex/Tests~/ContentFillUiSmoke.cs" --project-path "D:/DCFA/Projects/Test6.6" --format json
 ```
 
 The setup creates a temporary unsaved window; the UI smoke closes it and restores previous focus, including on test failures. It doesn't create project assets or change scenes. Optional `ContentFillUiCapture.cs` captures the test settings window if it is actually visible on screen (do not mistake an occluding application for the fill UI).

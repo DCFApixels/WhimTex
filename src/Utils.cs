@@ -5,7 +5,7 @@ using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public enum BlendMode
     {
@@ -281,7 +281,7 @@ namespace DCFApixels.SpriteEditor
     }
 
     [InitializeOnLoad]
-    internal static class SpriteEditorMaterials
+    internal static class WhimTexMaterials
     {
         private static Material blendMaterial;
         private static Material transformMaterial;
@@ -298,7 +298,7 @@ namespace DCFApixels.SpriteEditor
         private static Material shapeMaterial;
         private static Material effectCacheMaterial;
 
-        static SpriteEditorMaterials()
+        static WhimTexMaterials()
         {
             AssemblyReloadEvents.beforeAssemblyReload += Dispose;
             EditorApplication.quitting += Dispose;
@@ -403,7 +403,7 @@ namespace DCFApixels.SpriteEditor
         [NonSerialized] private Layer boundLayer;
         [NonSerialized] private LayerBehaviour boundBehaviour;
         [NonSerialized] private TextureCompositor boundCompositor;
-        internal readonly SpriteEditorUI.ValueBindings SettingsBindings = new SpriteEditorUI.ValueBindings();
+        internal readonly WhimTexUI.ValueBindings SettingsBindings = new WhimTexUI.ValueBindings();
 
         protected Layer CurrentLayer => currentLayer;
         protected TextureCompositor Compositor => compositor;
@@ -415,7 +415,7 @@ namespace DCFApixels.SpriteEditor
             where T : LayerEditorWindowBase
         {
             T window = CreateInstance<T>();
-            window.titleContent = SpriteEditorBranding.WindowTitle($"Properties — {layer.layerName}");
+            window.titleContent = WhimTexBranding.WindowTitle($"Properties — {layer.layerName}");
             window.Initialize(layer, owner);
             window.ShowUtility();
         }
@@ -434,16 +434,16 @@ namespace DCFApixels.SpriteEditor
 
         protected virtual void OnEnable()
         {
-            titleContent = SpriteEditorBranding.WindowTitle(titleContent.text);
+            titleContent = WhimTexBranding.WindowTitle(titleContent.text);
             TextureCompositor.Changed += OnCompositorChanged;
-            SpriteEditorApi.LiveEditLocksChanged += RefreshAgentLock;
+            WhimTexApi.LiveEditLocksChanged += RefreshAgentLock;
             RequestPreview(true);
         }
 
         protected virtual void OnDisable()
         {
             TextureCompositor.Changed -= OnCompositorChanged;
-            SpriteEditorApi.LiveEditLocksChanged -= RefreshAgentLock;
+            WhimTexApi.LiveEditLocksChanged -= RefreshAgentLock;
             ReleasePreview();
         }
 
@@ -467,11 +467,11 @@ namespace DCFApixels.SpriteEditor
 
         protected abstract void BuildSettings(VisualElement root, Layer layer);
 
-        private void RefreshAgentLock() => rootVisualElement.SetEnabled(!SpriteEditorApi.IsLayerContentLocked(compositor, currentLayer));
+        private void RefreshAgentLock() => rootVisualElement.SetEnabled(!WhimTexApi.IsLayerContentLocked(compositor, currentLayer));
 
         protected void ApplyLayerChange(string undoName, Action change)
         {
-            if (compositor == null || change == null || SpriteEditorApi.IsLayerContentLocked(compositor, currentLayer))
+            if (compositor == null || change == null || WhimTexApi.IsLayerContentLocked(compositor, currentLayer))
                 return;
             if (!ResolveLayer() || !ReferenceEquals(boundLayer, currentLayer) || !ReferenceEquals(boundBehaviour, boundLayer?.Behaviour))
             {
@@ -517,7 +517,7 @@ namespace DCFApixels.SpriteEditor
             {
                 string title = $"Properties — {currentLayer.layerName}";
                 if (titleContent.text != title)
-                    titleContent = SpriteEditorBranding.WindowTitle(title);
+                    titleContent = WhimTexBranding.WindowTitle(title);
             }
             Layer nextLayer = valid ? currentLayer : null;
             if (interfaceBuilt && ReferenceEquals(boundLayer, nextLayer) && ReferenceEquals(boundBehaviour, nextLayer?.Behaviour) && boundCompositor == compositor)
@@ -537,29 +537,29 @@ namespace DCFApixels.SpriteEditor
             InvalidateEffectTargetOptions();
             VisualElement root = rootVisualElement;
             root.Clear();
-            SpriteEditorUI.ApplyWindowStyles(root);
-            root.AddToClassList("sprite-editor-properties-window");
-            root.EnableInClassList("sprite-editor-properties-window--light", !EditorGUIUtility.isProSkin);
+            WhimTexUI.ApplyWindowStyles(root);
+            root.AddToClassList("whimtex-properties-window");
+            root.EnableInClassList("whimtex-properties-window--light", !EditorGUIUtility.isProSkin);
 
             if (!valid)
             {
-                SpriteEditorUI.AddHelpBox(
+                WhimTexUI.AddHelpBox(
                     root,
                     "The edited layer no longer exists in this compositor.",
                     HelpBoxMessageType.Info);
-                root.Add(SpriteEditorUI.CreateButton("Close", Close));
+                root.Add(WhimTexUI.CreateButton("Close", Close));
                 return;
             }
 
             ScrollView scroll = new ScrollView(ScrollViewMode.Vertical);
             scroll.style.flexGrow = 1f;
-            shaderFXView = SpriteEditorUI.BuildLayerInspectorSections(scroll, currentLayer, compositor,
+            shaderFXView = WhimTexUI.BuildLayerInspectorSections(scroll, currentLayer, compositor,
                 ApplyLayerChange, SettingsBindings, properties => BuildSettings(properties, currentLayer),
                 colorSettingsExpanded, value => colorSettingsExpanded = value,
                 propertiesExpanded, value => propertiesExpanded = value,
                 fxExpanded, value => fxExpanded = value);
             SettingsBindings.Refresh(forceValues);
-            scroll.Add(SpriteEditorUI.CreateHeading(PreviewTitle));
+            scroll.Add(WhimTexUI.CreateHeading(PreviewTitle));
 
             VisualElement preview = new VisualElement();
             preview.style.height = PreviewMaxSize;
@@ -598,7 +598,7 @@ namespace DCFApixels.SpriteEditor
             preview.Add(previewPlaceholder);
             scroll.Add(preview);
 
-            Button close = SpriteEditorUI.CreateButton("Close", Close);
+            Button close = WhimTexUI.CreateButton("Close", Close);
             close.style.marginTop = 8f;
             scroll.Add(close);
             root.Add(scroll);

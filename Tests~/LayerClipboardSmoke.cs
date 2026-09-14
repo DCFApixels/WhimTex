@@ -1,19 +1,19 @@
 // Run with Unity Pipeline eval_file. Only transient documents; no user assets are changed.
 const System.Reflection.BindingFlags Flags = System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static;
-var docType = typeof(DCFApixels.SpriteEditor.TextureCompositor);
-var source = ScriptableObject.CreateInstance<DCFApixels.SpriteEditor.TextureCompositor>();
-var destination = ScriptableObject.CreateInstance<DCFApixels.SpriteEditor.TextureCompositor>();
-DCFApixels.SpriteEditor.TextureCompositor snapshot = null;
-DCFApixels.SpriteEditor.TextureCompositor orphanSnapshot = null;
-var clipboard = docType.Assembly.GetType("DCFApixels.SpriteEditor.LayerClipboard", true);
+var docType = typeof(DCFApixels.WhimTex.TextureCompositor);
+var source = ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>();
+var destination = ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>();
+DCFApixels.WhimTex.TextureCompositor snapshot = null;
+DCFApixels.WhimTex.TextureCompositor orphanSnapshot = null;
+var clipboard = docType.Assembly.GetType("DCFApixels.WhimTex.LayerClipboard", true);
 string savedClipboard = GUIUtility.systemCopyBuffer;
 Undo.IncrementCurrentGroup();
 int testGroup = Undo.GetCurrentGroup();
 int checks = 0;
 void Check(bool value, string message) { if (!value) throw new Exception(message); checks++; }
 object Call(object owner, string method, params object[] args) => owner.GetType().GetMethod(method, Flags).Invoke(owner, args);
-System.Collections.Generic.List<DCFApixels.SpriteEditor.Layer> Layers(params DCFApixels.SpriteEditor.Layer[] values) => new System.Collections.Generic.List<DCFApixels.SpriteEditor.Layer>(values);
-Texture2D Pixels(DCFApixels.SpriteEditor.Layer layer) => (Texture2D)layer.Behaviour.GetType().GetProperty("StoredTexture", Flags).GetValue(layer.Behaviour);
+System.Collections.Generic.List<DCFApixels.WhimTex.Layer> Layers(params DCFApixels.WhimTex.Layer[] values) => new System.Collections.Generic.List<DCFApixels.WhimTex.Layer>(values);
+Texture2D Pixels(DCFApixels.WhimTex.Layer layer) => (Texture2D)layer.Behaviour.GetType().GetProperty("StoredTexture", Flags).GetValue(layer.Behaviour);
 try
 {
     source.hideFlags = destination.hideFlags = HideFlags.HideAndDontSave;
@@ -22,10 +22,10 @@ try
     var texture = new Texture2D(4, 2, TextureFormat.RGBAHalf, false, true) { hideFlags = HideFlags.HideAndDontSave };
     var colors = new Color[] { new Color(1, .25f, 2, .5f), Color.red, Color.green, Color.blue, Color.clear, Color.white, Color.black, Color.yellow };
     texture.SetPixels(colors); texture.Apply(false, false);
-    var drawing = (DCFApixels.SpriteEditor.DrawingLayerBehaviour)typeof(DCFApixels.SpriteEditor.DrawingLayerBehaviour).GetMethod("FromMergedTexture", Flags).Invoke(null, new object[] { texture });
-    DCFApixels.SpriteEditor.Layer paint = drawing;
+    var drawing = (DCFApixels.WhimTex.DrawingLayerBehaviour)typeof(DCFApixels.WhimTex.DrawingLayerBehaviour).GetMethod("FromMergedTexture", Flags).Invoke(null, new object[] { texture });
+    DCFApixels.WhimTex.Layer paint = drawing;
     paint.layerName = "Paint"; paint.opacity = .6f; paint.enabled = false;
-    paint.colorRange = DCFApixels.SpriteEditor.LayerColorRange.HDR;
+    paint.colorRange = DCFApixels.WhimTex.LayerColorRange.HDR;
     paint.transform.position = new Vector2(.1f, .2f);
     paint.transform.scale = new Vector2(.75f, .5f);
     var paintSurface = (RenderTexture)Call(drawing, "EnsurePaintSurface", 16, 8);
@@ -38,19 +38,19 @@ try
     }
     finally { RenderTexture.active = previousRenderTarget; }
     Check(texture.GetPixel(0, 0).r == 1, "Test contains a fresh GPU stroke not yet in stored pixels");
-    var blur = new DCFApixels.SpriteEditor.Layer(new DCFApixels.SpriteEditor.BlurLayerBehaviour { radius = 9 });
+    var blur = new DCFApixels.WhimTex.Layer(new DCFApixels.WhimTex.BlurLayerBehaviour { radius = 9 });
     blur.layerName = "Blur";
-    var group = new DCFApixels.SpriteEditor.Layer(new DCFApixels.SpriteEditor.GroupLayerBehaviour());
+    var group = new DCFApixels.WhimTex.Layer(new DCFApixels.WhimTex.GroupLayerBehaviour());
     group.layerName = "Group"; group.children = Layers(blur, paint);
     source.layers = Layers(group);
     Call(source, "NormalizeModel");
-    var effect = (DCFApixels.SpriteEditor.ShaderFX)Call(source, "AddEmbeddedShaderFX", paint);
+    var effect = (DCFApixels.WhimTex.ShaderFX)Call(source, "AddEmbeddedShaderFX", paint);
     Call(effect, "SetDraftCode", "float4 ApplyFX(float2 uv, float4 color) { return color; }");
     Check((bool)Call(effect, "Apply"), "Inline FX compiles before copying");
     string originalCode = (string)effect.GetType().GetField("code", Flags).GetValue(effect);
     string originalId = paint.Id;
     int copyUndoGroup = Undo.GetCurrentGroup();
-    snapshot = (DCFApixels.SpriteEditor.TextureCompositor)Call(source, "CaptureLayerClipboard", Layers(group, paint));
+    snapshot = (DCFApixels.WhimTex.TextureCompositor)Call(source, "CaptureLayerClipboard", Layers(group, paint));
     Check(Undo.GetCurrentGroup() == copyUndoGroup, "Copy does not add Undo entries");
     Check(snapshot.layers.Count == 1 && snapshot.layers[0].children.Count == 2, "Group and selected child copied once");
     var snapshotPaint = snapshot.layers[0].children[1];
@@ -63,7 +63,7 @@ try
     Check((string)effect.GetType().GetField("code", Flags).GetValue(snapshotPaint.modifiers[0]) == originalCode, "FX code preserved");
     Check(snapshotPaint.layerName == "Paint" && snapshotPaint.opacity == .6f && !snapshotPaint.enabled, "Common settings preserved");
     Check(snapshotPaint.transform.position == paint.transform.position && snapshotPaint.transform.scale == paint.transform.scale, "Transform preserved");
-    Check(((DCFApixels.SpriteEditor.BlurLayerBehaviour)snapshotBlur.Behaviour).radius == 9, "Behaviour settings preserved");
+    Check(((DCFApixels.WhimTex.BlurLayerBehaviour)snapshotBlur.Behaviour).radius == 9, "Behaviour settings preserved");
 
     texture.SetPixel(0, 0, Color.black); texture.Apply(false, false);
     Call(effect, "SetDraftCode", "changed after copy");
@@ -71,7 +71,7 @@ try
     Check((string)effect.GetType().GetField("code", Flags).GetValue(snapshotPaint.modifiers[0]) == originalCode, "Later source FX edits do not change clipboard");
 
     // A Previous effect copied without its source must not bind to unrelated destination layers.
-    orphanSnapshot = (DCFApixels.SpriteEditor.TextureCompositor)Call(source, "CaptureLayerClipboard", Layers(blur));
+    orphanSnapshot = (DCFApixels.WhimTex.TextureCompositor)Call(source, "CaptureLayerClipboard", Layers(blur));
     var orphanEffect = orphanSnapshot.layers[0].Behaviour;
     Check(orphanEffect.GetType().GetField("inputMode", Flags).GetValue(orphanEffect).ToString() == "Specific", "Uncopied Previous target becomes explicit missing target");
     Check(string.IsNullOrEmpty((string)orphanEffect.GetType().GetProperty("TargetLayerId", Flags).GetValue(orphanEffect)), "Uncopied target cleared");
@@ -82,7 +82,7 @@ try
     var inputField = blur.Behaviour.GetType().GetField("inputMode", Flags);
     inputField.SetValue(blur.Behaviour, Enum.Parse(inputField.FieldType, "Specific"));
     UnityEngine.Object.DestroyImmediate(orphanSnapshot);
-    orphanSnapshot = (DCFApixels.SpriteEditor.TextureCompositor)Call(source, "CaptureLayerClipboard", Layers(group));
+    orphanSnapshot = (DCFApixels.WhimTex.TextureCompositor)Call(source, "CaptureLayerClipboard", Layers(group));
     var remappedBlur = orphanSnapshot.layers[0].children[0].Behaviour;
     Check((string)targetProperty.GetValue(remappedBlur) == orphanSnapshot.layers[0].children[1].Id, "Internal Specific target remapped");
 
@@ -95,7 +95,7 @@ try
     Check(Pixels(pasted) != Pixels(snapshotPaint) && Pixels(pasted).GetPixel(0, 0).r == 4, "Paste owns independent HDR pixels");
     Check(Pixels(pasted).width == 4 && Pixels(pasted).height == 2, "Different canvas does not resize stored pixels");
     Check(pasted.modifiers[0] != snapshotPaint.modifiers[0], "Paste owns its embedded FX");
-    Check((DCFApixels.SpriteEditor.TextureCompositor)pasted.modifiers[0].GetType().GetProperty("EmbeddedOwner", Flags).GetValue(pasted.modifiers[0]) == destination, "Pasted FX owned by destination");
+    Check((DCFApixels.WhimTex.TextureCompositor)pasted.modifiers[0].GetType().GetProperty("EmbeddedOwner", Flags).GetValue(pasted.modifiers[0]) == destination, "Pasted FX owned by destination");
     string firstPasteId = destination.layers[0].Id;
     Undo.PerformUndo();
     Check(destination.layers.Count == 0, "One Undo removes entire paste");
@@ -110,7 +110,7 @@ try
     Check(destination.layers[0].layerName != destination.layers[1].layerName, "Duplicate still allocates Copy name");
 
     clipboard.GetMethod("Copy", Flags).Invoke(null, new object[] { destination, Layers(destination.layers[0]) });
-    var current = (DCFApixels.SpriteEditor.TextureCompositor)clipboard.GetProperty("Current", Flags).GetValue(null);
+    var current = (DCFApixels.WhimTex.TextureCompositor)clipboard.GetProperty("Current", Flags).GetValue(null);
     Check(current != null, "Layer clipboard becomes available across windows");
     var ownedPixels = Pixels(current.layers[0].children[1]);
     GUIUtility.systemCopyBuffer = "new external text";

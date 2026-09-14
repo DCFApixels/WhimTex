@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositor
     {
@@ -38,7 +38,7 @@ namespace DCFApixels.SpriteEditor
             Dictionary<Layer, Layer> copies = new Dictionary<Layer, Layer>();
             if (roots.Count == 0)
                 return copies;
-            if (roots.Exists(SpriteEditorApi.ContainsReservation))
+            if (roots.Exists(WhimTexApi.ContainsReservation))
                 throw new InvalidOperationException("Finish or cancel generation before copying these layers.");
 
             Dictionary<string, string> copiedIds = new Dictionary<string, string>();

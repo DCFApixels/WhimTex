@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
@@ -14,7 +14,7 @@ namespace DCFApixels.SpriteEditor
                 value = tiledPreview,
                 tooltip = "Repeat the canvas across Preview. Brush and eraser wrap across canvas edges without changing layer transforms or export size."
             };
-            tiled.AddToClassList("sprite-editor-preview-tiling");
+            tiled.AddToClassList("whimtex-preview-tiling");
             toolkitSettingsBindings.Track(tiled, () => tiledPreview);
             tiled.RegisterValueChangedCallback(evt => SetTiledPreview(evt.newValue));
             toolkitCanvasToolbar.Add(tiled);

@@ -1,9 +1,9 @@
 // Opt-in eval body after manual compilation. No saved assets or visible windows.
 const System.Reflection.BindingFlags Hidden = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-var windowType = typeof(DCFApixels.SpriteEditor.TextureCompositorWindow);
+var windowType = typeof(DCFApixels.WhimTex.TextureCompositorWindow);
 var readout = windowType.GetMethod("RefreshPreviewZoomReadout", Hidden);
 if (readout == null) throw new Exception("Manually compile the preview header change before running this test.");
-var window = ScriptableObject.CreateInstance<DCFApixels.SpriteEditor.TextureCompositorWindow>();
+var window = ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositorWindow>();
 int checks = 0, fullRefreshes = 0;
 void Check(bool value, string message)
 {

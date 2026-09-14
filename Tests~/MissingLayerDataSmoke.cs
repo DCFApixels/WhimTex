@@ -1,5 +1,5 @@
 // Run via Pipeline after manual compilation. Parser-only, no asset writes or Undo.
-var type = typeof(DCFApixels.SpriteEditor.Layer).Assembly.GetType("DCFApixels.SpriteEditor.MissingLayerData");
+var type = typeof(DCFApixels.WhimTex.Layer).Assembly.GetType("DCFApixels.WhimTex.MissingLayerData");
 if (type.GetMethod("TypedBlock", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic) == null)
     throw new Exception("The Editor still has the old parser loaded. Compile manually before running this check.");
 var method = type.GetMethod("Parse", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);

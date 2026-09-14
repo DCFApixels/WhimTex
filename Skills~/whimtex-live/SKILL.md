@@ -1,14 +1,14 @@
 ---
-name: sprite-editor-live
+name: whimtex-live
 description: Create generated images, parameter layers or inline Shader FX, and edit selected regions or lock existing layers for edits in an open WhimTex document. Use the live API while the user continues editing; not for modifying plugin source code.
 ---
 
 # Live WhimTex editing
 
-WhimTex retains the `sprite_editor_*` command names and `DCFApixels.SpriteEditor` API namespace.
-The skill ID remains `sprite-editor-live` so existing installations keep working.
+The API namespace is `DCFApixels.WhimTex`. WhimTex retains the `whimtex_*` command names.
+The skill ID remains `whimtex-live` so existing installations keep working.
 
-Use the installed `Packages/com.dcfa_pixels.sprite-editor` package. This skill contains the complete
+Use the installed `Packages/com.dcfapixels.whimtex` package. This skill contains the complete
 fast-start contract below. Read `Documentation~/LiveAgentAPI.md` for completion, previews, advanced
 begin options and recovery; read `Documentation~/AgentAPI.md` only when layer parameters are needed.
 
@@ -18,13 +18,13 @@ For a request to generate content in the open document, reserve before prompt po
 preparation, full layer inspection or reading unrelated API sections. Follow required project/tool
 instructions first. Do not reserve for questions, inspection-only requests or plugin source changes.
 
-For FX/settings edits to an existing layer, use `sprite_editor_lock` instead of inserting a placeholder
+For FX/settings edits to an existing layer, use `whimtex_lock` instead of inserting a placeholder
 (see Inline Shader FX below). Reserve only the layer actually being edited, not the whole document.
 
 Once the connected command is known to be available, use one call (no request file needed):
 
 ```powershell
-unity command sprite_editor_begin --requestId 'NEW-UUID' --name 'Balcony' --source merged --area selection --project-path 'D:/Projects/MyGame' --format json
+unity command whimtex_begin --requestId 'NEW-UUID' --name 'Balcony' --source merged --area selection --project-path 'D:/Projects/MyGame' --format json
 ```
 
 Generate a unique requestId before calling. Reuse the exact arguments on a transport retry.
@@ -52,7 +52,7 @@ selection bounds), and capture image/mask paths when requested. Check nested API
 as transport success. Keep these IDs; an ordinary generation does not need a full document snapshot.
 Read/inspect additional details after reserving only when they matter to the requested result.
 
-If more output layers are needed, `sprite_editor_live` accepts this JSON in a request file:
+If more output layers are needed, `whimtex_live` accepts this JSON in a request file:
 
 ```json
 {"apiVersion":1,"op":"fork","jobId":"PENDING-JOB","requestId":"NEW-UUID","name":"Second result"}
@@ -67,7 +67,7 @@ Do not use ordinary layer duplication for placeholders. To sample a different so
 
 - Respect project compilation and asset rules. Missing commands do not authorize recompilation,
   installing Pipeline or starting a different Editor. Use the existing CLI adapter or a C# eval bridge.
-- Discover `sprite_editor_begin` when commands are not already known. Use `sprite_editor_sessions`
+- Discover `whimtex_begin` when commands are not already known. Use `whimtex_sessions`
   and full inspection when disambiguation or specific existing-layer details are needed, not as a
   mandatory prelude to every generation. Always specify the intended Unity project path.
 - A session can be unsaved. Do not save it or select another document as a workaround. The live API
@@ -122,7 +122,7 @@ it processes that layer only. Groups need a Shader Processor inside them rather 
 For an existing layer with a known GUID, acquire its content before writing code:
 
 ```powershell
-unity command sprite_editor_lock --requestId 'NEW-UUID' --layerId 'LAYER-GUID' --project-path 'D:/Projects/MyGame' --format json
+unity command whimtex_lock --requestId 'NEW-UUID' --layerId 'LAYER-GUID' --project-path 'D:/Projects/MyGame' --format json
 ```
 
 This returns jobId/sessionId and `context.layer` including existing FX code and parameters. If the

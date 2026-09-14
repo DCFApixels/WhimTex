@@ -1,10 +1,10 @@
 // Run through the connected Unity Editor after compilation. Transient textures only; no saves or Undo.
 var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-var type = typeof(DCFApixels.SpriteEditor.TextureCompositor);
-var document = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.SpriteEditor.TextureCompositor>();
+var type = typeof(DCFApixels.WhimTex.TextureCompositor);
+var document = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>();
 document.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
 document.width = 99; document.height = 63;
-var layer = new DCFApixels.SpriteEditor.NoiseLayerBehaviour { encoding = DCFApixels.SpriteEditor.NoiseLayerBehaviour.OutputEncoding.LinearData };
+var layer = new DCFApixels.WhimTex.NoiseLayerBehaviour { encoding = DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.LinearData };
 document.layers.Add(layer);
 type.GetMethod("NormalizeModel", flags).Invoke(document, null);
 int checks = 0;
@@ -49,13 +49,13 @@ try
     var inverse = Render();
     for (int i = 0; i < a.Length; i++) Check(UnityEngine.Mathf.Abs(a[i].r + inverse[i].r - 1) < .002f, "Invert");
     layer.inverted = false;
-    layer.encoding = DCFApixels.SpriteEditor.NoiseLayerBehaviour.OutputEncoding.ColorValues;
+    layer.encoding = DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.ColorValues;
     var color = Render();
     for (int i = 0; i < a.Length; i++)
         Check(UnityEngine.Mathf.Abs(color[i].r - UnityEngine.Mathf.GammaToLinearSpace(a[i].r)) < .003f, "Color encoding");
-    layer.encoding = DCFApixels.SpriteEditor.NoiseLayerBehaviour.OutputEncoding.LinearData;
-    foreach (DCFApixels.SpriteEditor.NoiseLayerBehaviour.NoiseType algorithm in System.Enum.GetValues(typeof(DCFApixels.SpriteEditor.NoiseLayerBehaviour.NoiseType)))
-    foreach (DCFApixels.SpriteEditor.NoiseLayerBehaviour.FractalType fractal in System.Enum.GetValues(typeof(DCFApixels.SpriteEditor.NoiseLayerBehaviour.FractalType)))
+    layer.encoding = DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.LinearData;
+    foreach (DCFApixels.WhimTex.NoiseLayerBehaviour.NoiseType algorithm in System.Enum.GetValues(typeof(DCFApixels.WhimTex.NoiseLayerBehaviour.NoiseType)))
+    foreach (DCFApixels.WhimTex.NoiseLayerBehaviour.FractalType fractal in System.Enum.GetValues(typeof(DCFApixels.WhimTex.NoiseLayerBehaviour.FractalType)))
     {
         layer.noiseType = algorithm; layer.fractal = fractal;
         foreach (var pixel in Render())
@@ -63,23 +63,23 @@ try
                 UnityEngine.Mathf.Abs(pixel.r - pixel.g) < .001f && UnityEngine.Mathf.Abs(pixel.r - pixel.b) < .001f && pixel.a > .999f,
                 "Finite opaque grayscale: " + algorithm + "/" + fractal);
     }
-    layer.noiseType = DCFApixels.SpriteEditor.NoiseLayerBehaviour.NoiseType.OpenSimplex2;
-    layer.fractal = DCFApixels.SpriteEditor.NoiseLayerBehaviour.FractalType.FBm;
-    foreach (DCFApixels.SpriteEditor.NoiseLayerBehaviour.WarpType warp in System.Enum.GetValues(typeof(DCFApixels.SpriteEditor.NoiseLayerBehaviour.WarpType)))
+    layer.noiseType = DCFApixels.WhimTex.NoiseLayerBehaviour.NoiseType.OpenSimplex2;
+    layer.fractal = DCFApixels.WhimTex.NoiseLayerBehaviour.FractalType.FBm;
+    foreach (DCFApixels.WhimTex.NoiseLayerBehaviour.WarpType warp in System.Enum.GetValues(typeof(DCFApixels.WhimTex.NoiseLayerBehaviour.WarpType)))
     {
         layer.warp = warp;
-        if (warp != DCFApixels.SpriteEditor.NoiseLayerBehaviour.WarpType.None)
+        if (warp != DCFApixels.WhimTex.NoiseLayerBehaviour.WarpType.None)
             Check(Difference(a, Render()) > .005f, "Warp changes pattern: " + warp);
     }
-    layer.noiseType = DCFApixels.SpriteEditor.NoiseLayerBehaviour.NoiseType.WhiteNoise;
-    layer.warp = DCFApixels.SpriteEditor.NoiseLayerBehaviour.WarpType.None;
+    layer.noiseType = DCFApixels.WhimTex.NoiseLayerBehaviour.NoiseType.WhiteNoise;
+    layer.warp = DCFApixels.WhimTex.NoiseLayerBehaviour.WarpType.None;
     var white = Render(99);
     Check(Difference(white, Render(99)) == 0, "White Noise deterministic");
     var whiteSmall = Render();
     for (int y = 0; y < 21; y++) for (int x = 0; x < 33; x++)
         Check(whiteSmall[y * 33 + x] == white[(y * 3 + 1) * 99 + x * 3 + 1], "White grid is resolution-independent");
-    layer.fractal = DCFApixels.SpriteEditor.NoiseLayerBehaviour.FractalType.PingPong;
-    layer.warp = DCFApixels.SpriteEditor.NoiseLayerBehaviour.WarpType.BasicGrid;
+    layer.fractal = DCFApixels.WhimTex.NoiseLayerBehaviour.FractalType.PingPong;
+    layer.warp = DCFApixels.WhimTex.NoiseLayerBehaviour.WarpType.BasicGrid;
     layer.scale = 1000;
     Check(Difference(white, Render(99)) == 0, "White Noise ignores fractal, warp and Scale");
     layer.seed = int.MinValue;
@@ -88,7 +88,7 @@ try
     layer.seed++;
     Check(Difference(extremeSeed, Render(99)) > .1f, "White Noise adjacent extreme seeds");
     layer.seed = 1337;
-    layer.whiteNoiseColor = DCFApixels.SpriteEditor.NoiseLayerBehaviour.WhiteNoiseColor.Color;
+    layer.whiteNoiseColor = DCFApixels.WhimTex.NoiseLayerBehaviour.WhiteNoiseColor.Color;
     var rgbNoise = Render(99);
     double meanR = 0, meanG = 0, meanB = 0, crossRG = 0, crossRB = 0, crossGB = 0, spatial = 0;
     for (int i = 0; i < rgbNoise.Length; i++)
@@ -112,12 +112,12 @@ try
     for (int i = 0; i < rgbNoise.Length; i++) for (int channel = 0; channel < 3; channel++)
         Check(UnityEngine.Mathf.Abs(rgbNoise[i][channel] + whiteInverse[i][channel] - 1) < .002f, "White RGB inversion");
     layer.inverted = false;
-    layer.encoding = DCFApixels.SpriteEditor.NoiseLayerBehaviour.OutputEncoding.ColorValues;
+    layer.encoding = DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.ColorValues;
     var whiteDisplay = Render(99);
     for (int i = 0; i < rgbNoise.Length; i++) for (int channel = 0; channel < 3; channel++)
         Check(UnityEngine.Mathf.Abs(whiteDisplay[i][channel] - UnityEngine.Mathf.GammaToLinearSpace(rgbNoise[i][channel])) < .003f,
             "White RGB color encoding");
-    layer.encoding = DCFApixels.SpriteEditor.NoiseLayerBehaviour.OutputEncoding.LinearData;
+    layer.encoding = DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.LinearData;
     layer.offset = new UnityEngine.Vector2(1, 0);
     var shifted = Render(99);
     for (int y = 0; y < 63; y++) for (int x = 0; x < 98; x++)
@@ -127,7 +127,7 @@ try
     var coarse = Render(99);
     for (int y = 0; y < 63; y++) for (int x = 0; x < 99; x++)
         Check(coarse[y * 99 + x] == coarse[(y / 4 * 4) * 99 + x / 4 * 4], "Four-pixel grain cells");
-    layer.dimensions = DCFApixels.SpriteEditor.NoiseLayerBehaviour.NoiseDimensions.OneD;
+    layer.dimensions = DCFApixels.WhimTex.NoiseLayerBehaviour.NoiseDimensions.OneD;
     layer.direction = 0;
     var stripes = Render(99);
     for (int y = 0; y < 63; y++) for (int x = 0; x < 99; x++)

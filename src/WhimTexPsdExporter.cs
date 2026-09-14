@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed class PsdExportReport
     {
@@ -16,7 +16,7 @@ namespace DCFApixels.SpriteEditor
         internal void Note(Layer layer, string message) => messages.Add((layer.layerName ?? "Unnamed") + ": " + message);
     }
 
-    public static class SpriteEditorPsdExporter
+    public static class WhimTexPsdExporter
     {
         // Returns conversion notes; does not import the output or modify the source document.
         // progress may throw OperationCanceledException. The destination is replaced only on success.

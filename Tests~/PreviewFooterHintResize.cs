@@ -1,6 +1,6 @@
 // Run three times after PreviewFooterSetup.cs; finish with PreviewFooterSmoke.cs.
-DCFApixels.SpriteEditor.TextureCompositorWindow window=null;
-foreach(var candidate in UnityEngine.Resources.FindObjectsOfTypeAll<DCFApixels.SpriteEditor.TextureCompositorWindow>())
+DCFApixels.WhimTex.TextureCompositorWindow window=null;
+foreach(var candidate in UnityEngine.Resources.FindObjectsOfTypeAll<DCFApixels.WhimTex.TextureCompositorWindow>())
     if(candidate.name=="Preview footer smoke")window=candidate;
 if(window==null)throw new System.Exception("Run PreviewFooterSetup.cs first.");
 var footer=UnityEngine.UIElements.UQueryExtensions.Q(window.rootVisualElement,"footer900");
@@ -10,7 +10,7 @@ if(stage==0)
 {
     hint.text="Drag move • handles scale • circle rotate";
     hint.GetType().GetMethod("RefreshVisibility").Invoke(hint,null);
-    if(hint.ClassListContains("sprite-editor-preview-status--hidden"))throw new System.Exception("Hint should fit at 900 px.");
+    if(hint.ClassListContains("whimtex-preview-status--hidden"))throw new System.Exception("Hint should fit at 900 px.");
     footer.style.width=650;hint.userData=1;
     return "Shrink to 650 px; run again after layout.";
 }

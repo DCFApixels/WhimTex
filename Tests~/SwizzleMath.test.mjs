@@ -34,6 +34,6 @@ for (let code=0;code<13**4;code++) {
   }
   assert.deepEqual(values.map((_,output)=>get(packed,output)),values);
 }
-assert.ok(read('../src/Automation/SpriteEditorApi.Layers.cs').includes('System.Array.IndexOf(LayerSwizzle.Labels'));
-assert.ok(read('../src/Automation/SpriteEditorApi.Inspect.cs').includes('new JArray(LayerSwizzle.Labels)'));
+assert.ok(read('../src/Automation/WhimTexApi.Layers.cs').includes('System.Array.IndexOf(LayerSwizzle.Labels'));
+assert.ok(read('../src/Automation/WhimTexApi.Inspect.cs').includes('new JArray(LayerSwizzle.Labels)'));
 console.log('Swizzle arithmetic, legacy IDs, API labels and all 28,561 packed mappings passed. GPU checks require Unity.');

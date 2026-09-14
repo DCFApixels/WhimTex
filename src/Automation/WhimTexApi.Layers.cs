@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
-using static DCFApixels.SpriteEditor.AgentJson;
+using static DCFApixels.WhimTex.AgentJson;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
-    public static partial class SpriteEditorApi
+    public static partial class WhimTexApi
     {
         private static Layer ApplyOperation(TextureCompositor document, JObject operation, Dictionary<string, Layer> aliases, bool execute)
         {
@@ -88,7 +88,7 @@ namespace DCFApixels.SpriteEditor
                     destination.Insert(Int(operation, "index", 0, 0, destination.Count), layer);
                     break;
                 default:
-                    throw new SpriteEditorApiException("invalid_request", "Unknown operation: " + op);
+                    throw new WhimTexApiException("invalid_request", "Unknown operation: " + op);
             }
             if (execute && layer?.Behaviour is DrawingLayerBehaviour changedDrawing) changedDrawing.SetColorRange(layer.colorRange);
             return layer;

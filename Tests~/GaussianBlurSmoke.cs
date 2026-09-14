@@ -1,13 +1,13 @@
 // Opt-in after manual compilation. Transient objects only; no imports, saves or Undo operations.
 var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-var compositorType = typeof(DCFApixels.SpriteEditor.TextureCompositor);
-var document = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.SpriteEditor.TextureCompositor>();
+var compositorType = typeof(DCFApixels.WhimTex.TextureCompositor);
+var document = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>();
 document.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
 document.width = 33; document.height = 25;
 var texture = new UnityEngine.Texture2D(33,25,UnityEngine.TextureFormat.RGBAFloat,false,true);
 texture.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
-var source = new DCFApixels.SpriteEditor.FileLayerBehaviour { sourceTexture = texture, colorRange = DCFApixels.SpriteEditor.LayerColorRange.HDR };
-var gaussian = new DCFApixels.SpriteEditor.BlurLayerBehaviour { radius = 4, colorRange = DCFApixels.SpriteEditor.LayerColorRange.HDR };
+var source = new DCFApixels.WhimTex.FileLayerBehaviour { sourceTexture = texture, colorRange = DCFApixels.WhimTex.LayerColorRange.HDR };
+var gaussian = new DCFApixels.WhimTex.BlurLayerBehaviour { radius = 4, colorRange = DCFApixels.WhimTex.LayerColorRange.HDR };
 document.layers.Add(gaussian); document.layers.Add(source);
 compositorType.GetMethod("NormalizeModel",flags).Invoke(document,null);
 int checks = 0;
@@ -79,20 +79,20 @@ try
     gaussian.strength=1;
     for(int i=0;i<input.Length;i++) input[i]=new UnityEngine.Color(.25f,.5f,2f,1);
     Upload(input);
-    foreach(var edge in new[]{DCFApixels.SpriteEditor.BlurLayerBehaviour.EdgeMode.Clamp,
-        DCFApixels.SpriteEditor.BlurLayerBehaviour.EdgeMode.Repeat,DCFApixels.SpriteEditor.BlurLayerBehaviour.EdgeMode.Mirror})
+    foreach(var edge in new[]{DCFApixels.WhimTex.BlurLayerBehaviour.EdgeMode.Clamp,
+        DCFApixels.WhimTex.BlurLayerBehaviour.EdgeMode.Repeat,DCFApixels.WhimTex.BlurLayerBehaviour.EdgeMode.Mirror})
     {
         gaussian.edges=edge;
         Same(input,Render(),.003f,"Constant image under "+edge);
     }
-    gaussian.edges=DCFApixels.SpriteEditor.BlurLayerBehaviour.EdgeMode.Transparent;
+    gaussian.edges=DCFApixels.WhimTex.BlurLayerBehaviour.EdgeMode.Transparent;
     Check(Render()[0].a<.9f,"Transparent boundary fades");
     System.Array.Clear(input,0,input.Length); input[12*33]=new UnityEngine.Color(1,0,0,1); Upload(input);
-    gaussian.edges=DCFApixels.SpriteEditor.BlurLayerBehaviour.EdgeMode.Repeat;
+    gaussian.edges=DCFApixels.WhimTex.BlurLayerBehaviour.EdgeMode.Repeat;
     pixels=Render(); Check(pixels[12*33+32].a>.001f,"Repeat crosses seam: alpha=" + pixels[12*33+32].a + ", left=" + pixels[12*33].a);
-    gaussian.edges=DCFApixels.SpriteEditor.BlurLayerBehaviour.EdgeMode.Clamp;
+    gaussian.edges=DCFApixels.WhimTex.BlurLayerBehaviour.EdgeMode.Clamp;
     Check(Render()[12*33+32].a<.0001f,"Clamp does not wrap");
-    gaussian.edges=DCFApixels.SpriteEditor.BlurLayerBehaviour.EdgeMode.Mirror;
+    gaussian.edges=DCFApixels.WhimTex.BlurLayerBehaviour.EdgeMode.Mirror;
     Check(Render()[12*33+32].a<.0001f,"Mirror does not wrap to opposite edge");
     return "Gaussian GPU checks passed: "+checks;
 }

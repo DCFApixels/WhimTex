@@ -1,13 +1,13 @@
 // Run with Unity Pipeline eval_file. Transient objects only; no document/scene saves.
 
 const System.Reflection.BindingFlags Hidden = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-var assembly = typeof(DCFApixels.SpriteEditor.ShaderFX).Assembly;
-var metadata = assembly.GetType("DCFApixels.SpriteEditor.ShaderFXMetadata", true);
+var assembly = typeof(DCFApixels.WhimTex.ShaderFX).Assembly;
+var metadata = assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata", true);
 var parse = metadata.GetMethod("Parse", Hidden);
 int checks = 0;
 void Check(bool test, string message) { if (!test) throw new Exception(message); checks++; }
-List<DCFApixels.SpriteEditor.ShaderFXParameter> Parse(string text, bool header = true) =>
-    (List<DCFApixels.SpriteEditor.ShaderFXParameter>)parse.Invoke(null, new object[] { text, header, null });
+List<DCFApixels.WhimTex.ShaderFXParameter> Parse(string text, bool header = true) =>
+    (List<DCFApixels.WhimTex.ShaderFXParameter>)parse.Invoke(null, new object[] { text, header, null });
 void Reject(string source)
 {
     try { Parse(source); }
@@ -21,29 +21,29 @@ Check(parameters[0].hasMinimum && parameters[0].hasMaximum && parameters[0].floa
 Check(parameters[1].hasMinimum && !parameters[1].hasMaximum, "Minimum only");
 Check(!parameters[2].hasMinimum && parameters[2].hasMaximum, "Maximum only");
 Check(!parameters[3].hasMinimum && !parameters[3].hasMaximum, "Unbounded");
-Check(parameters[5].type == DCFApixels.SpriteEditor.ShaderFXParameterType.Color && parameters[5].colorValue.b == 2, "HDR color metadata");
+Check(parameters[5].type == DCFApixels.WhimTex.ShaderFXParameterType.Color && parameters[5].colorValue.b == 2, "HDR color metadata");
 Check(parameters[7].transformValue.size == Vector2.one, "Transform defaults");
 var renamed = Parse(head + "// @param transform2D _OtherArea");
-metadata.GetMethod("PreserveValues", Hidden).Invoke(null, new object[] { renamed, new List<DCFApixels.SpriteEditor.ShaderFXParameter> { parameters[7] } });
+metadata.GetMethod("PreserveValues", Hidden).Invoke(null, new object[] { renamed, new List<DCFApixels.WhimTex.ShaderFXParameter> { parameters[7] } });
 Check(renamed[0].id == parameters[7].id, "Rename in place retains ID");
 Reject("\n" + head); Reject("// License\n" + head); Reject(" " + head);
 foreach (string invalid in new[] { "float _A = 1;", "float _A = NaN", "float _A = 1 [2 .. 0]", "float _A = 4 [0 .. 1]", "float _A = 1 [..]", "float4 _A = (1,2,3)", "float4 _A = (1,2,3,4) [0 .. 1]", "texture2D _A = 1", "transform2D _A = 1", "int _A = 1" })
     Reject(head + "// @param " + invalid);
 Reject(head + "// @param float _A = 1\n// @param float _A = 2");
 Check(Parse(head + "/*\n// @param float _Ignored = 1\n*/").Count == 0, "Ignore declarations inside block comments");
-var toolType = typeof(DCFApixels.SpriteEditor.TextureCompositorWindow).GetNestedType("PreviewTransformManipulator", Hidden);
+var toolType = typeof(DCFApixels.WhimTex.TextureCompositorWindow).GetNestedType("PreviewTransformManipulator", Hidden);
 var hitTest = toolType.GetMethod("HitTest", Hidden);
-var frame = DCFApixels.SpriteEditor.TextureTransform.Default;
+var frame = DCFApixels.WhimTex.TextureTransform.Default;
 int pivot = (int)hitTest.Invoke(null, new object[] { new Vector2(50, 25), frame, new Rect(0, 0, 100, 50), new Vector2(100, 50), true });
 int move = (int)hitTest.Invoke(null, new object[] { new Vector2(50, 25), frame, new Rect(0, 0, 100, 50), new Vector2(100, 50), false });
 Check(pivot == 10 && move == 8, "FX frame center moves instead of editing pivot");
 
-var rowsMethod = typeof(DCFApixels.SpriteEditor.ShaderFXTransform).GetMethod("GetRows", Hidden);
+var rowsMethod = typeof(DCFApixels.WhimTex.ShaderFXTransform).GetMethod("GetRows", Hidden);
 var random = new System.Random(71);
 for (int n = 0; n < 400; n++)
 {
     float Next(float low, float high) => low + (float)random.NextDouble() * (high - low);
-    var transform = new DCFApixels.SpriteEditor.ShaderFXTransform { position = new Vector2(Next(-1, 2), Next(-1, 2)), size = new Vector2(Next(.1f, 3), Next(.1f, 3)), rotation = Next(-360, 360) };
+    var transform = new DCFApixels.WhimTex.ShaderFXTransform { position = new Vector2(Next(-1, 2), Next(-1, 2)), size = new Vector2(Next(.1f, 3), Next(.1f, 3)), rotation = Next(-360, 360) };
     if ((n & 1) != 0) transform.size.x *= -1;
     var args = new object[] { new Vector2(Next(8, 2000), Next(8, 2000)), null, null, null, null };
     rowsMethod.Invoke(transform, args);
@@ -54,26 +54,26 @@ for (int n = 0; n < 400; n++)
     Check((restored - uv).magnitude < .002f, "Rectangular transform round trip " + n);
 }
 
-var document = ScriptableObject.CreateInstance<DCFApixels.SpriteEditor.TextureCompositor>();
+var document = ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>();
 document.hideFlags = HideFlags.HideAndDontSave; document.width = 16; document.height = 8;
-DCFApixels.SpriteEditor.ShaderFX fx = null, clone = null;
+DCFApixels.WhimTex.ShaderFX fx = null, clone = null;
 var output = RenderTexture.GetTemporary(16, 8, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
 var readback = new Texture2D(16, 8, TextureFormat.RGBAFloat, false, true) { hideFlags = HideFlags.HideAndDontSave };
 RenderTexture previous = RenderTexture.active;
 try
 {
     string source = head + "// @param float _Amount = 0.25 [0 .. 1]\n// @param transform2D _Area\nfloat4 ApplyFX(float2 uv, float4 color) { float2 p = _Area_ToLocal(uv); return float4(p, _Amount, 1); }";
-    fx = (DCFApixels.SpriteEditor.ShaderFX)typeof(DCFApixels.SpriteEditor.ShaderFX).GetMethod("CreateAgentDraft", Hidden).Invoke(null, new object[] { document, source, new List<DCFApixels.SpriteEditor.ShaderFXParameter>() });
-    typeof(DCFApixels.SpriteEditor.ShaderFX).GetMethod("ApplyAgentDraft", Hidden).Invoke(fx, null);
-    var list = (List<DCFApixels.SpriteEditor.ShaderFXParameter>)typeof(DCFApixels.SpriteEditor.ShaderFX).GetField("parameters", Hidden).GetValue(fx);
+    fx = (DCFApixels.WhimTex.ShaderFX)typeof(DCFApixels.WhimTex.ShaderFX).GetMethod("CreateAgentDraft", Hidden).Invoke(null, new object[] { document, source, new List<DCFApixels.WhimTex.ShaderFXParameter>() });
+    typeof(DCFApixels.WhimTex.ShaderFX).GetMethod("ApplyAgentDraft", Hidden).Invoke(fx, null);
+    var list = (List<DCFApixels.WhimTex.ShaderFXParameter>)typeof(DCFApixels.WhimTex.ShaderFX).GetField("parameters", Hidden).GetValue(fx);
     Check(list.Count == 2, "Inline metadata parsed by actual Apply");
-    var shaderField = typeof(DCFApixels.SpriteEditor.ShaderFX).GetField("compiledShader", Hidden);
+    var shaderField = typeof(DCFApixels.WhimTex.ShaderFX).GetField("compiledShader", Hidden);
     object shader = shaderField.GetValue(fx);
     string id = list[1].id;
-    string built = (string)assembly.GetType("DCFApixels.SpriteEditor.ShaderFXSourceBuilder").GetMethod("Build", Hidden).Invoke(null, new object[] { fx, "Assets/Test.hlsl" });
+    string built = (string)assembly.GetType("DCFApixels.WhimTex.ShaderFXSourceBuilder").GetMethod("Build", Hidden).Invoke(null, new object[] { fx, "Assets/Test.hlsl" });
     Check(built.Contains("_WhimTex_Area_" + id + "_ToLocalRow0"), "Readable, stable generated names");
-    var getMaterial = typeof(DCFApixels.SpriteEditor.ShaderFX).GetMethod("GetMaterial", Hidden);
-    object context = Activator.CreateInstance(assembly.GetType("DCFApixels.SpriteEditor.LayerRenderContext"), document, null, 16, 8, 1f, true, true);
+    var getMaterial = typeof(DCFApixels.WhimTex.ShaderFX).GetMethod("GetMaterial", Hidden);
+    object context = Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.LayerRenderContext"), document, null, 16, 8, 1f, true, true);
     Color Render()
     {
         var material = (Material)getMaterial.Invoke(fx, new[] { context });
@@ -90,8 +90,8 @@ try
     Check(Mathf.Abs(second.b - .75f) < .001f && Mathf.Abs(second.r - (first.r - .125f)) < .001f, "GPU live transform and float");
     Check(ReferenceEquals(shader, shaderField.GetValue(fx)), "Value edits reuse compiled shader");
     Check(id == list[1].id, "Stable ID after value edits");
-    clone = (DCFApixels.SpriteEditor.ShaderFX)typeof(DCFApixels.SpriteEditor.ShaderFX).GetMethod("CloneForDocument", Hidden).Invoke(fx, new object[] { document });
-    var cloneList = (List<DCFApixels.SpriteEditor.ShaderFXParameter>)typeof(DCFApixels.SpriteEditor.ShaderFX).GetField("parameters", Hidden).GetValue(clone);
+    clone = (DCFApixels.WhimTex.ShaderFX)typeof(DCFApixels.WhimTex.ShaderFX).GetMethod("CloneForDocument", Hidden).Invoke(fx, new object[] { document });
+    var cloneList = (List<DCFApixels.WhimTex.ShaderFXParameter>)typeof(DCFApixels.WhimTex.ShaderFX).GetField("parameters", Hidden).GetValue(clone);
     cloneList[0].floatValue = .5f;
     Check(list[0].floatValue == .75f, "Independent instance values");
     var editor = Editor.CreateEditor(fx);
@@ -101,16 +101,16 @@ try
         Check(view != null, "Metadata inspector builds");
     }
     finally { UnityEngine.Object.DestroyImmediate(editor); }
-    var catalogType = assembly.GetType("DCFApixels.SpriteEditor.ShaderFXCatalog");
+    var catalogType = assembly.GetType("DCFApixels.WhimTex.ShaderFXCatalog");
     var entries = (System.Collections.IEnumerable)catalogType.GetMethod("GetEntries", Hidden).Invoke(null, null);
     int builtIn = 0;
     foreach (object entry in entries)
     {
         string path = (string)entry.GetType().GetField("path", Hidden).GetValue(entry);
-        if (!path.StartsWith("Packages/com.dcfa_pixels.sprite-editor/src/FXPresets/")) continue;
+        if (!path.StartsWith("Packages/com.dcfapixels.whimtex/src/FXPresets/")) continue;
         string error = (string)entry.GetType().GetField("error", Hidden).GetValue(entry);
         Check(error == null, "Built-in catalog metadata: " + error);
-        var instance = (DCFApixels.SpriteEditor.ShaderFX)typeof(DCFApixels.SpriteEditor.ShaderFX).GetMethod("FromCatalog", Hidden).Invoke(null, new object[] { document, entry });
+        var instance = (DCFApixels.WhimTex.ShaderFX)typeof(DCFApixels.WhimTex.ShaderFX).GetMethod("FromCatalog", Hidden).Invoke(null, new object[] { document, entry });
         try { Check(shaderField.GetValue(instance) != null, "Catalog creates applied independent instance"); }
         finally { UnityEngine.Object.DestroyImmediate(instance); }
         builtIn++;
@@ -121,7 +121,7 @@ try
     shaderField.SetValue(clone, null);
     if (cloneShader != null) UnityEngine.Object.DestroyImmediate(cloneShader);
     EditorJsonUtility.FromJsonOverwrite(json, clone);
-    cloneList = (List<DCFApixels.SpriteEditor.ShaderFXParameter>)typeof(DCFApixels.SpriteEditor.ShaderFX).GetField("parameters", Hidden).GetValue(clone);
+    cloneList = (List<DCFApixels.WhimTex.ShaderFXParameter>)typeof(DCFApixels.WhimTex.ShaderFX).GetField("parameters", Hidden).GetValue(clone);
     Check(cloneList[1].id == id && cloneList[1].transformValue.position == list[1].transformValue.position, "Serialization preserves transform and ID");
     // Do not leave two transient objects owning the same shader after the serialization check.
     shaderField.SetValue(clone, null);

@@ -4,7 +4,7 @@ using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
@@ -31,16 +31,16 @@ namespace DCFApixels.SpriteEditor
         {
             postFxSettings ??= new PostFxPreviewSettings();
             var workspace = new VisualElement { name = "previewWorkspace" };
-            workspace.AddToClassList("sprite-editor-preview-workspace");
+            workspace.AddToClassList("whimtex-preview-workspace");
             workspace.Add(preview);
             postFxOverlay = new VisualElement { name = "postFxOverlay", pickingMode = PickingMode.Ignore };
-            postFxOverlay.AddToClassList("sprite-editor-post-fx-overlay");
+            postFxOverlay.AddToClassList("whimtex-post-fx-overlay");
             workspace.Add(postFxOverlay);
             var panel = new VisualElement { pickingMode = PickingMode.Ignore };
-            panel.AddToClassList("sprite-editor-post-fx-panel");
+            panel.AddToClassList("whimtex-post-fx-panel");
             postFxOverlay.Add(panel);
             var tabs = new VisualElement { pickingMode = PickingMode.Ignore };
-            tabs.AddToClassList("sprite-editor-preview-drawer-tabs");
+            tabs.AddToClassList("whimtex-preview-drawer-tabs");
             panel.Add(tabs);
             BuildBrushTab(tabs);
             postFxTab = new Button(() =>
@@ -50,16 +50,16 @@ namespace DCFApixels.SpriteEditor
                 RefreshPostFxPanel();
             })
                 { tooltip = "Show or hide post-processing settings. Closing this panel keeps Post FX enabled." };
-            postFxTab.AddToClassList("sprite-editor-post-fx-tab");
+            postFxTab.AddToClassList("whimtex-post-fx-tab");
             tabs.Add(postFxTab);
             BuildUvTab(tabs);
             BuildBrushDrawer(panel);
             BuildUvDrawer(panel);
             postFxDrawer = new VisualElement();
-            postFxDrawer.AddToClassList("sprite-editor-post-fx-drawer");
+            postFxDrawer.AddToClassList("whimtex-post-fx-drawer");
             postFxDrawer.Add(CreatePaneHeader("Post FX", "postFxTitle"));
             var scroll = new ScrollView(ScrollViewMode.Vertical);
-            scroll.AddToClassList("sprite-editor-post-fx-settings");
+            scroll.AddToClassList("whimtex-post-fx-settings");
             postFxDrawer.Add(scroll);
             panel.Add(postFxDrawer);
             BuildPostFxFields(scroll);
@@ -83,61 +83,61 @@ namespace DCFApixels.SpriteEditor
                 UpdateChannelPreview();
                 UpdateToolkitPreviewPresentation();
             }) { text = "Post FX", tooltip = "Preview through the scene, game camera or a Volume Profile. Does not affect painting, sampling or export." };
-            postFxButton.AddToClassList("sprite-editor-channel-button");
-            postFxButton.AddToClassList("sprite-editor-post-fx-button");
-            postFxButton.EnableInClassList("sprite-editor-channel-button--enabled", postFxEnabled);
+            postFxButton.AddToClassList("whimtex-channel-button");
+            postFxButton.AddToClassList("whimtex-post-fx-button");
+            postFxButton.EnableInClassList("whimtex-channel-button--enabled", postFxEnabled);
             return postFxButton;
         }
 
         private void BuildPostFxFields(VisualElement root)
         {
-            root.Add(SpriteEditorUI.CreateHeading("Source"));
+            root.Add(WhimTexUI.CreateHeading("Source"));
             AddPostFxEnum(root, "Source", postFxSettings.source, value => postFxSettings.source = value);
-            var camera = SpriteEditorUI.ConfigureField(new ObjectField("Camera") { objectType = typeof(Camera), allowSceneObjects = true, value = postFxSettings.camera,
+            var camera = WhimTexUI.ConfigureField(new ObjectField("Camera") { objectType = typeof(Camera), allowSceneObjects = true, value = postFxSettings.camera,
                 tooltip = "An empty field uses the MainCamera-tagged camera." });
             camera.RegisterValueChangedCallback(evt => { postFxSettings.camera = evt.newValue as Camera; PostFxSettingsChanged(); });
             root.Add(camera);
-            var profile = SpriteEditorUI.ConfigureField(new ObjectField("Profile") { objectType = typeof(ScriptableObject), allowSceneObjects = false, value = postFxSettings.profile });
+            var profile = WhimTexUI.ConfigureField(new ObjectField("Profile") { objectType = typeof(ScriptableObject), allowSceneObjects = false, value = postFxSettings.profile });
             profile.RegisterValueChangedCallback(evt => { postFxSettings.profile = evt.newValue; PostFxSettingsChanged(); });
             root.Add(profile);
             AddPostFxToggle(root, "Animate", postFxSettings.animate, value => postFxSettings.animate = value,
                 "Refresh animated effects at up to 8 fps. Off refreshes when source settings or image change.");
-            root.Add(SpriteEditorUI.CreateHeading("Camera"));
+            root.Add(WhimTexUI.CreateHeading("Camera"));
             AddPostFxEnum(root, "Projection", postFxSettings.projection, value => postFxSettings.projection = value);
             var manual = new VisualElement(); root.Add(manual);
             var fov = AddPostFxFloat(manual, "Field of View", postFxSettings.fieldOfView, 1, 179, value => postFxSettings.fieldOfView = value);
             var ortho = AddPostFxFloat(manual, "Ortho Size", postFxSettings.orthographicSize, .001f, 100000, value => postFxSettings.orthographicSize = value);
             AddPostFxFloat(manual, "Near", postFxSettings.near, .001f, 100000, value => postFxSettings.near = value);
             AddPostFxFloat(manual, "Far", postFxSettings.far, .01f, 1000000, value => postFxSettings.far = value);
-            root.Add(SpriteEditorUI.CreateHeading("Background"));
-            var backgroundMode = SpriteEditorUI.ConfigureField(new EnumField("Mode", SpriteEditorUserSettings.PostFxBackgroundMode)
+            root.Add(WhimTexUI.CreateHeading("Background"));
+            var backgroundMode = WhimTexUI.ConfigureField(new EnumField("Mode", WhimTexUserSettings.PostFxBackgroundMode)
             {
                 name = "postFxBackgroundMode",
                 tooltip = "Shared with User Settings and all WhimTex windows."
             });
-            backgroundMode.RegisterValueChangedCallback(evt => SpriteEditorUserSettings.PostFxBackgroundMode = (PostFxBackground)evt.newValue);
+            backgroundMode.RegisterValueChangedCallback(evt => WhimTexUserSettings.PostFxBackgroundMode = (PostFxBackground)evt.newValue);
             root.Add(backgroundMode);
-            postFxBackgroundField = SpriteEditorUI.ConfigureField(new ColorField("Color")
+            postFxBackgroundField = WhimTexUI.ConfigureField(new ColorField("Color")
             {
                 name = "postFxBackground",
                 hdr = false,
                 showAlpha = false,
-                value = SpriteEditorUserSettings.PostFxBackground,
+                value = WhimTexUserSettings.PostFxBackground,
                 tooltip = "Opaque fill behind the composition before Post FX. Shared with User Settings; original alpha is still used for depth. Does not affect document pixels or export."
             });
             postFxBackgroundField.RegisterValueChangedCallback(evt =>
             {
-                SpriteEditorUserSettings.PostFxBackground = evt.newValue;
-                postFxBackgroundField.SetValueWithoutNotify(SpriteEditorUserSettings.PostFxBackground);
+                WhimTexUserSettings.PostFxBackground = evt.newValue;
+                postFxBackgroundField.SetValueWithoutNotify(WhimTexUserSettings.PostFxBackground);
             });
             root.Add(postFxBackgroundField);
             var checkerInfo = new HelpBox("Uses checkerboard colors and cell size from User Settings. Cells are measured in canvas pixels and zoom with the image.", HelpBoxMessageType.Info);
             root.Add(checkerInfo);
-            root.Add(SpriteEditorUI.CreateHeading("Depth"));
+            root.Add(WhimTexUI.CreateHeading("Depth"));
             AddPostFxEnum(root, "Mode", postFxSettings.depth, value => postFxSettings.depth = value);
             AddPostFxFloat(root, "Distance", postFxSettings.distance, .001f, 1000000, value => postFxSettings.distance = value);
             var range = AddPostFxFloat(root, "Depth Range", postFxSettings.depthRange, 0, 1000000, value => postFxSettings.depthRange = value);
-            var threshold = SpriteEditorUI.ConfigureField(new Slider("Threshold", 0, 1) { value = postFxSettings.threshold, showInputField = true });
+            var threshold = WhimTexUI.ConfigureField(new Slider("Threshold", 0, 1) { value = postFxSettings.threshold, showInputField = true });
             threshold.RegisterValueChangedCallback(evt => { postFxSettings.threshold = Mathf.Clamp01(evt.newValue); PostFxSettingsChanged(); });
             root.Add(threshold);
             var invert = AddPostFxToggle(root, "Invert", postFxSettings.invert, value => postFxSettings.invert = value);
@@ -148,10 +148,10 @@ namespace DCFApixels.SpriteEditor
             root.Add(new Button(() => { postFxDirty = true; nextPostFxCheck = 0; }) { text = "Refresh Post FX" });
             refreshPostFxFields = () =>
             {
-                backgroundMode.SetValueWithoutNotify(SpriteEditorUserSettings.PostFxBackgroundMode);
-                bool checkerBackground = SpriteEditorUserSettings.PostFxBackgroundMode == PostFxBackground.Checkerboard;
-                postFxBackgroundField.EnableInClassList("sprite-editor-post-fx-field--hidden", checkerBackground);
-                checkerInfo.EnableInClassList("sprite-editor-post-fx-field--hidden", !checkerBackground);
+                backgroundMode.SetValueWithoutNotify(WhimTexUserSettings.PostFxBackgroundMode);
+                bool checkerBackground = WhimTexUserSettings.PostFxBackgroundMode == PostFxBackground.Checkerboard;
+                postFxBackgroundField.EnableInClassList("whimtex-post-fx-field--hidden", checkerBackground);
+                checkerInfo.EnableInClassList("whimtex-post-fx-field--hidden", !checkerBackground);
                 camera.style.display = postFxSettings.source == PostFxSource.GameCamera ? DisplayStyle.Flex : DisplayStyle.None;
                 profile.style.display = postFxSettings.source == PostFxSource.Profile ? DisplayStyle.Flex : DisplayStyle.None;
                 profile.objectType = postFxBackend?.ProfileType ?? typeof(ScriptableObject);
@@ -166,14 +166,14 @@ namespace DCFApixels.SpriteEditor
 
         private void AddPostFxEnum<T>(VisualElement root, string label, T value, Action<T> write) where T : Enum
         {
-            var field = SpriteEditorUI.ConfigureField(new EnumField(label, value));
+            var field = WhimTexUI.ConfigureField(new EnumField(label, value));
             field.RegisterValueChangedCallback(evt => { write((T)evt.newValue); PostFxSettingsChanged(); });
             root.Add(field);
         }
 
         private VisualElement AddPostFxFloat(VisualElement root, string label, float value, float min, float max, Action<float> write)
         {
-            var field = SpriteEditorUI.ConfigureField(new FloatField(label) { value = value, isDelayed = true });
+            var field = WhimTexUI.ConfigureField(new FloatField(label) { value = value, isDelayed = true });
             field.RegisterValueChangedCallback(evt =>
             {
                 float next = float.IsNaN(evt.newValue) || float.IsInfinity(evt.newValue) ? min : Mathf.Clamp(evt.newValue, min, max);
@@ -184,7 +184,7 @@ namespace DCFApixels.SpriteEditor
 
         private VisualElement AddPostFxToggle(VisualElement root, string label, bool value, Action<bool> write, string tooltip = null)
         {
-            var field = SpriteEditorUI.ConfigureField(new Toggle(label) { value = value, tooltip = tooltip });
+            var field = WhimTexUI.ConfigureField(new Toggle(label) { value = value, tooltip = tooltip });
             field.RegisterValueChangedCallback(evt => { write(evt.newValue); PostFxSettingsChanged(); });
             root.Add(field); return field;
         }
@@ -200,16 +200,16 @@ namespace DCFApixels.SpriteEditor
             bool brushAvailable = previewTool == PreviewTool.Brush;
             if (!brushAvailable) brushesExpanded = false;
             if (brushesExpanded) postFxExpanded = false;
-            postFxOverlay?.EnableInClassList("sprite-editor-post-fx-overlay--hidden", !postFxEnabled && !brushAvailable && !uvEnabled);
+            postFxOverlay?.EnableInClassList("whimtex-post-fx-overlay--hidden", !postFxEnabled && !brushAvailable && !uvEnabled);
             RefreshUvPanel();
-            brushTab?.EnableInClassList("sprite-editor-post-fx-drawer--hidden", !brushAvailable);
+            brushTab?.EnableInClassList("whimtex-post-fx-drawer--hidden", !brushAvailable);
             if (brushTab != null) brushTab.text = brushesExpanded ? "›" : "‹";
-            brushDrawer?.EnableInClassList("sprite-editor-post-fx-drawer--hidden", !brushAvailable || !brushesExpanded);
+            brushDrawer?.EnableInClassList("whimtex-post-fx-drawer--hidden", !brushAvailable || !brushesExpanded);
             SetBrushStrokePreviewActive(brushAvailable && brushesExpanded);
-            postFxTab?.EnableInClassList("sprite-editor-post-fx-drawer--hidden", !postFxEnabled);
+            postFxTab?.EnableInClassList("whimtex-post-fx-drawer--hidden", !postFxEnabled);
             if (postFxTab != null) postFxTab.text = postFxExpanded ? "›" : "‹";
-            postFxDrawer?.EnableInClassList("sprite-editor-post-fx-drawer--hidden", !postFxEnabled || !postFxExpanded);
-            postFxButton?.EnableInClassList("sprite-editor-channel-button--enabled", postFxEnabled);
+            postFxDrawer?.EnableInClassList("whimtex-post-fx-drawer--hidden", !postFxEnabled || !postFxExpanded);
+            postFxButton?.EnableInClassList("whimtex-channel-button--enabled", postFxEnabled);
             refreshPostFxFields?.Invoke();
             if (postFxStatus != null && !string.IsNullOrEmpty(postFxMessage))
             {
@@ -264,8 +264,8 @@ namespace DCFApixels.SpriteEditor
                 postFxTexture.filterMode = previewTexture.filterMode;
                 float zoom = toolkitPreviewCanvas != null ? toolkitPreviewCanvas.PixelScale : 1f;
                 var canvasSize = compositor != null ? new Vector2(compositor.width, compositor.height) : new Vector2(previewTexture.width, previewTexture.height);
-                postFxSettings.backgroundMode = SpriteEditorUserSettings.PostFxBackgroundMode;
-                postFxMessage = postFxBackend.Render(new PostFxPreviewRequest(postFxSettings, previewTexture, SpriteEditorUserSettings.PostFxBackground, zoom, canvasSize), postFxTexture);
+                postFxSettings.backgroundMode = WhimTexUserSettings.PostFxBackgroundMode;
+                postFxMessage = postFxBackend.Render(new PostFxPreviewRequest(postFxSettings, previewTexture, WhimTexUserSettings.PostFxBackground, zoom, canvasSize), postFxTexture);
                 postFxValid = true;
                 postFxFailed = false;
                 postFxDirty = false;

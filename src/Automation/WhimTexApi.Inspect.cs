@@ -5,11 +5,11 @@ using System.Text;
 using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
-using static DCFApixels.SpriteEditor.AgentJson;
+using static DCFApixels.WhimTex.AgentJson;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
-    public static partial class SpriteEditorApi
+    public static partial class WhimTexApi
     {
         public static string Inspect(string assetPath) => Respond(() =>
         {
@@ -66,13 +66,13 @@ namespace DCFApixels.SpriteEditor
             result["editing"] = "Inspect before editing; expectedRevision is mandatory on existing documents. Use @aliases within a batch. New documents require save=true. dryRun validates without drawing or saving. Save failure may leave partial asset I/O: inspect before retrying.";
             result["reference"] = "Documentation~/AgentAPI.md";
             result["liveEditing"] = new JObject {
-                ["fastBegin"] = "sprite_editor_begin / SpriteEditorApi.LiveBegin(requestId, name, source, area, sessionId, sourceLayerId, selectionMode, padding)",
+                ["fastBegin"] = "whimtex_begin / WhimTexApi.LiveBegin(requestId, name, source, area, sessionId, sourceLayerId, selectionMode, padding)",
                 ["selectionModes"] = new JArray("strict", "guide"),
-                ["sessions"] = "sprite_editor_sessions / SpriteEditorApi.LiveSessions()",
-                ["execute"] = "sprite_editor_live / SpriteEditorApi.LiveFile(requestPath)",
+                ["sessions"] = "whimtex_sessions / WhimTexApi.LiveSessions()",
+                ["execute"] = "whimtex_live / WhimTexApi.LiveFile(requestPath)",
                 ["operations"] = new JArray("inspect", "begin", "fork", "lock", "unlock", "status", "render", "preview", "complete", "fail", "cancel"),
                 ["inlineShaderFX"] = true,
-                ["lock"] = "sprite_editor_lock / SpriteEditorApi.LiveLock(requestId, layerId, sessionId, expectedRevision)",
+                ["lock"] = "whimtex_lock / WhimTexApi.LiveLock(requestId, layerId, sessionId, expectedRevision)",
                 ["reference"] = "Documentation~/LiveAgentAPI.md" };
             return result;
         });

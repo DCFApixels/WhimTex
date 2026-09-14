@@ -39,6 +39,6 @@ assert.match(view,/"Change Shape Corners", \(\) => layer.cornerRoundness = next/
 assert.match(view,/"Link Shape Corners", \(\) => layer.linkCorners = !layer.linkCorners/);
 assert.match(view,/SetValueWithoutNotify\(next\[j\] \* 100f\)/);
 assert.match(view,/evt.newValue \/ 100f, layer.linkCorners/);
-assert.match(read('Automation/SpriteEditorApi.Shape.cs'),/\["cornerRoundness"\] = new JArray/);
+assert.match(read('Automation/WhimTexApi.Shape.cs'),/\["cornerRoundness"\] = new JArray/);
 assert.match(read('Shaders/Shape.shader'),/p.y >= 0 \? \(p.x < 0 \? _ShapeCorners.x : _ShapeCorners.y\)\s*: \(p.x < 0 \? _ShapeCorners.w : _ShapeCorners.z\)/);
 console.log(`Shape corners: ${checks} extracted proportional/independent edits plus API, shader ordering and labelled UI contracts passed (GPU is tested separately).`);

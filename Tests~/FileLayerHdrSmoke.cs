@@ -1,7 +1,7 @@
 using System;
 using System.Reflection;
 using UnityEngine;
-using DCFApixels.SpriteEditor;
+using DCFApixels.WhimTex;
 
 var assign = typeof(FileLayerBehaviour).GetMethod("AssignSourceTexture", BindingFlags.Instance | BindingFlags.NonPublic);
 var layer = new FileLayerBehaviour();

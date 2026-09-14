@@ -20,14 +20,14 @@ Edit Mode. They never trigger compilation, refresh the AssetDatabase, or save th
 For an authorized content-generation request, reserve and capture context in one call:
 
 ```powershell
-unity command sprite_editor_begin --requestId 'NEW-UUID' --name 'Balcony' --source merged --area selection --project-path 'D:/Projects/MyGame' --format json
+unity command whimtex_begin --requestId 'NEW-UUID' --name 'Balcony' --source merged --area selection --project-path 'D:/Projects/MyGame' --format json
 ```
 
 `requestId` is required; generate a unique value before invoking the command and retain the exact
 arguments for retries. Optional arguments: `name` (Generating…), `source` (none), `area` (canvas),
 `sessionId`, `sourceLayerId`, `selectionMode` (strict), `padding` (-1: mode default). This shortcut creates
 a new layer at root index 0; use JSON `begin` for other placement or replacePixels. Direct equivalent:
-`SpriteEditorApi.LiveBegin(requestId, name, source, area, sessionId, sourceLayerId, selectionMode, padding)`.
+`WhimTexApi.LiveBegin(requestId, name, source, area, sessionId, sourceLayerId, selectionMode, padding)`.
 
 With no sessionId, begin uses the only open document or the currently focused WhimTex window.
 Only when multiple windows are open and none currently has focus, it falls back to the open window
@@ -48,19 +48,19 @@ reservation are captured in one main-thread call, not at the instant a chat mess
 The existing optional Pipeline adapter exposes:
 
 ```powershell
-unity command sprite_editor_sessions --project-path 'D:/Projects/MyGame' --format json
-unity command sprite_editor_live --requestPath 'D:/Projects/MyGame/Temp/SpriteEditor/request.json' --project-path 'D:/Projects/MyGame' --format json
+unity command whimtex_sessions --project-path 'D:/Projects/MyGame' --format json
+unity command whimtex_live --requestPath 'D:/Projects/MyGame/Temp/WhimTex/request.json' --project-path 'D:/Projects/MyGame' --format json
 ```
 
 Direct equivalents, without Pipeline:
 
 ```csharp
-SpriteEditorApi.LiveSessions();
-SpriteEditorApi.LiveFile(absoluteRequestPath);
-SpriteEditorApi.LiveJson(requestJson);
+WhimTexApi.LiveSessions();
+WhimTexApi.LiveFile(absoluteRequestPath);
+WhimTexApi.LiveJson(requestJson);
 ```
 
-Use the `DCFApixels.SpriteEditor` namespace. Check the returned JSON `success` as well as transport
+Use the `DCFApixels.WhimTex` namespace. Check the returned JSON `success` as well as transport
 success. Read-only discovery returns `sessions`, each with `sessionId`, name, assetPath, dimensions
 and focused status, plus `focusOrder` (0 means no recorded focus). A blank assetPath is an unsaved document. If multiple documents are open, use
 the user's requested document; ask when ambiguous. Do not guess from a layer name.
@@ -171,7 +171,7 @@ Single-layer capture includes that layer's transform, Swizzle and FX before its 
 even if it is hidden. Groups are isolated color sources; child visibility is respected.
 
 Selection, its interpretation, crop bounds and source pixels are frozen at begin. Later selection changes do not change the task.
-Context files live under `Temp/SpriteEditor/Agent/<jobId>/`, not Assets. Returned paths are absolute.
+Context files live under `Temp/WhimTex/Agent/<jobId>/`, not Assets. Returned paths are absolute.
 
 ## Complete with an image
 
@@ -222,7 +222,7 @@ start a new-layer job, or recapture after agreeing on a new edit.
 ```
 
 `layer` accepts `type`, `settings`, `transform`, `fx`, and effect-only `input`/`target`. Types and settings
-are the same as regular API `add`; discover defaults with `sprite_editor_describe` and consult the
+are the same as regular API `add`; discover defaults with `whimtex_describe` and consult the
 [API reference](AgentAPI.md). `settings.name` and `settings.enabled` are forbidden: those belong to
 the reservation and may already have been changed by the user. Groups start empty. Shader Processor
 uses the same inline `fx` contract as other nongroup layers.
@@ -293,10 +293,10 @@ Groups do not directly render FX; place a Shader Processor inside a group for th
 Do not create a replacement placeholder for an existing layer's FX. Reserve its own content instead:
 
 ```powershell
-unity command sprite_editor_lock --requestId 'NEW-UUID' --layerId 'LAYER-GUID' --project-path 'D:/Projects/MyGame' --format json
+unity command whimtex_lock --requestId 'NEW-UUID' --layerId 'LAYER-GUID' --project-path 'D:/Projects/MyGame' --format json
 ```
 
-Direct equivalent: `SpriteEditorApi.LiveLock(requestId, layerId, sessionId, expectedRevision)`.
+Direct equivalent: `WhimTexApi.LiveLock(requestId, layerId, sessionId, expectedRevision)`.
 Or send `op:lock` with requestId/layerId, optional sessionId and expectedRevision through LiveJson/File.
 The optional expectedRevision is the layer's **contentRevision**, not the document revision.
 Automatic window choice and idempotent request retries follow begin's rules. The returned job owns
@@ -357,7 +357,7 @@ To inspect a current document without a candidate:
 ```
 
 Optional `sourceLayerId` renders one layer. Both render commands accept `maxSize` 1..4096 and optional
-project-relative `outputPath` under `Temp/SpriteEditor/*.png`. Files never overwrite; omit the path
+project-relative `outputPath` under `Temp/WhimTex/*.png`. Files never overwrite; omit the path
 for an automatically unique name. These renders require a graphics device.
 
 ## Status, cancellation and recovery
@@ -404,6 +404,6 @@ reservations by session and layer ID:
 
 ## Agent guidance
 
-The portable skill is [Skills~/sprite-editor-live/SKILL.md](https://github.com/DCFApixels/WhimTex/blob/main/Skills~/sprite-editor-live/SKILL.md).
+The portable skill is [Skills~/whimtex-live/SKILL.md](https://github.com/DCFApixels/WhimTex/blob/main/Skills~/whimtex-live/SKILL.md).
 It describes intent-based source selection, reservation ownership and recovery without requiring
 an embedded chat UI or a separate model integration inside Unity.

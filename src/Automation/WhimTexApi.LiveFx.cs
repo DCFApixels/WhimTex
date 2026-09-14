@@ -5,12 +5,12 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
-using static DCFApixels.SpriteEditor.AgentJson;
+using static DCFApixels.WhimTex.AgentJson;
 using Object = UnityEngine.Object;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
-    public static partial class SpriteEditorApi
+    public static partial class WhimTexApi
     {
         internal static event Action LiveEditLocksChanged;
 
@@ -120,7 +120,7 @@ namespace DCFApixels.SpriteEditor
                 var fx = ShaderFX.CreateAgentDraft(owner, (string)spec["code"], parameters);
                 created.Add(fx);
                 try { fx.ApplyAgentDraft(); }
-                catch (Exception error) { throw new SpriteEditorApiException("shader_compile_failed", error.Message); }
+                catch (Exception error) { throw new WhimTexApiException("shader_compile_failed", error.Message); }
                 Require(fx.Parameters.Count <= 32, "At most 32 FX parameters are supported by live authoring.", "resource_limit");
                 if (op == "add") layer.modifiers.Insert(index, fx);
                 else layer.modifiers[index] = fx;
@@ -265,7 +265,7 @@ namespace DCFApixels.SpriteEditor
                         image = HdrUtility.ReadLinear(rt);
                     }
                     var result = LiveStatus(job);
-                    result["outputPath"] = WriteLivePng(image, Text(request, "outputPath", "Temp/SpriteEditor/Agent/edit-" + Guid.NewGuid().ToString("N") + ".png"));
+                    result["outputPath"] = WriteLivePng(image, Text(request, "outputPath", "Temp/WhimTex/Agent/edit-" + Guid.NewGuid().ToString("N") + ".png"));
                     result["applied"] = false; result["fx"] = LiveFxSnapshot(candidate, job.document);
                     return result;
                 }

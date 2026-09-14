@@ -1,16 +1,16 @@
 // Opt-in after manual compilation. Transient objects only; no asset saves/imports or Undo.
 var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-var document = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.SpriteEditor.TextureCompositor>();
+var document = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>();
 document.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
 document.width = document.height = 32;
 var texture = new UnityEngine.Texture2D(32, 32, UnityEngine.TextureFormat.RGBAFloat, false, true);
 texture.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
 texture.filterMode = UnityEngine.FilterMode.Point;
-var file = new DCFApixels.SpriteEditor.FileLayerBehaviour { sourceTexture = texture };
-var normal = new DCFApixels.SpriteEditor.NormalMapLayerBehaviour
+var file = new DCFApixels.WhimTex.FileLayerBehaviour { sourceTexture = texture };
+var normal = new DCFApixels.WhimTex.NormalMapLayerBehaviour
 {
-    inputSpace = DCFApixels.SpriteEditor.NormalMapLayerBehaviour.InputSpace.Linear,
-    encoding = DCFApixels.SpriteEditor.NormalMapLayerBehaviour.OutputEncoding.LinearData,
+    inputSpace = DCFApixels.WhimTex.NormalMapLayerBehaviour.InputSpace.Linear,
+    encoding = DCFApixels.WhimTex.NormalMapLayerBehaviour.OutputEncoding.LinearData,
     smoothing = 0f, strength = 4f
 };
 document.layers.Add(normal); document.layers.Add(file);
@@ -44,15 +44,15 @@ UnityEngine.Color Pixel(int x = 16, int y = 16, int size = 32)
 try
 {
     Source((x,y) => new UnityEngine.Color(.4f,.4f,.4f,1));
-    foreach (DCFApixels.SpriteEditor.NormalMapLayerBehaviour.GenerationMode mode in System.Enum.GetValues(typeof(DCFApixels.SpriteEditor.NormalMapLayerBehaviour.GenerationMode)))
+    foreach (DCFApixels.WhimTex.NormalMapLayerBehaviour.GenerationMode mode in System.Enum.GetValues(typeof(DCFApixels.WhimTex.NormalMapLayerBehaviour.GenerationMode)))
     {
         normal.mode = mode;
         var flat = Pixel();
         Check(Near(flat.r,.5f) && Near(flat.g,.5f) && Near(flat.b,1f), "Constant height gives a flat normal in " + mode);
     }
-    normal.mode = DCFApixels.SpriteEditor.NormalMapLayerBehaviour.GenerationMode.HeightMap;
+    normal.mode = DCFApixels.WhimTex.NormalMapLayerBehaviour.GenerationMode.HeightMap;
     Source((x,y) => new UnityEngine.Color(x/31f,x/31f,x/31f,1));
-    foreach (DCFApixels.SpriteEditor.NormalMapLayerBehaviour.DerivativeFilter filter in System.Enum.GetValues(typeof(DCFApixels.SpriteEditor.NormalMapLayerBehaviour.DerivativeFilter)))
+    foreach (DCFApixels.WhimTex.NormalMapLayerBehaviour.DerivativeFilter filter in System.Enum.GetValues(typeof(DCFApixels.WhimTex.NormalMapLayerBehaviour.DerivativeFilter)))
     {
         normal.derivative = filter;
         var slope = Pixel();
@@ -65,11 +65,11 @@ try
     normal.inverted = true; Check(Near(Pixel().r,1-original.r), "Invert height"); normal.inverted = false;
     var reduced = Pixel(8,8,16); Check(Near(reduced.r,original.r), "Slope amplitude survives reduced preview resolution");
     normal.strength = 0; Check(Near(Pixel().r,.5f), "Zero strength"); normal.strength = 4;
-    normal.encoding = DCFApixels.SpriteEditor.NormalMapLayerBehaviour.OutputEncoding.PackedColor;
+    normal.encoding = DCFApixels.WhimTex.NormalMapLayerBehaviour.OutputEncoding.PackedColor;
     var packed = Pixel();
     Check(Near(packed.r,UnityEngine.Mathf.GammaToLinearSpace(original.r)), "Packed encoding follows the image export boundary");
-    normal.encoding = DCFApixels.SpriteEditor.NormalMapLayerBehaviour.OutputEncoding.LinearData;
-    var group = new DCFApixels.SpriteEditor.GroupLayerBehaviour(); group.layers.Add(file);
+    normal.encoding = DCFApixels.WhimTex.NormalMapLayerBehaviour.OutputEncoding.LinearData;
+    var group = new DCFApixels.WhimTex.GroupLayerBehaviour(); group.layers.Add(file);
     document.layers[1] = group;
     Check(Near(Pixel().r,original.r), "Group supplies color, not only alpha");
     document.layers[1] = file;
@@ -79,13 +79,13 @@ try
     Source((x,y) => new UnityEngine.Color(.7f,.7f,.7f,x < 16 ? 1 : 0));
     normal.smoothing = 2;
     var edge = Pixel(15,16); Check(Near(edge.r,.5f), "Transparent RGB does not create a rim");
-    normal.alphaMode = DCFApixels.SpriteEditor.NormalMapLayerBehaviour.AlphaMode.Source;
+    normal.alphaMode = DCFApixels.WhimTex.NormalMapLayerBehaviour.AlphaMode.Source;
     Check(Pixel(24,16).a < .001f, "Preserve source alpha");
-    normal.alphaMode = DCFApixels.SpriteEditor.NormalMapLayerBehaviour.AlphaMode.Opaque;
+    normal.alphaMode = DCFApixels.WhimTex.NormalMapLayerBehaviour.AlphaMode.Opaque;
     Check(Near(Pixel(24,16).a,1f), "Opaque normal outside source coverage");
-    normal.sourceChannel = DCFApixels.SpriteEditor.NormalMapLayerBehaviour.HeightChannel.Alpha;
+    normal.sourceChannel = DCFApixels.WhimTex.NormalMapLayerBehaviour.HeightChannel.Alpha;
     Check(Pixel(15,16).r > .51f, "Alpha can itself be height");
-    var clone = UnityEngine.JsonUtility.FromJson<DCFApixels.SpriteEditor.NormalMapLayerBehaviour>(UnityEngine.JsonUtility.ToJson(normal));
+    var clone = UnityEngine.JsonUtility.FromJson<DCFApixels.WhimTex.NormalMapLayerBehaviour>(UnityEngine.JsonUtility.ToJson(normal));
     Check(clone.sourceChannel == normal.sourceChannel && clone.smoothing == normal.smoothing, "Layer settings serialization");
     return "Normal Map checks passed: " + checks;
 }

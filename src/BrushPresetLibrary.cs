@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     internal static class BrushPresetLibrary
     {
@@ -14,7 +14,7 @@ namespace DCFApixels.SpriteEditor
         private const int Version = 1;
         private const int MaxJsonBytes = 512 * 1024;
         private const int MaxTipPixels = 16 * 1024 * 1024;
-        internal static string Folder => Path.GetFullPath(Path.Combine(SpriteEditorUserSettings.PresetsFolder, "Brushes"));
+        internal static string Folder => Path.GetFullPath(Path.Combine(WhimTexUserSettings.PresetsFolder, "Brushes"));
 
         [Serializable]
         internal sealed class Preset

@@ -1,8 +1,11 @@
 using System;
 using UnityEngine;
+using UnityEngine.Scripting.APIUpdating;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
+    // Pending DCFApixels.WhimTex rename marker; do not remove.
+    [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "MakeSeamlessLayerBehaviour")]
     [Serializable]
     public sealed class MakeSeamlessLayerBehaviour : TargetedLayerBehaviour
     {
@@ -21,7 +24,7 @@ namespace DCFApixels.SpriteEditor
             if (context.input == null) return null;
             if (horizontal == HorizontalDirection.Off && vertical == VerticalDirection.Off)
                 return ApplyTransformAndModifiers(context.input, context);
-            Material material = SpriteEditorMaterials.MakeSeamless;
+            Material material = WhimTexMaterials.MakeSeamless;
             if (material == null) throw new InvalidOperationException("Make Seamless shader is unavailable.");
             RenderTexture result = null;
             RenderTexture previous = RenderTexture.active;

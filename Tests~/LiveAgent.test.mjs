@@ -2,9 +2,9 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const read = p => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
-const images = read('src/Automation/SpriteEditorApi.LiveImages.cs');
-const jobs = read('src/Automation/SpriteEditorApi.Live.cs');
-const complete = read('src/Automation/SpriteEditorApi.LiveCompletion.cs');
+const images = read('src/Automation/WhimTexApi.LiveImages.cs');
+const jobs = read('src/Automation/WhimTexApi.Live.cs');
+const complete = read('src/Automation/WhimTexApi.LiveCompletion.cs');
 const model = read('src/TextureCompositor.cs');
 function body(source, signature) {
   const start = source.indexOf('{', source.indexOf(signature));
@@ -74,14 +74,14 @@ const docs=read('Documentation~/LiveAgentAPI.md');
 for(const match of docs.matchAll(/```json\s+([\s\S]*?)```/g)) { JSON.parse(match[1]); checks++; }
 assert.ok(!docs.includes('"frequency"'));
 assert.ok(docs.includes('"settings":{"noise":{"scale":8,"seed":472}}'));
-const skill=read('Skills~/sprite-editor-live/SKILL.md');
+const skill=read('Skills~/whimtex-live/SKILL.md');
 const frontmatter=skill.replaceAll('\r\n','\n').match(/^---\n([\s\S]*?)\n---/)[1];
 const fields=Object.fromEntries(frontmatter.split('\n').map(line=>{
   const separator=line.indexOf(':'); assert.ok(separator>0); return [line.slice(0,separator),line.slice(separator+1).trim()];
 }));
 assert.deepEqual(Object.keys(fields).sort(),['description','name']);
 assert.match(fields.name,/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
-assert.equal(fields.name,'sprite-editor-live');
+assert.equal(fields.name,'whimtex-live');
 assert.ok(fields.name.length<=64 && fields.description.length>0 && fields.description.length<=1024);
 assert.ok(!/[<>]|\[TODO:/.test(fields.description));
 assert.ok(!skill.includes('[TODO:'));

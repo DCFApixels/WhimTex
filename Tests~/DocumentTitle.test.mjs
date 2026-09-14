@@ -8,9 +8,9 @@ assert.match(source, /titleDocument == compositor && titleDocumentName == docume
 assert.match(source, /Path.GetFileNameWithoutExtension\(path\)/);
 assert.match(source, /if \(string.IsNullOrWhiteSpace\(title\)\) title = "Untitled"/);
 assert.match(source, /content.tooltip = .*"WhimTex — "/);
-assert.match(source, /SpriteEditorBranding.WindowTitle\(title\)/);
+assert.match(source, /WhimTexBranding.WindowTitle\(title\)/);
 assert.match(window, /result.name = "Untitled"/);
 assert.match(window, /UpdateUnsavedChangesState\(\)\s*\{\s*RefreshDocumentTitle\(\)/);
-assert.ok(!window.includes('titleContent = SpriteEditorBranding.WindowTitle("WhimTex")'));
+assert.ok(!window.includes('titleContent = WhimTexBranding.WindowTitle("WhimTex")'));
 assert.ok(!source.includes('hasUnsavedChanges ='), 'Unity retains ownership of the unsaved asterisk');
 console.log('Document tab naming, asset-rename refresh, Untitled and branding contracts passed.');

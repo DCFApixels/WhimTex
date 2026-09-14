@@ -1,7 +1,7 @@
 // Opt-in after manual Unity compilation. Invoke through the same script runner as DrawingPatternSmoke.
 // Exercises production jobs without creating assets or GPU resources.
 var checks = 0;
-var fillType = typeof(DCFApixels.SpriteEditor.DrawingLayerBehaviour).Assembly.GetType("DCFApixels.SpriteEditor.FloodFillUtility", true);
+var fillType = typeof(DCFApixels.WhimTex.DrawingLayerBehaviour).Assembly.GetType("DCFApixels.WhimTex.FloodFillUtility", true);
 var fillMethod = fillType.GetMethod("Fill", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
 var clear = new UnityEngine.Color32(0, 0, 0, 0);
 var black = new UnityEngine.Color32(0, 0, 0, 255);
@@ -106,17 +106,17 @@ Check(result[0].a == 255 && result[4].a == 255 && result[1].a > 0 && result[3].a
     "Antialias softens each disconnected matched region");
 result = Fill(new UnityEngine.Color32[5], separated, 5, 0, red, 0, 1, false, null, out changed, false);
 Check(result[1].a == 255 && result[3].a == 255 && result[2].a == 0, "Expansion applies to every matched region");
-Check(new DCFApixels.SpriteEditor.DrawingLayerBehaviour().fillContiguous, "New layers keep connected fill by default");
-Check(new DCFApixels.SpriteEditor.DrawingLayerBehaviour().fillSampleMode == DCFApixels.SpriteEditor.FillSampleMode.CurrentLayer,
+Check(new DCFApixels.WhimTex.DrawingLayerBehaviour().fillContiguous, "New layers keep connected fill by default");
+Check(new DCFApixels.WhimTex.DrawingLayerBehaviour().fillSampleMode == DCFApixels.WhimTex.FillSampleMode.CurrentLayer,
     "New layers keep All Layers off by default");
 
-var layer = new DCFApixels.SpriteEditor.DrawingLayerBehaviour
+var layer = new DCFApixels.WhimTex.DrawingLayerBehaviour
 {
-    fillSampleMode = DCFApixels.SpriteEditor.FillSampleMode.AllLayers,
+    fillSampleMode = DCFApixels.WhimTex.FillSampleMode.AllLayers,
     fillContiguous = false,
     fillTolerance = 75, fillExpand = 3, fillAntialias = false
 };
-var copy = UnityEngine.JsonUtility.FromJson<DCFApixels.SpriteEditor.DrawingLayerBehaviour>(UnityEngine.JsonUtility.ToJson(layer));
+var copy = UnityEngine.JsonUtility.FromJson<DCFApixels.WhimTex.DrawingLayerBehaviour>(UnityEngine.JsonUtility.ToJson(layer));
 Check(copy.fillSampleMode == layer.fillSampleMode && !copy.fillContiguous && copy.fillTolerance == 75 && copy.fillExpand == 3 && !copy.fillAntialias,
     "Per-layer fill settings survive serialization and cloning");
 return "Flood fill checks passed: " + checks + ". No assets or GPU resources created.";

@@ -2,21 +2,21 @@
 // Temporary objects only; no saved assets, visible windows, preferences, or Undo changes.
 const System.Reflection.BindingFlags Hidden = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
 const System.Reflection.BindingFlags StaticHidden = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic;
-var layerType = typeof(DCFApixels.SpriteEditor.DrawingLayerBehaviour);
-var utility = layerType.Assembly.GetType("DCFApixels.SpriteEditor.TiledCanvasUtility", true);
+var layerType = typeof(DCFApixels.WhimTex.DrawingLayerBehaviour);
+var utility = layerType.Assembly.GetType("DCFApixels.WhimTex.TiledCanvasUtility", true);
 object MathCall(string name, params object[] args) => utility.GetMethod(name, StaticHidden).Invoke(null, args);
 object Call(object target, string name, params object[] args) => target.GetType().GetMethod(name, Hidden).Invoke(target, args);
 int checks = 0;
 void Check(bool condition, string message) { if (!condition) throw new Exception(message); checks++; }
-Vector2 ToSource(Vector2 uv, DCFApixels.SpriteEditor.TextureTransform transform, int width, int height) =>
+Vector2 ToSource(Vector2 uv, DCFApixels.WhimTex.TextureTransform transform, int width, int height) =>
     (Vector2)MathCall("ToSource", uv, transform, width, height);
-Vector2 ToDocument(Vector2 uv, DCFApixels.SpriteEditor.TextureTransform transform, int width, int height) =>
+Vector2 ToDocument(Vector2 uv, DCFApixels.WhimTex.TextureTransform transform, int width, int height) =>
     (Vector2)MathCall("ToDocument", uv, transform, width, height);
-var transforms = new List<DCFApixels.SpriteEditor.TextureTransform>();
+var transforms = new List<DCFApixels.WhimTex.TextureTransform>();
 foreach (float angle in new[] { 0f, 37f, 90f, 173f })
 foreach (var scale in new[] { Vector2.one, new Vector2(2f,0.6f), new Vector2(-1.5f,2f), new Vector2(0.1f,8f) })
 {
-    var transform = DCFApixels.SpriteEditor.TextureTransform.Default;
+    var transform = DCFApixels.WhimTex.TextureTransform.Default;
     transform.rotation = angle;
     transform.scale = scale;
     transform.position = new Vector2(11f,-7f);
@@ -47,7 +47,7 @@ try
     foreach (float hardness in new[] { 0f, 1f })
     foreach (float size in new[] { 18f, 300f })
     {
-        var layer = new DCFApixels.SpriteEditor.DrawingLayerBehaviour
+        var layer = new DCFApixels.WhimTex.DrawingLayerBehaviour
         {
             brushColor = new Color(1f,0.25f,0.1f,0.5f), brushSize = size, brushHardness = hardness
         };
@@ -86,7 +86,7 @@ try
 
     foreach (var transform in transforms)
     {
-        var layer = new DCFApixels.SpriteEditor.DrawingLayerBehaviour
+        var layer = new DCFApixels.WhimTex.DrawingLayerBehaviour
         { transform = transform, brushColor = Color.white, brushSize = 12f, brushHardness = 0f };
         try
         {
@@ -120,7 +120,7 @@ try
         finally { Call(layer,"ReleaseTransientResources"); }
     }
 
-    var line = new DCFApixels.SpriteEditor.DrawingLayerBehaviour { brushSize=3, brushHardness=1, brushColor=Color.white };
+    var line = new DCFApixels.WhimTex.DrawingLayerBehaviour { brushSize=3, brushHardness=1, brushColor=Color.white };
     try
     {
         var parameters = Call(Call(line,"GetStrokeParameters",false),"WithCanvasWrap");

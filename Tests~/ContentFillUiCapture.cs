@@ -1,8 +1,8 @@
 var f=System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Public;
-var fillType=typeof(DCFApixels.SpriteEditor.TextureCompositorWindow).GetNestedType("ContentFillWindow",f);
+var fillType=typeof(DCFApixels.WhimTex.TextureCompositorWindow).GetNestedType("ContentFillWindow",f);
 foreach(var item in UnityEngine.Resources.FindObjectsOfTypeAll(fillType))
 {
-    var owner=(DCFApixels.SpriteEditor.TextureCompositorWindow)fillType.GetField("owner",f).GetValue(item);
+    var owner=(DCFApixels.WhimTex.TextureCompositorWindow)fillType.GetField("owner",f).GetValue(item);
     if(owner==null||owner.name!="Content fill smoke")continue;
     var window=(UnityEditor.EditorWindow)item;var rect=window.position;
     int w=(int)rect.width,h=(int)rect.height;

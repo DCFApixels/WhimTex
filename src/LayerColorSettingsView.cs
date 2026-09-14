@@ -4,12 +4,12 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     internal static class LayerColorSettingsView
     {
         internal static DropdownField GroupBlend(Layer group, Action<BlendMode, bool> change,
-            SpriteEditorUI.ValueBindings bindings)
+            WhimTexUI.ValueBindings bindings)
         {
             var choices = new List<string> { "Pass Through" };
             foreach (BlendMode mode in Enum.GetValues(typeof(BlendMode))) choices.Add(ObjectNames.NicifyVariableName(mode.ToString()));
@@ -25,13 +25,13 @@ namespace DCFApixels.SpriteEditor
         }
 
         internal static void Build(VisualElement root, Layer layer, Action<string, Action> apply,
-            SpriteEditorUI.ValueBindings bindings, bool expanded, Action<bool> expansionChanged, TextureCompositor owner = null)
+            WhimTexUI.ValueBindings bindings, bool expanded, Action<bool> expansionChanged, TextureCompositor owner = null)
         {
-            var card = SpriteEditorUI.CreateInspectorSection("Color & Blending", "colorSection",
+            var card = WhimTexUI.CreateInspectorSection("Color & Blending", "colorSection",
                 LayerActionIcon.Kind.Alpha, expanded, expansionChanged);
-            card.AddToClassList("sprite-editor-color-card");
+            card.AddToClassList("whimtex-color-card");
             var preset = new DropdownField(new List<string> { "Standard", "HDR" }, 0);
-            preset.AddToClassList("sprite-editor-color-preset");
+            preset.AddToClassList("whimtex-color-preset");
             preset.tooltip = "Set both Color Range and Blend Range. An empty value means the ranges differ.";
             bindings.Track(preset, () => layer.colorRange == LayerColorRange.Standard && layer.blendRange == LayerBlendRange.Standard
                 ? "Standard" : layer.colorRange == LayerColorRange.HDR && layer.blendRange == LayerBlendRange.HDR ? "HDR" : string.Empty);
@@ -47,7 +47,7 @@ namespace DCFApixels.SpriteEditor
             });
             card.hierarchy.Add(preset);
             root.Add(card);
-            var opacity = SpriteEditorUI.ConfigureField(new Slider("Opacity", 0f, 1f)
+            var opacity = WhimTexUI.ConfigureField(new Slider("Opacity", 0f, 1f)
             {
                 name = "layerOpacity", showInputField = true,
                 tooltip = "Layer opacity from 0 to 1. This is the same value as in the Layers list."
@@ -69,22 +69,22 @@ namespace DCFApixels.SpriteEditor
                 }), bindings);
                 mode.label = "Blend Mode";
                 mode.name = "layerBlendMode";
-                card.Add(SpriteEditorUI.ConfigureField(mode));
+                card.Add(WhimTexUI.ConfigureField(mode));
             }
             else
             {
-                var mode = SpriteEditorUI.ConfigureField(new EnumField("Blend Mode", layer.blendMode) { name = "layerBlendMode" });
+                var mode = WhimTexUI.ConfigureField(new EnumField("Blend Mode", layer.blendMode) { name = "layerBlendMode" });
                 bindings.Track(mode, () => (Enum)layer.blendMode);
                 mode.RegisterValueChangedCallback(evt => apply("Change Layer Blend Mode", () => layer.blendMode = (BlendMode)evt.newValue));
                 card.Add(mode);
             }
-            var color = SpriteEditorUI.ConfigureField(new EnumField("Color Range", layer.colorRange));
+            var color = WhimTexUI.ConfigureField(new EnumField("Color Range", layer.colorRange));
             color.tooltip = "Standard clamps this layer after its FX and Swizzle. HDR keeps signed linear values beyond 0–1.";
             bindings.Track(color, () => (Enum)layer.colorRange);
             color.RegisterValueChangedCallback(evt => apply("Change Layer Color Range",
                 () => SetColorRange(layer, (LayerColorRange)evt.newValue)));
             card.Add(color);
-            var blend = SpriteEditorUI.ConfigureField(new EnumField("Blend Range", layer.blendRange));
+            var blend = WhimTexUI.ConfigureField(new EnumField("Blend Range", layer.blendRange));
             blend.tooltip = "Standard uses bounded blend functions in the legacy color space. HDR evaluates extended functions in linear light. Neither clamps the entire backdrop.";
             bindings.Track(blend, () => (Enum)layer.blendRange);
             blend.RegisterValueChangedCallback(evt => apply("Change Layer Blend Range", () => layer.blendRange = (LayerBlendRange)evt.newValue));
@@ -99,7 +99,7 @@ namespace DCFApixels.SpriteEditor
             if (layer?.Behaviour is DrawingLayerBehaviour pixels)
             {
                 var storage = new Label();
-                storage.AddToClassList("sprite-editor-storage-description");
+                storage.AddToClassList("whimtex-storage-description");
                 bindings.Add(() => storage.text = HdrUtility.IsHdr(pixels.StoredTexture)
                     ? "Drawing storage: 16-bit float / channel" : "Drawing storage: 8-bit / channel");
                 card.Add(storage);
@@ -109,31 +109,31 @@ namespace DCFApixels.SpriteEditor
                         "Clamp source pixels to 0–1 and reduce their precision. Color Range becomes Standard. Undo restores the pixels and storage format.", "Convert", "Cancel"))
                         apply("Convert Drawing to 8-bit", pixels.ConvertTo8Bit);
                 }) { text = "Convert to 8-bit" };
-                compact.AddToClassList("sprite-editor-compact-storage");
+                compact.AddToClassList("whimtex-compact-storage");
                 bindings.Add(() => compact.SetEnabled(HdrUtility.IsHdr(pixels.StoredTexture)));
                 card.Add(compact);
             }
         }
 
-        private static VisualElement BuildSwizzle(Layer layer, Action<string, Action> apply, SpriteEditorUI.ValueBindings bindings, TextureCompositor owner)
+        private static VisualElement BuildSwizzle(Layer layer, Action<string, Action> apply, WhimTexUI.ValueBindings bindings, TextureCompositor owner)
         {
             var container = new VisualElement();
-            container.AddToClassList("sprite-editor-swizzle");
+            container.AddToClassList("whimtex-swizzle");
             var row = new VisualElement();
-            row.AddToClassList("sprite-editor-swizzle-row");
+            row.AddToClassList("whimtex-swizzle-row");
             var label = new Label("Swizzle");
             label.AddToClassList("unity-base-field__label");
             row.Add(label);
-            SpriteEditorUI.ConfigureField(row);
+            WhimTexUI.ConfigureField(row);
             var channels = new VisualElement();
-            channels.AddToClassList("sprite-editor-swizzle-channels");
+            channels.AddToClassList("whimtex-swizzle-channels");
             row.Add(channels);
             for (int channel = 0; channel < 4; channel++)
             {
                 int output = channel;
                 var choices = new List<string>(LayerSwizzle.Labels);
                 var field = new DropdownField(choices, (int)layer.swizzle[output]);
-                field.AddToClassList("sprite-editor-swizzle-channel");
+                field.AddToClassList("whimtex-swizzle-channel");
                 field.tooltip = "Output " + LayerSwizzle.Labels[output] + ": select a source channel, its inverse, or a constant. Applied after FX in linear space, before Color Range and blending.";
                 bindings.Track(field, () => LayerSwizzle.Labels[(int)layer.swizzle[output]]);
                 field.RegisterValueChangedCallback(evt =>
@@ -153,7 +153,7 @@ namespace DCFApixels.SpriteEditor
                     hint.text = clipping
                         ? "Clipping isolates this group using Normal blending. Pass Through resumes when clipping is removed and Swizzle is R G B A."
                         : "Swizzle isolates this group using Normal blending. Restore R G B A to resume Pass Through.";
-                    hint.EnableInClassList("sprite-editor-swizzle-hint--hidden",
+                    hint.EnableInClassList("whimtex-swizzle-hint--hidden",
                         group.compositing != GroupCompositing.PassThrough || (group.swizzle.IsIdentity && !clipping));
                 });
                 container.Add(hint);

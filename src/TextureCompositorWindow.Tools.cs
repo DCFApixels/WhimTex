@@ -3,7 +3,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
@@ -13,9 +13,9 @@ namespace DCFApixels.SpriteEditor
         [NonSerialized] private PreviewTool previewSettingsTool = PreviewTool.None;
         [NonSerialized] private PreviewTool previewTransformReturnTool = PreviewTool.None;
         [NonSerialized] private PaintToolSettings paintSettings = new PaintToolSettings();
-        private const string PaintToolSettingsPrefKey = "DCFApixels.SpriteEditor.PaintToolSettings";
-        private const string PreviewToolPrefKey = "DCFApixels.SpriteEditor.PreviewTool";
-        private const string PreviewTransformReturnToolPrefKey = "DCFApixels.SpriteEditor.PreviewTransformReturnTool";
+        private const string PaintToolSettingsPrefKey = "DCFApixels.WhimTex.PaintToolSettings";
+        private const string PreviewToolPrefKey = "DCFApixels.WhimTex.PreviewTool";
+        private const string PreviewTransformReturnToolPrefKey = "DCFApixels.WhimTex.PreviewTransformReturnTool";
         [NonSerialized] private bool conversionPromptOpen;
         [NonSerialized] private Button previewNoneButton;
         [NonSerialized] private Button previewBrushButton;
@@ -37,8 +37,8 @@ namespace DCFApixels.SpriteEditor
                 return false;
             }
         }
-        private bool IsPreviewBrushEnabled => IsPreviewPaintTool && GetSelectedLayer()?.Behaviour is DrawingLayerBehaviour layer && !SpriteEditorApi.IsLayerContentLocked(compositor, layer);
-        private bool IsPreviewFillEnabled => previewTool == PreviewTool.Fill && GetSelectedLayer()?.Behaviour is DrawingLayerBehaviour layer && !SpriteEditorApi.IsLayerContentLocked(compositor, layer);
+        private bool IsPreviewBrushEnabled => IsPreviewPaintTool && GetSelectedLayer()?.Behaviour is DrawingLayerBehaviour layer && !WhimTexApi.IsLayerContentLocked(compositor, layer);
+        private bool IsPreviewFillEnabled => previewTool == PreviewTool.Fill && GetSelectedLayer()?.Behaviour is DrawingLayerBehaviour layer && !WhimTexApi.IsLayerContentLocked(compositor, layer);
 
         private void ApplyPreviewTextureFilter()
         {
@@ -129,22 +129,22 @@ namespace DCFApixels.SpriteEditor
         {
             if (!HasPreviewLayers)
             {
-                SpriteEditorUI.ConsumeEvent(evt);
+                WhimTexUI.ConsumeEvent(evt);
                 return true;
             }
             bool painting = IsPreviewPaintTool && (evt.button == 0 || evt.button == 1);
             bool filling = previewTool == PreviewTool.Fill && evt.button == 0;
             if ((!painting && !filling) || evt.altKey || compositor == null ||
-                !PreviewContainsPaintPoint(evt.localPosition) || GetSelectedLayer()?.Behaviour is DrawingLayerBehaviour && !SpriteEditorApi.IsLayerContentLocked(compositor, GetSelectedLayer()))
+                !PreviewContainsPaintPoint(evt.localPosition) || GetSelectedLayer()?.Behaviour is DrawingLayerBehaviour && !WhimTexApi.IsLayerContentLocked(compositor, GetSelectedLayer()))
                 return false;
 
-            SpriteEditorUI.ConsumeEvent(evt);
+            WhimTexUI.ConsumeEvent(evt);
             if (conversionPromptOpen) return true;
             conversionPromptOpen = true;
             try
             {
                 Layer layer = GetSelectedLayer();
-                if (layer != null && SpriteEditorApi.ContainsReservation(layer))
+                if (layer != null && WhimTexApi.ContainsReservation(layer))
                 {
                     ShowNotification(new GUIContent("This layer is reserved for the agent."));
                     return true;
@@ -199,16 +199,16 @@ namespace DCFApixels.SpriteEditor
             {
                 bool empty = previewTool == PreviewTool.None;
                 bool visible = (empty ? previewSettingsTool : previewTool) == tool;
-                row.EnableInClassList("sprite-editor-tool-options--hidden", !visible);
-                row.EnableInClassList("sprite-editor-tool-options--empty", empty);
+                row.EnableInClassList("whimtex-tool-options--hidden", !visible);
+                row.EnableInClassList("whimtex-tool-options--empty", empty);
             });
         }
 
         private VisualElement BuildPreviewToolToolbar()
         {
             VisualElement toolbar = new VisualElement { name = "previewTools" };
-            toolbar.AddToClassList("sprite-editor-tools");
-            toolbar.EnableInClassList("sprite-editor-tools--light", !EditorGUIUtility.isProSkin);
+            toolbar.AddToClassList("whimtex-tools");
+            toolbar.EnableInClassList("whimtex-tools--light", !EditorGUIUtility.isProSkin);
             previewNoneButton = CreatePreviewToolButton("noTool", PreviewTool.None,
                 "Layer Select (V). Click visible pixels to select a layer. Click a selected group again to select inside it. Shift toggles selection; Ctrl selects nested layers directly. Click empty space to deselect.");
             previewBrushButton = CreatePreviewToolButton("brushTool", PreviewTool.Brush,
@@ -249,7 +249,7 @@ namespace DCFApixels.SpriteEditor
         private Button CreatePreviewToolButton(string name, PreviewTool tool, string tooltip)
         {
             Button button = new Button(() => SetPreviewTool(tool)) { name = name, tooltip = tooltip };
-            button.AddToClassList("sprite-editor-tool-button");
+            button.AddToClassList("whimtex-tool-button");
             if (tool == PreviewTool.Shape)
                 button.Add(shapeToolIcon = new ShapeToolIcon(shapeToolSettings?.kind ?? ShapeLayerBehaviour.ShapeKind.Rectangle));
             else if (tool == PreviewTool.RectangleSelect)
@@ -276,34 +276,34 @@ namespace DCFApixels.SpriteEditor
                 uvDisplayedSelection = IsUvSelectionTool; uvDisplayedLayers = hasLayers;
                 uvOverlay?.MarkDirtyRepaint();
             }
-            previewShapeButton?.EnableInClassList("sprite-editor-tool-button--selected", displayedTool == PreviewTool.Shape);
-            previewShapeButton?.EnableInClassList("sprite-editor-tool-button--unavailable", compositor == null);
-            previewRectangleSelectButton?.EnableInClassList("sprite-editor-tool-button--selected", displayedTool == PreviewTool.RectangleSelect);
-            previewPolygonSelectButton?.EnableInClassList("sprite-editor-tool-button--selected", displayedTool == PreviewTool.PolygonSelect);
-            previewRectangleSelectButton?.EnableInClassList("sprite-editor-tool-button--unavailable", !hasLayers);
-            previewPolygonSelectButton?.EnableInClassList("sprite-editor-tool-button--unavailable", !hasLayers);
-            previewZoomButton?.EnableInClassList("sprite-editor-tool-button--unavailable", !hasLayers);
-            previewZoomButton?.EnableInClassList("sprite-editor-tool-button--selected", displayedTool == PreviewTool.Zoom);
-            previewNoneButton?.EnableInClassList("sprite-editor-tool-button--selected", displayedTool == PreviewTool.None);
+            previewShapeButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == PreviewTool.Shape);
+            previewShapeButton?.EnableInClassList("whimtex-tool-button--unavailable", compositor == null);
+            previewRectangleSelectButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == PreviewTool.RectangleSelect);
+            previewPolygonSelectButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == PreviewTool.PolygonSelect);
+            previewRectangleSelectButton?.EnableInClassList("whimtex-tool-button--unavailable", !hasLayers);
+            previewPolygonSelectButton?.EnableInClassList("whimtex-tool-button--unavailable", !hasLayers);
+            previewZoomButton?.EnableInClassList("whimtex-tool-button--unavailable", !hasLayers);
+            previewZoomButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == PreviewTool.Zoom);
+            previewNoneButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == PreviewTool.None);
             if (previewBrushButton != null)
             {
-                previewBrushButton.EnableInClassList("sprite-editor-tool-button--unavailable", !(selected?.Behaviour is DrawingLayerBehaviour));
-                previewBrushButton.EnableInClassList("sprite-editor-tool-button--selected", displayedTool == PreviewTool.Brush);
+                previewBrushButton.EnableInClassList("whimtex-tool-button--unavailable", !(selected?.Behaviour is DrawingLayerBehaviour));
+                previewBrushButton.EnableInClassList("whimtex-tool-button--selected", displayedTool == PreviewTool.Brush);
             }
             if (previewPencilButton != null)
             {
-                previewPencilButton.EnableInClassList("sprite-editor-tool-button--unavailable", !(selected?.Behaviour is DrawingLayerBehaviour));
-                previewPencilButton.EnableInClassList("sprite-editor-tool-button--selected", displayedTool == PreviewTool.Pencil);
+                previewPencilButton.EnableInClassList("whimtex-tool-button--unavailable", !(selected?.Behaviour is DrawingLayerBehaviour));
+                previewPencilButton.EnableInClassList("whimtex-tool-button--selected", displayedTool == PreviewTool.Pencil);
             }
             if (previewTransformButton != null)
             {
-                previewTransformButton.EnableInClassList("sprite-editor-tool-button--unavailable", selected == null || selected.IsGroup);
-                previewTransformButton.EnableInClassList("sprite-editor-tool-button--selected", displayedTool == PreviewTool.Transform);
+                previewTransformButton.EnableInClassList("whimtex-tool-button--unavailable", selected == null || selected.IsGroup);
+                previewTransformButton.EnableInClassList("whimtex-tool-button--selected", displayedTool == PreviewTool.Transform);
             }
             if (previewFillButton != null)
             {
-                previewFillButton.EnableInClassList("sprite-editor-tool-button--unavailable", !(selected?.Behaviour is DrawingLayerBehaviour));
-                previewFillButton.EnableInClassList("sprite-editor-tool-button--selected", displayedTool == PreviewTool.Fill);
+                previewFillButton.EnableInClassList("whimtex-tool-button--unavailable", !(selected?.Behaviour is DrawingLayerBehaviour));
+                previewFillButton.EnableInClassList("whimtex-tool-button--selected", displayedTool == PreviewTool.Fill);
             }
         }
 
@@ -319,7 +319,7 @@ namespace DCFApixels.SpriteEditor
                 this.ellipse = ellipse;
                 this.uv = uv;
                 pickingMode = PickingMode.Ignore;
-                AddToClassList("sprite-editor-tool-icon");
+                AddToClassList("whimtex-tool-icon");
                 generateVisualContent += Draw;
             }
 

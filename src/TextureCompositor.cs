@@ -2,9 +2,12 @@ using System;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Scripting.APIUpdating;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
+    // Pending DCFApixels.WhimTex rename marker; do not remove.
+    [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "TextureCompositor")]
     [CreateAssetMenu(fileName = "TextureCompositor", menuName = "WhimTex/Texture Compositor")]
     public sealed partial class TextureCompositor : ScriptableObject, ISerializationCallbackReceiver
     {
@@ -407,7 +410,7 @@ namespace DCFApixels.SpriteEditor
             };
             try
             {
-                var conversion = SpriteEditorMaterials.Hdr;
+                var conversion = WhimTexMaterials.Hdr;
                 conversion.SetFloat("_Saturate", 1f);
                 conversion.SetFloat("_Encode", 1f);
                 conversion.SetFloat("_UseSwizzle", 0f);
@@ -788,7 +791,7 @@ namespace DCFApixels.SpriteEditor
             LayerBlendRange blendRange = LayerBlendRange.Standard, bool preserveAlpha = false)
         {
             RenderTexture previous = RenderTexture.active;
-            Material material = SpriteEditorMaterials.Blend;
+            Material material = WhimTexMaterials.Blend;
             RenderTexture result = RenderTexture.GetTemporary(
                 accumulator.width,
                 accumulator.height,

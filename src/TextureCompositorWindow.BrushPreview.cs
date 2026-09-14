@@ -3,7 +3,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
@@ -25,7 +25,7 @@ namespace DCFApixels.SpriteEditor
                 scaleMode = ScaleMode.StretchToFill,
                 tooltip = "Sample stroke with the current brush settings. Large tips are scaled to fit. Erasing is shown on gray paint; layer effects and symmetry are not applied."
             };
-            brushStrokePreview.AddToClassList("sprite-editor-brush-stroke-preview");
+            brushStrokePreview.AddToClassList("whimtex-brush-stroke-preview");
             brushStrokePreview.RegisterCallback<GeometryChangedEvent>(_ => brushStrokePreviewDirty = true);
             brushStrokePreview.RegisterCallback<DetachFromPanelEvent>(_ => ReleaseBrushStrokePreview());
             parent.Add(brushStrokePreview);
@@ -35,7 +35,7 @@ namespace DCFApixels.SpriteEditor
                 value = brushStrokePreviewScale * 100f, showInputField = true,
                 tooltip = "Scale only the sample brush to fit its scatter. Does not change the painting size or brush settings."
             };
-            scale.AddToClassList("sprite-editor-brush-preview-scale");
+            scale.AddToClassList("whimtex-brush-preview-scale");
             scale.RegisterValueChangedCallback(evt =>
             {
                 brushStrokePreviewScale = ClampBrushPreviewScale(evt.newValue * .01f);
@@ -63,9 +63,9 @@ namespace DCFApixels.SpriteEditor
         {
             if (!brushStrokePreviewActive || brushStrokePreview?.panel == null ||
                 EditorApplication.isCompiling || EditorApplication.isUpdating || paintSettings == null) return;
-            if (brushStrokePreviewHdr != SpriteEditorColorInputs.Hdr)
+            if (brushStrokePreviewHdr != WhimTexColorInputs.Hdr)
             {
-                brushStrokePreviewHdr = SpriteEditorColorInputs.Hdr;
+                brushStrokePreviewHdr = WhimTexColorInputs.Hdr;
                 brushStrokePreviewDirty = true;
             }
             if (!brushStrokePreviewDirty) return;
@@ -78,7 +78,7 @@ namespace DCFApixels.SpriteEditor
             {
                 if (brushStrokePreviewMaterial == null)
                 {
-                    Material source = SpriteEditorMaterials.PreviewChannels;
+                    Material source = WhimTexMaterials.PreviewChannels;
                     if (source == null) return;
                     brushStrokePreviewMaterial = new Material(source) { hideFlags = HideFlags.HideAndDontSave };
                     brushStrokePreviewMaterial.SetVector("_Channels", Vector4.one);
@@ -101,9 +101,9 @@ namespace DCFApixels.SpriteEditor
                 dynamics.Normalize();
                 float size = Mathf.Max(1f, Mathf.Clamp(paintSettings.brushSize * 2f, 2f, 56f) * brushStrokePreviewScale);
                 bool erase = paintSettings.tool == PaintToolMode.Eraser;
-                var parameters = new PaintStrokeParameters(SpriteEditorColorInputs.DisplayColor(paintSettings.brushColor),
+                var parameters = new PaintStrokeParameters(WhimTexColorInputs.DisplayColor(paintSettings.brushColor),
                     size, paintSettings.brushHardness, paintSettings.brushSpacing, erase, dynamics: dynamics,
-                    standardColorInputs: !SpriteEditorColorInputs.Hdr);
+                    standardColorInputs: !WhimTexColorInputs.Hdr);
                 brushStrokePreviewLayer.RenderBrushPreview(brushStrokePreviewTexture, parameters, brushStrokePreviewMaterial);
                 brushStrokePreview.image = brushStrokePreviewTexture;
                 brushStrokePreview.MarkDirtyRepaint();

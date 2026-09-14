@@ -13,8 +13,11 @@ permalink: /reference/agentapi/
 For a browser AI without a Unity connection, use the separate [clipboard JSON/HLSL contract](AI/README.md).
 Clipboard paste does not execute the operations described on this page.
 
-WhimTex retains the package ID `com.dcfa_pixels.sprite-editor`, the `DCFApixels.SpriteEditor`
-namespace and all `sprite_editor_*` commands. The product rename does not change the API version,
+WhimTex is installed as `com.dcfapixels.whimtex`, its namespace is `DCFApixels.WhimTex` and its
+assemblies are `DCFApixels.WhimTex*` (previously `com.dcfa_pixels.sprite-editor` and
+`DCFApixels.SpriteEditor`). Documents and preferences saved under the older names keep working: the
+moved types carry `MovedFrom` markers, and the `whimtex_*` commands and persisted preference
+keys were deliberately left unchanged. The rename does not change the API version,
 shader identifiers or saved user preferences. The subsequent Layer/Behaviour redesign changes
 the serialized document format without migrating earlier documents; the JSON command contract remains v1.
 {: .no_toc }
@@ -76,8 +79,8 @@ are already installed; an `Assets`-local `package.json` does not install depende
 
 ```powershell
 unity status --project-path 'D:/Projects/MyGame' --format json
-unity command --query sprite_editor --project-path 'D:/Projects/MyGame' --format json
-unity command sprite_editor_describe --project-path 'D:/Projects/MyGame' --format json
+unity command --query whimtex --project-path 'D:/Projects/MyGame' --format json
+unity command whimtex_describe --project-path 'D:/Projects/MyGame' --format json
 ```
 
 If commands are absent, check whether Pipeline is installed and the plugin is compiled. Follow the
@@ -87,11 +90,11 @@ Import/save commands do import the specific image or compositor asset they write
 
 | Command | Parameters | Result |
 |---|---|---|
-| `sprite_editor_describe` | none | Protocol, operations, enums, limits |
-| `sprite_editor_inspect` | `assetPath` | Document revision, stable IDs, hierarchy and settings |
-| `sprite_editor_import_image` | `sourcePath`, `assetPath` | Imported texture path, GUID, dimensions |
-| `sprite_editor_execute` | `requestPath` | Batch result, created IDs, updated document |
-| `sprite_editor_render` | `assetPath`, `outputPath`, optional `maxSize=1024`, `overwrite=false` | Absolute PNG path and dimensions |
+| `whimtex_describe` | none | Protocol, operations, enums, limits |
+| `whimtex_inspect` | `assetPath` | Document revision, stable IDs, hierarchy and settings |
+| `whimtex_import_image` | `sourcePath`, `assetPath` | Imported texture path, GUID, dimensions |
+| `whimtex_execute` | `requestPath` | Batch result, created IDs, updated document |
+| `whimtex_render` | `assetPath`, `outputPath`, optional `maxSize=1024`, `overwrite=false` | Absolute PNG path and dimensions |
 
 Pass `--project-path` and `--format json` on every command. The API object is nested inside the
 CLI/Pipeline response: check its `apiVersion` and `success` as well as transport success/exit code.
@@ -101,15 +104,15 @@ An API validation error can arrive through a successful transport. `errorCode` a
 Direct C# entry points, all on Unity's main thread, return a JSON string:
 
 ```csharp
-SpriteEditorApi.Describe();
-SpriteEditorApi.Inspect("Assets/Art/Icon.asset");
-SpriteEditorApi.ExecuteJson(requestJson);
-SpriteEditorApi.ExecuteFile(absoluteRequestPath);
-SpriteEditorApi.ImportImage(absolutePngPath, "Assets/Art/Source.png");
-SpriteEditorApi.Render("Assets/Art/Icon.asset", "Temp/SpriteEditor/icon.png", 1024, false);
+WhimTexApi.Describe();
+WhimTexApi.Inspect("Assets/Art/Icon.asset");
+WhimTexApi.ExecuteJson(requestJson);
+WhimTexApi.ExecuteFile(absoluteRequestPath);
+WhimTexApi.ImportImage(absolutePngPath, "Assets/Art/Source.png");
+WhimTexApi.Render("Assets/Art/Icon.asset", "Temp/WhimTex/icon.png", 1024, false);
 ```
 
-The full namespace is `DCFApixels.SpriteEditor`. With an existing C# eval bridge, call these methods
+The full namespace is `DCFApixels.WhimTex`. With an existing C# eval bridge, call these methods
 instead of installing Pipeline solely for this tool. Send a request file to avoid shell-escaping JSON.
 
 ## Generated image → compositor
@@ -118,14 +121,14 @@ instead of installing Pipeline solely for this tool. Send a request file to avoi
 2. Import it to a new asset path. Import never overwrites; for an existing imported texture, skip this step.
 
 ```powershell
-unity command sprite_editor_import_image --sourcePath 'C:/Temp/generated.png' --assetPath 'Assets/Art/AgentIcon/source.png' --project-path 'D:/Projects/MyGame' --format json
+unity command whimtex_import_image --sourcePath 'C:/Temp/generated.png' --assetPath 'Assets/Art/AgentIcon/source.png' --project-path 'D:/Projects/MyGame' --format json
 ```
 
 The API copies only that file, preserves its dimensions up to the resource limit, disables texture
 compression/mipmaps and keeps non-power-of-two dimensions. It does not change existing source importers.
 PNG/JPEG only; the destination must use the same extension. No URLs or automatic image generation.
 
-3. Write a JSON batch outside `Assets`, for example `Temp/SpriteEditor/create.json`:
+3. Write a JSON batch outside `Assets`, for example `Temp/WhimTex/create.json`:
 
 ```json
 {
@@ -149,8 +152,8 @@ PNG/JPEG only; the destination must use the same extension. No URLs or automatic
 4. Optionally run the same request with `dryRun:true`, then change it to false to apply:
 
 ```powershell
-unity command sprite_editor_execute --requestPath 'D:/Projects/MyGame/Temp/SpriteEditor/create.json' --project-path 'D:/Projects/MyGame' --format json
-unity command sprite_editor_render --assetPath 'Assets/Art/AgentIcon/Icon.asset' --outputPath 'Temp/SpriteEditor/icon-v1.png' --project-path 'D:/Projects/MyGame' --format json
+unity command whimtex_execute --requestPath 'D:/Projects/MyGame/Temp/WhimTex/create.json' --project-path 'D:/Projects/MyGame' --format json
+unity command whimtex_render --assetPath 'Assets/Art/AgentIcon/Icon.asset' --outputPath 'Temp/WhimTex/icon-v1.png' --project-path 'D:/Projects/MyGame' --format json
 ```
 
 5. View the returned PNG. Revise the document if needed, using IDs/revision from the response or a new inspect.
@@ -245,7 +248,7 @@ PSD exports filled/offset/antialiased outlines as pixels rather than a native st
 For SDF on a group, Alpha requests coverage only; Red/Green/Blue/Luminance request the group's RGBA result.
 Changing SDF Source Channel therefore also changes the group's source-cache requirement.
 
-Discover blend modes, ranges, group compositing and distance metrics with `sprite_editor_describe`.
+Discover blend modes, ranges, group compositing and distance metrics with `whimtex_describe`.
 Groups default to PassThrough; set `compositing:"Isolated"` to apply their own blend mode and ranges.
 Group opacity applies to the complete result, not separately to every child. Group transforms/FX are rejected.
 `swizzle` accepts `R`, `G`, `B`, `A`, `1-R`, `1-G`, `1-B`, `1-A`, `0`, `1`, `R * A`, `G * A`, `B * A` as strings.
@@ -656,7 +659,7 @@ The validator caps estimated replicated stamps at 100,000 per stroke, covered br
   neither the old state nor a fully applied batch can be assumed.
 
 Destinations stay under Assets (not StreamingAssets); path traversal and write-through symlinks are
-rejected. Preview PNGs are limited to `Temp/SpriteEditor/` and do not overwrite unless requested.
+rejected. Preview PNGs are limited to `Temp/WhimTex/` and do not overwrite unless requested.
 Import accepts at most 64 MiB and 16,777,216 source pixels. Resource limits protect the editor from
 accidental huge requests, but effect-heavy documents can still take time: use preview resolution
 appropriately and keep batches focused. The API executes on the main thread; it is not an async job queue.

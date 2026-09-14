@@ -1,7 +1,7 @@
 // Run via Unity Pipeline eval_file. Transient meshes/documents only.
 var flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static;
-var assembly = typeof(DCFApixels.SpriteEditor.TextureCompositor).Assembly;
-var mapType = assembly.GetType("DCFApixels.SpriteEditor.UvIslandMap", true);
+var assembly = typeof(DCFApixels.WhimTex.TextureCompositor).Assembly;
+var mapType = assembly.GetType("DCFApixels.WhimTex.UvIslandMap", true);
 var meshes = new System.Collections.Generic.List<UnityEngine.Mesh>();
 int checks = 0;
 void Check(bool value, string message) { if (!value) throw new System.Exception(message); checks++; }
@@ -97,16 +97,16 @@ try
     for(int i=0;i<1000;i++) Check(Pick(denseMap,(i%97+.123f)/97,(i%89+.456f)/89)==0,"Spatial picking on dense island");
     timer.Stop(); double pickMs=timer.Elapsed.TotalMilliseconds;
     foreach(byte value in Raster(denseMap,0,257,129)) Check(value==255,"Dense triangulation has no selection cracks");
-    var doc=UnityEngine.ScriptableObject.CreateInstance<DCFApixels.SpriteEditor.TextureCompositor>();
+    var doc=UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>();
     doc.hideFlags=UnityEngine.HideFlags.HideAndDontSave;
-    DCFApixels.SpriteEditor.TextureCompositor copy=null;
+    DCFApixels.WhimTex.TextureCompositor copy=null;
     try
     {
-        typeof(DCFApixels.SpriteEditor.TextureCompositor).GetField("uvReferenceMesh",flags).SetValue(doc,dense);
-        typeof(DCFApixels.SpriteEditor.TextureCompositor).GetField("uvReferenceChannel",flags).SetValue(doc,1);
+        typeof(DCFApixels.WhimTex.TextureCompositor).GetField("uvReferenceMesh",flags).SetValue(doc,dense);
+        typeof(DCFApixels.WhimTex.TextureCompositor).GetField("uvReferenceChannel",flags).SetValue(doc,1);
         copy=UnityEngine.Object.Instantiate(doc);
-        Check(typeof(DCFApixels.SpriteEditor.TextureCompositor).GetField("uvReferenceMesh",flags).GetValue(copy)==dense,"Document clone keeps mesh reference");
-        Check((int)typeof(DCFApixels.SpriteEditor.TextureCompositor).GetField("uvReferenceChannel",flags).GetValue(copy)==1,"Document clone keeps UV channel");
+        Check(typeof(DCFApixels.WhimTex.TextureCompositor).GetField("uvReferenceMesh",flags).GetValue(copy)==dense,"Document clone keeps mesh reference");
+        Check((int)typeof(DCFApixels.WhimTex.TextureCompositor).GetField("uvReferenceChannel",flags).GetValue(copy)==1,"Document clone keeps UV channel");
     }
     finally { if(copy!=null) UnityEngine.Object.DestroyImmediate(copy); UnityEngine.Object.DestroyImmediate(doc); }
     return $"UV islands: {checks} checks passed; dense 18,432 triangles built in {buildMs:0.##} ms, 1,000 reflected picks {pickMs:0.##} ms. No scene/asset writes.";

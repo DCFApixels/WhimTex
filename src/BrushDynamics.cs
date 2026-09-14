@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     internal enum BrushTipChannel { Alpha, Luminance, InvertedLuminance, Color }
     internal enum BrushRandomAlgorithm { Random, Sobol }

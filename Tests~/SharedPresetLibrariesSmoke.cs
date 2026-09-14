@@ -1,7 +1,7 @@
 // Unity Pipeline eval_file. Uses a unique Temp fixture and restores the user's folder preference.
 const System.Reflection.BindingFlags Hidden = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public;
-var assembly = typeof(DCFApixels.SpriteEditor.ShaderFX).Assembly;
-System.Type Type(string name) => assembly.GetType("DCFApixels.SpriteEditor." + name, true);
+var assembly = typeof(DCFApixels.WhimTex.ShaderFX).Assembly;
+System.Type Type(string name) => assembly.GetType("DCFApixels.WhimTex." + name, true);
 object Call(string type, string method, params object[] args) => Type(type).GetMethod(method, Hidden).Invoke(null, args);
 object Field(object obj, string name) => obj.GetType().GetField(name, Hidden).GetValue(obj);
 void Set(object obj, string name, object value) => obj.GetType().GetField(name, Hidden).SetValue(obj, value);
@@ -14,11 +14,11 @@ void Reject(System.Action action, string message)
     throw new System.Exception("Accepted invalid input: " + message);
 }
 var metadata = Type("ShaderFXMetadata");
-System.Collections.Generic.List<DCFApixels.SpriteEditor.ShaderFXParameter> Parse(string source) =>
-    (System.Collections.Generic.List<DCFApixels.SpriteEditor.ShaderFXParameter>)metadata.GetMethod("Parse", Hidden).Invoke(null, new object[] { source, true, null });
+System.Collections.Generic.List<DCFApixels.WhimTex.ShaderFXParameter> Parse(string source) =>
+    (System.Collections.Generic.List<DCFApixels.WhimTex.ShaderFXParameter>)metadata.GetMethod("Parse", Hidden).Invoke(null, new object[] { source, true, null });
 string temp = System.IO.Path.GetFullPath(System.IO.Path.Combine(UnityEngine.Application.dataPath, "../Temp"));
 string root = System.IO.Path.Combine(temp, "SharedPresetsSmoke_" + System.Guid.NewGuid().ToString("N"));
-const string key = "DCFApixels.SpriteEditor.PresetsFolder";
+const string key = "DCFApixels.WhimTex.PresetsFolder";
 bool hadKey = UnityEditor.EditorPrefs.HasKey(key);
 string previous = UnityEditor.EditorPrefs.GetString(key);
 var owned = new System.Collections.Generic.List<UnityEngine.Object>();
@@ -36,8 +36,8 @@ try
     values[0].floatValue = 2.75f;
     values[1].colorValue = new UnityEngine.Color(.25f, .5f, 3f, .75f);
     values[2].vectorValue = new UnityEngine.Vector4(-1f, 2f, .125f, 4f);
-    values[3].transformValue = new DCFApixels.SpriteEditor.ShaderFXTransform { position = new UnityEngine.Vector2(.2f, .7f), size = new UnityEngine.Vector2(-.3f, .4f), rotation = 27f };
-    var effect = (DCFApixels.SpriteEditor.ShaderFX)Call("ShaderFX", "CreateAgentDraft", null, code, values);
+    values[3].transformValue = new DCFApixels.WhimTex.ShaderFXTransform { position = new UnityEngine.Vector2(.2f, .7f), size = new UnityEngine.Vector2(-.3f, .4f), rotation = 27f };
+    var effect = (DCFApixels.WhimTex.ShaderFX)Call("ShaderFX", "CreateAgentDraft", null, code, values);
     owned.Add(effect);
     var effectEditor = UnityEditor.Editor.CreateEditor(effect); owned.Add(effectEditor);
     var editorView = effectEditor.CreateInspectorGUI();
@@ -67,7 +67,7 @@ try
     values[4].textureValue = transientTip;
     Reject(() => Call("ShaderFXPresetWriter", "BuildSource", effect, "Test/Transient"), "Unsaved texture default");
     values[4].textureValue = null;
-    foreach (string guid in UnityEditor.AssetDatabase.FindAssets("t:Texture2D", new[] { "Packages/com.dcfa_pixels.sprite-editor" }))
+    foreach (string guid in UnityEditor.AssetDatabase.FindAssets("t:Texture2D", new[] { "Packages/com.dcfapixels.whimtex" }))
     {
         var texture = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.Texture2D>(UnityEditor.AssetDatabase.GUIDToAssetPath(guid));
         if (texture == null) continue;
@@ -86,10 +86,10 @@ try
     object entry = null;
     foreach (object candidate in catalog) if ((string)Field(candidate, "path") == saved) entry = candidate;
     Check(entry != null && (bool)Field(entry, "user"), "User HLSL recursive discovery");
-    var instance = (DCFApixels.SpriteEditor.ShaderFX)Call("ShaderFX", "FromCatalog", null, entry); owned.Add(instance);
+    var instance = (DCFApixels.WhimTex.ShaderFX)Call("ShaderFX", "FromCatalog", null, entry); owned.Add(instance);
     Check(!(bool)Type("ShaderFX").GetProperty("IsCatalogLinked", Hidden).GetValue(instance), "User preset embedded independently");
     Check((bool)Type("ShaderFX").GetProperty("HasAppliedShader", Hidden).GetValue(instance), "User preset compiles");
-    Check(((System.Collections.Generic.IReadOnlyList<DCFApixels.SpriteEditor.ShaderFXParameter>)Type("ShaderFX").GetProperty("Parameters", Hidden).GetValue(instance))[0].floatValue == 2.75f, "Applied instance uses saved defaults");
+    Check(((System.Collections.Generic.IReadOnlyList<DCFApixels.WhimTex.ShaderFXParameter>)Type("ShaderFX").GetProperty("Parameters", Hidden).GetValue(instance))[0].floatValue == 2.75f, "Applied instance uses saved defaults");
     System.IO.File.WriteAllText(System.IO.Path.Combine(fxFolder, "Unmarked.hlsl"), "float Unmarked() { return 1; }");
     foreach (object candidate in (System.Collections.IEnumerable)Call("ShaderFXCatalog", "GetEntries"))
         Check((string)Field(candidate, "path") != System.IO.Path.Combine(fxFolder, "Unmarked.hlsl"), "Unmarked file excluded");

@@ -1,8 +1,8 @@
 using System;
 using UnityEngine;
-using static DCFApixels.SpriteEditor.BlurLayerBehaviour;
+using static DCFApixels.WhimTex.BlurLayerBehaviour;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     internal static class GaussianBlurRenderer
     {
@@ -14,7 +14,7 @@ namespace DCFApixels.SpriteEditor
             float amount = float.IsNaN(strength) || float.IsInfinity(strength) ? 1f : Mathf.Clamp(strength, 0f, MaximumStrength);
             float pixels = Mathf.Clamp(float.IsNaN(radius) ? 0f : radius, 0f, MaximumRadius) / context.scaleMultiplier;
             if (amount == 0f || pixels <= .0001f) return layer.ApplyTransformAndModifiers(context.input, context);
-            Material material = SpriteEditorMaterials.GaussianBlur;
+            Material material = WhimTexMaterials.GaussianBlur;
             if (material == null) throw new InvalidOperationException("Gaussian Blur shader is unavailable.");
             RenderTexture current = null, scratch = null, straight = null;
             RenderTexture previous = RenderTexture.active;

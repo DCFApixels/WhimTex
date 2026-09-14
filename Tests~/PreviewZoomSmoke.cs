@@ -1,4 +1,4 @@
-var type = typeof(DCFApixels.SpriteEditor.TextureCompositorWindow).Assembly.GetType("DCFApixels.SpriteEditor.PreviewViewport", true);
+var type = typeof(DCFApixels.WhimTex.TextureCompositorWindow).Assembly.GetType("DCFApixels.WhimTex.PreviewViewport", true);
 var viewport = System.Activator.CreateInstance(type, true);
 var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
 var bounds = new UnityEngine.Rect(0, 0, 808, 408);

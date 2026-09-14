@@ -1,7 +1,7 @@
 using System;
 using UnityEditor;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {

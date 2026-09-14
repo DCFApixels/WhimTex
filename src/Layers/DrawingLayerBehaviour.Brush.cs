@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class DrawingLayerBehaviour
     {
@@ -105,7 +105,7 @@ namespace DCFApixels.SpriteEditor
 
         private void CompositeAdvancedStroke(RenderTexture target, PaintStrokeParameters parameters)
         {
-            Material material = SpriteEditorMaterials.Blend;
+            Material material = WhimTexMaterials.Blend;
             if (material == null) return;
             var previous = RenderTexture.active;
             try

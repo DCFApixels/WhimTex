@@ -1,12 +1,12 @@
 var f=System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Public|System.Reflection.BindingFlags.Static;
-var type=typeof(DCFApixels.SpriteEditor.TextureCompositorWindow);var fillType=type.GetNestedType("ContentFillWindow",f);
-DCFApixels.SpriteEditor.TextureCompositorWindow window=null;
-foreach(var item in UnityEngine.Resources.FindObjectsOfTypeAll<DCFApixels.SpriteEditor.TextureCompositorWindow>())if(item.name=="Content fill smoke")window=item;
+var type=typeof(DCFApixels.WhimTex.TextureCompositorWindow);var fillType=type.GetNestedType("ContentFillWindow",f);
+DCFApixels.WhimTex.TextureCompositorWindow window=null;
+foreach(var item in UnityEngine.Resources.FindObjectsOfTypeAll<DCFApixels.WhimTex.TextureCompositorWindow>())if(item.name=="Content fill smoke")window=item;
 if(window==null)throw new System.Exception("Run ContentFillUiSetup first.");
 UnityEditor.EditorWindow fill=null;
 foreach(var item in UnityEngine.Resources.FindObjectsOfTypeAll(fillType))if((object)fillType.GetField("owner",f).GetValue(item)==window)fill=(UnityEditor.EditorWindow)item;
 var previous=window.rootVisualElement.userData as UnityEditor.EditorWindow;
-var doc=(DCFApixels.SpriteEditor.TextureCompositor)type.GetField("compositor",f).GetValue(window);
+var doc=(DCFApixels.WhimTex.TextureCompositor)type.GetField("compositor",f).GetValue(window);
 int checks=0;void Check(bool value,string label){if(!value)throw new System.Exception(label);checks++;}
 object Read(string name)=>fillType.GetField(name,f).GetValue(fill);
 object Call(string name,params object[] args)=>fillType.GetMethod(name,f).Invoke(fill,args);
@@ -39,7 +39,7 @@ try
     Check(added.transform.position==new UnityEngine.Vector2(-1,-8),"Cropped image correct canvas-space placement");
     Check(added.transform.scale==new UnityEngine.Vector2(82f/128,56f/96),"Cropped pixels retain native size");
     // Render the actual new layer through the compositor, not just the CPU result.
-    var source=typeof(DCFApixels.SpriteEditor.TextureCompositor).GetMethod("RenderAreaSelectionSource",f);
+    var source=typeof(DCFApixels.WhimTex.TextureCompositor).GetMethod("RenderAreaSelectionSource",f);
     var rendered=(UnityEngine.Texture2D)source.Invoke(doc,new object[]{added});
     try
     {
@@ -64,7 +64,7 @@ try
     Check(!(bool)((UnityEngine.UIElements.Button)Read("applyButton")).enabledSelf,"Invalid result cannot apply");
     fill.Close();
     byte[] target=new byte[128*96];for(int y=20;y<40;y++)for(int x=40;x<60;x++)target[y*128+x]=255;
-    selection.GetType().GetMethod("Set",f).Invoke(selection,new object[]{target,System.Enum.Parse(type.Assembly.GetType("DCFApixels.SpriteEditor.SelectionCombine"),"Replace")});
+    selection.GetType().GetMethod("Set",f).Invoke(selection,new object[]{target,System.Enum.Parse(type.Assembly.GetType("DCFApixels.WhimTex.SelectionCombine"),"Replace")});
     type.GetMethod("OpenContentAwareFill",f).Invoke(window,null);
     foreach(var item in UnityEngine.Resources.FindObjectsOfTypeAll(fillType))if((object)fillType.GetField("owner",f).GetValue(item)==window)fill=(UnityEditor.EditorWindow)item;
     var captured=(byte[])Read("selection");
@@ -75,7 +75,7 @@ try
     fillType.GetField("sampling",f).SetValue(fill,System.Enum.Parse(fillType.GetNestedType("Sampling",f),"CustomSelection"));
     Call("Generate");task=(System.Threading.Tasks.Task)Read("task");task?.Wait(5000);Call("Update");
     Check(Read("result")!=null,"Custom sampling generates result");
-    typeof(DCFApixels.SpriteEditor.TextureCompositor).GetMethod("MarkChanged",f).Invoke(doc,null);
+    typeof(DCFApixels.WhimTex.TextureCompositor).GetMethod("MarkChanged",f).Invoke(doc,null);
     Check(Read("result")==null&&!((UnityEngine.UIElements.Button)Read("applyButton")).enabledSelf,"Source edit invalidates result");
     int previousCount=doc.layers.Count;Call("Apply");Check(doc.layers.Count==previousCount,"Stale apply cannot add layer");
     Call("Generate");Call("Cancel");task=(System.Threading.Tasks.Task)Read("task");
@@ -124,7 +124,7 @@ finally
     if(fill!=null)fill.Close();
     UnityEditor.Undo.ClearUndo(doc);
     foreach(var layer in doc.layers)
-        if(layer?.Behaviour is DCFApixels.SpriteEditor.DrawingLayerBehaviour drawing)
+        if(layer?.Behaviour is DCFApixels.WhimTex.DrawingLayerBehaviour drawing)
         {var texture=(UnityEngine.Texture2D)drawing.GetType().GetProperty("StoredTexture",f).GetValue(drawing);if(texture!=null)UnityEditor.Undo.ClearUndo(texture);}
     typeof(UnityEditor.EditorWindow).GetProperty("hasUnsavedChanges").SetValue(window,false);type.GetField("temporaryDocumentDirty",f).SetValue(window,false);window.Close();
     if(previous!=null)previous.Focus();

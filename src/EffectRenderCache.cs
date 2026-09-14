@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     // Window-owned derived data. Never serialized, registered with Undo, or saved in documents.
     internal sealed class EffectRenderCache : IDisposable
@@ -213,7 +213,7 @@ namespace DCFApixels.SpriteEditor
                 GL.sRGBWrite = false;
                 entry.pixels = Allocate(pixels.width, pixels.height, format);
                 entry.pixels.filterMode = pixels.filterMode;
-                if (alphaOnly) Graphics.Blit(pixels, entry.pixels, SpriteEditorMaterials.EffectCache, 0);
+                if (alphaOnly) Graphics.Blit(pixels, entry.pixels, WhimTexMaterials.EffectCache, 0);
                 else Graphics.Blit(pixels, entry.pixels);
                 if (errors != null)
                 {

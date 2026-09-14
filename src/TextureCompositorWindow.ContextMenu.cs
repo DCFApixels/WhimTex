@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
@@ -64,7 +64,7 @@ namespace DCFApixels.SpriteEditor
         private void ApplyContextChannelPreset(List<Layer> targets)
         {
             if (!LayerSelectionOperations.CanApplyChannelPreset(targets.Count)) return;
-            if (targets.Exists(target => SpriteEditorApi.IsLayerContentLocked(compositor, target))) return;
+            if (targets.Exists(target => WhimTexApi.IsLayerContentLocked(compositor, target))) return;
             ExecuteContextChange("Assign Channels", () =>
                 LayerSelectionOperations.ApplyChannelPreset(compositor, targets));
         }

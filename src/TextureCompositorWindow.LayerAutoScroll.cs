@@ -4,7 +4,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
@@ -176,7 +176,7 @@ namespace DCFApixels.SpriteEditor
                 if (picked == null || !scroll.contentViewport.Contains(picked)) return;
                 for (VisualElement element = picked; element != null && element != target; element = element.parent)
                 {
-                    if (element.ClassListContains("sprite-editor-layer-row") && element.userData is string id)
+                    if (element.ClassListContains("whimtex-layer-row") && element.userData is string id)
                     {
                         Layer layer = owner.compositor.FindLayer(id);
                         if (layer != null && owner.compositor.TryFindLayer(layer, out List<Layer> container, out int index) &&

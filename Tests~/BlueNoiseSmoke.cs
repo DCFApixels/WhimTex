@@ -1,13 +1,13 @@
 // Connected Editor only. Transient document/textures; optional comparison PNG in project Temp.
-var type = typeof(DCFApixels.SpriteEditor.TextureCompositor);
+var type = typeof(DCFApixels.WhimTex.TextureCompositor);
 var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-var document = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.SpriteEditor.TextureCompositor>();
+var document = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>();
 document.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
 document.width = document.height = 256;
-var layer = new DCFApixels.SpriteEditor.NoiseLayerBehaviour
+var layer = new DCFApixels.WhimTex.NoiseLayerBehaviour
 {
-    noiseType = DCFApixels.SpriteEditor.NoiseLayerBehaviour.NoiseType.BlueNoise,
-    encoding = DCFApixels.SpriteEditor.NoiseLayerBehaviour.OutputEncoding.LinearData
+    noiseType = DCFApixels.WhimTex.NoiseLayerBehaviour.NoiseType.BlueNoise,
+    encoding = DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.LinearData
 };
 document.layers.Add(layer);
 type.GetMethod("NormalizeModel", flags).Invoke(document, null);
@@ -39,7 +39,7 @@ try
     layer.seed++;
     Check(Difference(blue, Render()) > .1f, "Seed changes blue pattern");
     layer.seed = 1337;
-    layer.whiteNoiseColor = DCFApixels.SpriteEditor.NoiseLayerBehaviour.WhiteNoiseColor.Color;
+    layer.whiteNoiseColor = DCFApixels.WhimTex.NoiseLayerBehaviour.WhiteNoiseColor.Color;
     var rgb = Render();
     double rg = 0, rb = 0, gb = 0;
     for (int i = 0; i < rgb.Length; i++)
@@ -63,11 +63,11 @@ try
     var small = Render(64);
     for (int y = 0; y < 256; y++) for (int x = 0; x < 256; x++)
         Check(grain[y * 256 + x] == small[(y / 4) * 64 + x / 4], "Grain and preview resolution agree");
-    layer.fractal = DCFApixels.SpriteEditor.NoiseLayerBehaviour.FractalType.PingPong;
-    layer.warp = DCFApixels.SpriteEditor.NoiseLayerBehaviour.WarpType.BasicGrid;
+    layer.fractal = DCFApixels.WhimTex.NoiseLayerBehaviour.FractalType.PingPong;
+    layer.warp = DCFApixels.WhimTex.NoiseLayerBehaviour.WarpType.BasicGrid;
     layer.scale = 1000;
     Check(Difference(grain, Render()) == 0, "Blue ignores fractal/warp/Scale");
-    layer.dimensions = DCFApixels.SpriteEditor.NoiseLayerBehaviour.NoiseDimensions.OneD;
+    layer.dimensions = DCFApixels.WhimTex.NoiseLayerBehaviour.NoiseDimensions.OneD;
     layer.whiteNoiseSize = 1;
     foreach (float angle in new[] { 0f, 90f, -180f })
     {
@@ -76,11 +76,11 @@ try
         for (int y = 0; y < 256; y++) for (int x = 0; x < 256; x++)
             Check(stripes[y * 256 + x] == stripes[angle == 90 ? y * 256 : x], "Blue 1D bands");
     }
-    layer.dimensions = DCFApixels.SpriteEditor.NoiseLayerBehaviour.NoiseDimensions.TwoD;
-    var resources = type.Assembly.GetType("DCFApixels.SpriteEditor.BlueNoiseTextures");
+    layer.dimensions = DCFApixels.WhimTex.NoiseLayerBehaviour.NoiseDimensions.TwoD;
+    var resources = type.Assembly.GetType("DCFApixels.WhimTex.BlueNoiseTextures");
     resources.GetMethod("Release", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic).Invoke(null, null);
     Check(Difference(rgb, Render()) == 0, "Shared tables recreate deterministically after release");
-    layer.noiseType = DCFApixels.SpriteEditor.NoiseLayerBehaviour.NoiseType.WhiteNoise;
+    layer.noiseType = DCFApixels.WhimTex.NoiseLayerBehaviour.NoiseType.WhiteNoise;
     var white = Render();
     var preview = new UnityEngine.Texture2D(512, 512, UnityEngine.TextureFormat.RGBA32, false, true);
     try

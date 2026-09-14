@@ -3,13 +3,13 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
         [SerializeField] private List<string> selectedLayerIds = new List<string>();
         [SerializeField] private string selectionAnchorId;
-        private const string DraggedLayersKey = "DCFApixels.SpriteEditor.DraggedLayers";
+        private const string DraggedLayersKey = "DCFApixels.WhimTex.DraggedLayers";
         [System.NonSerialized] private VisualElement footerDropTarget;
 
         private bool IsLayerSelected(string id) => id != null && selectedLayerIds.Contains(id);
@@ -28,7 +28,7 @@ namespace DCFApixels.SpriteEditor
                 (previewZoomManipulator != null && previewZoomManipulator.IsDragging))
                 return false;
 
-            SpriteEditorUI.ConsumeEvent(evt);
+            WhimTexUI.ConsumeEvent(evt);
             int index = FindAdjacentLayerIndex(evt.keyCode == KeyCode.UpArrow ? -1 : 1);
             if (index < 0) return true;
             FinishPreviewTransform();
@@ -150,10 +150,10 @@ namespace DCFApixels.SpriteEditor
 
         private void ApplyLayerSelectionStyle(VisualElement row, string id)
         {
-            row.AddToClassList("sprite-editor-layer-row");
-            row.EnableInClassList("sprite-editor-layer-row--light", !EditorGUIUtility.isProSkin);
-            row.EnableInClassList("sprite-editor-layer-row--selected", IsLayerSelected(id));
-            row.EnableInClassList("sprite-editor-layer-row--active", id == selectedLayerId);
+            row.AddToClassList("whimtex-layer-row");
+            row.EnableInClassList("whimtex-layer-row--light", !EditorGUIUtility.isProSkin);
+            row.EnableInClassList("whimtex-layer-row--selected", IsLayerSelected(id));
+            row.EnableInClassList("whimtex-layer-row--active", id == selectedLayerId);
         }
 
         private List<Layer> GetSelectedRoots()
@@ -186,7 +186,7 @@ namespace DCFApixels.SpriteEditor
             ApplyToolkitChange(undoName, () =>
             {
                 foreach (Layer layer in targets)
-                    if (!(layer?.Behaviour is PendingLayerBehaviour) && !SpriteEditorApi.IsLayerContentLocked(compositor, layer)) change(layer);
+                    if (!(layer?.Behaviour is PendingLayerBehaviour) && !WhimTexApi.IsLayerContentLocked(compositor, layer)) change(layer);
             });
         }
 
@@ -234,7 +234,7 @@ namespace DCFApixels.SpriteEditor
 
         private void DuplicateLayers(List<Layer> layers)
         {
-            if (layers.Exists(SpriteEditorApi.ContainsReservation))
+            if (layers.Exists(WhimTexApi.ContainsReservation))
             { ShowNotification(new GUIContent("Finish or cancel generation before duplicating these layers.")); return; }
             FinishPreviewTransform();
             FinishPaintingStroke();
@@ -332,7 +332,7 @@ namespace DCFApixels.SpriteEditor
 
         private void MergeSelectedLayers(List<Layer> layers, bool keepSources)
         {
-            if (layers.Exists(SpriteEditorApi.ContainsReservation))
+            if (layers.Exists(WhimTexApi.ContainsReservation))
             { ShowNotification(new GUIContent("Finish or cancel generation before merging these layers.")); return; }
             FinishPreviewTransform();
             FinishPaintingStroke();
@@ -363,7 +363,7 @@ namespace DCFApixels.SpriteEditor
 
         private void ClearFooterDropIndicator()
         {
-            footerDropTarget?.RemoveFromClassList("sprite-editor-layer-action--drop-target");
+            footerDropTarget?.RemoveFromClassList("whimtex-layer-action--drop-target");
             footerDropTarget = null;
         }
 
@@ -421,7 +421,7 @@ namespace DCFApixels.SpriteEditor
                 if (valid)
                 {
                     owner.footerDropTarget = target;
-                    target.AddToClassList("sprite-editor-layer-action--drop-target");
+                    target.AddToClassList("whimtex-layer-action--drop-target");
                 }
                 evt.StopImmediatePropagation();
             }

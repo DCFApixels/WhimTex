@@ -5,12 +5,12 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
-using static DCFApixels.SpriteEditor.AgentJson;
+using static DCFApixels.WhimTex.AgentJson;
 using Object = UnityEngine.Object;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
-    public static partial class SpriteEditorApi
+    public static partial class WhimTexApi
     {
         private sealed class LiveJob
         {
@@ -28,7 +28,7 @@ namespace DCFApixels.SpriteEditor
 
         private static readonly Dictionary<string, LiveJob> liveJobs = new Dictionary<string, LiveJob>();
 
-        static SpriteEditorApi()
+        static WhimTexApi()
         {
             Undo.undoRedoPerformed += RefreshLiveJobs;
             Undo.undoRedoPerformed += CancelLiveEditLocks;
@@ -128,7 +128,7 @@ namespace DCFApixels.SpriteEditor
             Require(!string.IsNullOrEmpty(session), "Discover sessions first and specify sessionId.");
             foreach (var window in Resources.FindObjectsOfTypeAll<TextureCompositorWindow>())
                 if (window.AgentDocument != null && window.AgentSessionId == session) return window;
-            throw new SpriteEditorApiException("session_closed", "The document session closed or scripts reloaded. Discover sessions again; do not deliver to a different document.");
+            throw new WhimTexApiException("session_closed", "The document session closed or scripts reloaded. Discover sessions again; do not deliver to a different document.");
         }
 
         private static void LiveReady(TextureCompositor document)
@@ -212,7 +212,7 @@ namespace DCFApixels.SpriteEditor
                 if (job.editing) NotifyLiveLockChanged(job.document);
                 return LiveStatus(job);
             }
-            throw new SpriteEditorApiException("invalid_request", "Unknown live operation: " + op);
+            throw new WhimTexApiException("invalid_request", "Unknown live operation: " + op);
         }
 
         private static JObject BeginLiveJob(JObject request)
@@ -383,7 +383,7 @@ namespace DCFApixels.SpriteEditor
                 }
                 catch (Exception rollback)
                 {
-                    throw new SpriteEditorApiException("rollback_failed", "Document may be partially changed. Inspect before retrying. " +
+                    throw new WhimTexApiException("rollback_failed", "Document may be partially changed. Inspect before retrying. " +
                         original.Message + " Rollback: " + rollback.Message);
                 }
                 throw;

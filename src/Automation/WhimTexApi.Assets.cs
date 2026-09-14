@@ -3,12 +3,12 @@ using System.IO;
 using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
-using static DCFApixels.SpriteEditor.AgentJson;
+using static DCFApixels.WhimTex.AgentJson;
 using Object = UnityEngine.Object;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
-    public static partial class SpriteEditorApi
+    public static partial class WhimTexApi
     {
         private static string ProjectRoot => Directory.GetParent(Application.dataPath).FullName;
         private static string FullPath(string relative) => Path.GetFullPath(Path.Combine(ProjectRoot, relative));
@@ -137,7 +137,7 @@ namespace DCFApixels.SpriteEditor
                 Require(maxSize >= 1 && maxSize <= 4096, "maxSize must be 1..4096.");
                 Require(!string.IsNullOrEmpty(outputPath), "outputPath is required.");
                 outputPath = outputPath.Replace('\\', '/');
-                Require(outputPath.StartsWith("Temp/SpriteEditor/", StringComparison.Ordinal), "Preview output must be project-relative Temp/SpriteEditor/*.png.", "invalid_path");
+                Require(outputPath.StartsWith("Temp/WhimTex/", StringComparison.Ordinal), "Preview output must be project-relative Temp/WhimTex/*.png.", "invalid_path");
                 ValidateSegments(outputPath);
                 Require(string.Equals(Path.GetExtension(outputPath), ".png", StringComparison.OrdinalIgnoreCase), "Preview output must be PNG.");
                 string full = FullPath(outputPath);

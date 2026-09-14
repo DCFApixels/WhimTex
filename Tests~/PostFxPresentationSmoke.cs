@@ -19,7 +19,7 @@ try
     Check(material.HasProperty("_Source"), "Missing composite input.");
     int pass = material.FindPass("NormalizeOutput");
     Check(pass == 2,"Normalization pass index must match the backend's final blit.");
-    Check(shader.FindPassTagValue(pass,new UnityEngine.Rendering.ShaderTagId("LightMode")).name == "SpriteEditorNormalizeOutput",
+    Check(shader.FindPassTagValue(pass,new UnityEngine.Rendering.ShaderTagId("LightMode")).name == "WhimTexNormalizeOutput",
         "The blit-only pass must not participate in automatic camera drawing.");
     int normals = material.FindPass("DepthNormals");
     Check(normals >= 0, "Missing demand-driven normals pass.");

@@ -1,8 +1,8 @@
 using System;
 using UnityEngine;
-using static DCFApixels.SpriteEditor.BlurLayerBehaviour;
+using static DCFApixels.WhimTex.BlurLayerBehaviour;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
     internal static class MotionBlurRenderer
     {
@@ -26,7 +26,7 @@ namespace DCFApixels.SpriteEditor
             if (amount == 0f || (circular ? radians : pixels) <= .0001f)
                 return layer.ApplyTransformAndModifiers(context.input, context);
 
-            Material material = SpriteEditorMaterials.MotionBlur;
+            Material material = WhimTexMaterials.MotionBlur;
             if (material == null) throw new InvalidOperationException("Motion Blur shader is unavailable.");
             var pivot = new Vector2(Limit(center.x, 0f, 1f, .5f), Limit(center.y, 0f, 1f, .5f));
             float orientation = Limit(angle, -180f, 180f) * Mathf.Deg2Rad;

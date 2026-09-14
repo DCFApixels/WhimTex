@@ -6,12 +6,12 @@ using Newtonsoft.Json.Linq;
 using Unity.Collections;
 using UnityEditor;
 using UnityEngine;
-using static DCFApixels.SpriteEditor.AgentJson;
+using static DCFApixels.WhimTex.AgentJson;
 using Object = UnityEngine.Object;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
-    public static partial class SpriteEditorApi
+    public static partial class WhimTexApi
     {
         private static Layer LiveCandidate(LiveJob job, JObject request, out Texture2D owned)
         {
@@ -161,7 +161,7 @@ namespace DCFApixels.SpriteEditor
                 }
                 var result = LiveStatus(job);
                 result["outputPath"] = WriteLivePng(image, Text(request, "outputPath",
-                    "Temp/SpriteEditor/Agent/" + job.id + "/candidate-" + Guid.NewGuid().ToString("N") + ".png"));
+                    "Temp/WhimTex/Agent/" + job.id + "/candidate-" + Guid.NewGuid().ToString("N") + ".png"));
                 result["width"] = image.width; result["height"] = image.height;
                 result["applied"] = false;
                 result["fx"] = LiveFxSnapshot(candidate, job.document);

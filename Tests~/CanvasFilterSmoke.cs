@@ -1,13 +1,13 @@
 // Unity Pipeline eval_file; transient objects only, no saved assets or user documents.
 const System.Reflection.BindingFlags Hidden = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public;
-var type = typeof(DCFApixels.SpriteEditor.TextureCompositorWindow);
-var window = ScriptableObject.CreateInstance<DCFApixels.SpriteEditor.TextureCompositorWindow>();
+var type = typeof(DCFApixels.WhimTex.TextureCompositorWindow);
+var window = ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositorWindow>();
 window.name = "Canvas Filter Smoke";
-var document = (DCFApixels.SpriteEditor.TextureCompositor)type.GetField("compositor", Hidden).GetValue(window);
+var document = (DCFApixels.WhimTex.TextureCompositor)type.GetField("compositor", Hidden).GetValue(window);
 var source = new Texture2D(4, 2, TextureFormat.RGBA32, false, true) { hideFlags = HideFlags.HideAndDontSave, filterMode = FilterMode.Point };
 var previous = RenderTexture.active;
 bool previousSrgb = GL.sRGBWrite;
-var render = typeof(DCFApixels.SpriteEditor.TextureCompositor).GetMethod("RenderPreview", Hidden);
+var render = typeof(DCFApixels.WhimTex.TextureCompositor).GetMethod("RenderPreview", Hidden);
 int checks = 0;
 void Check(bool condition, string message) { if (!condition) throw new Exception(message); checks++; }
 float SampleUpscaled(Texture texture)
@@ -29,7 +29,7 @@ try
     Check(document.outputFilter == FilterMode.Bilinear, "Default remains Bilinear");
     document.width = 4; document.height = 2;
     source.SetPixels(new[] { Color.black, Color.black, Color.white, Color.white, Color.black, Color.black, Color.white, Color.white }); source.Apply();
-    document.layers.Add(new DCFApixels.SpriteEditor.Layer(new DCFApixels.SpriteEditor.FileLayerBehaviour { sourceTexture = source }));
+    document.layers.Add(new DCFApixels.WhimTex.Layer(new DCFApixels.WhimTex.FileLayerBehaviour { sourceTexture = source }));
     var toolbar = new UnityEngine.UIElements.VisualElement();
     type.GetField("toolkitCanvasToolbar", Hidden).SetValue(window, toolbar);
     type.GetMethod("BuildToolkitCanvasToolbar", Hidden).Invoke(window, null);
@@ -53,7 +53,7 @@ try
             finally { UnityEngine.Object.DestroyImmediate(clone); }
             using (var serialized = new SerializedObject(document))
                 Check(serialized.FindProperty("outputFilter").intValue == (int)mode, "Serialized document setting");
-            var sessionType = typeof(DCFApixels.SpriteEditor.TextureCompositor).Assembly.GetType("DCFApixels.SpriteEditor.LiveOutputSession");
+            var sessionType = typeof(DCFApixels.WhimTex.TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.LiveOutputSession");
             var session = (IDisposable)Activator.CreateInstance(sessionType, Hidden, null, new object[] { texture }, null);
             try
             {
@@ -93,7 +93,7 @@ try
         RenderTexture.ReleaseTemporary(previewTexture); UnityEngine.Object.DestroyImmediate(channel); UnityEngine.Object.DestroyImmediate(post);
     }
     document.outputFilter = (FilterMode)123;
-    typeof(DCFApixels.SpriteEditor.TextureCompositor).GetMethod("NormalizeModel", Hidden).Invoke(document, null);
+    typeof(DCFApixels.WhimTex.TextureCompositor).GetMethod("NormalizeModel", Hidden).Invoke(document, null);
     Check(document.outputFilter == FilterMode.Bilinear, "Invalid filter normalized");
     return "Canvas filtering passed: " + checks + " checks. Point=" + pointSample + ", Bilinear=" + bilinearSample;
 }

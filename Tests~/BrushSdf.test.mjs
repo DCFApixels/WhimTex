@@ -41,7 +41,7 @@ assert.ok(cache.includes('sdfGradientTexture.Apply(true, false)'));
 assert.ok(cache.includes('HdrUtility.DecodePaintColor(evaluated.Evaluate('));
 assert.ok(cache.includes('color.r * color.a, color.g * color.a, color.b * color.a, color.a'));
 assert.ok(cache.includes('sdfGradientStandardInputs == standardInputs'));
-assert.ok(cache.includes('SpriteEditorColorInputs.StandardColor(colors[i].color)'));
+assert.ok(cache.includes('WhimTexColorInputs.StandardColor(colors[i].color)'));
 assert.ok(cache.includes('sdfGradientSnapshot.mode = source.mode'));
 assert.ok(cache.includes('sdfGradientSnapshot.colorSpace = source.colorSpace'));
 assert.ok(cache.includes('Object.DestroyImmediate(sdfGradientTexture)'));
@@ -87,8 +87,8 @@ const header = drawer.split('private void AddBrushEdgeHeader(VisualElement row)'
 assert.ok(header.includes('new FloatField("Hardness")'), 'Keep the native draggable field label');
 assert.ok(header.includes('toolkitHeaderBindings.Track(hardness, () => paintSettings.brushHardness * 100f)'));
 assert.ok(header.includes('toolkitHeaderBindings, () => paintSettings.dynamics.tipGradient'));
-assert.ok(header.includes('hardness.EnableInClassList("sprite-editor-brush-setting--hidden", sdf)'));
-assert.ok(header.includes('gradient.EnableInClassList("sprite-editor-brush-setting--hidden", !sdf)'));
+assert.ok(header.includes('hardness.EnableInClassList("whimtex-brush-setting--hidden", sdf)'));
+assert.ok(header.includes('gradient.EnableInClassList("whimtex-brush-setting--hidden", !sdf)'));
 assert.ok(header.includes('mode.SetEnabled(paintSettings.dynamics.tip == null)'));
 assert.ok(!header.includes('GetSelectedLayer'), 'Brush settings remain editable without a Drawing layer');
 const drawerControls = drawer.split('private void AddBrushEdgeHeader')[0];
@@ -100,13 +100,13 @@ const applyChange = read('src/TextureCompositorWindow.Tools.cs').split('private 
 assert.ok(applyChange.includes('toolkitHeaderBindings.Refresh();'));
 assert.ok(applyChange.includes('brushSettingsBindings?.Refresh();'), 'Both copies update after editing either location');
 assert.match(read('src/TextureCompositorWindow.UI.cs'), /brushRow.Add\(size\);\s*AddBrushEdgeHeader\(brushRow\);\s*AddBrushHeaderPercent\(brushRow, "Opacity"/);
-assert.match(read('src/SpriteEditorSplitView.uss'), /\.sprite-editor-brush-edge\s*\{\s*width: 150px;\s*height: 20px;\s*flex-shrink: 0;/);
+assert.match(read('src/WhimTexSplitView.uss'), /\.whimtex-brush-edge\s*\{\s*width: 150px;\s*height: 20px;\s*flex-shrink: 0;/);
 assert.ok(read('src/Layers/DrawingLayerBehaviour.cs').includes('GetBrushSdfGradient(dynamics, standardColorInputs)'));
-assert.ok(read('src/Automation/SpriteEditorApi.Paint.cs').includes('dynamics.tipGradient = ReadGradient(brush["tipGradient"])'));
-assert.ok(read('src/Automation/SpriteEditorApi.Inspect.cs').includes('["tipGradientKeys"] = GradientSnapshot(dynamics.tipGradient)'));
+assert.ok(read('src/Automation/WhimTexApi.Paint.cs').includes('dynamics.tipGradient = ReadGradient(brush["tipGradient"])'));
+assert.ok(read('src/Automation/WhimTexApi.Inspect.cs').includes('["tipGradientKeys"] = GradientSnapshot(dynamics.tipGradient)'));
 assert.ok(read('src/PaintToolSettings.cs').includes('dynamics.tipGradient = defaults.dynamics.tipGradient'));
 assert.ok(read('src/PaintStrokeParameters.cs').includes('StandardColorInputs = source.StandardColorInputs'));
 for(const path of ['src/PaintToolSettings.cs','src/TextureCompositorWindow.BrushPreview.cs'])
-  assert.ok(read(path).includes('standardColorInputs: !SpriteEditorColorInputs.Hdr'));
+  assert.ok(read(path).includes('standardColorInputs: !WhimTexColorInputs.Hdr'));
 assert.ok(read('src/BrushPresetLibrary.cs').includes('JsonUtility.ToJson(settings.dynamics)'));
 console.log('SDF gradient LUT scalar/reference/source checks passed: '+checks+' (Unity/GPU not executed).');

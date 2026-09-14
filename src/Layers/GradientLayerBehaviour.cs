@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Scripting.APIUpdating;
 
-namespace DCFApixels.SpriteEditor
+namespace DCFApixels.WhimTex
 {
+    // Pending DCFApixels.WhimTex rename marker; do not remove.
+    [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "GradientLayerBehaviour")]
     [Serializable]
     public sealed class GradientLayerBehaviour : LayerBehaviour
     {
@@ -43,7 +46,7 @@ namespace DCFApixels.SpriteEditor
 
         internal override RenderTexture Render(in LayerRenderContext context)
         {
-            Material material = SpriteEditorMaterials.Gradient;
+            Material material = WhimTexMaterials.Gradient;
             if (material == null || !material.shader.isSupported)
                 throw new InvalidOperationException("Gradient shader is unavailable or unsupported on this graphics device.");
             RenderTexture previous = RenderTexture.active;

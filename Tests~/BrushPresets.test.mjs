@@ -78,7 +78,7 @@ for(const srgb of [true,false]) {
 assert.throws(()=>decode(encode({width:0,height:0},Buffer.alloc(0),2)));
 assert.throws(()=>decode(encode({width:3,height:5,srgb:true},Buffer.alloc(2))));
 assert.throws(()=>decode(encode({width:0,height:0},Buffer.alloc(1))));
-assert.ok(library.includes('Path.Combine(SpriteEditorUserSettings.PresetsFolder, "Brushes")'));
+assert.ok(library.includes('Path.Combine(WhimTexUserSettings.PresetsFolder, "Brushes")'));
 assert.ok(library.includes('PresetLibraryPaths.ProjectFiles(Extension)'));
 assert.ok(library.includes('PresetLibraryPaths.UserFiles(Folder, Extension)'));
 assert.ok(library.includes('FileMode.CreateNew'));
