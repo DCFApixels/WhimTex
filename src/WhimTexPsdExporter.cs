@@ -157,7 +157,7 @@ namespace DCFApixels.WhimTex
 
                 bool modifiers = HasModifiers(layer) || !layer.swizzle.IsIdentity;
                 if (!layer.swizzle.IsIdentity) report.Note(layer, "Swizzle is baked into the layer pixels.");
-                if (layer?.Behaviour is ColorFillLayerBehaviour fill && !modifiers)
+                if (layer?.Behaviour is ColorFillLayerBehaviour fill && fill.mode == ColorFillLayerBehaviour.FillMode.Color && !modifiers)
                 {
                     record.adjustment = true;
                     record.mask = true;

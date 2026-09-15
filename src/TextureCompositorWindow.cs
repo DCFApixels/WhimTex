@@ -531,6 +531,7 @@ namespace DCFApixels.WhimTex
             ClearFooterDropIndicator();
             activeLayerDrag?.Cancel();
             ClearDraggedLayerReference();
+            toolkitSettingsBindings?.Refresh(true);
         }
 
         private void ClearDrawingLayer(DrawingLayerBehaviour layer)

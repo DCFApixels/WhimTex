@@ -529,9 +529,9 @@ namespace DCFApixels.WhimTex
             toolkitLayerFooter.Add(delete);
             toolkitSettingsBindings.Add(() =>
             {
-                bool hasSelection = GetSelectedLayer() != null;
-                group.SetEnabled(hasSelection);
-                delete.SetEnabled(hasSelection);
+                bool hasTarget = GetSelectedLayer() != null || GetDraggedLayer() != null;
+                group.SetEnabled(hasTarget);
+                delete.SetEnabled(hasTarget);
             });
         }
 
@@ -1117,6 +1117,7 @@ namespace DCFApixels.WhimTex
                 DragAndDrop.SetGenericData(DraggedLayerIdKey, selected ? owner.selectedLayerId : layer.Id);
                 DragAndDrop.SetGenericData(DraggedCompositorIdKey, owner.compositor);
                 DragAndDrop.SetGenericData(DraggedLayersKey, selected ? owner.GetSelectedRoots() : new List<Layer> { layer });
+                owner.toolkitSettingsBindings.Refresh(true);
                 DragAndDrop.StartDrag(string.IsNullOrEmpty(layer.layerName) ? "Layer" : layer.layerName);
                 owner.ShowLayerDragGhost(target, layer, start, evt.position);
                 Release();

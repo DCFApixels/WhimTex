@@ -4,6 +4,16 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+## [0.10.11] - 2026-09-15
+
+### Fixed
+
+- Layer footer grouping and deletion accept dragged layers even when no layer is selected.
+
+### Changed
+
+- New Color Fill layers default to Unbounded tiling; existing layers keep their settings.
+
 ## [0.10.10] - 2026-09-15
 
 ### Added

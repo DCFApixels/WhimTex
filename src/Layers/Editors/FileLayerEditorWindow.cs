@@ -55,7 +55,12 @@ namespace DCFApixels.WhimTex
             Action<string, Action> applyChange, WhimTexUI.ValueBindings bindings)
         {
 
+            var mode = WhimTexUI.ConfigureField(new EnumField("Mode", layer.mode));
+            bindings.Track(mode, () => (Enum)layer.mode);
+            mode.RegisterValueChangedCallback(evt => applyChange("Change Fill Mode", () => layer.mode = (ColorFillLayerBehaviour.FillMode)evt.newValue));
+            root.Add(mode);
             ColorField color = WhimTexUI.ConfigureField(WhimTexColorInputs.Bind(new ColorField("Color"), bindings, () => layer.color));
+            bindings.Add(() => color.SetEnabled(layer.mode == ColorFillLayerBehaviour.FillMode.Color));
             color.RegisterValueChangedCallback(evt =>
                 applyChange("Change Fill Color", () => layer.color = evt.newValue));
             root.Add(color);

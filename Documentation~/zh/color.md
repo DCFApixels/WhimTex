@@ -72,7 +72,7 @@ HDR 按钮控制的是取色；它不会转换你已有的图像。
 位置、大小和旋转均由图层变换控制，不再提供单独的 Center 和 Radius 设置。径向、菱形和方形渐变均支持移动、缩放和旋转。
 Circular 暂不提供画布控制柄。选中其他图层时控制柄隐藏，无需开启单独模式。
 
-新建 Gradient 和 Noise 图层默认使用 **Unbounded** 平铺模式。
+新建 Color Fill、Gradient 和 Noise 图层默认使用 **Unbounded** 平铺模式。
 
 点击渐变字段可编辑颜色和透明度。**Classic** 提供常见的颜色混合，**Linear** 混合光强，
 **Perceptual** 让颜色过渡在视觉上更均匀，**Fixed** 则创建清晰的色带。

@@ -66,7 +66,7 @@ Position, size and rotation are controlled by the layer transform; there are no 
 Radial, diamond and square gradients share position, scale and rotation controls. Angular (Circular) gradients have no
 canvas controls yet. The controls disappear when another layer is selected; no extra mode is needed.
 
-New Gradient and Noise layers use **Unbounded** tiling by default.
+New Color Fill, Gradient and Noise layers use **Unbounded** tiling by default.
 
 Click a gradient field to edit its colors and opacity. **Classic** gives familiar color blends;
 **Linear** blends light, **Perceptual** keeps perceived color transitions more even,
