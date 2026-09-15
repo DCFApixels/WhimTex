@@ -93,6 +93,13 @@ namespace DCFApixels.WhimTex
             return list;
         }
 
+        internal static Entry InspectDroppedHlsl(string path)
+        {
+            if (string.IsNullOrEmpty(path) || !path.EndsWith(".hlsl", StringComparison.OrdinalIgnoreCase)) return null;
+            Inspect(path);
+            return entries.TryGetValue(path, out var entry) ? entry : null;
+        }
+
         internal static void ShowMenu(Action<Entry> select)
         {
             var menu = new GenericMenu();

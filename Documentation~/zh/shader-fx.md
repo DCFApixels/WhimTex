@@ -16,6 +16,8 @@ next_page: "zh/preview.md"
 
 ## 应用现有效果
 
+将 WhimTex 效果 `.hlsl` 从 Project 拖到 **Layers** 的某一行，即可向该图层追加 FX。拖到预览或图层列表的空白处，会在合成顶部创建 **Shader Processor**。每次添加都有独立参数并支持 Undo。HLSL 画笔预设和未标记为效果的 HLSL 文件不会被接受。
+
 HLSL 效果与画笔可以使用内置噪声库制作颗粒、有机遮罩和扭曲。
 参见[噪声函数与示例](../AI/README.md#built-in-noise-library)。
 

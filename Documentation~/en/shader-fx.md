@@ -16,6 +16,8 @@ You can use an existing effect and adjust its parameters without writing code.
 
 ## Apply an existing effect
 
+Drag a WhimTex effect `.hlsl` from Project onto a row in **Layers** to append an FX to that layer. Drop it onto the preview or empty space in the layer list to create a **Shader Processor** at the top of the composition. Each drop has independent parameters and supports Undo. HLSL brush presets and unmarked HLSL files are not accepted as effects.
+
 Custom HLSL effects and brushes can use the built-in noise library for grain,
 organic masks and distortion. See the [noise functions and example](../AI/README.md#built-in-noise-library).
 

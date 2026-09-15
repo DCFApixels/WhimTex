@@ -4,6 +4,12 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+## [0.10.13] - 2026-09-15
+
+### Added
+
+- Drag project HLSL effect presets onto a layer to append FX, or onto the preview/layer-list background to create a Shader Processor.
+
 ## [0.10.12] - 2026-09-15
 
 ### Added
