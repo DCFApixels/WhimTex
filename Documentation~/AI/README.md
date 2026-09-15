@@ -292,6 +292,44 @@ Use `properties.noise`:
   `sourceChannel` (`Luminance`, `Red`, `Green`, `Blue`, `Alpha`, `Maximum`), `smoothing` 0..64,
   `flipX`/`flipY` booleans. All advanced options and exact ranges are in the [schema](layers.schema.json).
 
+## Standalone gradient JSON
+
+For a gradient field (not canvas layer paste), right-click the field or the gradient strip
+in its editor and choose **Paste**. **Copy** produces this independent, reusable value:
+
+```json
+{
+  "format": "whimtex.gradient",
+  "version": 1,
+  "gradient": {
+    "mode": "Classic",
+    "colorSpace": "Gamma",
+    "smoothness": 1,
+    "colors": [
+      { "time": 0, "color": [1, 0.1, 0, 1], "midpoint": 0.5 },
+      { "time": 1, "color": [0.2, 0, 1, 1] }
+    ],
+    "alphas": [
+      { "time": 0, "alpha": 1, "midpoint": 0.5 },
+      { "time": 1, "alpha": 0 }
+    ]
+  }
+}
+```
+
+The gradient body alone or a bare color-stop array is also accepted, optionally within one
+JSON code fence. Each track requires 1..64 strictly increasing times in 0..1. Colors are
+RGBA arrays; standalone RGB supports finite HDR values from -65504 to 65504, alpha is 0..1.
+If `alphas` is omitted, color alpha components define the alpha track. Interpolation modes:
+`Classic`, `Linear`, `Perceptual`, `Fixed`; default `Classic`. `colorSpace`: `Gamma` (default)
+or `Linear`. `smoothness`: 0..1, default 1. `midpoint`: 0.01..0.99, default 0.5;
+the last key's midpoint has no following segment. Fixed ignores smoothness and midpoints.
+The clipboard input is limited to 65536 characters. Unknown fields, duplicate fields and
+unsupported versions are rejected. These standalone HDR limits do not change layer/brush JSON limits.
+
+User presets store this envelope in `<user presets folder>/Gradients/<GUID>.json`.
+Use a GUID without hyphens as the filename; files are limited to 64 KiB. No display name is needed.
+
 ## HLSL interface — shader-only or inside JSON
 
 ### Built-in noise library

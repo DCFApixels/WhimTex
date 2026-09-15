@@ -7,7 +7,7 @@ using UnityEngine.UIElements;
 
 namespace DCFApixels.WhimTex
 {
-    public sealed class WhimTexGradientWindow : EditorWindow
+    public sealed partial class WhimTexGradientWindow : EditorWindow
     {
         [SerializeField] private WhimTexGradient gradient = new WhimTexGradient();
         [SerializeField] private UnityEngine.Object owner;
@@ -60,7 +60,7 @@ namespace DCFApixels.WhimTex
             }
             window.titleContent = new GUIContent("Gradient");
             window.gradient = value;
-            window.minSize = new Vector2(380, 250);
+            window.minSize = new Vector2(380, 350);
             window.Refresh();
             window.ShowUtility();
             return window;
@@ -98,6 +98,7 @@ namespace DCFApixels.WhimTex
         }
         private void OnDisable()
         {
+            ReleasePresetPreviews();
             EditorApplication.update -= CheckFocus;
             AssemblyReloadEvents.beforeAssemblyReload -= CloseSession;
             Undo.undoRedoPerformed -= ReloadOwner;
@@ -140,6 +141,14 @@ namespace DCFApixels.WhimTex
             strip.Add(image);
             strip.generateVisualContent += DrawKeys;
             strip.AddManipulator(new KeyDrag(this));
+            strip.AddManipulator(new ContextualMenuManipulator(e =>
+            {
+                e.menu.AppendAction("Copy", _ => EditorGUIUtility.systemCopyBuffer = WhimTexGradientClipboard.Write(gradient));
+                e.menu.AppendAction("Paste", _ =>
+                {
+                    if (WhimTexGradientField.TryReadClipboard(out var copy)) UsePreset(copy);
+                }, WhimTexGradientField.TryReadClipboard(out _) ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+            }));
             strip.RegisterCallback<KeyDownEvent>(e =>
             {
                 if (e.keyCode == KeyCode.Delete || e.keyCode == KeyCode.Backspace)
@@ -201,6 +210,7 @@ namespace DCFApixels.WhimTex
             separator.AddToClassList("whimtex-gradient-key-separator");
             keyRow.Add(colorControls); keyRow.Add(alpha); keyRow.Add(separator); keyRow.Add(location);
             rootVisualElement.Add(keyRow);
+            BuildPresets();
             var spacer = new VisualElement();
             spacer.AddToClassList("whimtex-gradient-debug-spacer");
             rootVisualElement.Add(spacer);
@@ -298,6 +308,7 @@ namespace DCFApixels.WhimTex
             location.label = midpointSelected ? "Midpoint" : "Location";
             location.SetValueWithoutNotify((midpointSelected ? gradient.GetMidpoint(alphaTrack, selected) : Time) * 100);
             strip.MarkDirtyRepaint();
+            if (newPresetImage != null) newPresetImage.image = preview;
             if (preview != null && ReferenceEquals(previewSource, gradient) && previewRevision == gradient.Revision && previewExposure == exposure)
             { image.image = preview; return; }
             gradient.Bake(ramp);
@@ -312,6 +323,7 @@ namespace DCFApixels.WhimTex
             if (preview == null) preview = new Texture2D(512, 2, TextureFormat.RGBA32, false)
                 { hideFlags = HideFlags.HideAndDontSave, filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp };
             preview.SetPixels32(pixels); preview.Apply(false, false); image.image = preview;
+            if (newPresetImage != null) newPresetImage.image = preview;
             previewSource = gradient; previewRevision = gradient.Revision; previewExposure = exposure;
         }
         internal static void DrawCheckerboard(MeshGenerationContext context)

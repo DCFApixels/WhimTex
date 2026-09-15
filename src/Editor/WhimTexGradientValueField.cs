@@ -44,7 +44,7 @@ namespace DCFApixels.WhimTex
             RegisterCallback<AttachToPanelEvent>(_ => SetValueWithoutNotify(value ?? new WhimTexGradient()));
             this.AddManipulator(new ContextualMenuManipulator(e =>
             {
-                e.menu.AppendAction("Copy", _ => EditorGUIUtility.systemCopyBuffer = "WhimTex.Gradient/1\n" + JsonUtility.ToJson(value));
+                e.menu.AppendAction("Copy", _ => EditorGUIUtility.systemCopyBuffer = WhimTexGradientClipboard.Write(value));
                 e.menu.AppendAction("Paste", _ =>
                 {
                     if (WhimTexGradientField.TryReadClipboard(out var copy)) this.value = copy;
@@ -54,7 +54,7 @@ namespace DCFApixels.WhimTex
             {
                 if (!(e.ctrlKey || e.commandKey)) return;
                 if (e.keyCode == KeyCode.C)
-                    EditorGUIUtility.systemCopyBuffer = "WhimTex.Gradient/1\n" + JsonUtility.ToJson(value);
+                    EditorGUIUtility.systemCopyBuffer = WhimTexGradientClipboard.Write(value);
                 else if (e.keyCode == KeyCode.V && WhimTexGradientField.TryReadClipboard(out var copy)) this.value = copy;
                 else return;
                 e.StopPropagation();

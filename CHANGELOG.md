@@ -4,6 +4,13 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+## [0.10.10] - 2026-09-15
+
+### Added
+
+- User gradient presets in the gradient editor, saved without names in the configured presets folder. Presets can be applied, copied and removed.
+- Gradient Copy/Paste uses JSON, including HDR colors, alpha keys, interpolation and midpoints; pasted values have independent storage.
+
 ## [0.10.9] - 2026-09-15
 
 ### Fixed

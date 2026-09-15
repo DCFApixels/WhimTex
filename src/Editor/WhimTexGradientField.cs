@@ -15,7 +15,6 @@ namespace DCFApixels.WhimTex
         private readonly Color[] ramp = new Color[512], pixels = new Color[1024];
         private Texture2D preview;
         private string displayedJson;
-        private const string ClipboardPrefix = "WhimTex.Gradient/1\n";
 
         public WhimTexGradientField(string label, Object owner, string propertyPath)
         {
@@ -61,7 +60,7 @@ namespace DCFApixels.WhimTex
         }
         public void CopyValue()
         {
-            EditorGUIUtility.systemCopyBuffer = ClipboardPrefix + JsonUtility.ToJson(WhimTexGradientBinding.Read(owner, propertyPath));
+            EditorGUIUtility.systemCopyBuffer = WhimTexGradientClipboard.Write(WhimTexGradientBinding.Read(owner, propertyPath));
         }
         public bool PasteValue()
         {
@@ -76,17 +75,7 @@ namespace DCFApixels.WhimTex
         }
         internal static bool TryReadClipboard(out WhimTexGradient value)
         {
-            value = null;
-            string text = EditorGUIUtility.systemCopyBuffer;
-            if (string.IsNullOrEmpty(text) || text.Length > 65536 || !text.StartsWith(ClipboardPrefix, StringComparison.Ordinal)) return false;
-            try
-            {
-                value = JsonUtility.FromJson<WhimTexGradient>(text.Substring(ClipboardPrefix.Length));
-                if (value == null) return false;
-                value.Evaluate(0);
-                return true;
-            }
-            catch (ArgumentException) { value = null; return false; }
+            return WhimTexGradientClipboard.TryRead(EditorGUIUtility.systemCopyBuffer, out value);
         }
         public void Refresh()
         {

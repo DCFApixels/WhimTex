@@ -20,3 +20,11 @@
 .whimtex-gradient-location { flex-grow: 1; flex-shrink: 1; flex-basis: 0; min-width: 0; }
 .whimtex-gradient-key-row .unity-base-field__label { min-width: 0; width: auto; margin-right: 6px; }
 .whimtex-gradient-hidden { display: none; }
+
+.whimtex-gradient-presets-header { flex-direction: row; align-items: center; margin-top: 8px; padding: 2px; background-color: rgba(0, 0, 0, 0.12); flex-shrink: 0; }
+.whimtex-gradient-presets-header > Label { flex-grow: 1; }
+.whimtex-gradient-presets-header > Button { width: 24px; padding: 0; margin: 0; }
+.whimtex-gradient-presets-scroll { min-height: 52px; max-height: 132px; flex-grow: 1; }
+.whimtex-gradient-presets-grid { flex-direction: row; flex-wrap: wrap; }
+.whimtex-gradient-preset { width: 64px; height: 24px; margin: 3px; padding: 0; flex-shrink: 0; }
+.whimtex-gradient-preset-new-label { flex-grow: 1; margin: 0; -unity-text-align: middle-center; color: white; -unity-font-style: bold; -unity-text-outline-width: 0.5px; -unity-text-outline-color: black; }

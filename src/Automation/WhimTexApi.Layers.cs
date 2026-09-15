@@ -215,12 +215,12 @@ namespace DCFApixels.WhimTex
             if (layer?.Behaviour is GradientLayerBehaviour gradient && settings["gradient"] != null) gradient.gradient = ReadGradient(settings["gradient"]);
         }
 
-        private static WhimTexGradient ReadGradient(JToken token, WhimTexGradientMode defaultMode = WhimTexGradientMode.Classic)
+        internal static WhimTexGradient ReadGradient(JToken token, WhimTexGradientMode defaultMode = WhimTexGradientMode.Classic, float maximumColor = 107f)
         {
             if (token is JObject data)
             {
                 Keys(data, "colors", "alphas", "mode", "smoothness", "colorSpace");
-                var result = ReadGradient(data["colors"], defaultMode);
+                var result = ReadGradient(data["colors"], defaultMode, maximumColor);
                 result.Mode = Enum(data, "mode", defaultMode);
                 result.Smoothness = Number(data, "smoothness", 1f, 0f, 1f);
                 result.ColorSpace = Enum(data, "colorSpace", ColorSpace.Gamma);
@@ -251,7 +251,11 @@ namespace DCFApixels.WhimTex
                 Keys(stop, "time", "color", "midpoint", "alphaMidpoint");
                 float time = Number(stop["time"], "time", 0f, 1f);
                 Require(time > previous, "Gradient stop times must be strictly increasing.");
-                var color = Color(stop["color"]);
+                var rgba = stop["color"];
+                Require(rgba is JArray components && components.Count == 4, "color must be [r,g,b,a].");
+                var color = new UnityEngine.Color(Number(rgba[0], "r", -maximumColor, maximumColor),
+                    Number(rgba[1], "g", -maximumColor, maximumColor), Number(rgba[2], "b", -maximumColor, maximumColor),
+                    Number(rgba[3], "a", 0, 1));
                 colors[i] = new GradientColorKey(color, time);
                 alphas[i] = new GradientAlphaKey(color.a, time);
                 previous = time;

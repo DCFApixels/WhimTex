@@ -39,8 +39,11 @@ for (const filter of ['Source', 'point', 0, null]) {
 }
 assert.match(read('src/Automation/WhimTexApi.Clipboard.cs'), /result.CanvasFilter = Enum\(canvas, "filter", FilterMode.Bilinear\)/);
 assert.match(read('src/TextureCompositorWindow.ImageUrl.cs'), /clipboardPasteResize, data.CanvasFilter/);
-for (const match of guide.matchAll(/```json\s*\n([\s\S]*?)\n```/g))
-  assert.ok(matches(schema, JSON.parse(match[1])), 'Guide JSON does not match schema');
+for (const match of guide.matchAll(/```json\s*\n([\s\S]*?)\n```/g)) {
+  const example = JSON.parse(match[1]);
+  if (example.format === 'whimtex.gradient') continue; // Validated by GradientPresetsSmoke in Unity.
+  assert.ok(matches(schema, example), 'Guide JSON does not match schema');
+}
 for (const [name, file] of Object.entries({ noise: 'Noise', shape: 'Shape', blur: 'Blur', normalMap: 'NormalMap', makeSeamless: 'MakeSeamless' })) {
   const source = read(`src/Automation/WhimTexApi.${file}.cs`);
   const declared = [...source.match(/Keys\(value,([\s\S]*?)\);/)[1].matchAll(/"([^"]+)"/g)].map(m => m[1]).sort();

@@ -83,6 +83,15 @@ Fixed 不使用这两个设置。
 每条轨道至少保留一个关键点。右键点击字段可 **Copy / Paste**，粘贴的是独立副本。
 SDF 图层默认使用 **Linear**。
 
+在 **WhimTex Presets** 中点击 **New** 色带保存当前渐变，无需命名。点击预设色带即可应用；
+右键提供 **Copy** 和 **Delete**。User Settings 中选择预设文件夹，渐变保存在其
+**Gradients** 子文件夹中；**↻** 刷新列表。删除的预设可从 **Gradients/.trash** 恢复。
+不导入 Unity 渐变预设库。
+**New** 后的预设按从新到旧排列。列表较长时可垂直滚动，每次打开都从顶部开始。
+
+**Paste** 也接受 AI 或其他应用提供的渐变 JSON。复制完整的
+[渐变 JSON](../AI/README.md#standalone-gradient-json)，然后右键点击渐变字段或编辑器中的渐变色带，选择 **Paste**。
+
 ## 打包多个遮罩
 
 选中多个图层，然后在行菜单中选择 **Assign Channels**。

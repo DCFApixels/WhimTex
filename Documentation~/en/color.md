@@ -77,6 +77,16 @@ Use **HDR** beside the selected color when extra brightness is needed. Drag a ke
 away from its track to delete it; each track keeps at least one key. Right-click a gradient field
 to **Copy** or **Paste** an independent copy. SDF layers start with **Linear** interpolation.
 
+In **WhimTex Presets**, click the **New** swatch to save the current gradient without naming it.
+Click a swatch to apply it; right-click for **Copy** or **Delete**. Presets are
+listed newest first, after **New**. Long lists scroll vertically and open at the top. The folder is
+chosen in User Settings; gradients use its **Gradients** subfolder. **↻** reloads the list.
+Deleted presets can be recovered from **Gradients/.trash**. Built-in Unity gradient preset libraries are not imported.
+
+**Paste** also accepts gradient JSON from an AI or another application. Copy a complete
+[gradient JSON value](../AI/README.md#standalone-gradient-json), then right-click the gradient field
+or the gradient strip in its editor and choose **Paste**.
+
 ## Rearrange channels with Swizzle
 
 **Swizzle** chooses what goes into each output channel of a layer or group.
