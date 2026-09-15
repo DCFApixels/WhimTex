@@ -296,8 +296,31 @@ namespace DCFApixels.WhimTex
             }
             for (int i = 0; i < previewGuides.Count; i++)
             {
-                if (i == excluded || !GuideAxesParallel(guide.normal, previewGuides[i].normal)) continue;
-                Consider(previewGuides[i].position * Vector2.Dot(guide.normal, previewGuides[i].normal));
+                if (i == excluded || GuideAxesParallel(guide.normal, previewGuides[i].normal)) continue;
+                PreviewGuide a = previewGuides[i];
+                for (int j = i + 1; j < previewGuides.Count; j++)
+                {
+                    if (j == excluded || GuideAxesParallel(guide.normal, previewGuides[j].normal)) continue;
+                    PreviewGuide b = previewGuides[j];
+                    float determinant = a.normal.x * b.normal.y - a.normal.y * b.normal.x;
+                    if (Mathf.Abs(determinant) <= .0001f) continue;
+                    Vector2 intersection = new Vector2(
+                        (a.position * b.normal.y - a.normal.y * b.position) / determinant,
+                        (a.normal.x * b.position - a.position * b.normal.x) / determinant);
+                    float position = Vector2.Dot(guide.normal, intersection);
+                    if (float.IsNaN(position) || float.IsInfinity(position) ||
+                        Mathf.Abs(position - guide.position) > nearest) continue;
+                    bool blocked = false;
+                    for (int k = 0; k < previewGuides.Count; k++)
+                    {
+                        if (k == excluded) continue;
+                        PreviewGuide other = previewGuides[k];
+                        if (GuideAxesParallel(guide.normal, other.normal) &&
+                            Mathf.Abs(Vector2.Dot(other.normal, intersection) - other.position) <= .001f)
+                        { blocked = true; break; }
+                    }
+                    if (!blocked) Consider(position);
+                }
             }
             return best;
         }

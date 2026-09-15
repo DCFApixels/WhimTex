@@ -78,7 +78,7 @@ The pivot and polygonal lasso vertices can also snap to a single guide at any an
 
 **Brush** and **Pencil** also snap their stroke center to guides at any angle and to intersections, including while erasing. The cursor shows the snapped position. If you start a stroke snapped to a guide, holding `Shift` keeps it on that same line no matter how far the pointer moves away. Release `Shift` for ordinary nearby snapping; press it again during the same stroke to return to the original guide. At an intersection, the guide closest to the starting pointer is used. If you start away from guides, `Shift` keeps its usual horizontal or vertical screen direction. Hold `Ctrl` to bypass guide snapping and locking. Pencil strokes still follow the pixel grid; brush Scatter is applied after snapping the stroke path.
 
-Dragging a guide snaps it to parallel canvas edges, the canvas center, the selected layer's parallel edges and center lines, and other parallel guides. Hold `Ctrl` for free placement.
+Dragging a guide snaps it to parallel canvas edges, the canvas center, and the selected layer's parallel edges and center lines, but not to other guides. It can also snap to guide intersections, unless a guide parallel to the dragged one passes through that intersection. Hold `Ctrl` for free placement.
 
 Guides never appear in exports. They stay in the current window, including script reloads, but are cleared when switching documents and are not saved in the compositor file. Guide undo history lasts until a document switch or script reload.
 
