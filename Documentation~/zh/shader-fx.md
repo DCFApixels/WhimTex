@@ -16,6 +16,9 @@ next_page: "zh/preview.md"
 
 ## 应用现有效果
 
+HLSL 效果与画笔可以使用内置噪声库制作颗粒、有机遮罩和扭曲。
+参见[噪声函数与示例](../AI/README.md#built-in-noise-library)。
+
 1. 选择要更改的图层。
 2. 在其 FX 区域中使用 **+ Preset ▾**，按类别选择效果。
 3. 调整效果公开的滑块、颜色或纹理。

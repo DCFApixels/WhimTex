@@ -64,7 +64,7 @@ namespace DCFApixels.WhimTex
                 foreach(var p in declarations)
                     uniforms.Append(p.type==ShaderFXParameterType.Float?"float ":"float4 ").Append(p.name).AppendLine(";");
                 string wrapped="Shader \"Hidden/WhimTex/BrushTip\" { SubShader { Pass { ZTest Always Cull Off ZWrite Off\nHLSLPROGRAM\n#pragma vertex vert_img\n#pragma fragment WhimTexBrushFragment\n#pragma target 3.0\n#include \"UnityCG.cginc\"\n"+
-                    uniforms+source+"\nfloat4 WhimTexBrushFragment(v2f_img i) : SV_Target { float4 c=BrushTip(i.uv); return float4(clamp(c.rgb,-65504,65504),saturate(c.a)); }\nENDHLSL\n} } }";
+                    ShaderFXSourceBuilder.NoiseLibraryInclude+uniforms+source+"\nfloat4 WhimTexBrushFragment(v2f_img i) : SV_Target { float4 c=BrushTip(i.uv); return float4(clamp(c.rgb,-65504,65504),saturate(c.a)); }\nENDHLSL\n} } }";
                 Shader candidate=null; Material next=null;
                 try
                 {

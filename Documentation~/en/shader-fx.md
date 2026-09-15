@@ -16,6 +16,9 @@ You can use an existing effect and adjust its parameters without writing code.
 
 ## Apply an existing effect
 
+Custom HLSL effects and brushes can use the built-in noise library for grain,
+organic masks and distortion. See the [noise functions and example](../AI/README.md#built-in-noise-library).
+
 1. Select the layer you want to change.
 2. Use **+ Preset ▾** in its FX section and choose an effect by category.
 3. Adjust the effect's exposed sliders, colors or textures.

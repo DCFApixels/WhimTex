@@ -296,6 +296,8 @@ the external backdrop; isolated groups limit its scope. Processor is a clipping-
 The batch API can create/reorder it and edit its common settings, transform and Swizzle.
 The [live editing API](LiveAgentAPI.md#inline-shader-fx) can author inline Shader FX code and parameters
 in open documents, including unsaved ones. No separate shader asset or special layer target is needed.
+All WhimTex HLSL effects and brushes automatically include [FastNoiseLite](AI/README.md#built-in-noise-library);
+its noise and domain-warp functions need no explicit include.
 Post FX is window-local presentation state and never changes API rendering, sampling or export.
 
 ### Shape settings

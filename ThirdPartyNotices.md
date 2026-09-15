@@ -8,11 +8,14 @@ own licenses and any transitive third-party notices.
 
 ## FastNoiseLite
 
-WhimTex includes the unmodified HLSL implementation of
+WhimTex includes the HLSL implementation of
 [FastNoiseLite v1.1.1](https://github.com/Auburn/FastNoiseLite/tree/v1.1.1),
 commit `7ccfbc16eb1c932568f177d63a9ba51d89bbe516`.
 
 File: `src/Shaders/ThirdParty/FastNoiseLite.hlsl`.
+
+Local modification: an include guard prevents duplicate declarations when the built-in library
+is also included explicitly. Noise algorithms are unchanged.
 The separate Noise shader adapts its output and parameters to WhimTex.
 
 MIT License

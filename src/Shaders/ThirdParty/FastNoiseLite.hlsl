@@ -48,6 +48,9 @@
 // https://github.com/Auburn/FastNoiseLite
 
 // Switch between using floats or doubles for input position
+#ifndef WHIMTEX_FASTNOISELITE_INCLUDED
+#define WHIMTEX_FASTNOISELITE_INCLUDED
+
 typedef float FNLfloat;
 //typedef double FNLfloat;
 
@@ -2322,3 +2325,4 @@ void fnlDomainWarp3D(fnl_state state, inout FNLfloat x, inout FNLfloat y, inout 
         break;
     }
 }
+#endif

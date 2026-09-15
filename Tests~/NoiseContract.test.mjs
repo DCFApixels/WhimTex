@@ -8,7 +8,10 @@ const layer = read('src/Layers/NoiseLayerBehaviour.cs');
 const shader = read('src/Shaders/Noise.shader');
 const api = read('src/Automation/WhimTexApi.Noise.cs');
 const ui = read('src/Layers/Editors/NoiseLayerEditorWindow.cs');
-assert.equal(createHash('sha256').update(fnl).digest('hex'),
+const guard = '#ifndef WHIMTEX_FASTNOISELITE_INCLUDED\n#define WHIMTEX_FASTNOISELITE_INCLUDED\n\n';
+assert.ok(fnl.includes(guard) && fnl.endsWith('#endif\n'), 'Built-in noise has a duplicate-include guard');
+const upstream = fnl.replace(guard, '').replace(/#endif\n$/, '');
+assert.equal(createHash('sha256').update(upstream).digest('hex'),
     '275f0e558ea7fd967dd0a3f47f14397759e9e6da403d11c290484707dfb8c2cb', 'Pinned upstream HLSL is unchanged');
 
 const mappings = {

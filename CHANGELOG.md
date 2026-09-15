@@ -4,6 +4,12 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+## [0.10.8] - 2026-09-15
+
+### Added
+
+- FastNoiseLite is available automatically in HLSL effects and brush scripts, without a user include.
+
 ## [0.10.7] - 2026-09-15
 
 ### Added

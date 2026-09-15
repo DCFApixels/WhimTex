@@ -11,6 +11,7 @@ namespace DCFApixels.WhimTex
 {
     internal sealed class ShaderFXSourceBuilder
     {
+        internal const string NoiseLibraryInclude = "#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ThirdParty/FastNoiseLite.hlsl\"\n";
         private const int MaximumCharacters = 2 * 1024 * 1024;
         private static readonly Regex Include = new Regex("^\\s*#\\s*(include|include_with_pragmas)\\s+\"([^\"]+)\"\\s*$");
         private static readonly Regex Identifier = new Regex("^[A-Za-z_][A-Za-z0-9_]*$");
@@ -103,7 +104,7 @@ namespace DCFApixels.WhimTex
                 "Properties {\n_MainTex (\"Input\", 2D) = \"white\" {}\n" + properties + "}\n" +
                 "SubShader { Cull Off ZWrite Off ZTest Always Blend Off\nPass {\nCGPROGRAM\n" +
                 "#pragma vertex vert_img\n#pragma fragment SpriteFXFragment\n#pragma target 3.5\n" +
-                "#include \"UnityCG.cginc\"\nsampler2D _MainTex;\nfloat4 _MainTex_TexelSize;\n" +
+                "#include \"UnityCG.cginc\"\n" + NoiseLibraryInclude + "sampler2D _MainTex;\nfloat4 _MainTex_TexelSize;\n" +
                 "float4 _InputSize;\nfloat4 _CanvasSize;\nfloat _PreviewScale;\n" + uniforms +
                 "float4 SampleInput(float2 uv) { return tex2D(_MainTex, uv); }\n" +
                 LineDirective(1, assetPath) + expanded + "\n#line 1 \"SpriteFXWrapper\"\n" +

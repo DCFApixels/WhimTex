@@ -294,6 +294,42 @@ Use `properties.noise`:
 
 ## HLSL interface — shader-only or inside JSON
 
+### Built-in noise library
+
+FastNoiseLite v1.1.1, the same library used by Noise layers, is included automatically
+in every WhimTex HLSL effect and brush. Do not paste the library or add an include.
+Use the `fnl_` types, `fnl*` functions and `FNL_*` constants; avoid redefining those names.
+
+```hlsl
+// @param float _Scale = 8 [0.1 .. 64]
+float4 ApplyFX(float2 uv, float4 color)
+{
+    fnl_state noise = fnlCreateState(123);
+    noise.noise_type = FNL_NOISE_PERLIN;
+    noise.frequency = 1.0;
+    noise.fractal_type = FNL_FRACTAL_FBM;
+    noise.octaves = 4;
+    float n = fnlGetNoise2D(noise, uv.x * _Scale, uv.y * _Scale);
+    return float4((n * 0.5 + 0.5).xxx, color.a);
+}
+```
+
+Set `frequency = 1.0` when controlling scale through coordinates; the library default is 0.01.
+`fnlGetNoise2D(state, x, y)` and `fnlGetNoise3D(state, x, y, z)` normally return −1..1
+(some Cellular return modes exceed this range). Remap and clamp when a 0..1 mask is needed.
+Noise types: `FNL_NOISE_OPENSIMPLEX2`, `FNL_NOISE_OPENSIMPLEX2S`, `FNL_NOISE_CELLULAR`,
+`FNL_NOISE_PERLIN`, `FNL_NOISE_VALUE_CUBIC`, `FNL_NOISE_VALUE`.
+Fractals: `FNL_FRACTAL_NONE`, `FNL_FRACTAL_FBM`, `FNL_FRACTAL_RIDGED`, `FNL_FRACTAL_PINGPONG`.
+`fnlDomainWarp2D(state, x, y)` and `fnlDomainWarp3D(state, x, y, z)` modify coordinate variables in place;
+configure `domain_warp_type` and `domain_warp_amp` on the state.
+See the [bundled HLSL source](../../src/Shaders/ThirdParty/FastNoiseLite.hlsl) for the full state and constants.
+White Noise and Blue Noise are separate Noise-layer implementations, not functions of this library.
+
+The same noise calls work inside `float4 BrushTip(float2 uv)` for a brush;
+its script still starts with `// @whimtex-brush Category/Name`.
+
+### Effect entry point
+
 Write a fragment function, **not a complete ShaderLab shader**:
 
 ```hlsl
