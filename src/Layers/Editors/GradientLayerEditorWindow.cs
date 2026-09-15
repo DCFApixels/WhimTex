@@ -41,18 +41,6 @@ namespace DCFApixels.WhimTex
                 applyChange("Change Gradient", () => layer.gradient = GradientUtility.Create(evt.newValue)));
             root.Add(gradient);
 
-            Vector2Field center = WhimTexUI.ConfigureField(new Vector2Field("Center"));
-            bindings.Track(center, () => layer.center);
-            center.RegisterValueChangedCallback(evt =>
-                applyChange("Change Gradient Center", () => layer.center = evt.newValue));
-            root.Add(center);
-
-            FloatField radius = WhimTexUI.ConfigureField(new FloatField("Radius"));
-            bindings.Track(radius, () => layer.radius);
-            radius.RegisterValueChangedCallback(evt =>
-                applyChange("Change Gradient Radius", () => layer.radius = Mathf.Max(0f, evt.newValue)));
-            root.Add(radius);
-
             VisualElement circularSettings = new VisualElement();
             FloatField repetitions = WhimTexUI.ConfigureField(new FloatField("Repetitions"));
             bindings.Track(repetitions, () => layer.circularRepetitions);
@@ -71,12 +59,7 @@ namespace DCFApixels.WhimTex
             root.Add(circularSettings);
             bindings.Add(() =>
             {
-                bool radial = layer.gradientType == GradientLayerBehaviour.GradientType.Radial ||
-                              layer.gradientType == GradientLayerBehaviour.GradientType.Diamond ||
-                              layer.gradientType == GradientLayerBehaviour.GradientType.Square;
                 bool circular = layer.gradientType == GradientLayerBehaviour.GradientType.Circular;
-                center.style.display = radial || circular ? DisplayStyle.Flex : DisplayStyle.None;
-                radius.style.display = radial ? DisplayStyle.Flex : DisplayStyle.None;
                 circularSettings.style.display = circular ? DisplayStyle.Flex : DisplayStyle.None;
             });
         }

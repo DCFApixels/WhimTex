@@ -239,9 +239,11 @@ empty unless they carry a `url`.
   `linkCorners` boolean, `sides` (integer 3..32), `innerRadius` (0.01..1).
 - **gradient:** `properties.gradient` is 1..64 `{ "time": 0, "color": [1,1,1,1] }` stops,
   with strictly increasing times in 0..1. `properties.gradientOptions` optionally sets
-  `type` (`Vertical`, `Horizontal`, `Radial`, `Circular`, `Diamond`, `Square`), `center: [x,y]`,
-  `radius` (0.00001..1000), `repetitions` (0.00001..1000), `wrap` (`Repeat`, `PingPong`),
+  `type` (`Vertical`, `Horizontal`, `Radial`, `Circular`, `Diamond`, `Square`),
+  `repetitions` (0.00001..1000), `wrap` (`Repeat`, `PingPong`),
   `mode` (`Classic`, `Linear`, `Perceptual`, `Fixed`) and `smoothness` (0..1).
+  Geometry uses the layer's top-level `transform`: position, scale and rotation. There are no `center` or `radius` options.
+  Radial, Diamond, Square and Circular are centered at local UV [0.5,0.5]; the first three reach the final stop at distance 0.5.
   Stops optionally include `midpoint` and `alphaMidpoint` (0.01..0.99, default 0.5).
   For independent tracks, use an object instead of an array:
   `{ "colors": [...], "alphas": [{ "time": 0, "alpha": 1, "midpoint": 0.5 }], "mode": "Linear", "smoothness": 1 }`.

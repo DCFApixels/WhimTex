@@ -1304,6 +1304,7 @@ namespace DCFApixels.WhimTex
             ReleaseEffectCache();
             ResetOpacityEntry();
             previewTransformManipulator?.End(false, false);
+            gradientCanvasManipulator?.End(false, false);
             if (compositor == null)
                 return;
             paintingLayer?.EndStroke();

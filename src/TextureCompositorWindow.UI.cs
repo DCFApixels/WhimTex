@@ -248,6 +248,7 @@ namespace DCFApixels.WhimTex
             toolkitPreviewCanvas = new SpritePreviewElement(previewViewport);
             toolkitPreviewCanvas.AddManipulator(new ProjectTextureDropManipulator(this, prependToRoot: true));
             toolkitPreviewCanvas.style.flexGrow = 1f;
+            BuildGradientCanvasTool();
             BuildPreviewGuides();
             BuildPreviewZoomTool();
             BuildPreviewTransformTool();
@@ -1902,6 +1903,13 @@ namespace DCFApixels.WhimTex
                 return;
             }
 
+            if (evt.keyCode == KeyCode.Escape && gradientCanvasManipulator?.IsDragging == true)
+            {
+                gradientCanvasManipulator.End(true);
+                WhimTexUI.ConsumeEvent(evt);
+                return;
+            }
+            if (gradientCanvasManipulator?.HandleDelete(evt) == true) return;
             if (HandlePreviewGuideKey(evt)) return;
             if (HandleAreaSelectionKey(evt)) return;
             if (HandleLayerNavigationKey(evt)) return;

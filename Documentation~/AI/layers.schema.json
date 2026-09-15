@@ -226,21 +226,6 @@
             "Square"
           ]
         },
-        "center": {
-          "type": "array",
-          "items": {
-            "type": "number",
-            "minimum": -1000000,
-            "maximum": 1000000
-          },
-          "minItems": 2,
-          "maxItems": 2
-        },
-        "radius": {
-          "type": "number",
-          "minimum": 0.00001,
-          "maximum": 1000
-        },
         "repetitions": {
           "type": "number",
           "minimum": 0.00001,

@@ -10,10 +10,11 @@ namespace DCFApixels.WhimTex
     [Serializable]
     public sealed class GradientLayerBehaviour : LayerBehaviour
     {
+        internal override void InitializeLayer(Layer layer) => layer.transform.tiling = TransformTilingMode.Unbounded;
         public GradientType gradientType = GradientType.Vertical;
         public WhimTexGradient gradient = GradientUtility.Create(GradientUtility.WhiteToBlack);
-        public Vector2 center = new Vector2(0.5f, 0.5f);
-        public float radius = 0.5f;
+        internal static readonly Vector2 BaseCenter = new Vector2(0.5f, 0.5f);
+        internal const float BaseRadius = 0.5f;
         public float circularRepetitions = 1f;
         public WrapMode circularWrapMode = WrapMode.Repeat;
 
@@ -61,7 +62,7 @@ namespace DCFApixels.WhimTex
                 material.SetVector("_GradientStart", paletteStart);
                 material.SetInt("_GradientType", (int)gradientType);
                 material.SetVector("_GradientOutputSize", new Vector4(context.width, context.height, 0f, 0f));
-                material.SetVector("_GradientShape", new Vector4(center.x, center.y, radius,
+                material.SetVector("_GradientShape", new Vector4(BaseCenter.x, BaseCenter.y, BaseRadius,
                     Mathf.Max(float.Epsilon, circularRepetitions)));
                 material.SetInt("_GradientPingPong", circularWrapMode == WrapMode.PingPong ? 1 : 0);
                 source = RenderTexture.GetTemporary(context.width, context.height, 0,
@@ -136,10 +137,10 @@ namespace DCFApixels.WhimTex
                 case GradientType.Horizontal:
                     return u;
                 case GradientType.Radial:
-                    return NormalizeDistance(Vector2.Distance(new Vector2(u, v), center));
+                    return NormalizeDistance(Vector2.Distance(new Vector2(u, v), BaseCenter));
                 case GradientType.Circular:
                 {
-                    Vector2 direction = new Vector2(u - center.x, v - center.y);
+                    Vector2 direction = new Vector2(u - BaseCenter.x, v - BaseCenter.y);
                     float angle = Mathf.Atan2(direction.y, direction.x);
                     float turn = (angle + Mathf.PI) / (2f * Mathf.PI);
                     float repeated = turn * Mathf.Max(float.Epsilon, circularRepetitions);
@@ -148,9 +149,9 @@ namespace DCFApixels.WhimTex
                         : repeated - Mathf.Floor(repeated);
                 }
                 case GradientType.Diamond:
-                    return NormalizeDistance(Mathf.Abs(u - center.x) + Mathf.Abs(v - center.y));
+                    return NormalizeDistance(Mathf.Abs(u - BaseCenter.x) + Mathf.Abs(v - BaseCenter.y));
                 case GradientType.Square:
-                    return NormalizeDistance(Mathf.Max(Mathf.Abs(u - center.x), Mathf.Abs(v - center.y)));
+                    return NormalizeDistance(Mathf.Max(Mathf.Abs(u - BaseCenter.x), Mathf.Abs(v - BaseCenter.y)));
                 default:
                     return 0f;
             }
@@ -171,9 +172,9 @@ namespace DCFApixels.WhimTex
             return gradientType.ToString();
         }
 
-        private float NormalizeDistance(float distance)
+        private static float NormalizeDistance(float distance)
         {
-            return radius <= 0f ? 0f : Mathf.Clamp01(distance / radius);
+            return Mathf.Clamp01(distance / BaseRadius);
         }
 
         private Texture2D GenerateGradientTexture(int width, int height)
@@ -207,8 +208,6 @@ namespace DCFApixels.WhimTex
             {
                 int hash = 17;
                 hash = hash * 31 + gradientType.GetHashCode();
-                hash = hash * 31 + center.GetHashCode();
-                hash = hash * 31 + radius.GetHashCode();
                 hash = hash * 31 + circularRepetitions.GetHashCode();
                 hash = hash * 31 + circularWrapMode.GetHashCode();
                 return hash;

@@ -4,6 +4,24 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+## [0.10.5] - 2026-09-15
+
+### Added
+
+- On-canvas gradient controls: transform handles, color keys, midpoint diamonds and direct color picking.
+- Delete selected color keys with Delete or by dragging away from the gradient line.
+
+### Changed
+
+- Gradient position, size and rotation use the layer transform; separate Center and Radius settings and JSON options have been removed without migration.
+- New Gradient and Noise layers default to Unbounded tiling.
+- Selected gradient controls draw above other keys with a blue highlight.
+- Updated EN/RU/ZH guides and clipboard schema/examples.
+
+### Known Issues
+
+- GPU regression testing detects a color mismatch at a Fixed gradient key boundary.
+
 ## [0.10.4] - 2026-09-15
 
 ### Added

@@ -53,7 +53,7 @@ namespace DCFApixels.WhimTex
             best.Focus();
         }
 
-        private bool IsPreviewTransformEnabled => previewTool == PreviewTool.Transform &&
+        private bool IsPreviewTransformEnabled => !IsGradientCanvasEnabled && previewTool == PreviewTool.Transform &&
             GetSelectedLayer() is Layer layer && layer.Behaviour != null && (!layer.IsGroup || PreviewFXParameter != null) &&
             !WhimTexApi.IsLayerContentLocked(compositor, layer) && !WhimTexApi.ContainsReservation(layer);
 
@@ -219,11 +219,14 @@ namespace DCFApixels.WhimTex
 
         private void FinishPreviewTransform(bool cancel = false)
         {
+            gradientCanvasManipulator?.End(cancel);
             previewTransformManipulator?.End(cancel, true);
         }
 
         private void RefreshPreviewTransformTool()
         {
+            gradientCanvasManipulator?.Validate();
+            gradientCanvasOverlay?.MarkDirtyRepaint();
             previewTransformManipulator?.ValidateSelection();
             previewTransformOverlay?.MarkDirtyRepaint();
         }

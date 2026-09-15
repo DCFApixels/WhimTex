@@ -79,7 +79,7 @@ try
         foreach (DCFApixels.WhimTex.GradientLayerBehaviour.GradientType kind in
             System.Enum.GetValues(typeof(DCFApixels.WhimTex.GradientLayerBehaviour.GradientType)))
         {
-            layer.gradientType = kind; layer.radius = .43f; layer.center = new UnityEngine.Vector2(.37f, .62f);
+            layer.gradientType = kind;
             layer.circularRepetitions = 3.2f;
             // Native PerceptualBlend quantizes RGB; interpolating the palette can differ
             // by one encoded 8-bit step (up to .009 in linear light near white).
@@ -88,13 +88,10 @@ try
     }
     layer.gradient.Mode = DCFApixels.WhimTex.WhimTexGradientMode.Classic;
     layer.gradientType = DCFApixels.WhimTex.GradientLayerBehaviour.GradientType.Circular;
-    layer.center = new UnityEngine.Vector2(.5f, .5f);
     layer.circularWrapMode = DCFApixels.WhimTex.GradientLayerBehaviour.WrapMode.PingPong;
     Compare("Circular exact center and ping-pong");
     layer.circularRepetitions = 0; Compare("Zero repetitions");
     layer.gradientType = DCFApixels.WhimTex.GradientLayerBehaviour.GradientType.Radial;
-    layer.radius = 0; Compare("Zero radius"); layer.radius = -.1f; Compare("Negative radius");
-    layer.radius = .5f;
     layer.gradient = null; Compare("Null fallback");
     layer.gradient = new DCFApixels.WhimTex.WhimTexGradient();
     layer.gradient.SetKeys(new[] {new UnityEngine.GradientColorKey(new UnityEngine.Color(-.5f, 2f, .2f), 0),
@@ -103,7 +100,7 @@ try
     Compare("Signed HDR");
     var palette = Palette(); uint revision = palette.updateCount;
     UnityEngine.Color paletteMiddle = palette.GetPixel(127, 0);
-    for (int i = 0; i < 10; i++) { layer.radius += .01f; var rt = Render(32, 16); UnityEngine.RenderTexture.ReleaseTemporary(rt); }
+    for (int i = 0; i < 10; i++) { layer.circularRepetitions += .01f; var rt = Render(32, 16); UnityEngine.RenderTexture.ReleaseTemporary(rt); }
     Check(object.ReferenceEquals(palette, Palette()) && Palette().updateCount == revision, "Shape/size changes reuse the palette without uploads");
     var thumb = layer.GetPreviewTexture(18);
     Check(object.ReferenceEquals(thumb, layer.GetPreviewTexture(18)), "Stable thumbnail cache");

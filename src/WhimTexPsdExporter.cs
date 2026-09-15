@@ -222,7 +222,7 @@ namespace DCFApixels.WhimTex
             bool linear = layer.gradientType == GradientLayerBehaviour.GradientType.Horizontal || layer.gradientType == GradientLayerBehaviour.GradientType.Vertical;
             Vector2 scale = layer.transform.scale;
             if (Mathf.Abs(scale.x) < 0.00001f || Mathf.Abs(scale.y) < 0.00001f) return false;
-            if (!linear && (scale.x <= 0 || !Mathf.Approximately(scale.x, scale.y) || layer.radius <= 0f)) return false;
+            if (!linear && (scale.x <= 0 || !Mathf.Approximately(scale.x, scale.y))) return false;
             return layer.gradientType != GradientLayerBehaviour.GradientType.Circular || Mathf.Approximately(layer.circularRepetitions, 1f);
         }
 
@@ -270,7 +270,7 @@ namespace DCFApixels.WhimTex
                 case GradientLayerBehaviour.GradientType.Square: type = "Dmnd"; angle = 45; break;
                 default: type = "Rdl "; break;
             }
-            Vector2 center = type == "Lnr " ? new Vector2(0.5f, 0.5f) : layer.center;
+            Vector2 center = GradientLayerBehaviour.BaseCenter;
             TextureTransform transform = layer.transform;
             Vector2 pivot = Vector2.Scale(transform.pivot, new Vector2(width, height));
             Vector2 local = Vector2.Scale(Vector2.Scale(center, new Vector2(width, height)) - pivot, transform.scale);
@@ -289,7 +289,7 @@ namespace DCFApixels.WhimTex
             }
             else
             {
-                scale = layer.radius * transform.scale.x * 200;
+                scale = GradientLayerBehaviour.BaseRadius * transform.scale.x * 200;
                 if (layer.gradientType == GradientLayerBehaviour.GradientType.Square) scale *= Math.Sqrt(2);
             }
             return new PsdWriter.Descriptor().Unit("Angl", "#Ang", angle).Enum("Type", "GrdT", type)

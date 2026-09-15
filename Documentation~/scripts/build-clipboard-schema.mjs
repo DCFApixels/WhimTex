@@ -26,7 +26,7 @@ const defs = {
   color: rgba,
   gradientStops: { type: 'array', minItems: 1, maxItems: 64, items: object({ time: number(0, 1), color: rgba, midpoint: number(.01,.99), alphaMidpoint: number(.01,.99) }, ['time', 'color']), description: 'Stops must have strictly increasing times.' },
   gradient: { oneOf: [{ $ref: '#/$defs/gradientStops' }, object({ colors: { $ref: '#/$defs/gradientStops' }, alphas: {type:'array', minItems:1, maxItems:64, items:object({time:number(0,1),alpha:number(0,1),midpoint:number(.01,.99)},['time','alpha'])}, mode:choice('Classic Linear Perceptual Fixed'), smoothness:number(0,1), colorSpace:choice('Gamma Linear') }, ['colors'])] },
-  gradientOptions: object({ type: enumeration('Layers/GradientLayerBehaviour.cs', 'GradientType'), center: vec, radius: number(.00001, 1000), repetitions: number(.00001, 1000), wrap: choice('Repeat PingPong'), mode: choice('Classic Linear Perceptual Fixed'), smoothness:number(0,1) }),
+  gradientOptions: object({ type: enumeration('Layers/GradientLayerBehaviour.cs', 'GradientType'), repetitions: number(.00001, 1000), wrap: choice('Repeat PingPong'), mode: choice('Classic Linear Perceptual Fixed'), smoothness:number(0,1) }),
   noise: object({ noiseType: noiseEnum('NoiseType'), seed: integer(-2147483648, 2147483647), scale: number(.01, 1000), offset: tuple(number(-10000, 10000), 2),
     fractal: noiseEnum('FractalType'), octaves: integer(1, 8), lacunarity: number(1, 4), gain: number(0, 1), weightedStrength: number(0, 1), pingPongStrength: number(.01, 8),
     cellularDistance: noiseEnum('CellularDistance'), cellularReturn: noiseEnum('CellularReturn'), cellularJitter: number(0, 1), warp: noiseEnum('WarpType'), warpStrength: number(0, 100),

@@ -6,7 +6,7 @@ generator. No user documents, scenes, assets, or Undo state are changed.
 
 Coverage: six coordinate shapes; Blend, Fixed, PerceptualBlend; Gamma/Linear gradient
 interpolation; narrow color-key intervals; independent alpha keys; signed HDR; odd-sized
-angular seams and exact center; Ping Pong; zero radius/repetitions; null gradient fallback;
+angular seams and exact center; Ping Pong; zero repetitions; null gradient fallback;
 palette reuse across geometry/size changes; thumbnail mode invalidation; settings-copy
 mode/color-space preservation and hash invalidation; resource release.
 

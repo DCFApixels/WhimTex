@@ -2,10 +2,10 @@
   "format": "whimtex.layers", "version": 1,
   "layers": [
     { "type": "group", "name": "Mystic Fog", "properties": { "compositing": "Isolated" }, "children": [
-      { "type": "gradient", "name": "Violet Tint", "properties": {
+      { "type": "gradient", "name": "Violet Tint", "transform": { "scale": [1.4, 1.4] }, "properties": {
         "blend": "Multiply",
         "gradient": [ { "time": 0, "color": [0.15, 0.05, 0.4, 1] }, { "time": 1, "color": [0.3, 0.8, 1, 1] } ],
-        "gradientOptions": { "type": "Radial", "center": [0.5, 0.5], "radius": 0.7 }
+        "gradientOptions": { "type": "Radial" }
       } },
       { "type": "blur", "name": "Soft Clouds", "target": "clouds", "properties": { "blur": { "radius": 5 } } },
       { "type": "noise", "id": "clouds", "name": "Cloud Source", "properties": {
