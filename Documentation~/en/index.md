@@ -4,7 +4,7 @@ description: "Learn WhimTex, the Unity sprite editor and texture editor for quic
 nav_order: 1
 lang: "en"
 permalink: "/en/"
-alternate: "ru/index.md"
+translations: "en/index.md,ru/index.md,zh/index.md"
 has_children: true
 has_toc: false
 next_page: "en/getting-started.md"

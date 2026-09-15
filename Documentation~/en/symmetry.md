@@ -5,7 +5,7 @@ nav_order: 6
 lang: "en"
 description: "Paint seamless textures and repeating patterns in Unity with WhimTex. Use tiled preview, wrapped brush strokes, Mirror and Radial symmetry."
 permalink: "/en/symmetry/"
-alternate: "ru/symmetry.md"
+translations: "en/symmetry.md,ru/symmetry.md,zh/symmetry.md"
 previous_page: "en/selection.md"
 next_page: "en/effects.md"
 ---

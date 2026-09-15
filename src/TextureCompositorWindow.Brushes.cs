@@ -93,7 +93,7 @@ namespace DCFApixels.WhimTex
                 "Edge hardness of the procedural brush. Textured brushes use their own coverage or Gradient.");
             brushSettingsBindings.Add(() => hardness.SetEnabled(paintSettings.dynamics.tip == null));
             brushSettingsBindings.Add(() => hardness.EnableInClassList("whimtex-brush-setting--hidden", paintSettings.dynamics.UsesSdfGradient));
-            var sdfGradient = WhimTexUI.ConfigureField(WhimTexColorInputs.Bind(new GradientField("Gradient")
+            var sdfGradient = WhimTexUI.ConfigureField(WhimTexColorInputs.Bind(new WhimTexGradientValueField("Gradient")
             {
                 tooltip = "Left = interior (0), right = outer edge (1). Textured brushes invert the selected distance field. Alpha keys shape coverage; color keys multiply the palette color and Tint."
             }, brushSettingsBindings, () => paintSettings.dynamics.tipGradient));
@@ -187,7 +187,7 @@ namespace DCFApixels.WhimTex
                 "Strength of each stamp. Overlapping stamps build up within the stroke. Shared with the preview header.");
             var tintRow = new VisualElement();
             tintRow.AddToClassList("whimtex-brush-tint-row");
-            var gradient = WhimTexUI.ConfigureField(new GradientField("Tint") { value = paintSettings.dynamics.tintGradient,
+            var gradient = WhimTexUI.ConfigureField(new WhimTexGradientValueField("Tint") { value = paintSettings.dynamics.tintGradient,
                 tooltip = "Different color or alpha keys give each stamp a random tint. Identical keys give one tint. Opaque white leaves the palette color unchanged." });
             gradient.AddToClassList("whimtex-brush-tint-gradient");
             gradient.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() => paintSettings.dynamics.tintGradient = evt.newValue));
@@ -264,7 +264,7 @@ namespace DCFApixels.WhimTex
                 paintSettings.brushHardness = Mathf.Clamp01((float.IsNaN(evt.newValue) ? 80f : evt.newValue) * .01f)));
             edge.Add(hardness);
 
-            var gradient = WhimTexColorInputs.Bind(new GradientField("Gradient")
+            var gradient = WhimTexColorInputs.Bind(new WhimTexGradientValueField("Gradient")
             {
                 tooltip = "Gradient. Click to edit. Left = interior (0), right = outer edge (1). Alpha shapes coverage; RGB multiplies the brush color and Tint."
             }, toolkitHeaderBindings, () => paintSettings.dynamics.tipGradient);

@@ -4,7 +4,7 @@ description: "Руководство WhimTex — редактора спрайт
 nav_order: 2
 lang: "ru"
 permalink: "/ru/"
-alternate: "en/index.md"
+translations: "en/index.md,ru/index.md,zh/index.md"
 has_children: true
 has_toc: false
 next_page: "ru/getting-started.md"

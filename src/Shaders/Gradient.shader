@@ -15,7 +15,7 @@ Shader "Hidden/TextureCompositor/Gradient"
 
             sampler2D _GradientPalette;
             float4 _GradientPalette_TexelSize;
-            float4 _GradientIntervals[17], _GradientShape, _GradientStart;
+            float4 _GradientIntervals[129], _GradientShape, _GradientStart;
             float2 _GradientOutputSize;
             int _GradientType, _GradientPingPong, _GradientIntervalCount;
 

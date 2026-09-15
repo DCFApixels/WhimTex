@@ -42,7 +42,7 @@
             ],
             "gradientOptions": {
               "type": "Radial",
-              "mode": "PerceptualBlend"
+              "mode": "Perceptual"
             }
           }
         },

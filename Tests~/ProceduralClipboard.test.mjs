@@ -29,6 +29,16 @@ const directory = path.join(root, 'Documentation~/Examples/Clipboard');
 for (const file of fs.readdirSync(directory).filter(f => f.endsWith('.json')))
   assert.ok(matches(schema, JSON.parse(fs.readFileSync(path.join(directory, file), 'utf8'))), file + ' does not match the schema');
 const guide = read('Documentation~/AI/README.md');
+for (const filter of ['Point', 'Bilinear', 'Trilinear']) {
+  assert.ok(matches(schema, { format: 'whimtex.layers', version: 1,
+    canvas: { width: 64, height: 96, filter }, layers: [{ type: 'color' }] }));
+}
+for (const filter of ['Source', 'point', 0, null]) {
+  assert.equal(matches(schema, { format: 'whimtex.layers', version: 1,
+    canvas: { width: 64, height: 96, filter }, layers: [{ type: 'color' }] }), false);
+}
+assert.match(read('src/Automation/WhimTexApi.Clipboard.cs'), /result.CanvasFilter = Enum\(canvas, "filter", FilterMode.Bilinear\)/);
+assert.match(read('src/TextureCompositorWindow.ImageUrl.cs'), /clipboardPasteResize, data.CanvasFilter/);
 for (const match of guide.matchAll(/```json\s*\n([\s\S]*?)\n```/g))
   assert.ok(matches(schema, JSON.parse(match[1])), 'Guide JSON does not match schema');
 for (const [name, file] of Object.entries({ noise: 'Noise', shape: 'Shape', blur: 'Blur', normalMap: 'NormalMap', makeSeamless: 'MakeSeamless' })) {

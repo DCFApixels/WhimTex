@@ -4,7 +4,7 @@ parent: "Русский"
 nav_order: 12
 lang: "ru"
 permalink: "/ru/post-fx/"
-alternate: "en/post-fx.md"
+translations: "en/post-fx.md,ru/post-fx.md,zh/post-fx.md"
 previous_page: "ru/color.md"
 next_page: "ru/saving.md"
 ---

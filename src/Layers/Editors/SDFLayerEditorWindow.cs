@@ -78,7 +78,7 @@ namespace DCFApixels.WhimTex
                 applyChange("Invert SDF", () => layer.inverted = evt.newValue));
             root.Add(inverted);
 
-            GradientField gradient = WhimTexUI.ConfigureField(WhimTexColorInputs.Bind(new GradientField("Gradient"), bindings, () => layer.gradient));
+            WhimTexGradientValueField gradient = WhimTexUI.ConfigureField(WhimTexColorInputs.Bind(new WhimTexGradientValueField("Gradient"), bindings, () => layer.gradient));
             gradient.RegisterValueChangedCallback(evt =>
                 applyChange("Change SDF Gradient", () => layer.gradient = GradientUtility.Create(evt.newValue)));
             root.Add(gradient);

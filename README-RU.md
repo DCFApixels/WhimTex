@@ -29,7 +29,7 @@ These relative paths refer to the same branch as this README.
 </p>
 
 <p align="center">
-  <a href="README.md">English</a> · <b>Русский</b>
+  <a href="README.md">English</a> · <b>Русский</b> · <a href="https://dcfapixels.github.io/WhimTex/zh/">简体中文</a>
 </p>
 
 <p align="center">
@@ -105,7 +105,8 @@ https://github.com/DCFApixels/WhimTex.git
 в виде JSON и вставьте её в WhimTex. [Как вставить](Documentation~/ru/ai-authoring.md).
 
 **[Открыть документацию →](https://dcfapixels.github.io/WhimTex/ru/)** ·
-[English](https://dcfapixels.github.io/WhimTex/en/)
+[English](https://dcfapixels.github.io/WhimTex/en/) ·
+[简体中文](https://dcfapixels.github.io/WhimTex/zh/)
 
 Руководство идёт по рабочему процессу — от первого холста к рисованию, эффектам и экспорту:
 

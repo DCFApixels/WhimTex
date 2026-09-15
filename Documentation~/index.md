@@ -21,19 +21,20 @@ to see changes in your scene as you paint, or export when you need a separate im
 
 [English user guide](en/index.md){: .btn .btn-primary }
 [Руководство на русском](ru/index.md){: .btn }
+[简体中文用户指南](zh/index.md){: .btn }
 
 <img class="hero-image" src="{{ '/Images/whimtex-heart.png' | relative_url }}" alt="WhimTex showing a layered heart with a gradient, outline, highlight and SDF rim light" width="720">
 
 ## Choose your starting point
 
-| I want to… | English | Русский |
-| :--- | :--- | :--- |
-| Install and create an image | [Start here](en/getting-started.md) | [Начало работы](ru/getting-started.md) |
-| Paint or edit pixels | [Brush, Pencil and Fill](en/painting.md) | [Кисть, карандаш и заливка](ru/painting.md) |
-| Build textures from sources | [Layers](en/layers.md) · [Effects](en/effects.md) | [Слои](ru/layers.md) · [Эффекты](ru/effects.md) |
-| Create VFX masks and noise | [Noise](en/noise.md) · [Channels](en/color.md) | [Шум](ru/noise.md) · [Каналы](ru/color.md) |
-| Use the result in Unity | [Save and export](en/saving.md) | [Сохранение и экспорт](ru/saving.md) |
-| Automate authoring | [Automation](en/automation.md) | [Автоматизация](ru/automation.md) |
+| I want to… | English | Русский | 简体中文 |
+| :--- | :--- | :--- | :--- |
+| Install and create an image | [Start here](en/getting-started.md) | [Начало работы](ru/getting-started.md) | [从这里开始](zh/getting-started.md) |
+| Paint or edit pixels | [Brush, Pencil and Fill](en/painting.md) | [Кисть, карандаш и заливка](ru/painting.md) | [画笔、铅笔与填充](zh/painting.md) |
+| Build textures from sources | [Layers](en/layers.md) · [Effects](en/effects.md) | [Слои](ru/layers.md) · [Эффекты](ru/effects.md) | [图层](zh/layers.md) · [效果](zh/effects.md) |
+| Create VFX masks and noise | [Noise](en/noise.md) · [Channels](en/color.md) | [Шум](ru/noise.md) · [Каналы](ru/color.md) | [噪声](zh/noise.md) · [通道](zh/color.md) |
+| Use the result in Unity | [Save and export](en/saving.md) | [Сохранение и экспорт](ru/saving.md) | [保存与导出](zh/saving.md) |
+| Automate authoring | [Automation](en/automation.md) | [Автоматизация](ru/automation.md) | [自动化](zh/automation.md) |
 
 ## Requirements and scope
 

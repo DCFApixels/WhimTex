@@ -6,7 +6,7 @@ nav_order: 7
 lang: "en"
 description: "Build texture effects with WhimTex in Unity. Apply Outline, SDF, Normal Map, Gaussian Blur and Motion Blur to layers or groups while keeping sources editable."
 permalink: "/en/effects/"
-alternate: "ru/effects.md"
+translations: "en/effects.md,ru/effects.md,zh/effects.md"
 previous_page: "en/symmetry.md"
 next_page: "en/blending.md"
 ---

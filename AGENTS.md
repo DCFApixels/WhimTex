@@ -71,13 +71,18 @@ Acquire `whimtex_lock` for FX/settings edits on an existing layer and release it
 - Brush terminology: **procedural brush** has no tip texture; **textured brush** uses a tip texture.
   In Russian use **процедурная кисть** and **текстурная кисть**. Use these names consistently in UI and documentation.
 
+- Chinese guides use **图层** for layer, **组** for group, **画笔** for brush, **程序化画笔** for procedural
+  brush and **纹理画笔** for textured brush. Keep UI labels, JSON fields, CLI names and code in English inside
+  the Chinese text. Every localized page lists its counterparts in the `translations` front-matter value,
+  itself included; a new page must be added to all three languages at once and its anchor links translated.
+
 - Keep README files concise: introduction, installation, quick start and links to the guide.
-- Write the EN/RU user guides for artists: lead with the desired visual result, where to click,
+- Write the EN/RU/ZH user guides for artists: lead with the desired visual result, where to click,
   and how controls change the image. Omit rendering/storage/cache internals, Undo implementation
   details, regression history and descriptions of incidental UI layout behavior. Keep warnings only
   when they affect the result, compatibility or loss of editable work. Ordinary Undo shortcuts belong
   in the shortcuts page. Keep programming contracts in the separate technical reference, not the guides.
-- Update the matching `Documentation~/en/` and `Documentation~/ru/` user-guide pages for feature changes.
+- Update the matching `Documentation~/en/`, `Documentation~/ru/` and `Documentation~/zh/` user-guide pages for feature changes.
   Keep the shared English API contract in `Documentation~/AgentAPI.md` accurate; preserve page paths.
 - Follow `Documentation~/building.md` for website validation. Jekyll builds are documentation-only;
   they do not authorize a Unity build, compilation or asset reimport.

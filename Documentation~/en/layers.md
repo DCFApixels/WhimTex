@@ -5,7 +5,7 @@ has_children: true
 nav_order: 2
 lang: "en"
 permalink: "/en/layers/"
-alternate: "ru/layers.md"
+translations: "en/layers.md,ru/layers.md,zh/layers.md"
 previous_page: "en/getting-started.md"
 next_page: "en/transform.md"
 ---

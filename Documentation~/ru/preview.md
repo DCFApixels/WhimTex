@@ -4,7 +4,7 @@ parent: "Русский"
 nav_order: 10
 lang: "ru"
 permalink: "/ru/preview/"
-alternate: "en/preview.md"
+translations: "en/preview.md,ru/preview.md,zh/preview.md"
 previous_page: "ru/shader-fx.md"
 next_page: "ru/color.md"
 ---

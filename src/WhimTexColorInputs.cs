@@ -75,39 +75,10 @@ namespace DCFApixels.WhimTex
             return field;
         }
 
-        internal static GradientField Bind(GradientField field, WhimTexUI.ValueBindings bindings, Func<Gradient> read)
+        internal static WhimTexGradientValueField Bind(WhimTexGradientValueField field, WhimTexUI.ValueBindings bindings, Func<WhimTexGradient> read)
         {
-            Gradient snapshot = null, display = null;
-            bool lastHdr = Hdr;
-            Gradient ReadDisplay()
-            {
-                Gradient source = read();
-                if (source == null) return null;
-                if (snapshot == null || !snapshot.Equals(source) || lastHdr != Hdr)
-                {
-                    snapshot = CopyGradient(source, false);
-                    display = CopyGradient(source, !Hdr);
-                    lastHdr = Hdr;
-                }
-                return display;
-            }
-            Observe(field, () =>
-            {
-                field.hdr = Hdr;
-                field.SetValueWithoutNotify(ReadDisplay());
-            });
-            bindings.Track(field, ReadDisplay);
+            bindings.Track(field, read);
             return field;
-        }
-
-        private static Gradient CopyGradient(Gradient source, bool standard)
-        {
-            GradientColorKey[] colors = source.colorKeys;
-            if (standard)
-                for (int i = 0; i < colors.Length; i++) colors[i].color = StandardColor(colors[i].color);
-            var result = new Gradient { mode = source.mode, colorSpace = source.colorSpace };
-            result.SetKeys(colors, source.alphaKeys);
-            return result;
         }
 
         internal static Button CreateToggleControl()

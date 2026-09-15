@@ -4,7 +4,7 @@ parent: "English"
 nav_order: 9
 lang: "en"
 permalink: "/en/shader-fx/"
-alternate: "ru/shader-fx.md"
+translations: "en/shader-fx.md,ru/shader-fx.md,zh/shader-fx.md"
 previous_page: "en/blending.md"
 next_page: "en/preview.md"
 ---

@@ -4,7 +4,7 @@ parent: "Русский"
 nav_order: 15.1
 lang: ru
 permalink: /ru/ai-authoring/
-alternate: en/ai-authoring.md
+translations: "en/ai-authoring.md,ru/ai-authoring.md,zh/ai-authoring.md"
 ---
 
 # Слои через браузерный ИИ

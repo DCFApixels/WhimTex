@@ -112,9 +112,9 @@ namespace DCFApixels.WhimTex
             // A reference to another managed object is not inline field data. Do not steal
             // children from an existing group or fabricate unresolved managed references.
             if (token is JObject managed && managed["rid"] != null) return false;
-            if (type == typeof(Gradient))
+            if (type == typeof(WhimTexGradient))
             {
-                if (!(token is JObject gradientData) || !TryGradient(gradientData, out Gradient gradient)) return false;
+                if (!(token is JObject gradientData) || !TryGradient(gradientData, out WhimTexGradient gradient)) return false;
                 value = gradient;
                 report.Copied++;
                 return true;
@@ -170,49 +170,16 @@ namespace DCFApixels.WhimTex
             return true;
         }
 
-        private static bool TryGradient(JObject data, out Gradient gradient)
+        private static bool TryGradient(JObject data, out WhimTexGradient gradient)
         {
             gradient = null;
-            if (data["m_NumColorKeys"]?.Type != JTokenType.Integer || data["m_NumAlphaKeys"]?.Type != JTokenType.Integer) return false;
-            long colorCount = (long)data["m_NumColorKeys"], alphaCount = (long)data["m_NumAlphaKeys"];
-            if (colorCount < 1 || colorCount > 8 || alphaCount < 1 || alphaCount > 8) return false;
-            var colors = new GradientColorKey[(int)colorCount];
-            var alphas = new GradientAlphaKey[(int)alphaCount];
-            for (int i = 0; i < Math.Max(colorCount, alphaCount); i++)
+            try
             {
-                if (!(data["key" + i] is JObject key)) return false;
-                var channels = new float[4];
-                string[] names = { "r", "g", "b", "a" };
-                for (int c = 0; c < 4; c++)
-                {
-                    var number = key[names[c]];
-                    if (number == null || number.Type != JTokenType.Float && number.Type != JTokenType.Integer) return false;
-                    double component = (double)number;
-                    if (double.IsNaN(component) || double.IsInfinity(component) || Math.Abs(component) > float.MaxValue) return false;
-                    channels[c] = (float)component;
-                }
-                if (i < colorCount)
-                {
-                    if (!GradientTime(data["ctime" + i], out float time)) return false;
-                    colors[i] = new GradientColorKey(new Color(channels[0], channels[1], channels[2], channels[3]), time);
-                }
-                if (i < alphaCount)
-                {
-                    if (!GradientTime(data["atime" + i], out float time)) return false;
-                    alphas[i] = new GradientAlphaKey(channels[3], time);
-                }
+                gradient = JsonUtility.FromJson<WhimTexGradient>(data.ToString());
+                gradient.Evaluate(0);
+                return true;
             }
-            if (data["m_Mode"]?.Type != JTokenType.Integer || !Enum.IsDefined(typeof(GradientMode), (int)data["m_Mode"])) return false;
-            gradient = new Gradient { mode = (GradientMode)(int)data["m_Mode"] };
-            gradient.SetKeys(colors, alphas);
-            if (data["m_ColorSpace"] != null)
-            {
-                var property = typeof(Gradient).GetProperty("colorSpace");
-                if (property == null || !property.CanWrite || data["m_ColorSpace"].Type != JTokenType.Integer ||
-                    !Enum.IsDefined(typeof(ColorSpace), (int)data["m_ColorSpace"])) return false;
-                property.SetValue(gradient, (ColorSpace)(int)data["m_ColorSpace"]);
-            }
-            return true;
+            catch (ArgumentException) { gradient = null; return false; }
         }
 
         private static bool GradientTime(JToken token, out float time)

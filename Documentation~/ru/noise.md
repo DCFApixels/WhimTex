@@ -6,7 +6,7 @@ nav_order: 1
 lang: "ru"
 description: "Создавай процедурные текстуры шума в Unity с WhimTex. Настраивай Perlin, OpenSimplex2, Cellular, фракталы и искажение для облаков, VFX и масок."
 permalink: "/ru/noise/"
-alternate: "en/noise.md"
+translations: "en/noise.md,ru/noise.md,zh/noise.md"
 ---
 
 # Процедурный Noise

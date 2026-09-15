@@ -176,45 +176,45 @@ namespace DCFApixels.WhimTex
             new GradientAlphaKey(1f, 1f)
         };
 
-        public static readonly Gradient WhiteToBlack = Create(new[]
+        public static readonly WhimTexGradient WhiteToBlack = Create(new[]
         {
             new GradientColorKey(Color.white, 0f),
             new GradientColorKey(Color.black, 1f)
         });
 
-        public static Gradient Create(Gradient gradient)
+        public static WhimTexGradient Create(WhimTexGradient gradient)
         {
-            Gradient result = new Gradient();
-            if (gradient != null)
-            {
-                result.SetKeys(gradient.colorKeys, gradient.alphaKeys);
-                result.mode = gradient.mode;
-                result.colorSpace = gradient.colorSpace;
-            }
+            return gradient?.Clone() ?? new WhimTexGradient();
+        }
+        public static WhimTexGradient CreateLinearWhiteToBlack()
+        {
+            var result = WhiteToBlack.Clone();
+            result.Mode = WhimTexGradientMode.Linear;
             return result;
         }
 
-        public static Gradient Create(GradientColorKey[] colorKeys)
+        public static WhimTexGradient Create(GradientColorKey[] colorKeys)
         {
             return Create(colorKeys, OpaqueAlphaKeys);
         }
 
-        public static Gradient Create(GradientColorKey[] colorKeys, GradientAlphaKey[] alphaKeys)
+        public static WhimTexGradient Create(GradientColorKey[] colorKeys, GradientAlphaKey[] alphaKeys)
         {
-            Gradient result = new Gradient();
+            WhimTexGradient result = new WhimTexGradient();
             result.SetKeys(colorKeys, alphaKeys);
             return result;
         }
 
-        public static bool IsTwoColorGradient(Gradient gradient, out Color left, out Color right)
+        public static bool IsTwoColorGradient(WhimTexGradient gradient, out Color left, out Color right)
         {
             left = default;
             right = default;
-            if (gradient == null)
+            if (gradient == null || gradient.Mode != WhimTexGradientMode.Classic || gradient.ColorSpace != ColorSpace.Gamma ||
+                gradient.GetMidpoint(false, 0) != .5f || gradient.GetMidpoint(true, 0) != .5f)
                 return false;
 
-            GradientColorKey[] colors = gradient.colorKeys;
-            GradientAlphaKey[] alphas = gradient.alphaKeys;
+            GradientColorKey[] colors = gradient.ColorKeys;
+            GradientAlphaKey[] alphas = gradient.AlphaKeys;
             if (colors.Length == 0 || alphas.Length == 0 || colors.Length > 2 || alphas.Length > 2)
                 return false;
 
@@ -249,35 +249,11 @@ namespace DCFApixels.WhimTex
             return true;
         }
 
-        public static int ComputeHash(Gradient gradient)
+        public static int ComputeHash(WhimTexGradient gradient)
         {
-            if (gradient == null)
-                return 0;
-
-            unchecked
-            {
-                int hash = 17;
-                hash = hash * 31 + gradient.mode.GetHashCode();
-                hash = hash * 31 + gradient.colorSpace.GetHashCode();
-                GradientColorKey[] colors = gradient.colorKeys;
-                GradientAlphaKey[] alphas = gradient.alphaKeys;
-                hash = hash * 31 + colors.Length;
-                for (int i = 0; i < colors.Length; i++)
-                {
-                    hash = hash * 31 + colors[i].color.GetHashCode();
-                    hash = hash * 31 + colors[i].time.GetHashCode();
-                }
-
-                hash = hash * 31 + alphas.Length;
-                for (int i = 0; i < alphas.Length; i++)
-                {
-                    hash = hash * 31 + alphas[i].alpha.GetHashCode();
-                    hash = hash * 31 + alphas[i].time.GetHashCode();
-                }
-
-                return hash;
-            }
+            return gradient?.GetHashCode() ?? 0;
         }
+
     }
 
     [InitializeOnLoad]

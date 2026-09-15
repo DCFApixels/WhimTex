@@ -1,6 +1,9 @@
-{% if page.alternate %}
-  {% assign translation = site.pages | where: "path", page.alternate | first %}
-  {% if translation %}
-    <a class="language-link" href="{{ translation.url | relative_url }}" lang="{{ translation.lang }}" hreflang="{{ translation.lang }}">{% if translation.lang == 'ru' %}Русский{% else %}English{% endif %}</a>
-  {% endif %}
+{% if page.translations %}
+  {% assign counterparts = page.translations | split: "," %}
+  {% for counterpart in counterparts %}
+    {% assign translation = site.pages | where: "path", counterpart | first %}
+    {% if translation and translation.lang != page.lang %}
+    <a class="language-link" href="{{ translation.url | relative_url }}" lang="{{ translation.lang }}" hreflang="{{ translation.lang }}">{% case translation.lang %}{% when 'ru' %}Русский{% when 'zh' %}简体中文{% else %}English{% endcase %}</a>
+    {% endif %}
+  {% endfor %}
 {% endif %}

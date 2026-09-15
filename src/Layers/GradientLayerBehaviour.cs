@@ -11,7 +11,7 @@ namespace DCFApixels.WhimTex
     public sealed class GradientLayerBehaviour : LayerBehaviour
     {
         public GradientType gradientType = GradientType.Vertical;
-        public Gradient gradient = GradientUtility.Create(GradientUtility.WhiteToBlack);
+        public WhimTexGradient gradient = GradientUtility.Create(GradientUtility.WhiteToBlack);
         public Vector2 center = new Vector2(0.5f, 0.5f);
         public float radius = 0.5f;
         public float circularRepetitions = 1f;
@@ -19,20 +19,20 @@ namespace DCFApixels.WhimTex
 
         [NonSerialized] private Texture2D cachedPreview;
         [NonSerialized] private int cachedHash;
-        [NonSerialized] private Gradient previewGradient;
-        [NonSerialized] private Gradient paletteGradient;
+        [NonSerialized] private WhimTexGradient previewGradient;
+        [NonSerialized] private WhimTexGradient paletteGradient;
         [NonSerialized] private Texture2D palette;
         [NonSerialized] private Vector4[] paletteIntervals;
         [NonSerialized] private int paletteIntervalCount;
         [NonSerialized] private Color paletteStart;
         private const int PaletteWidth = 256;
-        private const int MaxPaletteIntervals = 17; // Eight color keys, eight alpha keys, plus 0/1.
+        private const int MaxPaletteIntervals = 129;
 
         public override Texture2D GetPreviewTexture(int size)
         {
             size = Mathf.Max(1, size);
             int currentHash = ComputeHash();
-            Gradient evaluated = gradient ?? GradientUtility.WhiteToBlack;
+            WhimTexGradient evaluated = gradient ?? GradientUtility.WhiteToBlack;
             if (cachedPreview != null && cachedHash == currentHash && cachedPreview.width == size &&
                 previewGradient != null && previewGradient.Equals(evaluated))
                 return cachedPreview;
@@ -81,49 +81,47 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private static void CopyGradient(ref Gradient destination, Gradient source)
+        private static void CopyGradient(ref WhimTexGradient destination, WhimTexGradient source)
         {
-            destination ??= new Gradient();
-            destination.SetKeys(source.colorKeys, source.alphaKeys);
-            destination.mode = source.mode;
-            destination.colorSpace = source.colorSpace;
+            destination = source.Clone();
         }
 
         private void UpdatePalette()
         {
-            Gradient evaluated = gradient ?? GradientUtility.WhiteToBlack;
+            WhimTexGradient evaluated = gradient ?? GradientUtility.WhiteToBlack;
             if (palette != null && paletteGradient != null && paletteGradient.Equals(evaluated)) return;
 
             // Each interval has its own row, so even very close keys retain the full ramp
-            // resolution. Native Evaluate preserves Unity's perceptual/color-space behavior.
+            // resolution, including smooth interpolation between closely spaced keys.
             var times = new List<float>(MaxPaletteIntervals + 1) { 0f, 1f };
-            foreach (var key in evaluated.colorKeys) times.Add(key.time);
-            foreach (var key in evaluated.alphaKeys) times.Add(key.time);
+            foreach (var key in evaluated.ColorKeys) times.Add(key.time);
+            foreach (var key in evaluated.AlphaKeys) times.Add(key.time);
             times.Sort();
             for (int i = times.Count - 1; i > 0; i--)
                 if (times[i] == times[i - 1]) times.RemoveAt(i);
             paletteIntervalCount = times.Count - 1;
             paletteIntervals ??= new Vector4[MaxPaletteIntervals];
-            if (palette == null || palette.height != paletteIntervalCount)
+            int paletteHeight = Mathf.Max(2, paletteIntervalCount);
+            if (palette == null || palette.height != paletteHeight)
             {
                 if (palette != null) UnityEngine.Object.DestroyImmediate(palette);
-                palette = new Texture2D(PaletteWidth, paletteIntervalCount, TextureFormat.RGBAFloat, false, true)
+                palette = new Texture2D(PaletteWidth, paletteHeight, TextureFormat.RGBAFloat, false, true)
                 {
                     name = "Gradient Palette", hideFlags = HideFlags.HideAndDontSave,
                     filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp
                 };
             }
             var pixels = palette.GetRawTextureData<Color>();
-            bool fixedMode = evaluated.mode == GradientMode.Fixed;
-            paletteStart = evaluated.Evaluate(0f);
+            bool fixedMode = evaluated.Mode == WhimTexGradientMode.Fixed;
+            paletteStart = evaluated.EvaluateEncoded(0f);
             for (int row = 0; row < paletteIntervalCount; row++)
             {
                 float start = times[row], end = times[row + 1];
                 paletteIntervals[row] = new Vector4(start, end, 1f / (end - start), 0f);
-                Color fixedColor = fixedMode ? evaluated.Evaluate((start + end) * .5f) : default;
+                Color fixedColor = fixedMode ? evaluated.EvaluateEncoded((start + end) * .5f) : default;
                 for (int x = 0; x < PaletteWidth; x++)
                     pixels[row * PaletteWidth + x] = fixedMode ? fixedColor :
-                        evaluated.Evaluate(Mathf.Lerp(start, end, x / (float)(PaletteWidth - 1)));
+                        evaluated.EvaluateEncoded(Mathf.Lerp(start, end, x / (float)(PaletteWidth - 1)));
             }
             palette.Apply(false, false);
             CopyGradient(ref paletteGradient, evaluated);
@@ -187,7 +185,7 @@ namespace DCFApixels.WhimTex
                 wrapMode = TextureWrapMode.Clamp
             };
             var pixels = texture.GetRawTextureData<Color>();
-            Gradient evaluatedGradient = gradient ?? GradientUtility.WhiteToBlack;
+            WhimTexGradient evaluatedGradient = gradient ?? GradientUtility.WhiteToBlack;
 
             for (int y = 0; y < height; y++)
             {
@@ -195,7 +193,7 @@ namespace DCFApixels.WhimTex
                 {
                     float u = (x + 0.5f) / width;
                     float v = (y + 0.5f) / height;
-                    pixels[y * width + x] = HdrUtility.Decode(evaluatedGradient.Evaluate(GetGradientCoord(u, v)));
+                    pixels[y * width + x] = HdrUtility.Decode(evaluatedGradient.EvaluateEncoded(GetGradientCoord(u, v)));
                 }
             }
 

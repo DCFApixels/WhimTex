@@ -29,7 +29,7 @@ These relative paths refer to the same branch as this README.
 </p>
 
 <p align="center">
-  <b>English</b> · <a href="README-RU.md">Русский</a>
+  <b>English</b> · <a href="README-RU.md">Русский</a> · <a href="https://dcfapixels.github.io/WhimTex/zh/">简体中文</a>
 </p>
 
 <p align="center">
@@ -104,7 +104,8 @@ only when you need a separate file. Save your changes to update the image used i
 compositions as JSON, then paste into WhimTex. [How to paste](Documentation~/en/ai-authoring.md).
 
 **[Read the documentation →](https://dcfapixels.github.io/WhimTex/en/)** ·
-[Русская версия](https://dcfapixels.github.io/WhimTex/ru/)
+[Русская версия](https://dcfapixels.github.io/WhimTex/ru/) ·
+[简体中文](https://dcfapixels.github.io/WhimTex/zh/)
 
 The guide follows the editing workflow, from the first canvas to painting, effects and export:
 

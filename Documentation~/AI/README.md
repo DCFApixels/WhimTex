@@ -131,7 +131,7 @@ described here are checked by WhimTex; the schema alone is not a complete runtim
 {
   "format": "whimtex.layers",
   "version": 1,
-  "canvas": { "width": 512, "height": 512 },
+  "canvas": { "width": 512, "height": 512, "filter": "Point" },
   "layers": [
     {
       "type": "shape",
@@ -154,6 +154,12 @@ both integer dimensions are required: 1..16384 each, at most 16,777,216 pixels i
 On an empty document the size applies immediately. On a nonempty document with a different size,
 **Apply Size** resizes; **Keep Current** inserts the same layers without resizing.
 Resize changes the canvas, not an instruction to bake/resample all existing layers.
+
+Optional `canvas.filter` sets the final canvas/output filtering: `Point`, `Bilinear` or `Trilinear`
+(no `Source`). Omit it to keep the current document's filtering. Width and height remain required
+when `canvas` is present. An explicit filter applies on successful paste even with **Keep Current**,
+which keeps only the size; Undo restores both the layers and the previous canvas settings.
+This is separate from each layer's `properties.filter`.
 
 Limits: 1 MiB of JSON text, 128 layers total, 8 nested groups, 16 custom shaders total,
 65,536 characters and 32 parameters per shader, 16 linked images. Each linked image is at most 64 MB
@@ -231,11 +237,16 @@ empty unless they carry a `url`.
   `fill`/`stroke` booleans, `fillColor`/`strokeColor`, `strokeWidth` (0..8192 pixels),
   `roundness` (0..1), `cornerRoundness` (four 0..1 values: top-left, top-right, bottom-right, bottom-left),
   `linkCorners` boolean, `sides` (integer 3..32), `innerRadius` (0.01..1).
-- **gradient:** `properties.gradient` is 2..8 `{ "time": 0, "color": [1,1,1,1] }` stops,
+- **gradient:** `properties.gradient` is 1..64 `{ "time": 0, "color": [1,1,1,1] }` stops,
   with strictly increasing times in 0..1. `properties.gradientOptions` optionally sets
   `type` (`Vertical`, `Horizontal`, `Radial`, `Circular`, `Diamond`, `Square`), `center: [x,y]`,
   `radius` (0.00001..1000), `repetitions` (0.00001..1000), `wrap` (`Repeat`, `PingPong`),
-  `mode` (`Blend`, `Fixed`, `PerceptualBlend`).
+  `mode` (`Classic`, `Linear`, `Perceptual`, `Fixed`) and `smoothness` (0..1).
+  Stops optionally include `midpoint` and `alphaMidpoint` (0.01..0.99, default 0.5).
+  For independent tracks, use an object instead of an array:
+  `{ "colors": [...], "alphas": [{ "time": 0, "alpha": 1, "midpoint": 0.5 }], "mode": "Linear", "smoothness": 1 }`.
+  Each track supports 1..64 keys; times must increase. `colorSpace` is optionally `Gamma` (default) or `Linear`.
+  SDF uses `Linear` interpolation by default; other gradients use `Classic`. `Fixed` ignores midpoint and smoothness.
 
 ### Noise
 

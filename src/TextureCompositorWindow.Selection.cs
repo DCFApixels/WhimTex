@@ -271,7 +271,7 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private void PasteCopiedLayers(TextureCompositor snapshot, bool resizeCanvas = false)
+        private void PasteCopiedLayers(TextureCompositor snapshot, bool resizeCanvas = false, FilterMode? canvasFilter = null)
         {
             applyingToolkitChange = true;
             Undo.IncrementCurrentGroup();
@@ -279,12 +279,15 @@ namespace DCFApixels.WhimTex
             Undo.SetCurrentGroupName("Paste Layers");
             try
             {
+                if (resizeCanvas || canvasFilter.HasValue)
+                    Undo.RegisterCompleteObjectUndo(compositor, "Paste Layers");
                 if (resizeCanvas)
                 {
-                    Undo.RegisterCompleteObjectUndo(compositor, "Paste Layers");
                     compositor.width = snapshot.width;
                     compositor.height = snapshot.height;
                 }
+                if (canvasFilter.HasValue)
+                    compositor.outputFilter = canvasFilter.Value;
                 Dictionary<Layer, Layer> copies = compositor.PasteLayers(snapshot);
                 Undo.CollapseUndoOperations(pasteUndo);
                 SelectOnlyLayer(null);

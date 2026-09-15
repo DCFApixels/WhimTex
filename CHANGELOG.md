@@ -4,6 +4,25 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+## [0.10.4] - 2026-09-15
+
+### Added
+
+- Custom HDR gradient editor with Classic, Linear, Perceptual and Fixed interpolation, smoothness, independent color/opacity keys, midpoints and independent copy/paste.
+- Chinese user documentation and reciprocal EN/RU/ZH language navigation.
+- Optional canvas filtering in clipboard JSON and expanded gradient authoring settings and schema.
+
+### Changed
+
+- Layers and brushes now use WhimTex gradients. SDF defaults to Linear interpolation and uses GPU gradient coloring.
+- PSD export rasterizes unsupported gradient interpolation to preserve its appearance.
+- Existing serialized Unity gradients are not automatically migrated to the new type; keep originals before resaving older documents or brush presets.
+
+### Fixed
+
+- SDF shader input binding when applying the new gradient lookup texture.
+- Gradient field preview refresh and independent editing/copying behavior.
+
 ## [0.10.3] - 2026-09-14
 
 ### Added

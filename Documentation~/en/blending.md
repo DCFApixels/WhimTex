@@ -4,7 +4,7 @@ parent: "English"
 nav_order: 8
 lang: "en"
 permalink: "/en/blending/"
-alternate: "ru/blending.md"
+translations: "en/blending.md,ru/blending.md,zh/blending.md"
 previous_page: "en/effects.md"
 next_page: "en/shader-fx.md"
 ---

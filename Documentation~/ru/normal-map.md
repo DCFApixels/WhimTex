@@ -5,7 +5,7 @@ nav_order: 1
 lang: "ru"
 permalink: "/ru/normal-map/"
 grand_parent: "Русский"
-alternate: "en/normal-map.md"
+translations: "en/normal-map.md,ru/normal-map.md,zh/normal-map.md"
 ---
 
 # Normal Map

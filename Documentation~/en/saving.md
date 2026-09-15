@@ -4,7 +4,7 @@ parent: "English"
 nav_order: 13
 lang: "en"
 permalink: "/en/saving/"
-alternate: "ru/saving.md"
+translations: "en/saving.md,ru/saving.md,zh/saving.md"
 previous_page: "en/post-fx.md"
 next_page: "en/shortcuts.md"
 ---

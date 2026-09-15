@@ -1,14 +1,17 @@
-{% if page.alternate %}
-  {% assign translation = site.pages | where: "path", page.alternate | first %}
-  {% if translation %}
-<link rel="alternate" hreflang="{{ page.lang }}" href="{{ page.url | absolute_url }}">
+{% if page.translations %}
+  {% assign counterparts = page.translations | split: "," %}
+  {% for counterpart in counterparts %}
+    {% assign translation = site.pages | where: "path", counterpart | first %}
+    {% if translation %}
 <link rel="alternate" hreflang="{{ translation.lang }}" href="{{ translation.url | absolute_url }}">
-  {% endif %}
+    {% endif %}
+  {% endfor %}
 {% endif %}
 <link rel="sitemap" type="application/xml" href="{{ '/sitemap.xml' | absolute_url }}">
 {% if page.url == '/' %}
 <link rel="alternate" hreflang="en" href="{{ '/en/' | absolute_url }}">
 <link rel="alternate" hreflang="ru" href="{{ '/ru/' | absolute_url }}">
+<link rel="alternate" hreflang="zh" href="{{ '/zh/' | absolute_url }}">
 <link rel="alternate" hreflang="x-default" href="{{ '/' | absolute_url }}">
 <script type="application/ld+json">
 {
@@ -27,6 +30,6 @@
 }
 </script>
 {% endif %}
-{% if page.url == '/en/' or page.url == '/ru/' %}
+{% if page.url == '/en/' or page.url == '/ru/' or page.url == '/zh/' %}
 <link rel="alternate" hreflang="x-default" href="{{ '/' | absolute_url }}">
 {% endif %}

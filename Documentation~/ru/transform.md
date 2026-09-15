@@ -4,7 +4,7 @@ parent: "Русский"
 nav_order: 3
 lang: "ru"
 permalink: "/ru/transform/"
-alternate: "en/transform.md"
+translations: "en/transform.md,ru/transform.md,zh/transform.md"
 previous_page: "ru/layers.md"
 next_page: "ru/painting.md"
 ---

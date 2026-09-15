@@ -4,7 +4,7 @@ parent: "Русский"
 nav_order: 14
 lang: "ru"
 permalink: "/ru/shortcuts/"
-alternate: "en/shortcuts.md"
+translations: "en/shortcuts.md,ru/shortcuts.md,zh/shortcuts.md"
 previous_page: "ru/saving.md"
 next_page: "ru/automation.md"
 ---

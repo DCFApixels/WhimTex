@@ -4,7 +4,7 @@ parent: "English"
 nav_order: 16
 lang: "en"
 permalink: "/en/troubleshooting/"
-alternate: "ru/troubleshooting.md"
+translations: "en/troubleshooting.md,ru/troubleshooting.md,zh/troubleshooting.md"
 previous_page: "en/automation.md"
 ---
 

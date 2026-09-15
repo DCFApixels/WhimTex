@@ -12,6 +12,8 @@ const fail = message => errors.push(message);
 const text = file => fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
 const decode = value => value.replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
 const ignored = new Set(['.git', '.bundle', '.jekyll-cache', '.sass-cache', 'vendor', '_site']);
+// Every localized page lists its counterparts in `translations`, itself included.
+const languages = ['en', 'ru', 'zh'];
 
 function filesUnder(directory, exclusions = ignored) {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
@@ -49,12 +51,30 @@ function checkSource() {
   for (const [name, fm] of pages) {
     if (fm.parent && ![...pages.values()].some(p => p.title === fm.parent && (!fm.grand_parent || p.parent === fm.grand_parent)))
       fail(`${name}: unresolved navigation parent ${fm.parent}`);
-    for (const key of ['alternate', 'previous_page', 'next_page']) {
+    for (const key of ['previous_page', 'next_page']) {
       if (fm[key] && !pages.has(fm[key])) fail(`${name}: missing ${key} ${fm[key]}`);
     }
-    if (/^(en|ru)\//.test(name)) {
-      if (!fm.alternate || pages.get(fm.alternate)?.alternate !== name) fail(`${name}: missing reciprocal translation`);
+    if (languages.includes(name.slice(0, 2)) && name[2] === '/') {
       if (fm.lang !== name.slice(0, 2)) fail(`${name}: wrong language`);
+      if (!fm.translations) { fail(`${name}: missing translations`); continue; }
+      const counterparts = fm.translations.split(',');
+      if (!counterparts.includes(name)) fail(`${name}: translations must include the page itself`);
+      for (const counterpart of counterparts) {
+        if (!pages.has(counterpart)) { fail(`${name}: missing translation ${counterpart}`); continue; }
+        if (pages.get(counterpart).translations !== fm.translations)
+          fail(`${name}: translation list is not reciprocal with ${counterpart}`);
+      }
+      for (const lang of languages)
+        if (!counterparts.includes(`${lang}/${name.slice(3)}`)) fail(`${name}: translations must cover ${lang}`);
+      if (name.slice(0, 2) !== 'en' && pages.has(`en/${name.slice(3)}`)) {
+        const structure = file => text(path.join(source, file)).split('\n')
+          .filter(line => /^#{1,6}\s/.test(line)).map(line => line.match(/^#+/)[0]).join(',');
+        if (structure(name) !== structure(`en/${name.slice(3)}`)) fail(`${name}: heading structure differs from the English page`);
+        if (name.slice(3) !== 'index.md') {
+          const h1 = text(path.join(source, name)).split('\n').find(line => /^#\s/.test(line));
+          if (!h1 || h1.replace(/^#\s+/, '').trim() !== fm.title) fail(`${name}: H1 does not match the navigation title`);
+        }
+      }
     }
   }
   for (const file of [...markdown, path.join(repository, 'README.md'), path.join(repository, 'README-RU.md')]) {
@@ -75,7 +95,7 @@ function checkSource() {
     }
     if (/\b(?:PLACEHOLDER|TODO_TRANSLATE)\b/.test(content)) fail(`${file}: unfinished content`);
   }
-  console.log(`Source: ${pages.size} pages, reciprocal EN/RU navigation and local Markdown links checked.`);
+  console.log(`Source: ${pages.size} pages, reciprocal EN/RU/ZH navigation and local Markdown links checked.`);
   const listeners = [];
   let closed = false;
   let stopped = false;
@@ -146,19 +166,22 @@ function checkSite() {
     customize.call(this);
     for (const [id, entry] of Object.entries(search)) this.add({ id, title: entry.title, content: entry.content });
   });
-  for (const [query, expected] of [['симметрия', '/ru/symmetry/'], ['brush', '/en/painting/']]) {
+  for (const [query, expected] of [['симметрия', '/ru/symmetry/'], ['brush', '/en/painting/'], ['brush', '/zh/painting/']]) {
     if (!index.search(query).some(result => search[result.ref].url.includes(expected))) fail(`Search query '${query}' did not find ${expected}`);
   }
-  for (const lang of ['en', 'ru']) {
+  for (const lang of languages) {
     if (!entries.some(entry => entry.url?.includes(`/${lang}/painting/`) && entry.content?.length > 100)) fail(`${lang}: painting page absent from search index`);
     const start = text(path.join(output, lang, 'getting-started/index.html'));
-    if (!start.includes(`/${lang === 'en' ? 'ru' : 'en'}/getting-started/`)) fail(`${lang}: translation link missing from rendered page`);
+    for (const other of languages.filter(candidate => candidate !== lang))
+      if (!start.includes(`/${other}/getting-started/`)) fail(`${lang}: ${other} translation link missing from rendered page`);
   }
-  for (const file of filesUnder(source).filter(file => /[/\\](en|ru)[/\\].+\.md$/.test(file))) {
+  for (const file of filesUnder(source)) {
+    const relative = path.relative(source, file).replaceAll('\\', '/');
+    if (!relative.endsWith('.md') || !languages.includes(relative.split('/')[0])) continue;
     const fm = frontMatter(text(file));
-    const alternate = frontMatter(text(path.join(source, fm.alternate)));
     const html = text(path.join(output, fm.permalink, 'index.html'));
-    for (const entry of [fm, alternate]) {
+    for (const counterpart of fm.translations.split(',')) {
+      const entry = frontMatter(text(path.join(source, counterpart)));
       const href = new URL(baseurl + entry.permalink, siteOrigin).href;
       if (!html.includes(`<link rel="alternate" hreflang="${entry.lang}" href="${href}"`))
         fail(`${fm.permalink}: missing reciprocal hreflang ${entry.lang}`);

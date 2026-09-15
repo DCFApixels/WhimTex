@@ -62,19 +62,19 @@ try
     }, new[] { new UnityEngine.GradientAlphaKey(.1f, 0), new UnityEngine.GradientAlphaKey(.8f, .3f),
         new UnityEngine.GradientAlphaKey(.2f, .7f), new UnityEngine.GradientAlphaKey(1, 1) });
     foreach (var space in new[] { UnityEngine.ColorSpace.Gamma, UnityEngine.ColorSpace.Linear })
-    foreach (UnityEngine.GradientMode mode in System.Enum.GetValues(typeof(UnityEngine.GradientMode)))
+    foreach (DCFApixels.WhimTex.WhimTexGradientMode mode in System.Enum.GetValues(typeof(DCFApixels.WhimTex.WhimTexGradientMode)))
     {
-        layer.gradient.mode = mode; layer.gradient.colorSpace = space;
+        layer.gradient.Mode = mode; layer.gradient.ColorSpace = space;
         var copy = DCFApixels.WhimTex.GradientUtility.Create(layer.gradient);
         Check(!object.ReferenceEquals(copy, layer.gradient) && copy.Equals(layer.gradient),
             "Settings callback copies keys, mode and color space: " + mode + "/" + space);
-        Check(copy.mode == mode && copy.colorSpace == space, "Copied interpolation metadata");
+        Check(copy.Mode == mode && copy.ColorSpace == space, "Copied interpolation metadata");
         int originalHash = DCFApixels.WhimTex.GradientUtility.ComputeHash(copy);
-        copy.mode = mode == UnityEngine.GradientMode.Blend ? UnityEngine.GradientMode.Fixed : UnityEngine.GradientMode.Blend;
+        copy.Mode = mode == DCFApixels.WhimTex.WhimTexGradientMode.Classic ? DCFApixels.WhimTex.WhimTexGradientMode.Fixed : DCFApixels.WhimTex.WhimTexGradientMode.Classic;
         Check(originalHash != DCFApixels.WhimTex.GradientUtility.ComputeHash(copy), "Mode invalidates gradient hash");
-        Check(layer.gradient.mode == mode, "Independent copy does not modify original");
-        copy.mode = mode;
-        copy.colorSpace = space == UnityEngine.ColorSpace.Linear ? UnityEngine.ColorSpace.Gamma : UnityEngine.ColorSpace.Linear;
+        Check(layer.gradient.Mode == mode, "Independent copy does not modify original");
+        copy.Mode = mode;
+        copy.ColorSpace = space == UnityEngine.ColorSpace.Linear ? UnityEngine.ColorSpace.Gamma : UnityEngine.ColorSpace.Linear;
         Check(originalHash != DCFApixels.WhimTex.GradientUtility.ComputeHash(copy), "Color space invalidates gradient hash");
         foreach (DCFApixels.WhimTex.GradientLayerBehaviour.GradientType kind in
             System.Enum.GetValues(typeof(DCFApixels.WhimTex.GradientLayerBehaviour.GradientType)))
@@ -83,10 +83,10 @@ try
             layer.circularRepetitions = 3.2f;
             // Native PerceptualBlend quantizes RGB; interpolating the palette can differ
             // by one encoded 8-bit step (up to .009 in linear light near white).
-            Compare(space + "/" + mode + "/" + kind, tolerance: mode == UnityEngine.GradientMode.PerceptualBlend ? .01f : .002f);
+            Compare(space + "/" + mode + "/" + kind, tolerance: mode == DCFApixels.WhimTex.WhimTexGradientMode.Perceptual ? .01f : .002f);
         }
     }
-    layer.gradient.mode = UnityEngine.GradientMode.Blend;
+    layer.gradient.Mode = DCFApixels.WhimTex.WhimTexGradientMode.Classic;
     layer.gradientType = DCFApixels.WhimTex.GradientLayerBehaviour.GradientType.Circular;
     layer.center = new UnityEngine.Vector2(.5f, .5f);
     layer.circularWrapMode = DCFApixels.WhimTex.GradientLayerBehaviour.WrapMode.PingPong;
@@ -96,7 +96,7 @@ try
     layer.radius = 0; Compare("Zero radius"); layer.radius = -.1f; Compare("Negative radius");
     layer.radius = .5f;
     layer.gradient = null; Compare("Null fallback");
-    layer.gradient = new UnityEngine.Gradient();
+    layer.gradient = new DCFApixels.WhimTex.WhimTexGradient();
     layer.gradient.SetKeys(new[] {new UnityEngine.GradientColorKey(new UnityEngine.Color(-.5f, 2f, .2f), 0),
         new UnityEngine.GradientColorKey(new UnityEngine.Color(3f, -.2f, 1.2f), 1)},
         new[] {new UnityEngine.GradientAlphaKey(.2f, 0), new UnityEngine.GradientAlphaKey(.8f, 1)});
@@ -108,7 +108,7 @@ try
     var thumb = layer.GetPreviewTexture(18);
     Check(object.ReferenceEquals(thumb, layer.GetPreviewTexture(18)), "Stable thumbnail cache");
     Check(Palette().updateCount == revision, "Thumbnail does not invalidate GPU palette");
-    layer.gradient.mode = UnityEngine.GradientMode.Fixed;
+    layer.gradient.Mode = DCFApixels.WhimTex.WhimTexGradientMode.Fixed;
     Check(layer.GetPreviewTexture(18) != null && thumb == null, "Mode change invalidates thumbnail");
     var rtChanged = Render(32, 16); UnityEngine.RenderTexture.ReleaseTemporary(rtChanged);
     Check(Palette().GetPixel(127, 0) != paletteMiddle, "Mode change updates palette pixels");
@@ -127,10 +127,10 @@ try
     layer.gradient.SetKeys(colors, alphas);
     Compare("Maximum independent color/alpha keys, fixed");
     Check(Palette().height == 17, "Maximum palette interval count");
-    layer.gradient.mode = UnityEngine.GradientMode.Blend;
+    layer.gradient.Mode = DCFApixels.WhimTex.WhimTexGradientMode.Classic;
     Compare("Maximum independent color/alpha keys, blend");
     var snapshot = layer.GetPreviewTexture(18);
-    layer.gradient.colorSpace = layer.gradient.colorSpace == UnityEngine.ColorSpace.Linear ? UnityEngine.ColorSpace.Gamma : UnityEngine.ColorSpace.Linear;
+    layer.gradient.ColorSpace = layer.gradient.ColorSpace == UnityEngine.ColorSpace.Linear ? UnityEngine.ColorSpace.Gamma : UnityEngine.ColorSpace.Linear;
     Check(layer.GetPreviewTexture(18) != null && snapshot == null, "Color-space-only change invalidates thumbnail");
     return "Gradient GPU checks passed: " + checks + "; max absolute difference=" + maxError;
 }

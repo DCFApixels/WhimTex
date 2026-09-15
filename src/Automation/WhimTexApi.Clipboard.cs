@@ -13,6 +13,7 @@ namespace DCFApixels.WhimTex
         {
             internal TextureCompositor Document;
             internal bool HasCanvas;
+            internal FilterMode? CanvasFilter;
             internal readonly List<ShaderFX> Effects = new List<ShaderFX>();
             // Drawing layers that own no pixels yet: the image is fetched before the tree is pasted.
             internal readonly List<(string url, Layer layer)> Images = new List<(string, Layer)>();
@@ -79,7 +80,9 @@ namespace DCFApixels.WhimTex
                 if (root["canvas"] != null)
                 {
                     var canvas = Obj(root["canvas"], "canvas");
-                    Keys(canvas, "width", "height");
+                    Keys(canvas, "width", "height", "filter");
+                    if (canvas["filter"] != null)
+                        result.CanvasFilter = Enum(canvas, "filter", FilterMode.Bilinear);
                     width = Int(canvas, "width", 0, 1, 16384);
                     height = Int(canvas, "height", 0, 1, 16384);
                     Require(width > 0 && height > 0 && (long)width * height <= MaxCanvasPixels,
@@ -204,14 +207,15 @@ namespace DCFApixels.WhimTex
         private static void SetClipboardGradient(Layer layer, JObject options)
         {
             Require(layer.Behaviour is GradientLayerBehaviour, "gradientOptions requires a Gradient layer.");
-            Keys(options, "type", "center", "radius", "repetitions", "wrap", "mode");
+            Keys(options, "type", "center", "radius", "repetitions", "wrap", "mode", "smoothness");
             var gradient = (GradientLayerBehaviour)layer.Behaviour;
             gradient.gradientType = Enum(options, "type", gradient.gradientType);
             if (options["center"] != null) gradient.center = Vector(options["center"], "center");
             gradient.radius = Number(options, "radius", gradient.radius, .00001f, 1000f);
             gradient.circularRepetitions = Number(options, "repetitions", gradient.circularRepetitions, .00001f, 1000f);
             gradient.circularWrapMode = Enum(options, "wrap", gradient.circularWrapMode);
-            gradient.gradient.mode = Enum(options, "mode", gradient.gradient.mode);
+            gradient.gradient.Mode = Enum(options, "mode", gradient.gradient.Mode);
+            gradient.gradient.Smoothness = Number(options, "smoothness", gradient.gradient.Smoothness, 0, 1);
         }
     }
 }

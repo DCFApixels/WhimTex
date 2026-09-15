@@ -4,7 +4,7 @@ parent: "Русский"
 nav_order: 15
 lang: "ru"
 permalink: "/ru/automation/"
-alternate: "en/automation.md"
+translations: "en/automation.md,ru/automation.md,zh/automation.md"
 previous_page: "ru/shortcuts.md"
 next_page: "ru/troubleshooting.md"
 ---

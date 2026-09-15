@@ -5,7 +5,7 @@ nav_order: 4
 lang: "ru"
 description: "Рисуй текстуры в Unity кистью, карандашом и заливкой WhimTex. Текстурные кисти, градиенты, разброс и пресеты для быстрых правок и масок VFX."
 permalink: "/ru/painting/"
-alternate: "en/painting.md"
+translations: "en/painting.md,ru/painting.md,zh/painting.md"
 previous_page: "ru/transform.md"
 next_page: "ru/selection.md"
 ---

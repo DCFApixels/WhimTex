@@ -210,14 +210,37 @@ namespace DCFApixels.WhimTex
                 sdf.distancePosition = Enum(settings, "distancePosition", sdf.distancePosition);
                 sdf.inverted = Bool(settings, "inverted", sdf.inverted);
                 sdf.maxDistanceNormalization = Number(settings, "maxDistance", sdf.maxDistanceNormalization, 0f, 16384f);
-                if (settings["gradient"] != null) sdf.gradient = ReadGradient(settings["gradient"]);
+                if (settings["gradient"] != null) sdf.gradient = ReadGradient(settings["gradient"], WhimTexGradientMode.Linear);
             }
             if (layer?.Behaviour is GradientLayerBehaviour gradient && settings["gradient"] != null) gradient.gradient = ReadGradient(settings["gradient"]);
         }
 
-        private static Gradient ReadGradient(JToken token)
+        private static WhimTexGradient ReadGradient(JToken token, WhimTexGradientMode defaultMode = WhimTexGradientMode.Classic)
         {
-            Require(token is JArray keys && keys.Count >= 2 && keys.Count <= 8, "gradient must contain 2..8 {time, color} stops.");
+            if (token is JObject data)
+            {
+                Keys(data, "colors", "alphas", "mode", "smoothness", "colorSpace");
+                var result = ReadGradient(data["colors"], defaultMode);
+                result.Mode = Enum(data, "mode", defaultMode);
+                result.Smoothness = Number(data, "smoothness", 1f, 0f, 1f);
+                result.ColorSpace = Enum(data, "colorSpace", ColorSpace.Gamma);
+                if (data["alphas"] != null)
+                {
+                    Require(data["alphas"] is JArray alphaValues && alphaValues.Count >= 1 && alphaValues.Count <= 64, "alphas must have 1..64 keys.");
+                    var a = (JArray)data["alphas"];
+                    var alphaKeys = new GradientAlphaKey[a.Count];
+                    for (int i=0;i<a.Count;i++)
+                    {
+                        var key=Obj(a[i], "alpha key"); Keys(key,"time","alpha","midpoint");
+                        alphaKeys[i]=new GradientAlphaKey(Number(key["alpha"],"alpha",0,1),Number(key["time"],"time",0,1));
+                        Require(i==0 || alphaKeys[i].time > alphaKeys[i-1].time,"Alpha times must increase.");
+                    }
+                    result.SetKeys(result.ColorKeys,alphaKeys);
+                    for(int i=0;i<a.Count;i++) result.SetMidpoint(true,i,Number((JObject)a[i],"midpoint",.5f,.01f,.99f));
+                }
+                return result;
+            }
+            Require(token is JArray keys && keys.Count >= 1 && keys.Count <= 64, "gradient must contain 1..64 {time, color} stops.");
             var values = (JArray)token;
             var colors = new GradientColorKey[values.Count];
             var alphas = new GradientAlphaKey[values.Count];
@@ -225,7 +248,7 @@ namespace DCFApixels.WhimTex
             for (int i = 0; i < values.Count; i++)
             {
                 JObject stop = Obj(values[i], "gradient stop");
-                Keys(stop, "time", "color");
+                Keys(stop, "time", "color", "midpoint", "alphaMidpoint");
                 float time = Number(stop["time"], "time", 0f, 1f);
                 Require(time > previous, "Gradient stop times must be strictly increasing.");
                 var color = Color(stop["color"]);
@@ -233,7 +256,14 @@ namespace DCFApixels.WhimTex
                 alphas[i] = new GradientAlphaKey(color.a, time);
                 previous = time;
             }
-            return GradientUtility.Create(colors, alphas);
+            var gradient = GradientUtility.Create(colors, alphas);
+            gradient.Mode = defaultMode;
+            for(int i=0;i<values.Count;i++)
+            {
+                gradient.SetMidpoint(false,i,Number((JObject)values[i],"midpoint",.5f,.01f,.99f));
+                gradient.SetMidpoint(true,i,Number((JObject)values[i],"alphaMidpoint",.5f,.01f,.99f));
+            }
+            return gradient;
         }
 
         private static void SetTransform(TextureCompositor document, Layer layer, JObject settings)

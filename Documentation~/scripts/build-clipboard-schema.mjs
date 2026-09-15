@@ -24,8 +24,9 @@ const noiseEnum = name => enumeration('Layers/NoiseLayerBehaviour.cs', name);
 const normalEnum = name => enumeration('Layers/NormalMapLayerBehaviour.cs', name);
 const defs = {
   color: rgba,
-  gradient: { type: 'array', minItems: 2, maxItems: 8, items: object({ time: number(0, 1), color: rgba }, ['time', 'color']), description: 'Stops must have strictly increasing times.' },
-  gradientOptions: object({ type: enumeration('Layers/GradientLayerBehaviour.cs', 'GradientType'), center: vec, radius: number(.00001, 1000), repetitions: number(.00001, 1000), wrap: choice('Repeat PingPong'), mode: choice('Blend Fixed PerceptualBlend') }),
+  gradientStops: { type: 'array', minItems: 1, maxItems: 64, items: object({ time: number(0, 1), color: rgba, midpoint: number(.01,.99), alphaMidpoint: number(.01,.99) }, ['time', 'color']), description: 'Stops must have strictly increasing times.' },
+  gradient: { oneOf: [{ $ref: '#/$defs/gradientStops' }, object({ colors: { $ref: '#/$defs/gradientStops' }, alphas: {type:'array', minItems:1, maxItems:64, items:object({time:number(0,1),alpha:number(0,1),midpoint:number(.01,.99)},['time','alpha'])}, mode:choice('Classic Linear Perceptual Fixed'), smoothness:number(0,1), colorSpace:choice('Gamma Linear') }, ['colors'])] },
+  gradientOptions: object({ type: enumeration('Layers/GradientLayerBehaviour.cs', 'GradientType'), center: vec, radius: number(.00001, 1000), repetitions: number(.00001, 1000), wrap: choice('Repeat PingPong'), mode: choice('Classic Linear Perceptual Fixed'), smoothness:number(0,1) }),
   noise: object({ noiseType: noiseEnum('NoiseType'), seed: integer(-2147483648, 2147483647), scale: number(.01, 1000), offset: tuple(number(-10000, 10000), 2),
     fractal: noiseEnum('FractalType'), octaves: integer(1, 8), lacunarity: number(1, 4), gain: number(0, 1), weightedStrength: number(0, 1), pingPongStrength: number(.01, 8),
     cellularDistance: noiseEnum('CellularDistance'), cellularReturn: noiseEnum('CellularReturn'), cellularJitter: number(0, 1), warp: noiseEnum('WarpType'), warpStrength: number(0, 100),
@@ -67,7 +68,7 @@ const schema = {
   $schema: 'https://json-schema.org/draft/2020-12/schema',
   title: 'WhimTex clipboard layer JSON, version 1',
   description: '1 MiB maximum; 128 total layers, 8 nested groups, 16 total shaders, 16 linked images. IDs must be unique, targets must resolve without cycles. Canvas at most 16,777,216 pixels. A Drawing layer with url downloads one image (PNG or JPEG, at most 64 MB and 16 megapixels) after a confirmation. Unity also checks cross-field and shader constraints.',
-  ...object({ format: { const: 'whimtex.layers' }, version: { const: 1 }, canvas: object({ width: integer(1, 16384), height: integer(1, 16384) }, ['width', 'height']), layers: { type: 'array', minItems: 1, maxItems: 128, items: ref('layer') } }, ['format', 'version', 'layers']),
+  ...object({ format: { const: 'whimtex.layers' }, version: { const: 1 }, canvas: object({ width: integer(1, 16384), height: integer(1, 16384), filter: choice('Point Bilinear Trilinear') }, ['width', 'height']), layers: { type: 'array', minItems: 1, maxItems: 128, items: ref('layer') } }, ['format', 'version', 'layers']),
   $defs: defs
 };
 const output = path.join(docs, 'AI', 'layers.schema.json');

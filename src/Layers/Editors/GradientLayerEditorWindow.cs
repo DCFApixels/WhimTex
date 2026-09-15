@@ -36,7 +36,7 @@ namespace DCFApixels.WhimTex
             });
             root.Add(gradientType);
 
-            GradientField gradient = WhimTexUI.ConfigureField(WhimTexColorInputs.Bind(new GradientField("Gradient"), bindings, () => layer.gradient));
+            WhimTexGradientValueField gradient = WhimTexUI.ConfigureField(WhimTexColorInputs.Bind(new WhimTexGradientValueField("Gradient"), bindings, () => layer.gradient));
             gradient.RegisterValueChangedCallback(evt =>
                 applyChange("Change Gradient", () => layer.gradient = GradientUtility.Create(evt.newValue)));
             root.Add(gradient);

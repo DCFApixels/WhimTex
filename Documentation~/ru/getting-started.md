@@ -5,7 +5,7 @@ nav_order: 1
 lang: "ru"
 description: "Установи WhimTex в Unity 6 и создай первую текстуру или спрайт со слоями. Рисуй, добавляй изображения и сохраняй редактируемый ассет для своей игры."
 permalink: "/ru/getting-started/"
-alternate: "en/getting-started.md"
+translations: "en/getting-started.md,ru/getting-started.md,zh/getting-started.md"
 next_page: "ru/layers.md"
 ---
 

@@ -44,7 +44,7 @@ namespace DCFApixels.WhimTex
         {
             if (data.Images.Count == 0)
             {
-                PasteCopiedLayers(data.Document, resize);
+                PasteCopiedLayers(data.Document, resize, data.CanvasFilter);
                 return false;
             }
             if (HasPendingImageUrl)
@@ -93,7 +93,7 @@ namespace DCFApixels.WhimTex
             if (data == null) return;
             try
             {
-                if (completed) PasteCopiedLayers(data.Document, clipboardPasteResize);
+                if (completed) PasteCopiedLayers(data.Document, clipboardPasteResize, data.CanvasFilter);
             }
             finally { data.Dispose(); }
         }

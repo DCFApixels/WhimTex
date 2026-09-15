@@ -44,6 +44,13 @@ public static class ProceduralClipboardSmoke
             Render(Document(data));
         }
         const string head = "{\"format\":\"whimtex.layers\",\"version\":1,\"layers\":";
+        foreach (string mode in new[] { "Point", "Bilinear", "Trilinear" })
+        {
+            using var filtered = (IDisposable)Build(head + "[{\"type\":\"color\"}],\"canvas\":{\"width\":64,\"height\":96,\"filter\":\"" + mode + "\"}}");
+            Check(filtered.GetType().GetField("CanvasFilter", Hidden).GetValue(filtered).ToString() == mode, "Canvas filter parsing failed.");
+        }
+        Reject(head + "[{\"type\":\"color\"}],\"canvas\":{\"width\":64,\"height\":96,\"filter\":\"Source\"}}");
+        Reject(head + "[{\"type\":\"color\"}],\"canvas\":{\"width\":64,\"height\":96,\"filter\":null}}");
         Reject(head + "[]}");
         // A Drawing layer is either empty or points at a link that is fetched before the paste.
         Reject(head + "[{\"type\":\"drawing\",\"url\":\"ftp://example.com/a.png\"}]}");
@@ -171,16 +178,24 @@ public static class ProceduralClipboardSmoke
         {
             var document = (TextureCompositor)typeof(TextureCompositorWindow).GetField("compositor", Hidden).GetValue(window);
             int oldWidth = document.width, oldHeight = document.height;
+            FilterMode oldFilter = document.outputFilter;
             using var data = (IDisposable)Build("{\"format\":\"whimtex.layers\",\"version\":1,\"canvas\":{\"width\":64,\"height\":96},\"layers\":[{\"type\":\"color\"}]}");
             var method = typeof(TextureCompositorWindow).GetMethod("PasteCopiedLayers", Hidden);
-            method.Invoke(window, new object[] { Document(data), true });
+            method.Invoke(window, new object[] { Document(data), true, FilterMode.Point });
+            Check(document.outputFilter == FilterMode.Point, "Canvas filter paste failed.");
             Check(document.width == 64 && document.height == 96 && document.layers.Count == 1, "Window resize paste failed.");
             Undo.PerformUndo();
+            Check(document.outputFilter == oldFilter, "Canvas filter Undo failed.");
             Check(document.width == oldWidth && document.height == oldHeight && document.layers.Count == 0, "Window paste Undo failed.");
             Undo.PerformRedo();
+            Check(document.outputFilter == FilterMode.Point, "Canvas filter Redo failed.");
             Check(document.width == 64 && document.layers.Count == 1, "Window paste Redo failed.");
             Document(data).width = 32;
-            method.Invoke(window, new object[] { Document(data), false });
+            method.Invoke(window, new object[] { Document(data), false, null });
+            Check(document.outputFilter == FilterMode.Point, "Omitted filter changed canvas.");
+            method.Invoke(window, new object[] { Document(data), false, FilterMode.Trilinear });
+            Check(document.width == 64 && document.outputFilter == FilterMode.Trilinear, "Filter without resizing failed.");
+            Undo.PerformUndo();
             Check(document.width == 64 && document.layers.Count == 2, "Keep-size paste failed.");
             Undo.ClearUndo(document);
         }

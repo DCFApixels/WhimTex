@@ -8,44 +8,41 @@ namespace DCFApixels.WhimTex
         {
             private const int SdfGradientWidth = 1024;
             private static Texture2D sdfGradientTexture;
-            private static Gradient sdfGradientSnapshot;
+            private static WhimTexGradient sdfGradientSnapshot;
             private static Color[] sdfGradientPixels;
             private static bool sdfGradientStandardInputs;
             private static bool sdfGradientValid;
 
             private static Texture2D GetBrushSdfGradient(BrushDynamics dynamics, bool standardInputs)
             {
-                Gradient source = dynamics.tipGradient ??= BrushDynamics.DefaultTipGradient();
+                WhimTexGradient source = dynamics.tipGradient ??= BrushDynamics.DefaultTipGradient();
                 if (sdfGradientValid && sdfGradientTexture != null && sdfGradientSnapshot != null &&
                     sdfGradientStandardInputs == standardInputs && sdfGradientSnapshot.Equals(source))
                     return sdfGradientTexture;
 
                 sdfGradientValid = false;
-                sdfGradientSnapshot ??= new Gradient();
-                sdfGradientSnapshot.SetKeys(source.colorKeys, source.alphaKeys);
-                sdfGradientSnapshot.mode = source.mode;
-                sdfGradientSnapshot.colorSpace = source.colorSpace;
+                sdfGradientSnapshot = source.Clone();
                 sdfGradientStandardInputs = standardInputs;
-                Gradient evaluated = sdfGradientSnapshot;
+                WhimTexGradient evaluated = sdfGradientSnapshot;
                 if (standardInputs)
                 {
-                    var colors = source.colorKeys;
+                    var colors = source.ColorKeys;
                     for (int i = 0; i < colors.Length; i++)
                         colors[i].color = WhimTexColorInputs.StandardColor(colors[i].color);
-                    evaluated = new Gradient { mode = source.mode, colorSpace = source.colorSpace };
-                    evaluated.SetKeys(colors, source.alphaKeys);
+                    evaluated = source.Clone();
+                    evaluated.SetKeys(colors, source.AlphaKeys);
                 }
                 if (sdfGradientTexture == null)
-                    sdfGradientTexture = new Texture2D(SdfGradientWidth, 1, TextureFormat.RGBAHalf, true, true)
+                    sdfGradientTexture = new Texture2D(SdfGradientWidth, 2, TextureFormat.RGBAHalf, true, true)
                     {
                         name = "Brush SDF Gradient", hideFlags = HideFlags.HideAndDontSave,
                         filterMode = FilterMode.Trilinear, wrapMode = TextureWrapMode.Clamp
                     };
-                sdfGradientPixels ??= new Color[SdfGradientWidth];
+                sdfGradientPixels ??= new Color[SdfGradientWidth * 2];
                 for (int i = 0; i < SdfGradientWidth; i++)
                 {
-                    Color color = HdrUtility.DecodePaintColor(evaluated.Evaluate(i / (float)(SdfGradientWidth - 1)));
-                    sdfGradientPixels[i] = new Color(color.r * color.a, color.g * color.a, color.b * color.a, color.a);
+                    Color color = HdrUtility.DecodePaintColor(evaluated.EvaluateEncoded(i / (float)(SdfGradientWidth - 1)));
+                    sdfGradientPixels[i + SdfGradientWidth] = sdfGradientPixels[i] = new Color(color.r * color.a, color.g * color.a, color.b * color.a, color.a);
                 }
                 sdfGradientTexture.SetPixels(sdfGradientPixels);
                 sdfGradientTexture.Apply(true, false);

@@ -4,7 +4,7 @@ parent: "English"
 nav_order: 5
 lang: "en"
 permalink: "/en/selection/"
-alternate: "ru/selection.md"
+translations: "en/selection.md,ru/selection.md,zh/selection.md"
 previous_page: "en/painting.md"
 next_page: "en/symmetry.md"
 ---

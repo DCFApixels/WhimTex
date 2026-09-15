@@ -5,7 +5,7 @@ nav_order: 1
 lang: "en"
 description: "Install WhimTex in Unity 6 and create your first layered texture or sprite. Paint, add images and save an editable asset ready to use in your game."
 permalink: "/en/getting-started/"
-alternate: "ru/getting-started.md"
+translations: "en/getting-started.md,ru/getting-started.md,zh/getting-started.md"
 next_page: "en/layers.md"
 ---
 

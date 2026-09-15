@@ -77,7 +77,8 @@ This image-conversion helper does not start Unity or trigger a refresh.
 
 ### Page content
 
-- Keep matching user-guide paths under `en/` and `ru/`; each has an `alternate` front-matter path.
+- Keep matching user-guide paths under `en/`, `ru/` and `zh/`; each page lists all three in a
+  `translations` front-matter value, itself included. Add a new page to every language at once.
 - Use relative Markdown links to source `.md` files. The relative-links plugin rewrites them for the site;
   the same links remain usable when reading the sources on GitHub.
 - Use stable ASCII permalinks; do not move the existing API/reference files without preserving links.
@@ -86,8 +87,8 @@ This image-conversion helper does not start Unity or trigger a refresh.
   editable work. Do not narrate UI layout mechanics, caching, storage internals, Undo implementation,
   or past fixes. Programming details belong in the separate technical reference.
 - Exclude engineering references from site search so artist queries lead to practical guides.
-- The self-contained `AI/README.md` is intentionally searchable and included in the sitemap: it is the public entry point for browser AI authoring. Its matching EN/RU workflow pages remain artist-facing.
+- The self-contained `AI/README.md` is intentionally searchable and included in the sitemap: it is the public entry point for browser AI authoring. Its matching EN/RU/ZH workflow pages remain artist-facing.
 - After changing clipboard fields, run `node scripts/build-clipboard-schema.mjs` and `node ../Tests~/ProceduralClipboard.test.mjs`. Run `Tests~/ProceduralClipboardSmoke.cs` through Unity Pipeline separately to validate parsing, rendering and Undo against the editor.
 - Keep README as an introduction, installation, quick start and a map to these guides.
-- Do not duplicate API tables into both languages. Explain workflows bilingually; link the shared contract.
+- Do not duplicate API tables into every language. Explain workflows bilingually; link the shared contract.
 - Keep dependency sources and licenses in the repository notices when updating the theme.

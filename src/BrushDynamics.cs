@@ -23,12 +23,12 @@ namespace DCFApixels.WhimTex
         public float flipY;
         public BrushRotationMode rotationMode;
         public BrushRandomAlgorithm randomAlgorithm;
-        public Gradient tintGradient = WhiteGradient();
+        public WhimTexGradient tintGradient = WhiteGradient();
         public Texture2D tip;
         public BrushTipChannel tipChannel;
         public bool tipSdf;
         public BrushProceduralMode proceduralMode;
-        public Gradient tipGradient = DefaultTipGradient();
+        public WhimTexGradient tipGradient = DefaultTipGradient();
         public BlendMode blend = BlendMode.Normal;
         public BrushBlendApplication blendApplication;
         public int seed = 1;
@@ -66,9 +66,9 @@ namespace DCFApixels.WhimTex
 
         private static float Finite(float value, float fallback) => float.IsNaN(value) || float.IsInfinity(value) ? fallback : value;
         private static float Unit(float value, float fallback) => Mathf.Clamp01(Finite(value, fallback));
-        internal static Gradient DefaultTipGradient()
+        internal static WhimTexGradient DefaultTipGradient()
         {
-            var result = new Gradient();
+            var result = new WhimTexGradient { Mode = WhimTexGradientMode.Linear };
             result.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
                 new[] { new GradientAlphaKey(1f, .4f), new GradientAlphaKey(0f, .6f) });
             return result;
@@ -83,21 +83,21 @@ namespace DCFApixels.WhimTex
         internal void PrepareTint()
         {
             tintGradient ??= WhiteGradient();
-            constantTint = tintGradient.Evaluate(0f);
+            constantTint = tintGradient.EvaluateEncoded(0f);
             tintVaries = false;
-            var colors = tintGradient.colorKeys;
+            var colors = tintGradient.ColorKeys;
             for (int i = 1; i < colors.Length; i++)
             {
                 Color first = colors[0].color, next = colors[i].color;
                 if (first.r != next.r || first.g != next.g || first.b != next.b) tintVaries = true;
             }
-            var alphas = tintGradient.alphaKeys;
+            var alphas = tintGradient.AlphaKeys;
             for (int i = 1; i < alphas.Length; i++)
                 if (alphas[0].alpha != alphas[i].alpha) tintVaries = true;
         }
 
         internal Color SampleTint(ref uint state, uint stampIndex) => tintVaries
-            ? tintGradient.Evaluate(SampleRandom(ref state, stampIndex, 4)) : constantTint;
+            ? tintGradient.EvaluateEncoded(SampleRandom(ref state, stampIndex, 4)) : constantTint;
 
         internal float GetScatterExponent()
         {
@@ -176,9 +176,9 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private static Gradient WhiteGradient()
+        private static WhimTexGradient WhiteGradient()
         {
-            var result = new Gradient();
+            var result = new WhimTexGradient();
             result.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
                 new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(1f, 1f) });
             return result;

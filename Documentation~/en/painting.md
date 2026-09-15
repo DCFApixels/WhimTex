@@ -5,7 +5,7 @@ nav_order: 4
 lang: "en"
 description: "Paint textures in Unity with WhimTex Brush, Pencil and Fill. Use textured brushes, gradients, scatter and presets for quick touch-ups and VFX masks."
 permalink: "/en/painting/"
-alternate: "ru/painting.md"
+translations: "en/painting.md,ru/painting.md,zh/painting.md"
 previous_page: "en/transform.md"
 next_page: "en/selection.md"
 ---

@@ -4,7 +4,7 @@ parent: "English"
 nav_order: 15.1
 lang: en
 permalink: /en/ai-authoring/
-alternate: ru/ai-authoring.md
+translations: "en/ai-authoring.md,ru/ai-authoring.md,zh/ai-authoring.md"
 ---
 
 # Create layers with browser AI

@@ -21,8 +21,10 @@ namespace DCFApixels.WhimTex
         public DistancePosition distancePosition = DistancePosition.Signed;
         public bool inverted;
         public float maxDistanceNormalization;
-        public Gradient gradient = GradientUtility.Create(GradientUtility.WhiteToBlack);
+        public WhimTexGradient gradient = GradientUtility.CreateLinearWhiteToBlack();
 
+        [NonSerialized] private WhimTexGradientTexture gradientLut;
+        [NonSerialized] private Material gradientMaterial;
         internal override bool RequiresColorInput => sourceChannel != SourceChannel.Alpha;
 
         internal override RenderTexture Render(in LayerRenderContext context)
@@ -33,6 +35,9 @@ namespace DCFApixels.WhimTex
             Texture2D inputTexture = TextureCompositor.CopyToTexture2D(context.input, uploadToGpu: false);
             NativeArray<float> signedDistances = default;
             Texture2D resultTexture = null;
+            RenderTexture colored = null;
+            RenderTexture previous = RenderTexture.active;
+            bool srgb = GL.sRGBWrite;
             try
             {
                 NativeArray<Color32> inputPixels = inputTexture.GetRawTextureData<Color32>();
@@ -49,52 +54,34 @@ namespace DCFApixels.WhimTex
                     (int)sourceChannel,
                     metric);
 
-                resultTexture = new Texture2D(context.width, context.height, TextureFormat.RGBAFloat, false, true)
+                resultTexture = new Texture2D(context.width, context.height, TextureFormat.RFloat, false, true)
                 {
                     hideFlags = HideFlags.HideAndDontSave,
-                    filterMode = FilterMode.Bilinear,
-                    wrapMode = TextureWrapMode.Clamp
+                    filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp
                 };
-                NativeArray<Color> outputPixels = resultTexture.GetRawTextureData<Color>();
-                float maxDistance = GetNormalizationDistance(context);
-                bool isTwoColorGradient = GradientUtility.IsTwoColorGradient(gradient, out Color left, out Color right);
-                Gradient evaluatedGradient = gradient ?? GradientUtility.WhiteToBlack;
-
-                if (isTwoColorGradient)
-                {
-                    SdfTwoColorOutputJob job = new SdfTwoColorOutputJob
-                    {
-                        signedDistances = signedDistances,
-                        output = outputPixels,
-                        left = new float4(left.r, left.g, left.b, left.a),
-                        right = new float4(right.r, right.g, right.b, right.a),
-                        maxDistance = maxDistance,
-                        distancePosition = (int)distancePosition,
-                        inverted = inverted
-                    };
-                    job.Schedule(outputPixels.Length, 128).Complete();
-                }
-                else
-                {
-                    for (int i = 0; i < signedDistances.Length; i++)
-                    {
-                        float distance = ConvertDistance(signedDistances[i]);
-                        float normalized = distancePosition == DistancePosition.Signed
-                            ? (distance + maxDistance) / (2f * maxDistance)
-                            : distance / maxDistance;
-                        normalized = math.clamp(normalized, 0f, 1f);
-                        if (inverted)
-                            normalized = 1f - normalized;
-
-                        outputPixels[i] = HdrUtility.Decode(evaluatedGradient.Evaluate(normalized));
-                    }
-                }
-
+                resultTexture.SetPixelData(signedDistances, 0);
                 resultTexture.Apply(false, false);
-                return ApplyTransformAndModifiers(resultTexture, context);
+                gradient ??= GradientUtility.CreateLinearWhiteToBlack();
+                gradientLut ??= new WhimTexGradientTexture();
+                if (gradientMaterial == null)
+                {
+                    var shader = Shader.Find("Hidden/TextureCompositor/SdfGradient");
+                    if (shader == null || !shader.isSupported) throw new InvalidOperationException("SDF gradient shader unavailable.");
+                    gradientMaterial = new Material(shader) { hideFlags = HideFlags.HideAndDontSave };
+                }
+                gradientMaterial.SetTexture("_GradientLut", gradientLut.GetTexture(gradient, ColorSpace.Gamma));
+                gradientMaterial.SetFloat("_MaxDistance", GetNormalizationDistance(context));
+                gradientMaterial.SetInt("_Position", (int)distancePosition);
+                gradientMaterial.SetInt("_Inverted", inverted ? 1 : 0);
+                colored = RenderTexture.GetTemporary(context.width, context.height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+                GL.sRGBWrite = false;
+                Graphics.Blit(resultTexture, colored, gradientMaterial);
+                return ApplyTransformAndModifiers(colored, context);
             }
             finally
             {
+                RenderTexture.active = previous; GL.sRGBWrite = srgb;
+                if (colored != null) RenderTexture.ReleaseTemporary(colored);
                 if (signedDistances.IsCreated)
                     signedDistances.Dispose();
                 if (inputTexture != null)
@@ -102,6 +89,14 @@ namespace DCFApixels.WhimTex
                 if (resultTexture != null)
                     UnityEngine.Object.DestroyImmediate(resultTexture);
             }
+        }
+
+        internal override void ReleaseTransientResources()
+        {
+            gradientLut?.Dispose(); gradientLut = null;
+            if (gradientMaterial != null) UnityEngine.Object.DestroyImmediate(gradientMaterial);
+            gradientMaterial = null;
+            base.ReleaseTransientResources();
         }
 
         public override string ToString()

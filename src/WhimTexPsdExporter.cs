@@ -216,7 +216,8 @@ namespace DCFApixels.WhimTex
 
         private static bool CanExportGradient(GradientLayerBehaviour layer, bool modifiers)
         {
-            if (modifiers || layer.gradient == null || layer.gradient.mode == GradientMode.Fixed ||
+            if (modifiers || layer.gradient == null || layer.gradient.Mode != WhimTexGradientMode.Classic ||
+                layer.gradient.ColorSpace != ColorSpace.Gamma || layer.gradient.Smoothness != 0f ||
                 (layer.transform.tiling != TransformTilingMode.Clip && layer.transform.tiling != TransformTilingMode.Source)) return false;
             bool linear = layer.gradientType == GradientLayerBehaviour.GradientType.Horizontal || layer.gradientType == GradientLayerBehaviour.GradientType.Vertical;
             Vector2 scale = layer.transform.scale;
@@ -247,15 +248,17 @@ namespace DCFApixels.WhimTex
         private static PsdWriter.Descriptor Gradient(GradientLayerBehaviour layer, int width, int height)
         {
             var colors = new List<PsdWriter.Descriptor>();
-            foreach (GradientColorKey key in layer.gradient.colorKeys)
+            int index = 0;
+            foreach (GradientColorKey key in layer.gradient.ColorKeys)
                 colors.Add(new PsdWriter.Descriptor("Clrt").Object("Clr ", Rgb(key.color)).Enum("Type", "Clry", "UsrS")
-                    .Int("Lctn", Mathf.RoundToInt(key.time * 4096f)).Int("Mdpn", 50));
+                    .Int("Lctn", Mathf.RoundToInt(key.time * 4096f)).Int("Mdpn", Mathf.RoundToInt(layer.gradient.GetMidpoint(false, index++) * 100f)));
             var alpha = new List<PsdWriter.Descriptor>();
-            foreach (GradientAlphaKey key in layer.gradient.alphaKeys)
+            index = 0;
+            foreach (GradientAlphaKey key in layer.gradient.AlphaKeys)
                 alpha.Add(new PsdWriter.Descriptor("TrnS").Unit("Opct", "#Prc", key.alpha * 100d)
-                    .Int("Lctn", Mathf.RoundToInt(key.time * 4096f)).Int("Mdpn", 50));
+                    .Int("Lctn", Mathf.RoundToInt(key.time * 4096f)).Int("Mdpn", Mathf.RoundToInt(layer.gradient.GetMidpoint(true, index++) * 100f)));
             var gradient = new PsdWriter.Descriptor("Grdn").Text("Nm  ", layer.layerName).Enum("GrdF", "GrdF", "CstS")
-                .Int("Intr", 4096).Objects("Clrs", colors).Objects("Trns", alpha);
+                .Int("Intr", 0).Objects("Clrs", colors).Objects("Trns", alpha);
             string type;
             double angle = 0, scale = 100;
             switch (layer.gradientType)

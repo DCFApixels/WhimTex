@@ -5,7 +5,7 @@ nav_order: 11
 lang: "en"
 description: "Edit HDR textures and pack RGBA channels in Unity with WhimTex. Inspect individual channels, configure Swizzle and control layer color and blend ranges."
 permalink: "/en/color/"
-alternate: "ru/color.md"
+translations: "en/color.md,ru/color.md,zh/color.md"
 previous_page: "en/preview.md"
 next_page: "en/post-fx.md"
 ---
@@ -53,6 +53,17 @@ A blank value means the two are different.
 
 Switching to Standard does not erase stored HDR colors.
 Use **Convert to 8-bit** only if you want to permanently reduce the stored color range.
+
+## Edit a gradient
+
+Click a gradient field to edit its colors and opacity. **Classic** gives familiar color blends;
+**Linear** blends light, **Perceptual** keeps perceived color transitions more even,
+and **Fixed** makes hard bands. **Smoothness** softens transitions around keys;
+the small diamonds move the halfway point between neighboring keys. Fixed ignores both controls.
+
+Use **HDR** beside the selected color when extra brightness is needed. Drag a key vertically
+away from its track to delete it; each track keeps at least one key. Right-click a gradient field
+to **Copy** or **Paste** an independent copy. SDF layers start with **Linear** interpolation.
 
 ## Rearrange channels with Swizzle
 

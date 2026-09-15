@@ -14,7 +14,7 @@ Do not use the live-agent examples in the parent folder for Ctrl+V.
 
 - [JSON Schema](Documentation~/AI/layers.schema.json)
 - [Complete JSON examples for AI authors](Documentation~/Examples/Clipboard/README.md): neon ring, car wheel, lightning, heart and more.
-- [Artist workflow: English](Documentation~/en/ai-authoring.md) · [Русский](Documentation~/ru/ai-authoring.md)
+- [Artist workflow: English](Documentation~/en/ai-authoring.md) · [Русский](Documentation~/ru/ai-authoring.md) · [简体中文](Documentation~/zh/ai-authoring.md)
 
 No Unity connection, agent plugin or local files are needed: return JSON for the user to copy,
 then paste with **Ctrl+V** in WhimTex. For shader-only requests return HLSL for **+ Shader FX**.

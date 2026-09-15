@@ -5,7 +5,7 @@ nav_order: 6
 lang: "ru"
 description: "Рисуй бесшовные текстуры и повторяющиеся узоры в Unity с WhimTex. Тайловое превью, перенос мазков через края, зеркальная и радиальная симметрия."
 permalink: "/ru/symmetry/"
-alternate: "en/symmetry.md"
+translations: "en/symmetry.md,ru/symmetry.md,zh/symmetry.md"
 previous_page: "ru/selection.md"
 next_page: "ru/effects.md"
 ---

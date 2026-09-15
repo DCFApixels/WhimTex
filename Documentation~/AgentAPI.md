@@ -191,7 +191,9 @@ Persistent layer IDs are returned per operation and in `document.layers`.
 
 `document.layers` is flat, with `parent` and sibling `index`. Index zero is visually topmost.
 `settings` contains editable values; hierarchy, target and transform have separate fields/operations.
-`gradientKeys` is inspection data with separate color/alpha keys, not the editable gradient-stop format.
+`gradientKeys` contains separate color/alpha keys, interpolation, smoothness and midpoints.
+Gradient inputs accept either an ordered stop array or the object form documented in
+[the gradient contract](AI/README.md); SDF defaults to Linear, other gradients to Classic.
 
 ### Operations
 
@@ -231,7 +233,7 @@ Persistent layer IDs are returned per operation and in `document.layers`.
 | Shape | `shape`: partial settings object described below |
 | Blur | `blur`: partial settings object; `mode`: Gaussian (default), Linear or Circular; [Gaussian](#gaussian-blur-settings), [motion](#motion-blur-settings) |
 | Make Seamless | `makeSeamless`: `{ "horizontal": "LeftToRight", "vertical": "BottomToTop", "blendWidth": 0.2, "falloff": 1 }`; [parameters](#make-seamless-settings) |
-| Gradient, SDF | `gradient`: 2..8 `{"time":0.0,"color":[1,1,1,1]}` stops in strictly increasing time order, time 0..1 |
+| Gradient, SDF | `gradient`: 1..64 `{"time":0.0,"color":[1,1,1,1]}` stops in strictly increasing time order, time 0..1 |
 
 SDF/Outline `metric` accepts `EuclideanExact` (default), `EuclideanApproximate`, `Manhattan`,
 `Chebyshev` and `EuclideanAntialiased`. The latter interpolates threshold crossings between horizontal/vertical
@@ -591,12 +593,12 @@ Color alpha zero leaves no mark, including for the eraser; eraser strength other
 | `angleJitter` | 0..180 degrees, default 0; offset sampled from −jitter to +jitter per stamp, added after `rotationMode` and `angleOffset`. Ignored without a tip texture |
 | `flipX`, `flipY` | 0..1, default 0; per-stamp horizontal/vertical reflection probabilities in tip-local axes, before rotation. 0 never flips, 1 always flips; intermediate probabilities sample each axis separately. Ignored without a texture tip. Symmetry copies share the chosen flips |
 | `randomAlgorithm` | `Random` (default) or `Sobol`; controls scatter, size, angle, tint and flip sampling. Sobol uses seven fixed dimensions (scatter angle/radius, size, angle, tint, flip X/Y) and a seeded digital shift; enabling tint or flips does not perturb scatter. The sample index continues across stroke segments, including clipped stamps, and resets per stroke; symmetry copies share a sample |
-| `tintGradient` | 2..8 ordered `{time, color}` stops, like a Gradient layer; default opaque white. Differing RGB or alpha keys trigger random sampling per stamp; identical keys give a constant multiplier without consuming random samples. Reset by supplying two opaque-white stops |
+| `tintGradient` | 1..64 ordered `{time, color}` stops, like a Gradient layer; default opaque white. Differing RGB or alpha keys trigger random sampling per stamp; identical keys give a constant multiplier without consuming random samples. Reset by supplying two opaque-white stops |
 | `tip` | Imported Texture2D asset path, or null for a procedural brush. The document's own output is rejected. Does not change texture import settings |
 | `tipChannel` | `Alpha` (default), `Luminance`, `InvertedLuminance`, `Color`. Ordinary tips use alpha for coverage, optionally multiplied by luminance/inverted luminance. Color also multiplies painting RGB by the tip RGB |
 | `proceduralMode` | `Hardness` (default) or `SdfGradient`. Used only when `tip` is null; independent of textured `tipSdf`. Procedural gradient coordinate is `radius`, where radius is distance from stamp center divided by half the brush Size: center 0, edge 1. Pixels outside the circular tip are discarded. Uses the shared `tipGradient`, including its RGB and alpha; Pencil ignores this mode |
 | `tipSdf` | Boolean, default false. For a textured brush, sample `tipGradient` at `1 − selected field`. Alpha and Color use alpha as the field, without multiplying the original alpha again; luminance modes use brightness then multiply coverage by original alpha. Higher field values are inside, corresponding to lower gradient coordinates. Ignored without a texture tip |
-| `tipGradient` | 2..8 ordered `{time, color}` stops. Default white with alpha 1 at 0.4 and alpha 0 at 0.6. Shared by procedural SdfGradient and textured SDF modes. Coordinates run from interior 0 to outer edge 1: RGB multiplies brush/tint RGB, alpha supplies coverage. Replaces `tipThreshold`; hardness no longer affects SDF. Inspect returns `tipGradientKeys` (separate colors/alphas). A cached 1024×1 linear RGBAHalf premultiplied LUT, clamped and mip-filtered, approximates the gradient on GPU. Editor Standard input mode removes key intensity without changing stored values; API strokes always use supplied values |
+| `tipGradient` | 1..64 ordered `{time, color}` stops. Default white with alpha 1 at 0.4 and alpha 0 at 0.6. Shared by procedural SdfGradient and textured SDF modes. Coordinates run from interior 0 to outer edge 1: RGB multiplies brush/tint RGB, alpha supplies coverage. Replaces `tipThreshold`; hardness no longer affects SDF. Inspect returns `tipGradientKeys` (separate colors/alphas). A cached 1024×2 linear RGBAHalf premultiplied LUT, clamped and mip-filtered, approximates the gradient on GPU. Editor Standard input mode removes key intensity without changing stored values; API strokes always use supplied values |
 | `blend` | Layer BlendMode names except `Overwrite` and `None`; default `Normal`. Application is controlled by `blendApplication`; ignored for erase |
 | `blendApplication` | `Stroke` (default) or `Stamp`. Stroke blends accumulated source-over stamps against the pre-stroke layer. Stamp blends each stamp against the evolving layer, so earlier stamps participate. Flow affects each stamp; Opacity interpolates the pre-stroke and fully accumulated results once in premultiplied linear space, without feeding that interpolation into subsequent stamps. Normal and erase retain the existing equivalent fast paths. Symmetry stamps are applied in their generated order; periodic copies of one stamp share its backdrop |
 | `seed` | Integer 1..2147483647, default 1; repeatable random sequence, restarted per stroke |
