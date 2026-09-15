@@ -1,6 +1,6 @@
 {
     "name": "com.dcfapixels.whimtex",
-    "version": "0.10.13",
+    "version": "0.10.14",
     "displayName": "WhimTex",
     "description": "WhimTex is a Unity sprite editor and texture editor for quick touch-ups, VFX textures and procedural masks. Paint, combine layers, generate noise and use the editable composition as a texture without leaving Unity.",
     "unity": "6000.0",

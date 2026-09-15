@@ -22,11 +22,13 @@ next_page: "zh/effects.md"
 
 | 模式 | 用途 |
 | :--- | :--- |
-| Mirror | 沿 X、Y 或两个轴反射的笔触。移动 Center 并旋转 Angle 来放置轴线。 |
+| Mirror | **Mirror X** 和 **Mirror Y** 是反射开关，不是轴线。X 沿经过 **Center** 的垂直线反射，Y 沿水平线反射。**Angle** 旋转这两条线。 |
 | Horizontal / Vertical | 一行或一列副本。 |
 | Grid | 按行和列排列的副本。 |
 | Radial | 围绕 Center 排列的副本。选择扇区数量并旋转 Start Angle 来放置它们。 |
 | None | 不带副本的普通绘制。 |
+
+**Count** 设置副本数量（2–64）；Grid 用 **Count X** 设置列数、**Count Y** 设置行数。
 
 在重复模式下，选择 **Copy** 获得完全相同的副本，或选择 **Alternate Mirror**
 来反射每第二个副本。
@@ -36,9 +38,6 @@ next_page: "zh/effects.md"
 **Edges → Clip** 会让每个笔触留在你开始绘制它的分段内。
 当你希望笔触延伸到相邻分段时，选择 **Continue**。
 
-对于 0° 的 Mirror，X 沿垂直线反射，Y 沿水平线反射。
-需要斜向轴时，请旋转角度。
-
 ## 绘制无缝边缘
 
 1. 在 Preview 上方启用 **Tiled**。
@@ -46,8 +45,8 @@ next_page: "zh/effects.md"
 3. 跨过边界绘制：被裁剪的部分会在对侧边缘继续。
 4. 缩小视图以检查重复的图案。
 
-Tiled 不会放大保存的图像。
-对于模糊等效果，还需选择 **Edges → Repeat**，以避免在其边界处出现接缝。
+Tiled 显示重复图像并让笔触跨越边缘，但不会扩大画布。图层变换和导出尺寸保持不变。
+效果的 **Edges** 设置见[效果图层](effects.md)。
 
 ## 我需要哪种重复设置？
 

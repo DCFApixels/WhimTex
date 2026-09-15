@@ -14,14 +14,23 @@ next_page: "zh/color.md"
 使用预览可以放大检查你的图像、检查接缝或查看各个通道。
 更改视图不会改变文档尺寸。
 
-在页脚中，**Live Quality**、**Live Update**、**Post FX** 和 **UV** 位于左侧。**HDR**、**EV**、**Debug** 和 **RGBA** 位于右侧，它们之间是工具提示。
+预览底部集中放置质量、模型纹理实时更新、后处理、UV 展开、参考线和通道查看设置。
+这里还有用于颜色输入的 **HDR** 模式和当前工具的提示。
+
+## 网格 UV 叠加
+
+在页脚中启用 **UV** 并指定 **Mesh**，即可在图像上看到其 UV 岛轮廓。UV 面板可让你选择通道、子网格、线条颜色和不透明度。轮廓会跟随缩放、平移和视图旋转，且绝不会出现在导出中。要绘制模型的特定部分，请使用 [UV 岛选择](selection.md#选择-uv-岛屿)。
+
+<a href="{{ '/Images/uv-rubik-cube.png' | relative_url }}"><img src="{{ '/Images/uv-rubik-cube.png' | relative_url }}" alt="Painting a Rubik's cube texture in WhimTex with its UV outlines visible and the textured cube beside it in Unity Scene view" width="720"></a>
+
+利用 UV 轮廓将细节放到正确的面上。启用 [Live Update](saving.md) 后，你在绘制时可以在 Scene View 中看到模型上的画笔编辑。
 
 ## 图像过滤
 
 **Canvas → Filter** 选择最终图像的过滤方式：**Point** 保持像素锐利，
 **Bilinear** 平滑像素过渡，**Trilinear** 还会在可用时混合 mip 层级。这不会启用 mipmap。该设置会随文档保存，并应用于其输出纹理、Live Update 以及导出到项目 Assets 中的图像。
 PNG/JPEG/EXR 文件本身不会为其他应用程序存储采样模式。
-Pencil 会临时以 Point 过滤显示预览，而不更改此设置。
+Pencil 始终使用 Point 过滤和完整质量显示预览，不修改此设置。
 
 ## 移动视图
 
@@ -35,26 +44,19 @@ Pencil 会临时以 Point 过滤显示预览，而不更改此设置。
 
 视图旋转不会旋转图层，也不影响保存和导出。
 
-开启 **Tiled** 可查看图像的重复副本并跨边缘绘制。
+**Tiled** 位于 **Canvas** 栏的 W、H 和 Filter 旁。开启后可查看重复图像并跨边缘操作：
+绘制、擦除、填充和选区会延伸到画布的另一侧。保存的图像尺寸和图层变换不变。
 参见[无缝绘制](symmetry.md)。
 
-## 网格 UV 叠加
-
-在页脚中启用 **UV** 并指定 **Mesh**，即可在图像上看到其 UV 岛轮廓。UV 面板可让你选择通道、子网格、线条颜色和不透明度。轮廓会跟随缩放、平移和视图旋转，且绝不会出现在导出中。要绘制模型的特定部分，请使用 [UV 岛选择](selection.md#选择-uv-岛屿)。
-
-<a href="{{ '/Images/uv-rubik-cube.png' | relative_url }}"><img src="{{ '/Images/uv-rubik-cube.png' | relative_url }}" alt="Painting a Rubik's cube texture in WhimTex with its UV outlines visible and the textured cube beside it in Unity Scene view" width="720"></a>
-
-利用 UV 轮廓将细节放到正确的面上。启用 [Live Update](saving.md) 后，你在绘制时可以在 Scene View 中看到模型上的画笔编辑。
-
 ## 参考线
+
+从预览左侧的窄条拖出可创建垂直参考线，从顶部窄条拖出可创建水平参考线。
+即使在旋转后的画布上，新线条也与该窄条平行；之后它会随画布一起移动、缩放和旋转。
 
 在当前预览中水平或垂直的参考线显示为明亮的青色；倾斜的参考线使用更柔和的蓝灰色。颜色会随视图旋转而更新，但不改变吸附。
 
 在 **User Settings → Guides & Snapping** 中，为 **Aligned Guides**、**Angled Guides** 和 **Active Guide**（悬停、选中或拖拽中）选择颜色。即将被删除的参考线保持红色。
 **Snap Radius (px)** 设置参考线、交点、画布边缘和轴心锚点的吸引距离：1–64 个 UI 像素，默认 8，与缩放无关。角度吸附保持不变。这些偏好设置会跨窗口应用并在会话之间保存；**Reset Guides & Snapping** 会恢复其默认值。
-
-从预览左侧的窄条拖出可创建垂直参考线，从顶部窄条拖出可创建水平参考线。
-即使在旋转后的画布上，新线条也与该窄条平行；之后它会随画布一起移动、缩放和旋转。
 
 拖拽现有线条可重新定位它。将其放回任一窄条或预览之外可删除它；`Esc` 取消拖拽。
 你可以使用任意工具从边缘窄条创建参考线。只有 **Zoom**、**Transform** 和 **Layer Select** 可以抓取现有线条来移动或拖拽删除。绘制、填充和区域选择工具会忽略现有参考线；线条仍然可见。
@@ -65,7 +67,7 @@ Pencil 会临时以 Point 过滤显示预览，而不更改此设置。
 - **Show Guides** — 隐藏或显示线条。预览页脚中 **UV** 旁边的 **Guides** 按钮作用相同。隐藏的参考线不会吸引工具；创建新参考线会再次显示它们。
 - **Lock Guides** — 保护现有线条不被编辑。你仍然可以创建新参考线，并让工具吸附到已锁定的参考线。
 - **Snap to Guides** — 切换吸附；按住 `Ctrl` 可临时跳过。`Ctrl` 还可让 Zoom 和 Transform 穿过现有线条进行抓取。
-- **Undo Guide Change / Redo Guide Change** — 撤销或重做参考线编辑，而不影响绘制。这些命令与文档的 `Ctrl+Z` 历史分开。
+- **Undo Guide Change / Redo Guide Change** — 撤销或重做参考线编辑，不影响绘制。
 - **Clear Guides** — 移除所有参考线。
 
 移动或缩放图层（包括 Shader FX Transform 2D 区域）时，其边缘会吸附到平行的参考线。移动时其中心线也会吸附。边缘会忽略倾斜的参考线；旋转变换可使其与某条参考线平行或垂直对齐。`Shift` 保留其通常的旋转和缩放约束。
@@ -78,7 +80,7 @@ Pencil 会临时以 Point 过滤显示预览，而不更改此设置。
 
 拖拽参考线会将其吸附到平行的画布边缘、画布中心、所选图层的平行边缘和中心线，但不会吸附到其他参考线。它也可以吸附到参考线交点，但如果有与拖动线平行的参考线经过该交点，则忽略该交点。按住 `Ctrl` 可自由放置。
 
-参考线绝不会出现在导出中。它们会保留在当前窗口中，包括脚本重新加载时，但在切换文档时会被清除，且不会保存在合成器文件中。参考线的撤销历史会保留到文档切换或脚本重新加载为止。
+参考线不会导出，切换文档时会清除。
 
 ## 平衡细节与响应速度
 
@@ -86,11 +88,9 @@ Pencil 会临时以 Point 过滤显示预览，而不更改此设置。
 如果在大图像上绘制感觉缓慢，可在页脚中调低它。
 保存和导出仍使用完整分辨率。
 
-Pencil 始终以完整质量显示锐利像素，因此你可以准确地放置单个像素。
-
 ## 在模型上查看你的绘制
 
-1. 保存合成器并将其纹理资源指定给模型的材质。
+1. 保存文档并将其纹理指定给模型材质。
 2. 在预览页脚中 **Post FX** 旁边开启 **Live Update**（圆形按钮）。
 3. 绘制或调整图层：使用该纹理的对象会在 Scene View 中更新。
 
@@ -109,7 +109,7 @@ Live Update 显示的作品不包含 EV、通道显示遮罩、Debug 或预览 P
 
 ### 在另一个文档中使用合成器
 
-将已保存合成器的输出纹理指定给另一个文档中的 **File** 图层。
+将已保存文档的输出纹理指定给另一个文档中的 **File** 图层。
 保存源文档会自动刷新接收窗口。要在编辑时看到更改，请在
 **源窗口中启用 Live Update**。接收窗口无需启用 Live Update 就能显示它们。
 关闭 Live Update 也会让接收窗口恢复为已保存的图像。
@@ -136,4 +136,4 @@ Live Update 显示的作品不包含 EV、通道显示遮罩、Debug 或预览 P
 bug 按钮会高亮显示颜色值无效的像素。用它来排查看起来损坏的
 效果；其高亮颜色也在 User Settings 中。该叠加层不会包含在保存的图像中。
 
-Zoom、Tiled、EV 和 [Post FX](post-fx.md) 只更改视图。
+Zoom、EV 和 [Post FX](post-fx.md) 只改变查看效果。**Tiled** 还会影响绘制，让笔触跨越画布边缘。

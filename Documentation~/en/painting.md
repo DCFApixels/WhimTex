@@ -66,11 +66,10 @@ Scatter spreads the stamps without shrinking them; wide scatter may extend beyon
 Use **Preview Scale (%)** below the sample to manually shrink it and fit more scatter.
 This changes only the sample, not the brush size you paint with.
 
-Use **↺** in the **Tip**, **Stamps** or **Color** header to reset only that section.
-Section resets preserve **Size, Hardness, Spacing, Opacity and Flow**.
-Stamps keeps your current Spacing while resetting its other settings.
-The Color reset restores white Tint and Normal blending, without changing palette colors,
-Opacity or Flow. The small button beside Tint resets just the gradient.
+Use **↺** in the **Tip**, **Stamps** or **Color** header to reset that section,
+preserving **Size, Hardness, Spacing, Opacity and Flow**. The Hardness/Gradient mode can still change.
+Palette colors are not reset. The small button beside **Tint** resets only its gradient to opaque white,
+which leaves the brush color unchanged.
 
 | Setting | What it changes |
 | :--- | :--- |
@@ -97,10 +96,8 @@ the gradient's colors without an additional color tint.
 
 These advanced settings belong to **Brush**, not Pencil or Fill.
 
-A **procedural brush** has no Texture assigned; a **textured brush** uses an image as its tip.
-For a procedural brush, choose **Gradient** using the arrow next to Hardness in the preview header. The gradient runs from
-**0 at the circular tip's center** to **1 at its outer edge**. Choose **Hardness** to return
-to the familiar soft-edge control. Assigning a texture keeps your procedural mode for later.
+For a procedural brush, the gradient runs from **0 at the circular tip's center** to **1 at its outer edge**.
+Assigning a texture preserves the selected procedural brush mode.
 
 For a textured SDF brush, enable **SDF** in Tip, choose the channel containing the distance field,
 then edit **Gradient** in the preview header while watching the sample. Start with white color keys to keep

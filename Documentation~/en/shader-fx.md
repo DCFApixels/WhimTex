@@ -16,23 +16,36 @@ You can use an existing effect and adjust its parameters without writing code.
 
 ## Apply an existing effect
 
-Drag a WhimTex effect `.hlsl` from Project onto a row in **Layers** to append an FX to that layer. Drop it onto the preview or empty space in the layer list to create a **Shader Processor** at the top of the composition. Each drop has independent parameters and supports Undo. HLSL brush presets and unmarked HLSL files are not accepted as effects.
-
-Custom HLSL effects and brushes can use the built-in noise library for grain,
-organic masks and distortion. See the [noise functions and example](../AI/README.md#built-in-noise-library).
-
 1. Select the layer you want to change.
 2. Use **+ Preset ▾** in its FX section and choose an effect by category.
-3. Adjust the effect's exposed sliders, colors or textures.
-4. Project HLSL effects follow their source file. Choose **Embed Copy** if you want to edit their code independently inside the document.
+3. Adjust its sliders, colors, textures, toggles and dropdowns. Changes appear immediately.
+
+An effect can offer a slider and a dropdown for the same setting: changing either updates the shared
+value. **Custom** means the current number is not one of the dropdown's predefined choices.
+
+Alternatively, drag a WhimTex effect `.hlsl` from Project onto a row in **Layers**.
+Dropping it onto the preview or empty space in the list creates a **Shader Processor** at the top of the composition.
+HLSL brush presets and files without the effect marker are not accepted.
 
 Each catalog effect has its own settings. The included **Color → Gain** adjusts brightness and tint;
-**Transform → UV Transform** repositions the incoming image.
+**Transform → UV Transform** repositions the incoming image within a visible frame. Everything outside the frame is transparent,
+so moving the image clips it at the frame. Distortion effects do not have this clipping.
 Effects added to the project become available automatically; no preset folder setup is needed.
 
-**+ Reference** is still available for choosing an asset manually. Its settings are shared with other
-places using that asset; **Embed** makes an independent copy.
-When several effects are present, their order matters.
+**+ Reference** selects a Shader FX asset whose settings are shared everywhere it is used.
+**Embed** on the effect row creates an independent copy in the document without changing the external asset.
+Project HLSL effects receive code changes from their source `.hlsl` file.
+To edit the code independently in the document, click **Embed Copy** under **Code & Parameters**.
+
+Effect order matters: the **↑** and **↓** arrows on each effect row apply it earlier or later in the sequence.
+
+**Normal map normalization**
+
+**Normal Map → Normalize** restores unit-length normals while preserving alpha.
+Use it after processing an RGB normal map if its vectors have changed length.
+Neutral `(0.5, 0.5, 1)` stays unchanged; an undefined direction becomes neutral.
+Keep **Packed Color** enabled for the Normal Map layer's default encoding; disable it for **Linear Data**.
+This toggle accounts for color encoding, but does not unpack platform-specific normal-map formats.
 
 ## Save your own preset
 
@@ -41,11 +54,12 @@ with the current parameter values as defaults, including colors and Transform 2D
 The file name becomes the preset name. You can save in the user library's **ShaderFX**
 subfolder or anywhere under the project's **Assets** folder. Overwriting keeps a `.bak` copy.
 
-Set the shared library location in **User Settings → Presets Folder**. Its **Brushes**
+Set the shared library location in **User Settings → Presets → Presets Folder**. Its **Brushes**
 and **ShaderFX** subfolders hold the two kinds of presets. You can also place existing
 HLSL presets in ShaderFX or its subfolders; reopen **+ Preset** to see them under **User**.
 User presets are copied into the document; later changes to their files do not change
-effects you have already added. Project HLSL effects still follow their source files.
+effects you have already added. Presets saved under the project's **Assets** remain linked to their files:
+editing a file updates all effects using it.
 
 Texture defaults are references, not embedded images. To use them in another project,
 also transfer the referenced texture assets with their `.meta` files, or assign replacements.
@@ -59,7 +73,8 @@ Click the button again or switch tools to leave this mode. Escape cancels the cu
 <a href="{{ '/Images/shader-processor-transform.png' | relative_url }}"><img src="{{ '/Images/shader-processor-transform.png' | relative_url }}" alt="WhimTex Shader Processor using a Spherize preset with a green Transform 2D frame on the preview" width="720"></a>
 
 The frame edits the effect, not the layer transform. Its purpose depends on the effect:
-it may place an image, change a pattern's scale, or define a local area. It is not automatically a mask.
+it may place an image, change a pattern's scale, or define a local area. It is not automatically a mask,
+but **UV Transform** leaves pixels outside the frame transparent.
 
 ## Distortion presets
 
@@ -69,9 +84,9 @@ Choose **FX → + Preset → Distortion → Spherize** or **Twirl**.
 - **Twirl / Angle:** twists around the center; the sign reverses direction. The angle is measured in degrees at the frame's local radius 1 and grows with distance.
 - **Area / Edit on Canvas:** move, resize or rotate the green coordinate frame. Stretch it to make the distortion elliptical.
 
-These effects do not mask or fade at the frame's edge. They continue outside it, including beyond
-local coordinates 0–1. Strong settings can sample outside the input image; those samples use the
-input texture's edge addressing. RGB and alpha are sampled together.
+Distortion effects—Spherize, Twirl and Polar Coordinates—do not mask or fade at the frame's edge.
+Distortion continues outside it. Strong settings can reveal areas beyond the input image,
+where its edge pixels are extended. RGB and alpha are distorted together.
 
 ### Polar coordinates
 
@@ -108,6 +123,9 @@ Unlike [Post FX preview](post-fx.md), both are included in the saved image.
 If you have shader code, use **+ Shader FX**, paste it into the editor and click **Apply**.
 The code and settings stay with the document; no separate file is required.
 If the code contains an error, the previous working version stays visible.
+
+Custom HLSL effects and brushes can use the built-in noise library for grain,
+organic masks and distortion. See the [noise functions and example](../AI/README.md#built-in-noise-library).
 
 Writing an effect is optional. The [shader authoring reference](../ShaderFX.md)
 is for creating code and reusable libraries.

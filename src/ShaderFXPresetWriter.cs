@@ -19,12 +19,37 @@ namespace DCFApixels.WhimTex
             {
                 ShaderFXMetadata.PreserveValues(values, effect.Parameters);
                 foreach (var old in effect.Parameters)
-                    if (old != null && !old.declaredInCode && !values.Exists(p => p.name == old.name && p.type == old.type))
+                    if (old != null && !old.declaredInCode && !values.Exists(p => p.name == old.name && ShaderFXMetadata.Compatible(p.type, old.type)))
                         throw new FormatException("Code declarations must include the existing parameter: " + old.name);
             }
             else foreach (var parameter in effect.Parameters) if (parameter != null) values.Add(parameter.Copy());
             var result = new StringBuilder("// @whimtex-effect " + menuPath + "\n");
-            foreach (var p in values) result.AppendLine(Declaration(p));
+            var rows = new System.Collections.Generic.List<(int order, string text)>();
+            foreach (var p in values)
+            {
+                if (p.controls.Count == 0) { rows.Add((0, Declaration(p))); continue; }
+                int defaultIndex = p.controls.FindIndex(c => c.type != ShaderFXParameterType.Bool);
+                if (defaultIndex < 0) defaultIndex = 0;
+                for (int i = 0; i < p.controls.Count; i++)
+                {
+                    var control = p.controls[i];
+                    var row = p.Copy(); row.type = control.type;
+                    row.hasMinimum = control.hasMinimum; row.hasMaximum = control.hasMaximum;
+                    row.minimum = control.minimum; row.maximum = control.maximum;
+                    string declaration;
+                    if (control.type == ShaderFXParameterType.Enum)
+                    {
+                        var options = new System.Collections.Generic.List<string>();
+                        for (int n = 0; n < control.optionNames.Length; n++) options.Add(control.optionNames[n] + ": " + Number(control.optionValues[n]));
+                        declaration = "// @param enum " + p.name + " = " + Number(p.floatValue) + " { " + string.Join(", ", options) + " }";
+                    }
+                    else declaration = Declaration(row);
+                    if (i != defaultIndex) declaration = Regex.Replace(declaration, @"\s*=\s*[^\[\{]+?(?=\s*[\[\{]|$)", "");
+                    rows.Add((control.order, declaration));
+                }
+            }
+            rows.Sort((a, b) => a.order.CompareTo(b.order));
+            foreach (var row in rows) result.AppendLine(row.text);
             result.AppendLine();
             using var reader = new StringReader(effect.Code ?? "");
             bool block = false;
@@ -57,8 +82,11 @@ namespace DCFApixels.WhimTex
             string prefix = "// @param ";
             switch (p.type)
             {
+                case ShaderFXParameterType.Bool:
+                    return prefix + "bool " + p.name + " = " + (p.BoolValue ? "true" : "false");
                 case ShaderFXParameterType.Float:
-                    return prefix + "float " + p.name + " = " + Number(p.Clamp(p.floatValue)) +
+                case ShaderFXParameterType.Enum:
+                    return prefix + "float " + p.name + " = " + Number(p.floatValue) +
                         (p.hasMinimum || p.hasMaximum ? " [" + (p.hasMinimum ? Number(p.minimum) : "") + " .. " + (p.hasMaximum ? Number(p.maximum) : "") + "]" : "");
                 case ShaderFXParameterType.Color:
                     var c = p.colorValue;

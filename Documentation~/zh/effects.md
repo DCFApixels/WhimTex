@@ -32,9 +32,8 @@ next_page: "zh/blending.md"
 ## 选择效果使用的对象
 
 **Input → Previous** 使用同一组中效果正下方的图层。
-选择 **Specific** 可选择另一个图层或组，或将其拖到 **Target** 上。
-Target 看起来像一个对象字段：一个缩略图和图层名称，右侧有一个圆形按钮
-用于打开图层列表。空字段显示 **None (Layer)**；有效放置会高亮该字段。
+选择 **Specific** 可指定另一个图层或组。点击 **Target** 从列表中选择，或将图层直接拖入字段。
+**None (Layer)** 表示尚未选择来源。
 拖动多个选中的图层时，活动图层会成为目标。
 
 你可以隐藏源并仍然看到效果。对于组，请隐藏组本身，
@@ -46,16 +45,18 @@ Target 看起来像一个对象字段：一个缩略图和图层名称，右侧�
 然后选择它位于边缘内侧、外侧还是跨越边缘。
 
 当你需要基于到形状距离的渐变过渡时，使用 **SDF**。
-**Threshold** 决定边缘从何处开始；**Max Distance** 控制过渡延伸的距离。
-使用渐变为其着色。距离算法会改变转角和对角线的特征：
+**Threshold** 设置确定轮廓的阈值，**Max Distance (px, 0 = auto)** 设置过渡距离；0 表示自动选择距离。
+**Position** 决定渐变覆盖轮廓的哪一侧：Outside 为外侧，Inside 为内侧，Center 为两侧。
+默认的 **Signed** 覆盖轮廓两侧。**Inverted** 反转渐变方向。
+距离算法会改变转角和对角线的特征：
 Euclidean 给出圆润的距离，而 Manhattan 和 Chebyshev 给出更棱角分明的结果。
 
 对于具有平滑、部分透明边缘的源，请在 SDF 或 Outline 中选择 **Distance Algorithm → Euclidean Antialiased**。Outline 会跟随 50% 透明通道边缘，即使跨越宽泛的柔和过渡也是如此；
 SDF 则使用其 **Threshold** 设置。永远达不到该阈值的区域不会形成轮廓。
 对于硬阈值轮廓或像素遮罩，请保留 **Euclidean Exact**。
 
-Outline 支持小数宽度。**Softness = 0** 保持清晰而平滑的边缘；
-增大 Softness 会羽化两侧，而不改变 Width 设置。
+Outline 的 **Width (px)** 支持小数。**Softness (px) = 0** 保持清晰而平滑的边缘；
+增大 **Softness (px)** 会羽化两侧，而不改变 **Width (px)**。
 **Offset (px)** 会移动边框而不改变其宽度：负值向内移动，正值向外移动。
 如果边框看起来与柔和的源脱节，可以尝试一个小的负偏移。
 
@@ -84,11 +85,11 @@ Outline 支持小数宽度。**Softness = 0** 保持清晰而平滑的边缘；
 1. 将它们放入一个组，并在其上方添加 Blur，将 Mode 设为 Gaussian。
 2. 让 Input 保持 Previous。
 3. 隐藏组本身，只显示模糊结果。
-4. 调整 Radius。
+4. 调整 Radius 和 Strength。
 
 ### Linear 和 Circular
 
-选择 **Linear** 可获得直线拖尾。**Distance** 设置其长度，**Angle** 设置其方向。
+选择 **Linear** 可获得直线拖尾。**Distance (px)** 设置长度，**Angle (deg)** 设置方向。
 选择 **Circular** 可获得旋转拖尾，然后设置 **Center** 和 **Arc**。
 
 **Direction** 决定拖尾相对于源的位置：围绕它、在它之前或在它之后。
@@ -103,7 +104,6 @@ Outline 支持小数宽度。**Softness = 0** 保持清晰而平滑的边缘；
 用 **Horizontal** 和 **Vertical** 选择将哪条边复制到其对侧边缘。
 你也可以点击字段上方图像图标的一条边来选择目标。
 再次点击高亮的那条边会关闭该轴；选择其对侧则会切换方向。
-图标和下拉菜单保持同步。
 将任一轴设为 **Off** 可使其保持不变。复制的条带会被镜像并淡入原始图像；
 两个轴都启用时，角也会被接合。
 
@@ -111,6 +111,7 @@ Outline 支持小数宽度。**Softness = 0** 保持清晰而平滑的边缘；
 反射更接近目标边缘。启用 **Tiled** 可在调整时检查接合处。
 这对噪声和表面纹理很有用，但可识别的形状在接合处附近可能看起来被镜像了。
 进一步的变换或效果可能会改变匹配的边缘，因此也要检查最终的平铺结果。
+如果需要用周围细节修复一块区域，而不是接合相对边缘，请使用[内容识别填充](selection.md#根据现有纹理细节填充)。
 
 ## 正确保持边缘
 
@@ -120,5 +121,7 @@ Outline 支持小数宽度。**Softness = 0** 保持清晰而平滑的边缘；
 - **Clamp：** 延伸边缘颜色。
 - **Repeat：** 环绕；对无缝纹理很有用。
 - **Mirror：** 在边界处反射图像。
+
+Normal Map 提供 **Clamp**、**Repeat** 和 **Mirror**，没有 **Transparent**。
 
 对于无缝工作，既要设置效果的 Edges，也要启用 [Tiled preview](symmetry.md)。

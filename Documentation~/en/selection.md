@@ -24,8 +24,8 @@ With Lasso, click around the outline and finish with
 
 For a **square or circle**, start dragging, then hold `Shift`. Release `Shift` to return to free proportions. Holding `Shift` before starting instead adds to the selection. To add a square or circle, choose **Add** above the canvas and press `Shift` during the drag.
 
-Choose **Replace**, **Add**, **Subtract** or **Intersect** above the canvas.
-You can also hold:
+The controls above the canvas choose **Add**, **Subtract** or **Intersect** (keep the overlap).
+With no mode selected, a new drag replaces the selection. You can also hold:
 
 - `Shift` to add an area.
 - `Alt` to subtract.
@@ -33,6 +33,7 @@ You can also hold:
 
 `Ctrl+A` selects the whole canvas. `Ctrl+Shift+I` selects the opposite area.
 `Ctrl+D` removes the selection so you can paint everywhere again.
+The selection survives tool and layer changes, but is not saved with the document.
 
 ## Select UV islands
 
@@ -44,9 +45,9 @@ Use a model's UV layout to paint individual parts of its texture:
 4. Click anywhere inside an island. `Shift` adds islands, `Alt` subtracts, and `Shift+Alt` intersects.
 5. Switch to Brush, Pencil or Fill to work inside the selected area. Copy and cut work with the same selection; `Ctrl+D` clears it.
 
-Only island boundaries are drawn, including holes; triangle diagonals are hidden. Small dots and hover highlights appear only in UV Island mode, so they do not intercept brush strokes. Holes remain outside the selection.
+Only island boundaries are drawn, without internal triangle diagonals. Small dots and hover highlights appear only in UV Island mode, so they do not intercept brush strokes.
 
-The Mesh reference and channel/submesh choices are saved with the document. **Line Color** and **Opacity** control the overlay. Close the side panel to keep drawing with the outlines visible; disable **UV** to hide them without clearing the selection. The overlay is never included in saved texture pixels or exports and does not edit the mesh.
+**Line Color** and **Opacity** control the overlay. Close the side panel to keep drawing with the outlines visible; disable **UV** to hide them without clearing the selection. The overlay is never included in saved texture pixels or exports and does not edit the mesh.
 
 Only the **0–1 UV tile** on the main canvas is shown and selectable, including when Tiled preview is enabled. If islands overlap, they share the same texture pixels: painting changes every model surface using those coordinates. Clicking an overlap consistently chooses the first matching island. **Refresh UV** reloads the layout if a procedural mesh changed without updating its asset.
 
@@ -60,7 +61,7 @@ It reuses details already in the image: useful for filling holes, extending text
 3. Enable **Transparent Only** to keep visible pixels and fill only empty areas.
 4. Choose where to sample: **Nearby** with **Sampling Distance (px)**, **Whole Image**, or **Custom Selection**. For a custom source, make another selection in the main window, then click **Use Current Selection as Sampling Area**. Your original fill area stays fixed.
 5. Click **Preview**. Compare with **Show Before**, or try **New Variation**. Higher **Quality** takes longer.
-6. Click **Apply** to add the filled pixels as a new Drawing layer above the stack. **Cancel** stops processing without changing the document.
+6. Click **Apply** to add the filled pixels as a new Drawing layer above the stack. **Cancel** stops processing without changing the document; once processing finishes, the button becomes **Close** and closes the window.
 
 Sampling Distance only changes where details are borrowed from; it does not expand the fill area. Keep unwanted objects out of the sampling region. Source pixels must be visible and outside the pixels being filled; the untouched center of an Inner Border can also supply details.
 
@@ -70,7 +71,7 @@ This is a flat-texture operation: it does not match corresponding edges across a
 
 ## Select a layer on the canvas
 
-Choose **Layer Select** (`V`, formerly No Tool) and click the image. The topmost layer whose alpha
+Choose **Layer Select** (`V`) and click the image. The topmost layer whose alpha
 meets **Alpha ≥ %** is selected; transparent areas let you pick layers below. The default threshold is **10%**.
 Change it in the tool's preview toolbar or **User Settings → Layer Select**; both controls share the same preference.
 Even at 0%, fully transparent pixels are ignored.
@@ -99,7 +100,7 @@ You can use a hidden layer as the shape.
 To transfer editable layers, deselect the canvas with `Ctrl+D`, select one or more rows in **Layers**, then press `Ctrl+C`.
 Switch to another WhimTex window and press `Ctrl+V`. Copies appear at the top of the stack with their names,
 settings, group contents, embedded FX and Drawing pixels. Each paste is independent; the source window can be closed after copying.
-Drawing textures keep their stored resolution. Layer transforms keep their values on the destination canvas.
+Drawing textures keep their original resolution. Layer transforms are copied as-is, without adjusting to the destination canvas size.
 Copy effects together with their target layers to preserve those links; targets outside the copied set must be assigned again.
 The layer clipboard lasts until another copy, a script reload or closing Unity. Text fields keep normal text copy/paste.
 
@@ -115,10 +116,8 @@ You can also copy a direct HTTP(S) image link and press `Ctrl+V`: WhimTex downlo
 as an independent Drawing layer, keeping its original pixels and transparency. It fits inside the canvas,
 centered with its proportions preserved, using the layer transform rather than resizing the image. The same size limits apply;
 downloads are limited to 64 MB. Links to web pages are not supported. Closing the window or switching documents
-cancels the download. To import a local file, drag it into the preview.
-A direct link can also arrive inside clipboard JSON, as a Drawing layer with `url`. WhimTex then asks
-for confirmation, naming the hosts, downloads every linked image, and inserts the whole tree, images
-included, as one Undo step.
+cancels the download. For a local file, first drag it into Project, then onto the preview.
+Image links also work when [pasting layers from JSON](ai-authoring.md). After download confirmation,
+WhimTex adds all layers and images together; a failed download cancels the entire insertion.
 
-A selection stays active when you change tools or layers. It is not saved with the document.
 If painting seems blocked, try `Ctrl+D`.

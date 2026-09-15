@@ -20,12 +20,24 @@ namespace DCFApixels.WhimTex
             if (effect == null) return;
             string key = "";
             foreach (var p in effect.Parameters)
-                if (p != null) key += $"{p.id}:{p.name}:{p.type}:{p.hasMinimum}:{p.minimum}:{p.hasMaximum}:{p.maximum}|";
+                if (p != null)
+                {
+                    key += $"{p.id}:{p.name}:{p.type}:{p.hasMinimum}:{p.minimum}:{p.hasMaximum}:{p.maximum}|";
+                    foreach (var control in p.controls) key += JsonUtility.ToJson(control);
+                }
             if (layoutKey != key)
             {
                 layoutKey = key;
                 Clear(); refresh.Clear();
-                foreach (var p in effect.Parameters) if (p != null) AddParameter(p);
+                var rows = new List<(ShaderFXParameter parameter, ShaderFXParameterControl control)>();
+                foreach (var p in effect.Parameters)
+                    if (p != null)
+                    {
+                        if (p.controls.Count == 0) rows.Add((p, null));
+                        else foreach (var control in p.controls) rows.Add((p, control));
+                    }
+                rows.Sort((a, b) => (a.control?.order ?? 0).CompareTo(b.control?.order ?? 0));
+                foreach (var row in rows) AddParameter(row.parameter, row.control);
             }
             foreach (var update in refresh) update();
         }
@@ -48,24 +60,66 @@ namespace DCFApixels.WhimTex
             Refresh();
         }
 
-        private void AddParameter(ShaderFXParameter declaration)
+        private void AddParameter(ShaderFXParameter declaration, ShaderFXParameterControl control = null)
         {
+            if (control != null)
+            {
+                declaration = declaration.Copy();
+                declaration.type = control.type;
+                declaration.hasMinimum = control.hasMinimum; declaration.hasMaximum = control.hasMaximum;
+                declaration.minimum = control.minimum; declaration.maximum = control.maximum;
+            }
             string id = declaration.id;
             string label = ObjectNames.NicifyVariableName(declaration.name.TrimStart('_'));
             switch (declaration.type)
             {
+                case ShaderFXParameterType.Enum:
+                    if (control == null) goto case ShaderFXParameterType.Float;
+                    var choices = new List<string>();
+                    foreach (var option in control.optionNames) choices.Add(ObjectNames.NicifyVariableName(option));
+                    for (int i = 0; i < choices.Count; i++)
+                        for (int j = i + 1; j < choices.Count; j++)
+                            if (choices[i] == choices[j])
+                            {
+                                choices[i] += " (" + control.optionNames[i] + ")";
+                                choices[j] += " (" + control.optionNames[j] + ")";
+                            }
+                    var dropdown = new DropdownField(label, choices, 0);
+                    dropdown.RegisterValueChangedCallback(e =>
+                    {
+                        int index = choices.IndexOf(e.newValue);
+                        if (index >= 0) Change(id, p => p.floatValue = control.optionValues[index]);
+                    });
+                    Add(dropdown);
+                    refresh.Add(() =>
+                    {
+                        int index = Array.IndexOf(control.optionValues, Find(id).floatValue);
+                        dropdown.SetValueWithoutNotify(index >= 0 ? choices[index] : "Custom (" + Find(id).floatValue.ToString("G9") + ")");
+                    });
+                    break;
+                case ShaderFXParameterType.Bool:
+                    var toggle = new Toggle(label);
+                    toggle.RegisterValueChangedCallback(e => Change(id, p => p.floatValue = e.newValue ? 1f : 0f));
+                    Add(toggle);
+                    refresh.Add(() => toggle.SetValueWithoutNotify(Find(id).BoolValue));
+                    break;
                 case ShaderFXParameterType.Float:
                     if (declaration.hasMinimum && declaration.hasMaximum && declaration.minimum < declaration.maximum)
                     {
                         var slider = new Slider(label, declaration.minimum, declaration.maximum) { showInputField = true };
-                        slider.RegisterValueChangedCallback(e => Change(id, p => p.floatValue = p.Clamp(e.newValue)));
+                        slider.RegisterValueChangedCallback(e => Change(id, p => p.floatValue = declaration.Clamp(e.newValue)));
                         Add(slider);
-                        refresh.Add(() => slider.SetValueWithoutNotify(Find(id).floatValue));
+                        refresh.Add(() =>
+                        {
+                            float value = Find(id).floatValue;
+                            slider.SetValueWithoutNotify(value);
+                            slider.Q<TextField>()?.SetValueWithoutNotify(value.ToString("G9", System.Globalization.CultureInfo.InvariantCulture));
+                        });
                     }
                     else
                     {
                         var field = new FloatField(label);
-                        field.RegisterValueChangedCallback(e => Change(id, p => p.floatValue = p.Clamp(e.newValue)));
+                        field.RegisterValueChangedCallback(e => Change(id, p => p.floatValue = declaration.Clamp(e.newValue)));
                         Add(field);
                         refresh.Add(() => field.SetValueWithoutNotify(Find(id).floatValue));
                     }
@@ -79,7 +133,7 @@ namespace DCFApixels.WhimTex
                     // Use the shared picker binding for HDR/Standard display semantics.
                     var data = new SerializedObject(effect);
                     int index = 0;
-                    for (; index < effect.Parameters.Count; index++) if (effect.Parameters[index] == declaration) break;
+                    for (; index < effect.Parameters.Count; index++) if (effect.Parameters[index].id == id) break;
                     var property = data.FindProperty("parameters").GetArrayElementAtIndex(index).FindPropertyRelative("colorValue");
                     var color = WhimTexColorInputs.Bind(new ColorField(label), property, effect.NotifyValuesChanged);
                     Add(color);

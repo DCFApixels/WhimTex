@@ -67,6 +67,8 @@ namespace DCFApixels.WhimTex
                 switch (parameter.type)
                 {
                     case ShaderFXParameterType.Float:
+                    case ShaderFXParameterType.Bool:
+                    case ShaderFXParameterType.Enum:
                         properties.AppendLine($"{name} (\"{name}\", Float) = 0");
                         uniforms.AppendLine($"float {name};");
                         break;

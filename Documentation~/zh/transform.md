@@ -34,17 +34,17 @@ Transform 工具栏中的 **Original Size** 还会恢复其像素尺寸：一个
 
 **Tiling** 控制图像原始边界之外显示的内容：
 
+- **Source** 跟随源纹理的设置。
 - **Clip** 让外侧保持透明。
 - **Repeat** 平铺图像。
 - **Mirror** 交替使用镜像副本。
-- **Source** 跟随源纹理的设置。
 - **Clamp** 将最外侧的像素延伸到图像边界之外。
 - **Unbounded** 会在画面之外继续计算 Noise、Gradient、Color Fill 和 Shape。
   File、Drawing 和栅格效果则改用 Clip。渐变色仍遵循其色标；
   这不会在第一个或最后一个色标之外外推新的颜色。
 
 **Filter** 控制边缘的平滑程度。选择 **Point** 用于像素画，或选择 **Bilinear** 用于平滑缩放。
-**Source** 跟随纹理的过滤方式；**Trilinear** 是另一种平滑选项，适用于支持它的纹理。
+**Source** 使用源纹理的过滤方式；**Trilinear** 还会平滑 mip 层级之间的过渡（如果存在）。
 
 如果你想改为跨越画布边缘绘制，请使用[平铺预览](symmetry.md)。
 

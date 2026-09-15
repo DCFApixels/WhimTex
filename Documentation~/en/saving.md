@@ -19,14 +19,13 @@ Export only when you need a separate image file.
 Press `Ctrl+S`. The first save asks for a location; later saves update the same file.
 **Save As** makes a separate copy. If you close a document with changes,
 you can save, discard them or cancel closing.
-Documents with no layers close or switch without a save prompt, even after deleting the last layer.
-You can still save an empty document manually.
+Documents with no layers close or switch without a save prompt, but can still be saved manually.
 
 The saved asset is ready to use as a **texture**.
 Expand it in Project to use **Output Sprite**. Double-click it to continue editing.
 
 Unity normally shows the **last saved image**. Enable [Live Update](preview.md#see-your-paint-on-a-model)
-to see edits on a model before saving. Save again to keep changes to the document or a linked texture.
+to see edits on a model before saving. If a linked texture changes, save the document again to update its output image.
 File layers keep their links to source textures; keep those sources in the project.
 
 ## Choose an export format
@@ -42,7 +41,7 @@ Use **Export** in the window header:
 | **Texture2D (.asset)** | A standalone Unity texture without the editable layers. |
 
 EXR and Texture2D keep HDR brightness. PNG, JPEG, TGA and PSD use the ordinary color range.
-Exporting does not reduce the colors stored in your original document.
+Exporting does not change the original document's color range.
 
 Preview settings such as zoom, EV and Post FX are not included in the saved or exported image.
 

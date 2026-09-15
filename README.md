@@ -19,7 +19,7 @@ Brush JSON examples: Documentation~/Examples/Brushes/README.md. Format: whimtex.
 <h1 align="center">WhimTex</h1>
 
 <p align="center">
-  Unity Sprite Editor &amp; Texture Editor for quick ideas, touch-ups and VFX.
+  Create textures, sprites and VFX masks right in Unity — without an external graphics editor.
 </p>
 
 <p align="center">
@@ -31,45 +31,64 @@ Brush JSON examples: Documentation~/Examples/Brushes/README.md. Format: whimtex.
 </p>
 
 <p align="center">
-  <b>English</b> · <a href="README-RU.md">Русский</a> · <a href="https://dcfapixels.github.io/WhimTex/zh/">简体中文</a>
+  <b>English</b> · <a href="README-RU.md">Русский</a> · <a href="README-ZH.md">简体中文</a>
 </p>
 
 <p align="center">
   <a href="#installation">Installation</a> ·
+  <a href="#why">Why WhimTex</a> ·
   <a href="#quick-start">Quick start</a> ·
-  <a href="#shortcuts">Shortcuts</a> ·
+  <a href="Documentation~/en/shortcuts.md">Shortcuts</a> ·
   <a href="CHANGELOG.md">Changelog</a> ·
   <a href="https://github.com/DCFApixels/WhimTex/issues">Report an issue</a>
 </p>
 
 ---
 
-**WhimTex** is a free, open-source **Unity sprite editor and texture editor** for the small image tasks
-that come up while making a game. Touch up a texture, paint a particle mask, generate noise for VFX,
-or combine a few layers into a sprite — without leaving Unity or opening a separate application.
+**WhimTex** is a free, open-source **Unity sprite editor and texture editor**.
+It handles the small tasks that would otherwise send you to a graphics editor: touching up a texture,
+painting a particle mask, generating noise for VFX or combining layers into a sprite.
 
-Save the editable composition and its ready-to-use texture in one asset. Assign it to a material
-and enable **Live Update** to see edits in your scene; export a separate image only when you need one.
+The editable composition and ready-to-use texture live in one asset. Layers, effects and transforms
+stay editable, while the asset can be assigned directly to a material. Export only when you need
+a separate image file.
 
 <p align="center">
   <a href="Documentation~/Images/whimtex-heart.png"><img src="Documentation~/Images/whimtex-heart.png" alt="WhimTex showing a layered heart with a gradient, outline, highlight and SDF rim light" width="720"></a>
 </p>
 
-> [!NOTE]
-> Create and edit images in **Unity Editor**, then use the saved textures and sprites in your game.
+<a id="why"></a>
+## Why WhimTex
+
+- **Stay in Unity.** Paint and check the result without moving files between editors.
+- **Keep your work editable.** Layers, gradients, noise, outlines and Shader FX remain adjustable rather than being permanently baked.
+- **Work with your project.** The saved asset works as a **texture**, and its nested **Output Sprite** works as a sprite. Drag textures, brush presets and HLSL effects from Project, and store presets alongside your project.
+- **See it on the model.** **Live Update** shows the result on scene objects while you paint.
+- **Use procedural tools where they fit.** Create noise, gradients, shapes, distance fields and outlines with parameters rather than brush strokes.
+- **Work with AI.** A connected agent adds and edits layers in the open document. A browser AI can describe layers, a brush or HLSL effects as JSON—paste it with `Ctrl+V`. An authoring guide, schemas and examples help generate valid results; paste errors appear in the Console.
+- **No runtime dependencies.** WhimTex runs only in the editor; your game uses the finished textures and sprites.
 
 ## What you can make
 
-- VFX and particle textures: soft masks, gradients, procedural noise and packed channels.
+- VFX and particle textures: soft masks, gradients and procedural noise.
 - Layered sprites and icons from imported images, painted pixels, fills, gradients and noise.
-- Pixel art and seamless patterns with Brush/Pencil, selections, symmetry and tiled painting.
+- Pixel art and seamless patterns with Brush, Pencil, selections and symmetry.
 - Outlines, distance fields, normal maps, Gaussian/Motion Blur and custom Shader FX.
 - Packed texture channels and HDR compositions, with optional game Post FX preview.
+
+<p align="center">
+  <a href="Documentation~/Images/vfx-energy-ring.png"><img src="Documentation~/Images/vfx-energy-ring.png" alt="An energy ring for VFX built from gradient and noise layers" width="250"></a>
+  <a href="Documentation~/Images/uv-rubik-cube.png"><img src="Documentation~/Images/uv-rubik-cube.png" alt="Live Update: texture edits appear immediately on a cube in Scene view" width="250"></a>
+  <a href="Documentation~/Images/brush-settings.png"><img src="Documentation~/Images/brush-settings.png" alt="WhimTex canvas, Layers panel and brush settings" width="250"></a>
+</p>
+
+> [!NOTE]
+> Requires **Unity 6 (`6000.0`)** or newer.
 
 <a id="installation"></a>
 ## Install
 
-**Unity 6 (`6000.0`) or newer.** In Package Manager, choose **Install package from git URL**:
+In Package Manager, choose **Install package from git URL** and paste:
 
 ```text
 https://github.com/DCFApixels/WhimTex.git
@@ -80,14 +99,14 @@ https://github.com/DCFApixels/WhimTex.git
 <a id="quick-start"></a>
 ## Make your first image
 
-1. Open **Window → WhimTex**, click **New** and set the canvas size.
-2. Drop a Project texture onto the Preview, or click **Page +** below Layers for a Drawing layer.
+1. Open **Window → WhimTex** and set the canvas size. Click **New** for another document.
+2. Click **+** at the bottom of Layers and choose **Drawing Layer**. Alternatively, drag an existing texture from Project onto the preview.
 3. Arrange it with Transform (`T`), or paint with Brush (`B`) / Pencil (`P`).
 4. Press `Ctrl+S`. The editable document and full-resolution texture are saved in one `.asset`.
 5. Assign that asset to a texture field, or use its nested **Output Sprite**.
 
-Double-click the saved asset to reopen it. Export PNG, TGA, JPEG, EXR, layered PSD or Texture2D
-only when you need a separate file. Save your changes to update the image used in your game.
+Double-click the saved asset to reopen it. PNG, TGA, JPEG, EXR, layered PSD and Texture2D
+are available through **Export**.
 
 <a id="workspace"></a>
 <a id="layers"></a>

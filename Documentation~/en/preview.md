@@ -14,7 +14,17 @@ next_page: "en/color.md"
 Use the Preview to inspect your image up close, check seams or look at individual channels.
 Changing the view does not resize the document.
 
-In the footer, **Live Quality**, **Live Update**, **Post FX** and **UV** are on the left. **HDR**, **EV**, **Debug** and **RGBA** are on the right, with tool hints between them.
+The preview footer holds controls for quality, live texture updates, post-processing,
+UV overlays, guides and channel viewing. It also contains **HDR**, the color-input mode,
+and hints for the active tool.
+
+## Mesh UV overlay
+
+Enable **UV** in the footer and assign a **Mesh** to see its UV island outlines over the image. The UV panel lets you choose the channel, submesh, line color and opacity. The outlines follow zoom, pan and view rotation and never appear in exports. To paint a specific part of the model, use [UV Island selection](selection.md#select-uv-islands).
+
+<a href="{{ '/Images/uv-rubik-cube.png' | relative_url }}"><img src="{{ '/Images/uv-rubik-cube.png' | relative_url }}" alt="Painting a Rubik's cube texture in WhimTex with its UV outlines visible and the textured cube beside it in Unity Scene view" width="720"></a>
+
+Use the UV outlines to place details on the right faces. With [Live Update](saving.md) enabled, you can see brush edits on the model in Scene view as you paint.
 
 ## Image filtering
 
@@ -23,7 +33,7 @@ In the footer, **Live Quality**, **Live Update**, **Post FX** and **UV** are on 
 available. This does not enable mipmaps. The setting is saved with the document and
 applies to its output texture, Live Update and images exported into project Assets.
 PNG/JPEG/EXR files themselves do not store a sampling mode for other applications.
-Pencil temporarily shows the preview with Point filtering without changing this setting.
+Pencil always shows the preview with Point filtering at full quality, without changing this setting.
 
 ## Move around
 
@@ -37,26 +47,20 @@ Pencil temporarily shows the preview with Point filtering without changing this 
 
 View rotation does not rotate the layers or affect saving and export.
 
-Turn on **Tiled** to see repeated copies of the image and paint across its edges.
+**Tiled** is in the **Canvas** bar beside W, H and Filter. Enable it to see repeated copies
+and work across the edges: painting, erasing, filling and selections wrap to the opposite side.
+The saved image size and layer transforms remain unchanged.
 See [seamless painting](symmetry.md).
 
-## Mesh UV overlay
-
-Enable **UV** in the footer and assign a **Mesh** to see its UV island outlines over the image. The UV panel lets you choose the channel, submesh, line color and opacity. The outlines follow zoom, pan and view rotation and never appear in exports. To paint a specific part of the model, use [UV Island selection](selection.md#select-uv-islands).
-
-<a href="{{ '/Images/uv-rubik-cube.png' | relative_url }}"><img src="{{ '/Images/uv-rubik-cube.png' | relative_url }}" alt="Painting a Rubik's cube texture in WhimTex with its UV outlines visible and the textured cube beside it in Unity Scene view" width="720"></a>
-
-Use the UV outlines to place details on the right faces. With [Live Update](saving.md) enabled, you can see brush edits on the model in Scene view as you paint.
-
 ## Guides
+
+Drag from the thin strip on the left of Preview to create a vertical guide, or from the top strip for a horizontal one.
+The new line is parallel to the strip even on a rotated canvas; afterwards it moves, zooms and rotates with the canvas.
 
 Guides that are horizontal or vertical in the current preview appear bright cyan; angled guides use a softer blue-gray. The colors update as you rotate the view, without changing snapping.
 
 In **User Settings → Guides & Snapping**, choose colors for **Aligned Guides**, **Angled Guides** and the **Active Guide** (hovered, selected or dragged). A guide about to be deleted stays red.
 **Snap Radius (px)** sets the attraction distance for guides, intersections, canvas edges and pivot anchors: 1–64 UI pixels, default 8, independent of zoom. Angular snapping is unchanged. These preferences apply across windows and are saved between sessions; **Reset Guides & Snapping** restores their defaults.
-
-Drag from the thin strip on the left of Preview to create a vertical guide, or from the top strip for a horizontal one.
-The new line is parallel to the strip even on a rotated canvas; afterwards it moves, zooms and rotates with the canvas.
 
 Drag an existing line to reposition it. Drop it back on either strip or outside Preview to remove it; `Esc` cancels the drag.
 You can create guides from the edge strips with any tool. Only **Zoom**, **Transform** and **Layer Select** can grab existing lines to move or drag-delete them. Painting, filling and area-selection tools ignore existing guides; the lines stay visible.
@@ -67,7 +71,7 @@ Right-click a guide to **Edit**, **Duplicate** or **Delete** it. Right-click eit
 - **Show Guides** — hide or show the lines. The **Guides** button next to **UV** in the preview footer does the same. Hidden guides do not attract tools; creating a new guide shows them again.
 - **Lock Guides** — protect existing lines from editing. You can still create new guides and snap tools to locked ones.
 - **Snap to Guides** — toggle snapping; hold `Ctrl` to bypass it temporarily. `Ctrl` also lets Zoom and Transform grab through an existing line.
-- **Undo Guide Change / Redo Guide Change** — undo or redo guide edits without affecting painting. These commands are separate from the document's `Ctrl+Z` history.
+- **Undo Guide Change / Redo Guide Change** — undo or redo guide edits without affecting painting.
 - **Clear Guides** — remove all guides.
 
 Moving or resizing a layer (including a Shader FX Transform 2D area) snaps its edges to parallel guides. Moving also snaps its center lines. Edges ignore oblique guides; rotating a transform can align it parallel or perpendicular to a guide. `Shift` retains its usual rotation and resize constraints.
@@ -80,7 +84,7 @@ The pivot and polygonal lasso vertices can also snap to a single guide at any an
 
 Dragging a guide snaps it to parallel canvas edges, the canvas center, and the selected layer's parallel edges and center lines, but not to other guides. It can also snap to guide intersections, unless a guide parallel to the dragged one passes through that intersection. Hold `Ctrl` for free placement.
 
-Guides never appear in exports. They stay in the current window, including script reloads, but are cleared when switching documents and are not saved in the compositor file. Guide undo history lasts until a document switch or script reload.
+Guides are not exported and are cleared when switching documents.
 
 ## Balance detail and responsiveness
 
@@ -88,11 +92,9 @@ Guides never appear in exports. They stay in the current window, including scrip
 Lower it in the footer if painting on a large image feels slow.
 Save and export still use full resolution.
 
-Pencil always shows crisp pixels at full quality, so you can place individual pixels accurately.
-
 ## See your paint on a model
 
-1. Save the compositor and assign its texture asset to your model's material.
+1. Save the document and assign its texture to your model's material.
 2. Turn on **Live Update** (the circle button) in the preview footer, next to **Post FX**.
 3. Paint or adjust layers: objects using that texture update in Scene View.
 
@@ -111,7 +113,7 @@ Live Update starts off when you open the window and turns off when you switch do
 
 ### Use a compositor inside another document
 
-Assign the saved compositor's output texture to a **File** layer in another document.
+Assign the saved document's output texture to a **File** layer in another document.
 Saving the source refreshes the receiving window automatically. To see changes while editing, enable
 **Live Update in the source window**. The receiving window does not need Live Update enabled just to display them.
 Turning Live Update off restores the saved image in the receiving window too.
@@ -140,4 +142,4 @@ Change the transparency checkerboard's colors and size in
 The bug button highlights pixels with invalid color values. Use it to investigate a broken-looking
 effect; its highlight color is also in User Settings. The overlay is not included in saved images.
 
-Zoom, Tiled, EV and [Post FX](post-fx.md) change only the view.
+Zoom, EV and [Post FX](post-fx.md) change only the view. **Tiled** also affects painting by wrapping strokes across canvas edges.

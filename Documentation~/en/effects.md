@@ -32,9 +32,8 @@ Use **+** at the bottom of Layers:
 ## Choose what the effect uses
 
 **Input → Previous** uses the layer directly below the effect in the same group.
-Choose **Specific** to select another layer or group, or drag it onto **Target**.
-Target looks like an object field: a thumbnail and layer name, with a circle on the right
-to open the layer list. An empty field reads **None (Layer)**; a valid drop highlights the field.
+Choose **Specific** to use another layer or group. Click **Target** to choose from the list,
+or drag a layer into the field. **None (Layer)** means no source is selected.
 When dragging several selected layers, the active one becomes the target.
 
 You can hide the source and still see the effect. For a group, hide the group itself,
@@ -46,8 +45,11 @@ Use **Outline** for a border around a shape. Adjust its width and softness,
 then choose whether it sits inside, outside or across the edge.
 
 Use **SDF** when you want a gradual transition based on distance from the shape.
-**Threshold** decides where the edge begins; **Max Distance** controls how far the transition extends.
-Use the gradient to color it. The distance algorithm changes the character of corners and diagonals:
+**Threshold** sets the contour threshold; **Max Distance (px, 0 = auto)** sets the transition distance.
+At 0, the distance is chosen automatically. **Position** selects which side receives the gradient:
+Outside covers the outside, Inside the inside, and Center both sides.
+The default, **Signed**, covers both sides of the contour. **Inverted** reverses the gradient direction.
+The distance algorithm changes the character of corners and diagonals:
 Euclidean gives rounded distances, while Manhattan and Chebyshev give more angular results.
 
 For a source with smooth, partially transparent edges, choose **Distance Algorithm → Euclidean Antialiased**
@@ -55,8 +57,8 @@ in either SDF or Outline. Outline follows the 50% alpha edge, even across a broa
 SDF uses its **Threshold** setting. Areas that never reach that threshold do not form a silhouette.
 Keep **Euclidean Exact** for a hard-threshold silhouette or pixel masks.
 
-Outline supports fractional widths. **Softness = 0** keeps a crisp, smoothed edge;
-increasing Softness feathers both sides without changing the Width setting.
+Outline supports fractional **Width (px)** values. **Softness (px) = 0** keeps a crisp, smoothed edge;
+increasing **Softness (px)** feathers both sides without changing **Width (px)**.
 **Offset (px)** moves the border without changing its width: negative moves inward, positive outward.
 Try a small negative offset if the border looks detached from a soft source.
 
@@ -85,11 +87,11 @@ To blur several layers together:
 1. Put them in a group and add Blur above it with Mode set to Gaussian.
 2. Leave Input at Previous.
 3. Hide the group itself to show only the blurred result.
-4. Adjust Radius.
+4. Adjust Radius and Strength.
 
 ### Linear and Circular
 
-Choose **Linear** for a straight trail. **Distance** sets its length and **Angle** sets its direction.
+Choose **Linear** for a straight trail. **Distance (px)** sets its length and **Angle (deg)** sets its direction.
 Choose **Circular** for a rotating trail, then set **Center** and **Arc**.
 
 **Direction** places the trail around the source, ahead of it or behind it.
@@ -104,7 +106,6 @@ then hide the source itself if you want to see only the processed result.
 Choose which edge is copied onto its opposite edge with **Horizontal** and **Vertical**.
 You can also click an edge of the image icon above the fields to choose the destination.
 Click the highlighted edge again to turn that axis off; choosing its opposite switches direction.
-The icon and dropdowns stay in sync.
 Set either axis to **Off** to leave it unchanged. The copied strip is mirrored and fades into the original;
 when both axes are enabled, the corners are joined too.
 
@@ -112,6 +113,7 @@ when both axes are enabled, the corners are joined too.
 the reflection closer to the destination edge. Enable **Tiled** to inspect the joins while adjusting.
 This is useful for noise and surface textures, but recognizable shapes may look mirrored near a join.
 Further transforms or effects can change the matching edges, so check the final tiled result as well.
+To repair a region using nearby detail rather than join opposite edges, use [content-aware fill](selection.md#fill-from-existing-texture-details).
 
 ## Keep the edges right
 
@@ -121,5 +123,7 @@ Blur effects have an **Edges** setting:
 - **Clamp:** extend the edge colors.
 - **Repeat:** wrap around; useful for seamless textures.
 - **Mirror:** reflect the image at the border.
+
+Normal Map offers **Clamp**, **Repeat** and **Mirror**, but not **Transparent**.
 
 For seamless work, set Edges on the effect as well as enabling [Tiled preview](symmetry.md).

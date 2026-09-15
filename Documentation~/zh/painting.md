@@ -66,11 +66,9 @@ HLSL 用脚本生成笔尖，与带纹理的 Standard 使用相同的 Tip Channe
 使用示例下方的 **Preview Scale (%)** 手动缩小它以容纳更多散布。
 这只改变示例，而不改变你绘制时使用的画笔大小。
 
-使用 **Tip**、**Stamps** 或 **Color** 标题栏中的 **↺** 只重置该部分。
-各部分的重置会保留 **Size、Hardness、Spacing、Opacity 和 Flow**。
-Stamps 的重置会保留当前 Spacing，同时重置其他设置。
-Color 的重置会恢复白色 Tint 和 Normal 混合，而不更改调色板颜色、
-Opacity 或 Flow。Tint 旁的小按钮只重置渐变。
+**Tip**、**Stamps** 或 **Color** 标题栏中的 **↺** 会重置对应部分，
+但保留 **Size、Hardness、Spacing、Opacity 和 Flow**。Hardness/Gradient 模式仍可能改变。
+调色板颜色不会重置。**Tint** 旁的小按钮只将其渐变恢复为不透明白色，不改变画笔颜色。
 
 | 设置 | 它改变什么 |
 | :--- | :--- |
@@ -97,10 +95,8 @@ Opacity 或 Flow。Tint 旁的小按钮只重置渐变。
 
 这些高级设置属于 **Brush**，而不是 Pencil 或 Fill。
 
-**程序化画笔**没有指定 Texture；**纹理画笔**使用图像作为其笔尖。
-对于程序化画笔，使用预览标题栏中 Hardness 旁的箭头选择 **Gradient**。该渐变从
-**圆形笔尖中心的 0** 延伸到**其外缘的 1**。选择 **Hardness** 可返回
-到熟悉的柔和边缘控件。指定纹理会为以后保留你的程序化模式。
+程序化画笔的渐变从**圆形笔尖中心的 0** 延伸到**外缘的 1**。
+指定纹理后，已选的程序化画笔模式会保留。
 
 对于纹理 SDF 画笔，在 Tip 中启用 **SDF**，选择包含距离场的通道，
 然后在观察示例的同时在预览标题栏中编辑 **Gradient**。开始时使用白色颜色色标以保留

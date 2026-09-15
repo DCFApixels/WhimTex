@@ -79,7 +79,7 @@ to **Copy** or **Paste** an independent copy. SDF layers start with **Linear** i
 
 In **WhimTex Presets**, click the **New** swatch to save the current gradient without naming it.
 Click a swatch to apply it; right-click for **Copy** or **Delete**. Presets are
-listed newest first, after **New**. Long lists scroll vertically and open at the top. The folder is
+listed newest first, immediately after **New**. The folder is
 chosen in User Settings; gradients use its **Gradients** subfolder. **↻** reloads the list.
 Deleted presets can be recovered from **Gradients/.trash**. Built-in Unity gradient preset libraries are not imported.
 

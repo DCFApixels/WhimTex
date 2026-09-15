@@ -34,17 +34,17 @@ Hold `Shift` to move along one axis, resize proportionally or rotate in 15° ste
 
 **Tiling** controls what appears beyond the image's original bounds:
 
+- **Source** follows the source texture's setting.
 - **Clip** leaves the outside transparent.
 - **Repeat** tiles the image.
 - **Mirror** alternates reflected copies.
-- **Source** follows the source texture's setting.
 - **Clamp** stretches the outermost pixels beyond the image bounds.
 - **Unbounded** continues Noise, Gradient, Color Fill and Shape calculations outside the frame.
   File, Drawing and raster effects use Clip instead. Gradient colors still follow their keys;
   this does not extrapolate new colors beyond the first or last key.
 
 **Filter** controls edge smoothness. Choose **Point** for pixel art or **Bilinear** for smooth scaling.
-**Source** follows the texture's filter; **Trilinear** is another smoothing option for textures that support it.
+**Source** follows the texture's filter; **Trilinear** also smooths transitions between mip levels when present.
 
 To paint across the canvas edges instead, use [Tiled preview](symmetry.md).
 

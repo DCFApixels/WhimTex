@@ -393,6 +393,7 @@ Do not redeclare these or generated parameters/helpers. Do not use invented time
 // @param float _Scale = 1 [0 ..]
 // @param float _Offset = 0 [.. 10]
 // @param float _Amount = 10
+// @param bool _IncludeAlpha = false
 // @param float4 _Channels = (0, 0, 0.5, 1)
 // @param color _Tint = (1, 1, 1, 1)
 // @param texture2D _Mask
@@ -400,6 +401,21 @@ Do not redeclare these or generated parameters/helpers. Do not use invented time
 ```
 
 No semicolon on metadata lines. Ranges apply to floats only. Defaults must be finite and inside bounds.
+For FX, `bool` displays a toggle and generates a `float` uniform with value `0` or `1`, not a shader keyword. An optional default is `true`/`false` or `1`/`0`; ranges are not allowed. Use `if (_IncludeAlpha > 0.5)` or use it directly in arithmetic. This type is not supported by HLSL brush parameters yet.
+
+FX also supports dropdown controls and repeated declarations of one variable:
+```hlsl
+// @param float _Strength = 0.63 [0 .. 1]
+// @param enum _Strength { Low: 0.2, Medium: 0.5, High: 1 }
+// @param enum _Mode = SoftLight { SoftLight: 0, HardLight: 1, CustomBlend: 0.5 }
+```
+Enum option names are unquoted identifiers, used only as nicified UI labels, never as HLSL constants.
+Each option requires an explicit finite value, including fractional values; duplicate names or values
+are errors. Defaults may be option names or numbers. Unknown numeric values display as Custom.
+All parameter types allow omitting `= value`. The last explicit default for a variable wins; if none
+exists, scalar/vector/color defaults are zero. Repeated `float`/`bool`/`enum` controls share one float
+uniform. Other repeated types must match exactly. Control ranges do not clamp values set through
+another control. Preset export saves the current value once. These dropdown/linked controls are FX-only.
 `float4` is a raw vector; `color` is a color picker. Texture parameters without a source default to white;
 the user may assign them later. Clipboard JSON cannot bind an asset texture to a shader parameter: a
 Drawing layer with a `url` is the way to bring an image into the pasted tree.

@@ -23,7 +23,7 @@ https://github.com/DCFApixels/WhimTex.git
 ## Make your first image
 
 1. Open **Window → WhimTex** and set the canvas **W / H**. **New** creates another empty document in a separate tab, keeping the current document open.
-2. Drag a texture from Project onto the Preview, or click **Page +** at the bottom of Layers to create a Drawing layer.
+2. Click **+** at the bottom of Layers and choose **Drawing Layer**. If you already have a texture, you can drag it from Project onto the preview instead.
 3. Choose **Transform** (`T`) to arrange the image, or **Brush** (`B`) to paint.
 4. Press `Ctrl+S` and choose where to save the document.
 5. Use the saved asset as a texture in Unity, or expand it in Project and drag **Output Sprite** into a sprite field.
@@ -60,7 +60,7 @@ Pan by holding the mouse wheel and dragging. Scroll to zoom; **Fit** shows the w
 ## Make the workspace comfortable
 
 The **gear button to the right of Export** opens User Settings, where you can change the transparency checkerboard's colors
-and size, or enable **Clean Preview Background** to hide the background logo. At the bottom of this settings window,
+and size, or enable **Clean Preview Background** to hide the background logo and shadow. At the bottom of this settings window,
 **Reset WhimTex Settings…** restores the workspace preferences after confirmation, without deleting your documents or preset files.
 
 To keep a layer's settings in a separate window, use **layer ⋮ → Properties**.

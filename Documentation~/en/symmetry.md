@@ -22,11 +22,13 @@ Each Drawing layer can have its own setup.
 
 | Mode | Use it for |
 | :--- | :--- |
-| Mirror | Reflected strokes across X, Y or both axes. Move Center and rotate Angle to place the axes. |
+| Mirror | **Mirror X** and **Mirror Y** toggle reflections, not axes. X reflects across a vertical line through **Center**; Y across a horizontal line. **Angle** rotates both lines. |
 | Horizontal / Vertical | A row or column of copies. |
 | Grid | Copies in rows and columns. |
 | Radial | Copies around Center. Choose the number of sectors and rotate Start Angle to position them. |
 | None | Ordinary painting without copies. |
+
+**Count** sets the number of copies (2–64); Grid uses **Count X** for columns and **Count Y** for rows.
 
 In repeat modes, choose **Copy** for identical copies or **Alternate Mirror**
 to reflect every second copy.
@@ -36,9 +38,6 @@ to reflect every second copy.
 **Edges → Clip** keeps each stroke inside the segment where you started it.
 Choose **Continue** when you want a stroke to travel into neighboring segments.
 
-For Mirror at 0°, X reflects across a vertical line and Y across a horizontal line.
-Rotate the angle when you need a diagonal axis.
-
 ## Paint seamless edges
 
 1. Enable **Tiled** above the Preview.
@@ -46,8 +45,8 @@ Rotate the angle when you need a diagonal axis.
 3. Paint across a border: the clipped part continues on the opposite edge.
 4. Zoom out to check the repeated pattern.
 
-Tiled does not enlarge the saved image.
-For effects such as blur, also choose **Edges → Repeat** to avoid seams at their borders.
+Tiled shows repetitions and wraps strokes across edges, but does not enlarge the canvas.
+Layer transforms and export size stay unchanged. See [Effect layers](effects.md) for effect **Edges** settings.
 
 ## Which repeat setting do I need?
 

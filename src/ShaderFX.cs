@@ -8,7 +8,18 @@ using UnityEngine.Scripting.APIUpdating;
 
 namespace DCFApixels.WhimTex
 {
-    public enum ShaderFXParameterType { Float, Color, Vector, Texture2D, Transform2D }
+    public enum ShaderFXParameterType { Float, Color, Vector, Texture2D, Transform2D, Bool, Enum }
+
+    [Serializable]
+    public sealed class ShaderFXParameterControl
+    {
+        public ShaderFXParameterType type;
+        public int order;
+        public bool hasMinimum, hasMaximum;
+        public float minimum, maximum;
+        public string[] optionNames = Array.Empty<string>();
+        public float[] optionValues = Array.Empty<float>();
+    }
 
     [Serializable]
     public sealed class ShaderFXParameter
@@ -24,6 +35,7 @@ namespace DCFApixels.WhimTex
         [HideInInspector] public bool declaredInCode;
         [HideInInspector] public bool hasMinimum, hasMaximum;
         [HideInInspector] public float minimum, maximum;
+        [HideInInspector] public List<ShaderFXParameterControl> controls = new List<ShaderFXParameterControl>();
         [NonSerialized] private string cachedName, cachedId;
         [NonSerialized] private int[] transformPropertyIds;
 
@@ -44,15 +56,27 @@ namespace DCFApixels.WhimTex
             }
         }
         internal float Clamp(float value) => hasMinimum && value < minimum ? minimum : hasMaximum && value > maximum ? maximum : value;
+        internal bool BoolValue => floatValue >= 0.5f;
 
-        internal ShaderFXParameter Copy() => (ShaderFXParameter)MemberwiseClone();
+        internal ShaderFXParameter Copy()
+        {
+            var copy = (ShaderFXParameter)MemberwiseClone();
+            copy.controls = new List<ShaderFXParameterControl>(controls.Count);
+            foreach (var c in controls)
+                copy.controls.Add(new ShaderFXParameterControl { type = c.type, order = c.order,
+                    hasMinimum = c.hasMinimum, hasMaximum = c.hasMaximum, minimum = c.minimum, maximum = c.maximum,
+                    optionNames = (string[])c.optionNames.Clone(), optionValues = (float[])c.optionValues.Clone() });
+            return copy;
+        }
 
         internal void SetValue(Material material, ShaderFXParameter declaration, Vector2 dimensions)
         {
             string propertyName = declaration.name;
             switch (type)
             {
-                case ShaderFXParameterType.Float: material.SetFloat(propertyName, Clamp(floatValue)); break;
+                case ShaderFXParameterType.Enum:
+                case ShaderFXParameterType.Float: material.SetFloat(propertyName, controls.Count > 0 ? floatValue : Clamp(floatValue)); break;
+                case ShaderFXParameterType.Bool: material.SetFloat(propertyName, BoolValue ? 1f : 0f); break;
                 case ShaderFXParameterType.Color: HdrUtility.SetShaderColor(material, propertyName, colorValue); break;
                 case ShaderFXParameterType.Vector: material.SetVector(propertyName, vectorValue); break;
                 case ShaderFXParameterType.Texture2D:

@@ -4,6 +4,19 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+## [0.10.14] - 2026-09-15
+
+### Added
+
+- Enum FX dropdowns, optional parameter defaults and linked controls sharing one shader variable; preset export preserves their current value.
+- Normal Map/Normalize HLSL effect preset for RGB-encoded normal directions, preserving alpha.
+- Bool FX parameters use editor toggles backed by float uniforms, including HLSL preset defaults and live API values.
+- Chinese README with navigation matching the English and Russian versions.
+
+### Changed
+
+- Polished Russian user guides and synchronized the English and Chinese documentation.
+
 ## [0.10.13] - 2026-09-15
 
 ### Added

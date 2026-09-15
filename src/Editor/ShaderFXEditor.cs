@@ -172,13 +172,29 @@ namespace DCFApixels.WhimTex
             string[] valueNames =
             {
                 nameof(ShaderFXParameter.floatValue), nameof(ShaderFXParameter.colorValue),
-                nameof(ShaderFXParameter.vectorValue), nameof(ShaderFXParameter.textureValue), nameof(ShaderFXParameter.transformValue)
+                nameof(ShaderFXParameter.vectorValue), nameof(ShaderFXParameter.textureValue), nameof(ShaderFXParameter.transformValue),
+                nameof(ShaderFXParameter.floatValue), nameof(ShaderFXParameter.floatValue)
             };
             VisualElement[] fields = new VisualElement[valueNames.Length];
             for (int i = 0; i < fields.Length; i++)
             {
                 SerializedProperty value = property.FindPropertyRelative(valueNames[i]);
-                if (valueNames[i] == nameof(ShaderFXParameter.colorValue))
+                if (i == (int)ShaderFXParameterType.Bool)
+                {
+                    var toggle = new Toggle("Value");
+                    toggle.AddToClassList(BaseField<bool>.alignedFieldUssClassName);
+                    toggle.SetValueWithoutNotify(value.floatValue >= 0.5f);
+                    toggle.RegisterValueChangedCallback(evt =>
+                    {
+                        value.serializedObject.Update();
+                        value.floatValue = evt.newValue ? 1f : 0f;
+                        value.serializedObject.ApplyModifiedProperties();
+                        ((ShaderFX)value.serializedObject.targetObject).NotifyValuesChanged();
+                    });
+                    toggle.TrackPropertyValue(value, p => toggle.SetValueWithoutNotify(p.floatValue >= 0.5f));
+                    fields[i] = toggle;
+                }
+                else if (valueNames[i] == nameof(ShaderFXParameter.colorValue))
                 {
                     ColorField color = WhimTexColorInputs.Bind(new ColorField("Value"), value,
                         () => ((ShaderFX)value.serializedObject.targetObject).NotifyValuesChanged());

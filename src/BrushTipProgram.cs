@@ -45,6 +45,8 @@ namespace DCFApixels.WhimTex
             if(parameters.Count>32)throw new FormatException("A brush supports at most 32 parameters.");
             foreach(var p in parameters)
             {
+                if(p.controls.Count > 1 || p.controls.Exists(c => c.type == ShaderFXParameterType.Enum || c.type == ShaderFXParameterType.Bool))
+                    throw new FormatException("Enum, bool and linked parameter controls are supported by FX, not brush HLSL.");
                 if(p.type!=ShaderFXParameterType.Float && p.type!=ShaderFXParameterType.Color && p.type!=ShaderFXParameterType.Vector)
                     throw new FormatException("Brush parameters support float, float4 and color only.");
                 if(p.name=="BrushTip" || p.name.StartsWith("_WhimTex_",StringComparison.Ordinal))

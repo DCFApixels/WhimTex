@@ -264,7 +264,7 @@ Remove accepts only op/index. Add/replace accept `code` and optional `parameters
   `_PreviewScale` is full-size pixels per preview pixel. `UnityCG.cginc` is already included.
 - `#include` works with existing Assets/Packages paths and paths relative to the document (Assets
   before its first save). Prefer explicit project paths. An FX does not require its own shader file.
-- Parameters: at most 32, each with `name`, `type` and `value`. Types: `Float` (number), `Color`
+- Parameters: at most 32, each with `name`, `type` and `value`. Types: `Bool` (JSON `true`/`false`, sent to HLSL as float `0`/`1`), `Float` (number), `Color`
   (encoded RGB + alpha, converted to linear for the shader), `Vector` (four raw values), `Texture2D`
   (existing Assets/Packages texture path). Texture uniforms include `<name>_TexelSize`.
   Use valid unique HLSL identifiers; do not redeclare the generated uniforms in code.

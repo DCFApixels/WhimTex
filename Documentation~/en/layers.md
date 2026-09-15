@@ -33,12 +33,12 @@ or drop it between rows to choose its position. A newly assigned image keeps its
 Assigning an HDR texture to a File layer sets **Color Range** and **Blend Range** to **HDR**.
 You can change both afterwards in **Color & Blending**.
 
-File layers linked to a compositor have a thin orange line along the left edge of their row.
-Effect layers also show thumbnails of their results. These refresh after editing the effect or its source; animated Shader FX use still thumbnails.
-If a File layer uses another compositor's output texture, double-click its thumbnail or the row background
-to open that compositor without replacing your current document. An already open document is focused;
+File layers linked to another WhimTex document have a thin orange line along the left edge of their row.
+Double-click the thumbnail or row background to open that document without replacing the current one. An already open document is focused;
 otherwise Unity attempts to add a WhimTex tab beside an existing WhimTex window, falling back to a separate window.
 Double-clicking text or number fields still edits those fields.
+
+Effect layers also show thumbnails of their results. Animated Shader FX use still thumbnails.
 
 ## Draw a shape
 
@@ -71,7 +71,7 @@ Click a row to select it. Hold `Ctrl` to select several layers or `Shift` to sel
 The **last selected layer is active**: this is the layer you paint on and edit in Layer Settings.
 
 Drag a row's thumbnail, empty space, name, opacity field or eye to move the selected layers.
-Hold the dragged layers near the top or bottom edge of the list to scroll to layers outside the visible area.
+Hold the layers near the top or bottom edge of the list to scroll.
 In the name and opacity fields, drag up or down to move layers; drag left or right to select text.
 While a field is focused for editing, dragging only selects text; leave the field to move layers from it again.
 Dragging from a field cancels its unconfirmed input; dragging the eye does not toggle visibility.
@@ -91,7 +91,7 @@ The selected layer's settings are divided into four foldouts:
 - **Properties (layer type):** settings specific to this layer, such as its source texture, effect target or drawing symmetry.
 - **FX:** add and adjust shader effects.
 
-Expand the sections you need. The same sections are available in **layer ⋮ → Properties**.
+Open the same settings in a separate window through **layer ⋮ → Properties**.
 Sections that do not apply to the selected layer are greyed out.
 
 ## Keep related parts in a group
@@ -110,8 +110,8 @@ Right-click a row or open **⋮** for actions on the selection.
 
 | Footer icon | Click | Drop selected layers |
 | :--- | :--- | :--- |
-| **+** | Choose a layer type. | Duplicate. |
-| **Page +** | Add a Drawing layer. | Make a merged Drawing copy. |
+| **+** (type menu) | Choose a layer type. | Duplicate. |
+| **Page +** (page with a plus) | Add a Drawing layer. | Make a merged Drawing copy. |
 | **Folder** | Group the selection. | Group. |
 | **Trash** | Delete the selection. | Delete. |
 
@@ -123,10 +123,10 @@ when you want to paint on the combined result.
 A layer whose type is unavailable keeps its name, position, visibility and common settings.
 A group also keeps its children. Select the row to see the warning in Layer Settings.
 Choose **Replace with**, then click **Replace Behaviour**. **Transfer saved settings** copies
-compatible type-specific settings when they are available. The panel lists anything that cannot
+compatible settings from the previous layer type. The panel lists anything that cannot
 be transferred; check the result before saving. Groups containing children can only be restored as groups.
 
-You can still move, hide or remove the broken layer. It does not render until its type is restored.
+You can still move, hide or remove the unavailable layer. It does not appear on the canvas until restored.
 
 {: .warning }
 The current layer format is incompatible with documents created before the Layer/Behaviour redesign.

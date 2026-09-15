@@ -11,13 +11,12 @@ next_page: "zh/troubleshooting.md"
 
 # 自动化
 
-使用浏览器 AI 但没有 Unity 连接？参见[用浏览器 AI 创建图层](ai-authoring.md)：
-复制图层 JSON 并用 Ctrl+V 粘贴。它还可以添加一个绘制图层，从直接的 HTTP(S) 链接下载图像。
-[创作约定](../AI/README.md)也涵盖 HLSL Shader FX。
-下面的已连接智能体工作流还能额外编辑现有文档并绘制笔触。
+使用**浏览器 AI**，请先阅读[通过 JSON 创建图层](ai-authoring.md)：AI 生成 JSON，
+你用 **Ctrl+V** 将它粘贴到 WhimTex，无需连接 Unity。
+语法和生成规则见 [AI 创作指南](../AI/README.md)，可直接使用的 JSON 见[示例文件夹](../Examples/Clipboard/README.md)。
 
-智能体可以帮助组装文档：将图像添加为图层、排列它们、应用效果
-或制作简单的绘制痕迹。随后你可以在 WhimTex 中打开结果并继续手动处理。
+本页其余内容介绍**连接到 Unity 的智能体**。它能添加图像图层、排列图层、应用效果、
+绘制简单元素，也能处理尚未保存的文档。生成结果可继续手动编辑。
 
 ## 可以提出什么请求
 
@@ -42,7 +41,8 @@ next_page: "zh/troubleshooting.md"
 
 > 移除我选区内侧的对象，并将修复结果放到单独的图层上。
 
-命名占位符会在图层面板中为结果预留位置。在智能体工作时，你可以重命名、隐藏或移动它；
+智能体会预先创建命名占位图层，并记录初始图像和选区。
+占位图层在 Layers 中为结果预留位置。在智能体工作时，你可以重命名、隐藏或移动它；
 当结果到达时，其内容设置将变为可用。你可以照常继续编辑其他图层。对于基于参数的图层，
 智能体可以先查看试做图像。
 
@@ -52,10 +52,7 @@ next_page: "zh/troubleshooting.md"
 仍然可见，你依然可以重命名、隐藏或移动该图层。在
 Layer Settings 中选择 **Cancel Agent Edit** 即可立即恢复编辑。其他图层仍然可用。
 
-智能体可以一步完成预留图层和捕获当前上下文。如果你的请求需要
-多个结果，它可以使用相同的初始选区和图像创建更多占位符。
-当打开了多个 WhimTex 窗口时，优先使用当前窗口。如果你已切换到
-其他应用程序或 Unity 窗口，则改用最后获得焦点的 WhimTex 窗口。
+如果请求需要多个结果，智能体可以使用相同的初始选区和图像创建更多占位图层。
 
 智能体会根据你的请求，决定是对某个特定图层采样还是对可见合成采样。
 当这一区别很重要时，请指明具体的图层。区域编辑使用任务开始时的
@@ -69,10 +66,11 @@ Layer Settings 中选择 **Cancel Agent Edit** 即可立即恢复编辑。其他
 将鼠标悬停在按钮上可看到完整 ID，或将复制的 ID 粘贴到你的请求中。选中多个图层时，
 这是活动图层的 ID。组和生成占位符也有 GUID。
 
-要停止等待，请选中占位符并点击 **Cancel Generation**，或删除它。如果在生成运行期间
+要停止等待，请选中占位图层，在 Layer Settings 中点击 **Cancel Generation**，或删除它。如果在生成运行期间
 像素编辑的目标发生了变化，智能体必须解决冲突，而不是
 覆盖你更新的工作。关闭窗口、切换文档或重新加载脚本会中断
-任务；被中断的占位符可以删除，任务可以重新开始。
+任务。被中断的占位图层不会再接收结果；请删除它并重新开始任务。
+已经完成的结果会保留为文档中的普通图层。
 
 结果不会自动保存。请检查图像，并在准备好时保存。
 
@@ -81,7 +79,7 @@ Layer Settings 中选择 **Cancel Agent Edit** 即可立即恢复编辑。其他
 
 ## 从生成到在模型上绘制
 
-选中网格的 [UV 岛](selection.md#选择-uv-岛屿)，并让智能体在其中创建纹理。在此示例中，智能体在绘制图层上生成了魔方的颜色和贴块。随后，白色文字在单独的图层上被手工绘制，[Live Update](saving.md) 在 Scene view 中将结果显示在立方体上。
+选中网格的 [UV 岛](selection.md#选择-uv-岛屿)，让智能体在其中创建纹理，例如魔方的彩色贴块。智能体会在 UV 展开图中用绘制图层放置这些内容。你可以在上方的新图层用画笔添加白色文字，并通过 [Live Update](saving.md) 在 Scene view 中查看立方体上的效果。
 
 <a href="{{ '/Images/uv-rubik-cube.png' | relative_url }}"><img src="{{ '/Images/uv-rubik-cube.png' | relative_url }}" alt="由智能体生成的魔方纹理，白色文字绘制在单独的图层上，并显示在 Unity 中的立方体上" width="720"></a>
 
@@ -89,6 +87,7 @@ Layer Settings 中选择 **Cancel Agent Edit** 即可立即恢复编辑。其他
 
 将仓库的[智能体说明](https://github.com/DCFApixels/WhimTex/blob/main/AGENTS.md)交给智能体。
 其中说明了如何在你的 Unity 项目中使用 WhimTex。
+要访问打开的文档，项目中必须安装 WhimTex，智能体也必须通过 [Live editing API](../LiveAgentAPI.md) 连接到 Unity。
 
 命令语法和集成设置保存在单独的
 [API 参考](../AgentAPI.md)中，并附有[示例](../Examples/index.md)。

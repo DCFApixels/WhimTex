@@ -50,7 +50,7 @@ namespace DCFApixels.WhimTex
                 ShaderFXMetadata.PreserveValues(next, parameters);
                 // Explicit legacy/API parameters may initialize declarations, but may not silently disappear.
                 foreach (var old in parameters)
-                    if (old != null && !old.declaredInCode && !next.Exists(p => p.name == old.name && p.type == old.type))
+                    if (old != null && !old.declaredInCode && !next.Exists(p => p.name == old.name && ShaderFXMetadata.Compatible(p.type, old.type)))
                         throw new FormatException("Code declarations must include the existing parameter: " + old.name);
                 parameters = next;
             }

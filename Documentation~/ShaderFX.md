@@ -86,20 +86,42 @@ under user `ShaderFX` or project `Assets`. Existing effects are not detached or 
 // @param float _Offset = 0 [.. 10]
 // @param float _Amount = 10
 // @param float4 _Channels = (0, 0, 0.5, 1)
+// @param bool _IncludeAlpha = false
 // @param color _Tint = (1, 1, 1, 1)
 // @param texture2D _Mask
 // @param transform2D _Area
 // @param transform2D _PlacedArea = (0.5, 0.5, 0.75, 0.75, 30)
 ```
 
-No semicolons on metadata lines. Float/vector/color declarations require a finite default; defaults
-outside the declared range are errors. With no initializer, Texture defaults to white and Transform2D
+No semicolons on metadata lines. Initializers are optional for every type. Without any explicit
+default, numeric/vector/color values start at zero. Texture defaults to white and Transform2D
 to the whole input. Transform2D accepts `(x, y, width, height, angleDegrees)` in normalized input units.
 Texture2D accepts `= "guid:<32-digit asset GUID>:<local file ID>"`; the exporter uses this form for
 assigned textures, including texture subassets. It requires persistent texture assets. A texture
 reference absent from the current project falls back to white; the image is not embedded in HLSL.
 Two distinct range boundaries produce a slider with numeric input; one boundary produces a limited
 numeric field. Equal boundaries fix the number. Ranges apply only to floats.
+`bool` displays a toggle, stored in `floatValue` and sent as a float uniform (`0` or `1`), without shader keywords or recompilation on value changes. Optional defaults are `true`/`false` or `1`/`0`; ranges are not supported. In manual parameter lists choose `Bool`.
+
+```hlsl
+// @param float _Strength = 0.63 [0 .. 1]
+// @param enum _Strength { Low: 0.2, Medium: 0.5, High: 1.5 }
+// @param enum _Mode = SoftLight { SoftLight: 0, HardLight: 1, CustomBlend: 0.5 }
+```
+
+For FX, `enum` is a float displayed as a dropdown. Every option needs an unquoted identifier and
+an explicit finite numeric value; fractional values are allowed. Names and values must be unique.
+Option names are editor-only labels (for example, `SoftLight` displays as **Soft Light**), not HLSL
+constants. A default may be an option name or a number. An unmatched value displays **Custom**
+without changing the number.
+
+Repeated compatible declarations create linked controls in source order, but only one stored value
+and one uniform. `float`, `bool` and `enum` share scalar storage; other types must match exactly.
+The last declaration **with an initializer** supplies the default. Defaultless declarations do not
+overwrite it. Ranges constrain edits through that control, not the shared value or its default.
+Saving a preset writes the current value into one declaration and omits other initializers.
+Enum and linked controls are FX features; HLSL brushes currently use their existing parameter UI.
+
 Labels are derived from names: `_NoiseScale` becomes **Noise Scale**. `float4` is four raw components;
 `color` is a color picker using the editor's HDR/Standard input setting and existing linear conversion.
 

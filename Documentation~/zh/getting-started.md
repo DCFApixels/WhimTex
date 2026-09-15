@@ -23,7 +23,7 @@ https://github.com/DCFApixels/WhimTex.git
 ## 制作你的第一张图像
 
 1. 打开 **Window → WhimTex** 并设置画布的 **W / H**。**New** 会在单独的标签页中创建另一个空文档，并保持当前文档处于打开状态。
-2. 将 Project 中的纹理拖到预览上，或点击图层底部的 **Page +** 创建一个 Drawing 图层。
+2. 点击 Layers 底部的 **+**，选择 **Drawing Layer** 创建绘制图层。如果已有纹理，也可以直接从 Project 拖到预览上。
 3. 选择 **Transform**（`T`）来调整图像位置，或选择 **Brush**（`B`）进行绘制。
 4. 按 `Ctrl+S` 并选择文档的保存位置。
 5. 将保存的资源用作 Unity 中的纹理，或者在 Project 中展开它，然后把 **Output Sprite** 拖到精灵字段中。
@@ -60,7 +60,7 @@ https://github.com/DCFApixels/WhimTex.git
 ## 让工作区更顺手
 
 **Export 右侧的齿轮按钮**会打开 User Settings，你可以在其中更改透明棋盘格的颜色
-和尺寸，或启用 **Clean Preview Background** 来隐藏背景标志。在此设置窗口的底部，
+和尺寸，或启用 **Clean Preview Background** 来隐藏背景标志和阴影。在此设置窗口的底部，
 **Reset WhimTex Settings…** 会在确认后恢复工作区首选项，而不会删除你的文档或预设文件。
 
 要将图层的设置保留在单独的窗口中，请使用 **layer ⋮ → Properties**。

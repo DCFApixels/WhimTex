@@ -16,8 +16,8 @@ Returning to Simple keeps your advanced settings.
 
 ## From a height map
 
-1. Add Normal Map above File, Drawing or Noise.
-2. Leave **Input → Previous**, or assign another Target.
+1. Add Normal Map above **File**, **Drawing Layer** or **Noise**.
+2. Leave **Input → Previous**, or assign another **Target**. See [effect sources](effects.md#choose-what-the-effect-uses) for these controls.
 3. Choose **Generation → Height Map** and the channel that contains the height.
 4. Start with **Strength** 4 and **Smoothing** 1 px, then adjust the relief.
 5. Hide the source layer if you want to see only the normal map.
@@ -33,24 +33,26 @@ This is a starting point, not an exact reconstruction: shadows or painted color 
 
 In Advanced, choose **Output → Height** to check the inferred height.
 Adjust **Fine / Medium / Large Detail** for small texture, medium features and broad shapes.
-Try **Light Removal** if lighting in the source is creating unwanted slopes.
+**Light Removal** defaults to 0.75 and reduces broad brightness variations.
+It helps when lighting in the source creates unwanted slopes, but can also remove genuine large-scale relief.
+Lower it or set it to zero if broad shapes lose their volume.
 Return **Output** to **Normal** when you are happy with the surface.
 
 ## Useful finishing controls
 
-- **Height Levels:** adjust Black/White Level and Gamma if the relief is too flat or too harsh.
+- **Height Levels** (in **Advanced** only): adjust Black/White Level and Gamma if the relief is too flat or too harsh.
 - **Edges → Repeat:** use for a seamless source.
 - **Alpha → Opaque:** make a solid map; **Source** keeps the source transparency.
 - **Flip Y:** try this if the target material shows bumps as dents.
 
 ## Save for a material
 
-For a normal map on its own, keep **Normal** blending, full opacity and unchanged Swizzle.
+For a normal map on its own, keep **Normal** blending, full opacity and unchanged [Swizzle](color.md), without rearranging channels.
 Avoid color effects, which can distort the relief.
 
-Choose **Packed Color** for PNG/TGA/PSD. Import the exported PNG or TGA into Unity as
+Choose **Advanced → Encoding → Packed Color** for PNG/TGA/PSD. Import the exported PNG or TGA into Unity as
 **Normal Map**, without grayscale conversion.
-Choose **Linear Data** when your workflow needs a linear EXR or Texture2D.
+Choose **Encoding → Linear Data** when your workflow needs a linear EXR or Texture2D.
 
-Rotating a finished normal-map layer rotates its image, not the direction of its lighting.
+Rotating a finished Normal Map layer rotates only its image: the relief is lit as though it had not rotated.
 For correctly oriented relief, transform the source before generating the map.

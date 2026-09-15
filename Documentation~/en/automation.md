@@ -11,13 +11,14 @@ next_page: "en/troubleshooting.md"
 
 # Automation
 
-Using a browser AI without a Unity connection? See [Create layers with browser AI](ai-authoring.md):
-copy layer JSON and paste it with Ctrl+V. It can also add a Drawing layer that downloads an image from a
-direct HTTP(S) link. The [authoring contract](../AI/README.md) also covers HLSL Shader FX.
-The connected-agent workflow below can additionally edit existing documents and paint strokes.
+For **browser AI**, start with [creating layers from JSON](ai-authoring.md): the AI writes JSON,
+and you paste it into WhimTex with **Ctrl+V**, without connecting to Unity.
+See the [AI authoring guide](../AI/README.md) for syntax and rules, and the
+[examples folder](../Examples/Clipboard/README.md) for ready-to-use JSON.
 
-An agent can help assemble a document: add images as layers, arrange them, apply effects
-or make simple painted marks. You can then open the result in WhimTex and continue by hand.
+The rest of this page covers an **agent connected to Unity**. It can add images as layers,
+arrange them, apply effects and paint simple elements, even in an unsaved document.
+You can continue editing the result by hand.
 
 ## What to ask for
 
@@ -42,7 +43,8 @@ You can ask an external agent to work in the document currently open in WhimTex:
 
 > Remove the object inside my selection and put the repair on a separate layer.
 
-A named placeholder reserves the result's place in Layers. You can rename, hide or move it while
+The agent creates a named placeholder in advance and captures the initial image and selection.
+The placeholder reserves the result's place in Layers. You can rename, hide or move it while
 the agent works; its content settings become available when the result arrives. Continue editing
 other layers normally. For a parameter-based layer, the agent can inspect a trial image first.
 
@@ -52,10 +54,8 @@ When working on an existing layer, it can temporarily lock that layer's settings
 remains visible, and you can still rename, hide or move the layer. Choose **Cancel Agent Edit** in
 Layer Settings to regain editing immediately. Other layers remain available.
 
-The agent can reserve a layer and capture the current context in one step. If your request needs
-several results, it can create additional placeholders using the same initial selection and image.
-With several WhimTex windows open, the current window is preferred. If you have switched to
-another application or Unity window, the last-focused WhimTex window is used instead.
+If your request needs several results, the agent can create additional placeholders using
+the same initial selection and image.
 
 The agent chooses whether to sample a particular layer or the visible composition based on what
 you ask. Mention a specific layer when that distinction matters. Region edits use the selection
@@ -70,10 +70,11 @@ To identify a layer precisely, select it and click **GUID** on the right of the 
 header. Hover over the button to see the full ID, or paste the copied ID into your request. With multiple layers selected, this is the
 active layer's ID. Groups and generation placeholders also have a GUID.
 
-To stop waiting, select the placeholder and click **Cancel Generation**, or delete it. If the target
+To stop waiting, select the placeholder and click **Cancel Generation** in Layer Settings, or delete it. If the target
 of a pixel edit changes while generation is running, the agent must resolve the conflict rather than
 overwrite your newer work. Closing the window, switching documents or reloading scripts interrupts
-the task; an interrupted placeholder can be removed and the task started again.
+the task. An interrupted placeholder will not receive the result: remove it and start again.
+Any result already completed remains a normal document layer.
 
 Results are not saved automatically. Check the image and save when ready.
 
@@ -82,7 +83,7 @@ canvas or selected region, so fitting a large image does not discard its detail.
 
 ## From generation to painting on a model
 
-Select the mesh's [UV islands](selection.md#select-uv-islands) and ask the agent to create a texture inside them. In this example, the agent generated the Rubik's cube colors and tiles on a Drawing layer. The white lettering was then painted by hand on a separate layer, with [Live Update](saving.md) showing the result on the cube in Scene view.
+Select the mesh's [UV islands](selection.md#select-uv-islands) and ask the agent to create a texture inside them—for example, colored Rubik's cube tiles. The agent places them on a Drawing layer in the UV layout. Paint white lettering above them on a separate layer, and use [Live Update](saving.md) to see the result on the cube in Scene view.
 
 <a href="{{ '/Images/uv-rubik-cube.png' | relative_url }}"><img src="{{ '/Images/uv-rubik-cube.png' | relative_url }}" alt="An agent-generated Rubik's cube texture with hand-painted lettering on a separate layer, shown on a cube in Unity" width="720"></a>
 
@@ -90,6 +91,8 @@ Select the mesh's [UV islands](selection.md#select-uv-islands) and ask the agent
 
 Give the agent the repository's [agent instructions](https://github.com/DCFApixels/WhimTex/blob/main/AGENTS.md).
 They explain how to use WhimTex in your Unity project.
+To access an open document, WhimTex must be installed in the project and the agent must be
+connected to Unity through the [Live editing API](../LiveAgentAPI.md).
 
 Command syntax and integration setup are kept in the separate
 [API reference](../AgentAPI.md), with [examples](../Examples/index.md).

@@ -11,7 +11,7 @@ namespace DCFApixels.WhimTex
     internal static class ShaderFXMetadata
     {
         private static readonly Regex Header = new Regex(@"^//\s*@whimtex-effect\s+([^\r\n]+?)\s*$");
-        private static readonly Regex Parameter = new Regex(@"^\s*//\s*@param\s+(float|float4|color|texture2D|transform2D)\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*=\s*([^\[\];]+?))?\s*(?:\[\s*(.*?)\s*\.\.\s*(.*?)\s*\])?\s*$");
+        private static readonly Regex Parameter = new Regex(@"^\s*//\s*@param\s+(float|bool|float4|color|texture2D|transform2D)\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*=\s*([^\[\];]+?))?\s*(?:\[\s*(.*?)\s*\.\.\s*(.*?)\s*\])?\s*$");
 
         internal static bool TryHeader(string firstLine, out string menuPath)
         {
@@ -25,7 +25,7 @@ namespace DCFApixels.WhimTex
         internal static List<ShaderFXParameter> Parse(string source, bool requireHeader, out string menuPath)
         {
             var result = new List<ShaderFXParameter>();
-            var names = new HashSet<string>(StringComparer.Ordinal);
+            var names = new Dictionary<string, ShaderFXParameter>(StringComparer.Ordinal);
             using var reader = new StringReader(source ?? "");
             string line = reader.ReadLine();
             bool header = TryHeader(line, out menuPath);
@@ -36,6 +36,7 @@ namespace DCFApixels.WhimTex
                     if (string.IsNullOrWhiteSpace(segment)) throw new FormatException("Line 1: effect category/name must not contain empty segments.");
             }
             int lineNumber = 0;
+            int declarationCount = 0;
             bool blockComment = false;
             do
             {
@@ -45,19 +46,27 @@ namespace DCFApixels.WhimTex
                 if (!declaration) continue;
                 try
                 {
-                    Match match = Parameter.Match(line);
+                    Match enumMatch = Regex.Match(line, @"^\s*//\s*@param\s+enum\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*=\s*([^{}]+?))?\s*\{([^{}]+)\}\s*$");
+                    Match match = Parameter.Match(enumMatch.Success ? "// @param float " + enumMatch.Groups[1].Value : line);
                     if (!match.Success) throw new FormatException("Expected @param type name = value [min .. max], without a semicolon.");
                     string kind = match.Groups[1].Value;
                     string name = match.Groups[2].Value;
-                    if (!names.Add(name)) throw new FormatException("Duplicate parameter: " + name);
-                    var p = new ShaderFXParameter { name = name, declaredInCode = true };
+                    var p = new ShaderFXParameter { name = name, declaredInCode = true, floatValue = 0f, colorValue = Color.clear };
                     string value = match.Groups[3].Value.Trim();
+                    bool explicitDefault = match.Groups[3].Success;
                     bool bounded = match.Groups[4].Success;
                     switch (kind)
                     {
+                        case "bool":
+                            p.type = ShaderFXParameterType.Bool;
+                            if (!explicitDefault) p.floatValue = 0f;
+                            else if (value == "true" || value == "1") p.floatValue = 1f;
+                            else if (value == "false" || value == "0") p.floatValue = 0f;
+                            else throw new FormatException("Expected true, false, 0 or 1 for bool.");
+                            break;
                         case "float":
                             p.type = ShaderFXParameterType.Float;
-                            p.floatValue = Number(value);
+                            p.floatValue = explicitDefault ? Number(value) : 0f;
                             if (bounded)
                             {
                                 p.hasMinimum = match.Groups[4].Value.Trim().Length > 0;
@@ -66,11 +75,11 @@ namespace DCFApixels.WhimTex
                                 if (p.hasMinimum) p.minimum = Number(match.Groups[4].Value);
                                 if (p.hasMaximum) p.maximum = Number(match.Groups[5].Value);
                                 if (p.hasMinimum && p.hasMaximum && p.minimum > p.maximum) throw new FormatException("Minimum exceeds maximum.");
-                                if (p.Clamp(p.floatValue) != p.floatValue) throw new FormatException("Default value is outside the range.");
                             }
                             break;
                         case "float4":
                         case "color":
+                            if (!explicitDefault) value = "(0, 0, 0, 0)";
                             if (!value.StartsWith("(") || !value.EndsWith(")")) throw new FormatException("Expected four components in parentheses.");
                             string[] parts = value.Substring(1, value.Length - 2).Split(',');
                             if (parts.Length != 4) throw new FormatException("Expected four components.");
@@ -108,7 +117,42 @@ namespace DCFApixels.WhimTex
                             break;
                     }
                     if (kind != "float" && bounded) throw new FormatException("Ranges apply only to float parameters.");
-                    result.Add(p);
+                    var control = new ShaderFXParameterControl { type = p.type, order = lineNumber,
+                        hasMinimum = p.hasMinimum, hasMaximum = p.hasMaximum, minimum = p.minimum, maximum = p.maximum };
+                    if (enumMatch.Success)
+                    {
+                        control.type = ShaderFXParameterType.Enum;
+                        p.type = ShaderFXParameterType.Float;
+                        var labels = new List<string>();
+                        var numbers = new List<float>();
+                        foreach (string item in enumMatch.Groups[3].Value.Split(','))
+                        {
+                            Match option = Regex.Match(item.Trim(), @"^([A-Za-z_][A-Za-z0-9_]*)\s*:\s*(.+)$");
+                            if (!option.Success) throw new FormatException("Enum items must be Name: number.");
+                            string label = option.Groups[1].Value;
+                            float number = Number(option.Groups[2].Value);
+                            if (labels.Contains(label) || numbers.Contains(number)) throw new FormatException("Enum names and values must be unique.");
+                            labels.Add(label); numbers.Add(number);
+                        }
+                        control.optionNames = labels.ToArray(); control.optionValues = numbers.ToArray();
+                        explicitDefault = enumMatch.Groups[2].Success;
+                        if (explicitDefault)
+                        {
+                            string initial = enumMatch.Groups[2].Value.Trim();
+                            int index = labels.IndexOf(initial);
+                            p.floatValue = index >= 0 ? numbers[index] : Number(initial);
+                        }
+                    }
+                    p.controls.Add(control);
+                    if (names.TryGetValue(name, out var existing))
+                    {
+                        if (!Compatible(existing.type, p.type)) throw new FormatException("Conflicting storage types for " + name);
+                        existing.controls.Add(control);
+                        if (IsScalar(p.type)) existing.type = ShaderFXParameterType.Float;
+                        if (explicitDefault) CopyValue(p, existing);
+                    }
+                    else { names.Add(name, p); result.Add(p); }
+                    if (++declarationCount > 128) throw new FormatException("At most 128 parameter controls are supported.");
                     if (result.Count > 128) throw new FormatException("At most 128 parameters are supported.");
                 }
                 catch (FormatException error) { throw new FormatException($"Line {lineNumber}: {error.Message}"); }
@@ -130,7 +174,7 @@ namespace DCFApixels.WhimTex
                 var p = next[i];
                 ShaderFXParameter match = null;
                 foreach (var old in previous)
-                    if (old != null && old.name == p.name && old.type == p.type)
+                    if (old != null && old.name == p.name && Compatible(old.type, p.type))
                     {
                         match = old;
                         break;
@@ -145,12 +189,20 @@ namespace DCFApixels.WhimTex
                 }
                 if (match == null) continue;
                 p.id = match.id;
-                p.floatValue = p.Clamp(match.floatValue);
+                p.floatValue = p.controls.Count > 0 ? match.floatValue : p.Clamp(match.floatValue);
                 p.colorValue = match.colorValue;
                 p.vectorValue = match.vectorValue;
                 p.textureValue = match.textureValue;
                 p.transformValue = match.transformValue;
             }
+        }
+
+        internal static bool IsScalar(ShaderFXParameterType type) => type == ShaderFXParameterType.Float || type == ShaderFXParameterType.Bool || type == ShaderFXParameterType.Enum;
+        internal static bool Compatible(ShaderFXParameterType a, ShaderFXParameterType b) => a == b || IsScalar(a) && IsScalar(b);
+        private static void CopyValue(ShaderFXParameter source, ShaderFXParameter target)
+        {
+            target.floatValue = source.floatValue; target.colorValue = source.colorValue;
+            target.vectorValue = source.vectorValue; target.textureValue = source.textureValue; target.transformValue = source.transformValue;
         }
     }
 }
