@@ -111,6 +111,9 @@ tips. Gradient is included when saving a brush preset.
 
 ### Brush presets
 
+Project `.sebrush` files appear as brush assets with stroke thumbnails in the Project window.
+Select one to see a larger preview in the Inspector. Drag the asset anywhere into WhimTex to choose the brush, or use the brush preset menu. Dropping a brush does not create a layer or switch tools.
+
 Choose a saved brush from the selector at the top of **Brushes**. Use **Save As…** to
 name a new preset; the selector menu also offers **Overwrite Selected…** and
 **Open Brushes Folder**. An asterisk means you have changed the brush since saving or

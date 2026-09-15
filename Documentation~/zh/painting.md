@@ -111,6 +111,9 @@ Opacity 或 Flow。Tint 旁的小按钮只重置渐变。
 
 ### 画笔预设
 
+项目中的 `.sebrush` 文件显示为画笔资源，并在 Project 窗口中带有笔触缩略图。
+选中资源可在 Inspector 中查看大图。将资源拖入 WhimTex 窗口的任意位置即可选择画笔，也可以使用画笔预设菜单。拖入画笔不会创建图层或切换工具。
+
 在 **Brushes** 顶部的选择器中选择一个已保存的画笔。使用 **Save As…** 为
 新预设命名；选择器菜单还提供 **Overwrite Selected…** 和
 **Open Brushes Folder**。星号表示自保存或

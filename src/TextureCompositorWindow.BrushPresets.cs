@@ -12,6 +12,36 @@ namespace DCFApixels.WhimTex
         [SerializeField] private string selectedBrushPresetSnapshot;
         [NonSerialized] private Button brushPresetButton;
 
+        private static string GetDraggedBrushPresetPath()
+        {
+            if (DragAndDrop.GetGenericData(DraggedCompositorIdKey) != null) return null;
+            var objects = DragAndDrop.objectReferences;
+            if (objects.Length != 1 || !(objects[0] is BrushPresetAsset)) return null;
+            string path = AssetDatabase.GetAssetPath(objects[0]);
+            return string.IsNullOrEmpty(path) ? null : path;
+        }
+
+        private void OnBrushPresetDragUpdated(DragUpdatedEvent evt)
+        {
+            if (GetDraggedBrushPresetPath() == null) return;
+            ClearToolkitDropIndicator();
+            ClearFooterDropIndicator();
+            DragAndDrop.visualMode = DragAndDropVisualMode.Copy;
+            evt.StopImmediatePropagation();
+        }
+
+        private void OnBrushPresetDragPerform(DragPerformEvent evt)
+        {
+            string path = GetDraggedBrushPresetPath();
+            if (path == null) return;
+            DragAndDrop.AcceptDrag();
+            evt.StopImmediatePropagation();
+            ClearToolkitDropIndicator();
+            ClearFooterDropIndicator();
+            FinishPaintingStroke();
+            LoadBrushPreset(PresetLibraryPaths.PhysicalPath(path));
+        }
+
         private void BuildBrushPresetControls(VisualElement parent)
         {
             var row = new VisualElement();

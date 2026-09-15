@@ -4,7 +4,8 @@ import { gzipSync, gunzipSync } from 'node:zlib';
 const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8').replace(/\r\n/g,'\n');
 const library=read('src/BrushPresetLibrary.cs'), settings=read('src/PaintToolSettings.cs');
 const ui=read('src/TextureCompositorWindow.BrushPresets.cs');
-const drawer = read('src/TextureCompositorWindow.Brushes.cs').split('private void AddBrushEdgeHeader')[0];
+const drawer = read('src/TextureCompositorWindow.Brushes.cs').split('private void AddBrushEdgeHeader')[0]
+  + read('src/TextureCompositorWindow.BrushHlsl.cs');
 assert.ok(drawer.includes('new FloatField("Size")'));
 assert.ok(drawer.includes('brushSettingsBindings.Track(size, () => paintSettings.brushSize)'));
 for (const [label, member] of [['Opacity', 'opacity'], ['Flow', 'flow']])
@@ -91,5 +92,6 @@ assert.ok(library.includes('TextureFormat.RGBA32 : TextureFormat.RGBAHalf'));
 assert.ok(ui.includes('BrushPresetLibrary.Load(path, out tip)'));
 assert.ok(ui.includes('ApplyPaintToolChange(() => paintSettings.ApplyPreset'));
 assert.ok(ui.includes('if (!string.IsNullOrEmpty(path)) SaveBrushPreset(path)'));
-assert.ok(!/(AssetDatabase\.|Undo\.|ImportAsset|Refresh\(\))/.test(library+ui));
+// Resolving the dragged preset path is read-only; saving stays in the shared library.
+assert.ok(!/(AssetDatabase\.(?!GetAssetPath\()|Undo\.|ImportAsset|Refresh\(\))/.test(library+ui));
 console.log('Brush preset settings/dimension/source checks and reference format round-trips passed (Unity/GPU not executed).');

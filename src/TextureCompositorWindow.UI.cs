@@ -84,6 +84,8 @@ namespace DCFApixels.WhimTex
             root.UnregisterCallback<KeyDownEvent>(OnToolkitKeyDown, TrickleDown.TrickleDown);
             root.UnregisterCallback<KeyUpEvent>(OnToolkitKeyUp, TrickleDown.TrickleDown);
             root.UnregisterCallback<DragExitedEvent>(OnToolkitDragExited);
+            root.UnregisterCallback<DragUpdatedEvent>(OnBrushPresetDragUpdated, TrickleDown.TrickleDown);
+            root.UnregisterCallback<DragPerformEvent>(OnBrushPresetDragPerform, TrickleDown.TrickleDown);
             root.UnregisterCallback<PointerDownEvent>(OnOpacityPointerDown, TrickleDown.TrickleDown);
             ResetOpacityEntry();
             root.Clear();
@@ -102,6 +104,8 @@ namespace DCFApixels.WhimTex
             RegisterAreaSelectionCommands(root);
             root.RegisterCallback<KeyUpEvent>(OnToolkitKeyUp, TrickleDown.TrickleDown);
             root.RegisterCallback<DragExitedEvent>(OnToolkitDragExited);
+            root.RegisterCallback<DragUpdatedEvent>(OnBrushPresetDragUpdated, TrickleDown.TrickleDown);
+            root.RegisterCallback<DragPerformEvent>(OnBrushPresetDragPerform, TrickleDown.TrickleDown);
             root.RegisterCallback<PointerDownEvent>(OnOpacityPointerDown, TrickleDown.TrickleDown);
 
             toolkitDocumentRoot = new VisualElement();

@@ -4,6 +4,12 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+## [0.10.12] - 2026-09-15
+
+### Added
+
+- Project brush presets import as brush assets with square, dark-background stroke thumbnails and an Inspector preview, without changing the portable `.sebrush` format. Drag a preset into WhimTex to choose the brush.
+
 ## [0.10.11] - 2026-09-15
 
 ### Fixed
