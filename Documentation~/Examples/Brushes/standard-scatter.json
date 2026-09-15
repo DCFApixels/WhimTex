@@ -1,0 +1,15 @@
+{
+  "format": "whimtex.brush",
+  "version": 1,
+  "name": "Soft Dust",
+  "source": "Standard",
+  "settings": {
+    "size": 48,
+    "hardness": 0.3,
+    "spacing": 0.35,
+    "flow": 0.3,
+    "scatter": 0.6,
+    "sizeJitter": 0.5,
+    "randomAlgorithm": "Sobol"
+  }
+}

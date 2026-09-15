@@ -1,4 +1,6 @@
 using System;
+using System.IO;
+using System.Security.Cryptography;
 using UnityEditor;
 using UnityEngine;
 
@@ -18,6 +20,56 @@ namespace DCFApixels.WhimTex
         public long brushTipLocalId;
         public string brushTipPresetPath;
         [NonSerialized] private Texture2D ownedPresetTip;
+        public string clipboardTipId;
+        [NonSerialized] private BrushTipProgram tipProgram;
+        [NonSerialized] private bool tipRestoreFailed;
+
+        internal void SetTipSource(BrushTipSource source)
+        {
+            if(source==BrushTipSource.HLSL)
+            {
+                ApplyHlsl(dynamics.hlslCode,dynamics.hlslParameters,dynamics.hlslResolution);
+                return;
+            }
+            SetBrushTip(null);
+            dynamics.source=source;
+        }
+
+        internal void ApplyHlsl(string code, System.Collections.Generic.List<ShaderFXParameter> values, int resolution)
+        {
+            var parameters=BrushTipProgram.Parse(code,out _);
+            ShaderFXMetadata.PreserveValues(parameters,values);
+            tipProgram??=new BrushTipProgram();
+            Texture2D texture=tipProgram.Bake(code,parameters,resolution);
+            ReleaseOwnedTip();
+            dynamics.tip=ownedPresetTip=texture;
+            dynamics.source=BrushTipSource.HLSL;
+            dynamics.hlslCode=code; dynamics.hlslParameters=parameters; dynamics.hlslResolution=resolution;
+            brushTipGuid=brushTipPresetPath=clipboardTipId=string.Empty; brushTipLocalId=0;
+            tipRestoreFailed=false;
+        }
+
+        internal void AdoptClipboardTip(Texture2D texture)
+        {
+            byte[] png=texture.EncodeToPNG();
+            using var hash=SHA256.Create();
+            string id=BitConverter.ToString(hash.ComputeHash(png)).Replace("-","").ToLowerInvariant();
+            string path=ClipboardTipPath(id);
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            if(!File.Exists(path))File.WriteAllBytes(path,png);
+            ReleasePresetTip();
+            dynamics.tip=ownedPresetTip=texture;
+            dynamics.source=BrushTipSource.Standard;
+            clipboardTipId=id;
+            brushTipGuid=brushTipPresetPath=string.Empty;brushTipLocalId=0;
+        }
+        private static string ClipboardTipPath(string id)
+        {
+            if(id.Length!=64 || !System.Text.RegularExpressions.Regex.IsMatch(id,"^[0-9a-f]+$"))
+                throw new FormatException("Invalid brush image cache identifier.");
+            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "WhimTex","BrushTips",id+".png");
+        }
         public int pencilSize = 1;
         public PencilShape pencilShape = PencilShape.Circle;
         public FillSampleMode fillSampleMode = FillSampleMode.CurrentLayer;
@@ -33,6 +85,11 @@ namespace DCFApixels.WhimTex
             ReleasePresetTip();
             var defaults = new PaintToolSettings();
             dynamics.tip = defaults.dynamics.tip;
+            dynamics.source = BrushTipSource.Standard;
+            dynamics.hlslCode = BrushTipProgram.DefaultSource;
+            dynamics.hlslParameters = new System.Collections.Generic.List<ShaderFXParameter>();
+            dynamics.hlslResolution = 512;
+            clipboardTipId = string.Empty;
             dynamics.tipChannel = defaults.dynamics.tipChannel;
             dynamics.tipSdf = defaults.dynamics.tipSdf;
             dynamics.proceduralMode = defaults.dynamics.proceduralMode;
@@ -47,6 +104,8 @@ namespace DCFApixels.WhimTex
             if (texture == ownedPresetTip && texture != null) return;
             ReleasePresetTip();
             dynamics.tip = texture;
+            dynamics.source = BrushTipSource.Standard;
+            clipboardTipId = string.Empty;
             brushTipGuid = string.Empty;
             brushTipLocalId = 0;
             brushTipPresetPath = string.Empty;
@@ -60,6 +119,7 @@ namespace DCFApixels.WhimTex
             brushHardness = preset.hardness;
             brushSpacing = preset.spacing;
             dynamics = preset.dynamics;
+            clipboardTipId=string.Empty;
             dynamics.tip = tip;
             ownedPresetTip = tip;
             brushTipGuid = string.Empty;
@@ -68,6 +128,13 @@ namespace DCFApixels.WhimTex
         }
 
         internal void ReleasePresetTip()
+        {
+            tipProgram?.Dispose(); tipProgram=null;
+            tipRestoreFailed=false;
+            ReleaseOwnedTip();
+        }
+
+        private void ReleaseOwnedTip()
         {
             if (ownedPresetTip == null) return;
             if (dynamics?.tip == ownedPresetTip) dynamics.tip = null;
@@ -106,6 +173,26 @@ namespace DCFApixels.WhimTex
         {
             if (dynamics == null || dynamics.tip != null ||
                 EditorApplication.isCompiling || EditorApplication.isUpdating) return false;
+            if(tipRestoreFailed)return false;
+            if(dynamics.source==BrushTipSource.HLSL)
+            {
+                try { ApplyHlsl(dynamics.hlslCode,dynamics.hlslParameters,dynamics.hlslResolution); return true; }
+                catch(Exception error){tipRestoreFailed=true;Debug.LogWarning("Could not restore HLSL brush: "+error.Message);return false;}
+            }
+            if(!string.IsNullOrEmpty(clipboardTipId))
+            {
+                Texture2D restored=null;
+                try
+                {
+                    restored=ImageClipboard.DecodeWebImage(File.ReadAllBytes(ClipboardTipPath(clipboardTipId)));
+                    dynamics.tip=ownedPresetTip=restored;return true;
+                }
+                catch(Exception error)
+                {
+                    if(restored!=null)UnityEngine.Object.DestroyImmediate(restored);
+                    tipRestoreFailed=true;Debug.LogWarning("Could not restore clipboard brush: "+error.Message);return false;
+                }
+            }
             if (!string.IsNullOrEmpty(brushTipPresetPath)) return RestorePresetTip();
             if (string.IsNullOrEmpty(brushTipGuid)) return false;
             string path = AssetDatabase.GUIDToAssetPath(brushTipGuid);

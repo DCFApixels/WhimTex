@@ -1549,7 +1549,13 @@
     flex-shrink: 0;
 }
 
-.whimtex-shader-fx-code .unity-text-field__input {
+.whimtex-brush-hlsl-code {
+    flex-grow: 1;
+    min-height: 80px;
+}
+
+.whimtex-shader-fx-code .unity-text-field__input,
+.whimtex-brush-hlsl-code .unity-text-field__input {
     -unity-text-align: upper-left;
     white-space: normal;
 }

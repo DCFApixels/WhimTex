@@ -38,6 +38,8 @@ jobs:
           working-directory: Documentation~
       - name: Check documentation sources
         run: node scripts/check-docs.mjs source
+      - name: Check brush schema and examples
+        run: node ../Tests~/BrushClipboard.test.mjs
       - name: Initialize theme search
         run: bundle exec just-the-docs rake search:init
       - name: Build site

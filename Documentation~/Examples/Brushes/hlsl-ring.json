@@ -1,0 +1,9 @@
+{
+  "format": "whimtex.brush",
+  "version": 1,
+  "name": "Ring",
+  "source": "HLSL",
+  "resolution": 512,
+  "settings": { "size": 64, "spacing": 0.6, "scatter": 0.2 },
+  "code": "// @whimtex-brush Shapes/Ring\n// @param float _Thickness = 0.15 [0.01 .. 0.5]\n\nfloat4 BrushTip(float2 uv)\n{\n    float d = abs(length(uv * 2.0 - 1.0) - 0.65);\n    float aa = max(fwidth(d), 0.001);\n    return float4(1, 1, 1, 1 - smoothstep(_Thickness, _Thickness + aa, d));\n}"
+}

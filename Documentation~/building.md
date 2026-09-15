@@ -23,6 +23,8 @@ From the repository's `Documentation~` directory:
 bundle install
 node scripts/check-docs.mjs source
 node scripts/build-clipboard-schema.mjs --check
+node scripts/build-brush-schema.mjs --check
+node ../Tests~/BrushClipboard.test.mjs
 bundle exec just-the-docs rake search:init
 bundle exec jekyll serve --baseurl /WhimTex --host 127.0.0.1
 ```

@@ -37,7 +37,9 @@ namespace DCFApixels.WhimTex
                 return false;
             }
         }
-        private bool IsPreviewBrushEnabled => IsPreviewPaintTool && GetSelectedLayer()?.Behaviour is DrawingLayerBehaviour layer && !WhimTexApi.IsLayerContentLocked(compositor, layer);
+        private bool IsPreviewBrushEnabled => IsPreviewPaintTool &&
+            (previewTool != PreviewTool.Brush || paintSettings.dynamics.source != BrushTipSource.HLSL || paintSettings.dynamics.tip != null) &&
+            GetSelectedLayer()?.Behaviour is DrawingLayerBehaviour layer && !WhimTexApi.IsLayerContentLocked(compositor, layer);
         private bool IsPreviewFillEnabled => previewTool == PreviewTool.Fill && GetSelectedLayer()?.Behaviour is DrawingLayerBehaviour layer && !WhimTexApi.IsLayerContentLocked(compositor, layer);
 
         private void ApplyPreviewTextureFilter()

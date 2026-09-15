@@ -39,6 +39,7 @@ namespace DCFApixels.WhimTex
 
             scroll.Add(CreateBrushSectionHeader("Tip", () => paintSettings.ResetBrushTip(),
                 "Reset Tip: use a procedural brush in Hardness mode, clear the texture, use Alpha, disable texture SDF and restore the default gradient. Size and Hardness are unchanged."));
+            BuildBrushSourceControls(scroll);
             var size = WhimTexUI.ConfigureField(new FloatField("Size")
             {
                 value = paintSettings.brushSize,
@@ -62,6 +63,7 @@ namespace DCFApixels.WhimTex
                 ApplyPaintToolChange(() => paintSettings.SetBrushTip(texture));
             });
             brushSettingsBindings.Track(tip, () => (UnityEngine.Object)paintSettings.dynamics.tip);
+            brushSettingsBindings.Add(() => tip.EnableInClassList("whimtex-brush-setting--hidden", paintSettings.dynamics.source != BrushTipSource.Standard));
             scroll.Add(tip);
             scroll.Add(size);
             var proceduralMode = WhimTexUI.ConfigureField(new DropdownField("Mode",

@@ -8,6 +8,10 @@ description: "Generate WhimTex procedural texture layers, groups and HLSL Shader
 
 # WhimTex AI authoring: JSON layers and HLSL effects
 
+For **brushes**, use the separate [brush JSON/HLSL contract](BRUSHES.md) and
+[brush examples](../Examples/Brushes/README.md). Brush JSON replaces the current brush;
+it is not a layer document. HLSL brushes implement `BrushTip`, not `ApplyFX`.
+
 This page is the complete starting contract for a browser AI generating editable textures for
 **WhimTex, the Unity sprite and texture editor**. No Unity connection or file generation is required.
 Return a JSON object for the user to copy and paste, or HLSL for a shader-only request.

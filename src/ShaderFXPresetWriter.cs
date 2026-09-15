@@ -52,7 +52,7 @@ namespace DCFApixels.WhimTex
             return value.ToString("R", CultureInfo.InvariantCulture);
         }
 
-        private static string Declaration(ShaderFXParameter p)
+        internal static string Declaration(ShaderFXParameter p)
         {
             string prefix = "// @param ";
             switch (p.type)

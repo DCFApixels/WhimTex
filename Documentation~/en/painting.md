@@ -39,6 +39,18 @@ for its tip. Zoom in to see its exact pixel outline.
 
 ## Customize the brush
 
+In **Brushes → Tip → Source**, choose **Standard** or **HLSL**.
+Standard is a round procedural brush when **Texture** is empty; assign an image to use a textured tip.
+HLSL generates its tip with a script and uses the same Tip Channel, SDF/Gradient, rotation and flip controls as a textured Standard brush.
+Choose **HLSL Presets** or open **Edit Code…**, edit the script and press **Apply**.
+**Tip Resolution** controls the detail of the generated tip; **Size** controls its stamp size.
+The code window can save an HLSL preset to the project or the user preset folder.
+Files in the project and in the user folder's **Brushes/HLSL** subfolder appear in the menu.
+The regular brush **Save As…** also keeps the HLSL code and settings.
+
+A browser AI can provide brush JSON: paste it with **Ctrl+V** outside a text field to
+replace the current brush without changing layers. See the [brush contract and examples](../AI/BRUSHES.md).
+
 With **Brush** selected, open the upper arrow on the right edge of the preview to show
 **Brushes**. It shares the drawer with Post FX: opening one closes the other.
 

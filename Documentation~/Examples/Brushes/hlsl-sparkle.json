@@ -1,0 +1,8 @@
+{
+  "format": "whimtex.brush",
+  "version": 1,
+  "name": "Sparkle",
+  "source": "HLSL",
+  "settings": { "size": 80, "spacing": 0.8, "scatter": 0.4, "sizeJitter": 0.4, "angleJitter": 180, "tipChannel": "Color", "blend": "Add", "blendApplication": "Stamp" },
+  "code": "// @whimtex-brush VFX/Sparkle\n// @param float _Sharpness = 5 [1 .. 12]\n// @param color _Tint = (0.3, 0.6, 1, 1)\n\nfloat4 BrushTip(float2 uv)\n{\n    float2 p = abs(uv * 2.0 - 1.0);\n    float cross = pow(saturate(1.0 - sqrt(p.x) - sqrt(p.y)), _Sharpness);\n    float glow = exp(-dot(p, p) * 35.0) * 0.2;\n    float edge = 1.0 - smoothstep(0.8, 1.0, max(p.x, p.y));\n    return float4(_Tint.rgb, saturate(cross + glow) * edge * _Tint.a);\n}"
+}

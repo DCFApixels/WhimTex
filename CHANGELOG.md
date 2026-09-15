@@ -4,6 +4,14 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+## [0.10.7] - 2026-09-15
+
+### Added
+
+- Standard (with an optional texture) and cached HLSL brush tip sources, with shared textured-tip controls.
+- HLSL brush presets from project files and the user Brushes/HLSL folder; an inline code editor and preset export.
+- Clipboard brush JSON for browser AI, including URL texture tips, a schema and example recipes.
+
 ## [0.10.6] - 2026-09-15
 
 ### Changed

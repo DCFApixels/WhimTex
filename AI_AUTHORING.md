@@ -1,5 +1,10 @@
 # WhimTex AI authoring — start here
 
+**Generating a brush instead of layers?** Read the [brush JSON/HLSL contract](Documentation~/AI/BRUSHES.md),
+then an actual JSON file in [Documentation~/Examples/Brushes/](Documentation~/Examples/Brushes/README.md).
+Use [brush.schema.json](Documentation~/AI/brush.schema.json). The format is `whimtex.brush`:
+Ctrl+V replaces the current brush, without adding layers or changing the canvas.
+
 Want to generate **WhimTex layers as clipboard JSON** — procedural layers, or a Drawing layer with
 `url` that fetches an image from a direct http(s) link — or **HLSL Shader FX**?
 Start with the [authoring guide](Documentation~/AI/README.md): it points to example files first,

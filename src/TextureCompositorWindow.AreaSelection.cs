@@ -270,6 +270,7 @@ namespace DCFApixels.WhimTex
             try
             {
                 string clipboardText = GUIUtility.systemCopyBuffer;
+                if (TryPasteBrushClipboard(clipboardText)) return;
                 if (TryPasteImageUrl(clipboardText)) return;
                 if (WhimTexApi.IsProceduralClipboard(clipboardText))
                 {

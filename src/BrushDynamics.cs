@@ -4,6 +4,7 @@ using UnityEngine;
 namespace DCFApixels.WhimTex
 {
     internal enum BrushTipChannel { Alpha, Luminance, InvertedLuminance, Color }
+    internal enum BrushTipSource { Standard = 0, HLSL = 2 }
     internal enum BrushRandomAlgorithm { Random, Sobol }
     internal enum BrushRotationMode { Fixed, StrokeDirection }
     internal enum BrushProceduralMode { Hardness, SdfGradient }
@@ -25,6 +26,10 @@ namespace DCFApixels.WhimTex
         public BrushRandomAlgorithm randomAlgorithm;
         public WhimTexGradient tintGradient = WhiteGradient();
         public Texture2D tip;
+        public BrushTipSource source;
+        public string hlslCode = BrushTipProgram.DefaultSource;
+        public int hlslResolution = 512;
+        public System.Collections.Generic.List<ShaderFXParameter> hlslParameters = new System.Collections.Generic.List<ShaderFXParameter>();
         public BrushTipChannel tipChannel;
         public bool tipSdf;
         public BrushProceduralMode proceduralMode;
@@ -44,6 +49,9 @@ namespace DCFApixels.WhimTex
 
         internal void Normalize()
         {
+            if (!Enum.IsDefined(typeof(BrushTipSource), source)) source = BrushTipSource.Standard;
+            hlslResolution = Mathf.Clamp(hlslResolution, 32, 2048);
+            hlslParameters ??= new System.Collections.Generic.List<ShaderFXParameter>();
             opacity = Unit(opacity, 1f);
             flow = Unit(flow, 1f);
             scatter = Mathf.Clamp(Finite(scatter, 0f), 0f, 4f);

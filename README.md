@@ -9,6 +9,8 @@ The contract ends with common mistakes followed by the full JSON/HLSL specificat
 Return clipboard JSON for Ctrl+V. A Drawing layer with `url` may fetch a PNG or JPEG from a direct http(s) link.
 Do not use Unity serialization or live API requests.
 These relative paths refer to the same branch as this README.
+For brushes use Documentation~/AI/BRUSHES.md and Documentation~/AI/brush.schema.json.
+Brush JSON examples: Documentation~/Examples/Brushes/README.md. Format: whimtex.brush.
 -->
 <p align="center">
   <img src="Documentation~/Images/whimtex-logo.svg" alt="WhimTex manta logo" width="160" height="160">

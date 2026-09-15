@@ -1,0 +1,14 @@
+{
+  "format": "whimtex.brush",
+  "version": 1,
+  "name": "Manta Stamps",
+  "source": "Standard",
+  "url": "https://raw.githubusercontent.com/DCFApixels/WhimTex/main/Documentation%7E/Images/whimtex-logo.png",
+  "settings": {
+    "size": 96,
+    "spacing": 1.2,
+    "tipChannel": "Color",
+    "angleJitter": 20,
+    "sizeJitter": 0.15
+  }
+}
