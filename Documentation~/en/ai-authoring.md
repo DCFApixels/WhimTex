@@ -9,6 +9,9 @@ translations: "en/ai-authoring.md,ru/ai-authoring.md,zh/ai-authoring.md"
 
 # Create layers with browser AI
 
+If JSON paste or its HLSL compilation fails, open **Window → General → Console**.
+The WhimTex error includes detailed diagnostics you can copy back to the AI. This also applies to brush JSON.
+
 Ask a browser AI for an editable texture, copy its JSON and paste it into WhimTex.
 No connection to Unity is needed. Available in WhimTex 0.9.6 and later.
 

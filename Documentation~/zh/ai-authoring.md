@@ -9,6 +9,9 @@ translations: "en/ai-authoring.md,ru/ai-authoring.md,zh/ai-authoring.md"
 
 # 用浏览器 AI 创建图层
 
+如果 JSON 粘贴或其中的 HLSL 编译失败，请打开 **Window → General → Console**。
+WhimTex 错误包含详细信息，可复制给 AI 帮助修正。画笔 JSON 也支持此功能。
+
 向浏览器 AI 索取可编辑的纹理，复制其 JSON 并粘贴到 WhimTex 中。
 无需连接 Unity。在 WhimTex 0.9.6 及更高版本中可用。
 

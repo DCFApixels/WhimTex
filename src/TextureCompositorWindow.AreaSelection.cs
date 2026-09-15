@@ -356,8 +356,13 @@ namespace DCFApixels.WhimTex
                 });
                 if (inserted && compositor.layers.Exists(layer => layer?.Behaviour is DrawingLayerBehaviour drawing && drawing.StoredTexture == pasted)) texture = null;
             }
-            catch (Exception exception) { ShowNotification(new GUIContent("Paste failed: " + exception.Message)); }
+            catch (Exception exception) { ReportClipboardPasteError("Paste failed", exception); }
             finally { if (texture != null) DestroyImmediate(texture, true); }
+        }
+        private void ReportClipboardPasteError(string operation, Exception exception)
+        {
+            Debug.LogError("[WhimTex] " + operation + ":\n" + exception, this);
+            ShowNotification(new GUIContent(operation + ": " + exception.Message));
         }
         private void LimitFillToArea(DrawingLayerBehaviour layer, NativeArray<byte> valid, int width, int height)
         {

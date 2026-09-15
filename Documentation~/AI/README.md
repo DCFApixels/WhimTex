@@ -322,7 +322,7 @@ Noise types: `FNL_NOISE_OPENSIMPLEX2`, `FNL_NOISE_OPENSIMPLEX2S`, `FNL_NOISE_CEL
 Fractals: `FNL_FRACTAL_NONE`, `FNL_FRACTAL_FBM`, `FNL_FRACTAL_RIDGED`, `FNL_FRACTAL_PINGPONG`.
 `fnlDomainWarp2D(state, x, y)` and `fnlDomainWarp3D(state, x, y, z)` modify coordinate variables in place;
 configure `domain_warp_type` and `domain_warp_amp` on the state.
-See the [bundled HLSL source](../../src/Shaders/ThirdParty/FastNoiseLite.hlsl) for the full state and constants.
+See the [bundled HLSL source](https://github.com/DCFApixels/WhimTex/blob/main/src/Shaders/ThirdParty/FastNoiseLite.hlsl) for the full state and constants.
 White Noise and Blue Noise are separate Noise-layer implementations, not functions of this library.
 
 The same noise calls work inside `float4 BrushTip(float2 uv)` for a brush;

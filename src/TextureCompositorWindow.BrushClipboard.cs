@@ -41,7 +41,7 @@ namespace DCFApixels.WhimTex
                     ApplyGeneratedBrush(generated);generated=null;
                 }
             }
-            catch(Exception error){ShowNotification(new GUIContent("Brush paste failed: "+error.Message));}
+            catch(Exception error){ReportClipboardPasteError("Brush JSON paste failed", error);}
             finally{generated?.ReleasePresetTip();}
             return true;
         }

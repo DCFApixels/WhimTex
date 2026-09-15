@@ -134,7 +134,7 @@ namespace DCFApixels.WhimTex
                     ? "Downloading image…"
                     : $"Downloading image {imageUrlIndex + 1} of {imageUrlJobs.Count}…"), ImageUrlTimeout + 30);
             }
-            catch (Exception exception) { FailImageUrlBatch(exception.Message); }
+            catch (Exception exception) { FailImageUrlBatch(exception); }
         }
 
         private void PollImageUrl()
@@ -146,7 +146,7 @@ namespace DCFApixels.WhimTex
             }
             if (!imageUrlRequest.isDone && EditorApplication.timeSinceStartup - imageUrlStarted <= ImageUrlTimeout) return;
             Texture2D texture = null;
-            string failure = null;
+            Exception failure = null;
             try
             {
                 if (EditorApplication.timeSinceStartup - imageUrlStarted > ImageUrlTimeout)
@@ -158,7 +158,7 @@ namespace DCFApixels.WhimTex
                 texture = ImageClipboard.DecodeWebImage(download.Bytes);
                 if (imageUrlJobs[imageUrlIndex].apply(texture)) texture = null;
             }
-            catch (Exception exception) { failure = exception.Message; }
+            catch (Exception exception) { failure = exception; }
             finally { if (texture != null) DestroyImmediate(texture, true); }
             if (failure != null)
             {
@@ -181,13 +181,13 @@ namespace DCFApixels.WhimTex
             imageUrlFinished = null;
             RemoveNotification();
             try { finished?.Invoke(completed); }
-            catch (Exception exception) { ShowNotification(new GUIContent("Paste failed: " + exception.Message)); }
+            catch (Exception exception) { ReportClipboardPasteError("Paste failed", exception); }
         }
 
-        private void FailImageUrlBatch(string message)
+        private void FailImageUrlBatch(Exception exception)
         {
             FinishImageUrlBatch(false);
-            ShowNotification(new GUIContent(message ?? "Image download failed."));
+            ReportClipboardPasteError("Image paste failed", exception);
         }
 
         private void ReleaseImageUrlRequest()

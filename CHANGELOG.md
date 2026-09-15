@@ -4,6 +4,16 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+## [0.10.9] - 2026-09-15
+
+### Fixed
+
+- Corrected the FastNoiseLite source link in AI documentation so GitHub Pages validation and deployment succeed.
+
+### Changed
+
+- Clipboard paste failures, including layer/brush JSON validation, HLSL compilation and image downloads, now report full exceptions to Unity Console as well as showing a short notification.
+
 ## [0.10.8] - 2026-09-15
 
 ### Added
