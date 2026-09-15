@@ -4,6 +4,14 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+## [0.10.6] - 2026-09-15
+
+### Changed
+
+- Dragged guides no longer snap to other parallel guides.
+- Guides snap to intersections only when no parallel guide passes through the intersection.
+- Canvas edge/center and selected-layer snapping remain available.
+
 ## [0.10.5] - 2026-09-15
 
 ### Added
