@@ -312,8 +312,12 @@ namespace DCFApixels.WhimTex
             Color color = parameters.Color;
             if (color.a <= 0f || parameters.Dynamics != null && (parameters.Dynamics.opacity <= 0f || parameters.Dynamics.flow <= 0f))
                 return;
-            if (parameters.WrapCanvas && !TiledCanvasUtility.IsInvertible(transform))
-                return;
+            if (!TiledCanvasUtility.IsInvertible(transform)) return;
+            var canvasSize = new Vector2(outputWidth, outputHeight);
+            fromSourceUv = transform.Map(fromSourceUv, canvasSize);
+            toSourceUv = transform.Map(toSourceUv, canvasSize);
+            if (!ProjectiveMatrix.Finite(fromSourceUv.x) || !ProjectiveMatrix.Finite(fromSourceUv.y) ||
+                !ProjectiveMatrix.Finite(toSourceUv.x) || !ProjectiveMatrix.Finite(toSourceUv.y)) return;
             RenderTexture surface = EnsurePaintSurface(outputWidth, outputHeight);
             if (surface == null)
                 return;
@@ -405,7 +409,7 @@ namespace DCFApixels.WhimTex
             void AddPoint(Vector2 point)
             {
                 if (parameters.WrapCanvas)
-                    point = TiledCanvasUtility.CanonicalSource(point, transform, width, height);
+                    point = TiledCanvasUtility.Wrap(point);
                 point = PaintStrokeParameters.SnapPencilCenter(point, width, height, parameters.Size);
                 if (!parameters.OverlapsCanvas(point, width, height)) return;
                 BuildPatternStamps(point, width, height);
@@ -648,7 +652,7 @@ namespace DCFApixels.WhimTex
             if (UsesMirrorPattern && repeatBoundaryMode == PaintRepeatBoundaryMode.Clip &&
                 (mirrorAcrossVerticalAxis || mirrorAcrossHorizontalAxis))
             {
-                int region = GetMirrorRegion(clipStrokeToInitialShape ? strokeRepeatShapeAnchor : sourceUv, outputWidth, outputHeight);
+                int region = GetMirrorRegion(clipStrokeToInitialShape ? transform.Map(strokeRepeatShapeAnchor,new Vector2(outputWidth,outputHeight)) : sourceUv, outputWidth, outputHeight);
                 AddMirrorClippedStamp(sourceUv, region);
                 if (mirrorAcrossVerticalAxis)
                     AddMirrorClippedStamp(ReflectPoint(sourceUv, true, outputWidth, outputHeight), region ^ 1);
@@ -851,6 +855,8 @@ namespace DCFApixels.WhimTex
             int outputWidth,
             int outputHeight)
         {
+            anchorUv=transform.Map(anchorUv,new Vector2(outputWidth,outputHeight));
+            pointUv=transform.Map(pointUv,new Vector2(outputWidth,outputHeight));
             int primaryCount = Mathf.Clamp(repeatCount, MinimumRepeatCount, MaximumRepeatCount);
             int secondaryCount = Mathf.Clamp(repeatSecondaryCount, MinimumRepeatCount, MaximumRepeatCount);
 
@@ -1050,26 +1056,11 @@ namespace DCFApixels.WhimTex
                 material.SetTexture("_SelectionMask", selectionMask != null ? selectionMask : Texture2D.whiteTexture);
                 material.SetFloat("_UseSelection", selectionMask != null ? 1f : 0f);
                 material.SetFloat("_SelectionWrap", wrapCanvas ? 1f : 0f);
-                if (selectionMask != null)
-                {
-                    Vector2 origin = TiledCanvasUtility.ToDocument(Vector2.zero, transform, outputWidth, outputHeight);
-                    Vector2 dx = TiledCanvasUtility.ToDocument(Vector2.right, transform, outputWidth, outputHeight) - origin;
-                    Vector2 dy = TiledCanvasUtility.ToDocument(Vector2.up, transform, outputWidth, outputHeight) - origin;
-                    material.SetVector("_SelectionToDocumentX", new Vector4(dx.x, dy.x, origin.x, 0f));
-                    material.SetVector("_SelectionToDocumentY", new Vector4(dx.y, dy.y, origin.y, 0f));
-                }
-                if (wrapCanvas)
-                {
-                    TiledCanvasUtility.GetPeriodBasis(transform, outputWidth, outputHeight, out Vector2 u, out Vector2 v);
-                    material.SetVector("_WrapBasisU", new Vector4(u.x, u.y, 0f, 0f));
-                    material.SetVector("_WrapBasisV", new Vector4(v.x, v.y, 0f, 0f));
-                    Vector2 origin = TiledCanvasUtility.ToDocument(Vector2.zero, transform, outputWidth, outputHeight);
-                    Vector2 dx = TiledCanvasUtility.ToDocument(Vector2.right, transform, outputWidth, outputHeight) - origin;
-                    Vector2 dy = TiledCanvasUtility.ToDocument(Vector2.up, transform, outputWidth, outputHeight) - origin;
-                    material.SetVector("_SourceToDocumentX", new Vector4(dx.x, dy.x, origin.x, 0f));
-                    material.SetVector("_SourceToDocumentY", new Vector4(dx.y, dy.y, origin.y, 0f));
-                    material.SetFloat("_BrushSize", sizePixels);
-                }
+                var sourceToCanvas = transform.ToMatrix(outputWidth, outputHeight);
+                if (!sourceToCanvas.TryInverse(out var canvasToSource)) return;
+                sourceToCanvas.SetShader(material, "_PaintRow");
+                material.SetFloat("_BrushSize", sizePixels);
+                material.SetFloat("_CanvasWrap", wrapCanvas ? 1 : 0);
                 material.SetFloat(
                     SourceBlendId,
                     erase
@@ -1109,16 +1100,13 @@ namespace DCFApixels.WhimTex
                             if (!material.SetPass(0))
                                 return;
 
-                            bool explicitVertices = variation || textured || stampBlend;
-                            if (explicitVertices && !stampBlend) BeginBrushMesh();
-                            else if (!explicitVertices) GL.Begin(GL.QUADS);
+                            if (!stampBlend) BeginBrushMesh();
                             try
                             {
                                 for (int i = 0; i < stamps.Count; i++)
                                 {
                                     PaintStamp stamp = stamps[i];
                                     float dabSize = variation ? stamp.size : sizePixels;
-                                    if (variation || textured || stampBlend)
                                     {
                                         Color dabColor = color;
                                         if (variation)
@@ -1142,26 +1130,7 @@ namespace DCFApixels.WhimTex
                                     if (stampBlend) BeginBrushMesh();
                                     try
                                     {
-                                        if (wrapCanvas)
-                                        {
-                                            DrawWrappedStamp(stamp, dabRadiusX, dabRadiusY, transform, outputWidth, outputHeight);
-                                            continue;
-                                        }
-                                        Rect brushRect = new Rect(
-                                            stamp.center.x - dabRadiusX,
-                                            stamp.center.y - dabRadiusY,
-                                            dabRadiusX * 2f,
-                                            dabRadiusY * 2f);
-                                        if (brushRect.xMax <= 0f || brushRect.xMin >= 1f ||
-                                            brushRect.yMax <= 0f || brushRect.yMin >= 1f)
-                                        {
-                                            continue;
-                                        }
-
-                                        DrawVertex(brushRect.xMin, brushRect.yMin, 0f, 0f, stamp);
-                                        DrawVertex(brushRect.xMin, brushRect.yMax, 0f, 1f, stamp);
-                                        DrawVertex(brushRect.xMax, brushRect.yMax, 1f, 1f, stamp);
-                                        DrawVertex(brushRect.xMax, brushRect.yMin, 1f, 0f, stamp);
+                                        DrawCanvasStamp(stamp, dabRadiusX, dabRadiusY, canvasToSource, wrapCanvas);
                                     }
                                     finally
                                     {
@@ -1171,8 +1140,7 @@ namespace DCFApixels.WhimTex
                             }
                             finally
                             {
-                                if (explicitVertices && !stampBlend) EndBrushMesh(target, material);
-                                else if (!explicitVertices) GL.End();
+                                if (!stampBlend) EndBrushMesh(target, material);
                             }
                         }
                     }
@@ -1191,60 +1159,44 @@ namespace DCFApixels.WhimTex
                 }
             }
 
-            private static void DrawWrappedStamp(PaintStamp stamp, float radiusX, float radiusY,
-                TextureTransform transform, int width, int height)
+            private static void DrawCanvasStamp(PaintStamp stamp, float rx, float ry, ProjectiveMatrix inverse, bool wrap)
             {
-                Vector2 origin = TiledCanvasUtility.ToDocument(stamp.center, transform, width, height);
-                Vector2 center = TiledCanvasUtility.Wrap(origin);
-                Vector2 dx = TiledCanvasUtility.ToDocument(stamp.center + new Vector2(radiusX, 0f), transform, width, height) - origin;
-                Vector2 dy = TiledCanvasUtility.ToDocument(stamp.center + new Vector2(0f, radiusY), transform, width, height) - origin;
-                float extentX = Mathf.Abs(dx.x) + Mathf.Abs(dy.x);
-                float extentY = Mathf.Abs(dx.y) + Mathf.Abs(dy.y);
-                float firstX = Mathf.Ceil(-center.x - extentX), lastX = Mathf.Floor(1f - center.x + extentX);
-                float firstY = Mathf.Ceil(-center.y - extentY), lastY = Mathf.Floor(1f - center.y + extentY);
-                // A large footprint uses one quad; select its nearest periodic copy in the
-                // shader instead of emitting an unbounded number of overlapping quads.
-                double copyCount = ((double)lastX - firstX + 1d) * ((double)lastY - firstY + 1d);
-                if (!(copyCount <= 16d))
+                Vector2 min = Vector2.one, max = Vector2.zero;
+                int first=wrap?-1:0, last=wrap?1:0;
+                for(int tx=first;tx<=last;tx++)
+                for(int ty=first;ty<=last;ty++)
                 {
-                    DrawVertex(0f, 0f, 0f, 0f, stamp, 2);
-                    DrawVertex(0f, 1f, 0f, 1f, stamp, 2);
-                    DrawVertex(1f, 1f, 1f, 1f, stamp, 2);
-                    DrawVertex(1f, 0f, 1f, 0f, stamp, 2);
-                    return;
+                    double x0=stamp.center.x+tx-rx,x1=stamp.center.x+tx+rx;
+                    double y0=stamp.center.y+ty-ry,y1=stamp.center.y+ty+ry;
+                    if(wrap) { x0=Math.Max(0,x0);y0=Math.Max(0,y0);x1=Math.Min(1,x1);y1=Math.Min(1,y1); }
+                    if(x1<=x0 || y1<=y0)continue;
+                    var a = new Double2(x0,y0);
+                    var b = new Double2(x1,y0);
+                    var c = new Double2(x1,y1);
+                    var d = new Double2(x0,y1);
+                    double wa=inverse.m20*a.x+inverse.m21*a.y+inverse.m22;
+                    double wb=inverse.m20*b.x+inverse.m21*b.y+inverse.m22;
+                    double wc=inverse.m20*c.x+inverse.m21*c.y+inverse.m22;
+                    double wd=inverse.m20*d.x+inverse.m21*d.y+inverse.m22;
+                    if (wa*wb>0 && wa*wc>0 && wa*wd>0 &&
+                        inverse.TryPoint(a,out var pa) && inverse.TryPoint(b,out var pb) &&
+                        inverse.TryPoint(c,out var pc) && inverse.TryPoint(d,out var pd))
+                    {
+                        min = Vector2.Min(min,Vector2.Max(Vector2.zero,Vector2.Min(Vector2.Min(pa,pb),Vector2.Min(pc,pd))));
+                        max = Vector2.Max(max,Vector2.Min(Vector2.one,Vector2.Max(Vector2.Max(pa,pb),Vector2.Max(pc,pd))));
+                    }
+                    else { min=Vector2.zero;max=Vector2.one; }
                 }
-                int minX = (int)firstX, maxX = (int)lastX;
-                int minY = (int)firstY, maxY = (int)lastY;
-                for (int y = minY; y <= maxY; y++)
-                for (int x = minX; x <= maxX; x++)
-                {
-                    Vector2 copy = TiledCanvasUtility.ToSource(center + new Vector2(x, y), transform, width, height);
-                    Rect rect = new Rect(copy.x - radiusX, copy.y - radiusY, radiusX * 2f, radiusY * 2f);
-                    if (rect.xMax <= 0f || rect.yMax <= 0f || rect.xMin >= 1f || rect.yMin >= 1f) continue;
-                    DrawVertex(rect.xMin, rect.yMin, 0f, 0f, stamp, 1);
-                    DrawVertex(rect.xMin, rect.yMax, 0f, 1f, stamp, 1);
-                    DrawVertex(rect.xMax, rect.yMax, 1f, 1f, stamp, 1);
-                    DrawVertex(rect.xMax, rect.yMin, 1f, 0f, stamp, 1);
-                }
+                if (max.x<=min.x || max.y<=min.y) return;
+                DrawVertex(min.x,min.y,0,0,stamp);
+                DrawVertex(min.x,max.y,0,1,stamp);
+                DrawVertex(max.x,max.y,1,1,stamp);
+                DrawVertex(max.x,min.y,1,0,stamp);
             }
 
             private static void DrawVertex(float x, float y, float brushU, float brushV, PaintStamp stamp, int tileMode = 0)
             {
-                if (writingBrushMesh)
-                {
-                    AddBrushMeshVertex(x, y, brushU, brushV, stamp, tileMode);
-                    return;
-                }
-                GL.MultiTexCoord2(0, brushU, brushV);
-                GL.MultiTexCoord2(1, stamp.clipRect.x, stamp.clipRect.y);
-                GL.MultiTexCoord2(2, stamp.clipRect.z, stamp.clipRect.w);
-                GL.MultiTexCoord3(
-                    3,
-                    stamp.clipMode,
-                    stamp.clipAngleCenter,
-                    stamp.clipAngleHalfWidth);
-                GL.MultiTexCoord3(4, stamp.center.x, stamp.center.y, tileMode);
-                GL.Vertex3(x, y, 0f);
+                AddBrushMeshVertex(x, y, brushU, brushV, stamp, tileMode);
             }
         }
     }

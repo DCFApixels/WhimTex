@@ -62,7 +62,7 @@ namespace DCFApixels.WhimTex
             material.SetVectorArray("_ShapeVertices", polygonVertices);
         }
 
-        internal override void InitializeLayer(Layer layer) => layer.transform.scale = Vector2.one * .5f;
+        internal override void InitializeLayer(Layer layer) => layer.transform.scaleF = Vector2.one * .5f;
         internal static float Limit(float value, float min, float max, float fallback) =>
             float.IsNaN(value) || float.IsInfinity(value) ? fallback : Mathf.Clamp(value, min, max);
 
@@ -101,10 +101,10 @@ namespace DCFApixels.WhimTex
             TextureTransform applied = context.applyTransform ? transform : TextureTransform.Default;
             float width = context.compositor.width, height = context.compositor.height;
             material.SetVector("_CanvasSize", new Vector4(width, height, 0f, 0f));
-            material.SetVector("_ShapePivot", applied.pivot);
-            material.SetVector("_ShapePosition", applied.position);
-            material.SetVector("_ShapeScale", applied.scale);
-            material.SetFloat("_ShapeRotation", applied.rotation * Mathf.Deg2Rad);
+            applied.ToMatrix(width,height).TryInverse(out var inverse);
+            inverse.SetShader(material,"_ShapeRow");
+            applied.GetDisplay(new Vector2(width,height),out _,out var displayScale,out _);
+            material.SetVector("_ShapeScale",(Vector2)displayScale);
             material.SetInt("_ShapeTiling", (int)applied.tiling);
             material.SetInt("_ShapeKind", Mathf.Clamp((int)kind, 0, 4));
             material.SetVector("_ShapeFill", HdrUtility.Decode(fillColor));

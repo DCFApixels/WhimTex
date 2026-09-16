@@ -270,16 +270,56 @@ namespace DCFApixels.WhimTex
             return gradient;
         }
 
+        private static double TransformNumber(JToken token)
+        {
+            Require(token != null && (token.Type == JTokenType.Integer || token.Type == JTokenType.Float), "Transform values must be numbers.");
+            double value=token.Value<double>();
+            Require(ProjectiveMatrix.Finite(value) && System.Math.Abs(value)<=1e15, "Transform value is non-finite or too large.");
+            return value;
+        }
+
+        private static Double2 TransformVector(JToken token,string name)
+        {
+            Require(token is JArray && ((JArray)token).Count==2,name+" must contain two numbers.");
+            return new Double2(TransformNumber(token[0]),TransformNumber(token[1]));
+        }
+
         private static void SetTransform(TextureCompositor document, Layer layer, JObject settings)
         {
             Require(!layer.IsGroup, "Groups do not have a transform.");
-            Keys(settings, "reset", "position", "scale", "pivot", "rotation", "tiling", "originalAspect");
+            Keys(settings, "reset", "position", "scale", "pivot", "rotation", "tiling", "originalAspect", "matrix");
             TextureTransform transform = Bool(settings, "reset") ? TextureTransform.Default : layer.transform;
-            if (settings["position"] != null) transform.position = Vector(settings["position"], "position");
-            if (settings["scale"] != null) transform.scale = Vector(settings["scale"], "scale");
-            if (settings["pivot"] != null) transform.pivot = Vector(settings["pivot"], "pivot");
-            Require(Mathf.Abs(transform.scale.x) >= 0.00001f && Mathf.Abs(transform.scale.y) >= 0.00001f, "Transform scale must be nonzero.");
-            transform.rotation = Number(settings, "rotation", transform.rotation, -360000f, 360000f);
+            var size = new Vector2(document.width, document.height);
+            if (settings["pivot"] != null) Require(transform.TrySetPivot(TransformVector(settings["pivot"], "pivot")),"Invalid pivot.");
+            if (settings["matrix"] != null)
+            {
+                Require(settings["position"] == null && settings["scale"] == null && settings["rotation"] == null && !Bool(settings,"originalAspect"),
+                    "matrix cannot be combined with position, scale, rotation or originalAspect.");
+                Require(settings["matrix"] is JArray && ((JArray)settings["matrix"]).Count == 9, "matrix must contain nine row-major numbers.");
+                var a = (JArray)settings["matrix"];
+                var m = new ProjectiveMatrix {
+                    m00=TransformNumber(a[0]),m01=TransformNumber(a[1]),m02=TransformNumber(a[2]),
+                    m10=TransformNumber(a[3]),m11=TransformNumber(a[4]),m12=TransformNumber(a[5]),
+                    m20=TransformNumber(a[6]),m21=TransformNumber(a[7]),m22=TransformNumber(a[8]) };
+                Require(transform.TrySetMatrix(m), "matrix must be invertible with no horizon crossing the source rectangle.");
+            }
+            else
+            {
+                if (settings["position"] != null) transform.EditPosition(TransformVector(settings["position"], "position"),size);
+                if (settings["scale"] != null)
+                {
+                    var value=TransformVector(settings["scale"],"scale");
+                    Require(System.Math.Abs(value.x)>=0.00001 && System.Math.Abs(value.y)>=0.00001,"Transform scale must be nonzero.");
+                    transform.EditScale(value,size);
+                }
+                if (settings["rotation"] != null)
+                {
+                    double value=TransformNumber(settings["rotation"]);
+                    Require(System.Math.Abs(value)<=360000,"rotation must be within [-360000,360000].");
+                    transform.EditRotation(value,size);
+                }
+            }
+            Require(TiledCanvasUtility.IsInvertible(transform), "Invalid transform.");
             transform.tiling = Enum(settings, "tiling", transform.tiling);
             layer.transform = transform;
             if (Bool(settings, "originalAspect"))

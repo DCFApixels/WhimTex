@@ -10,8 +10,8 @@ Shader "Hidden/TextureCompositor/Shape"
             #pragma fragment frag
             #pragma target 3.5
             #include "UnityCG.cginc"
-            float2 _CanvasSize, _ShapePivot, _ShapePosition, _ShapeScale;
-            float _ShapeRotation;
+            float2 _CanvasSize, _ShapeScale;
+            float3 _ShapeRow0, _ShapeRow1, _ShapeRow2;
             int _ShapeKind, _ShapeTiling, _ShapeVertexCount;
             float4 _ShapeVertices[64];
             float4 _ShapeFill, _ShapeStroke, _ShapeStyle, _ShapeCorners;
@@ -47,10 +47,10 @@ Shader "Hidden/TextureCompositor/Shape"
             float4 frag(v2f_img input) : SV_Target
             {
                 if (any(abs(_ShapeScale) < 1e-6)) return 0;
-                float2 local = input.uv * _CanvasSize - _ShapePivot * _CanvasSize - _ShapePosition;
-                float sine = sin(-_ShapeRotation), cosine = cos(-_ShapeRotation);
-                local = float2(cosine * local.x - sine * local.y, sine * local.x + cosine * local.y);
-                float2 uv = (_ShapePivot * _CanvasSize + local / _ShapeScale) / _CanvasSize;
+                float3 q=float3(input.uv,1);
+                float w=dot(_ShapeRow2,q);
+                if(w<1e-8)return 0;
+                float2 uv=float2(dot(_ShapeRow0,q),dot(_ShapeRow1,q))/w;
                 // TransformTilingMode: Clip, Repeat, Mirror, Source (clamp).
                 if (_ShapeTiling == 1) uv = frac(uv);
                 else if (_ShapeTiling == 2) uv = 1 - abs(frac(uv * .5) * 2 - 1);

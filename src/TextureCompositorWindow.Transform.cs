@@ -263,6 +263,8 @@ namespace DCFApixels.WhimTex
             private int pointerId = -1;
             private int handle;
             private int undoGroup = -1;
+            private bool lastAlt;
+            private readonly Double2[] corners = new Double2[4];
             private Rect gestureImageRect;
             private ShaderFX gestureFX;
             private ShaderFXParameter gestureParameter;
@@ -319,9 +321,7 @@ namespace DCFApixels.WhimTex
 
             private static Vector2 TransformPoint(Vector2 uv, TextureTransform transform, Vector2 dimensions)
             {
-                Vector2 pivot = Vector2.Scale(transform.pivot, dimensions);
-                return pivot + transform.position + Rotate(
-                    Vector2.Scale(Vector2.Scale(uv, dimensions) - pivot, transform.scale), transform.rotation);
+                return Vector2.Scale(transform.Map(uv, dimensions), dimensions);
             }
 
             private static Vector2 ToPreview(Vector2 pixels, Rect imageRect, Vector2 dimensions) =>
@@ -344,7 +344,7 @@ namespace DCFApixels.WhimTex
 
             private static int HitTest(Vector2 point, TextureTransform transform, Rect imageRect, Vector2 dimensions, bool showPivot = true)
             {
-                Vector2 pivot = ToPreview(Vector2.Scale(transform.pivot, dimensions) + transform.position, imageRect, dimensions);
+                Vector2 pivot = ToPreview(TransformPoint(transform.pivotF, transform, dimensions), imageRect, dimensions);
                 if (showPivot && (point - pivot).sqrMagnitude <= 81f)
                     return CanMovePivot(transform) ? PivotHandle : -1;
                 if ((point - RotationHandle(transform, imageRect, dimensions)).sqrMagnitude <= 81f)
@@ -362,16 +362,14 @@ namespace DCFApixels.WhimTex
                 }
                 if (nearest >= 0)
                     return nearest;
-                Vector2 local = Rotate(ToDocument(point, imageRect, dimensions) -
-                    Vector2.Scale(transform.pivot, dimensions) - transform.position, -transform.rotation);
-                Vector2 source = new Vector2(local.x / SafeScale(transform.scale.x), local.y / SafeScale(transform.scale.y)) +
-                    Vector2.Scale(transform.pivot, dimensions);
-                return source.x >= 0f && source.y >= 0f && source.x <= dimensions.x && source.y <= dimensions.y ? MoveHandle : -1;
+                Vector2 source = transform.Unmap(Vector2.Scale(ToDocument(point,imageRect,dimensions),
+                    new Vector2(1/dimensions.x,1/dimensions.y)),dimensions);
+                return source.x>=0 && source.y>=0 && source.x<=1 && source.y<=1 ? MoveHandle : -1;
             }
 
             internal MouseCursor GetCursor(Vector2 point, bool alt)
             {
-                if (!owner.IsPreviewTransformEnabled || (alt && !IsDragging)) return MouseCursor.Pan;
+                if (!owner.IsPreviewTransformEnabled) return MouseCursor.Pan;
                 point = owner.toolkitPreviewCanvas.ToCanvas(point);
                 Rect rect = owner.toolkitPreviewCanvas.ImageRect;
                 if (rect.width <= 0f || rect.height <= 0f) return MouseCursor.Pan;
@@ -384,7 +382,7 @@ namespace DCFApixels.WhimTex
 
             private void OnDown(PointerDownEvent evt)
             {
-                if (!owner.IsPreviewTransformEnabled || evt.button != 0 || evt.altKey || IsDragging)
+                if (!owner.IsPreviewTransformEnabled || evt.button != 0 || IsDragging)
                     return;
                 Rect rect = owner.toolkitPreviewCanvas.ImageRect;
                 if (rect.width <= 0f || rect.height <= 0f)
@@ -400,6 +398,7 @@ namespace DCFApixels.WhimTex
                 layer = selected;
                 gestureBehaviour = selected.Behaviour;
                 original = owner.CurrentPreviewTransform;
+                lastAlt = evt.altKey;
                 gestureParameter = owner.PreviewFXParameter;
                 gestureFX = gestureParameter != null ? owner.previewTransformFX : null;
                 size = dimensions;
@@ -418,34 +417,37 @@ namespace DCFApixels.WhimTex
             {
                 if (!IsDragging || evt.pointerId != pointerId)
                     return;
-                UpdateTransform(evt.localPosition, evt.shiftKey, evt.ctrlKey);
+                lastAlt = evt.altKey;
+                UpdateTransform(evt.localPosition, evt.shiftKey, evt.ctrlKey || evt.commandKey);
                 owner.UpdatePreviewCursor(evt.localPosition, evt.altKey);
                 evt.StopImmediatePropagation();
             }
 
-            private static float SafeScale(float value) => value < 0f ? Mathf.Min(value, -0.00001f) : Mathf.Max(value, 0.00001f);
 
             private static bool CanMovePivot(TextureTransform transform) =>
-                Mathf.Abs(transform.scale.x) >= 0.00001f && Mathf.Abs(transform.scale.y) >= 0.00001f;
+                TiledCanvasUtility.IsInvertible(transform);
 
             private void OnModifierDown(KeyDownEvent evt)
             {
-                if (RefreshTransformModifiers(evt.keyCode, evt.shiftKey, evt.ctrlKey))
+                if (RefreshTransformModifiers(evt.keyCode, evt.shiftKey, evt.ctrlKey || evt.commandKey, evt.altKey))
                     evt.StopPropagation();
             }
 
             private void OnModifierUp(KeyUpEvent evt)
             {
-                if (RefreshTransformModifiers(evt.keyCode, evt.shiftKey, evt.ctrlKey))
+                if (RefreshTransformModifiers(evt.keyCode, evt.shiftKey, evt.ctrlKey || evt.commandKey, evt.altKey))
                     evt.StopPropagation();
             }
 
-            private bool RefreshTransformModifiers(KeyCode key, bool shift, bool control)
+            private bool RefreshTransformModifiers(KeyCode key, bool shift, bool control, bool alt)
             {
                 if (!IsDragging ||
                     (key != KeyCode.LeftControl && key != KeyCode.RightControl &&
-                     key != KeyCode.LeftShift && key != KeyCode.RightShift))
+                     key != KeyCode.LeftShift && key != KeyCode.RightShift &&
+                     key != KeyCode.LeftAlt && key != KeyCode.RightAlt &&
+                     key != KeyCode.LeftCommand && key != KeyCode.RightCommand))
                     return false;
+                lastAlt = alt;
                 UpdateTransform(lastPointerPosition, shift, control);
                 return true;
             }
@@ -471,8 +473,8 @@ namespace DCFApixels.WhimTex
                 if (intersection || (guidePoint != documentPosition &&
                     (ToPreview(guidePoint, gestureImageRect, size) - previewPosition).sqrMagnitude < nearestDistance))
                 {
-                    Vector2 local = Rotate(guidePoint - Vector2.Scale(original.pivot, size) - original.position, -original.rotation);
-                    result = original.pivot + new Vector2(local.x / original.scale.x / size.x, local.y / original.scale.y / size.y);
+                    Vector2 local = Rotate(guidePoint - Vector2.Scale(original.pivotF, size) - original.positionF, -original.rotationF);
+                    result = original.pivotF + new Vector2(local.x / original.scaleF.x / size.x, local.y / original.scaleF.y / size.y);
                 }
                 return result;
             }
@@ -505,8 +507,8 @@ namespace DCFApixels.WhimTex
                 Vector2 canvasOffset = new Vector2(horizontal && Mathf.Abs(offset.x) <= tolerance.x ? offset.x : 0f,
                     vertical && Mathf.Abs(offset.y) <= tolerance.y ? offset.y : 0f);
                 Vector2 center = TransformPoint(new Vector2(.5f, .5f), transform, size);
-                Vector2 halfSize = new Vector2(Mathf.Abs(transform.scale.x) * size.x * .5f, Mathf.Abs(transform.scale.y) * size.y * .5f);
-                return owner.SnapPreviewGuideMove(center, Rotate(Vector2.right, transform.rotation), halfSize, canvasOffset, horizontal, vertical);
+                Vector2 halfSize = new Vector2(Mathf.Abs(transform.scaleF.x) * size.x * .5f, Mathf.Abs(transform.scaleF.y) * size.y * .5f);
+                return owner.SnapPreviewGuideMove(center, Rotate(Vector2.right, transform.rotationF), halfSize, canvasOffset, horizontal, vertical);
             }
 
             private Vector2 SnapResize(Vector2 point, Vector2 direction, bool free)
@@ -516,7 +518,7 @@ namespace DCFApixels.WhimTex
                 {
                     Vector2 canvasPoint = point + new Vector2(CanvasEdgeOffset(point.x, size.x, CanvasSnapDistance / pixelsToPreview.x),
                         CanvasEdgeOffset(point.y, size.y, CanvasSnapDistance / pixelsToPreview.y));
-                    return owner.SnapPreviewGuideResize(point, direction, true, Rotate(Vector2.right, original.rotation), canvasPoint);
+                    return owner.SnapPreviewGuideResize(point, direction, true, Rotate(Vector2.right, original.rotationF), canvasPoint);
                 }
 
                 Vector2 result = point;
@@ -533,7 +535,7 @@ namespace DCFApixels.WhimTex
                         result = point + offset;
                     }
                 }
-                return owner.SnapPreviewGuideResize(point, direction, false, Rotate(Vector2.right, original.rotation), result);
+                return owner.SnapPreviewGuideResize(point, direction, false, Rotate(Vector2.right, original.rotationF), result);
             }
 
             private void UpdateTransform(Vector2 point, bool constrain, bool disableSnap)
@@ -548,7 +550,12 @@ namespace DCFApixels.WhimTex
                 if (undoGroup < 0 && delta.sqrMagnitude < 0.000001f)
                     return;
                 TextureTransform next = original;
-                if (handle == MoveHandle || handle == PivotHandle)
+                bool complex = gestureFX == null && (original.storage == TransformStorage.Projective || (disableSnap && handle < MoveHandle));
+                if (complex)
+                {
+                    if (!UpdateProjective(current, delta, constrain, disableSnap, out next)) return;
+                }
+                else if (handle == MoveHandle || handle == PivotHandle)
                 {
                     if (constrain)
                     {
@@ -557,84 +564,90 @@ namespace DCFApixels.WhimTex
                     }
                     if (handle == PivotHandle)
                     {
-                        Vector2 localDelta = Rotate(delta, -original.rotation);
-                        Vector2 pivotDelta = new Vector2(localDelta.x / original.scale.x, localDelta.y / original.scale.y);
-                        next.pivot += new Vector2(pivotDelta.x / size.x, pivotDelta.y / size.y);
-                        if (!disableSnap)
-                            next.pivot = SnapPivot(next.pivot, Vector2.Scale(original.pivot, size) + original.position + delta);
-                        Vector2 actualPivotDelta = Vector2.Scale(next.pivot - original.pivot, size);
-                        next.position += Rotate(Vector2.Scale(actualPivotDelta, original.scale), original.rotation) - actualPivotDelta;
+                        var localDelta=ProjectiveMatrix.Rotate(-original.rotation).Point(delta);
+                        next.pivot=new Double2(original.pivot.x+localDelta.x/original.scale.x/size.x,
+                            original.pivot.y+localDelta.y/original.scale.y/size.y);
+                        if(!disableSnap)
+                        {
+                            Vector2 proposed=next.pivot;
+                            Vector2 snapped=SnapPivot(proposed,TransformPoint(original.pivot,original,size)+delta);
+                            if(snapped!=proposed)next.pivot=snapped;
+                        }
+                        var dp=new Double2((next.pivot.x-original.pivot.x)*size.x,(next.pivot.y-original.pivot.y)*size.y);
+                        next.position=original.position+ProjectiveMatrix.Rotate(original.rotation).Point(new Double2(dp.x*original.scale.x,dp.y*original.scale.y))-dp;
                     }
                     else
                     {
-                        next.position += delta;
+                        next.position = original.position + (Double2)delta;
                         if (!disableSnap)
-                            next.position += SnapMove(next, !constrain || delta.x != 0f, !constrain || delta.y != 0f);
+                            next.position += (Double2)SnapMove(next, !constrain || delta.x != 0f, !constrain || delta.y != 0f);
                     }
                 }
                 else if (handle == RotateHandle)
                 {
-                    Vector2 pivot = Vector2.Scale(original.pivot, size) + original.position;
+                    Vector2 pivot = Vector2.Scale(original.pivotF, size) + original.positionF;
                     Vector2 from = pointerStart - pivot;
                     Vector2 to = current - pivot;
                     if (from.sqrMagnitude < 0.0001f || to.sqrMagnitude < 0.0001f)
                         return;
-                    next.rotation += Vector2.SignedAngle(from, to);
+                    next.rotation = original.rotation + Math.Atan2((double)from.x*to.y-(double)from.y*to.x, (double)from.x*to.x+(double)from.y*to.y)*180/Math.PI;
                     if (constrain)
-                        next.rotation = Mathf.Round(next.rotation / 15f) * 15f;
+                        next.rotation = Math.Round(next.rotation / 15d) * 15d;
                     else if (!disableSnap)
-                        next.rotation = owner.SnapPreviewGuideRotation(next.rotation);
+                    {
+                        float snapped = owner.SnapPreviewGuideRotation(next.rotationF);
+                        if (snapped != next.rotationF) next.rotation = snapped;
+                    }
                 }
                 else
                 {
-                    Vector2 grip = Handles[handle];
-                    Vector2 anchor = Vector2.one - grip;
-                    Vector2 fixedPoint = TransformPoint(anchor, original, size);
-                    Vector2 handlePoint = TransformPoint(grip, original, size) + delta;
-                    Vector2 local = Rotate(handlePoint - fixedPoint, -original.rotation);
-                    bool x = grip.x != 0.5f;
-                    bool y = grip.y != 0.5f;
-                    if (x) next.scale.x = SafeScale(local.x / ((grip.x - anchor.x) * size.x));
-                    if (y) next.scale.y = SafeScale(local.y / ((grip.y - anchor.y) * size.y));
-                    if (constrain)
+                    Double2 grip=Handles[handle],anchor=lastAlt ? original.pivot : new Double2(1-grip.x,1-grip.y);
+                    var m=original.ToMatrix(size.x,size.y);
+                    var fixedUv=m.Point(anchor);
+                    var fixedPoint=new Double2(fixedUv.x*size.x,fixedUv.y*size.y);
+                    var gripUv=m.Point(grip);
+                    var handlePoint=new Double2(gripUv.x*size.x+delta.x,gripUv.y*size.y+delta.y);
+                    var inverseRotation=ProjectiveMatrix.Rotate(-original.rotation);
+                    var local=inverseRotation.Point(handlePoint-fixedPoint);
+                    var span=new Double2((grip.x-anchor.x)*size.x,(grip.y-anchor.y)*size.y);
+                    bool x=grip.x!=.5 && Math.Abs(span.x)>1e-12;
+                    bool y=grip.y!=.5 && Math.Abs(span.y)>1e-12;
+                    if(x) next.scale.x=SafeDoubleScale(local.x/span.x);
+                    if(y) next.scale.y=SafeDoubleScale(local.y/span.y);
+                    if(constrain)
                     {
-                        float ratioX = next.scale.x / SafeScale(original.scale.x);
-                        float ratioY = next.scale.y / SafeScale(original.scale.y);
-                        float ratio = x && (!y || Mathf.Abs(ratioX - 1f) >= Mathf.Abs(ratioY - 1f)) ? ratioX : ratioY;
-                        next.scale = new Vector2(SafeScale(original.scale.x * ratio), SafeScale(original.scale.y * ratio));
+                        double rx=next.scale.x/original.scale.x,ry=next.scale.y/original.scale.y;
+                        double ratio=x && (!y || Math.Abs(rx-1)>=Math.Abs(ry-1)) ? rx : ry;
+                        next.scale=new Double2(SafeDoubleScale(original.scale.x*ratio),SafeDoubleScale(original.scale.y*ratio));
                     }
-                    if (!disableSnap)
+                    if(!disableSnap)
                     {
-                        Vector2 span = Vector2.Scale(grip - anchor, size);
-                        Vector2 actualHandle = fixedPoint + Rotate(Vector2.Scale(span, next.scale), original.rotation);
-                        Vector2 direction = constrain
-                            ? Rotate(Vector2.Scale(span, original.scale), original.rotation)
-                            : Rotate(x ? Vector2.right : Vector2.up, original.rotation);
-                        Vector2 snapped = SnapResize(actualHandle, direction, x && y && !constrain);
-                        Vector2 snappedLocal = Rotate(snapped - fixedPoint, -original.rotation);
-                        if (constrain)
+                        Vector2 actual=fixedPoint+ProjectiveMatrix.Rotate(original.rotation).Point(new Double2(span.x*next.scale.x,span.y*next.scale.y));
+                        Vector2 direction=constrain ? (Vector2)ProjectiveMatrix.Rotate(original.rotation).Point(new Double2(span.x*original.scale.x,span.y*original.scale.y))
+                            : Rotate(x?Vector2.right:Vector2.up,original.rotationF);
+                        Vector2 snapped=SnapResize(actual,direction,x && y && !constrain);
+                        if(snapped!=actual)
                         {
-                            Vector2 originalSpan = Vector2.Scale(span, original.scale);
-                            float lengthSquared = originalSpan.sqrMagnitude;
-                            if (lengthSquared > 0.0000001f)
+                            var sl=inverseRotation.Point((Double2)snapped-fixedPoint);
+                            if(constrain)
                             {
-                                float ratio = Vector2.Dot(snappedLocal, originalSpan) / lengthSquared;
-                                next.scale = new Vector2(SafeScale(original.scale.x * ratio), SafeScale(original.scale.y * ratio));
+                                var os=new Double2(span.x*original.scale.x,span.y*original.scale.y);
+                                double ratio=(sl.x*os.x+sl.y*os.y)/(os.x*os.x+os.y*os.y);
+                                next.scale=new Double2(SafeDoubleScale(original.scale.x*ratio),SafeDoubleScale(original.scale.y*ratio));
+                            }
+                            else
+                            {
+                                if(x)next.scale.x=SafeDoubleScale(sl.x/span.x);
+                                if(y)next.scale.y=SafeDoubleScale(sl.y/span.y);
                             }
                         }
-                        else
-                        {
-                            if (x) next.scale.x = SafeScale(snappedLocal.x / span.x);
-                            if (y) next.scale.y = SafeScale(snappedLocal.y / span.y);
-                        }
                     }
-                    Vector2 pivot = Vector2.Scale(original.pivot, size);
-                    next.position = fixedPoint - pivot - Rotate(
-                        Vector2.Scale(Vector2.Scale(anchor, size) - pivot, next.scale), original.rotation);
+                    var pivot=new Double2(original.pivot.x*size.x,original.pivot.y*size.y);
+                    var offset=new Double2((anchor.x*size.x-pivot.x)*next.scale.x,(anchor.y*size.y-pivot.y)*next.scale.y);
+                    next.position=fixedPoint-pivot-ProjectiveMatrix.Rotate(original.rotation).Point(offset);
                 }
                 TextureTransform currentValue = owner.CurrentPreviewTransform;
-                if (next.pivot == currentValue.pivot && next.position == currentValue.position && next.scale == currentValue.scale &&
-                    Mathf.Approximately(next.rotation, currentValue.rotation))
+                if (next.Equals(currentValue))
                     return;
                 if (undoGroup < 0)
                 {
@@ -651,11 +664,79 @@ namespace DCFApixels.WhimTex
                     owner.RequestTransformPreview();
             }
 
+            private static double SafeDoubleScale(double value) => value < 0 ? Math.Min(value,-1e-5) : Math.Max(value,1e-5);
+
+            private bool UpdateProjective(Vector2 current, Vector2 delta, bool shift, bool control, out TextureTransform next)
+            {
+                next = original;
+                var m = original.ToMatrix(size.x,size.y);
+                if (!m.TryInverse(out var inv)) return false;
+                var uv = new Double2(current.x/size.x,current.y/size.y);
+                var move = new Double2(delta.x/size.x,delta.y/size.y);
+                if (handle == PivotHandle)
+                {
+                    if (!inv.TryPoint(uv,out var pivot)) return false;
+                    next.pivot=pivot;
+                    return true;
+                }
+                if (handle == MoveHandle)
+                {
+                    if (shift) { if (Math.Abs(delta.x)>=Math.Abs(delta.y)) move.y=0; else move.x=0; }
+                    return next.TrySetMatrix(ProjectiveMatrix.Translate(move.x,move.y)*m);
+                }
+                if (handle == RotateHandle)
+                {
+                    Vector2 pivot=Vector2.Scale(m.Point(original.pivot),size);
+                    Vector2 from=pointerStart-pivot,to=current-pivot;
+                    double angle=Math.Atan2((double)from.x*to.y-(double)from.y*to.x,(double)from.x*to.x+(double)from.y*to.y)*180/Math.PI;
+                    if (shift) angle=Math.Round(angle/15)*15;
+                    next.AroundPivot(ProjectiveMatrix.Rotate(angle),size);
+                    return true;
+                }
+                if (control)
+                {
+                    corners[0]=m.Point(new Double2(0,0)); corners[1]=m.Point(new Double2(1,0));
+                    corners[2]=m.Point(new Double2(1,1)); corners[3]=m.Point(new Double2(0,1));
+                    int i=handle/2;
+                    if ((handle&1)!=0)
+                    {
+                        int j=(i+1)%4;
+                        var edge=corners[j]-corners[i];
+                        double t=(move.x*edge.x+move.y*edge.y)/(edge.x*edge.x+edge.y*edge.y);
+                        var slide=edge*t;
+                        corners[i]=corners[i]+slide; corners[j]=corners[j]+slide;
+                    }
+                    else
+                    {
+                        bool horizontal=Math.Abs(delta.x)>=Math.Abs(delta.y);
+                        if (shift) { if(horizontal) move.y=0; else move.x=0; }
+                        corners[i]=corners[i]+move;
+                        if (lastAlt && shift)
+                        {
+                            int j=horizontal ? (i^1) : (3-i);
+                            corners[j]=corners[j]-move;
+                        }
+                        else if (lastAlt) corners[(i+2)%4]=corners[(i+2)%4]-move;
+                    }
+                    if (!ProjectiveMatrix.TryQuad(corners[0],corners[1],corners[2],corners[3],out var result)) return false;
+                    double before=m.m00*(m.m11*m.m22-m.m12*m.m21)-m.m01*(m.m10*m.m22-m.m12*m.m20)+m.m02*(m.m10*m.m21-m.m11*m.m20);
+                    double after=result.m00*(result.m11*result.m22-result.m12*result.m21)-result.m01*(result.m10*result.m22-result.m12*result.m20)+result.m02*(result.m10*result.m21-result.m11*result.m20);
+                    return before*after>0 && next.TrySetMatrix(result);
+                }
+                Double2 grip=Handles[handle], anchor=lastAlt ? original.pivot : new Double2(1-grip.x,1-grip.y);
+                if (!inv.TryPoint(m.Point(grip)+move,out var local)) return false;
+                double sx=grip.x==.5 ? 1 : (local.x-anchor.x)/(grip.x-anchor.x);
+                double sy=grip.y==.5 ? 1 : (local.y-anchor.y)/(grip.y-anchor.y);
+                if(shift) sx=sy=Math.Abs(sx-1)>=Math.Abs(sy-1)?sx:sy;
+                return next.TrySetMatrix(m*ProjectiveMatrix.Translate(anchor.x,anchor.y)*ProjectiveMatrix.Scale(sx,sy)*ProjectiveMatrix.Translate(-anchor.x,-anchor.y));
+            }
+
             private void OnUp(PointerUpEvent evt)
             {
                 if (!IsDragging || evt.pointerId != pointerId || evt.button != 0)
                     return;
-                UpdateTransform(evt.localPosition, evt.shiftKey, evt.ctrlKey);
+                lastAlt = evt.altKey;
+                UpdateTransform(evt.localPosition, evt.shiftKey, evt.ctrlKey || evt.commandKey);
                 End(false, true);
                 owner.UpdatePreviewCursor(evt.localPosition, evt.altKey);
                 evt.StopImmediatePropagation();
@@ -760,7 +841,7 @@ namespace DCFApixels.WhimTex
                 painter.Fill();
                 painter.Stroke();
                 if (fxTransform) return;
-                Vector2 center = ViewPoint(Vector2.Scale(transform.pivot, dimensions) + transform.position);
+                Vector2 center = ViewPoint(TransformPoint(transform.pivotF, transform, dimensions));
                 for (int pass = 0; pass < 2; pass++)
                 {
                     painter.lineWidth = pass == 0 ? 3f : 1f;

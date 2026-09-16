@@ -4,6 +4,13 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+## [0.10.17] - 2026-09-16
+
+### Added
+
+- Double-precision TRS/projective layer transforms with corner distortion, skew and perspective gestures, matrix clipboard/API input, and canvas-space brush footprints.
+- Perspective-aware procedural rendering, gradient handles and fill sampling; distorted gradients are baked for layered export.
+
 ## [0.10.16] - 2026-09-16
 
 ### Added

@@ -147,9 +147,21 @@ namespace DCFApixels.WhimTex
                         settings["filter"] = layer.filterMode.ToString();
                         entry["transform"] = new JObject
                         {
-                            ["position"] = Json(layer.transform.position), ["scale"] = Json(layer.transform.scale),
-                            ["pivot"] = Json(layer.transform.pivot), ["rotation"] = layer.transform.rotation, ["tiling"] = layer.transform.tiling.ToString()
+                            ["pivot"] = new JArray(layer.transform.pivot.x,layer.transform.pivot.y), ["tiling"] = layer.transform.tiling.ToString()
                         };
+                        var transformJson=(JObject)entry["transform"];
+                        var t=layer.transform;
+                        if(t.storage==TransformStorage.Projective)
+                        {
+                            var m=t.matrix;
+                            transformJson["matrix"]=new JArray(m.m00,m.m01,m.m02,m.m10,m.m11,m.m12,m.m20,m.m21,m.m22);
+                        }
+                        else
+                        {
+                            transformJson["position"]=new JArray(t.position.x,t.position.y);
+                            transformJson["scale"]=new JArray(t.scale.x,t.scale.y);
+                            transformJson["rotation"]=t.rotation;
+                        }
                         entry["modifierCount"] = layer.modifiers?.Count ?? 0;
                     }
                     if (layer?.Behaviour is FileLayerBehaviour file)

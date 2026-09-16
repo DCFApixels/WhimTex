@@ -30,6 +30,21 @@ Transform 工具栏中的 **Original Size** 还会恢复其像素尺寸：一个
 按住 `Shift` 可沿单轴移动、按比例缩放或以 15° 步进旋转。
 `Escape` 取消拖动；`T` 或 `Enter` 退出该工具。
 
+## 斜切与透视
+
+使用 **Transform** 时，按住以下修饰键拖动控制柄：
+
+- `Ctrl` / `Cmd` + 角点：独立移动该角。
+- `Ctrl` / `Cmd` + 边：沿该边斜切。
+- `Ctrl` / `Cmd` + `Shift` + 角点：沿画布的一个轴移动。
+- `Ctrl` / `Cmd` + `Alt` / `Option` + `Shift` + 角点：让成对角点反向移动，调整透视。
+- `Alt` / `Option` + 普通缩放：围绕轴心缩放。
+
+不允许角点交叉或使图层塌缩。**Reset** 清除斜切和透视。
+**Original Aspect** 和 **Original Size** 需要普通变换，请先重置已变形的图层。
+Position、Rotation 和 Scale 数值控件会保留现有变形；Rotation 和 Scale 表示轴心处的局部坐标轴。
+即使 Drawing 图层已变形，绘画时的笔刷印记仍保持画布空间中的形状和大小。
+
 ## 重复图像或保持锐利边缘
 
 **Tiling** 控制图像原始边界之外显示的内容：

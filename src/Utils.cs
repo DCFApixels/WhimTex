@@ -104,7 +104,7 @@ namespace DCFApixels.WhimTex
     }
 
     [Serializable]
-    public struct TextureTransform
+    public partial struct TextureTransform : IEquatable<TextureTransform>
     {
         public static readonly TextureTransform Default = new TextureTransform
         {
@@ -115,15 +115,24 @@ namespace DCFApixels.WhimTex
             tiling = TransformTilingMode.Clip
         };
 
-        public Vector2 pivot;
-        public Vector2 position;
-        public Vector2 scale;
-        public float rotation;
+        public Double2 pivot, position, scale;
+        public double rotation;
+        public Vector2 pivotF { get => pivot; set => pivot = value; }
+        public Vector2 positionF { get => position; set => position = value; }
+        public Vector2 scaleF { get => scale; set => scale = value; }
+        public float rotationF { get => (float)rotation; set => rotation = value; }
+        public TransformStorage storage;
+        public ProjectiveMatrix matrix;
         public TransformTilingMode tiling;
+
+        public bool Equals(TextureTransform other) => pivot==other.pivot && position==other.position && scale==other.scale &&
+            rotation==other.rotation && storage==other.storage && matrix.Equals(other.matrix) && tiling==other.tiling;
+        public override bool Equals(object other) => other is TextureTransform value && Equals(value);
+        public override int GetHashCode() => position.GetHashCode() ^ scale.GetHashCode()*397 ^ matrix.GetHashCode();
 
         public bool IsIdentity()
         {
-            return position == Vector2.zero && scale == Vector2.one && Mathf.Approximately(rotation, 0f) &&
+            return storage == TransformStorage.TRS && position.x == 0 && position.y == 0 && scale.x == 1 && scale.y == 1 && rotation == 0 &&
                 tiling == TransformTilingMode.Clip;
         }
 
@@ -135,32 +144,15 @@ namespace DCFApixels.WhimTex
         internal bool TryFitOriginalAspect(Vector2 canvasSize, Vector2 sourceSize, out TextureTransform fitted, bool originalSize = false)
         {
             fitted = this;
-            if (!Finite(canvasSize) || !Finite(sourceSize) || !Finite(scale) || !Finite(pivot) ||
-                !Finite(position) || float.IsNaN(rotation) || float.IsInfinity(rotation) ||
-                canvasSize.x <= 0f || canvasSize.y <= 0f || sourceSize.x <= 0f || sourceSize.y <= 0f ||
-                Mathf.Abs(scale.x) < 0.000001f || Mathf.Abs(scale.y) < 0.000001f)
-                return false;
-
-            double fit = originalSize ? 1d : Math.Min(
-                Math.Abs((double)scale.x) * canvasSize.x / sourceSize.x,
-                Math.Abs((double)scale.y) * canvasSize.y / sourceSize.y);
-            Vector2 nextScale = new Vector2(
-                (float)(sourceSize.x * fit / canvasSize.x) * Mathf.Sign(scale.x),
-                (float)(sourceSize.y * fit / canvasSize.y) * Mathf.Sign(scale.y));
-            if (!Finite(nextScale) || nextScale.x == 0f || nextScale.y == 0f)
-                return false;
-            Vector2 centerOffset = Vector2.Scale(new Vector2(0.5f, 0.5f) - pivot, canvasSize);
-            Vector2 delta = Vector2.Scale(centerOffset, scale - nextScale);
-            float angle = rotation * Mathf.Deg2Rad;
-            float cosine = Mathf.Cos(angle);
-            float sine = Mathf.Sin(angle);
-            Vector2 nextPosition = position + new Vector2(
-                cosine * delta.x - sine * delta.y, sine * delta.x + cosine * delta.y);
-            if (!Finite(nextPosition))
-                return false;
-            fitted.scale = nextScale;
-            fitted.position = nextPosition;
-            return true;
+            if (storage == TransformStorage.Projective || !TiledCanvasUtility.IsInvertible(this) ||
+                !Finite(canvasSize) || !Finite(sourceSize) || canvasSize.x<=0 || canvasSize.y<=0 || sourceSize.x<=0 || sourceSize.y<=0) return false;
+            double fit=originalSize ? 1d : Math.Min(Math.Abs(scale.x)*canvasSize.x/sourceSize.x,Math.Abs(scale.y)*canvasSize.y/sourceSize.y);
+            var nextScale=new Double2(sourceSize.x*fit/canvasSize.x*Math.Sign(scale.x),sourceSize.y*fit/canvasSize.y*Math.Sign(scale.y));
+            var offset=new Double2((.5-pivot.x)*canvasSize.x,(.5-pivot.y)*canvasSize.y);
+            var delta=new Double2(offset.x*(scale.x-nextScale.x),offset.y*(scale.y-nextScale.y));
+            fitted.scale=nextScale;
+            fitted.position=position+ProjectiveMatrix.Rotate(rotation).Point(delta);
+            return TiledCanvasUtility.IsInvertible(fitted);
         }
 
         private static bool Finite(Vector2 value) =>

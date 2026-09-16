@@ -274,11 +274,9 @@ namespace DCFApixels.WhimTex
                             wrapU = wrapV = TextureWrapMode.Mirror;
                             break;
                     }
-                    transformMaterial.SetVector("_Pivot", new Vector4(applied.pivot.x, applied.pivot.y, 0f, 0f));
-                    Vector2 scaledPosition = applied.position / context.scaleMultiplier;
-                    transformMaterial.SetVector("_Position", new Vector4(scaledPosition.x, scaledPosition.y, 0f, 0f));
-                    transformMaterial.SetVector("_Scale", new Vector4(applied.scale.x, applied.scale.y, 0f, 0f));
-                    transformMaterial.SetFloat("_Rotation", applied.rotation * Mathf.Deg2Rad);
+                    if (!applied.ToMatrix(context.compositor.width, context.compositor.height).TryInverse(out var inverse))
+                        inverse = default;
+                    inverse.SetShader(transformMaterial, "_TransformRow");
                     transformMaterial.SetInt("_ClipOutside", applied.tiling == TransformTilingMode.Clip || applied.tiling == TransformTilingMode.Unbounded ? 1 : 0);
                     transformMaterial.SetInt("_WrapModeU", (int)wrapU);
                     transformMaterial.SetInt("_WrapModeV", (int)wrapV);

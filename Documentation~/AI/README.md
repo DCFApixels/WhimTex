@@ -218,12 +218,21 @@ Pivot is normalized bottom-left UV, default `[0.5,0.5]`; scale `[1,1]` covers th
 Rotation is counterclockwise. Changing pivot does not compensate position. Negative scale mirrors an axis;
 absolute scale components must be at least 0.00001. No group transform.
 
+Alternatively, use `matrix: [m00,m01,m02,m10,m11,m12,m20,m21,m22]` for skew or perspective.
+The row-major 3×3 matrix maps normalized source UV to normalized canvas UV (bottom-left origin):
+`x'=(m00*x+m01*y+m02)/w`, `y'=(m10*x+m11*y+m12)/w`, `w=m20*x+m21*y+m22`.
+It must be invertible, with finite values and no zero/sign change of `w` inside the source rectangle.
+Do not combine `matrix` with `position`, `scale` or `rotation`; `pivot` and `tiling` remain allowed.
+TRS and matrix values are stored as doubles; GPU evaluation uses floats. A matrix is not automatically simplified.
+Example: `"transform":{"matrix":[0.8,0.1,0.05,0,0.8,0.1,0,0.25,1]}`.
+
 ### Drawing layers and linked images
 
 A Drawing layer owns its pixels. `{ "type": "drawing" }` adds an empty layer the user can paint on,
 and adding `url` downloads that link before the paste and fills the layer with the image:
 
 - the texture keeps its **source resolution**; the image is never resampled to the canvas,
+- `transform.matrix` is not allowed with a Drawing `url`.
 - `transform.scale` is **derived** from the image and the canvas, so do not set it. `position`, `pivot`,
   `rotation` and `tiling` are kept, and the fitted scale preserves the placement you asked for,
 - the link is fetched **once, at paste time**, and nothing about the URL is stored in the document, so

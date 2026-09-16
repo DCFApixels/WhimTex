@@ -339,14 +339,14 @@ namespace DCFApixels.WhimTex
             Foldout card = CreateInspectorSection("Transform", "transformSection", LayerActionIcon.Kind.Transform, false);
             card.AddToClassList("whimtex-transform-card");
 
-            Vector2Field pivot = ConfigureField(new Vector2Field("Pivot"));
-            pivot.tooltip = "Normalized pivot inside the output canvas.";
-            Vector2Field position = ConfigureField(new Vector2Field("Position (px)"));
+            Double2Field pivot = ConfigureField(new Double2Field("Pivot"));
+            pivot.tooltip = "Pivot in normalized source coordinates.";
+            Double2Field position = ConfigureField(new Double2Field("Position (px)"));
             position.tooltip = "Offset in output pixels. Positive X moves right; positive Y moves up.";
-            Vector2Field scale = ConfigureField(new Vector2Field("Scale"));
+            Double2Field scale = ConfigureField(new Double2Field("Scale"));
             scale.tooltip = "Visual scale. One means 100 percent; negative values flip the image.";
-            FloatField rotation = ConfigureField(new FloatField("Rotation"));
-            rotation.tooltip = "Clockwise visual rotation in degrees.";
+            DoubleField rotation = ConfigureField(new DoubleField("Rotation"));
+            rotation.tooltip = "Counterclockwise rotation in degrees; for a distorted layer, the local X axis at the pivot.";
             EnumField tiling = ConfigureField(new EnumField("Tiling", TransformTilingMode.Clip));
             tiling.tooltip = "Clip = transparent outside the frame; Repeat = tile; Mirror = reflected tiles; " +
                 "Source = source texture wrap modes; Clamp = extend edge pixels; " +
@@ -355,10 +355,22 @@ namespace DCFApixels.WhimTex
             filter.tooltip = "Source = inherit the texture's Filter Mode (default); Point = sharp pixels; " +
                 "Bilinear = smooth; Trilinear = smooth mip transitions when the source has mipmaps. Independent of Tiling; does not change texture import settings.";
 
+            TextureTransform displaySource=default;
+            Vector2 displaySize=default;
+            Double2 displayPosition=default,displayScale=default;
+            double displayRotation=0;
+            bool displayReady=false;
+            void RefreshDisplay()
+            {
+                var value=read();var size=new Vector2(compositor.width,compositor.height);
+                if(displayReady && value.Equals(displaySource) && size==displaySize)return;
+                displaySource=value;displaySize=size;displayReady=true;
+                value.GetDisplay(size,out displayPosition,out displayScale,out displayRotation);
+            }
             bindings.Track(pivot, () => read().pivot);
-            bindings.Track(position, () => read().position);
-            bindings.Track(scale, () => read().scale);
-            bindings.Track(rotation, () => read().rotation);
+            bindings.Track(position, () => { RefreshDisplay(); return displayPosition; });
+            bindings.Track(scale, () => { RefreshDisplay(); return displayScale; });
+            bindings.Track(rotation, () => { RefreshDisplay(); return displayRotation; });
             bindings.Track(tiling, () => (Enum)read().tiling);
             bindings.Track(filter, () => (Enum)layer.filterMode);
 
@@ -382,7 +394,7 @@ namespace DCFApixels.WhimTex
                 applyChange("Change Layer Transform", () =>
                 {
                     TextureTransform value = read();
-                    value.pivot = evt.newValue;
+                    value.TrySetPivot(evt.newValue);
                     write(value);
                 });
             });
@@ -391,7 +403,7 @@ namespace DCFApixels.WhimTex
                 applyChange("Change Layer Transform", () =>
                 {
                     TextureTransform value = read();
-                    value.position = evt.newValue;
+                    value.EditPosition(evt.newValue, new Vector2(compositor.width,compositor.height));
                     write(value);
                 });
             });
@@ -400,7 +412,7 @@ namespace DCFApixels.WhimTex
                 applyChange("Change Layer Transform", () =>
                 {
                     TextureTransform value = read();
-                    value.scale = evt.newValue;
+                    value.EditScale(evt.newValue, new Vector2(compositor.width,compositor.height));
                     write(value);
                 });
             });
@@ -409,7 +421,8 @@ namespace DCFApixels.WhimTex
                 applyChange("Change Layer Transform", () =>
                 {
                     TextureTransform value = read();
-                    value.rotation = evt.newValue;
+                    if (!ProjectiveMatrix.Finite(evt.newValue)) return;
+                    value.EditRotation(evt.newValue, new Vector2(compositor.width,compositor.height));
                     write(value);
                 });
             });

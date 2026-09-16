@@ -1921,7 +1921,7 @@ namespace DCFApixels.WhimTex
             if (HandleAreaSelectionKey(evt)) return;
             if (HandleLayerNavigationKey(evt)) return;
 
-            if (evt.keyCode == KeyCode.LeftAlt || evt.keyCode == KeyCode.RightAlt)
+            if (previewTool != PreviewTool.Transform && (evt.keyCode == KeyCode.LeftAlt || evt.keyCode == KeyCode.RightAlt))
             {
                 previewEyedropper?.UpdateModifier(true);
                 if (CanUsePreviewEyedropper)
@@ -2548,11 +2548,9 @@ namespace DCFApixels.WhimTex
                     return;
                 Vector2 localCursor = cursorPosition - contentRect.position;
                 float pixelScale = PixelScale;
-                float transformScale = drawingLayer == null ? 1f :
-                    (Mathf.Abs(drawingLayer.transform.scale.x) + Mathf.Abs(drawingLayer.transform.scale.y)) * 0.5f;
                 float radius = Mathf.Max(
                     2f,
-                    brushSettings.brushSize * pixelScale * Mathf.Max(0.0001f, transformScale) * 0.5f);
+                    brushSettings.brushSize * pixelScale * 0.5f);
                 painter.lineWidth = 1f;
                 painter.strokeColor = new Color(0f, 0f, 0f, 0.95f);
                 StrokeCircle(painter, localCursor, radius + 1f);
@@ -2576,22 +2574,11 @@ namespace DCFApixels.WhimTex
                 Vector2 canvasCursor = ToCanvas(cursorPosition);
                 Vector2 documentUv = new Vector2((canvasCursor.x - ImageRect.x) / ImageRect.width,
                     1f - (canvasCursor.y - ImageRect.y) / ImageRect.height);
-                Vector2 source = TiledCanvasUtility.ToSource(documentUv, transform, documentWidth, documentHeight);
-                if (tiled) source = TiledCanvasUtility.CanonicalSource(source, transform, documentWidth, documentHeight);
-                Vector2 center = PaintStrokeParameters.SnapPencilCenter(source, documentWidth, documentHeight, brushSettings.pencilSize);
-                Vector2 tileOffset = Vector2.zero;
-                if (tiled)
-                {
-                    Vector2 documentCenter = TiledCanvasUtility.ToDocument(center, transform, documentWidth, documentHeight);
-                    tileOffset = new Vector2(Mathf.Round(documentUv.x - documentCenter.x), Mathf.Round(documentUv.y - documentCenter.y));
-                }
-                Vector2 uv = TiledCanvasUtility.ToDocument(center, transform, documentWidth, documentHeight) + tileOffset;
-                Vector2 screenCenter = rect.position + new Vector2(uv.x * rect.width, (1f - uv.y) * rect.height);
-                float angle = transform.rotation * Mathf.Deg2Rad;
-                float cos = Mathf.Cos(angle), sin = Mathf.Sin(angle);
+                Vector2 center = PaintStrokeParameters.SnapPencilCenter(documentUv, documentWidth, documentHeight, brushSettings.pencilSize);
+                Vector2 screenCenter = rect.position + new Vector2(center.x * rect.width, (1f - center.y) * rect.height);
                 float px = rect.width / documentWidth, py = rect.height / documentHeight;
-                Vector2 x = new Vector2(cos * px, -sin * py) * transform.scale.x;
-                Vector2 y = new Vector2(-sin * px, -cos * py) * transform.scale.y;
+                Vector2 x = new Vector2(px, 0);
+                Vector2 y = new Vector2(0, -py);
                 screenCenter = ToView(screenCenter + contentRect.position) - contentRect.position;
                 x = viewport.ToViewDelta(x);
                 y = viewport.ToViewDelta(y);

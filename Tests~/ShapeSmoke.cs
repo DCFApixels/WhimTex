@@ -99,11 +99,11 @@ try
         var end = start + new UnityEngine.Vector2(dx, dy);
         var t = (DCFApixels.WhimTex.TextureTransform)drag.Invoke(null, new object[] { start, end, canvas, shape.kind, false, 8f });
         Check(UnityEngine.Vector2.Distance(t.position, (start + end - canvas) * .5f) < .0001f, "drag center");
-        Check(UnityEngine.Mathf.Abs(t.scale.x * canvas.x - UnityEngine.Mathf.Max(1f, UnityEngine.Mathf.Abs(dx))) < .0001f, "drag width");
+        Check(System.Math.Abs(t.scale.x * canvas.x - UnityEngine.Mathf.Max(1f, UnityEngine.Mathf.Abs(dx))) < .0001f, "drag width");
         t = (DCFApixels.WhimTex.TextureTransform)drag.Invoke(null, new object[] { start, end, canvas, shape.kind, true, 8f });
-        Check(UnityEngine.Mathf.Abs(t.scale.x * canvas.x - t.scale.y * canvas.y) < .0001f, "Shift equal proportions");
+        Check(System.Math.Abs(t.scale.x * canvas.x - t.scale.y * canvas.y) < .0001f, "Shift equal proportions");
         t = (DCFApixels.WhimTex.TextureTransform)drag.Invoke(null, new object[] { start, end, canvas, DCFApixels.WhimTex.ShapeLayerBehaviour.ShapeKind.Line, true, 8f });
-        Check(UnityEngine.Mathf.Abs(t.rotation / 45f - UnityEngine.Mathf.Round(t.rotation / 45f)) < .0001f, "Shift line angle");
+        Check(System.Math.Abs(t.rotation / 45d - System.Math.Round(t.rotation / 45d)) < .0001f, "Shift line angle");
     }
     var shader = UnityEngine.Shader.Find("Hidden/TextureCompositor/Shape");
     Check(shader != null && shader.isSupported, "shader supported");

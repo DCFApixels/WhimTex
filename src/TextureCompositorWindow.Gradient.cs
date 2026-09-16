@@ -82,8 +82,23 @@ namespace DCFApixels.WhimTex
                 if(direction.sqrMagnitude<.5f)direction=Vector2.right;
                 return new Vector2(-direction.y,direction.x)*18;
             }
-            private static float Projection(Vector2 p, Vector2 a, Vector2 b) =>
-                Mathf.Clamp01(Vector2.Dot(p-a,b-a)/Mathf.Max(.0001f,(b-a).sqrMagnitude));
+            private float Projection(Vector2 p, Vector2 a, Vector2 b)
+            {
+                float screenTime=Mathf.Clamp01(Vector2.Dot(p-a,b-a)/Mathf.Max(.0001f,(b-a).sqrMagnitude));
+                var g=owner.gradientCanvasLayer;
+                if(g.transform.storage==TransformStorage.TRS) return screenTime;
+                GradientCanvasGeometry.UvEndpoints(g,out var ua,out var ub);
+                var m=g.transform.matrix;
+                double wa=m.m20*ua.x+m.m21*ua.y+m.m22, wb=m.m20*ub.x+m.m21*ub.y+m.m22;
+                return (float)(screenTime*wa/(wb*(1-screenTime)+screenTime*wa));
+            }
+            private Vector2 KeyPosition(Vector2 a,Vector2 b,float time)
+            {
+                var g=owner.gradientCanvasLayer;
+                if(g.transform.storage==TransformStorage.TRS) return Vector2.Lerp(a,b,time);
+                GradientCanvasGeometry.UvEndpoints(g,out var ua,out var ub);
+                return View(GradientCanvasGeometry.Point(Vector2.Lerp(ua,ub,time),g.transform,Size));
+            }
             private void Down(PointerDownEvent e)
             {
                 if (!owner.IsGradientCanvasEnabled || pointer>=0 || e.button!=0 || e.altKey || owner.toolkitPreviewCanvas.ImageRect.width<=0) return;
@@ -101,7 +116,7 @@ namespace DCFApixels.WhimTex
                     float nearest=100;
                     for(int i=0;i<keys.Length;i++)
                     {
-                        float distance=(p-Vector2.Lerp(a,b,keys[i].time)).sqrMagnitude;
+                        float distance=(p-KeyPosition(a,b,keys[i].time)).sqrMagnitude;
                         if(distance<=nearest){nearest=distance;hit=i;}
                     }
                 }
@@ -109,7 +124,7 @@ namespace DCFApixels.WhimTex
                     for(int i=0;i<keys.Length-1;i++)
                         if((p-MidpointPosition(g,i,a,b)).sqrMagnitude<=64){midpointHit=i;break;}
                 float time=Projection(p,a,b);
-                if(hit==-1 && midpointHit<0 && (p-Vector2.Lerp(a,b,time)).sqrMagnitude>36) return;
+                if(hit==-1 && midpointHit<0 && (p-KeyPosition(a,b,time)).sqrMagnitude>36) return;
                 owner.Focus(); target.Focus();
                 midpointSelected=midpointHit>=0;
                 if(midpointSelected)hit=midpointHit;
@@ -320,7 +335,7 @@ namespace DCFApixels.WhimTex
                     if(pendingRemoval && i==selected)continue;
                     var color=keys[i].color; if(gradient.ColorSpace==ColorSpace.Linear)color=HdrUtility.Encode(color);
                     float max=Mathf.Max(1,Mathf.Max(color.r,Mathf.Max(color.g,color.b))); color/=max; color.a=1;
-                    Vector2 point=Vector2.Lerp(a,b,keys[i].time);
+                    Vector2 point=KeyPosition(a,b,keys[i].time);
                     bool highlighted=i==topKey;
                     p.fillColor=Color.black;
                     p.BeginPath(); p.Arc(point,highlighted?10.6f:9.1f,0,360); p.ClosePath(); p.Fill();
@@ -337,10 +352,10 @@ namespace DCFApixels.WhimTex
                 if(topMidpoint>=0 && gradient.Mode!=WhimTexGradientMode.Fixed)
                     Diamond(p,MidpointPosition(gradient,topMidpoint,a,b),true);
             }
-            private static Vector2 MidpointPosition(WhimTexGradient gradient,int index,Vector2 a,Vector2 b)
+            private Vector2 MidpointPosition(WhimTexGradient gradient,int index,Vector2 a,Vector2 b)
             {
                 var keys=gradient.ColorKeys;
-                return Vector2.Lerp(a,b,Mathf.Lerp(keys[index].time,keys[index+1].time,gradient.GetMidpoint(false,index)));
+                return KeyPosition(a,b,Mathf.Lerp(keys[index].time,keys[index+1].time,gradient.GetMidpoint(false,index)));
             }
             private static void Diamond(Painter2D p,Vector2 center,bool highlighted)
             {
@@ -371,15 +386,18 @@ namespace DCFApixels.WhimTex
         }
         internal static Vector2 Point(Vector2 uv,TextureTransform t,Vector2 size)
         {
-            Vector2 pivot=Vector2.Scale(t.pivot,size);
-            return pivot+t.position+Rotate(Vector2.Scale(Vector2.Scale(uv,size)-pivot,t.scale),t.rotation);
+            return Vector2.Scale(t.Map(uv,size),size);
         }
-        internal static void Endpoints(GradientLayerBehaviour g,Vector2 size,out Vector2 a,out Vector2 b)
+        internal static void UvEndpoints(GradientLayerBehaviour g,out Vector2 uv,out Vector2 end)
         {
             bool horizontal=g.gradientType==GradientLayerBehaviour.GradientType.Horizontal;
             bool vertical=g.gradientType==GradientLayerBehaviour.GradientType.Vertical;
-            Vector2 uv=horizontal?new Vector2(0,.5f):vertical?new Vector2(.5f,0):GradientLayerBehaviour.BaseCenter;
-            Vector2 end=horizontal?new Vector2(1,.5f):vertical?new Vector2(.5f,1):uv+Vector2.right*GradientLayerBehaviour.BaseRadius;
+            uv=horizontal?new Vector2(0,.5f):vertical?new Vector2(.5f,0):GradientLayerBehaviour.BaseCenter;
+            end=horizontal?new Vector2(1,.5f):vertical?new Vector2(.5f,1):uv+Vector2.right*GradientLayerBehaviour.BaseRadius;
+        }
+        internal static void Endpoints(GradientLayerBehaviour g,Vector2 size,out Vector2 a,out Vector2 b)
+        {
+            UvEndpoints(g,out var uv,out var end);
             a=Point(uv,g.transform,size); b=Point(end,g.transform,size);
         }
         internal static void MoveEndpoint(GradientLayerBehaviour g,Vector2 size,Vector2 a,Vector2 b,bool first,Vector2 delta)
@@ -388,16 +406,29 @@ namespace DCFApixels.WhimTex
             var t=g.transform;
             if(!linear && first)
             {
-                t.position+=delta; g.transform=t; return;
+                if(t.storage==TransformStorage.Projective)
+                    t.TrySetMatrix(ProjectiveMatrix.Translate(delta.x/size.x,delta.y/size.y)*t.matrix);
+                else t.position+=(Double2)delta;
+                g.transform=t; return;
             }
             Vector2 old=b-a, next=first?b-a-delta:b-a+delta;
             if(old.sqrMagnitude<.000001f || next.sqrMagnitude<.01f)return;
             float factor=next.magnitude/old.magnitude;
             float rotation=Mathf.Atan2(old.x*next.y-old.y*next.x,Vector2.Dot(old,next))*Mathf.Rad2Deg;
             Vector2 anchor=linear && first?b:a;
-            Vector2 pivot=Vector2.Scale(t.pivot,size);
-            t.position=anchor+Rotate((pivot+t.position-anchor)*factor,rotation)-pivot;
-            t.scale*=factor; t.rotation+=rotation;
+            if(t.storage==TransformStorage.Projective)
+            {
+                var op=ProjectiveMatrix.Translate(anchor.x/size.x,anchor.y/size.y)*ProjectiveMatrix.Scale(1d/size.x,1d/size.y)*
+                    ProjectiveMatrix.Rotate(rotation)*ProjectiveMatrix.Scale(factor,factor)*ProjectiveMatrix.Scale(size.x,size.y)*
+                    ProjectiveMatrix.Translate(-anchor.x/size.x,-anchor.y/size.y);
+                t.TrySetMatrix(op*t.matrix);
+            }
+            else
+            {
+                Double2 pivot=new Double2(t.pivot.x*size.x,t.pivot.y*size.y);
+                t.position=(Double2)anchor+ProjectiveMatrix.Rotate(rotation).Point((pivot+t.position-(Double2)anchor)*factor)-pivot;
+                t.scale=t.scale*factor; t.rotation+=rotation;
+            }
             g.transform=t;
         }
     }

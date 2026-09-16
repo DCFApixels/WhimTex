@@ -196,12 +196,12 @@ namespace DCFApixels.WhimTex
             [ReadOnly] public NativeArray<Color> composite;
             [WriteOnly] public NativeArray<Color> reference;
             [WriteOnly] public NativeArray<byte> valid;
-            public int width, compositeWidth, compositeHeight;
-            public Vector2 origin, stepX, stepY;
+            public int width, height, compositeWidth, compositeHeight;
+            public ProjectiveMatrix sourceToCanvas;
 
             public void Execute(int index)
             {
-                Vector2 uv = origin + stepX * (index % width + 0.5f) + stepY * (index / width + 0.5f);
+                Vector2 uv = sourceToCanvas.Point(new Double2((index % width + 0.5) / width, (index / width + 0.5) / height));
                 bool inside = uv.x >= 0f && uv.y >= 0f && uv.x < 1f && uv.y < 1f;
                 valid[index] = inside ? (byte)1 : (byte)0;
                 reference[index] = inside

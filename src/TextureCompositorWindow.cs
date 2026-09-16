@@ -622,38 +622,12 @@ namespace DCFApixels.WhimTex
 
         private bool TryMapDocumentToLayerUv(Vector2 documentUv, DrawingLayerBehaviour layer, out Vector2 sourceUv)
         {
-            Vector2 outputSize = new Vector2(Mathf.Max(1, compositor.width), Mathf.Max(1, compositor.height));
-            Vector2 pivotPixels = Vector2.Scale(layer.transform.pivot, outputSize);
-            Vector2 local = Vector2.Scale(documentUv, outputSize) - pivotPixels - layer.transform.position;
-            float radians = -layer.transform.rotation * Mathf.Deg2Rad;
-            float sine = Mathf.Sin(radians);
-            float cosine = Mathf.Cos(radians);
-            local = new Vector2(
-                cosine * local.x - sine * local.y,
-                sine * local.x + cosine * local.y);
-            float scaleX = Mathf.Abs(layer.transform.scale.x) < 0.00001f
-                ? (layer.transform.scale.x < 0f ? -0.00001f : 0.00001f)
-                : layer.transform.scale.x;
-            float scaleY = Mathf.Abs(layer.transform.scale.y) < 0.00001f
-                ? (layer.transform.scale.y < 0f ? -0.00001f : 0.00001f)
-                : layer.transform.scale.y;
-            Vector2 sourcePixels = pivotPixels + new Vector2(local.x / scaleX, local.y / scaleY);
-            sourceUv = new Vector2(sourcePixels.x / outputSize.x, sourcePixels.y / outputSize.y);
+            sourceUv = layer.transform.Unmap(documentUv, new Vector2(compositor.width, compositor.height));
             return sourceUv.x >= 0f && sourceUv.x <= 1f && sourceUv.y >= 0f && sourceUv.y <= 1f;
         }
 
-        private Vector2 MapLayerToDocumentUv(Vector2 sourceUv, DrawingLayerBehaviour layer)
-        {
-            Vector2 outputSize = new Vector2(Mathf.Max(1, compositor.width), Mathf.Max(1, compositor.height));
-            Vector2 pivot = Vector2.Scale(layer.transform.pivot, outputSize);
-            Vector2 local = Vector2.Scale(Vector2.Scale(sourceUv, outputSize) - pivot, layer.transform.scale);
-            float radians = layer.transform.rotation * Mathf.Deg2Rad;
-            float sine = Mathf.Sin(radians);
-            float cosine = Mathf.Cos(radians);
-            Vector2 pixels = new Vector2(cosine * local.x - sine * local.y, sine * local.x + cosine * local.y)
-                             + pivot + layer.transform.position;
-            return new Vector2(pixels.x / outputSize.x, pixels.y / outputSize.y);
-        }
+        private Vector2 MapLayerToDocumentUv(Vector2 sourceUv, DrawingLayerBehaviour layer) =>
+            layer.transform.Map(sourceUv, new Vector2(compositor.width, compositor.height));
 
         private void RememberPaintingPoint(Vector2 sourceUv)
         {

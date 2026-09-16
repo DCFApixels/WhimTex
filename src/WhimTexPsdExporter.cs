@@ -216,11 +216,11 @@ namespace DCFApixels.WhimTex
 
         private static bool CanExportGradient(GradientLayerBehaviour layer, bool modifiers)
         {
-            if (modifiers || layer.gradient == null || layer.gradient.Mode != WhimTexGradientMode.Classic ||
+            if (modifiers || layer.transform.storage == TransformStorage.Projective || layer.gradient == null || layer.gradient.Mode != WhimTexGradientMode.Classic ||
                 layer.gradient.ColorSpace != ColorSpace.Gamma || layer.gradient.Smoothness != 0f ||
                 (layer.transform.tiling != TransformTilingMode.Clip && layer.transform.tiling != TransformTilingMode.Source)) return false;
             bool linear = layer.gradientType == GradientLayerBehaviour.GradientType.Horizontal || layer.gradientType == GradientLayerBehaviour.GradientType.Vertical;
-            Vector2 scale = layer.transform.scale;
+            Vector2 scale = layer.transform.scaleF;
             if (Mathf.Abs(scale.x) < 0.00001f || Mathf.Abs(scale.y) < 0.00001f) return false;
             if (!linear && (scale.x <= 0 || !Mathf.Approximately(scale.x, scale.y))) return false;
             return layer.gradientType != GradientLayerBehaviour.GradientType.Circular || Mathf.Approximately(layer.circularRepetitions, 1f);
@@ -272,24 +272,24 @@ namespace DCFApixels.WhimTex
             }
             Vector2 center = GradientLayerBehaviour.BaseCenter;
             TextureTransform transform = layer.transform;
-            Vector2 pivot = Vector2.Scale(transform.pivot, new Vector2(width, height));
-            Vector2 local = Vector2.Scale(Vector2.Scale(center, new Vector2(width, height)) - pivot, transform.scale);
-            float radians = transform.rotation * Mathf.Deg2Rad;
-            center = pivot + transform.position + new Vector2(Mathf.Cos(radians) * local.x - Mathf.Sin(radians) * local.y,
+            Vector2 pivot = Vector2.Scale(transform.pivotF, new Vector2(width, height));
+            Vector2 local = Vector2.Scale(Vector2.Scale(center, new Vector2(width, height)) - pivot, transform.scaleF);
+            float radians = transform.rotationF * Mathf.Deg2Rad;
+            center = pivot + transform.positionF + new Vector2(Mathf.Cos(radians) * local.x - Mathf.Sin(radians) * local.y,
                 Mathf.Sin(radians) * local.x + Mathf.Cos(radians) * local.y);
             double x = (center.x / width - 0.5) * 100, y = (0.5 - center.y / height) * 100;
-            angle += transform.rotation;
+            angle += transform.rotationF;
             if (type == "Lnr ")
             {
                 bool horizontal = layer.gradientType == GradientLayerBehaviour.GradientType.Horizontal;
-                float axisScale = horizontal ? transform.scale.x : transform.scale.y;
+                float axisScale = horizontal ? transform.scaleF.x : transform.scaleF.y;
                 if (axisScale < 0) angle += 180;
                 double projectedCanvas = Math.Abs(width * Math.Cos(angle * Math.PI / 180)) + Math.Abs(height * Math.Sin(angle * Math.PI / 180));
                 scale = (horizontal ? width : height) * Math.Abs(axisScale) / projectedCanvas * 100;
             }
             else
             {
-                scale = GradientLayerBehaviour.BaseRadius * transform.scale.x * 200;
+                scale = GradientLayerBehaviour.BaseRadius * transform.scaleF.x * 200;
                 if (layer.gradientType == GradientLayerBehaviour.GradientType.Square) scale *= Math.Sqrt(2);
             }
             return new PsdWriter.Descriptor().Unit("Angl", "#Ang", angle).Enum("Type", "GrdT", type)

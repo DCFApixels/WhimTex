@@ -69,67 +69,19 @@ Shader "Hidden/TextureCompositor/PaintBrush"
             sampler2D _Backdrop;
             sampler2D _SelectionMask;
             float _UseSelection, _SelectionWrap;
-            float3 _SelectionToDocumentX, _SelectionToDocumentY;
             float _PrepareStandard;
             float _Hardness;
             float _PencilShape;
             float2 _CanvasSize;
             float2 _PatternCenter;
-            float2 _WrapBasisU;
-            float2 _WrapBasisV;
-            float3 _SourceToDocumentX;
-            float3 _SourceToDocumentY;
             float _BrushSize;
+            float _CanvasWrap;
+            float3 _PaintRow0, _PaintRow1, _PaintRow2;
 
             float4 SdfTipGradient(float value)
             {
                 float u = saturate(value) * (1.0 - _BrushSdfGradient_TexelSize.x) + .5 * _BrushSdfGradient_TexelSize.x;
                 return tex2D(_BrushSdfGradient, float2(u, .5));
-            }
-
-            float PencilDistance(float2 delta)
-            {
-                return _PencilShape > 2.5 ? abs(delta.x) + abs(delta.y) : max(abs(delta.x), abs(delta.y));
-            }
-
-            float2 NearestPolygonDelta(float2 delta, float row)
-            {
-                float2 best = 0.0;
-                float bestDistance = 3.4e38;
-                [unroll]
-                for (int i = -2; i <= 2; i++)
-                {
-                    float2 candidate = delta - (row + i) * _WrapBasisV;
-                    [unroll]
-                    for (int axis = 0; axis < 3; axis++)
-                    {
-                        float numerator = dot(candidate, _WrapBasisU);
-                        float denominator = dot(_WrapBasisU, _WrapBasisU);
-                        if (axis > 0)
-                        {
-                            if (_PencilShape > 2.5)
-                            {
-                                numerator = axis == 1 ? candidate.x : candidate.y;
-                                denominator = axis == 1 ? _WrapBasisU.x : _WrapBasisU.y;
-                            }
-                            else
-                            {
-                                numerator = axis == 1 ? candidate.x + candidate.y : candidate.x - candidate.y;
-                                denominator = axis == 1 ? _WrapBasisU.x + _WrapBasisU.y : _WrapBasisU.x - _WrapBasisU.y;
-                            }
-                        }
-                        if (abs(denominator) < 0.000001) continue;
-                        float column = floor(numerator / denominator);
-                        [unroll]
-                        for (int side = 0; side <= 1; side++)
-                        {
-                            float2 value = candidate - (column + side) * _WrapBasisU;
-                            float distance = PencilDistance(value);
-                            if (distance < bestDistance) { best = value; bestDistance = distance; }
-                        }
-                    }
-                }
-                return best;
             }
 
             v2f vert(appdata input)
@@ -149,24 +101,6 @@ Shader "Hidden/TextureCompositor/PaintBrush"
                 return output;
             }
 
-            float2 NearestPeriodicDelta(float2 delta)
-            {
-                float cross = _WrapBasisU.x * _WrapBasisV.y - _WrapBasisU.y * _WrapBasisV.x;
-                float row = floor((_WrapBasisU.x * delta.y - _WrapBasisU.y * delta.x) / cross + 0.5);
-                if (_PencilShape > 1.5) return NearestPolygonDelta(delta, row);
-                float2 best = 0.0;
-                float bestDistance = 3.4e38;
-                [unroll]
-                for (int i = -1; i <= 1; i++)
-                {
-                    float2 candidate = delta - (row + i) * _WrapBasisV;
-                    candidate -= floor(dot(candidate, _WrapBasisU) / dot(_WrapBasisU, _WrapBasisU) + 0.5) * _WrapBasisU;
-                    float distance = dot(candidate, candidate);
-                    if (distance < bestDistance) { best = candidate; bestDistance = distance; }
-                }
-                return best;
-            }
-
             float4 frag(v2f input) : SV_Target
             {
                 float4 color = _Color;
@@ -175,30 +109,19 @@ Shader "Hidden/TextureCompositor/PaintBrush"
                 color = input.color;
                 brushSize = input.shape.x;
                 #endif
-                bool tiled = input.tileData.z > 0.5;
-                float2 clipUv = input.canvasUv;
-                float2 brushDelta = (input.brushUv - 0.5) * 2.0;
-                float extent = 1.0;
-                #if defined(BRUSH_TEXTURE)
-                extent = abs(input.shape.y) + abs(input.shape.z);
-                brushDelta *= extent;
-                #endif
+                float3 p = float3(input.canvasUv, 1);
+                float w = dot(_PaintRow2, p);
+                if (abs(w) < 1e-8) discard;
+                float2 documentUv = float2(dot(_PaintRow0,p),dot(_PaintRow1,p))/w;
+                bool tiled = _CanvasWrap > .5;
+                float2 delta = documentUv - input.tileData.xy;
                 if (tiled)
                 {
-                    float3 source = float3(input.canvasUv, 1.0);
-                    float2 documentUv = float2(dot(source, _SourceToDocumentX), dot(source, _SourceToDocumentY));
-                    if (any(documentUv < 0.0) || any(documentUv >= 1.0)) discard;
-                    float2 nearest = NearestPeriodicDelta((input.canvasUv - input.tileData.xy) * _CanvasSize);
-                    if (input.tileData.z < 1.5)
-                    {
-                        // Overlapping copies share one owner, so a single stamp cannot
-                        // accumulate extra opacity where its wrapped footprints meet.
-                        float2 ownership = nearest - (input.brushUv - 0.5) * brushSize * extent;
-                        if (dot(ownership, ownership) > 0.0001) discard;
-                    }
-                    clipUv = input.tileData.xy + nearest / _CanvasSize;
-                    brushDelta = nearest * (2.0 / brushSize);
+                    if (any(documentUv < 0) || any(documentUv >= 1)) discard;
+                    delta -= floor(delta + .5);
                 }
+                float2 clipUv = input.tileData.xy + delta;
+                float2 brushDelta = delta * _CanvasSize * (2.0 / brushSize);
                 if (input.clipData.x > 0.5 && input.clipData.x < 1.5)
                 {
                     if (((!tiled || input.clipMin.x > 0.0) && clipUv.x < input.clipMin.x) ||
@@ -289,8 +212,7 @@ Shader "Hidden/TextureCompositor/PaintBrush"
                 #endif
                 if (_UseSelection > 0.5)
                 {
-                    float3 source = float3(input.canvasUv, 1.0);
-                    float2 uv = float2(dot(source, _SelectionToDocumentX), dot(source, _SelectionToDocumentY));
+                    float2 uv = documentUv;
                     if (_SelectionWrap > 0.5) uv = frac(uv);
                     else if (any(uv < 0.0) || any(uv >= 1.0)) discard;
                     coverage *= tex2D(_SelectionMask, uv).r;

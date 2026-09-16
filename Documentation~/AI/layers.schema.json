@@ -786,16 +786,58 @@
           "minimum": -360000,
           "maximum": 360000
         },
+        "matrix": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": -1000000000000000,
+            "maximum": 1000000000000000
+          },
+          "minItems": 9,
+          "maxItems": 9
+        },
         "tiling": {
           "type": "string",
           "enum": [
             "Clip",
             "Repeat",
             "Mirror",
-            "Source"
+            "Source",
+            "Clamp",
+            "Unbounded"
           ]
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "matrix"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "position"
+                  ]
+                },
+                {
+                  "required": [
+                    "scale"
+                  ]
+                },
+                {
+                  "required": [
+                    "rotation"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     "fx": {
       "type": "object",
@@ -2392,7 +2434,7 @@
               "type": "string",
               "maxLength": 2048,
               "pattern": "^https?://",
-              "description": "Absolute http(s) link to a PNG or JPEG. It is downloaded on paste after a confirmation, the layer keeps the source resolution, and its transform scale is fitted to the canvas, so do not set transform.scale."
+              "description": "Absolute http(s) link to a PNG or JPEG. It is downloaded on paste after a confirmation, the layer keeps the source resolution, and its transform scale is fitted to the canvas, so do not set transform.scale or transform.matrix."
             }
           },
           "required": [

@@ -9,11 +9,8 @@ namespace DCFApixels.WhimTex
             bool enabled = context.applyTransform && transform.tiling == TransformTilingMode.Unbounded;
             material.SetInt("_UnboundedUv", enabled ? 1 : 0);
             if (!enabled) return context;
-            material.SetVector("_UvCanvas", new Vector4(context.compositor.width, context.compositor.height, 0, 0));
-            material.SetVector("_UvPivot", transform.pivot);
-            material.SetVector("_UvPosition", transform.position);
-            material.SetVector("_UvScale", transform.scale);
-            material.SetFloat("_UvRotation", transform.rotation * Mathf.Deg2Rad);
+            transform.ToMatrix(context.compositor.width, context.compositor.height).TryInverse(out var inverse);
+            inverse.SetShader(material, "_UvRow");
             return WithoutTransform(context);
         }
 

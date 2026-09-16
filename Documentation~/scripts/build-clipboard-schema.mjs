@@ -40,9 +40,10 @@ const defs = {
     derivative: normalEnum('DerivativeFilter'), alphaMode: normalEnum('AlphaMode'), output: normalEnum('OutputMode'), encoding: normalEnum('OutputEncoding'),
     strength: number(0, 128), blackLevel: number(0, 1), whiteLevel: number(.0001, 16), gamma: number(.05, 8), smoothing: number(0, 64), mediumRadius: number(.5, 128), largeRadius: number(.5, 512),
     fineDetail: number(0, 8), mediumDetail: number(0, 8), largeDetail: number(0, 8), lightRemoval: number(0, 1), inverted: bool, flipX: bool, flipY: bool, ignoreTransparent: bool }),
-  transform: object({ position: { ...vec, description: 'Canvas-pixel offset; default [0,0], X right, Y up.' }, scale: { ...vec, description: 'Each absolute component must be at least 0.00001.' }, pivot: vec, rotation: number(-360000, 360000), tiling: choice('Clip Repeat Mirror Source') }),
+  transform: object({ position: { ...vec, description: 'Canvas-pixel offset; default [0,0], X right, Y up.' }, scale: { ...vec, description: 'Each absolute component must be at least 0.00001.' }, pivot: vec, rotation: number(-360000, 360000), matrix: tuple(number(-1e15,1e15),9), tiling: choice('Clip Repeat Mirror Source Clamp Unbounded') }),
   fx: object({ name: str(4096), code: { type: 'string', minLength: 1, maxLength: 65536, description: 'Self-contained ApplyFX HLSL. Declare values with // @param. No #, backslashes or asset GUIDs. At most 32 parameters.' } }, ['code'])
 };
+defs.transform.allOf = [{ if: { required: ['matrix'] }, then: { not: { anyOf: ['position','scale','rotation'].map(key => ({required:[key]})) } } }];
 const ref = name => ({ $ref: '#/$defs/' + name });
 const common = { enabled: bool, clippingMask: bool, opacity: number(0, 1), blend: enumeration('Utils.cs', 'BlendMode'), colorRange: choice('Standard HDR'), blendRange: choice('Standard HDR'),
   swizzle: tuple({ type: 'string', enum: ['R', 'G', 'B', 'A', '1-R', '1-G', '1-B', '1-A', '0', '1', 'R * A', 'G * A', 'B * A'] }, 4) };
@@ -61,7 +62,7 @@ defs.layer = { oneOf: Object.entries(extra).map(([type, properties]) => {
   fields.fx = { type: 'array', maxItems: 16, items: ref('fx') };
   if (['outline', 'sdf', 'blur', 'normalMap', 'makeSeamless'].includes(type)) fields.target = { ...str(64), minLength: 1 };
   if (type === 'drawing') fields.url = { type: 'string', maxLength: 2048, pattern: '^https?://',
-    description: 'Absolute http(s) link to a PNG or JPEG. It is downloaded on paste after a confirmation, the layer keeps the source resolution, and its transform scale is fitted to the canvas, so do not set transform.scale.' };
+    description: 'Absolute http(s) link to a PNG or JPEG. It is downloaded on paste after a confirmation, the layer keeps the source resolution, and its transform scale is fitted to the canvas, so do not set transform.scale or transform.matrix.' };
   if (type === 'shaderProcessor') fields.properties.properties.clippingMask = { const: false };
   return object(fields, ['type']);
 }) };

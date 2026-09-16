@@ -90,7 +90,13 @@ namespace DCFApixels.WhimTex
                 uv[i] = space == "layerUv" ? point : CanvasToLayerUv(point, document, layer.transform);
                 Require(uv[i].x >= -4f && uv[i].x <= 5f && uv[i].y >= -4f && uv[i].y <= 5f, "Stroke points are too far outside the source canvas.", "resource_limit");
                 if (i > 0)
-                    stamps += System.Math.Ceiling(Vector2.Scale(uv[i] - uv[i - 1], new Vector2(document.width, document.height)).magnitude / spacing);
+                    {
+                        var dimensions=new Vector2(document.width,document.height);
+                        Vector2 a=layer.transform.Map(uv[i-1],dimensions),b=layer.transform.Map(uv[i],dimensions);
+                        Require(ProjectiveMatrix.Finite(a.x) && ProjectiveMatrix.Finite(a.y) && ProjectiveMatrix.Finite(b.x) && ProjectiveMatrix.Finite(b.y),
+                            "Stroke crosses an invalid transform point.");
+                        stamps += System.Math.Ceiling(Vector2.Scale(b-a,dimensions).magnitude / spacing);
+                    }
             }
             long copies = layer.UsesRepeatedPattern ? layer.repeatCount : 1;
             if (layer.repeatMode == PaintRepeatMode.Grid) copies *= layer.repeatSecondaryCount;
@@ -122,15 +128,12 @@ namespace DCFApixels.WhimTex
 
         private static Vector2 CanvasToLayerUv(Vector2 point, TextureCompositor document, TextureTransform transform)
         {
-            Require(Mathf.Abs(transform.scale.x) >= 0.00001f && Mathf.Abs(transform.scale.y) >= 0.00001f, "Cannot paint through a zero-scale transform.");
-            Vector2 size = new Vector2(document.width, document.height);
-            Vector2 pivot = Vector2.Scale(transform.pivot, size);
-            Vector2 local = new Vector2(point.x, document.height - point.y) - pivot - transform.position;
-            float radians = -transform.rotation * Mathf.Deg2Rad;
-            float sine = Mathf.Sin(radians);
-            float cosine = Mathf.Cos(radians);
-            local = new Vector2(cosine * local.x - sine * local.y, sine * local.x + cosine * local.y);
-            return new Vector2((pivot.x + local.x / transform.scale.x) / size.x, (pivot.y + local.y / transform.scale.y) / size.y);
+            Require(TiledCanvasUtility.IsInvertible(transform), "Cannot paint through a singular transform.");
+            Vector2 result = transform.Unmap(new Vector2(point.x / document.width, 1f - point.y / document.height),
+                new Vector2(document.width, document.height));
+            Require(!float.IsNaN(result.x) && !float.IsInfinity(result.x) && !float.IsNaN(result.y) && !float.IsInfinity(result.y),
+                "Paint point is on the perspective horizon.");
+            return result;
         }
     }
 }

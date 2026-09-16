@@ -120,7 +120,7 @@ namespace DCFApixels.WhimTex
 
             private void Begin(Vector2 screenPoint)
             {
-                if (IsOpen || failedUntilAltReleased || focusedWindow != owner || !owner.CanUsePreviewEyedropper || owner.paintingLayer != null ||
+                if (owner.previewTool == PreviewTool.Transform || IsOpen || failedUntilAltReleased || focusedWindow != owner || !owner.CanUsePreviewEyedropper || owner.paintingLayer != null ||
                     (owner.previewZoomManipulator?.IsNavigating ?? false) ||
                     (owner.previewGuideManipulator?.IsDragging ?? false) ||
                     (Event.current != null && (Event.current.control || Event.current.command))) return;

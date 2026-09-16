@@ -217,7 +217,7 @@ public static class ProceduralClipboardSmoke
                 object[] fitted = { Document(data), null, false };
                 Check((bool)fit.Invoke(linked, fitted), "A linked layer did not fit its transform.");
                 linked.transform = (TextureTransform)fitted[1];
-                Check(Mathf.Abs(linked.transform.scale.x - 1f) < .0001f && Mathf.Abs(linked.transform.scale.y - .5f) < .0001f,
+                Check(Math.Abs(linked.transform.scale.x - 1d) < .0001f && Math.Abs(linked.transform.scale.y - .5d) < .0001f,
                     "A 96x48 image was not fitted to a 64x64 canvas.");
                 paste.Invoke(linkedDestination, new object[] { Document(data) });
                 var pasted = (DrawingLayerBehaviour)linkedDestination.layers[0].Behaviour;

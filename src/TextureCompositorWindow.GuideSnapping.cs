@@ -279,18 +279,18 @@ namespace DCFApixels.WhimTex
             if (GetSelectedLayer() is Layer selected && selected.Behaviour != null && (!selected.IsGroup || PreviewFXParameter != null))
             {
                 TextureTransform transform = CurrentPreviewTransform;
-                float angle = transform.rotation * Mathf.Deg2Rad;
+                float angle = transform.rotationF * Mathf.Deg2Rad;
                 float c = Mathf.Cos(angle), s = Mathf.Sin(angle);
                 Vector2 axisX = new Vector2(c, -s), axisY = new Vector2(s, c);
                 bool x = GuideAxesParallel(guide.normal, axisX), y = GuideAxesParallel(guide.normal, axisY);
-                if (x || y)
+                if ((x || y) && transform.storage == TransformStorage.TRS)
                 {
                     Vector2 size = new Vector2(compositor.width, compositor.height);
-                    Vector2 pivot = Vector2.Scale(transform.pivot, size);
-                    Vector2 local = Vector2.Scale(size * .5f - pivot, transform.scale);
-                    Vector2 center = pivot + transform.position + new Vector2(c * local.x - s * local.y, s * local.x + c * local.y);
+                    Vector2 pivot = Vector2.Scale(transform.pivotF, size);
+                    Vector2 local = Vector2.Scale(size * .5f - pivot, transform.scaleF);
+                    Vector2 center = pivot + transform.positionF + new Vector2(c * local.x - s * local.y, s * local.x + c * local.y);
                     center.y = size.y - center.y;
-                    float extent = x ? Mathf.Abs(transform.scale.x) * size.x * .5f : Mathf.Abs(transform.scale.y) * size.y * .5f;
+                    float extent = x ? Mathf.Abs(transform.scaleF.x) * size.x * .5f : Mathf.Abs(transform.scaleF.y) * size.y * .5f;
                     for (int edge = -1; edge <= 1; edge++) Consider(Vector2.Dot(guide.normal, center) + edge * extent);
                 }
             }

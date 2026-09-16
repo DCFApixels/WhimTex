@@ -79,7 +79,7 @@ namespace DCFApixels.WhimTex
             Focus();
             toolkitPreviewCanvas.Focus();
             DrawingLayerBehaviour layer = (DrawingLayerBehaviour)GetSelectedLayer();
-            if (Mathf.Abs(layer.transform.scale.x) < 0.00001f || Mathf.Abs(layer.transform.scale.y) < 0.00001f ||
+            if (!TiledCanvasUtility.IsInvertible(layer.transform) ||
                 !TryMapPreviewToLayerUv(evt.localPosition, toolkitPreviewCanvas.ImageRect, layer, out Vector2 uv))
             {
                 ShowNotification(new GUIContent("Fill inside the layer's source frame, or apply its transform first."));
@@ -120,14 +120,11 @@ namespace DCFApixels.WhimTex
                 {
                     composite = compositor.Compose();
                     using var compositePixels = HdrUtility.ReadPixels(composite, Allocator.TempJob);
-                    Vector2 origin = MapLayerToDocumentUv(Vector2.zero, layer);
                     new HdrFloodFillUtility.ProjectReferenceJob
                     {
                         composite = compositePixels, reference = reference, valid = valid,
-                        width = width, compositeWidth = composite.width, compositeHeight = composite.height,
-                        origin = origin,
-                        stepX = (MapLayerToDocumentUv(Vector2.right, layer) - origin) / width,
-                        stepY = (MapLayerToDocumentUv(Vector2.up, layer) - origin) / height
+                        width = width, height = height, compositeWidth = composite.width, compositeHeight = composite.height,
+                        sourceToCanvas = layer.transform.ToMatrix(compositor.width, compositor.height)
                     }.Schedule(length, 256).Complete();
                 }
                 else

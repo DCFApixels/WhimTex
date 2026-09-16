@@ -234,8 +234,8 @@ namespace DCFApixels.WhimTex
                 painter.fillColor = new Color(.3f, .85f, 1f, .1f);
                 painter.lineWidth = 1.5f;
                 Vector2 half = Vector2.Scale(dimensions, placement.scale) * .5f;
-                Vector2 center = dimensions * .5f + placement.position;
-                float angle = placement.rotation * Mathf.Deg2Rad;
+                Vector2 center = dimensions * .5f + placement.positionF;
+                float angle = placement.rotationF * Mathf.Deg2Rad;
                 int count = shape.kind == ShapeLayerBehaviour.ShapeKind.Rectangle ? 4 :
                     shape.kind == ShapeLayerBehaviour.ShapeKind.Polygon ? shape.sides :
                     shape.kind == ShapeLayerBehaviour.ShapeKind.Star ? shape.sides * 2 : 64;

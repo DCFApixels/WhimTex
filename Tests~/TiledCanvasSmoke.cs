@@ -106,8 +106,9 @@ try
                 float expected = 0;
                 if (doc.x>=0 && doc.x<1 && doc.y>=0 && doc.y<1)
                 {
-                    Vector2 delta = Vector2.Scale(uv-source,new Vector2(128,64));
-                    Vector2 nearest = (Vector2)MathCall("NearestPeriodicDelta",delta,u,v);
+                    Vector2 delta=doc-new Vector2(.98f,.02f);
+                    delta-=new Vector2(Mathf.Floor(delta.x+.5f),Mathf.Floor(delta.y+.5f));
+                    Vector2 nearest=Vector2.Scale(delta,new Vector2(128,64));
                     float t = Mathf.Clamp01(nearest.magnitude/6f);
                     expected = 1f-t*t*(3f-2f*t);
                 }

@@ -2092,3 +2092,6 @@
     flex-shrink: 0;
     margin-right: 0;
 }
+.whimtex-double2-input { flex-direction: row; }
+.whimtex-double2-component { flex-grow: 1; flex-basis: 0; min-width: 0; }
+.whimtex-double2-component > .unity-base-field__label { min-width: 12px; width: 12px; }

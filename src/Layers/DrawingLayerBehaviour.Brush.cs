@@ -68,7 +68,7 @@ namespace DCFApixels.WhimTex
                 float extent = rotation != 0f ? Mathf.Abs(Mathf.Cos(rotation)) + Mathf.Abs(Mathf.Sin(rotation)) : 1f;
                 if (!parameters.WrapCanvas && (point.x + size * extent * .5f / width <= 0f || point.x - size * extent * .5f / width >= 1f ||
                     point.y + size * extent * .5f / height <= 0f || point.y - size * extent * .5f / height >= 1f)) continue;
-                if (parameters.WrapCanvas) point = TiledCanvasUtility.CanonicalSource(point, transform, width, height);
+                if (parameters.WrapCanvas) point = TiledCanvasUtility.Wrap(point);
                 BuildPatternStamps(point, width, height);
                 if (!variation) segmentStamps.AddRange(patternStamps);
                 else for (int j = 0; j < patternStamps.Count; j++)

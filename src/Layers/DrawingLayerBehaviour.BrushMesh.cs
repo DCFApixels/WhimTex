@@ -18,7 +18,6 @@ namespace DCFApixels.WhimTex
             private static List<int> meshIndices;
             private static Vector3 meshColor;
             private static Vector4 meshStamp;
-            private static bool writingBrushMesh;
 
             static PaintBrushRenderer()
             {
@@ -45,7 +44,6 @@ namespace DCFApixels.WhimTex
                 }
                 meshPositions.Clear(); meshUv.Clear(); meshClipMin.Clear(); meshClipMax.Clear();
                 meshClips.Clear(); meshTiles.Clear(); meshColors.Clear(); meshStamps.Clear(); meshIndices.Clear();
-                writingBrushMesh = true;
             }
 
             private static void AddBrushMeshVertex(float x, float y, float u, float v, PaintStamp stamp, int tileMode)
@@ -63,7 +61,6 @@ namespace DCFApixels.WhimTex
 
             private static void EndBrushMesh(RenderTexture target, Material material, RenderTexture backdrop = null)
             {
-                writingBrushMesh = false;
                 if (meshPositions.Count == 0) return;
                 if (backdrop != null) CopyStampBackdrop(target, backdrop);
                 brushMesh.Clear();
@@ -108,7 +105,6 @@ namespace DCFApixels.WhimTex
             private static void ReleaseBrushMesh()
             {
                 ReleaseBrushSdfGradient();
-                writingBrushMesh = false;
                 if (brushMesh != null) Object.DestroyImmediate(brushMesh);
                 brushMesh = null;
                 brushCommands?.Release();

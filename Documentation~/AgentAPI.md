@@ -538,7 +538,11 @@ Transform patches support `position:[x,y]`, `scale:[x,y]`, `pivot:[u,v]`, `rotat
 - Scale `[1,1]` means the full canvas-sized source rectangle; negative values mirror, zero is rejected.
 - Tiling is `Source`, `Clip`, `Repeat`, `Mirror`, `Clamp` or `Unbounded`. `Source` reads the source texture's U/V wrap modes. `Clamp` extends edge pixels. `Unbounded` continues Noise, Gradient, Color Fill and Shape calculations outside 0–1 UV; raster layers use Clip.
 - `reset` is applied before the other fields, Original Aspect after them.
-- Changing pivot through this API uses raw transform semantics; it does not compensate position.
+- Changing pivot through this API uses raw TRS semantics; it does not compensate position. In matrix mode it changes only the pivot.
+- `matrix:[m00,m01,m02,m10,m11,m12,m20,m21,m22]` sets a double-precision projective transform from source UV to canvas UV; divide the first two output coordinates by the third. It must be invertible with no horizon crossing the unit source rectangle.
+- Do not combine `matrix` with `position`, `scale`, `rotation` or `originalAspect` in the same patch. Pivot and tiling are independent.
+- Scalar edits on an existing matrix preserve its distortion. Rotation/Scale describe the local axes at the pivot; Reset returns TRS. Original Aspect requires TRS.
+- Brush footprints are defined in canvas pixels and inverse-compensated when written to a transformed Drawing source.
 
 ### Drawing strokes
 

@@ -146,7 +146,7 @@ namespace DCFApixels.WhimTex
                             if (node["transform"] != null)
                             {
                                 var transform = Obj(node["transform"], "transform");
-                                Keys(transform, "position", "scale", "pivot", "rotation", "tiling");
+                                Keys(transform, "position", "scale", "pivot", "rotation", "tiling", "matrix");
                                 SetTransform(result.Document, layer, transform);
                             }
                             if (node["url"] != null)
@@ -155,8 +155,8 @@ namespace DCFApixels.WhimTex
                                 Require(result.Images.Count < 16, "At most 16 linked images per paste.");
                                 Require(Uri.TryCreate(Text(node, "url"), UriKind.Absolute, out Uri link) &&
                                     (link.Scheme == "http" || link.Scheme == "https"), "url must be an absolute http or https link.");
-                                Require(node["transform"]?["scale"] == null,
-                                    "A URL Drawing layer derives its scale from the downloaded image; set position, pivot, rotation or tiling instead.");
+                                Require(node["transform"]?["scale"] == null && node["transform"]?["matrix"] == null,
+                                    "A URL Drawing layer cannot specify scale or matrix: it derives its scale from the downloaded image; set position, pivot, rotation or tiling instead.");
                                 // A decoded web image is 8-bit sRGB, exactly like the plain URL paste.
                                 if (node["properties"]?["colorRange"] == null) layer.colorRange = LayerColorRange.Standard;
                                 result.Images.Add((link.AbsoluteUri, layer));

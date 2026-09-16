@@ -30,6 +30,21 @@ The pivot and transform snap to nearby guide points. Hold `Ctrl` to move freely.
 Hold `Shift` to move along one axis, resize proportionally or rotate in 15° steps.
 `Escape` cancels a drag; `T` or `Enter` leaves the tool.
 
+## Skew and perspective
+
+With **Transform** active, hold these modifiers while dragging a handle:
+
+- `Ctrl` / `Cmd` + corner: move that corner independently.
+- `Ctrl` / `Cmd` + edge: skew along the edge.
+- `Ctrl` / `Cmd` + `Shift` + corner: constrain the corner movement to a canvas axis.
+- `Ctrl` / `Cmd` + `Alt` / `Option` + `Shift` + corner: move paired corners in opposite directions for perspective.
+- `Alt` / `Option` + ordinary resize: resize around the pivot.
+
+Crossed or collapsed corners are rejected. **Reset** removes skew and perspective.
+**Original Aspect** and **Original Size** require a regular transform; reset a distorted layer first.
+The numeric Position, Rotation and Scale controls preserve existing distortion; Rotation and Scale describe the local axes at the pivot.
+Painting keeps the brush footprint in canvas space, even on a distorted Drawing layer.
+
 ## Repeat an image or keep crisp edges
 
 **Tiling** controls what appears beyond the image's original bounds:

@@ -39,10 +39,7 @@ Shader "Hidden/TextureCompositor/Transform"
             #endif
             float _DecodeSource;
             float4 _MainTex_TexelSize;
-            float2 _Pivot;
-            float2 _Position;
-            float2 _Scale;
-            float _Rotation;
+            float3 _TransformRow0, _TransformRow1, _TransformRow2;
             float2 _OutputSize;
             int _ClipOutside;
             // Unity TextureWrapMode: Repeat = 0, Clamp = 1, Mirror = 2, MirrorOnce = 3.
@@ -147,20 +144,11 @@ Shader "Hidden/TextureCompositor/Transform"
 
             float4 frag(v2f_img input) : SV_Target
             {
-                float2 pivotPixels = _Pivot * _OutputSize;
-                float2 local = input.uv * _OutputSize - pivotPixels - _Position;
+                float3 p = float3(input.uv, 1);
+                float w = dot(_TransformRow2, p);
+                if (w < 1e-8) return 0;
+                float2 sourceUV = float2(dot(_TransformRow0, p), dot(_TransformRow1, p)) / w;
 
-                // Inverse visual rotation: map destination pixels back to source UVs.
-                float sine = sin(-_Rotation);
-                float cosine = cos(-_Rotation);
-                local = float2(
-                    cosine * local.x - sine * local.y,
-                    sine * local.x + cosine * local.y);
-
-                float2 safeScale = float2(
-                    _Scale.x < 0.0 ? min(_Scale.x, -0.00001) : max(_Scale.x, 0.00001),
-                    _Scale.y < 0.0 ? min(_Scale.y, -0.00001) : max(_Scale.y, 0.00001));
-                float2 sourceUV = (pivotPixels + local / safeScale) / _OutputSize;
 
                 float mip = SourceMipLevel(sourceUV);
                 if (_ClipOutside != 0 &&

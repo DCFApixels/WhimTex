@@ -22,8 +22,8 @@ namespace DCFApixels.WhimTex
         }
 
         internal static ShaderFXTransform FromLayerTransform(TextureTransform value, Vector2 dimensions) =>
-            new ShaderFXTransform { position = new Vector2(value.position.x / dimensions.x, value.position.y / dimensions.y) + Vector2.one * 0.5f,
-                size = value.scale, rotation = value.rotation };
+            new ShaderFXTransform { position = new Vector2((float)(value.position.x / dimensions.x), (float)(value.position.y / dimensions.y)) + Vector2.one * 0.5f,
+                size = value.scale, rotation = (float)value.rotation };
 
         internal static float SafeSize(float value) => value < 0 ? Mathf.Min(value, -0.00001f) : Mathf.Max(value, 0.00001f);
 
