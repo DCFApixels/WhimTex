@@ -4,6 +4,17 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+## [0.10.18] - 2026-09-16
+
+### Added
+
+- Color Balance, Color Filter, Levels, Posterize and Threshold FX presets with parameter tooltips and preserved source alpha.
+- GPU regression coverage for the five color presets, including zero-width thresholds, dithering, black-point lift and finite output.
+
+### Changed
+
+- Color correction presets handle degenerate ranges and near-zero luminance safely. Posterize uses an integer count of output levels and stable per-pixel dithering; Levels supports luminance-preserving or independent RGB adjustment.
+
 ## [0.10.17] - 2026-09-16
 
 ### Added
