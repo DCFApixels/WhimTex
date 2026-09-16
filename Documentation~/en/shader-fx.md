@@ -23,9 +23,16 @@ You can use an existing effect and adjust its parameters without writing code.
 An effect can offer a slider and a dropdown for the same setting: changing either updates the shared
 value. **Custom** means the current number is not one of the dropdown's predefined choices.
 
+Hover over a parameter to read its description, if the effect's author supplied one.
+
+Effects can also offer a gradient field. Click its strip to edit colors, transparency and interpolation,
+including HDR colors. New gradients start black-to-white; changes update the effect immediately.
+
 Alternatively, drag a WhimTex effect `.hlsl` from Project onto a row in **Layers**.
 Dropping it onto the preview or empty space in the list creates a **Shader Processor** at the top of the composition.
 HLSL brush presets and files without the effect marker are not accepted.
+
+If a preset contains invalid code or parameters, selecting it reports an error in Console and leaves the layer unchanged.
 
 Each catalog effect has its own settings. The included **Color → Gain** adjusts brightness and tint;
 **Transform → UV Transform** repositions the incoming image within a visible frame. Everything outside the frame is transparent,
@@ -38,6 +45,13 @@ Project HLSL effects receive code changes from their source `.hlsl` file.
 To edit the code independently in the document, click **Embed Copy** under **Code & Parameters**.
 
 Effect order matters: the **↑** and **↓** arrows on each effect row apply it earlier or later in the sequence.
+
+**Gradient mapping**
+
+**Color → Gradient Map** recolors shadows, midtones and highlights using a gradient.
+Click **Gradient** to choose colors, use **Amount** to mix with the original image and
+**Reverse** to swap the mapping direction. Input brightness outside 0..1 uses the endpoint colors.
+The original alpha is preserved; gradient alpha is ignored.
 
 **Normal map normalization**
 
@@ -63,6 +77,9 @@ editing a file updates all effects using it.
 
 Texture defaults are references, not embedded images. To use them in another project,
 also transfer the referenced texture assets with their `.meta` files, or assign replacements.
+
+Edited gradient keys are saved in the document, but not in an exported HLSL preset yet.
+A new instance of that preset starts with a black-to-white gradient.
 
 ## Adjust an effect on the canvas
 

@@ -96,6 +96,14 @@ namespace DCFApixels.WhimTex
                             uniforms.AppendLine($"float2 {name}_{direction}(float2 uv) {{ float3 p = float3(uv, 1.0); return float2(dot({prefix}{direction}Row0.xyz, p), dot({prefix}{direction}Row1.xyz, p)); }}");
                         }
                         break;
+                    case ShaderFXParameterType.Gradient:
+                        if (!names.Add(name + "_Sample"))
+                            throw new InvalidOperationException("Gradient helper name conflicts with another parameter: " + name);
+                        string gradientTexture = parameter.InternalPrefix + "Gradient";
+                        properties.AppendLine($"{gradientTexture} (\"{name}\", 2D) = \"white\" {{}}");
+                        uniforms.AppendLine($"sampler2D {gradientTexture};");
+                        uniforms.AppendLine($"float4 {name}_Sample(float t) {{ return tex2Dlod({gradientTexture}, float4((saturate(t) * 511.0 + 0.5) / 512.0, 0.5, 0.0, 0.0)); }}");
+                        break;
                     default: throw new InvalidOperationException($"Unsupported parameter type: {parameter.type}.");
                 }
             }

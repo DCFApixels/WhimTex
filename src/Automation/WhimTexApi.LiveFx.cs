@@ -141,6 +141,7 @@ namespace DCFApixels.WhimTex
                 Require(spec["value"] != null, "Parameter value is required.");
                 switch (value.type)
                 {
+                    case ShaderFXParameterType.Gradient: value.gradientValue = ReadGradient(spec["value"]); break;
                     case ShaderFXParameterType.Bool:
                         Require(spec["value"].Type == JTokenType.Boolean, "Bool value must be true or false.");
                         value.floatValue = (bool)spec["value"] ? 1f : 0f;
@@ -203,6 +204,7 @@ namespace DCFApixels.WhimTex
                     {
                         if (p == null) continue;
                         JToken value = p.type == ShaderFXParameterType.Bool ? new JValue(p.BoolValue) :
+                            p.type == ShaderFXParameterType.Gradient ? GradientSnapshot(p.gradientValue ?? new WhimTexGradient()) :
                             p.type == ShaderFXParameterType.Transform2D ? new JObject {
                             ["position"] = new JArray(p.transformValue.position.x, p.transformValue.position.y),
                             ["size"] = new JArray(p.transformValue.size.x, p.transformValue.size.y), ["rotation"] = p.transformValue.rotation } :

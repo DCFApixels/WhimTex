@@ -62,6 +62,7 @@ namespace DCFApixels.WhimTex
 
         private void AddParameter(ShaderFXParameter declaration, ShaderFXParameterControl control = null)
         {
+            int firstChild = childCount;
             if (control != null)
             {
                 declaration = declaration.Copy();
@@ -73,6 +74,12 @@ namespace DCFApixels.WhimTex
             string label = ObjectNames.NicifyVariableName(declaration.name.TrimStart('_'));
             switch (declaration.type)
             {
+                case ShaderFXParameterType.Gradient:
+                    var gradient = new WhimTexGradientValueField(label);
+                    gradient.RegisterValueChangedCallback(e => Change(id, p => p.gradientValue = e.newValue?.Clone() ?? new WhimTexGradient()));
+                    Add(gradient);
+                    refresh.Add(() => gradient.SetValueWithoutNotify(Find(id).gradientValue ??= new WhimTexGradient()));
+                    break;
                 case ShaderFXParameterType.Enum:
                     if (control == null) goto case ShaderFXParameterType.Float;
                     var choices = new List<string>();
@@ -161,6 +168,8 @@ namespace DCFApixels.WhimTex
                     refresh.Add(() => { var p = Find(id); position.SetValueWithoutNotify(p.transformValue.position); size.SetValueWithoutNotify(p.transformValue.size); rotation.SetValueWithoutNotify(p.transformValue.rotation); });
                     break;
             }
+            if (!string.IsNullOrEmpty(control?.tooltip))
+                for (int i = firstChild; i < childCount; i++) this[i].tooltip = control.tooltip;
         }
     }
 }

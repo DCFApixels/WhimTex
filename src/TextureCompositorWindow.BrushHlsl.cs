@@ -56,6 +56,7 @@ namespace DCFApixels.WhimTex
                 foreach(var definition in definitions)
                 {
                     string name=definition.name;
+                    int firstField=parameters.childCount;
                     string label=ObjectNames.NicifyVariableName(name.TrimStart('_'));
                     ShaderFXParameter Current()=>paintSettings.dynamics.hlslParameters.Find(p=>p.name==name)??definition;
                     void Change(Action<ShaderFXParameter> write)
@@ -96,6 +97,8 @@ namespace DCFApixels.WhimTex
                         field.RegisterValueChangedCallback(e=>Change(p=>p.vectorValue=e.newValue));parameters.Add(field);
                         refresh.Add(()=>field.SetValueWithoutNotify(Current().vectorValue));
                     }
+                    if(definition.controls.Count>0 && !string.IsNullOrEmpty(definition.controls[0].tooltip))
+                        for(int i=firstField;i<parameters.childCount;i++)parameters[i].tooltip=definition.controls[0].tooltip;
                 }
             });
         }

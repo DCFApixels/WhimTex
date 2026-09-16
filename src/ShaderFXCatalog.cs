@@ -9,12 +9,18 @@ namespace DCFApixels.WhimTex
 {
     internal static class ShaderFXCatalog
     {
+        [Serializable]
         internal sealed class Entry
         {
-            internal string guid, path, menuPath, source, error, hash;
-            internal ShaderFX asset;
-            internal bool user;
+            [SerializeField] internal string guid, path, menuPath, error;
+            [SerializeField] internal bool user, assetPreset;
+            internal bool HasError => !string.IsNullOrEmpty(error);
         }
+
+        [Serializable]
+        private sealed class Snapshot { public List<Entry> entries = new List<Entry>(); }
+        // SessionState survives domain reloads but is discarded when the Editor closes.
+        private const string SessionKey = "WhimTex.ShaderFXCatalog.Headers.v1";
 
         internal static string Folder => Path.GetFullPath(Path.Combine(WhimTexUserSettings.PresetsFolder, "ShaderFX"));
 
@@ -22,6 +28,29 @@ namespace DCFApixels.WhimTex
         private static bool initialized;
         private static bool queued;
         private static readonly HashSet<string> changed = new HashSet<string>(StringComparer.Ordinal);
+        private static readonly Dictionary<string, (long length, long modified)> userFiles = new Dictionary<string, (long, long)>(StringComparer.Ordinal);
+
+        static ShaderFXCatalog()
+        {
+            string saved = SessionState.GetString(SessionKey, "");
+            if (saved.Length == 0) return;
+            try
+            {
+                var snapshot = JsonUtility.FromJson<Snapshot>(saved);
+                if (snapshot?.entries == null) return;
+                foreach (var entry in snapshot.entries)
+                    if (entry != null && !string.IsNullOrEmpty(entry.path)) entries[entry.path] = entry;
+                initialized = true;
+            }
+            catch (ArgumentException) { entries.Clear(); }
+        }
+
+        private static void SaveHeaders()
+        {
+            var snapshot = new Snapshot();
+            foreach (var entry in entries.Values) if (!entry.user) snapshot.entries.Add(entry);
+            SessionState.SetString(SessionKey, JsonUtility.ToJson(snapshot));
+        }
 
         internal static string ReadSource(string path)
         {
@@ -53,13 +82,8 @@ namespace DCFApixels.WhimTex
                     // Discovery reads only the first physical line of unrelated HLSL files.
                     if (!ShaderFXMetadata.TryHeader(reader.ReadLine(), out string menuPath)) return;
                     var entry = new Entry { path = path, guid = user ? null : AssetDatabase.AssetPathToGUID(path), menuPath = menuPath, user = user };
-                    try
-                    {
-                        entry.source = ReadSource(path);
-                        ShaderFXMetadata.Parse(entry.source, true, out _);
-                        entry.hash = user ? Hash128.Compute(entry.source).ToString() : AssetDatabase.GetAssetDependencyHash(path).ToString();
-                    }
-                    catch (Exception error) { entry.error = error.Message; }
+                    foreach (string segment in menuPath.Split('/'))
+                        if (string.IsNullOrWhiteSpace(segment)) entry.error = "Effect category/name must not contain empty segments.";
                     entries[path] = entry;
                 }
                 catch (IOException) { }
@@ -67,9 +91,10 @@ namespace DCFApixels.WhimTex
             }
             else if (path.EndsWith(".asset", StringComparison.OrdinalIgnoreCase))
             {
-                var asset = AssetDatabase.LoadMainAssetAtPath(path) as ShaderFX;
-                if (asset != null && asset.EmbeddedOwner == null)
-                    entries[path] = new Entry { path = path, guid = AssetDatabase.AssetPathToGUID(path), menuPath = "Shader FX/" + asset.name, asset = asset };
+                // Do not instantiate assets here: ShaderFX.OnEnable can restore GPU shaders.
+                if (AssetDatabase.GetMainAssetTypeAtPath(path) == typeof(ShaderFX))
+                    entries[path] = new Entry { path = path, guid = AssetDatabase.AssetPathToGUID(path),
+                        menuPath = "Shader FX/" + Path.GetFileNameWithoutExtension(path), assetPreset = true };
             }
         }
 
@@ -81,13 +106,26 @@ namespace DCFApixels.WhimTex
                 foreach (string path in AssetDatabase.GetAllAssetPaths())
                     if (path.EndsWith(".hlsl", StringComparison.OrdinalIgnoreCase)) Inspect(path);
                 foreach (string guid in AssetDatabase.FindAssets("t:ShaderFX")) Inspect(AssetDatabase.GUIDToAssetPath(guid));
+                SaveHeaders();
             }
             // User files are outside AssetDatabase. Refresh on opening the menu, not every repaint.
-            var stale = new List<string>();
-            foreach (var pair in entries) if (pair.Value.user) stale.Add(pair.Key);
-            foreach (string path in stale) entries.Remove(path);
+            var remaining = new HashSet<string>(userFiles.Keys, StringComparer.Ordinal);
             foreach (string path in PresetLibraryPaths.UserFiles(Folder, "hlsl"))
-                if (PresetLibraryPaths.AssetPath(path) == null) Inspect(path, true);
+            {
+                if (PresetLibraryPaths.AssetPath(path) != null) continue;
+                remaining.Remove(path);
+                try
+                {
+                    var file = new FileInfo(path);
+                    var stamp = (file.Length, file.LastWriteTimeUtc.Ticks);
+                    if (userFiles.TryGetValue(path, out var previous) && previous == stamp) continue;
+                    Inspect(path, true);
+                    userFiles[path] = stamp;
+                }
+                catch (IOException) { entries.Remove(path); userFiles.Remove(path); }
+                catch (UnauthorizedAccessException) { entries.Remove(path); userFiles.Remove(path); }
+            }
+            foreach (string path in remaining) { entries.Remove(path); userFiles.Remove(path); }
             var list = new List<Entry>(entries.Values);
             list.Sort((a, b) => string.Compare(a.menuPath, b.menuPath, StringComparison.OrdinalIgnoreCase));
             return list;
@@ -104,15 +142,20 @@ namespace DCFApixels.WhimTex
         {
             var menu = new GenericMenu();
             var list = GetEntries();
+            var labels = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var entry in list)
+            {
+                string label = (entry.user ? "User/" : "") + entry.menuPath;
+                labels.TryGetValue(label, out int count);
+                labels[label] = count + 1;
+            }
             if (list.Count == 0) menu.AddDisabledItem(new GUIContent("No effects found — add a marked .hlsl file"));
             foreach (var entry in list)
             {
-                bool duplicate = false;
                 string label = (entry.user ? "User/" : "") + entry.menuPath;
-                foreach (var other in list) if (other != entry && (other.user ? "User/" : "") + other.menuPath == label) { duplicate = true; break; }
-                if (duplicate) label += " (" + entry.path.Replace('\\', '›').Replace('/', '›') + ")";
-                var content = new GUIContent(label, entry.error ?? entry.path);
-                if (entry.error != null) menu.AddDisabledItem(content);
+                if (labels[label] > 1) label += " (" + entry.path.Replace('\\', '›').Replace('/', '›') + ")";
+                var content = new GUIContent(label, entry.HasError ? entry.error : entry.path);
+                if (entry.HasError) menu.AddDisabledItem(content);
                 else menu.AddItem(content, false, () => select(entry));
             }
             menu.AddSeparator("");
@@ -146,6 +189,7 @@ namespace DCFApixels.WhimTex
                 foreach (var fx in Resources.FindObjectsOfTypeAll<ShaderFX>())
                     if (fx != null && fx.IsCatalogLinked) fx.OnCatalogFilesChanged(changed);
             changed.Clear();
+            if (initialized) SaveHeaders();
         }
     }
 

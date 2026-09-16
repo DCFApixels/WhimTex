@@ -14,9 +14,12 @@ public static class EnumFXSmoke
         var parse = assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata").GetMethod("Parse", flags);
         List<ShaderFXParameter> Parse(string source) => (List<ShaderFXParameter>)parse.Invoke(null, new object[] { source, false, null });
         void Check(bool condition, string reason) { if (!condition) throw new Exception(reason); }
-        string declarations = "// @param float _Strength = 0.63 [0 .. 1]\n// @param enum _Strength { Low: 0.2, Medium: 0.5, High: 2 }\n";
+        string declarations = "// @param float _Strength = 0.63 [0 .. 1] // Точная сила эффекта\n// @param enum _Strength { Low: 0.2, Medium: 0.5, High: 2 } // Quick values // keep this\n";
         var p = Parse(declarations);
         Check(p.Count == 1 && p[0].controls.Count == 2 && p[0].floatValue == .63f, "Shared optional default");
+        Check(p[0].controls[0].tooltip == "Точная сила эффекта" && p[0].controls[1].tooltip == "Quick values // keep this", "Per-control tooltip parsing");
+        foreach(string declaration in new[]{ "bool _B", "float4 _V", "color _C", "texture2D _T", "transform2D _Area" })
+            Check(Parse("// @param " + declaration + " // Help [0 .. 1]; {text}")[0].controls[0].tooltip == "Help [0 .. 1]; {text}", "Tooltip punctuation/type");
         Check(Parse(declarations + "// @param bool _Strength = true")[0].floatValue == 1, "Last explicit default");
         Check(Parse("// @param enum _Mode = SoftLight { SoftLight: 0.25, HardLight: 1 }")[0].floatValue == .25f, "Named default");
         Check(Parse("// @param enum _Mode = 0.7 { SoftLight: 0.25, HardLight: 1 }")[0].floatValue == .7f, "Custom default");
@@ -39,6 +42,7 @@ public static class EnumFXSmoke
             var view = (VisualElement)Activator.CreateInstance(viewType, flags, null, new object[] { fx }, null);
             var dropdown = view.Q<DropdownField>();
             Check(view.Q<Slider>() != null && dropdown != null && dropdown.value.StartsWith("Custom"), "Linked UI controls");
+            Check(view.Q<Slider>().tooltip == "Точная сила эффекта" && dropdown.tooltip == "Quick values // keep this", "UI tooltip binding");
             var shader = typeof(ShaderFX).GetField("compiledShader", flags).GetValue(fx);
             viewType.GetMethod("Change", flags).Invoke(view, new object[] { list[0].id, (Action<ShaderFXParameter>)(v => v.floatValue = 2) });
             Check(dropdown.value == "High" && list[0].floatValue == 2, "Enum outside slider range");
@@ -49,6 +53,7 @@ public static class EnumFXSmoke
             string saved = (string)assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetWriter").GetMethod("BuildSource", flags).Invoke(null, new object[] { fx, "Test/Enum" });
             var roundtrip = Parse(saved);
             Check(roundtrip.Count == 1 && roundtrip[0].floatValue == 2 && roundtrip[0].controls.Count == 2, "Preset roundtrip");
+            Check(roundtrip[0].controls[0].tooltip == p[0].controls[0].tooltip && roundtrip[0].controls[1].tooltip == p[0].controls[1].tooltip, "Tooltip export roundtrip");
             Check(saved.Contains("enum _Strength {"), "Duplicate exported default");
             var copy = JsonUtility.FromJson<ShaderFXParameter>(JsonUtility.ToJson(list[0]));
             Check(copy.controls.Count == 2 && copy.controls[1].optionValues[2] == 2, "Serialization");

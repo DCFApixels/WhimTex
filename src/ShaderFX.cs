@@ -8,11 +8,12 @@ using UnityEngine.Scripting.APIUpdating;
 
 namespace DCFApixels.WhimTex
 {
-    public enum ShaderFXParameterType { Float, Color, Vector, Texture2D, Transform2D, Bool, Enum }
+    public enum ShaderFXParameterType { Float, Color, Vector, Texture2D, Transform2D, Bool, Enum, Gradient }
 
     [Serializable]
     public sealed class ShaderFXParameterControl
     {
+        public string tooltip;
         public ShaderFXParameterType type;
         public int order;
         public bool hasMinimum, hasMaximum;
@@ -30,6 +31,7 @@ namespace DCFApixels.WhimTex
         [ColorUsage(true, true)] public Color colorValue = Color.white;
         public Vector4 vectorValue;
         public Texture2D textureValue;
+        public WhimTexGradient gradientValue;
         public ShaderFXTransform transformValue = ShaderFXTransform.Default;
         [HideInInspector] public string id = Guid.NewGuid().ToString("N");
         [HideInInspector] public bool declaredInCode;
@@ -61,9 +63,10 @@ namespace DCFApixels.WhimTex
         internal ShaderFXParameter Copy()
         {
             var copy = (ShaderFXParameter)MemberwiseClone();
+            copy.gradientValue = gradientValue?.Clone();
             copy.controls = new List<ShaderFXParameterControl>(controls.Count);
             foreach (var c in controls)
-                copy.controls.Add(new ShaderFXParameterControl { type = c.type, order = c.order,
+                copy.controls.Add(new ShaderFXParameterControl { type = c.type, order = c.order, tooltip = c.tooltip,
                     hasMinimum = c.hasMinimum, hasMaximum = c.hasMaximum, minimum = c.minimum, maximum = c.maximum,
                     optionNames = (string[])c.optionNames.Clone(), optionValues = (float[])c.optionValues.Clone() });
             return copy;
@@ -113,6 +116,15 @@ namespace DCFApixels.WhimTex
         [SerializeField, HideInInspector] private string shaderKey = Guid.NewGuid().ToString("N");
         [SerializeField, HideInInspector] private bool shaderCreationRecorded;
         [NonSerialized] private Material material;
+        [NonSerialized] private Dictionary<ShaderFXParameter, GradientBinding> gradientBindings;
+
+        private sealed class GradientBinding : IDisposable
+        {
+            internal readonly WhimTexGradientTexture lut = new WhimTexGradientTexture();
+            internal readonly int propertyId;
+            internal GradientBinding(ShaderFXParameter declaration) => propertyId = Shader.PropertyToID(declaration.InternalPrefix + "Gradient");
+            public void Dispose() => lut.Dispose();
+        }
         [NonSerialized] private bool notificationQueued;
         [NonSerialized] private volatile bool undoDeserialized;
 
@@ -126,6 +138,7 @@ namespace DCFApixels.WhimTex
             undoDeserialized = false;
             EditorApplication.delayCall -= SendNotification;
             notificationQueued = false;
+            ReleaseMaterial();
             MarkDraftChanged();
             return true;
         }
@@ -362,7 +375,15 @@ namespace DCFApixels.WhimTex
                         value = draft;
                         break;
                     }
-                value.SetValue(material, applied, new Vector2(context.compositor.width, context.compositor.height));
+                if (applied.type == ShaderFXParameterType.Gradient)
+                {
+                    gradientBindings ??= new Dictionary<ShaderFXParameter, GradientBinding>();
+                    if (!gradientBindings.TryGetValue(applied, out var binding))
+                        gradientBindings.Add(applied, binding = new GradientBinding(applied));
+                    value.gradientValue ??= new WhimTexGradient();
+                    material.SetTexture(binding.propertyId, binding.lut.GetTexture(value.gradientValue));
+                }
+                else value.SetValue(material, applied, new Vector2(context.compositor.width, context.compositor.height));
             }
             material.SetVector("_InputSize", new Vector4(context.width, context.height, 1f / context.width, 1f / context.height));
             material.SetVector("_CanvasSize", new Vector4(context.compositor.width, context.compositor.height,
@@ -467,6 +488,11 @@ namespace DCFApixels.WhimTex
 
         private void ReleaseMaterial()
         {
+            if (gradientBindings != null)
+            {
+                foreach (var binding in gradientBindings.Values) binding.Dispose();
+                gradientBindings.Clear();
+            }
             if (material != null)
                 DestroyImmediate(material);
             material = null;

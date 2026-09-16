@@ -271,6 +271,10 @@ Remove accepts only op/index. Add/replace accept `code` and optional `parameters
 - `Transform2D` accepts `value: {"position":[0.5,0.5],"size":[1,1],"rotation":0}`; fields are optional.
   Position/size are normalized to the input image, rotation is in degrees. Size components must have
   magnitude at least `0.00001`. Generates `<name>_ToLocal(uv)` and `<name>_ToInput(uv)` helpers.
+- `Gradient` accepts the same gradient value (color-stop array or object with `colors`, `alphas`,
+  `mode`, `smoothness`, `colorSpace`) as layer gradients. Generates `<name>_Sample(t)` with clamped
+  0..1 input and straight linear RGBA output. Code declarations use `// @param gradient _Ramp`
+  without an initializer; omitted API overrides leave the opaque black-to-white default.
 - Inline code may instead declare parameters using [HLSL metadata](ShaderFX.md#parameter-declarations).
   If JSON values are supplied as well, every entry must match a code declaration by name and type;
   those values override defaults. The first-line catalog marker is required only for catalog files.

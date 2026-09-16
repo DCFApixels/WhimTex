@@ -82,7 +82,7 @@ namespace DCFApixels.WhimTex
                 evt.StopImmediatePropagation();
                 owner.ClearToolkitDropIndicator();
                 if (!CanApply(layer)) return;
-                if (candidate.error != null)
+                if (candidate.HasError)
                 {
                     Debug.LogError("WhimTex FX: " + candidate.error);
                     return;

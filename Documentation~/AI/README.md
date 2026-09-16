@@ -397,6 +397,7 @@ Do not redeclare these or generated parameters/helpers. Do not use invented time
 // @param float4 _Channels = (0, 0, 0.5, 1)
 // @param color _Tint = (1, 1, 1, 1)
 // @param texture2D _Mask
+// @param gradient _Ramp
 // @param transform2D _Area = (0.5, 0.5, 0.75, 0.75, 30)
 ```
 
@@ -409,6 +410,10 @@ FX also supports dropdown controls and repeated declarations of one variable:
 // @param enum _Strength { Low: 0.2, Medium: 0.5, High: 1 }
 // @param enum _Mode = SoftLight { SoftLight: 0, HardLight: 1, CustomBlend: 0.5 }
 ```
+Any FX or HLSL brush parameter declaration may end with `// tooltip text`, for example:
+`// @param float _Strength = 0.65 [0 .. 1] // How strongly to apply the effect.`
+This literal, single-line text appears on hover and is preserved when exporting presets.
+Repeated declarations can have separate tooltips for their separate controls.
 Enum option names are unquoted identifiers, used only as nicified UI labels, never as HLSL constants.
 Each option requires an explicit finite value, including fractional values; duplicate names or values
 are errors. Defaults may be option names or numbers. Unknown numeric values display as Custom.
@@ -420,6 +425,15 @@ another control. Preset export saves the current value once. These dropdown/link
 the user may assign them later. Clipboard JSON cannot bind an asset texture to a shader parameter: a
 Drawing layer with a `url` is the way to bring an image into the pasted tree.
 Names generate labels: `_NoiseScale` → Noise Scale. No need for a second uniform declaration.
+
+FX-only `gradient` is declared as `// @param gradient _Ramp`, **without `= value` or a range**.
+It starts opaque black-to-white (Classic); the user can edit colors, HDR, alpha and interpolation
+in the gradient field. Call `_Ramp_Sample(t)` for straight linear RGBA; `t` is clamped to 0..1.
+For example, `return _Ramp_Sample(uv.x);`. Do not declare a sampler yourself. A cached 512×2
+LUT supplies the samples; editing keys does not recompile the shader. HLSL brush parameters do not
+support this type. Edited keys persist in the document, but HLSL preset export saves only the declaration
+and fresh preset instances start black-to-white. Clipboard FX currently cannot specify custom gradient
+keys separately from the code.
 
 Transform2D uses `(centerX, centerY, width, height, angleDegrees)` in normalized input units.
 Omitted default means the full image. Generated helpers are `_Area_ToLocal(uv)` and `_Area_ToInput(localUV)`.

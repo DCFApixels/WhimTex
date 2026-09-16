@@ -68,9 +68,13 @@ namespace DCFApixels.WhimTex
 
         internal static ShaderFX FromCatalog(TextureCompositor owner, ShaderFXCatalog.Entry entry)
         {
-            if (entry.asset != null)
+            if (entry.assetPreset)
             {
-                var copy = entry.asset.CloneForDocument(owner);
+                string assetPath = AssetDatabase.GUIDToAssetPath(entry.guid);
+                var asset = AssetDatabase.LoadAssetAtPath<ShaderFX>(assetPath);
+                if (asset == null || asset.EmbeddedOwner != null)
+                    throw new InvalidOperationException("The Shader FX preset is no longer available.");
+                var copy = asset.CloneForDocument(owner);
                 copy.DetachCatalog();
                 try
                 {
@@ -80,6 +84,7 @@ namespace DCFApixels.WhimTex
                 catch { DestroyImmediate(copy); throw; }
             }
             string source = ShaderFXCatalog.ReadSource(entry.path);
+            ShaderFXMetadata.Parse(source, true, out _);
             if (entry.user) source = ShaderFXSourceBuilder.ExportIncludes(source, entry.path);
             var effect = CreateAgentDraft(owner, source, new List<ShaderFXParameter>());
             effect.name = entry.menuPath.Substring(entry.menuPath.LastIndexOf('/') + 1);

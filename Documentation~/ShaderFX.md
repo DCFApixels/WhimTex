@@ -46,7 +46,10 @@ changing parameter values does not regenerate shaders.
 
 Add a `.hlsl` file anywhere in Assets or an installed package. Its **first physical line** must be
 `// @whimtex-effect Category/Name`. UTF-8 BOM is allowed, but no preceding blank line, indentation,
-license comment or other text. Unmarked HLSL files are not catalog effects. Discovery does not compile shaders.
+license comment or other text. Unmarked HLSL files are not catalog effects. Discovery reads headers only,
+without parsing parameters, loading ShaderFX assets or hashing shader dependencies. Project headers
+are cached across script reloads within the Editor session and updated by import notifications.
+Full validation and loading happen when a preset is selected; invalid source reports an error without adding an FX.
 
 ```hlsl
 // @whimtex-effect Color/Invert
@@ -89,11 +92,12 @@ under user `ShaderFX` or project `Assets`. Existing effects are not detached or 
 // @param bool _IncludeAlpha = false
 // @param color _Tint = (1, 1, 1, 1)
 // @param texture2D _Mask
+// @param gradient _Ramp
 // @param transform2D _Area
 // @param transform2D _PlacedArea = (0.5, 0.5, 0.75, 0.75, 30)
 ```
 
-No semicolons on metadata lines. Initializers are optional for every type. Without any explicit
+No semicolons on metadata lines. Initializers are optional; `gradient` does not accept one. Without any explicit
 default, numeric/vector/color values start at zero. Texture defaults to white and Transform2D
 to the whole input. Transform2D accepts `(x, y, width, height, angleDegrees)` in normalized input units.
 Texture2D accepts `= "guid:<32-digit asset GUID>:<local file ID>"`; the exporter uses this form for
@@ -101,6 +105,38 @@ assigned textures, including texture subassets. It requires persistent texture a
 reference absent from the current project falls back to white; the image is not embedded in HLSL.
 Two distinct range boundaries produce a slider with numeric input; one boundary produces a limited
 numeric field. Equal boundaries fix the number. Ranges apply only to floats.
+
+`gradient` creates an editable WhimTex gradient, initially opaque black to white (Classic mode).
+Declare `// @param gradient _Ramp`, without `=` or a range, and use `_Ramp_Sample(t)` to obtain
+straight linear RGBA. The helper clamps `t` to 0..1; use `frac(t)` yourself for repetition.
+Do not redeclare a sampler or reference internal `_WhimTex_` uniforms.
+Colors, HDR, alpha, interpolation, smoothness and midpoints are edited in the gradient field.
+Repeated declarations share a gradient value; copying an effect creates independent gradient data.
+
+The effect lazily caches a 512×2 RGBAHalf LUT without mipmaps. Unchanged renders reuse it;
+edits upload new pixels without recompiling the shader. Fixed uses Point filtering, other modes
+use Bilinear. LUT sampling is an approximation: transitions finer than one LUT interval may be lost.
+GPU caches are released with the material and recreated after reload. Edited keys are serialized
+in the effect/document, but **Save HLSL Preset… exports only the declaration**, so a new instance
+of that HLSL preset starts black-to-white. Gradient parameters are FX-only, not HLSL brush parameters.
+
+```hlsl
+// @param gradient _Ramp // Map input brightness to colors.
+float4 ApplyFX(float2 uv, float4 color)
+{
+    float4 mapped = _Ramp_Sample(dot(color.rgb, float3(0.2126, 0.7152, 0.0722)));
+    return float4(mapped.rgb, mapped.a * color.a);
+}
+```
+
+Append `// tooltip text` after a parameter declaration to show a hover tooltip on its generated
+control. Each repeated declaration can have its own tooltip. The text is trimmed, otherwise literal
+(including further `//`, punctuation and non-English text), and survives preset export.
+```hlsl
+// @param float _Strength = 0.65 [0 .. 1] // Controls how strongly the effect changes the image.
+// @param enum _Strength { Subtle: 0.25, Full: 1 } // Choose a predefined strength.
+```
+
 `bool` displays a toggle, stored in `floatValue` and sent as a float uniform (`0` or `1`), without shader keywords or recompilation on value changes. Optional defaults are `true`/`false` or `1`/`0`; ranges are not supported. In manual parameter lists choose `Bool`.
 
 ```hlsl

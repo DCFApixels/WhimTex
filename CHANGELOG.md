@@ -4,6 +4,18 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+## [0.10.15] - 2026-09-16
+
+### Added
+
+- Color/Gradient Map FX preset with editable gradient, amount and reverse controls, preserving source alpha.
+- FX gradient parameters with defaultless declarations, editable black-to-white initial gradients, cached HDR LUT sampling and independent serialized values.
+- Inline `// tooltip` comments on HLSL parameter declarations supply per-control hover descriptions in FX and brush editors, preserved by preset export.
+
+### Changed
+
+- FX preset menus discover headers without loading ShaderFX assets, parsing parameters or hashing shader dependencies. Project headers survive script reloads; unchanged user presets reuse cached entries. Full loading and validation happen when an effect is selected.
+
 ## [0.10.14] - 2026-09-15
 
 ### Added

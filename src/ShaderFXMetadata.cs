@@ -11,7 +11,7 @@ namespace DCFApixels.WhimTex
     internal static class ShaderFXMetadata
     {
         private static readonly Regex Header = new Regex(@"^//\s*@whimtex-effect\s+([^\r\n]+?)\s*$");
-        private static readonly Regex Parameter = new Regex(@"^\s*//\s*@param\s+(float|bool|float4|color|texture2D|transform2D)\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*=\s*([^\[\];]+?))?\s*(?:\[\s*(.*?)\s*\.\.\s*(.*?)\s*\])?\s*$");
+        private static readonly Regex Parameter = new Regex(@"^\s*//\s*@param\s+(float|bool|float4|color|texture2D|transform2D|gradient)\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*=\s*([^\[\];]+?))?\s*(?:\[\s*(.*?)\s*\.\.\s*(.*?)\s*\])?\s*$");
 
         internal static bool TryHeader(string firstLine, out string menuPath)
         {
@@ -46,6 +46,7 @@ namespace DCFApixels.WhimTex
                 if (!declaration) continue;
                 try
                 {
+                    string tooltip = ExtractTooltip(ref line);
                     Match enumMatch = Regex.Match(line, @"^\s*//\s*@param\s+enum\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*=\s*([^{}]+?))?\s*\{([^{}]+)\}\s*$");
                     Match match = Parameter.Match(enumMatch.Success ? "// @param float " + enumMatch.Groups[1].Value : line);
                     if (!match.Success) throw new FormatException("Expected @param type name = value [min .. max], without a semicolon.");
@@ -57,6 +58,11 @@ namespace DCFApixels.WhimTex
                     bool bounded = match.Groups[4].Success;
                     switch (kind)
                     {
+                        case "gradient":
+                            if (explicitDefault) throw new FormatException("Gradient declarations do not accept a default value. Use @param gradient " + name + ".");
+                            p.type = ShaderFXParameterType.Gradient;
+                            p.gradientValue = new WhimTexGradient();
+                            break;
                         case "bool":
                             p.type = ShaderFXParameterType.Bool;
                             if (!explicitDefault) p.floatValue = 0f;
@@ -117,7 +123,7 @@ namespace DCFApixels.WhimTex
                             break;
                     }
                     if (kind != "float" && bounded) throw new FormatException("Ranges apply only to float parameters.");
-                    var control = new ShaderFXParameterControl { type = p.type, order = lineNumber,
+                    var control = new ShaderFXParameterControl { type = p.type, order = lineNumber, tooltip = tooltip,
                         hasMinimum = p.hasMinimum, hasMaximum = p.hasMaximum, minimum = p.minimum, maximum = p.maximum };
                     if (enumMatch.Success)
                     {
@@ -160,6 +166,25 @@ namespace DCFApixels.WhimTex
             return result;
         }
 
+        private static string ExtractTooltip(ref string line)
+        {
+            bool quoted = false, escaped = false;
+            for (int i = line.IndexOf("@param", StringComparison.Ordinal) + 6; i < line.Length - 1; i++)
+            {
+                char c = line[i];
+                if (escaped) { escaped = false; continue; }
+                if (quoted && c == '\\') { escaped = true; continue; }
+                if (c == '"') { quoted = !quoted; continue; }
+                if (!quoted && c == '/' && line[i + 1] == '/')
+                {
+                    string tooltip = line.Substring(i + 2).Trim();
+                    line = line.Substring(0, i).TrimEnd();
+                    return tooltip;
+                }
+            }
+            return null;
+        }
+
         private static float Number(string value)
         {
             if (!float.TryParse(value.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out float result) ||
@@ -193,6 +218,7 @@ namespace DCFApixels.WhimTex
                 p.colorValue = match.colorValue;
                 p.vectorValue = match.vectorValue;
                 p.textureValue = match.textureValue;
+                p.gradientValue = match.gradientValue?.Clone();
                 p.transformValue = match.transformValue;
             }
         }
@@ -202,6 +228,7 @@ namespace DCFApixels.WhimTex
         private static void CopyValue(ShaderFXParameter source, ShaderFXParameter target)
         {
             target.floatValue = source.floatValue; target.colorValue = source.colorValue;
+            target.gradientValue = source.gradientValue?.Clone();
             target.vectorValue = source.vectorValue; target.textureValue = source.textureValue; target.transformValue = source.transformValue;
         }
     }

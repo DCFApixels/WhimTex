@@ -173,7 +173,7 @@ namespace DCFApixels.WhimTex
             {
                 nameof(ShaderFXParameter.floatValue), nameof(ShaderFXParameter.colorValue),
                 nameof(ShaderFXParameter.vectorValue), nameof(ShaderFXParameter.textureValue), nameof(ShaderFXParameter.transformValue),
-                nameof(ShaderFXParameter.floatValue), nameof(ShaderFXParameter.floatValue)
+                nameof(ShaderFXParameter.floatValue), nameof(ShaderFXParameter.floatValue), nameof(ShaderFXParameter.gradientValue)
             };
             VisualElement[] fields = new VisualElement[valueNames.Length];
             for (int i = 0; i < fields.Length; i++)
@@ -193,6 +193,32 @@ namespace DCFApixels.WhimTex
                     });
                     toggle.TrackPropertyValue(value, p => toggle.SetValueWithoutNotify(p.floatValue >= 0.5f));
                     fields[i] = toggle;
+                }
+                else if (i == (int)ShaderFXParameterType.Gradient)
+                {
+                    var gradient = new WhimTexGradientValueField("Value");
+                    if (type.enumValueIndex == (int)ShaderFXParameterType.Gradient)
+                        gradient.SetValueWithoutNotify(value.boxedValue as WhimTexGradient ?? new WhimTexGradient());
+                    gradient.RegisterValueChangedCallback(evt =>
+                    {
+                        var effect = (ShaderFX)value.serializedObject.targetObject;
+                        if (WhimTexApi.IsShaderFXContentLocked(effect)) return;
+                        value.serializedObject.Update();
+                        value.boxedValue = evt.newValue?.Clone() ?? new WhimTexGradient();
+                        value.serializedObject.ApplyModifiedProperties();
+                        effect.NotifyValuesChanged();
+                    });
+                    gradient.TrackPropertyValue(value, p =>
+                    {
+                        if (type.enumValueIndex == (int)ShaderFXParameterType.Gradient)
+                            gradient.SetValueWithoutNotify(p.boxedValue as WhimTexGradient ?? new WhimTexGradient());
+                    });
+                    gradient.TrackPropertyValue(type, p =>
+                    {
+                        if (p.enumValueIndex == (int)ShaderFXParameterType.Gradient)
+                            gradient.SetValueWithoutNotify(value.boxedValue as WhimTexGradient ?? new WhimTexGradient());
+                    });
+                    fields[i] = gradient;
                 }
                 else if (valueNames[i] == nameof(ShaderFXParameter.colorValue))
                 {

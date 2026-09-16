@@ -120,7 +120,12 @@ namespace DCFApixels.WhimTex
             var parameters=Parse(source,out string name);
             ShaderFXMetadata.PreserveValues(parameters,values);
             var result=new StringBuilder("// @whimtex-brush "+name+"\n");
-            foreach(var p in parameters)result.AppendLine(ShaderFXPresetWriter.Declaration(p));
+            foreach(var p in parameters)
+            {
+                string declaration=ShaderFXPresetWriter.Declaration(p);
+                if(p.controls.Count>0 && !string.IsNullOrEmpty(p.controls[0].tooltip))declaration+=" // "+p.controls[0].tooltip;
+                result.AppendLine(declaration);
+            }
             using var reader=new StringReader(source); reader.ReadLine();
             string line; bool block=false;
             while((line=reader.ReadLine())!=null)

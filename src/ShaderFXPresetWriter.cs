@@ -45,6 +45,7 @@ namespace DCFApixels.WhimTex
                     }
                     else declaration = Declaration(row);
                     if (i != defaultIndex) declaration = Regex.Replace(declaration, @"\s*=\s*[^\[\{]+?(?=\s*[\[\{]|$)", "");
+                    if (!string.IsNullOrEmpty(control.tooltip)) declaration += " // " + control.tooltip;
                     rows.Add((control.order, declaration));
                 }
             }
@@ -82,6 +83,8 @@ namespace DCFApixels.WhimTex
             string prefix = "// @param ";
             switch (p.type)
             {
+                case ShaderFXParameterType.Gradient:
+                    return prefix + "gradient " + p.name;
                 case ShaderFXParameterType.Bool:
                     return prefix + "bool " + p.name + " = " + (p.BoolValue ? "true" : "false");
                 case ShaderFXParameterType.Float:
