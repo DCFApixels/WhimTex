@@ -583,7 +583,11 @@ namespace DCFApixels.WhimTex
             {
                 if (passThrough) Graphics.Blit(accumulator, content);
                 CompositeLayers(group.layers, ref content, w, h, scale, stack, included);
-                if (!passThrough) content = FinishStage(content, group.colorRange == LayerColorRange.Standard, group.swizzle);
+                if (!passThrough)
+                {
+                    group.ApplyModifiers(ref content, new LayerRenderContext(this, null, w, h, scale, false, true));
+                    content = FinishStage(content, group.colorRange == LayerColorRange.Standard, group.swizzle);
+                }
                 BlendInto(ref accumulator, content, passThrough ? (BlendMode)101 : group.EffectiveBlendMode,
                     group.opacity, group.blendRange);
             }
@@ -765,6 +769,7 @@ namespace DCFApixels.WhimTex
                 // Render only the group's own content against transparency, never its external backdrop.
                 // This also respects nested opacity and alpha-replacing blend modes.
                 CompositeLayers(group.layers, ref mask, outputWidth, outputHeight, scaleMultiplier, renderStack);
+                group.ApplyModifiers(ref mask, new LayerRenderContext(this, null, outputWidth, outputHeight, scaleMultiplier, false, true));
                 if (preserveColor || !group.swizzle.IsIdentity)
                     mask = FinishStage(mask, group.colorRange == LayerColorRange.Standard, group.swizzle);
                 if (group.clippingMask && TryFindLayer(group, out var container, out int index))

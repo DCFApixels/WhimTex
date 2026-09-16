@@ -306,22 +306,22 @@ namespace DCFApixels.WhimTex
 
             LayerColorSettingsView.Build(root, layer, apply, bindings, colorExpanded, colorExpansionChanged, owner);
             var properties = CreateInspectorSection($"Properties ({TextureCompositor.LayerMenuName(layer)})", "propertiesSection", LayerActionIcon.Kind.Properties,
-                propertiesExpanded, propertiesExpansionChanged, !group && !(layer?.Behaviour is ShaderProcessorLayerBehaviour));
+                propertiesExpanded, propertiesExpansionChanged, !(layer?.Behaviour is ShaderProcessorLayerBehaviour));
             root.Add(properties);
             if (group)
-                properties.tooltip = "Edit the group's opacity and blend mode in Color & Blending or the layer list.";
+            {
+                var mode = ConfigureField(new TextField("Compositing") { name = "groupCompositing", isReadOnly = true });
+                bindings.Track(mode, () => layer.IsPassThrough && !(owner != null && owner.IsGroupIsolatedByClipping(layer))
+                    ? "Pass Through" : "Isolated");
+                properties.Add(mode);
+            }
             else if (layer?.Behaviour is ShaderProcessorLayerBehaviour)
                 properties.tooltip = "Configure this processor in the FX section.";
             else buildProperties(properties.contentContainer);
 
             var fx = CreateInspectorSection("FX", "fxSection", LayerActionIcon.Kind.Effects,
-                fxExpanded, fxExpansionChanged, !group);
+                fxExpanded, fxExpansionChanged);
             root.Add(fx);
-            if (group)
-            {
-                fx.tooltip = "Add FX to the individual layers, or use an effect layer targeting this group.";
-                return null;
-            }
             var view = new LayerShaderFXView(layer, owner, apply);
             fx.Add(view);
             return view;

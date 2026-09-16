@@ -46,7 +46,7 @@ full canvas resolution; saves, exports and rasterization use the original output
 An effect sees the group's own isolated composition on transparency, including internal blends,
 opacity, swizzle and clipping. The group's role in the main composition is unchanged: Pass Through
 children can still interact with the external backdrop there. The effect does not sample that backdrop.
-Group transforms and modifiers remain unsupported, as before.
+Group FX are included in this source and force isolation in the main composition too. Group transforms remain unsupported.
 
 Outline and Alpha-source SDF request grayscale coverage. SDF with a non-alpha channel,
 Normal Map, Gaussian Blur and Motion Blur request RGBA. Both source representations use the

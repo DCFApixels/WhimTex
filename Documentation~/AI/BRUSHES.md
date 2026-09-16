@@ -98,6 +98,14 @@ values used on JSON paste. No separate parameter-value object is necessary.
 Maximum 32 parameters; maximum code size 64 KiB UTF-8.
 Float4/color defaults use four comma-separated components in parentheses.
 
+Float controls support independent soft boundaries: `// @param float _Width = 0.1 [0 .. ~1]`.
+The slider stays within 0..1, while numeric input and label dragging may exceed 1 but cannot go below 0.
+`[~0 .. 1]` makes only the lower boundary soft; `[~0 .. ~1]` makes both soft.
+Both finite boundary values are required, with `min < max`. The initializer may be omitted.
+Ordinary `[0 .. 1]` remains a hard range; the old `~[0 .. 1]` syntax is rejected.
+HLSL preset export preserves both boundary flags and the current value. Limits explicitly written
+in shader code still apply.
+
 Helper functions and ordinary HLSL math, including `fwidth`, are allowed.
 [FastNoiseLite noise functions](README.md#built-in-noise-library) are built in:
 use `fnlCreateState`, `fnlGetNoise2D/3D` and Domain Warp directly without an include.

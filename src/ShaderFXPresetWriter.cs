@@ -35,6 +35,7 @@ namespace DCFApixels.WhimTex
                     var control = p.controls[i];
                     var row = p.Copy(); row.type = control.type;
                     row.hasMinimum = control.hasMinimum; row.hasMaximum = control.hasMaximum;
+                    row.softMinimum = control.softMinimum; row.softMaximum = control.softMaximum;
                     row.minimum = control.minimum; row.maximum = control.maximum;
                     string declaration;
                     if (control.type == ShaderFXParameterType.Enum)
@@ -44,7 +45,7 @@ namespace DCFApixels.WhimTex
                         declaration = "// @param enum " + p.name + " = " + Number(p.floatValue) + " { " + string.Join(", ", options) + " }";
                     }
                     else declaration = Declaration(row);
-                    if (i != defaultIndex) declaration = Regex.Replace(declaration, @"\s*=\s*[^\[\{]+?(?=\s*[\[\{]|$)", "");
+                    if (i != defaultIndex) declaration = Regex.Replace(declaration, @"\s*=\s*[^\[\{~]+?(?=\s*[\[\{~]|$)", "");
                     if (!string.IsNullOrEmpty(control.tooltip)) declaration += " // " + control.tooltip;
                     rows.Add((control.order, declaration));
                 }
@@ -90,7 +91,7 @@ namespace DCFApixels.WhimTex
                 case ShaderFXParameterType.Float:
                 case ShaderFXParameterType.Enum:
                     return prefix + "float " + p.name + " = " + Number(p.floatValue) +
-                        (p.hasMinimum || p.hasMaximum ? " [" + (p.hasMinimum ? Number(p.minimum) : "") + " .. " + (p.hasMaximum ? Number(p.maximum) : "") + "]" : "");
+                        (p.hasMinimum || p.hasMaximum ? " [" + (p.softMinimum ? "~" : "") + (p.hasMinimum ? Number(p.minimum) : "") + " .. " + (p.softMaximum ? "~" : "") + (p.hasMaximum ? Number(p.maximum) : "") + "]" : "");
                 case ShaderFXParameterType.Color:
                     var c = p.colorValue;
                     return prefix + "color " + p.name + " = (" + Number(c.r) + ", " + Number(c.g) + ", " + Number(c.b) + ", " + Number(c.a) + ")";

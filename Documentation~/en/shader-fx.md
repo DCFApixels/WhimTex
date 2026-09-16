@@ -25,6 +25,11 @@ value. **Custom** means the current number is not one of the dropdown's predefin
 
 Hover over a parameter to read its description, if the effect's author supplied one.
 
+Some sliders allow numbers past one or both ends of their visible range: type in the adjacent field
+or drag the parameter label. Each end can independently be a hard or soft limit.
+The thumb stays at the nearest endpoint, but the effect uses your number. Other sliders keep
+both dragging and numeric input limited to their range, as chosen by the effect's author.
+
 Effects can also offer a gradient field. Click its strip to edit colors, transparency and interpolation,
 including HDR colors. New gradients start black-to-white; changes update the effect immediately.
 
@@ -45,6 +50,14 @@ Project HLSL effects receive code changes from their source `.hlsl` file.
 To edit the code independently in the document, click **Embed Copy** under **Code & Parameters**.
 
 Effect order matters: the **↑** and **↓** arrows on each effect row apply it earlier or later in the sequence.
+
+**HSV correction**
+
+**Color → HSV** adjusts hue, saturation and brightness. **Hue** shifts the hue in degrees;
+**Saturation** and **Value** are multipliers: 1 is neutral, 0 removes saturation or makes the image black.
+**Amount** mixes the correction with the original. Gray pixels stay gray when changing hue or saturation.
+Alpha is preserved and HDR brightness is supported. HSV correction treats negative RGB channels as zero;
+neutral settings and Amount 0 leave the original unchanged.
 
 **Gradient mapping**
 

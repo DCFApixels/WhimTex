@@ -175,7 +175,6 @@ namespace DCFApixels.WhimTex
                             }
                             if (node["fx"] != null)
                             {
-                                Require(!layer.IsGroup, "Put FX on a Shader Processor inside the group, not on the group itself.");
                                 Require(node["fx"] is JArray, "fx must be an array.");
                                 foreach (JToken entry in (JArray)node["fx"])
                                 {

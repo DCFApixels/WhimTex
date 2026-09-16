@@ -150,11 +150,9 @@ namespace DCFApixels.WhimTex
                 bindings.Add(() =>
                 {
                     bool clipping = owner != null && owner.IsGroupIsolatedByClipping(group);
-                    hint.text = clipping
-                        ? "Clipping isolates this group using Normal blending. Pass Through resumes when clipping is removed and Swizzle is R G B A."
-                        : "Swizzle isolates this group using Normal blending. Restore R G B A to resume Pass Through.";
+                    hint.text = "FX, clipping or Swizzle isolates this group using Normal blending. Pass Through resumes when FX and clipping are removed and Swizzle is R G B A.";
                     hint.EnableInClassList("whimtex-swizzle-hint--hidden",
-                        group.compositing != GroupCompositing.PassThrough || (group.swizzle.IsIdentity && !clipping));
+                        group.compositing != GroupCompositing.PassThrough || (group.IsPassThrough && !clipping));
                 });
                 container.Add(hint);
             }

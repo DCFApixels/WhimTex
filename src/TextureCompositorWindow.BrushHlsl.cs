@@ -72,7 +72,14 @@ namespace DCFApixels.WhimTex
                     }
                     if(definition.type==ShaderFXParameterType.Float)
                     {
-                        if(definition.hasMinimum && definition.hasMaximum && definition.minimum<definition.maximum)
+                        if(definition.HasSoftRange)
+                        {
+                            var field=new WhimTexSoftRangeField(label,definition.minimum,definition.maximum,definition.softMinimum,definition.softMaximum);
+                            field.SetValueWithoutNotify(definition.floatValue);
+                            field.RegisterValueChangedCallback(e=>Change(p=>p.floatValue=e.newValue));parameters.Add(field);
+                            refresh.Add(()=>field.SetValueWithoutNotify(Current().floatValue));
+                        }
+                        else if(definition.hasMinimum && definition.hasMaximum && definition.minimum<definition.maximum)
                         {
                             var field=new Slider(label,definition.minimum,definition.maximum){value=definition.floatValue,showInputField=true};
                             field.RegisterValueChangedCallback(e=>Change(p=>p.floatValue=p.Clamp(e.newValue)));parameters.Add(field);

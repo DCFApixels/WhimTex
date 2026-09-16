@@ -106,6 +106,23 @@ reference absent from the current project falls back to white; the image is not 
 Two distinct range boundaries produce a slider with numeric input; one boundary produces a limited
 numeric field. Equal boundaries fix the number. Ranges apply only to floats.
 
+Put `~` before a boundary value to make **that boundary soft** in FX or HLSL brush declarations:
+```hlsl
+// @param float _Strength = 1 [0 .. 2]
+// @param float _Strength [0 .. ~2]
+// @param float _Other = 1 [~0 .. 2]
+// @param float _Both [~0 .. ~2]
+```
+The first control clamps edits to 0..2. The second allows numeric values above 2, but not below 0.
+`[~0 .. 2]` allows values below 0, but not above 2; `[~0 .. ~2]` allows both directions.
+Numeric entry and label dragging respect each boundary independently. Outside the slider range,
+the thumb stays at the nearest endpoint while the field and shader retain the actual number.
+A range with a soft boundary requires two finite values with `min < max`; `[~0 ..]`, `[.. ~2]`
+and `[0 .. ~0]` are errors. The old prefix syntax `~[0 .. 2]` is not accepted.
+Initializers remain optional. Repeated controls keep their own range behavior.
+Preset export preserves both boundary flags and the current value.
+This is editor metadata only: explicit `clamp`, `saturate` or other bounds in HLSL still apply.
+
 `gradient` creates an editable WhimTex gradient, initially opaque black to white (Classic mode).
 Declare `// @param gradient _Ramp`, without `=` or a range, and use `_Ramp_Sample(t)` to obtain
 straight linear RGBA. The helper clamps `t` to 0..1; use `frac(t)` yourself for repetition.

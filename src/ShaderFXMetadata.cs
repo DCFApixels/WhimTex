@@ -11,7 +11,7 @@ namespace DCFApixels.WhimTex
     internal static class ShaderFXMetadata
     {
         private static readonly Regex Header = new Regex(@"^//\s*@whimtex-effect\s+([^\r\n]+?)\s*$");
-        private static readonly Regex Parameter = new Regex(@"^\s*//\s*@param\s+(float|bool|float4|color|texture2D|transform2D|gradient)\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*=\s*([^\[\];]+?))?\s*(?:\[\s*(.*?)\s*\.\.\s*(.*?)\s*\])?\s*$");
+        private static readonly Regex Parameter = new Regex(@"^\s*//\s*@param\s+(float|bool|float4|color|texture2D|transform2D|gradient)\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*=\s*([^\[\];~]+?))?\s*(?:\[\s*(.*?)\s*\.\.\s*(.*?)\s*\])?\s*$");
 
         internal static bool TryHeader(string firstLine, out string menuPath)
         {
@@ -75,12 +75,18 @@ namespace DCFApixels.WhimTex
                             p.floatValue = explicitDefault ? Number(value) : 0f;
                             if (bounded)
                             {
-                                p.hasMinimum = match.Groups[4].Value.Trim().Length > 0;
-                                p.hasMaximum = match.Groups[5].Value.Trim().Length > 0;
+                                string lower = match.Groups[4].Value.Trim(), upper = match.Groups[5].Value.Trim();
+                                p.softMinimum = lower.StartsWith("~"); p.softMaximum = upper.StartsWith("~");
+                                if (p.softMinimum) lower = lower.Substring(1).Trim();
+                                if (p.softMaximum) upper = upper.Substring(1).Trim();
+                                p.hasMinimum = lower.Length > 0;
+                                p.hasMaximum = upper.Length > 0;
                                 if (!p.hasMinimum && !p.hasMaximum) throw new FormatException("A range needs at least one boundary.");
-                                if (p.hasMinimum) p.minimum = Number(match.Groups[4].Value);
-                                if (p.hasMaximum) p.maximum = Number(match.Groups[5].Value);
+                                if (p.hasMinimum) p.minimum = Number(lower);
+                                if (p.hasMaximum) p.maximum = Number(upper);
                                 if (p.hasMinimum && p.hasMaximum && p.minimum > p.maximum) throw new FormatException("Minimum exceeds maximum.");
+                                if (p.HasSoftRange && (!p.hasMinimum || !p.hasMaximum || p.minimum >= p.maximum))
+                                    throw new FormatException("A range with soft boundaries requires two finite values with min < max. Put ~ before each soft value: [min .. ~max].");
                             }
                             break;
                         case "float4":
@@ -124,7 +130,7 @@ namespace DCFApixels.WhimTex
                     }
                     if (kind != "float" && bounded) throw new FormatException("Ranges apply only to float parameters.");
                     var control = new ShaderFXParameterControl { type = p.type, order = lineNumber, tooltip = tooltip,
-                        hasMinimum = p.hasMinimum, hasMaximum = p.hasMaximum, minimum = p.minimum, maximum = p.maximum };
+                        hasMinimum = p.hasMinimum, hasMaximum = p.hasMaximum, softMinimum = p.softMinimum, softMaximum = p.softMaximum, minimum = p.minimum, maximum = p.maximum };
                     if (enumMatch.Success)
                     {
                         control.type = ShaderFXParameterType.Enum;

@@ -4,6 +4,18 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+## [0.10.16] - 2026-09-16
+
+### Added
+
+- Groups now support FX with automatic isolation, a read-only Compositing status in Properties, clipboard/live authoring and baked FX results in layered export.
+- Independent soft HLSL float boundaries (`[min .. ~max]`, `[~min .. max]`, `[~min .. ~max]`) allow numeric entry and label dragging past selected slider limits in FX and brush controls; preset export preserves each boundary flag.
+- Color/HSV FX preset with hue shift, saturation/value multipliers and amount, preserving source alpha and supporting HDR colors.
+
+### Changed
+
+- Streamlined agent instructions and organized architectural context and feature decisions in Context~/.
+
 ## [0.10.15] - 2026-09-16
 
 ### Added

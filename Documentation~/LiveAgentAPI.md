@@ -290,7 +290,7 @@ Embedded code, parameters and compiled shader follow the document's usual save l
 Inspection exposes each FX's code, parameters, diagnostics and pending-change state.
 Parameters also expose stable `id`, nullable `minimum`/`maximum`, and structured Transform2D values.
 `catalogPath` identifies a linked HLSL source when present; inline replacement does not modify that source.
-Groups do not directly render FX; place a Shader Processor inside a group for that workflow.
+Groups support FX directly. FX process the combined children before group opacity and blending and automatically isolate a Pass Through group using Normal blending.
 
 ## Edit and lock an existing layer
 

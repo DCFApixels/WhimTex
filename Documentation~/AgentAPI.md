@@ -264,9 +264,11 @@ For example, `"swizzle":["B","G","R","A"]` exchanges red and blue;
 It runs after FX in linear working space and before Color Range and layer blending. Output alpha
 remains bounded to 0..1. Source pixels and brush settings are unchanged.
 A nonidentity group swizzle forces isolated rendering. A saved Pass Through group uses Normal
-blending while swizzled, then resumes Pass Through when restored to identity and not participating in clipping. Explicitly isolated
+blending while swizzled, then resumes Pass Through when restored to identity, without FX and not participating in clipping. Explicitly isolated
 groups retain their chosen blend mode. `Describe` lists `swizzleChannels`; `Inspect` includes each
 layer's swizzle, including groups.
+
+Groups support FX on their combined children, before Swizzle and outer opacity/blending. A group with FX is automatically isolated; a saved Pass Through mode uses Normal blending until all FX are removed (unless Swizzle or clipping still requires isolation).
 
 `clippingMask` defaults to `false`. Set it to `true` on a non-Processor layer or group to clip it to the
 first non-clipping sibling below; consecutive clipped siblings share that base. The relationship

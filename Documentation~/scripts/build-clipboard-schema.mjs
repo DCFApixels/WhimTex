@@ -57,7 +57,8 @@ const extra = {
 defs.layer = { oneOf: Object.entries(extra).map(([type, properties]) => {
   const fields = { type: { const: type }, id: { ...str(64), minLength: 1 }, name: str(128), properties: object({ ...common, ...properties, ...(type !== 'group' ? { filter: choice('Source Point Bilinear Trilinear') } : {}) }) };
   if (type === 'group') fields.children = { type: 'array', minItems: 1, maxItems: 128, items: ref('layer') };
-  else { fields.transform = ref('transform'); fields.fx = { type: 'array', maxItems: 16, items: ref('fx') }; }
+  else fields.transform = ref('transform');
+  fields.fx = { type: 'array', maxItems: 16, items: ref('fx') };
   if (['outline', 'sdf', 'blur', 'normalMap', 'makeSeamless'].includes(type)) fields.target = { ...str(64), minLength: 1 };
   if (type === 'drawing') fields.url = { type: 'string', maxLength: 2048, pattern: '^https?://',
     description: 'Absolute http(s) link to a PNG or JPEG. It is downloaded on paste after a confirmation, the layer keeps the source resolution, and its transform scale is fitted to the canvas, so do not set transform.scale.' };

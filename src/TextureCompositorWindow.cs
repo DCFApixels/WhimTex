@@ -834,14 +834,17 @@ namespace DCFApixels.WhimTex
             menu.AddItem(new GUIContent("Merge Selected %e"), false, () => MergeSelectedLayers(roots, false));
             menu.AddItem(new GUIContent("Merge Selected as Copy %&e"), false, () => MergeSelectedLayers(roots, true));
             menu.AddItem(new GUIContent("Delete"), false, () => DeleteLayers(roots));
-            if (targets.Exists(target => !(target?.IsGroup == true)))
+            if (targets.Exists(target => target?.Behaviour != null))
             {
                 menu.AddSeparator(string.Empty);
                 menu.AddItem(new GUIContent("FX"), false, () =>
                 {
                     foreach (Layer target in targets)
-                        if (!(target?.IsGroup == true)) ModifierEditorWindow.Open(target, compositor);
+                        if (target?.Behaviour != null) ModifierEditorWindow.Open(target, compositor);
                 });
+            }
+            if (targets.Exists(target => !(target?.IsGroup == true)))
+            {
                 menu.AddItem(new GUIContent("Properties"), false, () =>
                 {
                     foreach (Layer target in targets) OpenLayerEditor(target);

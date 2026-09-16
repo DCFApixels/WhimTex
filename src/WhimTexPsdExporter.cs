@@ -117,7 +117,7 @@ namespace DCFApixels.WhimTex
                 {
                     report.groupCount++;
                     records.Add(new PsdWriter.LayerRecord { name = "</Group>", id = LayerId(group, ids, ":end"), section = 3, visible = false });
-                    bool bakedSwizzle = !missingBehaviour && !group.swizzle.IsIdentity;
+                    bool bakedSwizzle = !missingBehaviour && (!group.swizzle.IsIdentity || group.HasModifiers);
                     if (bakedSwizzle)
                         records.Add(new PsdWriter.LayerRecord { name = "</Group>", id = LayerId(group, ids, ":source-end"), section = 3, visible = false });
                     Collect(document, group.layers, records, report, visited, ids);
@@ -125,10 +125,10 @@ namespace DCFApixels.WhimTex
                     {
                         records.Add(new PsdWriter.LayerRecord { name = "Source Layers", id = LayerId(group, ids, ":sources"),
                             section = 1, visible = false, opacity = 255, blend = "norm", sectionBlend = "norm" });
-                        records.Add(new PsdWriter.LayerRecord { name = "Swizzle Result", id = LayerId(group, ids, ":swizzle"),
+                        records.Add(new PsdWriter.LayerRecord { name = group.HasModifiers ? "FX Result" : "Swizzle Result", id = LayerId(group, ids, ":swizzle"),
                             visible = true, opacity = 255, blend = "norm",
                             openPixels = () => new Pixels(document.RenderPsdGroupContent(group), document.width, document.height) });
-                        report.Note(group, "Group Swizzle is baked into a child layer. Original children are preserved in the hidden Source Layers folder.");
+                        report.Note(group, "Group FX and Swizzle are baked into a child layer. Original children are preserved in the hidden Source Layers folder.");
                     }
                     bool isolated = !group.IsPassThrough || document.IsGroupIsolatedByClipping(group);
                     string groupBlend = isolated ? BlendKey(group.EffectiveBlendMode, out _) : "pass";

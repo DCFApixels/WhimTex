@@ -2513,6 +2513,13 @@
               "items": {
                 "$ref": "#/$defs/layer"
               }
+            },
+            "fx": {
+              "type": "array",
+              "maxItems": 16,
+              "items": {
+                "$ref": "#/$defs/fx"
+              }
             }
           },
           "required": [

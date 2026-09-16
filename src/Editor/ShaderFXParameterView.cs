@@ -22,7 +22,7 @@ namespace DCFApixels.WhimTex
             foreach (var p in effect.Parameters)
                 if (p != null)
                 {
-                    key += $"{p.id}:{p.name}:{p.type}:{p.hasMinimum}:{p.minimum}:{p.hasMaximum}:{p.maximum}|";
+                    key += $"{p.id}:{p.name}:{p.type}:{p.hasMinimum}:{p.minimum}:{p.hasMaximum}:{p.maximum}:{p.softMinimum}:{p.softMaximum}|";
                     foreach (var control in p.controls) key += JsonUtility.ToJson(control);
                 }
             if (layoutKey != key)
@@ -68,6 +68,7 @@ namespace DCFApixels.WhimTex
                 declaration = declaration.Copy();
                 declaration.type = control.type;
                 declaration.hasMinimum = control.hasMinimum; declaration.hasMaximum = control.hasMaximum;
+                declaration.softMinimum = control.softMinimum; declaration.softMaximum = control.softMaximum;
                 declaration.minimum = control.minimum; declaration.maximum = control.maximum;
             }
             string id = declaration.id;
@@ -111,7 +112,14 @@ namespace DCFApixels.WhimTex
                     refresh.Add(() => toggle.SetValueWithoutNotify(Find(id).BoolValue));
                     break;
                 case ShaderFXParameterType.Float:
-                    if (declaration.hasMinimum && declaration.hasMaximum && declaration.minimum < declaration.maximum)
+                    if (declaration.HasSoftRange)
+                    {
+                        var soft = new WhimTexSoftRangeField(label, declaration.minimum, declaration.maximum, declaration.softMinimum, declaration.softMaximum);
+                        soft.RegisterValueChangedCallback(e => Change(id, p => p.floatValue = e.newValue));
+                        Add(soft);
+                        refresh.Add(() => soft.SetValueWithoutNotify(Find(id).floatValue));
+                    }
+                    else if (declaration.hasMinimum && declaration.hasMaximum && declaration.minimum < declaration.maximum)
                     {
                         var slider = new Slider(label, declaration.minimum, declaration.maximum) { showInputField = true };
                         slider.RegisterValueChangedCallback(e => Change(id, p => p.floatValue = declaration.Clamp(e.newValue)));

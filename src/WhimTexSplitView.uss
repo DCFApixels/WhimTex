@@ -2079,3 +2079,16 @@
 .whimtex-content-fill-actions > Button {
     flex-grow: 1;
 }
+.whimtex-soft-range > .unity-base-field__input {
+    flex-direction: row;
+}
+.whimtex-soft-range-slider {
+    flex-grow: 1;
+    min-width: 0;
+    margin-left: 0;
+}
+.whimtex-soft-range-number {
+    width: 60px;
+    flex-shrink: 0;
+    margin-right: 0;
+}

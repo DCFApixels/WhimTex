@@ -112,7 +112,7 @@ every child's opacity. Color Range and Blend Range are inactive in this mode.
 
 Choosing any other group blend mode isolates its children on a transparent buffer. The group then
 applies its own Color Range, blend mode, Blend Range and opacity to the parent stack.
-Nested groups follow the same rules. Group transforms and FX remain unsupported.
+Nested groups follow the same rules. Group FX process the combined children before Swizzle, Color Range and outer opacity/blending. FX force isolation with Normal blending when the saved mode is Pass Through. Group transforms remain unsupported.
 
 Outline/SDF group targets use only the group's own content against transparency, including nested
 opacity and alpha-replacing modes. They never include the external backdrop.

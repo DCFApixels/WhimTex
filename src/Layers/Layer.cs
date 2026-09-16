@@ -136,7 +136,8 @@ namespace DCFApixels.WhimTex
         internal bool RequiresInput => Behaviour?.RequiresInput ?? false;
         internal bool IsGroup => group;
         internal Layer AsGroup() => group ? this : null;
-        internal bool IsPassThrough => compositing == GroupCompositing.PassThrough && swizzle.IsIdentity;
+        internal bool HasModifiers => modifiers != null && modifiers.Exists(value => value != null);
+        internal bool IsPassThrough => compositing == GroupCompositing.PassThrough && swizzle.IsIdentity && !HasModifiers;
         internal BlendMode EffectiveBlendMode => compositing == GroupCompositing.PassThrough ? BlendMode.Normal : blendMode;
         internal List<Layer> layers { get => children ??= new List<Layer>(); set => children = value; }
 
@@ -288,45 +289,48 @@ namespace DCFApixels.WhimTex
                 }
 
                 current = context.compositor.FinishStage(current);
-                if (!context.applyModifiers || modifiers == null)
-                    return current;
-
-                for (int i = 0; i < modifiers.Count; i++)
-                {
-                    Material modifier = modifiers[i] is ShaderFX shaderFX
-                        ? shaderFX.GetMaterial(context)
-                        : modifiers[i] as Material;
-                    if (modifier == null)
-                        continue;
-
-                    RenderTexture next = RenderTexture.GetTemporary(
-                        context.width,
-                        context.height,
-                        0,
-                        RenderTextureFormat.ARGBFloat,
-                        RenderTextureReadWrite.Linear);
-                    next.filterMode = resolvedFilter;
-                    next.wrapMode = TextureWrapMode.Clamp;
-                    try
-                    {
-                        Graphics.Blit(current, next, modifier);
-                    }
-                    catch
-                    {
-                        RenderTexture.ReleaseTemporary(next);
-                        throw;
-                    }
-                    RenderTexture.ReleaseTemporary(current);
-                    current = next;
-                    current = context.compositor.FinishStage(current);
-                }
-
+                ApplyModifiers(ref current, context, resolvedFilter);
                 return current;
             }
             catch
             {
                 RenderTexture.ReleaseTemporary(current);
                 throw;
+            }
+        }
+
+        internal void ApplyModifiers(ref RenderTexture current, in LayerRenderContext context, FilterMode filter = FilterMode.Bilinear)
+        {
+            if (!context.applyModifiers || modifiers == null || current == null)
+                return;
+            for (int i = 0; i < modifiers.Count; i++)
+            {
+                Material modifier = modifiers[i] is ShaderFX shaderFX
+                    ? shaderFX.GetMaterial(context)
+                    : modifiers[i] as Material;
+                if (modifier == null)
+                    continue;
+
+                RenderTexture next = RenderTexture.GetTemporary(
+                    context.width,
+                    context.height,
+                    0,
+                    RenderTextureFormat.ARGBFloat,
+                    RenderTextureReadWrite.Linear);
+                next.filterMode = filter;
+                next.wrapMode = TextureWrapMode.Clamp;
+                try
+                {
+                    Graphics.Blit(current, next, modifier);
+                }
+                catch
+                {
+                    RenderTexture.ReleaseTemporary(next);
+                    throw;
+                }
+                RenderTexture.ReleaseTemporary(current);
+                current = next;
+                current = context.compositor.FinishStage(current);
             }
         }
     }

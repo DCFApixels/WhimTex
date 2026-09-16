@@ -53,6 +53,7 @@ namespace DCFApixels.WhimTex
             {
                 content = GetClearRenderTexture(w, h);
                 CompositeLayers(group.layers, ref content, w, h, scale, stack, included);
+                group.ApplyModifiers(ref content, new LayerRenderContext(this, null, w, h, scale, false, true));
                 content = FinishStage(content, group.colorRange == LayerColorRange.Standard, group.swizzle);
                 RenderTexture result = content;
                 content = null;

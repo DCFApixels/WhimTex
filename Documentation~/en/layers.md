@@ -101,7 +101,7 @@ Use the group's arrow to expand or collapse it.
 
 Groups start in **Pass Through**, so their layers can blend with layers outside the group.
 Choose another blend mode to blend the group as one image. Group opacity fades the whole group.
-Transform and Shader FX are available on individual layers, not groups.
+Add **FX** to a group to process its combined image. FX automatically isolate a Pass Through group using Normal blending, so they do not affect the image outside it. Removing all FX restores Pass Through unless clipping or Swizzle still requires isolation. **Properties → Compositing** shows the effective mode, read-only. Transform remains available on individual layers only.
 
 ## Duplicate, merge or delete
 

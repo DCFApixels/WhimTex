@@ -190,7 +190,7 @@ Targets may refer forward or backward in the JSON. Hidden sources still work. Wi
 a targeted effect uses the next sibling below it. Prefer explicit targets for predictable portable results.
 With no next sibling in the pasted tree it has no source; it does not attach to an existing document layer.
 No targets outside this pasted tree. No cycles, self-targeting or targets that make a group depend on itself.
-For a group-wide shader use a Shader Processor inside an isolated group, not `fx` on the group.
+Groups support `fx`: effects process the combined children before group opacity and blending. FX automatically isolate a Pass Through group using Normal blending, without affecting layers outside it. Removing all FX restores Pass Through unless clipping or Swizzle still requires isolation.
 
 ### Common properties
 
@@ -401,7 +401,14 @@ Do not redeclare these or generated parameters/helpers. Do not use invented time
 // @param transform2D _Area = (0.5, 0.5, 0.75, 0.75, 30)
 ```
 
-No semicolon on metadata lines. Ranges apply to floats only. Defaults must be finite and inside bounds.
+No semicolon on metadata lines. Ranges apply to floats only. Defaults must be finite.
+`[min .. max]` clamps edits through that control. Put `~` before a boundary value to allow crossing it:
+`[0 .. ~2]` allows values above 2, `[~0 .. 2]` allows values below 0, and `[~0 .. ~2]` allows both.
+The slider always stays within 0..2; numeric input and label dragging obey only the hard boundaries.
+For example: `// @param float _Strength = 5 [0 .. ~2]` or `// @param float _Strength [~0 .. ~2]`.
+Ranges with a soft boundary require both values and `min < max`; one-sided or equal soft bounds are errors.
+The old `~[0 .. 2]` syntax is rejected. Boundary flags survive FX and HLSL brush preset export.
+Bounds written inside HLSL still apply independently.
 For FX, `bool` displays a toggle and generates a `float` uniform with value `0` or `1`, not a shader keyword. An optional default is `true`/`false` or `1`/`0`; ranges are not allowed. Use `if (_IncludeAlpha > 0.5)` or use it directly in arithmetic. This type is not supported by HLSL brush parameters yet.
 
 FX also supports dropdown controls and repeated declarations of one variable:

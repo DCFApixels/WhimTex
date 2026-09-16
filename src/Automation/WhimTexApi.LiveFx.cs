@@ -99,7 +99,6 @@ namespace DCFApixels.WhimTex
         private static void ApplyLiveFx(Layer layer, JToken token, TextureCompositor owner, List<ShaderFX> created)
         {
             if (token == null) return;
-            Require(!layer.IsGroup, "Groups do not render Shader FX directly. Place a Shader Processor inside the group.");
             Require(token is JArray array && array.Count <= 16, "fx must be an array of at most 16 operations.");
             layer.modifiers = layer.modifiers == null ? new List<Object>() : new List<Object>(layer.modifiers);
             foreach (var item in (JArray)token)

@@ -12,6 +12,7 @@ namespace DCFApixels.WhimTex
             try
             {
                 CompositeLayers(group.layers, ref rendered, width, height, 1f, new HashSet<Layer>());
+                group.ApplyModifiers(ref rendered, new LayerRenderContext(this, null, width, height, 1f, false, true));
                 rendered = FinishStage(rendered, group.colorRange == LayerColorRange.Standard, group.swizzle);
                 return CopyToTexture2D(rendered, uploadToGpu: false);
             }

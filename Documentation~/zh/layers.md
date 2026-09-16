@@ -101,7 +101,7 @@ Shape 保持可编辑：它能像其他图层一样使用剪贴蒙版、混合�
 
 组默认处于 **Pass Through**，因此其图层可以与组外的图层混合。
 选择其他混合模式可将组作为一张图像进行混合。组不透明度会让整个组淡出。
-变换和 Shader FX 可用于单个图层，而不是组。
+为组添加 **FX** 可处理其合成图像。FX 会自动将 Pass Through 组隔离，并使用 Normal 混合，不影响组外图像。移除全部 FX 后，若剪贴或 Swizzle 不再需要隔离，将恢复 Pass Through。**Properties → Compositing** 以只读方式显示实际模式。Transform 仍仅适用于单个图层。
 
 ## 复制、合并或删除
 

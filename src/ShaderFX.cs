@@ -17,6 +17,7 @@ namespace DCFApixels.WhimTex
         public ShaderFXParameterType type;
         public int order;
         public bool hasMinimum, hasMaximum;
+        public bool softMinimum, softMaximum;
         public float minimum, maximum;
         public string[] optionNames = Array.Empty<string>();
         public float[] optionValues = Array.Empty<float>();
@@ -36,6 +37,8 @@ namespace DCFApixels.WhimTex
         [HideInInspector] public string id = Guid.NewGuid().ToString("N");
         [HideInInspector] public bool declaredInCode;
         [HideInInspector] public bool hasMinimum, hasMaximum;
+        [HideInInspector] public bool softMinimum, softMaximum;
+        internal bool HasSoftRange => softMinimum || softMaximum;
         [HideInInspector] public float minimum, maximum;
         [HideInInspector] public List<ShaderFXParameterControl> controls = new List<ShaderFXParameterControl>();
         [NonSerialized] private string cachedName, cachedId;
@@ -57,7 +60,7 @@ namespace DCFApixels.WhimTex
                 return transformPropertyIds;
             }
         }
-        internal float Clamp(float value) => hasMinimum && value < minimum ? minimum : hasMaximum && value > maximum ? maximum : value;
+        internal float Clamp(float value) => hasMinimum && !softMinimum && value < minimum ? minimum : hasMaximum && !softMaximum && value > maximum ? maximum : value;
         internal bool BoolValue => floatValue >= 0.5f;
 
         internal ShaderFXParameter Copy()
@@ -67,7 +70,7 @@ namespace DCFApixels.WhimTex
             copy.controls = new List<ShaderFXParameterControl>(controls.Count);
             foreach (var c in controls)
                 copy.controls.Add(new ShaderFXParameterControl { type = c.type, order = c.order, tooltip = c.tooltip,
-                    hasMinimum = c.hasMinimum, hasMaximum = c.hasMaximum, minimum = c.minimum, maximum = c.maximum,
+                    hasMinimum = c.hasMinimum, hasMaximum = c.hasMaximum, softMinimum = c.softMinimum, softMaximum = c.softMaximum, minimum = c.minimum, maximum = c.maximum,
                     optionNames = (string[])c.optionNames.Clone(), optionValues = (float[])c.optionValues.Clone() });
             return copy;
         }
