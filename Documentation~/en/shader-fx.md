@@ -66,6 +66,19 @@ Click **Gradient** to choose colors, use **Amount** to mix with the original ima
 **Reverse** to swap the mapping direction. Input brightness outside 0..1 uses the endpoint colors.
 The original alpha is preserved; gradient alpha is ignored.
 
+**Pixelation and dithering**
+
+**Pixel Art → Pixelate** replaces every block of **Pixel Size** canvas pixels with a single value.
+**Average** samples a 4×4 grid inside the block instead of its center, so thin details survive.
+**Levels** sets how many values each channel keeps and **Gamma** moves the tonal steps between
+shadows and highlights. **Dither** picks the pattern that spreads the error between levels:
+**Bayer2**, **Bayer4** and **Bayer8** give the classic ordered look, **Interleaved** is irregular
+noise, **Checker** is a two-tone grid, **Halftone** builds a clustered-dot screen and **Hash** is
+stable noise without a visible grid. The pattern is evaluated per block, so it stays visible after
+pixelation. **Amount** weakens it down to plain rounding. **One Bit** reduces the result to
+**Low Color** and **High Color** by luminance instead of quantizing each channel. Alpha is preserved.
+The same pattern list works per pixel in **Color → Posterize**.
+
 **Normal map normalization**
 
 **Normal Map → Normalize** restores unit-length normals while preserving alpha.

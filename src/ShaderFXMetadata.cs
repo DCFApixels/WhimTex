@@ -88,6 +88,10 @@ namespace DCFApixels.WhimTex
                                 if (p.HasSoftRange && (!p.hasMinimum || !p.hasMaximum || p.minimum >= p.maximum))
                                     throw new FormatException("A range with soft boundaries requires two finite values with min < max. Put ~ before each soft value: [min .. ~max].");
                             }
+                            // A default outside a hard bound is an authoring mistake; a soft bound only shapes the slider.
+                            if (explicitDefault && (p.hasMinimum && !p.softMinimum && p.floatValue < p.minimum ||
+                                p.hasMaximum && !p.softMaximum && p.floatValue > p.maximum))
+                                throw new FormatException("Default " + value + " is outside the declared range.");
                             break;
                         case "float4":
                         case "color":

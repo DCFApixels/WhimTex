@@ -29,7 +29,8 @@ Check(renamed[0].id == parameters[7].id, "Rename in place retains ID");
 Reject("\n" + head); Reject("// License\n" + head); Reject(" " + head);
 foreach (string invalid in new[] { "float _A = 1;", "float _A = NaN", "float _A = 1 [2 .. 0]", "float _A = 4 [0 .. 1]", "float _A = 1 [..]", "float4 _A = (1,2,3)", "float4 _A = (1,2,3,4) [0 .. 1]", "texture2D _A = 1", "transform2D _A = 1", "int _A = 1" })
     Reject(head + "// @param " + invalid);
-Reject(head + "// @param float _A = 1\n// @param float _A = 2");
+var repeated = Parse(head + "// @param float _A = 1\n// @param float _A = 2");
+Check(repeated.Count == 1 && repeated[0].controls.Count == 2 && repeated[0].floatValue == 2f, "Last explicit default wins for repeated declarations");
 Check(Parse(head + "/*\n// @param float _Ignored = 1\n*/").Count == 0, "Ignore declarations inside block comments");
 var toolType = typeof(DCFApixels.WhimTex.TextureCompositorWindow).GetNestedType("PreviewTransformManipulator", Hidden);
 var hitTest = toolType.GetMethod("HitTest", Hidden);
@@ -109,13 +110,15 @@ try
         string path = (string)entry.GetType().GetField("path", Hidden).GetValue(entry);
         if (!path.StartsWith("Packages/com.dcfapixels.whimtex/src/FXPresets/")) continue;
         string error = (string)entry.GetType().GetField("error", Hidden).GetValue(entry);
-        Check(error == null, "Built-in catalog metadata: " + error);
+        // Entries are serialized, so a healthy entry holds an empty string rather than null.
+        Check(string.IsNullOrEmpty(error), "Built-in catalog metadata: " + error);
         var instance = (DCFApixels.WhimTex.ShaderFX)typeof(DCFApixels.WhimTex.ShaderFX).GetMethod("FromCatalog", Hidden).Invoke(null, new object[] { document, entry });
         try { Check(shaderField.GetValue(instance) != null, "Catalog creates applied independent instance"); }
         finally { UnityEngine.Object.DestroyImmediate(instance); }
         builtIn++;
     }
-    Check(builtIn == 6, "Auto-discovered all six package HLSL presets");
+    Check(builtIn == System.IO.Directory.GetFiles("Packages/com.dcfapixels.whimtex/src/FXPresets", "*.hlsl").Length,
+        "Auto-discovered every package HLSL preset: " + builtIn);
     string json = EditorJsonUtility.ToJson(fx);
     var cloneShader = (UnityEngine.Object)shaderField.GetValue(clone);
     shaderField.SetValue(clone, null);

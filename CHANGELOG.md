@@ -4,6 +4,20 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+## [0.10.19] - 2026-09-16
+
+### Added
+
+- Pixel Art/Pixelate FX preset with block pixelation, optional 4x4 block averaging, level count, gamma, one-bit two-color output and eight dither patterns evaluated on the block grid.
+- Dither pattern and amount controls in Color/Posterize, replacing the on/off toggle, backed by a shared `Dither.cginc` include for every preset that exposes dithering.
+- GPU regression coverage for all dither patterns of both presets, one-bit output and the halftone threshold edge case.
+
+### Changed
+
+- Halftone dithering clamps its level step, so white pixels no longer exceed the output range or produce a third color in one-bit mode; FX metadata rejects an explicit float default outside a hard range boundary.
+- Posterize documents that had dithering enabled now use Bayer2 instead of hash noise; Hash moved to the end of the shared pattern list.
+- Pixelation and dithering sections in the English, Russian and Chinese guides, with Russian guide ordering fixes for the brush panel and the gradient sections.
+
 ## [0.10.18] - 2026-09-16
 
 ### Added
