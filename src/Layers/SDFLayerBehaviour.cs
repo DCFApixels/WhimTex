@@ -25,6 +25,7 @@ namespace DCFApixels.WhimTex
 
         [NonSerialized] private WhimTexGradientTexture gradientLut;
         [NonSerialized] private Material gradientMaterial;
+        [NonSerialized] internal RenderTexture activeDistanceTexture;
         internal override bool RequiresColorInput => sourceChannel != SourceChannel.Alpha;
 
         internal override RenderTexture Render(in LayerRenderContext context)
@@ -76,11 +77,20 @@ namespace DCFApixels.WhimTex
                 colored = RenderTexture.GetTemporary(context.width, context.height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
                 GL.sRGBWrite = false;
                 Graphics.Blit(resultTexture, colored, gradientMaterial);
+                if (context.applyModifiers && Owner.modifiers.Exists(m => m is ShaderFX fx && fx.Active && fx.UsesLayerSDF))
+                {
+                    var rawContext = new LayerRenderContext(context.compositor, context.input, context.width, context.height,
+                        context.scaleMultiplier, context.applyTransform, false, context.transformFxCoordinates);
+                    activeDistanceTexture = ApplyTransformAndModifiers(resultTexture, rawContext);
+                    activeDistanceTexture.filterMode = FilterMode.Bilinear;
+                }
                 return ApplyTransformAndModifiers(colored, context);
             }
             finally
             {
                 RenderTexture.active = previous; GL.sRGBWrite = srgb;
+                if (activeDistanceTexture != null) RenderTexture.ReleaseTemporary(activeDistanceTexture);
+                activeDistanceTexture = null;
                 if (colored != null) RenderTexture.ReleaseTemporary(colored);
                 if (signedDistances.IsCreated)
                     signedDistances.Dispose();

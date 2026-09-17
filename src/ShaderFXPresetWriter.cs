@@ -10,6 +10,12 @@ namespace DCFApixels.WhimTex
     internal static class ShaderFXPresetWriter
     {
         internal static string BuildSource(ShaderFX effect, string menuPath)
+            => BuildSourceCore(effect, menuPath, false);
+
+        internal static string BuildPortableSource(ShaderFX effect)
+            => BuildSourceCore(effect, "Portable Effect", true);
+
+        private static string BuildSourceCore(ShaderFX effect, string menuPath, bool portable)
         {
             if (effect == null) throw new ArgumentNullException(nameof(effect));
             if (string.IsNullOrWhiteSpace(menuPath) || menuPath.IndexOfAny(new[] { '\r', '\n' }) >= 0)
@@ -65,8 +71,10 @@ namespace DCFApixels.WhimTex
                 ShaderFXSourceBuilder.MaskComments(line, ref block);
                 if (!metadata) body.AppendLine(line);
             }
-            result.Append(ShaderFXSourceBuilder.ExportIncludes(body.ToString(), effect.SourcePath));
+            result.Append(portable ? ShaderFXSourceBuilder.ExportPortableIncludes(body.ToString(), effect.SourcePath)
+                : ShaderFXSourceBuilder.ExportIncludes(body.ToString(), effect.SourcePath));
             string source = result.ToString();
+            if (portable) ShaderFXSourceBuilder.ValidatePortableSource(source);
             if (Encoding.UTF8.GetByteCount(source) > 2 * 1024 * 1024)
                 throw new IOException("Exported HLSL exceeds 2 MiB.");
             ShaderFXMetadata.Parse(source, true, out _);
@@ -90,6 +98,8 @@ namespace DCFApixels.WhimTex
             string prefix = "// @param ";
             switch (p.type)
             {
+                case ShaderFXParameterType.Curve:
+                    return prefix + "curve " + p.name + " = " + WhimTexCurveTexture.Format(p.curveValue);
                 case ShaderFXParameterType.Gradient:
                     return prefix + "gradient " + p.name;
                 case ShaderFXParameterType.Bool:
@@ -123,6 +133,8 @@ namespace DCFApixels.WhimTex
                     return prefix + "transform2D " + p.name + " = (" + Number(t.position.x) + ", " + Number(t.position.y) + ", " + Number(t.size.x) + ", " + Number(t.size.y) + ", " + Number(t.rotation) + ")";
                 case ShaderFXParameterType.Texture2D:
                     string declaration = prefix + "texture2D " + p.name;
+                    if (p.textureSource == ShaderFXTextureSource.None) return declaration + " = none";
+                    if (p.textureSource == ShaderFXTextureSource.Self) return declaration + " = self";
                     if (p.textureSource == ShaderFXTextureSource.Layer || p.textureValue == null) return declaration;
                     if (!AssetDatabase.TryGetGUIDAndLocalFileIdentifier(p.textureValue, out string guid, out long localId) || string.IsNullOrEmpty(guid))
                         throw new IOException("Texture " + p.name + " must be a saved project asset to be used as a preset default.");

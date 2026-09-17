@@ -1,5 +1,5 @@
 // @whimtex-effect Distortion/Twirl
-// @param float _Angle = 180 [-720 .. 720]
+// @param float _Angle = 180 [~-720 .. ~720]
 // @param transform2D _Area
 
 float4 ApplyFX(float2 uv, float4 color)

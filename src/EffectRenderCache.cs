@@ -74,7 +74,7 @@ namespace DCFApixels.WhimTex
             }
             if (layer.modifiers != null)
                 foreach (var modifier in layer.modifiers)
-                    if (modifier is ShaderFX fx)
+                    if (modifier is ShaderFX fx && fx.Active)
                         foreach (var parameter in fx.TextureLayerParameters())
                         {
                             Layer input = document.FindLayer(parameter.textureLayerId);

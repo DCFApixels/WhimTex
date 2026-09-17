@@ -6,6 +6,7 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
+        [SerializeField] private bool transformSettingsExpanded;
         [SerializeField] private bool colorSettingsExpanded;
         [SerializeField] private bool layerPropertiesExpanded = true;
         [SerializeField] private bool layerFxExpanded;
@@ -103,7 +104,8 @@ namespace DCFApixels.WhimTex
                 apply, toolkitInspectorBindings, properties => BuildToolkitLayerProperties(properties, layer, apply),
                 colorSettingsExpanded, value => colorSettingsExpanded = value,
                 layerPropertiesExpanded, value => layerPropertiesExpanded = value,
-                layerFxExpanded, value => layerFxExpanded = value);
+                layerFxExpanded, value => layerFxExpanded = value,
+                transformSettingsExpanded, value => transformSettingsExpanded = value);
         }
 
         private Action<string, Action> InspectorChangeFor(Layer layer)

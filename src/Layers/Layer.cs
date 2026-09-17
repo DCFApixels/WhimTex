@@ -163,7 +163,7 @@ namespace DCFApixels.WhimTex
         internal bool RequiresInput => Behaviour?.RequiresInput ?? false;
         internal bool IsGroup => group;
         internal Layer AsGroup() => group ? this : null;
-        internal bool HasModifiers => modifiers != null && modifiers.Exists(value => value != null);
+        internal bool HasModifiers => modifiers != null && modifiers.Exists(value => value != null && (!(value is ShaderFX fx) || fx.Active));
         internal bool IsPassThrough => compositing == GroupCompositing.PassThrough && swizzle.IsIdentity && !HasModifiers;
         internal BlendMode EffectiveBlendMode => compositing == GroupCompositing.PassThrough ? BlendMode.Normal : blendMode;
         internal List<Layer> layers { get => children ??= new List<Layer>(); set => children = value; }
@@ -342,14 +342,21 @@ namespace DCFApixels.WhimTex
                 return;
             for (int i = 0; i < modifiers.Count; i++)
             {
+                if (modifiers[i] is ShaderFX inactive && !inactive.Active) continue;
                 using var textureInputs = modifiers[i] is ShaderFX textureFX
-                    ? context.compositor.BindShaderTextureLayers(textureFX, this, context) : null;
+                    ? context.compositor.BindShaderTextureLayers(textureFX, this, context, current) : null;
                 Material modifier = modifiers[i] is ShaderFX shaderFX
                     ? shaderFX.GetMaterial(context)
                     : modifiers[i] as Material;
                 if (modifier == null)
                     continue;
                 textureInputs?.Apply(modifier);
+                var sdfInput = (Behaviour as SDFLayerBehaviour)?.activeDistanceTexture;
+                if (modifiers[i] is ShaderFX)
+                {
+                    modifier.SetTexture("_WhimTex_LayerSDF", sdfInput);
+                    modifier.SetFloat("_WhimTex_HasLayerSDF", sdfInput != null ? 1f : 0f);
+                }
                 if (modifiers[i] is ShaderFX)
                 {
                     if (!context.transformFxCoordinates)
@@ -379,6 +386,10 @@ namespace DCFApixels.WhimTex
                 {
                     RenderTexture.ReleaseTemporary(next);
                     throw;
+                }
+                finally
+                {
+                    if (modifiers[i] is ShaderFX) modifier.SetTexture("_WhimTex_LayerSDF", null);
                 }
                 RenderTexture.ReleaseTemporary(current);
                 current = next;

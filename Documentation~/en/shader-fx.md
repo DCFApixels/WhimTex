@@ -11,6 +11,16 @@ next_page: "en/preview.md"
 
 # Shader FX and Processor
 
+The `one` curve default is flat at 1, with keys at times 0 and 1.
+
+Curve defaults also include `easeIn` for a slow start and `easeOut` for a slow finish. Both are quadratic 0→1 curves.
+
+Effect authors can choose `curve _Profile = linear` or `curve _Profile = easeInOut` in a `// @param` declaration. Both start at (0,0) and end at (1,1); Ease In Out smoothly flattens at both ends.
+
+**Color → Levels** offers a **Curve** after input black/white and Gamma, before output black/white. It starts linear. With **Preserve Color**, the curve remaps luminance; otherwise it remaps each RGB channel separately. Alpha is unchanged.
+
+Texture source **Self** reads the image before the current FX, including earlier effects. **None** returns transparent pixels. These modes need no assigned asset or layer; Self continues to work when copied to another layer.
+
 Vector parameters provide two, three or four numeric components. A normal parameter provides a unit direction and **Edit on Canvas**. Drag its endpoint: near the center it faces the camera; at the maximum radius it points along the canvas. Click the endpoint to switch between **+** (toward the camera) and **−** (away).
 
 A texture parameter can use **Texture** (an asset) or **Layer** (a layer in this document). Choose the source mode or drag a layer onto the parameter. Procedural and Drawing layers are supported, even when hidden. Groups provide their colored contents; hidden children remain hidden. Missing sources produce transparency, and circular references cannot be selected.
@@ -19,6 +29,12 @@ Procedural shapes written in an FX can follow the layer transform using `LayerTo
 
 Use a custom shader effect when you need a look that the built-in layers do not provide.
 You can use an existing effect and adjust its parameters without writing code.
+
+**Profile** in Bevel Emboss shapes the bevel from its edge to its interior; **Smoothness** rounds the resulting profile. **Mapping** in Gradient Map redistributes brightness before choosing a gradient color. Both curves start linear, preserving the default appearance.
+
+Color Balance uses three signed RGB components. Gain, Levels, Threshold, ambient lighting and distortion offsets offer soft limits where appropriate. Levels and Threshold can work above 1 for HDR; blend amounts remain limited to 0–1. Pixelate and Posterize allow more than 64 levels and Gamma above 5 through numeric input.
+
+The unlabeled checkbox in each Shader FX header enables or bypasses that effect without removing its settings. External FX references share this state; use **Embed** for an independent copy.
 
 ## Apply an existing effect
 
@@ -35,6 +51,10 @@ Some sliders allow numbers past one or both ends of their visible range: type in
 or drag the parameter label. Each end can independently be a hard or soft limit.
 The thumb stays at the nearest endpoint, but the effect uses your number. Other sliders keep
 both dragging and numeric input limited to their range, as chosen by the effect's author.
+
+Effects can offer a curve field for adjusting a numeric profile. Click it to edit keys and tangents
+with Unity's curve editor. It starts as a straight line from 0 to 1; values may go below 0 or above 1.
+Saving an HLSL preset preserves the edited curve.
 
 Effects can also offer a gradient field. Click its strip to edit colors, transparency and interpolation,
 including HDR colors. New gradients start black-to-white; changes update the effect immediately.
@@ -84,6 +104,11 @@ stable noise without a visible grid. The pattern is evaluated per block, so it s
 pixelation. **Amount** weakens it down to plain rounding. **One Bit** reduces the result to
 **Low Color** and **High Color** by luminance instead of quantizing each channel. Alpha is preserved.
 The same pattern list works per pixel in **Color → Posterize**.
+
+**Lighting and embossing**
+
+- **Normal Map → Lighting** turns an RGB normal map into a shaded surface. **Normals** defaults to Self. Set **Light Direction** with its canvas handle, then adjust **Base Color**, light/shadow colors, **Intensity** and **Ambient**. Keep **Packed Color** enabled for the Normal Map layer's default output; disable it for Linear Data. **Flip Y** reverses the green-axis convention. Platform-packed normal textures are not supported.
+- **SDF → Bevel Emboss** belongs directly on an SDF layer. **Surface** defaults to Self and supplies the surface color; the relief uses the layer's raw distances, independently of its gradient. **Width** controls the inner bevel, **Depth** raises or engraves it, **Smoothness** rounds the profile, and **Smoothing** reduces contour stair steps. Width/depth are in document pixels before the SDF layer transform. Alpha is preserved. Place bevel before spatial distortion FX, since earlier FX do not deform the raw SDF. On other layer types it leaves the image unchanged.
 
 **Normal map normalization**
 

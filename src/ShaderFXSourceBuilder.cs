@@ -75,7 +75,7 @@ namespace DCFApixels.WhimTex
             HashSet<string> names = new HashSet<string>(StringComparer.Ordinal)
             {
                 "_MainTex", "_MainTex_TexelSize", "_InputSize", "_CanvasSize", "_PreviewScale",
-                "ApplyFX", "SampleInput", "LayerToLocal", "SpriteFXFragment", "vert_img", "v2f_img"
+                "ApplyFX", "SampleInput", "LayerToLocal", "HasLayerSDF", "SampleLayerSDF", "SpriteFXFragment", "vert_img", "v2f_img"
             };
             foreach (ShaderFXParameter parameter in effect.Parameters)
             {
@@ -121,6 +121,14 @@ namespace DCFApixels.WhimTex
                             uniforms.AppendLine($"float2 {name}_{direction}(float2 uv) {{ float3 p = float3(uv, 1.0); float w = dot({prefix}{direction}Row2.xyz, p); w = w < 0.0 ? min(w, -1e-7) : max(w, 1e-7); return float2(dot({prefix}{direction}Row0.xyz, p), dot({prefix}{direction}Row1.xyz, p)) / w; }}");
                         }
                         break;
+                    case ShaderFXParameterType.Curve:
+                        if (!names.Add(name + "_Sample"))
+                            throw new InvalidOperationException("Curve helper name conflicts with another parameter: " + name);
+                        string curveTexture = parameter.InternalPrefix + "Curve";
+                        properties.AppendLine($"{curveTexture} (\"{name}\", 2D) = \"white\" {{}}");
+                        uniforms.AppendLine($"sampler2D {curveTexture};");
+                        uniforms.AppendLine($"float {name}_Sample(float t) {{ return tex2Dlod({curveTexture}, float4((saturate(t) * 511.0 + 0.5) / 512.0, 0.5, 0.0, 0.0)).r; }}");
+                        break;
                     case ShaderFXParameterType.Gradient:
                         if (!names.Add(name + "_Sample"))
                             throw new InvalidOperationException("Gradient helper name conflicts with another parameter: " + name);
@@ -140,7 +148,10 @@ namespace DCFApixels.WhimTex
                 "SubShader { Cull Off ZWrite Off ZTest Always Blend Off\nPass {\nCGPROGRAM\n" +
                 "#pragma vertex vert_img\n#pragma fragment SpriteFXFragment\n#pragma target 3.5\n" +
                 "#include \"UnityCG.cginc\"\n" + NoiseLibraryInclude + "sampler2D _MainTex;\nfloat4 _MainTex_TexelSize;\n" +
-                "float4 _InputSize;\nfloat4 _CanvasSize;\nfloat _PreviewScale;\n" + uniforms +
+                "sampler2D _WhimTex_LayerSDF; float _WhimTex_HasLayerSDF;\n" +
+                "bool HasLayerSDF() { return _WhimTex_HasLayerSDF > 0.5; }\n" +
+                "float4 _InputSize;\nfloat4 _CanvasSize;\nfloat _PreviewScale;\n" +
+                "float SampleLayerSDF(float2 uv) { float4 d = tex2D(_WhimTex_LayerSDF, uv); return HasLayerSDF() && d.a > 0.5 ? d.r * _PreviewScale : 1000000.0; }\n" + uniforms +
                 "float4 _WhimTex_LayerToLocalRow0, _WhimTex_LayerToLocalRow1, _WhimTex_LayerToLocalRow2;\n" +
                 "float2 LayerToLocal(float2 uv) { float3 p = float3(uv, 1); float w = dot(_WhimTex_LayerToLocalRow2.xyz, p); w = abs(w) < 1e-8 ? (w < 0 ? -1e-8 : 1e-8) : w; return float2(dot(_WhimTex_LayerToLocalRow0.xyz, p), dot(_WhimTex_LayerToLocalRow1.xyz, p)) / w; }\n" +
                 "float4 SampleInput(float2 uv) { return tex2D(_MainTex, uv); }\n" +
@@ -231,6 +242,109 @@ namespace DCFApixels.WhimTex
                 return result.ToString();
             }
             return Expand(source, sourcePath, 0);
+        }
+
+        internal const int PortableMaximumBytes = 64 * 1024;
+        private static readonly HashSet<string> PortableIncludes = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "UnityCG.cginc",
+            "Packages/com.dcfapixels.whimtex/src/Shaders/ThirdParty/FastNoiseLite.hlsl",
+            "Packages/com.dcfapixels.whimtex/src/Shaders/Dither.cginc"
+        };
+        private static readonly Regex PortableInclude = new Regex("^\\s*#\\s*include\\s+[\"<]([^\">]+)[\">]\\s*$");
+        private static readonly Regex PortableDirective = new Regex(@"^\s*#\s*(\w+)\b");
+        private static readonly HashSet<string> PortableDirectives = new HashSet<string>(StringComparer.Ordinal)
+            { "define", "undef", "if", "ifdef", "ifndef", "elif", "else", "endif", "error" };
+
+        internal static void ValidatePortableSource(string source)
+        {
+            if (string.IsNullOrEmpty(source) || Encoding.UTF8.GetByteCount(source) > PortableMaximumBytes)
+                throw new FormatException("Portable FX exceeds 64 KiB of UTF-8 HLSL (including parameter declarations).");
+            if (source.IndexOf("guid:", StringComparison.OrdinalIgnoreCase) >= 0)
+                throw new FormatException("Portable FX cannot reference texture asset GUIDs.");
+            bool block = false;
+            foreach (string line in PortableLogicalLines(source))
+            {
+                string clean = MaskComments(line, ref block);
+                var directive = PortableDirective.Match(clean);
+                if (!directive.Success)
+                {
+                    if (clean.IndexOf('#') >= 0) throw new FormatException("Invalid portable HLSL directive.");
+                    continue;
+                }
+                string name = directive.Groups[1].Value;
+                if (name == "include")
+                {
+                    var include = PortableInclude.Match(clean);
+                    if (!include.Success || !PortableIncludes.Contains(include.Groups[1].Value))
+                        throw new FormatException("Portable FX only accepts literal built-in includes: " + string.Join(", ", PortableIncludes) + ". Copy as Portable expands other files on the sender's machine.");
+                }
+                else if (!PortableDirectives.Contains(name))
+                    throw new FormatException("Unsupported portable HLSL directive: #" + name);
+            }
+            if (block) throw new FormatException("Unterminated HLSL block comment.");
+        }
+
+        private static IEnumerable<string> PortableLogicalLines(string source)
+        {
+            // Match preprocessing order: line splicing happens before comments are removed.
+            string joined = Regex.Replace(source, @"\\\r?\n", "");
+            using var reader = new StringReader(joined);
+            string line;
+            while ((line = reader.ReadLine()) != null) yield return line;
+        }
+
+        internal static string ExportPortableIncludes(string source, string sourcePath)
+        {
+            var builder = new ShaderFXSourceBuilder();
+            var active = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var result = new StringBuilder();
+            int bytes = 0;
+            void Append(string text, string path)
+            {
+                bytes += Encoding.UTF8.GetByteCount(text);
+                if (bytes > PortableMaximumBytes) throw new IOException("Portable FX exceeds 64 KiB while expanding: " + path);
+                result.Append(text);
+            }
+            void Expand(string text, string path, int depth)
+            {
+                if (depth > 8) throw new IOException("Portable include nesting exceeds 8: " + path);
+                if (!active.Add(path)) throw new IOException("Cyclic portable shader include: " + path);
+                try
+                {
+                    bool block = false;
+                    foreach (string line in PortableLogicalLines(text))
+                    {
+                        string clean = MaskComments(line, ref block);
+                        var include = PortableInclude.Match(clean);
+                        if (!include.Success) { Append(line + "\n", path); continue; }
+                        string requested = include.Groups[1].Value;
+                        string resolved = PortableIncludes.Contains(requested) ? requested : builder.Resolve(requested, path);
+                        if (PortableIncludes.Contains(resolved))
+                        {
+                            int start = clean.IndexOf('#');
+                            int end = include.Groups[1].Index + include.Groups[1].Length + 1;
+                            Append(line.Substring(0, start) + "#include \"" + resolved + "\"" + line.Substring(end) + "\n", path);
+                            continue;
+                        }
+                        string physical = builder.PhysicalPath(resolved);
+                        if (!File.Exists(physical)) throw new IOException("Missing portable shader include: " + resolved);
+                        if (new FileInfo(physical).Length > PortableMaximumBytes)
+                            throw new IOException("Shader include exceeds 64 KiB: " + resolved);
+                        int first = clean.IndexOf('#');
+                        int last = include.Groups[1].Index + include.Groups[1].Length + 1;
+                        Append(line.Substring(0, first) + "\n", path);
+                        Expand(File.ReadAllText(physical), resolved, depth + 1);
+                        Append(line.Substring(last) + "\n", path);
+                    }
+                    if (block) throw new IOException("Unterminated block comment in shader include: " + path);
+                }
+                finally { active.Remove(path); }
+            }
+            Expand(source, sourcePath, 0);
+            string expanded = result.ToString();
+            ValidatePortableSource(expanded);
+            return expanded;
         }
 
         private string Resolve(string requested, string sourcePath)

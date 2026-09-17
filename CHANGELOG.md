@@ -4,6 +4,23 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+## [0.10.21] - 2026-09-17
+
+### Added
+
+- Copy as Portable clipboard JSON with hierarchy, transforms, FX values and internal layer references; unchanged URL-backed Drawing layers retain their source links.
+- Empty Drawing/File placeholders with warnings for omitted image content, and File texture restoration by asset GUID and local ID.
+- Bounded expansion of custom HLSL includes for portable sharing, preserving separate function definitions.
+- Curve FX parameters with cached GPU lookup textures and linear, easeInOut, easeIn, easeOut and one defaults.
+- Self/None defaults for texture parameters, Normal Lighting and SDF Bevel FX presets, and per-effect activity toggles.
+- Canvas-pixel keyboard nudging with gradual repeat acceleration and separate canvas/layer-list keyboard context.
+
+### Changed
+
+- Updated built-in FX parameter controls, curve defaults and soft ranges.
+- Layer settings sections retain their expanded state when switching layers.
+- Updated EN/RU/ZH guides, clipboard schema and regression tests.
+
 ## [0.10.20] - 2026-09-17
 
 ### Added

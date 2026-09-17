@@ -1,7 +1,7 @@
 // @whimtex-effect Color/Color Balance
-// @param float4 _Shadows = (0, 0, 0, 0) // Signed RGB offsets for shadows; W is unused.
-// @param float4 _Midtones = (0, 0, 0, 0) // Signed RGB offsets for midtones; W is unused.
-// @param float4 _Highlights = (0, 0, 0, 0) // Signed RGB offsets for highlights; W is unused.
+// @param float3 _Shadows = (0, 0, 0) // Signed RGB offsets for shadows.
+// @param float3 _Midtones = (0, 0, 0) // Signed RGB offsets for midtones.
+// @param float3 _Highlights = (0, 0, 0) // Signed RGB offsets for highlights.
 // @param float _ShadowRange = 0.5 [0 .. 1] // Shadow influence range; zero disables it.
 // @param float _HighlightRange = 0.5 [0 .. 1] // Highlight influence range; zero disables it.
 // @param bool _PreserveLuma = true // Preserve luminance without amplifying near-zero or negative colors.

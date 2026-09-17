@@ -4,7 +4,7 @@
 // @param enum _Dither = None {None: 0, Bayer2: 1, Bayer4: 2, Bayer8: 3, Interleaved: 4, Checker: 5, Halftone: 6, Hash: 7} // Dither pattern, evaluated on the block grid so it stays visible after pixelation.
 // @param float _Amount = 1 [0 .. 1] // Dither strength; zero rounds each channel to the nearest level.
 // @param float _Levels = 8 [2 .. ~64] // Output levels per channel, rounded to an integer.
-// @param float _Gamma = 1 [0.1 .. 5] // Distribution of the tonal steps; ignored in One-bit mode.
+// @param float _Gamma = 1 [0.1 .. ~5] // Distribution of the tonal steps; ignored in One-bit mode.
 // @param bool _OneBit = false // Reduce to the two colors below instead of quantizing each channel.
 // @param color _LowColor = (0, 0, 0, 1) // Dark color in One-bit mode; color alpha is ignored.
 // @param color _HighColor = (1, 1, 1, 1) // Light color in One-bit mode; color alpha is ignored.
@@ -33,7 +33,7 @@ float4 ApplyFX(float2 uv, float4 color)
     float4 source = SampleBlock(blockUv, size / canvas, size);
     // Amount 0 keeps the plain rounding threshold, so the effect degrades to clean quantization.
     float threshold = lerp(0.5, DitherThreshold(block, _Dither), saturate(_Amount));
-    float gamma = clamp(_Gamma, 0.1, 5.0);
+    float gamma = max(_Gamma, 0.1);
     if (_OneBit > 0.5)
     {
         float luminance = saturate(dot(max(source.rgb, 0.0), float3(0.2126, 0.7152, 0.0722)));
@@ -41,7 +41,7 @@ float4 ApplyFX(float2 uv, float4 color)
         source.rgb = lerp(_LowColor.rgb, _HighColor.rgb, floor(saturate(luminance + threshold)));
         return source;
     }
-    float steps = clamp(floor(_Levels + 0.5), 2.0, 64.0) - 1.0;
+    float steps = max(floor(_Levels + 0.5), 2.0) - 1.0;
     float3 toned = pow(saturate(source.rgb), gamma);
     // The clamp keeps a Halftone threshold of exactly 1.0 from pushing a channel above 1.0.
     source.rgb = pow(min(floor(toned * steps + threshold), steps) / steps, 1.0 / gamma);

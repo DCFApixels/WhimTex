@@ -57,7 +57,8 @@ public static class ProceduralClipboardSmoke
         Reject(head + "[{\"type\":\"drawing\",\"url\":\"/local/a.png\"}]}");
         Reject(head + "[{\"type\":\"drawing\",\"url\":\"not a link\"}]}");
         Reject(head + "[{\"type\":\"color\",\"url\":\"https://example.com/a.png\"}]}");
-        Reject(head + "[{\"type\":\"drawing\",\"url\":\"https://example.com/a.png\",\"transform\":{\"scale\":[2,2]}}]}");
+        using (var scaled = (IDisposable)Build(head + "[{\"type\":\"drawing\",\"url\":\"https://example.com/a.png\",\"transform\":{\"scale\":[2,2]}}]}"))
+            Check(Document(scaled).layers[0].transform.scale.x == 2, "Explicit linked-image scale is preserved.");
         using (var empty = (IDisposable)Build(head + "[{\"type\":\"drawing\"}]}"))
             Check(Document(empty).layers.Count == 1, "An empty Drawing layer is allowed.");
         using (var linked = (IDisposable)Build(head + "[{\"type\":\"drawing\",\"url\":\"https://example.com/a.png\"},{\"type\":\"color\"}]}"))

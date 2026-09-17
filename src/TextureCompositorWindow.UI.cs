@@ -87,6 +87,7 @@ namespace DCFApixels.WhimTex
             root.UnregisterCallback<DragUpdatedEvent>(OnBrushPresetDragUpdated, TrickleDown.TrickleDown);
             root.UnregisterCallback<DragPerformEvent>(OnBrushPresetDragPerform, TrickleDown.TrickleDown);
             root.UnregisterCallback<PointerDownEvent>(OnOpacityPointerDown, TrickleDown.TrickleDown);
+            root.UnregisterCallback<PointerDownEvent>(OnSectionPointerDown, TrickleDown.TrickleDown);
             ResetOpacityEntry();
             root.Clear();
             WhimTexUI.ApplyWindowStyles(root);
@@ -107,6 +108,7 @@ namespace DCFApixels.WhimTex
             root.RegisterCallback<DragUpdatedEvent>(OnBrushPresetDragUpdated, TrickleDown.TrickleDown);
             root.RegisterCallback<DragPerformEvent>(OnBrushPresetDragPerform, TrickleDown.TrickleDown);
             root.RegisterCallback<PointerDownEvent>(OnOpacityPointerDown, TrickleDown.TrickleDown);
+            root.RegisterCallback<PointerDownEvent>(OnSectionPointerDown, TrickleDown.TrickleDown);
 
             toolkitDocumentRoot = new VisualElement();
             toolkitDocumentRoot.style.flexShrink = 0f;
@@ -1881,6 +1883,7 @@ namespace DCFApixels.WhimTex
 
         private void OnToolkitKeyDown(KeyDownEvent evt)
         {
+            if (keyboardTransform != null && evt.keyCode != nudgeKey) StopKeyboardNudge();
             if (evt.keyCode == KeyCode.LeftControl || evt.keyCode == KeyCode.RightControl)
             {
                 previewPointerControl = evt.ctrlKey;
@@ -1919,6 +1922,7 @@ namespace DCFApixels.WhimTex
             if (gradientCanvasManipulator?.HandleDelete(evt) == true) return;
             if (HandlePreviewGuideKey(evt)) return;
             if (HandleAreaSelectionKey(evt)) return;
+            if (HandleLayerNudgeKey(evt)) return;
             if (HandleLayerNavigationKey(evt)) return;
 
             if (previewTool != PreviewTool.Transform && (evt.keyCode == KeyCode.LeftAlt || evt.keyCode == KeyCode.RightAlt))
@@ -2005,6 +2009,12 @@ namespace DCFApixels.WhimTex
 
         private void OnToolkitKeyUp(KeyUpEvent evt)
         {
+            if (keyboardTransform != null && evt.keyCode == nudgeKey)
+            {
+                StopKeyboardNudge();
+                WhimTexUI.ConsumeEvent(evt);
+                return;
+            }
             if (evt.keyCode == KeyCode.LeftControl || evt.keyCode == KeyCode.RightControl)
             {
                 previewPointerControl = evt.ctrlKey;

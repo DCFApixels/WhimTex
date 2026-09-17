@@ -23,6 +23,7 @@ namespace DCFApixels.WhimTex
             this.effect = effect; this.id = id;
             document = TextureCompositorWindow.FindFXTransformDocument(effect);
             source = new EnumField(label + " Source", ShaderFXTextureSource.Texture);
+            source.tooltip = "None: transparent. Self: image immediately before this FX. Texture: asset (white if empty). Layer: another layer, including hidden sources.";
             texture = new ObjectField(label) { objectType = typeof(Texture2D), allowSceneObjects = false };
             layer = new PopupField<Layer>(label, choices, 0, Name, Name);
             layer.AddToClassList("whimtex-effect-target");
@@ -72,7 +73,7 @@ namespace DCFApixels.WhimTex
             source.SetValueWithoutNotify(p.textureSource);
             texture.SetValueWithoutNotify(p.textureValue);
             bool fromLayer = p.textureSource == ShaderFXTextureSource.Layer;
-            texture.EnableInClassList("whimtex-shader-fx-hidden", fromLayer);
+            texture.EnableInClassList("whimtex-shader-fx-hidden", p.textureSource != ShaderFXTextureSource.Texture);
             layer.EnableInClassList("whimtex-shader-fx-hidden", !fromLayer);
             if (document == null) document = TextureCompositorWindow.FindFXTransformDocument(effect);
             var selected = document != null ? document.FindLayer(p.textureLayerId) : null;

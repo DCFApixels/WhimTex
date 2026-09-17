@@ -14,8 +14,115 @@ namespace DCFApixels.WhimTex
 
         private bool IsLayerSelected(string id) => id != null && selectedLayerIds.Contains(id);
 
+        private bool keyboardCanvasContext;
+        private KeyCode nudgeKey;
+        private MultiLayerTransform keyboardTransform;
+        private TextureTransform keyboardFrame;
+        private double nudgeStarted, nextNudge;
+        private int nudgeUndoGroup = -1;
+
+        private void OnSectionPointerDown(PointerDownEvent evt)
+        {
+            StopKeyboardNudge();
+            var element = evt.target as VisualElement;
+            if (element != null && toolkitPreviewCanvas != null &&
+                (element == toolkitPreviewCanvas || toolkitPreviewCanvas.Contains(element)))
+            {
+                keyboardCanvasContext = true;
+                toolkitPreviewCanvas.Focus();
+            }
+            else if (element != null && toolkitLayerHierarchyRoot != null &&
+                (element == toolkitLayerHierarchyRoot || toolkitLayerHierarchyRoot.Contains(element)))
+                keyboardCanvasContext = false;
+        }
+
+        private static bool IsNudgeKey(KeyCode key) => key == KeyCode.LeftArrow || key == KeyCode.RightArrow ||
+            key == KeyCode.UpArrow || key == KeyCode.DownArrow;
+
+        private bool HandleLayerNudgeKey(KeyDownEvent evt)
+        {
+            if (!keyboardCanvasContext || !IsNudgeKey(evt.keyCode)) return false;
+            if (evt.ctrlKey || evt.commandKey || evt.altKey || evt.shiftKey || compositor == null ||
+                IsLayerNavigationInput(evt.target as VisualElement) ||
+                IsLayerNavigationInput(rootVisualElement.panel?.focusController?.focusedElement as VisualElement))
+                return false;
+            WhimTexUI.ConsumeEvent(evt);
+            if (keyboardTransform != null && nudgeKey == evt.keyCode) return true; // Ignore OS repeat.
+            StopKeyboardNudge();
+            if (activeLayerDrag != null || paintingLayer != null || PreviewFXParameter != null ||
+                previewTransformManipulator?.IsDragging == true || previewZoomManipulator?.IsDragging == true ||
+                previewGuideManipulator?.IsDragging == true || gradientCanvasManipulator?.IsDragging == true)
+                return true;
+            if (areaSelectionManipulator?.HasGesture == true) return true;
+            NormalizeLayerSelection();
+            if (selectedLayerIds.Count == 0) return true;
+            foreach (var id in selectedLayerIds)
+            {
+                var layer = compositor.FindLayer(id);
+                if (layer == null || layer.Behaviour == null || WhimTexApi.IsLayerContentLocked(compositor, layer) ||
+                    WhimTexApi.ContainsReservation(layer)) return true;
+            }
+            FinishPreviewTransform();
+            try
+            {
+                keyboardTransform = new MultiLayerTransform(compositor, selectedLayerIds);
+                keyboardTransform.Begin();
+            }
+            catch (System.InvalidOperationException) { keyboardTransform = null; return true; }
+            keyboardFrame = keyboardTransform.Frame;
+            Undo.IncrementCurrentGroup();
+            nudgeUndoGroup = Undo.GetCurrentGroup();
+            Undo.RegisterCompleteObjectUndo(compositor, "Move Layers");
+            nudgeKey = evt.keyCode;
+            nudgeStarted = EditorApplication.timeSinceStartup;
+            nextNudge = nudgeStarted + .3;
+            NudgeOnePixel();
+            if (keyboardTransform != null) EditorApplication.update += UpdateKeyboardNudge;
+            return true;
+        }
+
+        private void NudgeOnePixel()
+        {
+            // Canvas pixels, independent of preview zoom and layer/parent scale.
+            var frame = keyboardFrame;
+            frame.position += new Double2(nudgeKey == KeyCode.LeftArrow ? -1 : nudgeKey == KeyCode.RightArrow ? 1 : 0,
+                nudgeKey == KeyCode.UpArrow ? 1 : nudgeKey == KeyCode.DownArrow ? -1 : 0);
+            if (!keyboardTransform.Apply(frame)) { StopKeyboardNudge(); return; }
+            keyboardFrame = frame;
+            RequestPreview(true);
+            previewTransformOverlay?.MarkDirtyRepaint();
+            gradientCanvasOverlay?.MarkDirtyRepaint();
+        }
+
+        private void UpdateKeyboardNudge()
+        {
+            if (focusedWindow != this || keyboardTransform == null ||
+                !keyboardTransform.Matches(compositor, selectedLayerIds)) { StopKeyboardNudge(); return; }
+            double now = EditorApplication.timeSinceStartup;
+            if (now < nextNudge) return;
+            NudgeOnePixel();
+            nextNudge = now + System.Math.Max(.025, .1 / (1 + (now - nudgeStarted) * .6));
+        }
+
+        private void StopKeyboardNudge()
+        {
+            EditorApplication.update -= UpdateKeyboardNudge;
+            if (keyboardTransform == null) return;
+            keyboardTransform = null;
+            Undo.FlushUndoRecordObjects();
+            if (nudgeUndoGroup >= 0) Undo.CollapseUndoOperations(nudgeUndoGroup);
+            nudgeUndoGroup = -1;
+            Undo.IncrementCurrentGroup();
+            applyingToolkitChange = true;
+            try { if (compositor != null) CommitModelChange(); }
+            finally { applyingToolkitChange = false; }
+            lineAnchorLayer = null;
+            toolkitRefreshRequested = true;
+        }
+
         private bool HandleLayerNavigationKey(KeyDownEvent evt)
         {
+            if (keyboardCanvasContext) return false;
             if (evt.keyCode != KeyCode.UpArrow && evt.keyCode != KeyCode.DownArrow)
                 return false;
             if (evt.ctrlKey || evt.commandKey || evt.altKey || evt.shiftKey || compositor == null)

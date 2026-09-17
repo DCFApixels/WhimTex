@@ -34,7 +34,7 @@ namespace DCFApixels.WhimTex
                 return true;
             }
             BeginImageUrlBatch(compositor,
-                new List<(string, Func<Texture2D, bool>)> { (uri.AbsoluteUri, InsertDownloadedImage) }, null);
+                new List<(string, Func<Texture2D, bool>)> { (uri.AbsoluteUri, texture => InsertDownloadedImage(texture, uri.AbsoluteUri)) }, null);
             return true;
         }
 
@@ -42,6 +42,9 @@ namespace DCFApixels.WhimTex
         // downloaded first, then the whole tree is pasted in one Undo step once every image has arrived.
         private bool PasteProceduralClipboard(WhimTexApi.ProceduralClipboard data, bool resize)
         {
+            WhimTexApi.PreparePortableDestination(data, compositor);
+            if (data.Warnings.Count > 0 && !EditorUtility.DisplayDialog("Paste with warnings",
+                string.Join("\n\n", data.Warnings), "Paste", "Cancel")) return false;
             if (data.Images.Count == 0)
             {
                 PasteCopiedLayers(data.Document, resize, data.CanvasFilter);
@@ -58,7 +61,7 @@ namespace DCFApixels.WhimTex
                 "Download and Paste", "Cancel"))
                 return false;
             var jobs = new List<(string, Func<Texture2D, bool>)>(data.Images.Count);
-            foreach (var image in data.Images) jobs.Add((image.url, texture => AdoptClipboardImage(image.layer, texture)));
+            foreach (var image in data.Images) jobs.Add((image.url, texture => AdoptClipboardImage(image.layer, texture, image.url, image.fit)));
             clipboardPasteData = data;
             clipboardPasteResize = resize;
             BeginImageUrlBatch(compositor, jobs, FinishClipboardPaste);
@@ -76,13 +79,14 @@ namespace DCFApixels.WhimTex
             return string.Join(", ", hosts);
         }
 
-        private bool AdoptClipboardImage(Layer layer, Texture2D texture)
+        private bool AdoptClipboardImage(Layer layer, Texture2D texture, string url, bool fit)
         {
             WhimTexApi.ProceduralClipboard data = clipboardPasteData;
             if (data == null || !(layer?.Behaviour is DrawingLayerBehaviour drawing)) return false;
             drawing.AdoptStoredTexture(texture);
+            drawing.RememberImageUrl(url);
             // Keep every source pixel: fit the transform to the canvas instead of resampling the image.
-            if (layer.TryGetOriginalAspectTransform(data.Document, out TextureTransform fitted)) layer.transform = fitted;
+            if (fit && layer.TryGetOriginalAspectTransform(data.Document, out TextureTransform fitted)) layer.transform = fitted;
             return true;
         }
 
@@ -204,7 +208,7 @@ namespace DCFApixels.WhimTex
             CancelClipboardPaste();
         }
 
-        private bool InsertDownloadedImage(Texture2D texture)
+        private bool InsertDownloadedImage(Texture2D texture, string url)
         {
             FinishPaintingStroke();
             FinishPreviewTransform();
@@ -213,6 +217,7 @@ namespace DCFApixels.WhimTex
             {
                 if (!HasPreviewLayers) { compositor.width = source.width; compositor.height = source.height; }
                 var layer = DrawingLayerBehaviour.FromMergedTexture(source);
+                layer.RememberImageUrl(url);
                 layer.colorRange = LayerColorRange.Standard;
                 layer.blendRange = LayerBlendRange.Standard;
                 layer.layerName = compositor.AllocateLayerName(layer);

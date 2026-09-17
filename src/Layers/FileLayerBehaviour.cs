@@ -12,9 +12,13 @@ namespace DCFApixels.WhimTex
     {
         public Texture2D sourceTexture;
         [SerializeField] private bool sourceAssigned;
+        [SerializeField, HideInInspector] internal string portableAssetGuid;
+        [SerializeField, HideInInspector] internal string portableAssetLocalId;
 
         internal void AssignSourceTexture(Texture2D texture, TextureCompositor owner, bool initializeCanvas = false)
         {
+            portableAssetGuid = null;
+            portableAssetLocalId = null;
             bool wasEmpty = sourceTexture == null;
             bool changed = sourceTexture != texture;
             if (initializeCanvas && wasEmpty && !sourceAssigned && texture != null && CanInitializeCanvas(owner))

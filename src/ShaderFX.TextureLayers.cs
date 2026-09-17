@@ -8,13 +8,19 @@ namespace DCFApixels.WhimTex
     {
         internal IEnumerable<ShaderFXParameter> TextureLayerParameters()
         {
+            foreach (var value in TextureParameters())
+                if (value.textureSource == ShaderFXTextureSource.Layer) yield return value;
+        }
+
+        internal IEnumerable<ShaderFXParameter> TextureParameters()
+        {
             foreach (var applied in appliedParameters)
             {
                 if (applied == null || applied.type != ShaderFXParameterType.Texture2D) continue;
                 var value = applied;
                 foreach (var draft in parameters)
                     if (draft != null && draft.name == applied.name && draft.type == applied.type) { value = draft; break; }
-                if (value.textureSource == ShaderFXTextureSource.Layer) yield return value;
+                yield return value;
             }
         }
 
@@ -84,17 +90,23 @@ namespace DCFApixels.WhimTex
             Visit(layers);
         }
 
-        internal ShaderTextureBindings BindShaderTextureLayers(ShaderFX effect, Layer consumer, in LayerRenderContext context)
+        internal ShaderTextureBindings BindShaderTextureLayers(ShaderFX effect, Layer consumer, in LayerRenderContext context, RenderTexture self)
         {
             ShaderTextureBindings bindings = null;
             var previous = RenderTexture.active;
             bool srgb = GL.sRGBWrite;
             try
             {
-                foreach (var parameter in effect.TextureLayerParameters())
+                foreach (var parameter in effect.TextureParameters())
                 {
+                    if (parameter.textureSource == ShaderFXTextureSource.Texture) continue;
                     bindings ??= new ShaderTextureBindings();
-                    string key = IsUsableShaderTexture(consumer, parameter.textureLayerId) ? parameter.textureLayerId : "";
+                    if (parameter.textureSource == ShaderFXTextureSource.Self && self != null)
+                    {
+                        bindings.inputs.Add((parameter.name, self));
+                        continue;
+                    }
+                    string key = parameter.textureSource == ShaderFXTextureSource.Layer && IsUsableShaderTexture(consumer, parameter.textureLayerId) ? parameter.textureLayerId : "";
                     if (!bindings.sources.TryGetValue(key, out var pixels))
                     {
                         var source = key.Length == 0 ? null : FindLayer(key);

@@ -137,6 +137,7 @@ namespace DCFApixels.WhimTex
             previewChannels = AllPreviewChannels;
             previewDebug = false;
             previewExposure = 0f;
+            transformSettingsExpanded = false;
             colorSettingsExpanded = false;
             layerPropertiesExpanded = true;
             layerFxExpanded = false;
@@ -208,6 +209,7 @@ namespace DCFApixels.WhimTex
 
         private void OnDisable()
         {
+            StopKeyboardNudge();
             CancelImageUrlPaste();
             uvMap = null; uvCachedMesh = null; uvCachedDocument = null;
             WhimTexApi.CloseLiveSession(agentSessionId);
@@ -301,6 +303,7 @@ namespace DCFApixels.WhimTex
 
         private void OnLostFocus()
         {
+            StopKeyboardNudge();
             ClearLayerDragGhost();
             ClearPreviewPointerCursor();
             areaSelectionManipulator?.Cancel();
@@ -806,6 +809,20 @@ namespace DCFApixels.WhimTex
                 () => ConvertLayersToDrawing(roots, true));
             menu.AddSeparator(string.Empty);
             menu.AddItem(new GUIContent("Duplicate"), false, () => DuplicateLayers(roots));
+            menu.AddItem(new GUIContent("Copy as Portable"), false, () =>
+            {
+                FinishPaintingStroke();
+                FinishPreviewTransform();
+                try
+                {
+                    string json = WhimTexApi.WritePortableClipboardReport(compositor, roots, out var warnings);
+                    GUIUtility.systemCopyBuffer = json;
+                    ShowNotification(new GUIContent("Portable layer JSON copied."));
+                    if (warnings.Count > 0)
+                        EditorUtility.DisplayDialog("Copied with warnings", string.Join("\n\n", warnings), "OK");
+                }
+                catch (Exception error) { EditorUtility.DisplayDialog("Copy as Portable", error.Message, "OK"); }
+            });
             menu.AddItem(new GUIContent("Merge Selected %e"), false, () => MergeSelectedLayers(roots, false));
             menu.AddItem(new GUIContent("Merge Selected as Copy %&e"), false, () => MergeSelectedLayers(roots, true));
             menu.AddItem(new GUIContent("Delete"), false, () => DeleteLayers(roots));

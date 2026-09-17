@@ -153,6 +153,10 @@ namespace DCFApixels.WhimTex
                 Require(spec["value"] != null, "Parameter value is required.");
                 switch (value.type)
                 {
+                    case ShaderFXParameterType.Curve:
+                        Require(spec["value"].Type == JTokenType.String, "Curve value must be linear, easeIn, easeOut, easeInOut, one or a keys(...) string.");
+                        value.curveValue = WhimTexCurveTexture.Parse((string)spec["value"]);
+                        break;
                     case ShaderFXParameterType.Gradient: value.gradientValue = ReadGradient(spec["value"]); break;
                     case ShaderFXParameterType.Bool:
                         Require(spec["value"].Type == JTokenType.Boolean, "Bool value must be true or false.");
@@ -186,6 +190,12 @@ namespace DCFApixels.WhimTex
                             break;
                         }
                         string path = Text(spec, "value");
+                        if (path == "self" || path == "none")
+                        {
+                            value.textureSource = path == "self" ? ShaderFXTextureSource.Self : ShaderFXTextureSource.None;
+                            break;
+                        }
+                        value.textureSource = ShaderFXTextureSource.Texture;
                         Require(path.StartsWith("Assets/", StringComparison.Ordinal) || path.StartsWith("Packages/", StringComparison.Ordinal), "Texture value must be a project asset path.");
                         ValidateSegments(path);
                         value.textureValue = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
@@ -248,6 +258,7 @@ namespace DCFApixels.WhimTex
                     {
                         if (p == null) continue;
                         JToken value = p.type == ShaderFXParameterType.Bool ? new JValue(p.BoolValue) :
+                            p.type == ShaderFXParameterType.Curve ? new JValue(WhimTexCurveTexture.Format(p.curveValue)) :
                             p.type == ShaderFXParameterType.Gradient ? GradientSnapshot(p.gradientValue ?? new WhimTexGradient()) :
                             p.type == ShaderFXParameterType.Transform2D ? FxTransformSnapshot(p.transformValue) :
                             p.type == ShaderFXParameterType.Color ? (JToken)Json(p.colorValue) :
@@ -256,6 +267,8 @@ namespace DCFApixels.WhimTex
                             p.type == ShaderFXParameterType.Vector ? new JArray(p.vectorValue.x, p.vectorValue.y, p.vectorValue.z, p.vectorValue.w) :
                             p.type == ShaderFXParameterType.Texture2D ? (p.textureSource == ShaderFXTextureSource.Layer
                                 ? (JToken)new JObject { ["layer"] = p.textureLayerId }
+                                : p.textureSource == ShaderFXTextureSource.Self ? new JValue("self")
+                                : p.textureSource == ShaderFXTextureSource.None ? new JValue("none")
                                 : new JValue(p.textureValue == null ? "" : AssetDatabase.GetAssetPath(p.textureValue))) : new JValue(p.floatValue);
                         parameters.Add(new JObject { ["name"] = p.name, ["id"] = p.id, ["type"] = p.type.ToString(), ["value"] = value,
                             ["minimum"] = p.hasMinimum ? (JToken)new JValue(p.minimum) : JValue.CreateNull(),

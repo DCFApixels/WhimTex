@@ -357,6 +357,7 @@ namespace DCFApixels.WhimTex
 
         [SerializeField] private TextureCompositor compositor;
         [SerializeField] private string layerId;
+        [SerializeField] private bool transformSettingsExpanded;
         [SerializeField] private bool colorSettingsExpanded;
         [SerializeField] private bool propertiesExpanded = true;
         [SerializeField] private bool fxExpanded;
@@ -529,7 +530,8 @@ namespace DCFApixels.WhimTex
                 ApplyLayerChange, SettingsBindings, properties => BuildSettings(properties, currentLayer),
                 colorSettingsExpanded, value => colorSettingsExpanded = value,
                 propertiesExpanded, value => propertiesExpanded = value,
-                fxExpanded, value => fxExpanded = value);
+                fxExpanded, value => fxExpanded = value,
+                transformSettingsExpanded, value => transformSettingsExpanded = value);
             SettingsBindings.Refresh(forceValues);
             scroll.Add(WhimTexUI.CreateHeading(PreviewTitle));
 

@@ -292,10 +292,11 @@ namespace DCFApixels.WhimTex
             TextureCompositor owner, Action<string, Action> apply, ValueBindings bindings,
             Action<VisualElement> buildProperties, bool colorExpanded, Action<bool> colorExpansionChanged,
             bool propertiesExpanded, Action<bool> propertiesExpansionChanged,
-            bool fxExpanded, Action<bool> fxExpansionChanged)
+            bool fxExpanded, Action<bool> fxExpansionChanged,
+            bool transformExpanded, Action<bool> transformExpansionChanged)
         {
             bool group = layer?.IsGroup == true;
-            AddTextureTransform(root, layer, owner, apply, bindings);
+            AddTextureTransform(root, layer, owner, apply, bindings, transformExpanded, transformExpansionChanged);
 
             LayerColorSettingsView.Build(root, layer, apply, bindings, colorExpanded, colorExpansionChanged, owner);
             var properties = CreateInspectorSection($"Properties ({TextureCompositor.LayerMenuName(layer)})", "propertiesSection", LayerActionIcon.Kind.Properties,
@@ -325,11 +326,11 @@ namespace DCFApixels.WhimTex
             Layer layer,
             TextureCompositor compositor,
             Action<string, Action> applyChange,
-            ValueBindings bindings)
+            ValueBindings bindings, bool expanded = false, Action<bool> expansionChanged = null)
         {
             TextureTransform read() => layer.transform;
             void write(TextureTransform value) => layer.transform = value;
-            Foldout card = CreateInspectorSection("Transform", "transformSection", LayerActionIcon.Kind.Transform, false);
+            Foldout card = CreateInspectorSection("Transform", "transformSection", LayerActionIcon.Kind.Transform, expanded, expansionChanged);
             card.AddToClassList("whimtex-transform-card");
 
             Double2Field pivot = ConfigureField(new Double2Field("Pivot"));

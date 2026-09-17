@@ -75,6 +75,12 @@ namespace DCFApixels.WhimTex
             string label = ObjectNames.NicifyVariableName(declaration.name.TrimStart('_'));
             switch (declaration.type)
             {
+                case ShaderFXParameterType.Curve:
+                    var curve = new CurveField(label);
+                    curve.RegisterValueChangedCallback(e => Change(id, p => p.curveValue = WhimTexCurveTexture.Copy(e.newValue)));
+                    Add(curve);
+                    refresh.Add(() => curve.SetValueWithoutNotify(Find(id).curveValue ?? WhimTexCurveTexture.Default()));
+                    break;
                 case ShaderFXParameterType.Gradient:
                     var gradient = new WhimTexGradientValueField(label);
                     gradient.RegisterValueChangedCallback(e => Change(id, p => p.gradientValue = e.newValue?.Clone() ?? new WhimTexGradient()));

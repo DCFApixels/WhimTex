@@ -17,7 +17,8 @@ next_page: "en/automation.md"
 | :--- | :--- |
 | `Ctrl+S` | Save / Save As. |
 | `Ctrl+Z` · `Ctrl+Y` / `Ctrl+Shift+Z` | Undo · Redo. |
-| `Up` / `Down` | Previous / next visible layer. |
+| `Up` / `Down` after using Layers | Previous / next visible layer. |
+| Arrow keys after clicking the canvas | Move selected layers along the canvas axes by one canvas pixel. Hold to repeat with gradual acceleration; one Undo reverts the hold. A selected guide takes priority. |
 | `Ctrl`-click / `Shift`-click outside thumbnails | Toggle a layer / select a range. |
 | `Ctrl+Shift`-click | Add a range. |
 | `Ctrl+E` / `Ctrl+Alt+E` | Merge selection / merge a copy. |

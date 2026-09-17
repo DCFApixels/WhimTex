@@ -1,6 +1,6 @@
 // @whimtex-effect Distortion/Polar Coordinates/From Polar
-// @param float _AngleOffset = 0
-// @param float _RadialOffset = 0
+// @param float _AngleOffset = 0 [~-180 .. ~180] // Angular offset in degrees.
+// @param float _RadialOffset = 0 [~-1 .. ~1] // Radial offset in normalized coordinates.
 // @param transform2D _Area
 
 float4 ApplyFX(float2 uv, float4 color)

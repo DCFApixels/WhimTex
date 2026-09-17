@@ -8,9 +8,9 @@ using UnityEngine.Scripting.APIUpdating;
 
 namespace DCFApixels.WhimTex
 {
-    public enum ShaderFXTextureSource { Texture, Layer }
+    public enum ShaderFXTextureSource { Texture = 0, Layer = 1, None = 2, Self = 3 }
 
-    public enum ShaderFXParameterType { Float, Color, Vector, Texture2D, Transform2D, Bool, Enum, Gradient, Vector2, Vector3, Normal }
+    public enum ShaderFXParameterType { Float, Color, Vector, Texture2D, Transform2D, Bool, Enum, Gradient, Vector2, Vector3, Normal, Curve }
 
     [Serializable]
     public sealed class ShaderFXParameterControl
@@ -37,6 +37,7 @@ namespace DCFApixels.WhimTex
         public ShaderFXTextureSource textureSource;
         public string textureLayerId;
         public WhimTexGradient gradientValue;
+        public AnimationCurve curveValue;
         public ShaderFXTransform transformValue = ShaderFXTransform.Default;
         [HideInInspector] public string id = Guid.NewGuid().ToString("N");
         [HideInInspector] public bool declaredInCode;
@@ -76,6 +77,7 @@ namespace DCFApixels.WhimTex
         {
             var copy = (ShaderFXParameter)MemberwiseClone();
             copy.gradientValue = gradientValue?.Clone();
+            copy.curveValue = curveValue == null ? null : WhimTexCurveTexture.Copy(curveValue);
             copy.controls = new List<ShaderFXParameterControl>(controls.Count);
             foreach (var c in controls)
                 copy.controls.Add(new ShaderFXParameterControl { type = c.type, order = c.order, tooltip = c.tooltip,
@@ -119,6 +121,19 @@ namespace DCFApixels.WhimTex
     [CreateAssetMenu(fileName = "New Shader FX", menuName = "WhimTex/Shader FX")]
     public sealed partial class ShaderFX : ScriptableObject, ISerializationCallbackReceiver
     {
+        [SerializeField, HideInInspector] private bool active = true;
+        public bool Active
+        {
+            get => active;
+            set
+            {
+                if (active == value) return;
+                active = value;
+                EditorUtility.SetDirty(this);
+                NotifyValuesChanged();
+            }
+        }
+
         [SerializeField, TextArea(12, 40)] private string code =
             "// #include \"./MyLibrary.hlsl\"\n\n" +
             "float4 ApplyFX(float2 uv, float4 color)\n{\n    return color;\n}\n";
@@ -135,6 +150,8 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private Material material;
         [NonSerialized] private Shader materialSourceShader, upgradedTransformShader;
         [NonSerialized] private Dictionary<ShaderFXParameter, GradientBinding> gradientBindings;
+
+        [NonSerialized] private Dictionary<ShaderFXParameter, WhimTexCurveTexture> curveBindings;
 
         private sealed class GradientBinding : IDisposable
         {
@@ -375,6 +392,22 @@ namespace DCFApixels.WhimTex
                 TextureCompositor.NotifyShaderFXChanged(this);
         }
 
+        [NonSerialized] private string sdfUsageSource;
+        [NonSerialized] private bool sdfUsage;
+        internal bool UsesLayerSDF
+        {
+            get
+            {
+                if (sdfUsageSource != appliedSource)
+                {
+                    sdfUsageSource = appliedSource;
+                    int first = (appliedSource ?? "").IndexOf("SampleLayerSDF(", StringComparison.Ordinal);
+                    sdfUsage = first >= 0 && appliedSource.IndexOf("SampleLayerSDF", first + 15, StringComparison.Ordinal) >= 0;
+                }
+                return sdfUsage;
+            }
+        }
+
         internal Material GetMaterial(in LayerRenderContext context)
         {
             if (compiledShader == null)
@@ -407,6 +440,14 @@ namespace DCFApixels.WhimTex
                         gradientBindings.Add(applied, binding = new GradientBinding(applied));
                     value.gradientValue ??= new WhimTexGradient();
                     material.SetTexture(binding.propertyId, binding.lut.GetTexture(value.gradientValue));
+                }
+                else if (applied.type == ShaderFXParameterType.Curve)
+                {
+                    curveBindings ??= new Dictionary<ShaderFXParameter, WhimTexCurveTexture>();
+                    if (!curveBindings.TryGetValue(applied, out var lut))
+                        curveBindings.Add(applied, lut = new WhimTexCurveTexture());
+                    value.curveValue ??= WhimTexCurveTexture.Default();
+                    material.SetTexture(applied.InternalPrefix + "Curve", lut.GetTexture(value.curveValue));
                 }
                 else value.SetValue(material, applied, new Vector2(context.compositor.width, context.compositor.height));
             }
@@ -513,6 +554,11 @@ namespace DCFApixels.WhimTex
 
         private void ReleaseMaterial()
         {
+            if (curveBindings != null)
+            {
+                foreach (var lut in curveBindings.Values) lut.Dispose();
+                curveBindings.Clear();
+            }
             if (gradientBindings != null)
             {
                 foreach (var binding in gradientBindings.Values) binding.Dispose();

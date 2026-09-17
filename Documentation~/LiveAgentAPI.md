@@ -10,6 +10,8 @@ permalink: /reference/live-agent-api/
 
 # Live editing API
 
+Curve values also accept `"easeIn"` (quadratic slow start) and `"easeOut"` (quadratic slow finish).
+
 This extends [Agent API v1](AgentAPI.md) with reservations in **open documents**, including unsaved
 documents. The agent stays outside Unity. Image generation is performed by the agent's own tools;
 these commands neither call a model nor download images. All calls run on Unity's main thread in
@@ -271,6 +273,13 @@ Remove accepts only op/index. Add/replace accept `code` and optional `parameters
 - `Transform2D` accepts `value: {"position":[0.5,0.5],"size":[1,1],"rotation":0}`; fields are optional. Alternatively use `value: {"matrix":[1,0.2,0,0,1,0,0.15,0,1]}` for skew/perspective: nine row-major doubles mapping local UV to input UV. Matrix and TRS fields cannot be combined. The matrix must be invertible with no horizon crossing the unit rectangle. Inspection returns either TRS fields or `matrix`.
   Position/size are normalized to the input image, rotation is in degrees. Size components must have
   magnitude at least `0.00001`. Generates `<name>_ToLocal(uv)` and `<name>_ToInput(uv)` helpers.
+- `Curve` accepts a string containing `keys((time, value, inTangent, outTangent, inWeight, outWeight, weightedMode), ...)`.
+
+  `"one"` is also accepted: two keys (0,1), (1,1), constant output 1.
+  The strings `"linear"` and `"easeInOut"` are also accepted as normalized 0→1 curve factories.
+  For example `{"name":"_Profile","type":"Curve","value":"keys((0,0,1,1,0,0,0),(1,1,1,1,0,0,0))"}`.
+  Snapshots return the same string. Code uses `// @param curve _Profile` and `_Profile_Sample(t)`;
+  see the [curve contract](ShaderFX.md#curve-parameters). Values update without recompilation.
 - `Gradient` accepts the same gradient value (color-stop array or object with `colors`, `alphas`,
   `mode`, `smoothness`, `colorSpace`) as layer gradients. Generates `<name>_Sample(t)` with clamped
   0..1 input and straight linear RGBA output. Code declarations use `// @param gradient _Ramp`

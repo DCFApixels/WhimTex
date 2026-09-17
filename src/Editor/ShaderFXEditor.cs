@@ -213,7 +213,8 @@ namespace DCFApixels.WhimTex
                 nameof(ShaderFXParameter.floatValue), nameof(ShaderFXParameter.colorValue),
                 nameof(ShaderFXParameter.vectorValue), nameof(ShaderFXParameter.textureValue), nameof(ShaderFXParameter.transformValue),
                 nameof(ShaderFXParameter.floatValue), nameof(ShaderFXParameter.floatValue), nameof(ShaderFXParameter.gradientValue),
-                nameof(ShaderFXParameter.vectorValue), nameof(ShaderFXParameter.vectorValue), nameof(ShaderFXParameter.vectorValue)
+                nameof(ShaderFXParameter.vectorValue), nameof(ShaderFXParameter.vectorValue), nameof(ShaderFXParameter.vectorValue),
+                nameof(ShaderFXParameter.curveValue)
             };
             VisualElement[] fields = new VisualElement[valueNames.Length];
             for (int i = 0; i < fields.Length; i++)
@@ -233,6 +234,22 @@ namespace DCFApixels.WhimTex
                     });
                     toggle.TrackPropertyValue(value, p => toggle.SetValueWithoutNotify(p.floatValue >= 0.5f));
                     fields[i] = toggle;
+                }
+                else if (i == (int)ShaderFXParameterType.Curve)
+                {
+                    var curve = new CurveField("Value");
+                    curve.SetValueWithoutNotify(value.animationCurveValue ?? WhimTexCurveTexture.Default());
+                    curve.RegisterValueChangedCallback(evt =>
+                    {
+                        var effect = (ShaderFX)value.serializedObject.targetObject;
+                        if (WhimTexApi.IsShaderFXContentLocked(effect)) return;
+                        value.serializedObject.Update();
+                        value.animationCurveValue = WhimTexCurveTexture.Copy(evt.newValue);
+                        value.serializedObject.ApplyModifiedProperties();
+                        effect.NotifyValuesChanged();
+                    });
+                    curve.TrackPropertyValue(value, p => curve.SetValueWithoutNotify(p.animationCurveValue ?? WhimTexCurveTexture.Default()));
+                    fields[i] = curve;
                 }
                 else if (i == (int)ShaderFXParameterType.Gradient)
                 {

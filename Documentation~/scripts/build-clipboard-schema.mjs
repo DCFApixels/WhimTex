@@ -41,7 +41,10 @@ const defs = {
     strength: number(0, 128), blackLevel: number(0, 1), whiteLevel: number(.0001, 16), gamma: number(.05, 8), smoothing: number(0, 64), mediumRadius: number(.5, 128), largeRadius: number(.5, 512),
     fineDetail: number(0, 8), mediumDetail: number(0, 8), largeDetail: number(0, 8), lightRemoval: number(0, 1), inverted: bool, flipX: bool, flipY: bool, ignoreTransparent: bool }),
   transform: object({ position: { ...vec, description: 'Parent-local offset in canvas-pixel units; default [0,0], X right, Y up.' }, scale: { ...vec, description: 'Each absolute component must be at least 0.00001.' }, pivot: vec, rotation: number(-360000, 360000), matrix: tuple(number(-1e15,1e15),9), tiling: choice('Clip Repeat Mirror Source Clamp Unbounded') }),
-  fx: object({ name: str(4096), code: { type: 'string', minLength: 1, maxLength: 65536, description: 'Self-contained ApplyFX HLSL. Declare values with // @param. No #, backslashes or asset GUIDs. At most 32 parameters.' } }, ['code'])
+  fx: object({ name: str(4096), enabled: bool,
+    gradients: { type: 'object', additionalProperties: { $ref: '#/$defs/gradient' } },
+    textures: { type: 'object', additionalProperties: object({ layer: str(64) }, ['layer']) },
+    code: { type: 'string', minLength: 1, maxLength: 65536, description: 'Portable ApplyFX HLSL, at most 64 KiB UTF-8 and 32 parameters. Declare values with // @param. Conditional/define directives and explicitly allowlisted built-in includes are supported; other includes must be expanded by Copy as Portable. No asset GUIDs.' } }, ['code'])
 };
 defs.transform.allOf = [{ if: { required: ['matrix'] }, then: { not: { anyOf: ['position','scale','rotation'].map(key => ({required:[key]})) } } }];
 const ref = name => ({ $ref: '#/$defs/' + name });
@@ -49,11 +52,11 @@ const common = { enabled: bool, clippingMask: bool, opacity: number(0, 1), blend
   swizzle: tuple({ type: 'string', enum: ['R', 'G', 'B', 'A', '1-R', '1-G', '1-B', '1-A', '0', '1', 'R * A', 'G * A', 'B * A'] }, 4) };
 const metric = enumeration('Utils.cs', 'DistanceMetric');
 const extra = {
-  color: { color: rgba }, gradient: { gradient: ref('gradient'), gradientOptions: ref('gradientOptions') }, noise: { noise: ref('noise') }, shape: { shape: ref('shape') },
+  color: { color: rgba, fillMode: choice('Color UV') }, gradient: { gradient: ref('gradient'), gradientOptions: ref('gradientOptions') }, noise: { noise: ref('noise') }, shape: { shape: ref('shape') },
   blur: { blur: ref('blur') }, makeSeamless: { makeSeamless: ref('makeSeamless') }, normalMap: { normalMap: ref('normalMap') },
   outline: { metric, color: rgba, outlineWidth: number(0, 16384), outlineSoftness: number(0, 16384), outlinePosition: enumeration('Layers/OutlineLayerBehaviour.cs', 'OutlinePosition'), outlineOffset: number(-16384, 16384), fillCenter: bool, fillColor: rgba },
   sdf: { metric, sourceChannel: enumeration('Layers/SDFLayerBehaviour.cs', 'SourceChannel'), threshold: integer(0, 255), distancePosition: enumeration('Layers/SDFLayerBehaviour.cs', 'DistancePosition'), inverted: bool, maxDistance: number(0, 16384), gradient: ref('gradient') },
-  shaderProcessor: {}, drawing: {}, group: { compositing: choice('PassThrough Isolated') }
+  shaderProcessor: {}, drawing: {}, file: {}, group: { compositing: choice('PassThrough Isolated') }
 };
 defs.layer = { oneOf: Object.entries(extra).map(([type, properties]) => {
   const fields = { type: { const: type }, id: { ...str(64), minLength: 1 }, name: str(128), properties: object({ ...common, ...properties, ...(type !== 'group' ? { filter: choice('Source Point Bilinear Trilinear') } : {}) }) };
@@ -62,9 +65,19 @@ defs.layer = { oneOf: Object.entries(extra).map(([type, properties]) => {
   fields.fx = { type: 'array', maxItems: 16, items: ref('fx') };
   if (['outline', 'sdf', 'blur', 'normalMap', 'makeSeamless'].includes(type)) fields.target = { ...str(64), minLength: 1 };
   if (type === 'drawing') fields.url = { type: 'string', maxLength: 2048, pattern: '^https?://',
-    description: 'Absolute http(s) link to a PNG or JPEG. It is downloaded on paste after a confirmation, the layer keeps the source resolution, and its transform scale is fitted to the canvas, so do not set transform.scale or transform.matrix.' };
+    description: 'Absolute http(s) link to a PNG or JPEG. Downloaded on paste after confirmation, keeping source resolution. If neither scale nor matrix is specified, fit to the canvas; otherwise preserve the explicit transform.' };
   if (type === 'shaderProcessor') fields.properties.properties.clippingMask = { const: false };
-  return object(fields, ['type']);
+  if (type === 'drawing' || type === 'file') fields.contentOmitted = bool;
+  if (type === 'file') fields.asset = object({
+    guid: { type: 'string', pattern: '^[0-9a-fA-F]{32}$' },
+    localId: { type: 'string', pattern: '^[+-]?[0-9]+$', maxLength: 20 }
+  }, ['guid']);
+  const result = object(fields, ['type']);
+  if (type === 'drawing' || type === 'file') result.allOf = [{
+    if: { required: ['contentOmitted'], properties: { contentOmitted: { const: true } } },
+    then: { not: { anyOf: [{ required: ['url'] }, { required: ['asset'] }] } }
+  }];
+  return result;
 }) };
 const schema = {
   $schema: 'https://json-schema.org/draft/2020-12/schema',

@@ -20,6 +20,14 @@ namespace DCFApixels.WhimTex
 
         [SerializeField] private Texture2D pixels;
         [SerializeField, HideInInspector] private int pixelsRevision;
+        [SerializeField, HideInInspector] private string originalImageUrl;
+        [SerializeField, HideInInspector] private int originalImageRevision;
+        internal string PortableImageUrl => pixels != null && pixelsRevision == originalImageRevision ? originalImageUrl : null;
+        internal void RememberImageUrl(string url)
+        {
+            originalImageUrl = url;
+            originalImageRevision = pixelsRevision;
+        }
 
         public PaintToolMode tool = PaintToolMode.Brush;
         public Color brushColor = Color.white;
@@ -82,6 +90,7 @@ namespace DCFApixels.WhimTex
             if ((applyTransform || source.IsGroup) && source.transformCache?.parent != null)
                 result.transform.TrySetMatrix(source.transformCache.parentInverse);
             result.pixels = texture;
+            result.originalImageUrl = null;
             // Source settings must survive conversion from a File layer to owned pixels.
             Texture samplingSource = source.SamplingSource;
             texture.filterMode = source.ResolveFilterMode();
@@ -359,6 +368,7 @@ namespace DCFApixels.WhimTex
             color.a *= dynamics != null ? dynamics.flow : 1f;
 
             paintSurfaceDirty |= segmentStamps.Count > 0;
+            if (segmentStamps.Count > 0) originalImageUrl = null;
             PaintBrushRenderer.Draw(
                 isolatedStroke ? advancedStroke : surface,
                 segmentStamps,
@@ -427,6 +437,7 @@ namespace DCFApixels.WhimTex
 
         internal void ClearSurface(int width, int height)
         {
+            originalImageUrl = null;
             RenderTexture surface = EnsurePaintSurface(width, height);
             if (surface == null)
                 return;
@@ -501,6 +512,7 @@ namespace DCFApixels.WhimTex
         // resolution, so callers fit the transform instead of resampling it to the canvas.
         internal void AdoptStoredTexture(Texture2D texture)
         {
+            originalImageUrl = null;
             if (pixels != null && !AssetDatabase.Contains(pixels))
                 UnityEngine.Object.DestroyImmediate(pixels);
             pixels = texture;

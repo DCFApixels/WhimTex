@@ -14,6 +14,7 @@ namespace DCFApixels.WhimTex
         private readonly Action<string, Action> applyChange;
         private readonly VisualElement entries = new VisualElement();
         private readonly List<UnityEngine.Object> displayed = new List<UnityEngine.Object>();
+        private readonly List<Action> refreshActivity = new List<Action>();
 
         internal LayerShaderFXView(Layer layer, TextureCompositor owner, Action<string, Action> applyChange)
         {
@@ -34,12 +35,14 @@ namespace DCFApixels.WhimTex
 
         internal void Refresh()
         {
+            foreach (var refresh in refreshActivity) refresh();
             bool changed = displayed.Count != layer.modifiers.Count;
             for (int i = 0; !changed && i < displayed.Count; i++)
                 changed = displayed[i] != layer.modifiers[i];
             if (!changed)
                 return;
             entries.Clear();
+            refreshActivity.Clear();
             displayed.Clear();
             displayed.AddRange(layer.modifiers);
             for (int i = 0; i < displayed.Count; i++)
@@ -55,6 +58,32 @@ namespace DCFApixels.WhimTex
             VisualElement toolbar = new VisualElement();
             toolbar.AddToClassList("whimtex-layer-fx-toolbar");
             bool embedded = effect != null && effect.EmbeddedOwner == owner;
+            if (effect != null)
+            {
+                var active = new Toggle { tooltip = embedded ? "Enable or disable this FX" : "Enable or disable this shared FX asset" };
+                active.SetValueWithoutNotify(effect.Active);
+                active.RegisterValueChangedCallback(evt =>
+                {
+                    if (WhimTexApi.IsShaderFXContentLocked(effect))
+                    {
+                        active.SetValueWithoutNotify(effect.Active);
+                        return;
+                    }
+                    Change("Toggle Shader FX", () =>
+                    {
+                        Undo.RecordObject(effect, "Toggle Shader FX");
+                        effect.Active = evt.newValue;
+                    });
+                    active.SetValueWithoutNotify(effect.Active);
+                });
+                toolbar.Add(active);
+                refreshActivity.Add(() =>
+                {
+                    if (effect == null) return;
+                    active.SetValueWithoutNotify(effect.Active);
+                    active.SetEnabled(!WhimTexApi.IsShaderFXContentLocked(effect));
+                });
+            }
             if (embedded)
             {
                 Label name = new Label($"{index + 1}. {effect.name}");

@@ -63,17 +63,17 @@ assert.match(linked, /ImageUrlMaximumBytes = 64 \* 1024 \* 1024/);
 assert.match(linked, /jsonPasteData|clipboardPasteData/, 'Linked images are pasted by the download batch');
 const parser = read('src/Automation/WhimTexApi.Clipboard.cs');
 assert.match(parser, /url is only supported on Drawing layers/);
-assert.match(parser, /derives its scale from the downloaded image/);
+assert.match(linked, /if \(fit && layer.TryGetOriginalAspectTransform/);
 assert.match(parser, /link\.Scheme == "http" \|\| link\.Scheme == "https"/);
 assert.equal(matches(schema, { format: 'whimtex.layers', version: 1, layers: [{ type: 'drawing', url: 'https://example.com/a.png' }] }), true);
 assert.equal(matches(schema, { format: 'whimtex.layers', version: 1, layers: [{ type: 'drawing', url: 'ftp://example.com/a.png' }] }), false);
 assert.equal(matches(schema, { format: 'whimtex.layers', version: 1, layers: [{ type: 'drawing', url: 'https://example.com/a.png', transform: { scale: [2, 2] } }] }), true,
-  'Only Unity rejects an explicit scale on a linked layer');
+  'An explicit scale preserves portable linked-layer placement');
 for (const name of ['README.md', 'README-RU.md']) {
   assert.match(read(name), /^<!--[\s\S]*?AI_AUTHORING\.md[\s\S]*?-->/);
   assert.match(read(name).replace(/<!--[\s\S]*?-->/g, ''), /\]\(AI_AUTHORING\.md\)/);
 }
-assert.equal(matches(schema, { format: 'whimtex.layers', version: 1, layers: [{ type: 'file' }] }), false);
+assert.equal(matches(schema, { format: 'whimtex.layers', version: 1, layers: [{ type: 'file' }] }), true);
 assert.equal(matches(schema, { format: 'whimtex.layers', version: 1, layers: [{ type: 'noise', properties: { noise: { scale: '3' } } }] }), false);
 // A linked Drawing layer must be discoverable from every entry point an AI reads first.
 for (const file of ['README.md', 'README-RU.md', 'AI_AUTHORING.md', 'AGENTS.md'])

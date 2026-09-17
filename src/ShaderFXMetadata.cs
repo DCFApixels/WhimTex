@@ -11,7 +11,7 @@ namespace DCFApixels.WhimTex
     internal static class ShaderFXMetadata
     {
         private static readonly Regex Header = new Regex(@"^//\s*@whimtex-effect\s+([^\r\n]+?)\s*$");
-        private static readonly Regex Parameter = new Regex(@"^\s*//\s*@param\s+(float|bool|float2|float3|float4|normal|color|texture2D|transform2D|gradient)\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*=\s*([^\[\];~]+?))?\s*(?:\[\s*(.*?)\s*\.\.\s*(.*?)\s*\])?\s*$");
+        private static readonly Regex Parameter = new Regex(@"^\s*//\s*@param\s+(float|bool|float2|float3|float4|normal|color|texture2D|transform2D|gradient|curve)\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*=\s*([^\[\];~]+?))?\s*(?:\[\s*(.*?)\s*\.\.\s*(.*?)\s*\])?\s*$");
 
         internal static bool TryHeader(string firstLine, out string menuPath)
         {
@@ -65,6 +65,10 @@ namespace DCFApixels.WhimTex
                     bool bounded = match.Groups[4].Success;
                     switch (kind)
                     {
+                        case "curve":
+                            p.type = ShaderFXParameterType.Curve;
+                            p.curveValue = explicitDefault ? WhimTexCurveTexture.Parse(value) : WhimTexCurveTexture.Default();
+                            break;
                         case "gradient":
                             if (explicitDefault) throw new FormatException("Gradient declarations do not accept a default value. Use @param gradient " + name + ".");
                             p.type = ShaderFXParameterType.Gradient;
@@ -127,6 +131,11 @@ namespace DCFApixels.WhimTex
                             break;
                         case "texture2D":
                             p.type = ShaderFXParameterType.Texture2D;
+                            if (value == "none" || value == "self")
+                            {
+                                p.textureSource = value == "self" ? ShaderFXTextureSource.Self : ShaderFXTextureSource.None;
+                                break;
+                            }
                             if (value.Length != 0)
                             {
                                 var reference = Regex.Match(value, "^\"guid:([0-9a-fA-F]{32}):(-?[0-9]+)\"$");
@@ -240,7 +249,7 @@ namespace DCFApixels.WhimTex
                 var p = next[i];
                 ShaderFXParameter match = null;
                 foreach (var old in previous)
-                    if (old != null && old.name == p.name && Compatible(old.type, p.type))
+                    if (old != null && old.name == p.name && (Compatible(old.type, p.type) || old.type == ShaderFXParameterType.Vector && p.type == ShaderFXParameterType.Vector3))
                     {
                         match = old;
                         break;
@@ -262,6 +271,7 @@ namespace DCFApixels.WhimTex
                 p.textureSource = match.textureSource;
                 p.textureLayerId = match.textureLayerId;
                 p.gradientValue = match.gradientValue?.Clone();
+                p.curveValue = match.curveValue == null ? null : WhimTexCurveTexture.Copy(match.curveValue);
                 p.transformValue = match.transformValue;
             }
         }
@@ -272,6 +282,7 @@ namespace DCFApixels.WhimTex
         {
             target.floatValue = source.floatValue; target.colorValue = source.colorValue;
             target.gradientValue = source.gradientValue?.Clone();
+            target.curveValue = source.curveValue == null ? null : WhimTexCurveTexture.Copy(source.curveValue);
             target.vectorValue = source.vectorValue; target.textureValue = source.textureValue; target.transformValue = source.transformValue;
             target.textureSource = source.textureSource; target.textureLayerId = source.textureLayerId;
         }

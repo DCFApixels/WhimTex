@@ -114,7 +114,7 @@ Check these before returning JSON. This is a reading checklist, not proof of val
 | GLSL `mix(a, b, t)` | HLSL `lerp(a, b, t)`. |
 | Redeclaring a uniform already declared by `@param` | Let WhimTex generate that uniform. |
 | Markdown escapes such as `\_`, `\*` or `\&` inside JSON strings | Plain `_`, `*`, `&`. Use JSON escapes such as `\n` only where needed. |
-| Giving a linked Drawing layer `transform.scale` | Omit scale: WhimTex derives it from the downloaded image and canvas. |
+| Expecting a linked Drawing layer to auto-fit with an explicit transform | Omit both scale and matrix for automatic fitting. Explicit scale/matrix preserves the supplied placement. |
 | Putting `fx` directly on a group | Put a Shader Processor inside an isolated group. |
 | Using real document GUIDs, `@id`, or targets outside the pasted tree | Use a unique local `id` and the same plain string in `target`. |
 
@@ -176,15 +176,17 @@ Every layer requires `type`. All other fields are optional; omitted settings use
 
 | Field | Meaning |
 | --- | --- |
-| `type` | `color`, `gradient`, `noise`, `shape`, `outline`, `sdf`, `normalMap`, `blur`, `makeSeamless`, `shaderProcessor`, `drawing`, `group` |
+| `type` | `color`, `gradient`, `noise`, `shape`, `outline`, `sdf`, `normalMap`, `blur`, `makeSeamless`, `shaderProcessor`, `drawing`, `file`, `group` |
 | `name` | Display name, at most 128 characters |
 | `id` | Unique local string, 1..64 characters; only needed for references |
 | `properties` | Common settings and the type-specific settings below |
 | `transform` | Non-group layer placement; see below |
 | `children` | Groups only; if present, a nonempty array in top-to-bottom order |
 | `target` | Local ID, without `@`, for Outline/SDF/Normal Map/Blur/Make Seamless |
-| `fx` | Non-group layers only: array of `{ "name": "Optional name", "code": "HLSL source" }` |
+| `fx` | Any layer, including groups: array of `{ "name": "Optional name", "code": "HLSL source" }`. Optional `enabled` (default true), `gradients` mapping declared parameter names to gradient values, and `textures` mapping texture parameter names to `{ "layer": "clipboard-id" }`. |
 | `url` | Drawing layers only: absolute `http`/`https` link to a PNG or JPEG, downloaded on paste |
+| `asset` | File only: `{ "guid": "32 hex characters", "localId": "2800000" }`. Restores an existing Texture2D; localId is an optional signed 64-bit decimal string identifying a subasset. Missing assets produce an empty layer and a warning. Never invent GUIDs. |
+| `contentOmitted` | Drawing/File only: `true` marks omitted image content and warns on paste. Cannot accompany `url` or `asset`. Layer settings and references remain intact. |
 
 Targets may refer forward or backward in the JSON. Hidden sources still work. With no `target`,
 a targeted effect uses the next sibling below it. Prefer explicit targets for predictable portable results.
@@ -232,16 +234,15 @@ A Drawing layer owns its pixels. `{ "type": "drawing" }` adds an empty layer the
 and adding `url` downloads that link before the paste and fills the layer with the image:
 
 - the texture keeps its **source resolution**; the image is never resampled to the canvas,
-- `transform.matrix` is not allowed with a Drawing `url`.
-- `transform.scale` is **derived** from the image and the canvas, so do not set it. `position`, `pivot`,
-  `rotation` and `tiling` are kept, and the fitted scale preserves the placement you asked for,
-- the link is fetched **once, at paste time**, and nothing about the URL is stored in the document, so
-  the saved composition never depends on the network,
+- omit both `transform.scale` and `transform.matrix` to fit the image to the canvas; explicit scale or matrix preserves its placement instead,
+- the link is fetched **once, at paste time**. Pixels are stored locally, so opening the saved document does not require the network. The original URL is retained for **Copy as Portable** while the pixels remain unmodified; transforms and FX do not invalidate it,
 - a confirmation lists the hosts before any download starts. If one download fails, nothing is pasted,
 - the whole tree, images included, lands as a single Undo step.
 
 PNG and JPEG only. `properties.brush` is not available from the clipboard: pasted Drawing layers start
 empty unless they carry a `url`.
+
+**Copy as Portable** in the Layers context menu exports selected layers/groups to this same format, including canvas size/filter, current FX values and internal references. The receiving user pastes the JSON with Ctrl+V. Drawing with an unchanged URL source retains that URL; otherwise it becomes an empty Drawing layer with a warning. File retains its asset GUID and local ID, not its pixels: the recipient needs the same asset and `.meta` file. If unavailable, it remains an empty File layer with a warning; its asset identity survives another portable copy. File without an asset is copied empty. No raster bytes are embedded. Material FX remain unsupported. Custom HLSL includes are expanded into separate function definitions (calls are not inlined), with at most 8 nested files and 64 KiB of UTF-8 code per FX, including declarations. Oversized files, missing include files and cycles abort copying. Include referenced layers and clipping bases in the selection. Unsupported dependencies or format limits stop the copy without replacing the clipboard. A URL may change or expire: it is not an immutable copy of the image. Review links before sharing, especially private or signed URLs. Color Fill also accepts `properties.fillMode` (`Color` by default, or `UV`).
 
 ### Shape, Color and Gradient
 
@@ -410,6 +411,8 @@ Do not redeclare these or generated parameters/helpers. Do not use invented time
 // @param normal _Normal = (0, 0, 1)
 // @param float4 _Channels = (0, 0, 0.5, 1)
 // @param color _Tint = (1, 1, 1, 1)
+// @param texture2D _Input = self
+// @param texture2D _Optional = none
 // @param texture2D _Mask
 // @param gradient _Ramp
 // @param transform2D _Area = (0.5, 0.5, 0.75, 0.75, 30)
@@ -444,10 +447,26 @@ uniform. Other repeated types must match exactly. Control ranges do not clamp va
 another control. Preset export saves the current value once. These dropdown/linked controls are FX-only.
 `float2`, `float3` and `float4` are raw vectors with two, three and four components. `normal` generates a normalized `float3`; its default and zero-vector fallback are `(0, 0, 1)`. It also offers an on-canvas direction handle; no range is accepted. Defaults are optional. Unknown parameter types are rejected.
 
-`float4` is a raw vector; `color` is a color picker. Texture parameters without a source default to white;
-the user may assign them later. Clipboard JSON cannot bind an asset texture to a shader parameter: a
+On an SDF layer, FX may use `HasLayerSDF()` and `SampleLayerSDF(uv)` for raw signed distance in document pixels (negative inside). The field includes the layer transform but not earlier FX distortions or gradient coloring; use this for bevels, before spatial FX. On non-SDF layers availability is false. See [shader reference](../ShaderFX.md) for the complete contract.
+
+`float4` is a raw vector; `color` is a color picker. Texture parameters without an explicit default keep Texture mode and sample white when empty. Use `= none` for transparent black, or `= self` to sample the current layer immediately before this FX (including earlier FX, excluding current/later FX). Both are unquoted declaration keywords and are preserved in exported presets. These are FX parameter defaults, not layer IDs. Users can change the texture source in the editor. Clipboard JSON cannot bind an asset texture to a shader parameter: a
 Drawing layer with a `url` is the way to bring an image into the pasted tree.
 Names generate labels: `_NoiseScale` → Noise Scale. No need for a second uniform declaration.
+
+Use `// @param curve _Profile = one` for a constant 1 curve with keys (0,1) and (1,1).
+Curve defaults also accept `easeIn` (`t²`) and `easeOut` (`1-(1-t)²`), for example `// @param curve _Profile = easeIn`. Both span (0,0) to (1,1).
+
+FX-only `curve` declares a scalar mapping: `// @param curve _Profile`, sampled with
+`_Profile_Sample(t)`. Default: linear (0,0) to (1,1). Input clamps to 0..1; output is unrestricted.
+Named defaults: `// @param curve _Profile = linear` or `// @param curve _Profile = easeInOut`.
+The latter smoothly eases between the same endpoints with horizontal endpoint tangents.
+For clipboard FX, an optional default can be included directly in `fx[].code`:
+`// @param curve _Profile = keys((0, 0, 1, 1, 0, 0, 0), (1, 1, 1, 1, 0, 0, 0))`.
+Each tuple is `(time, value, inTangent, outTangent, inWeight, outWeight, weightedMode)`.
+Use strictly increasing finite times, finite values, weights 0..1 and mode 0/1/2/3
+(none/in/out/both). Tangents additionally allow `inf` or `-inf` for steps. Maximum 256 keys;
+`keys()` evaluates to zero. No range. See [curve reference](../ShaderFX.md#curve-parameters)
+for sampling precision and preset persistence. This is not a layer property or a brush parameter.
 
 FX-only `gradient` is declared as `// @param gradient _Ramp`, **without `= value` or a range**.
 It starts opaque black-to-white (Classic); the user can edit colors, HDR, alpha and interpolation
@@ -468,7 +487,6 @@ frame with green canvas handles. Never reference reserved `_WhimTex_` internal u
 For a `.hlsl` catalog preset the **first physical line** must be `// @whimtex-effect Category/Name`:
 no blank line or license header before it. For inline/JSON FX this header is optional.
 To encode HLSL inside JSON, use a string with `\n` for newlines; escape quotes normally. JSON escaping
-is decoded before compilation. **Clipboard HLSL cannot use `#` directives, includes, backslashes
-or asset GUIDs.** These restrictions do not change manually authored HLSL elsewhere in the editor.
+is decoded before compilation. Clipboard HLSL accepts `#define`, `#undef`, `#if`, `#ifdef`, `#ifndef`, `#elif`, `#else`, `#endif`, and `#error`, including continued macro lines. Literal `#include` is allowed only for `UnityCG.cginc`, `Packages/com.dcfapixels.whimtex/src/Shaders/ThirdParty/FastNoiseLite.hlsl`, and `Packages/com.dcfapixels.whimtex/src/Shaders/Dither.cginc`. Copy as Portable expands other files on the sender's machine; a recipient never resolves arbitrary project includes. Macro include paths, `#include_with_pragmas`, other directives and texture asset GUIDs are rejected. The expanded FX source must fit 64 KiB in UTF-8; the overall clipboard limit is unchanged. Ordinary HLSL presets outside clipboard retain their existing rules.
 
 For additional engine-specific authoring details, see [Shader authoring](../ShaderFX.md).

@@ -9,6 +9,16 @@ search_exclude: true
 
 # Shader authoring
 
+### Raw SDF access
+
+FX attached directly to an SDF layer can call `HasLayerSDF()` and `SampleLayerSDF(uv)`. The latter returns signed distance (negative inside, positive outside) in document pixels, before distance-position, inversion and gradient mapping. Coordinates follow the transformed SDF layer output, but distances retain their pre-transform units. Outside clipped bounds or without an SDF source, the helper returns 1000000; check availability first. Earlier FX do not warp this field. Put bevel before spatial FX.
+
+The auxiliary texture is created only when applied shader source uses the sampling helper; it reuses the already-computed distances, adds a GPU transform pass, and is released after the layer's FX chain. It is not a persistent second SDF cache. The built-in SDF/Bevel Emboss preset uses a separate `texture2D _Surface = self` for surface color. Selecting another Surface changes coloration, not the relief source.
+
+### Texture sources
+
+`// @param texture2D _Source = self` samples the image immediately before this FX, including earlier effects but excluding this and later effects. It reuses the existing input texture without recursively rendering the layer. On groups it reads the composed group input. `// @param texture2D _Source = none` samples transparent black. Both defaults survive HLSL preset export and copying; Self stores no layer ID. Without a default, the existing Texture mode uses white when no asset is assigned. The UI offers Texture, Layer, None and Self. Live FX parameter values also accept the strings `"self"` and `"none"`.
+
 ### Layer-backed texture parameters
 
 The `texture2D` declaration and `tex2D` sampling syntax are unchanged. In the editor, choose Texture or Layer. Layer references store a same-document layer ID and resolve the standalone rendered result, including transforms and FX, without its lower backdrop. Disabled sources are allowed as with SDF Target; a disabled Shader Processor retains its bypass semantics. Groups supply full-color contents. Missing or cyclic sources bind transparent pixels.
@@ -102,6 +112,8 @@ under user `ShaderFX` or project `Assets`. Existing effects are not detached or 
 // @param float4 _Channels = (0, 0, 0.5, 1)
 // @param bool _IncludeAlpha = false
 // @param color _Tint = (1, 1, 1, 1)
+// @param texture2D _Input = self
+// @param texture2D _Optional = none
 // @param texture2D _Mask
 // @param gradient _Ramp
 // @param transform2D _Area
@@ -133,6 +145,43 @@ and `[0 .. ~0]` are errors. The old prefix syntax `~[0 .. 2]` is not accepted.
 Initializers remain optional. Repeated controls keep their own range behavior.
 Preset export preserves both boundary flags and the current value.
 This is editor metadata only: explicit `clamp`, `saturate` or other bounds in HLSL still apply.
+
+### Curve parameters
+
+`// @param curve _Profile = one` creates a flat curve with exactly two keys: (0,1) and (1,1).
+
+Additional named defaults: `// @param curve _Profile = easeIn` uses `t²` (slow start), and `// @param curve _Profile = easeOut` uses `1-(1-t)²` (slow finish). These are quadratic curves from (0,0) to (1,1).
+
+Declare `// @param curve _Profile` and call `_Profile_Sample(t)` for a scalar.
+The default is linear from (0, 0) to (1, 1). The standard Unity curve field edits keys and tangents.
+Named defaults are `// @param curve _Profile = linear` and
+`// @param curve _Profile = easeInOut` (Unity's `AnimationCurve.EaseInOut(0, 0, 1, 1)`).
+Both span (0,0) to (1,1); easeInOut has horizontal endpoint tangents. Without an initializer, the curve is linear.
+Sampling clamps the input to 0..1; Y is not clamped. Outside the key span the nearest key value
+is used, regardless of the curve's wrap modes. Empty curves evaluate to zero.
+
+A cached linear RFloat 512×2 LUT is rebuilt only when curve data changes, without recompiling
+the shader. GPU sampling is bilinear: very narrow details and step transitions are approximate
+at this resolution. Copies own independent curves; documents preserve keys and tangents.
+
+Save HLSL Preset writes the current curve as an optional default:
+
+```hlsl
+// @param curve _Profile = keys((0, 0, 1, 1, 0, 0, 0), (1, 1, 1, 1, 0, 0, 0))
+float4 ApplyFX(float2 uv, float4 color)
+{
+    return float4(color.rgb * _Profile_Sample(uv.x), color.a);
+}
+```
+
+Each key tuple is `(time, value, inTangent, outTangent, inWeight, outWeight, weightedMode)`.
+There are at most 256 keys, with strictly increasing finite times. Values are finite; tangents
+also accept `inf` and `-inf` for steps. Weights are 0..1; weightedMode is 0 (none), 1 (in),
+2 (out), or 3 (both). Only the sampled 0..1 interval is visible to the shader.
+No range follows a curve declaration. Repeated declarations share one curve and the last explicit
+default wins. Curve parameters are FX-only, not HLSL brush parameters.
+
+### Gradient parameters
 
 `gradient` creates an editable WhimTex gradient, initially opaque black to white (Classic mode).
 Declare `// @param gradient _Ramp`, without `=` or a range, and use `_Ramp_Sample(t)` to obtain
