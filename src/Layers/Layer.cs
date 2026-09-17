@@ -351,12 +351,6 @@ namespace DCFApixels.WhimTex
                 if (modifier == null)
                     continue;
                 textureInputs?.Apply(modifier);
-                var sdfInput = (Behaviour as SDFLayerBehaviour)?.activeDistanceTexture;
-                if (modifiers[i] is ShaderFX)
-                {
-                    modifier.SetTexture("_WhimTex_LayerSDF", sdfInput);
-                    modifier.SetFloat("_WhimTex_HasLayerSDF", sdfInput != null ? 1f : 0f);
-                }
                 if (modifiers[i] is ShaderFX)
                 {
                     if (!context.transformFxCoordinates)
@@ -389,7 +383,6 @@ namespace DCFApixels.WhimTex
                 }
                 finally
                 {
-                    if (modifiers[i] is ShaderFX) modifier.SetTexture("_WhimTex_LayerSDF", null);
                 }
                 RenderTexture.ReleaseTemporary(current);
                 current = next;

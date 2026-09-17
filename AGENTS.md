@@ -39,6 +39,8 @@
 
 ## UI and validation
 
+- FX are independent plugins over the shared effect contract. Adding a preset must not change layer generation/behavior, inspect its shader in layer code, or introduce layer-specific hidden outputs for that effect. Use ordinary input images and explicit parameters. Changes to layer behavior require an explicit user request; general FX infrastructure is not permission for preset-specific coupling.
+
 - Prefer compact Unity-style controls, restrained decoration, minimal help text and meaningful changes. Avoid fragile internal APIs for cosmetic features.
 - Preserve appearance during refactoring unless asked otherwise.
 - Read applicable skills from the available `.agents` installation; do not assume an older `.codex` copy is current.

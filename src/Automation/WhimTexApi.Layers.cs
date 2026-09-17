@@ -125,7 +125,7 @@ namespace DCFApixels.WhimTex
         {
             Keys(settings, "name", "enabled", "clippingMask", "opacity", "blend", "filter", "source", "colorRange", "blendRange", "swizzle", "compositing", "color", "brush",
                 "metric", "outlineWidth", "outlineSoftness", "outlinePosition", "outlineOffset", "fillCenter", "fillColor", "sourceChannel", "threshold",
-                "distancePosition", "inverted", "maxDistance", "gradient", "normalMap", "blur", "makeSeamless", "noise", "shape");
+                "distancePosition", "inverted", "maxDistance", "sourceOffset", "sourceEdges", "contourOffset", "insideDistance", "outsideDistance", "profile", "gradient", "normalMap", "blur", "makeSeamless", "noise", "shape");
             foreach (var property in settings.Properties())
             {
                 string key = property.Name;
@@ -142,7 +142,7 @@ namespace DCFApixels.WhimTex
                     key == "shape" && layer?.Behaviour is ShapeLayerBehaviour ||
                     (key == "outlineWidth" || key == "outlineSoftness" || key == "outlinePosition" ||
                      key == "outlineOffset" || key == "fillCenter" || key == "fillColor") && layer?.Behaviour is OutlineLayerBehaviour ||
-                    (key == "sourceChannel" || key == "threshold" || key == "distancePosition" || key == "inverted" || key == "maxDistance") && layer?.Behaviour is SDFLayerBehaviour ||
+                    (key == "sourceChannel" || key == "threshold" || key == "distancePosition" || key == "inverted" || key == "maxDistance" || key == "sourceOffset" || key == "sourceEdges" || key == "contourOffset" || key == "insideDistance" || key == "outsideDistance" || key == "profile") && layer?.Behaviour is SDFLayerBehaviour ||
                     key == "gradient" && (layer?.Behaviour is GradientLayerBehaviour || layer?.Behaviour is SDFLayerBehaviour));
                 Require(valid, key + " is not supported by " + TypeName(layer) + " layers.");
             }
@@ -211,6 +211,17 @@ namespace DCFApixels.WhimTex
                 sdf.distancePosition = Enum(settings, "distancePosition", sdf.distancePosition);
                 sdf.inverted = Bool(settings, "inverted", sdf.inverted);
                 sdf.maxDistanceNormalization = Number(settings, "maxDistance", sdf.maxDistanceNormalization, 0f, 16384f);
+                sdf.contourOffset = Number(settings, "contourOffset", sdf.contourOffset, -16384, 16384);
+                sdf.insideDistance = Number(settings, "insideDistance", sdf.insideDistance, 0, 16384);
+                sdf.outsideDistance = Number(settings, "outsideDistance", sdf.outsideDistance, 0, 16384);
+                sdf.sourceEdges = Enum(settings, "sourceEdges", sdf.sourceEdges);
+                if (settings["sourceOffset"] != null)
+                {
+                    var offset = Vector(settings["sourceOffset"], "sourceOffset");
+                    Require(Mathf.Abs(offset.x) <= 16384 && Mathf.Abs(offset.y) <= 16384, "sourceOffset must be within -16384..16384.");
+                    sdf.sourceOffset = offset;
+                }
+                if (settings["profile"] != null) sdf.profile = WhimTexCurveTexture.Parse(Text(settings, "profile"));
                 if (settings["gradient"] != null) sdf.gradient = ReadGradient(settings["gradient"], WhimTexGradientMode.Linear);
             }
             if (layer?.Behaviour is GradientLayerBehaviour gradient && settings["gradient"] != null) gradient.gradient = ReadGradient(settings["gradient"]);

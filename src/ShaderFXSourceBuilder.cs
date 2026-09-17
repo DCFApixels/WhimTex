@@ -75,7 +75,7 @@ namespace DCFApixels.WhimTex
             HashSet<string> names = new HashSet<string>(StringComparer.Ordinal)
             {
                 "_MainTex", "_MainTex_TexelSize", "_InputSize", "_CanvasSize", "_PreviewScale",
-                "ApplyFX", "SampleInput", "LayerToLocal", "HasLayerSDF", "SampleLayerSDF", "SpriteFXFragment", "vert_img", "v2f_img"
+                "ApplyFX", "SampleInput", "LayerToLocal", "SpriteFXFragment", "vert_img", "v2f_img"
             };
             foreach (ShaderFXParameter parameter in effect.Parameters)
             {
@@ -148,10 +148,7 @@ namespace DCFApixels.WhimTex
                 "SubShader { Cull Off ZWrite Off ZTest Always Blend Off\nPass {\nCGPROGRAM\n" +
                 "#pragma vertex vert_img\n#pragma fragment SpriteFXFragment\n#pragma target 3.5\n" +
                 "#include \"UnityCG.cginc\"\n" + NoiseLibraryInclude + "sampler2D _MainTex;\nfloat4 _MainTex_TexelSize;\n" +
-                "sampler2D _WhimTex_LayerSDF; float _WhimTex_HasLayerSDF;\n" +
-                "bool HasLayerSDF() { return _WhimTex_HasLayerSDF > 0.5; }\n" +
-                "float4 _InputSize;\nfloat4 _CanvasSize;\nfloat _PreviewScale;\n" +
-                "float SampleLayerSDF(float2 uv) { float4 d = tex2D(_WhimTex_LayerSDF, uv); return HasLayerSDF() && d.a > 0.5 ? d.r * _PreviewScale : 1000000.0; }\n" + uniforms +
+                "float4 _InputSize;\nfloat4 _CanvasSize;\nfloat _PreviewScale;\n" + uniforms +
                 "float4 _WhimTex_LayerToLocalRow0, _WhimTex_LayerToLocalRow1, _WhimTex_LayerToLocalRow2;\n" +
                 "float2 LayerToLocal(float2 uv) { float3 p = float3(uv, 1); float w = dot(_WhimTex_LayerToLocalRow2.xyz, p); w = abs(w) < 1e-8 ? (w < 0 ? -1e-8 : 1e-8) : w; return float2(dot(_WhimTex_LayerToLocalRow0.xyz, p), dot(_WhimTex_LayerToLocalRow1.xyz, p)) / w; }\n" +
                 "float4 SampleInput(float2 uv) { return tex2D(_MainTex, uv); }\n" +

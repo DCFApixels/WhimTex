@@ -392,22 +392,6 @@ namespace DCFApixels.WhimTex
                 TextureCompositor.NotifyShaderFXChanged(this);
         }
 
-        [NonSerialized] private string sdfUsageSource;
-        [NonSerialized] private bool sdfUsage;
-        internal bool UsesLayerSDF
-        {
-            get
-            {
-                if (sdfUsageSource != appliedSource)
-                {
-                    sdfUsageSource = appliedSource;
-                    int first = (appliedSource ?? "").IndexOf("SampleLayerSDF(", StringComparison.Ordinal);
-                    sdfUsage = first >= 0 && appliedSource.IndexOf("SampleLayerSDF", first + 15, StringComparison.Ordinal) >= 0;
-                }
-                return sdfUsage;
-            }
-        }
-
         internal Material GetMaterial(in LayerRenderContext context)
         {
             if (compiledShader == null)

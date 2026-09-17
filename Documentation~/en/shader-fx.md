@@ -30,7 +30,7 @@ Procedural shapes written in an FX can follow the layer transform using `LayerTo
 Use a custom shader effect when you need a look that the built-in layers do not provide.
 You can use an existing effect and adjust its parameters without writing code.
 
-**Profile** in Bevel Emboss shapes the bevel from its edge to its interior; **Smoothness** rounds the resulting profile. **Mapping** in Gradient Map redistributes brightness before choosing a gradient color. Both curves start linear, preserving the default appearance.
+**Profile** in Bevel Emboss maps the selected height channel to relief height. **Mapping** in Gradient Map redistributes brightness before choosing a gradient color. Both curves start linear.
 
 Color Balance uses three signed RGB components. Gain, Levels, Threshold, ambient lighting and distortion offsets offer soft limits where appropriate. Levels and Threshold can work above 1 for HDR; blend amounts remain limited to 0–1. Pixelate and Posterize allow more than 64 levels and Gamma above 5 through numeric input.
 
@@ -108,7 +108,7 @@ The same pattern list works per pixel in **Color → Posterize**.
 **Lighting and embossing**
 
 - **Normal Map → Lighting** turns an RGB normal map into a shaded surface. **Normals** defaults to Self. Set **Light Direction** with its canvas handle, then adjust **Base Color**, light/shadow colors, **Intensity** and **Ambient**. Keep **Packed Color** enabled for the Normal Map layer's default output; disable it for Linear Data. **Flip Y** reverses the green-axis convention. Platform-packed normal textures are not supported.
-- **SDF → Bevel Emboss** belongs directly on an SDF layer. **Surface** defaults to Self and supplies the surface color; the relief uses the layer's raw distances, independently of its gradient. **Width** controls the inner bevel, **Depth** raises or engraves it, **Smoothness** rounds the profile, and **Smoothing** reduces contour stair steps. Width/depth are in document pixels before the SDF layer transform. Alpha is preserved. Place bevel before spatial distortion FX, since earlier FX do not deform the raw SDF. On other layer types it leaves the image unchanged.
+- **Lighting → Bevel Emboss** works on any layer. **Height Map** defaults to Self or can reference another layer. **Height Channel** selects luminance, R, G, B or Alpha. **Profile** maps height; **Depth** raises or engraves; **Smoothing** sets the sampling radius in document pixels. **Output** selects Both, Highlight Only or Shadow Only, on a transparent background. Flat areas are transparent; Highlight/Shadow colors and alpha control tint and strength. Set blending and opacity on the layer; use two layers with the same Height Map to blend light and shadow independently. The FX replaces the host image with lighting: keep the original below as a separate layer. For SDF inputs, the visible gradient and Max Distance define bevel width. Re-add the preset to replace an older embedded copy.
 
 **Normal map normalization**
 

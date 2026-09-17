@@ -48,6 +48,12 @@ next_page: "zh/blending.md"
 **Threshold** 设置确定轮廓的阈值，**Max Distance (px, 0 = auto)** 设置过渡距离；0 表示自动选择距离。
 **Position** 决定渐变覆盖轮廓的哪一侧：Outside 为外侧，Inside 为内侧，Center 为两侧。
 默认的 **Signed** 覆盖轮廓两侧。**Inverted** 反转渐变方向。
+
+**Source Offset (px)** 沿 X/Y 移动输入，保留移出画布的轮廓对距离的影响。**Source Edges** 可选 Transparent（默认，透明）、Clamp（延伸边缘像素）、Repeat（重复并计算跨接缝距离）或 Mirror（镜像）。无法恢复已被源图层裁掉的内容。
+
+**Contour Offset (px)** 为正时扩张轮廓，为负时收缩。在 **Signed** 模式下，**Inside Distance** 和 **Outside Distance** 分别控制内外距离；0 使用 Max Distance 或自动范围。轮廓始终映射到渐变中点。**Profile** 在 Inverted 之后、渐变着色之前调整过渡形状；线性曲线保持原样。制作浮雕时，可从灰度渐变开始，在此调整高度轮廓。
+
+大偏移和 Repeat 需要更多内存。扩展计算区域超过 6400 万像素时会报错而非静默裁切，请减小偏移或分辨率。
 距离算法会改变转角和对角线的特征：
 Euclidean 给出圆润的距离，而 Manhattan 和 Chebyshev 给出更棱角分明的结果。
 

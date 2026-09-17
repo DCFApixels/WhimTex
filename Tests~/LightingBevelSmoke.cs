@@ -25,10 +25,6 @@ public static class LightingBevelSmoke
             try {var pixels=image.GetPixels(); foreach(var p in pixels)Check(!float.IsNaN(p.r)&&!float.IsInfinity(p.r),"finite output");return pixels;}
             finally{UnityEngine.Object.DestroyImmediate(image);}
         }
-        WhimTexGradient Constant(Color c)
-        {
-            var g=new WhimTexGradient(); g.SetKeys(new[]{new GradientColorKey(c,0),new GradientColorKey(c,1)},new[]{new GradientAlphaKey(1,0),new GradientAlphaKey(1,1)}); return g;
-        }
         try
         {
             var lighting=FX(File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/NormalLighting.hlsl"));
@@ -46,46 +42,60 @@ public static class LightingBevelSmoke
             normal.modifiers.Add(FX("#include \"Packages/com.dcfapixels.whimtex/src/Shaders/HdrColor.cginc\"\nfloat4 ApplyFX(float2 uv,float4 c){return float4(SpriteDecode(float3(.5,.5,1)),.6);}"));
             normal.modifiers.Add(lighting); P(lighting,"_PackedColor").floatValue=1; P(lighting,"_LightDirection").vectorValue=new Vector4(0,0,1,0);
             Check(Mathf.Abs(Render()[8256].r-1)<.005,"packed color decode");
-            normal.modifiers.Clear(); normal.modifiers.Add(bevel);
-            Check(Render()[8256].r>.99,"non SDF bypass");
-            doc.layers.Clear();
-            var sdf=new SDFLayerBehaviour(); Layer sdfLayer=sdf;
-            var shape=new ShapeLayerBehaviour{kind=ShapeLayerBehaviour.ShapeKind.Ellipse}; Layer source=shape;
-            source.enabled=false; source.transform.scale=new Double2(.7,.7);
-            doc.layers.Add(sdfLayer);doc.layers.Add(source);
-            typeof(TextureCompositor).GetMethod("NormalizeModel",F).Invoke(doc,null);
-            sdf.inputMode=EffectInputMode.Specific; sdf.TargetLayerId=source.Id;
-            sdf.gradient=Constant(new Color(.5f,.5f,.5f,1));
-            sdfLayer.modifiers.Add(bevel);
-            var raised=Render();
-            float min=1,max=0;foreach(var c in raised){min=Mathf.Min(min,c.r);max=Mathf.Max(max,c.r);}
-            Check(max-min>.15,"raw SDF bevel works despite constant gradient");
-            P(bevel,"_Depth").floatValue=-6;
+            normal.modifiers.Clear();
+            normal.modifiers.Add(FX("float4 ApplyFX(float2 uv,float4 c){float h=saturate(1-length(uv-.5)*3);return float4(h,h,h,1);}"));
+            normal.modifiers.Add(bevel);
+            var both=Render();
+            P(bevel,"_Output").floatValue=1; var highlight=Render();
+            P(bevel,"_Output").floatValue=2; var shadow=Render();
+            float lightSum=0, shadowSum=0;
+            for(int i=0;i<both.Length;i++)
+            {
+                Check(Mathf.Abs(both[i].a-highlight[i].a-shadow[i].a)<.005,"modes partition alpha");
+                Check(highlight[i].a*shadow[i].a<.00001,"light and shadow do not overlap");
+                lightSum+=highlight[i].a;shadowSum+=shadow[i].a;
+            }
+            Check(lightSum>1 && shadowSum>1,"both lighting lobes on ordinary layer");
+            Check(both[0].a<.001,"flat background transparent");
+            P(bevel,"_Depth").floatValue=0;
+            foreach(var c in Render())Check(c.a<.001,"zero depth transparent");
+            P(bevel,"_Depth").floatValue=-6;P(bevel,"_Output").floatValue=0;
             var recessed=Render();float difference=0;
-            for(int i=0;i<raised.Length;i++)difference+=Mathf.Abs(raised[i].r-recessed[i].r);
-            Check(difference>10,"negative depth changes relief");
-            var preview=new Texture2D(256,128,TextureFormat.RGBA32,false);
+            for(int i=0;i<both.Length;i++)difference+=Mathf.Abs(both[i].a-recessed[i].a);
+            Check(difference>1,"negative depth changes relief");
+            var preview=new Texture2D(384,128,TextureFormat.RGBA32,false);
             try
             {
-                for(int y=0;y<128;y++)for(int x=0;x<128;x++)
-                {preview.SetPixel(x,y,raised[y*128+x].gamma);preview.SetPixel(x+128,y,recessed[y*128+x].gamma);}
-                preview.Apply(); Directory.CreateDirectory("Temp/WhimTex");
+                var images=new[]{both,highlight,shadow};
+                for(int panel=0;panel<3;panel++)for(int y=0;y<128;y++)for(int x=0;x<128;x++)
+                {
+                    Color c=images[panel][y*128+x];
+                    Color bg=new Color(.22f,.22f,.22f,1);
+                    Color display=Color.Lerp(bg,new Color(c.r,c.g,c.b,1),c.a);
+                    preview.SetPixel(panel*128+x,y,display.gamma);
+                }
+                preview.Apply();Directory.CreateDirectory("Temp/WhimTex");
                 File.WriteAllBytes("Temp/WhimTex/bevel-smoke.png",preview.EncodeToPNG());
             }
             finally{UnityEngine.Object.DestroyImmediate(preview);}
-            P(bevel,"_Depth").floatValue=0;var flat=Render();
-            Check(Mathf.Abs(flat[8256].r-flat[128*64+25].r)<.005,"zero depth neutral");
+            Layer heightLayer=new ColorFillLayerBehaviour();
+            heightLayer.enabled=false;
+            heightLayer.modifiers.Add(normal.modifiers[0]);
+            doc.layers.Add(heightLayer);
+            typeof(TextureCompositor).GetMethod("NormalizeModel",F).Invoke(doc,null);
+            normal.modifiers[0]=FX("float4 ApplyFX(float2 uv,float4 c){return 0;}");
+            P(bevel,"_HeightMap").textureSource=ShaderFXTextureSource.Layer;
+            P(bevel,"_HeightMap").textureLayerId=heightLayer.Id;
             P(bevel,"_Depth").floatValue=6;
-            P(bevel,"_Surface").textureSource=ShaderFXTextureSource.Texture;
-            var a=Render();sdf.gradient=Constant(Color.red);var b=Render();
-            for(int i=0;i<a.Length;i++)Check(Mathf.Abs(a[i].r-b[i].r)<.0001,"gradient independent relief");
-            P(bevel,"_Surface").textureSource=ShaderFXTextureSource.Self;
-            sdf.gradient=Constant(new Color(.65f,.3f,.1f,1));
-            sdfLayer.transform.rotation=20; sdfLayer.transform.scale=new Double2(.8,.6);
-            Render();
-            var active=typeof(SDFLayerBehaviour).GetField("activeDistanceTexture",F);
-            Check(active.GetValue(sdf)==null,"raw temporary released");
-            return "PASS: "+checks+" lighting, alpha, SDF profile, gradient independence, transforms and lifetime checks.";
+            var external=Render();
+            for(int i=0;i<both.Length;i++)Check(Mathf.Abs(external[i].a-both[i].a)<.005,"disabled height layer on transparent host");
+            P(bevel,"_HeightChannel").floatValue=4;
+            foreach(var c in Render())Check(c.a<.001,"constant alpha channel gives no relief");
+            P(bevel,"_HeightChannel").floatValue=1;
+            var red=Render();
+            for(int i=0;i<both.Length;i++)Check(Mathf.Abs(red[i].a-both[i].a)<.005,"red channel selection");
+            Check(typeof(SDFLayerBehaviour).GetField("activeDistanceTexture",F)==null,"no SDF-specific output");
+            return "PASS: "+checks+" lighting, transparent bevel modes, flat/zero depth and generic layer checks.";
         }
         finally {foreach(var fx in effects)UnityEngine.Object.DestroyImmediate(fx);UnityEngine.Object.DestroyImmediate(doc);}
     }

@@ -21,11 +21,17 @@ namespace DCFApixels.WhimTex
         public DistancePosition distancePosition = DistancePosition.Signed;
         public bool inverted;
         public float maxDistanceNormalization;
+        public Vector2 sourceOffset;
+        public SourceEdges sourceEdges = SourceEdges.Transparent;
+        public float contourOffset;
+        public float insideDistance;
+        public float outsideDistance;
+        public AnimationCurve profile = AnimationCurve.Linear(0, 0, 1, 1);
         public WhimTexGradient gradient = GradientUtility.CreateLinearWhiteToBlack();
 
         [NonSerialized] private WhimTexGradientTexture gradientLut;
         [NonSerialized] private Material gradientMaterial;
-        [NonSerialized] internal RenderTexture activeDistanceTexture;
+        [NonSerialized] private WhimTexCurveTexture profileLut;
         internal override bool RequiresColorInput => sourceChannel != SourceChannel.Alpha;
 
         internal override RenderTexture Render(in LayerRenderContext context)
@@ -46,14 +52,14 @@ namespace DCFApixels.WhimTex
                     inputPixels.Length,
                     Allocator.TempJob,
                     NativeArrayOptions.UninitializedMemory);
-                DistanceFieldUtility.ComputeSignedDistance(
+                ComputeSourceDistance(
                     inputPixels,
                     signedDistances,
                     context.width,
                     context.height,
                     threshold,
                     (int)sourceChannel,
-                    metric);
+                    metric, sourceOffset / context.scaleMultiplier, sourceEdges);
 
                 resultTexture = new Texture2D(context.width, context.height, TextureFormat.RFloat, false, true)
                 {
@@ -72,25 +78,22 @@ namespace DCFApixels.WhimTex
                 }
                 gradientMaterial.SetTexture("_GradientLut", gradientLut.GetTexture(gradient, ColorSpace.Gamma));
                 gradientMaterial.SetFloat("_MaxDistance", GetNormalizationDistance(context));
+                float fallback = GetNormalizationDistance(context);
+                gradientMaterial.SetFloat("_InsideDistance", insideDistance > 0 ? insideDistance / context.scaleMultiplier : fallback);
+                gradientMaterial.SetFloat("_OutsideDistance", outsideDistance > 0 ? outsideDistance / context.scaleMultiplier : fallback);
+                gradientMaterial.SetFloat("_ContourOffset", contourOffset / context.scaleMultiplier);
+                profileLut ??= new WhimTexCurveTexture();
+                gradientMaterial.SetTexture("_ProfileLut", profileLut.GetTexture(profile));
                 gradientMaterial.SetInt("_Position", (int)distancePosition);
                 gradientMaterial.SetInt("_Inverted", inverted ? 1 : 0);
                 colored = RenderTexture.GetTemporary(context.width, context.height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
                 GL.sRGBWrite = false;
                 Graphics.Blit(resultTexture, colored, gradientMaterial);
-                if (context.applyModifiers && Owner.modifiers.Exists(m => m is ShaderFX fx && fx.Active && fx.UsesLayerSDF))
-                {
-                    var rawContext = new LayerRenderContext(context.compositor, context.input, context.width, context.height,
-                        context.scaleMultiplier, context.applyTransform, false, context.transformFxCoordinates);
-                    activeDistanceTexture = ApplyTransformAndModifiers(resultTexture, rawContext);
-                    activeDistanceTexture.filterMode = FilterMode.Bilinear;
-                }
                 return ApplyTransformAndModifiers(colored, context);
             }
             finally
             {
                 RenderTexture.active = previous; GL.sRGBWrite = srgb;
-                if (activeDistanceTexture != null) RenderTexture.ReleaseTemporary(activeDistanceTexture);
-                activeDistanceTexture = null;
                 if (colored != null) RenderTexture.ReleaseTemporary(colored);
                 if (signedDistances.IsCreated)
                     signedDistances.Dispose();
@@ -104,6 +107,7 @@ namespace DCFApixels.WhimTex
         internal override void ReleaseTransientResources()
         {
             gradientLut?.Dispose(); gradientLut = null;
+            profileLut?.Dispose(); profileLut = null;
             if (gradientMaterial != null) UnityEngine.Object.DestroyImmediate(gradientMaterial);
             gradientMaterial = null;
             base.ReleaseTransientResources();
@@ -154,12 +158,86 @@ namespace DCFApixels.WhimTex
             Luminance
         }
 
+        public enum SourceEdges { Transparent, Clamp, Repeat, Mirror }
+
+        internal static void ComputeSourceDistance(NativeArray<Color32> source, NativeArray<float> output,
+            int width, int height, byte threshold, int channel, DistanceMetric metric, Vector2 offset, SourceEdges edges)
+        {
+            // Translation commutes with the distance transform. Keep the source contour intact,
+            // then sample the translated field; do not crop a shifted mask first.
+            if (edges == SourceEdges.Repeat || edges == SourceEdges.Mirror)
+            {
+                offset.x = Mathf.Repeat(offset.x, width * (edges == SourceEdges.Mirror ? 2 : 1));
+                offset.y = Mathf.Repeat(offset.y, height * (edges == SourceEdges.Mirror ? 2 : 1));
+            }
+            int left = edges == SourceEdges.Repeat ? -width : Mathf.Min(-1, Mathf.FloorToInt(-offset.x) - 1);
+            int bottom = edges == SourceEdges.Repeat ? -height : Mathf.Min(-1, Mathf.FloorToInt(-offset.y) - 1);
+            int right = edges == SourceEdges.Repeat ? width * 2 : Mathf.Max(width, Mathf.CeilToInt(width - 1 - offset.x) + 1);
+            int top = edges == SourceEdges.Repeat ? height * 2 : Mathf.Max(height, Mathf.CeilToInt(height - 1 - offset.y) + 1);
+            // Mirror queries are folded into the original tile; reflected contours cannot be
+            // closer than their counterpart inside that tile.
+            if (edges == SourceEdges.Mirror) { left = bottom = -1; right = width; top = height; }
+            int w = right - left + 1, h = top - bottom + 1;
+            if ((long)w * h > 67108864 || w <= 0 || h <= 0)
+                throw new InvalidOperationException("SDF source offset/edge expansion exceeds 64 million pixels. Reduce the source offset or canvas resolution.");
+            using var extended = new NativeArray<Color32>(w * h, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+            using var distances = new NativeArray<float>(w * h, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+            new SdfExtendSourceJob { source = source, output = extended, width = width, height = height,
+                extendedWidth = w, left = left, bottom = bottom, edges = (int)edges }.Schedule(extended.Length, 128).Complete();
+            DistanceFieldUtility.ComputeSignedDistance(extended, distances, w, h, threshold, channel, metric);
+            new SdfSampleSourceJob { source = distances, output = output, width = width, height = height,
+                extendedWidth = w, extendedHeight = h, left = left, bottom = bottom,
+                offset = offset, edges = (int)edges }.Schedule(output.Length, 128).Complete();
+        }
+
         public enum DistancePosition
         {
             Outside,
             Inside,
             Center,
             Signed
+        }
+    }
+
+    [BurstCompile]
+    internal struct SdfExtendSourceJob : IJobParallelFor
+    {
+        [ReadOnly] public NativeArray<Color32> source;
+        [WriteOnly] public NativeArray<Color32> output;
+        public int width, height, extendedWidth, left, bottom, edges;
+        public void Execute(int i)
+        {
+            int x = i % extendedWidth + left, y = i / extendedWidth + bottom;
+            if (edges == 0 && (x < 0 || y < 0 || x >= width || y >= height)) { output[i] = default; return; }
+            if (edges == 2) { x = ((x % width) + width) % width; y = ((y % height) + height) % height; }
+            else { x = math.clamp(x, 0, width - 1); y = math.clamp(y, 0, height - 1); }
+            output[i] = source[y * width + x];
+        }
+    }
+
+    [BurstCompile]
+    internal struct SdfSampleSourceJob : IJobParallelFor
+    {
+        [ReadOnly] public NativeArray<float> source;
+        [WriteOnly] public NativeArray<float> output;
+        public int width, height, extendedWidth, extendedHeight, left, bottom, edges;
+        public Vector2 offset;
+        static float Fold(float x, int size)
+        {
+            float p = x + .5f;
+            p -= math.floor(p / (2 * size)) * (2 * size);
+            return math.clamp(math.min(p, 2 * size - p) - .5f, 0, size - 1);
+        }
+        public void Execute(int i)
+        {
+            float x = i % width - offset.x, y = i / width - offset.y;
+            if (edges == 2) { x -= math.floor(x / width) * width; y -= math.floor(y / height) * height; }
+            if (edges == 3) { x = Fold(x, width); y = Fold(y, height); }
+            x -= left; y -= bottom;
+            int x0 = math.clamp((int)math.floor(x), 0, extendedWidth - 1), y0 = math.clamp((int)math.floor(y), 0, extendedHeight - 1);
+            int x1 = math.min(x0 + 1, extendedWidth - 1), y1 = math.min(y0 + 1, extendedHeight - 1);
+            output[i] = math.lerp(math.lerp(source[y0 * extendedWidth + x0], source[y0 * extendedWidth + x1], math.frac(x)),
+                math.lerp(source[y1 * extendedWidth + x0], source[y1 * extendedWidth + x1], math.frac(x)), math.frac(y));
         }
     }
 

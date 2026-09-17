@@ -9,11 +9,9 @@ search_exclude: true
 
 # Shader authoring
 
-### Raw SDF access
+### Height-based lighting
 
-FX attached directly to an SDF layer can call `HasLayerSDF()` and `SampleLayerSDF(uv)`. The latter returns signed distance (negative inside, positive outside) in document pixels, before distance-position, inversion and gradient mapping. Coordinates follow the transformed SDF layer output, but distances retain their pre-transform units. Outside clipped bounds or without an SDF source, the helper returns 1000000; check availability first. Earlier FX do not warp this field. Put bevel before spatial FX.
-
-The auxiliary texture is created only when applied shader source uses the sampling helper; it reuses the already-computed distances, adds a GPU transform pass, and is released after the layer's FX chain. It is not a persistent second SDF cache. The built-in SDF/Bevel Emboss preset uses a separate `texture2D _Surface = self` for surface color. Selecting another Surface changes coloration, not the relief source.
+Lighting/Bevel Emboss is a regular FX over a `texture2D _HeightMap = self` input. It works on any layer, without raw SDF access or layer-specific outputs. Height Channel selects luminance, R, G, B or alpha; RGB channels are multiplied by image alpha before the 0–1 input is mapped through Profile. Depth controls relief strength/sign; Smoothing is the normal sampling radius in document pixels. Output selects Both, Highlight Only or Shadow Only. Output RGB is the light/shadow tint; straight alpha is lighting strength times tint alpha, independent of host alpha. Flat areas are transparent. Choose compositing through the layer blend mode; use separate light/shadow layers for independent modes. SDF bevel width comes from the visible height gradient and Max Distance, not an FX width parameter. The former raw-distance helpers are no longer provided; re-add the preset to replace an older embedded version.
 
 ### Texture sources
 

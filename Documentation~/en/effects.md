@@ -49,6 +49,12 @@ Use **SDF** when you want a gradual transition based on distance from the shape.
 At 0, the distance is chosen automatically. **Position** selects which side receives the gradient:
 Outside covers the outside, Inside the inside, and Center both sides.
 The default, **Signed**, covers both sides of the contour. **Inverted** reverses the gradient direction.
+
+**Source Offset (px)** shifts the input while retaining the influence of contours moved outside the canvas. **Source Edges** extends the image as Transparent (default), Clamp, Repeat (including distances across seams), or Mirror. It cannot recover details already clipped by the source layer.
+
+**Contour Offset (px)** expands the contour when positive and shrinks it when negative. In **Signed**, **Inside Distance** and **Outside Distance** independently set the interior/exterior range; 0 inherits Max Distance or auto. The contour stays at the gradient midpoint. **Profile** remaps the transition after Inverted and before gradient coloring; linear leaves it unchanged. For bevel lighting, start with a grayscale gradient and shape its height profile here.
+
+Large offsets and Repeat use more memory. Extended domains above 64 million pixels report an error rather than silently cropping; reduce offset or resolution if needed.
 The distance algorithm changes the character of corners and diagonals:
 Euclidean gives rounded distances, while Manhattan and Chebyshev give more angular results.
 

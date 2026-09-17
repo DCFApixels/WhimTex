@@ -2185,6 +2185,44 @@
                   "minimum": 0,
                   "maximum": 16384
                 },
+                "sourceOffset": {
+                  "type": "array",
+                  "items": {
+                    "type": "number",
+                    "minimum": -16384,
+                    "maximum": 16384
+                  },
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                "sourceEdges": {
+                  "type": "string",
+                  "enum": [
+                    "Transparent",
+                    "Clamp",
+                    "Repeat",
+                    "Mirror"
+                  ]
+                },
+                "contourOffset": {
+                  "type": "number",
+                  "minimum": -16384,
+                  "maximum": 16384
+                },
+                "insideDistance": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 16384
+                },
+                "outsideDistance": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 16384
+                },
+                "profile": {
+                  "type": "string",
+                  "maxLength": 65536
+                },
                 "gradient": {
                   "$ref": "#/$defs/gradient"
                 },

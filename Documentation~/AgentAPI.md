@@ -227,7 +227,7 @@ Gradient inputs accept either an ordered stop array or the object form documente
 | Color | `color` (`[r,g,b,a]`, encoded RGB -107..107, alpha 0..1) |
 | Drawing | `brush` (partial brush settings below) |
 | Outline | `color`, `metric`, `outlineWidth`, `outlineSoftness` (0..16384), `outlinePosition` (`Outside`, `Inside`, `Center`), `outlineOffset` (-16384..16384), `fillCenter` (bool), `fillColor` (`[r,g,b,a]`) |
-| SDF | `metric`, `sourceChannel` (`Alpha`, `Red`, `Green`, `Blue`, `Luminance`), `threshold` (integer 0..255), `distancePosition` (`Outside`, `Inside`, `Center`, `Signed`), `inverted` (bool), `maxDistance` (0..16384; zero = automatic) |
+| SDF | `metric`, `sourceChannel` (`Alpha`, `Red`, `Green`, `Blue`, `Luminance`), `threshold` (integer 0..255), `distancePosition` (`Outside`, `Inside`, `Center`, `Signed`), `inverted` (bool), `maxDistance` (0..16384; zero = automatic), `sourceOffset` ([x,y], each -16384..16384 px), `sourceEdges` (`Transparent`, `Clamp`, `Repeat`, `Mirror`), `contourOffset` (-16384..16384 px; positive expands), `insideDistance`/`outsideDistance` (Signed only, 0..16384; 0 inherits maxDistance/auto), `profile` (FX curve string syntax, default `linear`) |
 | Normal Map | `normalMap`: partial settings object described below |
 | Noise | `noise`: partial procedural settings object described below |
 | Shape | `shape`: partial settings object described below |

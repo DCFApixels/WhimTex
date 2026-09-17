@@ -30,7 +30,7 @@ next_page: "zh/preview.md"
 当你需要内置图层无法提供的效果时，可以使用自定义着色器效果。
 你可以使用现有效果并调整其参数，无需编写代码。
 
-Bevel Emboss 的 **Profile** 控制从边缘到内部的倒角形状，**Smoothness** 使该轮廓更加圆滑。Gradient Map 的 **Mapping** 在选择渐变颜色前重新分配亮度。两条曲线默认为线性，保持默认效果外观。
+Bevel Emboss 的 **Profile** 将选定的高度通道映射为浮雕高度。Gradient Map 的 **Mapping** 在选择渐变颜色前重新分配亮度。两条曲线默认为线性。
 
 Color Balance 使用三个有符号 RGB 分量。Gain、Levels、Threshold、环境光及扭曲偏移在适当位置提供软边界。Levels 和 Threshold 支持大于 1 的 HDR 数值；混合比例仍限制在 0–1。Pixelate 和 Posterize 可手动输入超过 64 的级数和大于 5 的 Gamma。
 
@@ -79,7 +79,7 @@ HLSL 画笔预设和没有效果标记的文件不会被接受。
 **光照与浮雕**
 
 - **Normal Map → Lighting** 根据 RGB 法线贴图生成受光表面。**Normals** 默认为 Self。通过画布手柄调整 **Light Direction**，并设置 **Base Color**、明暗颜色、**Intensity** 和 **Ambient**。Normal Map 的默认输出应开启 **Packed Color**；Linear Data 应关闭。**Flip Y** 反转绿色轴方向。不支持平台专用压缩法线编码。
-- **SDF → Bevel Emboss** 直接用于 SDF 图层。**Surface** 默认为 Self，提供表面颜色；形状来自原始距离场，不受渐变影响。**Width** 控制内侧倒角宽度，**Depth** 控制凸起或凹陷，**Smoothness** 调整轮廓圆滑程度，**Smoothing** 减少边缘阶梯。宽度和深度以 SDF 图层变换前的文档像素计，保留透明度。请将此效果放在空间扭曲 FX 之前，因为前面的 FX 不会变形原始距离场。在其他图层类型上，此效果不改变图像。
+- **Lighting → Bevel Emboss** 可用于任意图层。**Height Map** 默认为 Self，也可选择其他图层。**Height Channel** 选择亮度、R、G、B 或 Alpha。**Profile** 映射高度，**Depth** 控制凸起或凹陷，**Smoothing** 设置以文档像素计的采样半径。**Output** 可选 Both、Highlight Only 或 Shadow Only，在透明背景上输出光影；平坦区域透明。Highlight/Shadow 的颜色和透明度控制色调与强度。通过图层设置混合模式和不透明度；用共享同一 Height Map 的两个图层独立混合高光与阴影。FX 将宿主图像替换为光影，需要保留原图时将其作为单独图层放在下方。SDF 的可见渐变与 Max Distance 决定倒角宽度。旧的嵌入效果需重新添加预设以替换。
 
 **法线贴图归一化**
 

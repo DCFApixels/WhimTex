@@ -197,6 +197,12 @@ namespace DCFApixels.WhimTex
                         settings["distancePosition"] = sdf.distancePosition.ToString();
                         settings["inverted"] = sdf.inverted;
                         settings["maxDistance"] = sdf.maxDistanceNormalization;
+                        settings["sourceOffset"] = new JArray(sdf.sourceOffset.x, sdf.sourceOffset.y);
+                        settings["sourceEdges"] = sdf.sourceEdges.ToString();
+                        settings["contourOffset"] = sdf.contourOffset;
+                        settings["insideDistance"] = sdf.insideDistance;
+                        settings["outsideDistance"] = sdf.outsideDistance;
+                        settings["profile"] = WhimTexCurveTexture.Format(sdf.profile);
                         entry["gradientKeys"] = GradientSnapshot(sdf.gradient);
                     }
                     if (layer?.Behaviour is NormalMapLayerBehaviour normal) settings["normalMap"] = NormalMapSnapshot(normal);

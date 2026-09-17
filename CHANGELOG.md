@@ -4,6 +4,20 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+## [0.10.22] - 2026-09-17
+
+### Added
+
+- SDF source offset with Transparent, Clamp, Repeat and Mirror boundaries, contour offset, independent Signed inside/outside distances and a cached Profile curve.
+- Clipboard/API support, localized documentation and CPU/GPU regression tests for the new SDF controls.
+
+### Changed
+
+- Bevel Emboss now uses an ordinary height-map input on any layer and outputs Both, Highlight Only or Shadow Only on transparency for layer-based blending.
+- Removed the special raw-distance channel between SDF layers and FX; effects remain independent plugins over the shared image/parameter contract.
+- Older embedded Bevel Emboss effects must be replaced by adding the updated Lighting/Bevel Emboss preset.
+- Extended SDF calculation domains above 64 million pixels report an error instead of silently cropping.
+
 ## [0.10.21] - 2026-09-17
 
 ### Added

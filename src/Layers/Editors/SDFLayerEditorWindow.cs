@@ -28,6 +28,28 @@ namespace DCFApixels.WhimTex
         {
             addEffectTarget(root, layer);
 
+            var offset = WhimTexUI.ConfigureField(new Vector2Field("Source Offset (px)"));
+            offset.SetValueWithoutNotify(layer.sourceOffset);
+            bindings.Track(offset, () => layer.sourceOffset);
+            offset.RegisterValueChangedCallback(e => applyChange("Change SDF Source Offset", () =>
+                layer.sourceOffset = new Vector2(Mathf.Clamp(e.newValue.x, -16384, 16384), Mathf.Clamp(e.newValue.y, -16384, 16384))));
+            root.Add(offset);
+            var edges = WhimTexUI.ConfigureField(new EnumField("Source Edges", layer.sourceEdges));
+            bindings.Track(edges, () => (Enum)layer.sourceEdges);
+            edges.RegisterValueChangedCallback(e => applyChange("Change SDF Source Edges", () => layer.sourceEdges = (SDFLayerBehaviour.SourceEdges)e.newValue));
+            root.Add(edges);
+
+            FloatField DistanceField(string label, Func<float> get, Action<float> set, float min)
+            {
+                var field = WhimTexUI.ConfigureField(new FloatField(label));
+                field.SetValueWithoutNotify(get());
+                bindings.Track(field, get);
+                field.RegisterValueChangedCallback(e => applyChange("Change SDF " + label, () => set(Mathf.Clamp(e.newValue, min, 16384))));
+                root.Add(field);
+                return field;
+            }
+            DistanceField("Contour Offset (px)", () => layer.contourOffset, v => layer.contourOffset = v, -16384);
+
             EnumField metric = WhimTexUI.ConfigureField(new EnumField("Distance Algorithm", layer.metric));
             metric.tooltip = "Euclidean Antialiased locates the Threshold contour between pixels, including soft edges. Euclidean Exact keeps a hard threshold; useful for pixel masks.";
             bindings.Track(metric, () => (Enum)layer.metric);
@@ -70,6 +92,23 @@ namespace DCFApixels.WhimTex
                 "Change SDF Position",
                 () => layer.distancePosition = (SDFLayerBehaviour.DistancePosition)evt.newValue));
             root.Add(distancePosition);
+            var inside = DistanceField("Inside Distance (px)", () => layer.insideDistance, v => layer.insideDistance = v, 0);
+            var outside = DistanceField("Outside Distance (px)", () => layer.outsideDistance, v => layer.outsideDistance = v, 0);
+            inside.tooltip = outside.tooltip = "Signed mode only. 0 uses Max Distance, including its automatic range.";
+            void RefreshRanges()
+            {
+                bool signed = layer.distancePosition == SDFLayerBehaviour.DistancePosition.Signed;
+                inside.SetEnabled(signed); outside.SetEnabled(signed);
+            }
+            bindings.Add(RefreshRanges);
+            distancePosition.RegisterValueChangedCallback(_ => RefreshRanges());
+            RefreshRanges();
+            var profile = WhimTexUI.ConfigureField(new CurveField("Profile"));
+            profile.tooltip = "Remaps normalized distance before the gradient. Signed uses separate Inside/Outside distances; zero distance settings use Max Distance (or auto).";
+            profile.SetValueWithoutNotify(layer.profile ?? WhimTexCurveTexture.Default());
+            bindings.Track(profile, () => layer.profile ?? WhimTexCurveTexture.Default());
+            profile.RegisterValueChangedCallback(e => applyChange("Change SDF Profile", () => layer.profile = WhimTexCurveTexture.Copy(e.newValue)));
+            root.Add(profile);
 
             Toggle inverted = WhimTexUI.ConfigureField(new Toggle("Inverted"));
             inverted.SetValueWithoutNotify(layer.inverted);

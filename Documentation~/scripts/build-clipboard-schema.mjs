@@ -55,7 +55,7 @@ const extra = {
   color: { color: rgba, fillMode: choice('Color UV') }, gradient: { gradient: ref('gradient'), gradientOptions: ref('gradientOptions') }, noise: { noise: ref('noise') }, shape: { shape: ref('shape') },
   blur: { blur: ref('blur') }, makeSeamless: { makeSeamless: ref('makeSeamless') }, normalMap: { normalMap: ref('normalMap') },
   outline: { metric, color: rgba, outlineWidth: number(0, 16384), outlineSoftness: number(0, 16384), outlinePosition: enumeration('Layers/OutlineLayerBehaviour.cs', 'OutlinePosition'), outlineOffset: number(-16384, 16384), fillCenter: bool, fillColor: rgba },
-  sdf: { metric, sourceChannel: enumeration('Layers/SDFLayerBehaviour.cs', 'SourceChannel'), threshold: integer(0, 255), distancePosition: enumeration('Layers/SDFLayerBehaviour.cs', 'DistancePosition'), inverted: bool, maxDistance: number(0, 16384), gradient: ref('gradient') },
+  sdf: { metric, sourceChannel: enumeration('Layers/SDFLayerBehaviour.cs', 'SourceChannel'), threshold: integer(0, 255), distancePosition: enumeration('Layers/SDFLayerBehaviour.cs', 'DistancePosition'), inverted: bool, maxDistance: number(0, 16384), sourceOffset: tuple(number(-16384,16384),2), sourceEdges: choice('Transparent Clamp Repeat Mirror'), contourOffset: number(-16384,16384), insideDistance: number(0,16384), outsideDistance: number(0,16384), profile: str(65536), gradient: ref('gradient') },
   shaderProcessor: {}, drawing: {}, file: {}, group: { compositing: choice('PassThrough Isolated') }
 };
 defs.layer = { oneOf: Object.entries(extra).map(([type, properties]) => {
