@@ -11,6 +11,8 @@ next_page: "zh/preview.md"
 
 # Shader FX 与处理器
 
+在 HLSL 参数声明前添加 `// @header(Lighting)` 可显示加粗的分节标题，不带折叠功能。标题无需引号，保存预设时会保留。
+
 `one` 默认值创建恒为 1 的水平曲线，关键点时间分别为 0 和 1。
 
 曲线默认值还支持 `easeIn`（缓慢起步）和 `easeOut`（缓慢结束），两者均为从 0 到 1 的二次曲线。
@@ -70,16 +72,18 @@ HLSL 画笔预设和没有效果标记的文件不会被接受。
 添加到项目中的效果会自动可用；无需设置预设文件夹。
 
 **+ Reference** 用于选择 Shader FX 资源，所有使用它的位置共享设置。
-效果行上的 **Embed** 会在文档内创建独立副本，不修改外部资源。
+效果标题栏中的 **⋮ → Embed Copy** 会在文档内创建独立副本，不修改外部资源。同一菜单还包含 **Move Up**、**Move Down** 和 **Remove**。
 项目 HLSL 效果的代码会随源 `.hlsl` 文件更新。要在文档内独立编辑代码，
-请点击 **Code & Parameters** 中的 **Embed Copy**。
+请点击 **Code** 中的 **Embed Copy**。参数直接显示在标题下方；**Code** 包含代码编辑器、**Apply**、**Save Preset…** 和嵌套的 **Shader inputs** 参考说明。只有存在消息时才显示诊断区域。
 
 多个效果的顺序会影响结果：每行的 **↑** 和 **↓** 可将该效果提前或推后。
 
 **光照与浮雕**
 
 - **Normal Map → Lighting** 根据 RGB 法线贴图生成受光表面。**Normals** 默认为 Self。通过画布手柄调整 **Light Direction**，并设置 **Base Color**、明暗颜色、**Intensity** 和 **Ambient**。Normal Map 的默认输出应开启 **Packed Color**；Linear Data 应关闭。**Flip Y** 反转绿色轴方向。不支持平台专用压缩法线编码。
-- **Lighting → Bevel Emboss** 可用于任意图层。**Height Map** 默认为 Self，也可选择其他图层。**Height Channel** 选择亮度、R、G、B 或 Alpha。**Profile** 映射高度，**Depth** 控制凸起或凹陷，**Smoothing** 设置以文档像素计的采样半径。**Output** 可选 Both、Highlight Only 或 Shadow Only，在透明背景上输出光影；平坦区域透明。Highlight/Shadow 的颜色和透明度控制色调与强度。通过图层设置混合模式和不透明度；用共享同一 Height Map 的两个图层独立混合高光与阴影。FX 将宿主图像替换为光影，需要保留原图时将其作为单独图层放在下方。SDF 的可见渐变与 Max Distance 决定倒角宽度。旧的嵌入效果需重新添加预设以替换。
+- **Lighting → Bevel Emboss** 从 **Height Map**（默认 Self，也可选择其他图层）计算法线。**Height Channel** 选择亮度、R、G、B 或 Alpha；**Profile** 映射高度，**Depth** 控制凸起或凹陷，**Smoothing** 设置以文档像素计的采样半径。SDF 的可见渐变与距离范围决定倒角宽度。
+
+两个效果均通过 **Base Color 的透明度** 在透明光影（0）和完整受光表面（1）之间平滑混合，中间值采用考虑透明度的混合。RGB 设置表面颜色，**Ambient** 随填充逐渐显现。**Output** 为透明光影选择 Both、Highlight Only 或 Shadow Only；Base Color 透明度为 1 时无影响。Light Color/Shadow Color 的透明度控制该部分的强度。整体不透明度与混合模式由图层控制。两个效果的 Base Color 默认透明度均为 0。旧的嵌入版本需重新添加预设。
 
 **法线贴图归一化**
 

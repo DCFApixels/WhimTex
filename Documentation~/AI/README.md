@@ -44,7 +44,7 @@ examples illustrate it, but do not define extra fields.
    Use a named group for a multi-layer composition. Avoid excessive layers, blur radii or shader loops.
 4. Layer arrays are **top to bottom**, exactly like the Layers panel. FX arrays run **first to last**.
    Give referenced layers short, unique local IDs. These are not real document GUIDs.
-5. For reusable HLSL, declare controls with `// @param`. The default values become the initial UI values.
+5. For reusable HLSL, declare controls with `// @param`. The default values become the initial UI values. Optional `// @header(Lighting)` adds a bold, non-collapsible UI heading before the next parameter; use a literal non-empty title without quotes. It does not declare a uniform. Headers without a following parameter are ignored.
    Keep shader code self-contained; preserve alpha unless the requested effect changes coverage.
 6. Do not claim successful compilation or insertion without actually testing in Unity. The user can
    send an error back; return a corrected complete JSON object. Re-pasting creates new layers, not an update.
@@ -448,7 +448,7 @@ uniform. Other repeated types must match exactly. Control ranges do not clamp va
 another control. Preset export saves the current value once. These dropdown/linked controls are FX-only.
 `float2`, `float3` and `float4` are raw vectors with two, three and four components. `normal` generates a normalized `float3`; its default and zero-vector fallback are `(0, 0, 1)`. It also offers an on-canvas direction handle; no range is accepted. Defaults are optional. Unknown parameter types are rejected.
 
-FX use ordinary input images and explicit parameters, not hidden layer-specific data. Lighting/Bevel Emboss reads a height texture (Self by default) and outputs highlights/shadows on transparency for compositing with layer blend modes. SDF inputs use their visible gradient, not raw distances. See [shader reference](../ShaderFX.md) for the complete contract.
+FX use ordinary input images and explicit parameters, not hidden layer-specific data. Lighting/Bevel Emboss reads a height texture (Self by default) and shares lighting with Normal Map/Lighting. Base Color alpha blends transparent lighting (0) into the shaded surface (1); Output selects Both/Highlight Only/Shadow Only for the transparent part. SDF inputs use their visible gradient, not raw distances. See [shader reference](../ShaderFX.md) for the complete contract.
 
 `float4` is a raw vector; `color` is a color picker. Texture parameters without an explicit default keep Texture mode and sample white when empty. Use `= none` for transparent black, or `= self` to sample the current layer immediately before this FX (including earlier FX, excluding current/later FX). Both are unquoted declaration keywords and are preserved in exported presets. These are FX parameter defaults, not layer IDs. Users can change the texture source in the editor. Clipboard JSON cannot bind an asset texture to a shader parameter: a
 Drawing layer with a `url` is the way to bring an image into the pasted tree.

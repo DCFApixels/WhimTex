@@ -11,6 +11,8 @@ search_exclude: true
 
 ### Height-based lighting
 
+Normal Lighting and Bevel Emboss share `SurfaceLighting.cginc`. `_BaseColor.a` blends transparent lighting (0) into a filled surface (1), using premultiplied interpolation and returning straight alpha. Surface RGB uses `_BaseColor.rgb`, Lambert lighting, `_LightColor`, `_ShadowColor`, `_Intensity` and `_Ambient`; its coverage is the host input alpha, without another Base Color alpha multiplication. Transparent lighting subtracts flat-normal lighting and ignores host alpha/Base Color RGB/Ambient. `_Output` selects Both (0), HighlightOnly (1), ShadowOnly (2) for that component only; tint alpha scales its strength. Both effects default to Base Color alpha 0. There is no Render Mode parameter. Identical normals and common parameters produce identical output. The common include is expanded by portable copying.
+
 Lighting/Bevel Emboss is a regular FX over a `texture2D _HeightMap = self` input. It works on any layer, without raw SDF access or layer-specific outputs. Height Channel selects luminance, R, G, B or alpha; RGB channels are multiplied by image alpha before the 0–1 input is mapped through Profile. Depth controls relief strength/sign; Smoothing is the normal sampling radius in document pixels. Output selects Both, Highlight Only or Shadow Only. Output RGB is the light/shadow tint; straight alpha is lighting strength times tint alpha, independent of host alpha. Flat areas are transparent. Choose compositing through the layer blend mode; use separate light/shadow layers for independent modes. SDF bevel width comes from the visible height gradient and Max Distance, not an FX width parameter. The former raw-distance helpers are no longer provided; re-add the preset to replace an older embedded version.
 
 ### Texture sources
@@ -98,6 +100,14 @@ Manual parameters are emitted as declarations too. Custom includes are expanded 
 under user `ShaderFX` or project `Assets`. Existing effects are not detached or switched to the saved file.
 
 ### Parameter declarations
+
+Use `// @header(Lighting)` before a `// @param` declaration to add a bold, non-collapsible heading above that control. Titles are literal text, without quotes; `// @ header(Lighting)` also accepts whitespace after `@`. This is UI metadata, not a uniform. Multiple headers are displayed in order; a header without a following parameter is ignored. Headers survive preset saving and portable export, including repeated controls for one variable. HLSL brushes support the same decoration.
+
+```hlsl
+// @header(Lighting)
+// @param color _LightColor = (1, 1, 1, 1)
+// @param float _Intensity = 1 [0 .. ~4]
+```
 
 ```hlsl
 // @param float _Strength = 0.02 [0 .. 0.1]

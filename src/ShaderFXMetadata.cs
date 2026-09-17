@@ -45,11 +45,22 @@ namespace DCFApixels.WhimTex
             int lineNumber = 0;
             int declarationCount = 0;
             bool blockComment = false;
+            var pendingHeaders = new List<string>();
             do
             {
                 lineNumber++;
                 bool declaration = !blockComment && line != null && Regex.IsMatch(line, @"^\s*//\s*@param\b");
+                bool sectionHeader = !blockComment && line != null && Regex.IsMatch(line, @"^\s*//\s*@\s*header\b");
                 if (line != null) ShaderFXSourceBuilder.MaskComments(line, ref blockComment);
+                if (sectionHeader)
+                {
+                    var heading = Regex.Match(line, @"^\s*//\s*@\s*header\s*\((.+)\)\s*$");
+                    if (!heading.Success || string.IsNullOrWhiteSpace(heading.Groups[1].Value))
+                        throw new FormatException($"Line {lineNumber}: expected // @header(Name) with a non-empty title.");
+                    if (pendingHeaders.Count >= 128) throw new FormatException($"Line {lineNumber}: too many consecutive headers.");
+                    pendingHeaders.Add(heading.Groups[1].Value.Trim());
+                    continue;
+                }
                 if (!declaration) continue;
                 try
                 {
@@ -174,7 +185,9 @@ namespace DCFApixels.WhimTex
                     }
                     if (kind != "float" && bounded) throw new FormatException("Ranges apply only to float parameters.");
                     var control = new ShaderFXParameterControl { type = p.type, order = lineNumber, tooltip = tooltip,
+                        headers = pendingHeaders.ToArray(),
                         hasMinimum = p.hasMinimum, hasMaximum = p.hasMaximum, softMinimum = p.softMinimum, softMaximum = p.softMaximum, minimum = p.minimum, maximum = p.maximum };
+                    pendingHeaders.Clear();
                     if (enumMatch.Success)
                     {
                         control.type = ShaderFXParameterType.Enum;

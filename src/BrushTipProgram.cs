@@ -123,6 +123,8 @@ namespace DCFApixels.WhimTex
             foreach(var p in parameters)
             {
                 string declaration=ShaderFXPresetWriter.Declaration(p);
+                if(p.controls.Count>0 && p.controls[0].headers != null)
+                    foreach(string title in p.controls[0].headers) result.AppendLine("// @header("+title+")");
                 if(p.controls.Count>0 && !string.IsNullOrEmpty(p.controls[0].tooltip))declaration+=" // "+p.controls[0].tooltip;
                 result.AppendLine(declaration);
             }
@@ -130,7 +132,7 @@ namespace DCFApixels.WhimTex
             string line; bool block=false;
             while((line=reader.ReadLine())!=null)
             {
-                bool declaration=!block && Regex.IsMatch(line,@"^\s*//\s*@param\b");
+                bool declaration=!block && Regex.IsMatch(line,@"^\s*//\s*@(?:param\b|\s*header\b)");
                 ShaderFXSourceBuilder.MaskComments(line,ref block);
                 if(!declaration)result.AppendLine(line);
             }

@@ -16,6 +16,7 @@ namespace DCFApixels.WhimTex
     public sealed class ShaderFXParameterControl
     {
         public string tooltip;
+        public string[] headers = Array.Empty<string>();
         public ShaderFXParameterType type;
         public int order;
         public bool hasMinimum, hasMaximum;
@@ -81,6 +82,7 @@ namespace DCFApixels.WhimTex
             copy.controls = new List<ShaderFXParameterControl>(controls.Count);
             foreach (var c in controls)
                 copy.controls.Add(new ShaderFXParameterControl { type = c.type, order = c.order, tooltip = c.tooltip,
+                    headers = c.headers == null ? Array.Empty<string>() : (string[])c.headers.Clone(),
                     hasMinimum = c.hasMinimum, hasMaximum = c.hasMaximum, softMinimum = c.softMinimum, softMaximum = c.softMaximum, minimum = c.minimum, maximum = c.maximum,
                     optionNames = (string[])c.optionNames.Clone(), optionValues = (float[])c.optionValues.Clone() });
             return copy;

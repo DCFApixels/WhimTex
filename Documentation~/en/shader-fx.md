@@ -11,6 +11,8 @@ next_page: "en/preview.md"
 
 # Shader FX and Processor
 
+In HLSL, `// @header(Lighting)` before a parameter adds a bold section heading, without a foldout. The title needs no quotes; the heading is preserved when saving presets.
+
 The `one` curve default is flat at 1, with keys at times 0 and 1.
 
 Curve defaults also include `easeIn` for a slow start and `easeOut` for a slow finish. Both are quadratic 0→1 curves.
@@ -71,9 +73,9 @@ so moving the image clips it at the frame. Distortion effects do not have this c
 Effects added to the project become available automatically; no preset folder setup is needed.
 
 **+ Reference** selects a Shader FX asset whose settings are shared everywhere it is used.
-**Embed** on the effect row creates an independent copy in the document without changing the external asset.
+**⋮ → Embed Copy** in the effect header creates an independent copy in the document without changing the external asset. The same menu contains **Move Up**, **Move Down** and **Remove**.
 Project HLSL effects receive code changes from their source `.hlsl` file.
-To edit the code independently in the document, click **Embed Copy** under **Code & Parameters**.
+To edit the code independently in the document, click **Embed Copy** under **Code**. Parameters are visible directly below the header; **Code** contains the editor, **Apply**, **Save Preset…** and the nested **Shader inputs** reference. Diagnostics appear only when there is something to report.
 
 Effect order matters: the **↑** and **↓** arrows on each effect row apply it earlier or later in the sequence.
 
@@ -108,7 +110,9 @@ The same pattern list works per pixel in **Color → Posterize**.
 **Lighting and embossing**
 
 - **Normal Map → Lighting** turns an RGB normal map into a shaded surface. **Normals** defaults to Self. Set **Light Direction** with its canvas handle, then adjust **Base Color**, light/shadow colors, **Intensity** and **Ambient**. Keep **Packed Color** enabled for the Normal Map layer's default output; disable it for Linear Data. **Flip Y** reverses the green-axis convention. Platform-packed normal textures are not supported.
-- **Lighting → Bevel Emboss** works on any layer. **Height Map** defaults to Self or can reference another layer. **Height Channel** selects luminance, R, G, B or Alpha. **Profile** maps height; **Depth** raises or engraves; **Smoothing** sets the sampling radius in document pixels. **Output** selects Both, Highlight Only or Shadow Only, on a transparent background. Flat areas are transparent; Highlight/Shadow colors and alpha control tint and strength. Set blending and opacity on the layer; use two layers with the same Height Map to blend light and shadow independently. The FX replaces the host image with lighting: keep the original below as a separate layer. For SDF inputs, the visible gradient and Max Distance define bevel width. Re-add the preset to replace an older embedded copy.
+- **Lighting → Bevel Emboss** derives normals from **Height Map** (Self by default, or another layer). **Height Channel** selects luminance, R, G, B or Alpha; **Profile** maps height, **Depth** raises or engraves, and **Smoothing** sets the sampling radius in document pixels. For SDF, the visible gradient and distance ranges define bevel width.
+
+Both effects use **Base Color alpha** to blend transparent lighting (0) into the filled, shaded surface (1). Intermediate values crossfade with alpha-aware mixing. RGB tints the surface; **Ambient** fades in with it. **Output** selects Both, Highlight Only or Shadow Only for the transparent component and has no effect at Base Color alpha = 1. Light Color/Shadow Color alpha controls that component's strength. Overall opacity and blending belong to the layer. Both effects default to Base Color alpha 0. Re-add the preset to update an older embedded copy.
 
 **Normal map normalization**
 

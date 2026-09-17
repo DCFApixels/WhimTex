@@ -29,6 +29,8 @@ public static class LightingBevelSmoke
         {
             var lighting=FX(File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/NormalLighting.hlsl"));
             var bevel=FX(File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/SdfBevel.hlsl"));
+            Check(P(lighting,"_BaseColor").colorValue.a==0 && P(bevel,"_BaseColor").colorValue.a==0,"transparent lighting defaults");
+            P(lighting,"_BaseColor").colorValue=Color.white;
             Layer normal=new ColorFillLayerBehaviour(); doc.layers.Add(normal);
             normal.modifiers.Add(FX("float4 ApplyFX(float2 uv,float4 c){return float4(.5,.5,1,.6);}"));
             normal.modifiers.Add(lighting);

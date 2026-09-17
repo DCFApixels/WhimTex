@@ -87,6 +87,8 @@ the selected value is inverted before looking up tipGradient, as for a texture t
 
 ## Full HLSL specification
 
+Optional `// @header(Shape)` before a `// @param` declaration adds a bold, non-collapsible heading above that control. Titles are literal non-empty text without quotes. Headers do not create uniforms and are preserved when saving a preset; a header without a following parameter is ignored.
+
 Implement `float4 BrushTip(float2 uv)`: UV is 0..1 across the cached square tip, with
 Y increasing upward. Return straight (not premultiplied) RGBA. Alpha is clamped to 0..1.
 RGB can carry HDR values and is stored as linear data. Color mode multiplies this RGB

@@ -58,6 +58,7 @@ namespace DCFApixels.WhimTex
             VisualElement toolbar = new VisualElement();
             toolbar.AddToClassList("whimtex-layer-fx-toolbar");
             bool embedded = effect != null && effect.EmbeddedOwner == owner;
+            toolbar.AddToClassList("whimtex-layer-fx-header");
             if (effect != null)
             {
                 var active = new Toggle { tooltip = embedded ? "Enable or disable this FX" : "Enable or disable this shared FX asset" };
@@ -108,27 +109,32 @@ namespace DCFApixels.WhimTex
                     Change("Change FX Reference", () => layer.modifiers[index] = evt.newValue);
                 });
                 toolbar.Add(reference);
-                if (effect != null)
-                    toolbar.Add(new Button(() => Change("Embed Shader FX", () => owner.EmbedShaderFX(layer, index)))
-                    {
-                        text = "Embed", tooltip = "Copy this effect into the document. The external asset is not changed."
-                    });
             }
-            Button up = new Button(() => Move(index, -1)) { text = "↑", tooltip = "Apply earlier" };
-            Button down = new Button(() => Move(index, 1)) { text = "↓", tooltip = "Apply later" };
-            up.SetEnabled(index > 0);
-            down.SetEnabled(index + 1 < layer.modifiers.Count);
-            toolbar.Add(up);
-            toolbar.Add(down);
-            toolbar.Add(new Button(() => Change("Remove FX", () => layer.modifiers.RemoveAt(index))) { text = "×", tooltip = "Remove modifier" });
+            var actions = new Button(() =>
+            {
+                var menu = new GenericMenu();
+                if (index > 0) menu.AddItem(new GUIContent("Move Up"), false, () => Move(index, -1));
+                else menu.AddDisabledItem(new GUIContent("Move Up"));
+                if (index + 1 < layer.modifiers.Count) menu.AddItem(new GUIContent("Move Down"), false, () => Move(index, 1));
+                else menu.AddDisabledItem(new GUIContent("Move Down"));
+                if (effect != null && !embedded)
+                    menu.AddItem(new GUIContent("Embed Copy"), false, () => Change("Embed Shader FX", () => owner.EmbedShaderFX(layer, index)));
+                menu.AddSeparator(string.Empty);
+                menu.AddItem(new GUIContent("Remove"), false, () => Change("Remove FX", () => layer.modifiers.RemoveAt(index)));
+                menu.ShowAsContext();
+            }) { text = "⋮", tooltip = "Reorder, embed or remove this effect" };
+            actions.AddToClassList("whimtex-fx-menu-button");
+            toolbar.Add(actions);
             card.Add(toolbar);
             if (effect != null)
             {
                 if (!embedded)
-                    card.Add(new HelpBox("External Shader FX: edits affect every document using this asset.", HelpBoxMessageType.Info));
-                Foldout editor = new Foldout { text = "Code & Parameters", value = true };
-                editor.Add(ShaderFXEditor.CreateInlineView(effect));
-                card.Add(editor);
+                {
+                    var shared = new Label("Shared asset") { tooltip = "Edits affect every document using this asset. Use ⋮ → Embed Copy for an independent copy." };
+                    shared.AddToClassList("whimtex-fx-note");
+                    card.Add(shared);
+                }
+                card.Add(ShaderFXEditor.CreateInlineView(effect));
             }
             entries.Add(card);
         }

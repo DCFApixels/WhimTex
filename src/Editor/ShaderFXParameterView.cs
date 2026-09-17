@@ -62,6 +62,13 @@ namespace DCFApixels.WhimTex
 
         private void AddParameter(ShaderFXParameter declaration, ShaderFXParameterControl control = null)
         {
+            if (control?.headers != null)
+                foreach (string title in control.headers)
+                {
+                    var heading = new Label(title);
+                    heading.AddToClassList("whimtex-fx-parameter-header");
+                    Add(heading);
+                }
             int firstChild = childCount;
             if (control != null)
             {

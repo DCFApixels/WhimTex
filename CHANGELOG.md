@@ -4,6 +4,19 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+## [0.10.23] - 2026-09-17
+
+### Added
+
+- `// @header(Name)` parameter headings for FX and HLSL brushes, preserved in preset and portable exports.
+- Logical parameter sections in seven built-in FX presets.
+
+### Changed
+
+- Compact FX headers with an actions menu, fewer persistent help boxes and Shader Inputs nested under Code.
+- Unified Normal Lighting and Bevel Emboss shading. Base Color alpha blends transparent lighting into a filled surface and defaults to zero in both presets.
+- Updated EN/RU/ZH guides, AI authoring contracts and regression coverage.
+
 ## [0.10.22] - 2026-09-17
 
 ### Added

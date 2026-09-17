@@ -79,29 +79,26 @@ namespace DCFApixels.WhimTex
             VisualElement root = new VisualElement { focusable = true };
             WhimTexUI.ApplyWindowStyles(root);
             root.AddToClassList("whimtex-shader-fx");
-            root.Add(new HelpBox(
-                "Implement float4 ApplyFX(float2 uv, float4 color). SampleInput(uv) reads the incoming layer. " +
-                "Use #include with Assets/Packages paths, or paths relative to the containing asset (Assets before the first save). " +
-                "UnityCG.cginc is already included.", HelpBoxMessageType.Info));
-
-            Label heading = new Label("HLSL Code");
-            heading.AddToClassList("whimtex-shader-fx-heading");
-            root.Add(heading);
             ShaderFXCodeField code = new ShaderFXCodeField(effect);
-            var codeFoldout = new Foldout { text = "Code", value = !effect.IsCatalogLinked };
+            var codeFoldout = new Foldout { text = "Code", value = false,
+                tooltip = "Edit HLSL and declarations here. Parameter values update live without recompiling." };
             codeFoldout.Add(code);
             root.Add(codeFoldout);
             var sourceButtons = new VisualElement();
+            sourceButtons.AddToClassList("whimtex-layer-fx-toolbar");
             sourceButtons.Add(new Button(() => { string path = effect.CatalogPath; if (!string.IsNullOrEmpty(path)) AssetDatabase.OpenAsset(AssetDatabase.LoadMainAssetAtPath(path)); }) { text = "Open HLSL Source" });
             var detach = new Button { text = "Embed Copy", tooltip = "Stop following the HLSL file and edit a copy in this document." };
             sourceButtons.Add(detach);
-            root.Add(sourceButtons);
+            codeFoldout.Add(sourceButtons);
 
             HelpBox status = new HelpBox(string.Empty, HelpBoxMessageType.Info);
             root.Add(status);
             Button apply = new Button { text = "Apply", tooltip = "Compile the code and parameter declarations; re-read included libraries. Embedded FX save with the document." };
-            root.Add(apply);
-            root.Add(new Button(() =>
+            var codeActions = new VisualElement();
+            codeActions.AddToClassList("whimtex-layer-fx-toolbar");
+            codeActions.Add(apply);
+            codeFoldout.Add(codeActions);
+            void SavePreset()
             {
                 if (WhimTexApi.IsShaderFXContentLocked(effect)) return;
                 root.Focus();
@@ -116,13 +113,11 @@ namespace DCFApixels.WhimTex
                     ShaderFXPresetWriter.Save(path, effect, overwrite);
                     status.messageType = HelpBoxMessageType.Info;
                     status.text = "HLSL preset saved. Find it in + Preset.";
+                    status.RemoveFromClassList("whimtex-shader-fx-hidden");
                 }
                 catch (System.Exception error) { EditorUtility.DisplayDialog("Shader FX Presets", error.Message, "OK"); }
-            })
-            {
-                text = "Save HLSL Preset…",
-                tooltip = "Save code with current parameter values as defaults in the user ShaderFX folder or project Assets. Texture defaults reference project assets; they are not embedded. Layer sources are document-local and are not stored in HLSL presets."
-            });
+            }
+            codeActions.Add(new Button(SavePreset) { text = "Save Preset…", tooltip = "Save HLSL with current parameter values as defaults. Layer sources remain document-local." });
 
             TextField diagnostics = new TextField
             {
@@ -132,7 +127,9 @@ namespace DCFApixels.WhimTex
                 verticalScrollerVisibility = ScrollerVisibility.Auto
             };
             diagnostics.AddToClassList("whimtex-shader-fx-diagnostics");
-            root.Add(diagnostics);
+            var diagnosticsFoldout = new Foldout { text = "Diagnostics", value = false };
+            diagnosticsFoldout.Add(diagnostics);
+            root.Add(diagnosticsFoldout);
             var legacyParameters = new PropertyField(serializedObject.FindProperty("parameters"), "Parameters");
             var declaredParameters = new ShaderFXParameterView(effect);
             detach.clicked += () => { Undo.RecordObject(effect, "Embed FX Source"); effect.DetachCatalog(); EditorUtility.SetDirty(effect); effect.NotifyValuesChanged(); RefreshStatus(); };
@@ -146,21 +143,23 @@ namespace DCFApixels.WhimTex
                 serializedObject.Update();
                 RefreshStatus();
             };
-            root.Add(new HelpBox(
-                "Values update live. Catalog effects have independent settings; + Reference shares the asset. " +
-                "Declare parameters with // @param, or use the manual list for legacy code. Declaration changes require Apply; do not redeclare generated uniforms.", HelpBoxMessageType.Info));
             root.Add(legacyParameters);
             root.Add(declaredParameters);
             Foldout reference = new Foldout { text = "Shader inputs", value = false };
-            reference.Add(new HelpBox(
+            var inputHelp = new Label(
+                "Implement float4 ApplyFX(float2 uv, float4 color).\n" +
+                "Declare parameters with // @param; do not redeclare generated uniforms.\n" +
+                "Use #include with Assets/Packages paths or paths relative to the containing asset (Assets before the first save). UnityCG.cginc is already included.\n\n" +
                 "uv: normalized coordinates; color: straight RGBA at uv.\n" +
                 "SampleInput(uv), _MainTex and _MainTex_TexelSize: incoming texture.\n" +
                 "_InputSize: render width, height, 1/width, 1/height.\n" +
                 "_CanvasSize: full-resolution canvas size in the same format.\n" +
                 "_PreviewScale: full-size pixels per preview pixel (1 for export).\n" +
                 "Texture parameters: sampler2D with <name>_TexelSize; sample with tex2D(name, uv).\n" +
-                "Return straight RGBA. The layer's blend mode and opacity are applied afterwards.", HelpBoxMessageType.Info));
-            root.Add(reference);
+                "Return straight RGBA. The layer's blend mode and opacity are applied afterwards.");
+            inputHelp.AddToClassList("whimtex-fx-reference");
+            reference.Add(inputHelp);
+            codeFoldout.Add(reference);
 
             void RefreshStatus()
             {
@@ -173,11 +172,15 @@ namespace DCFApixels.WhimTex
                 declaredParameters.EnableInClassList("whimtex-shader-fx-hidden", !effect.UsesCodeParameters);
                 declaredParameters.Refresh();
                 status.messageType = effect.LastApplyFailed ? HelpBoxMessageType.Error : HelpBoxMessageType.Info;
+                status.EnableInClassList("whimtex-shader-fx-hidden", !effect.LastApplyFailed && !effect.HasPendingChanges);
                 status.text = effect.LastApplyFailed
                     ? (effect.HasAppliedShader ? "Apply failed. The last successfully applied effect is still in use." : "Apply failed. This FX is skipped until it compiles successfully.")
                     : effect.HasPendingChanges ? "Unapplied code or parameter declarations. Click Apply when ready."
                     : "Applied. Values update without recompiling. Click Apply again after editing an included library.";
                 diagnostics.SetValueWithoutNotify(effect.Diagnostics);
+                diagnosticsFoldout.EnableInClassList("whimtex-shader-fx-hidden",
+                    !effect.LastApplyFailed && (string.IsNullOrWhiteSpace(effect.Diagnostics) || effect.Diagnostics == "Applied successfully."));
+                codeFoldout.text = effect.HasPendingChanges ? "Code • unapplied" : "Code";
                 apply.SetEnabled(effect != null);
             }
 

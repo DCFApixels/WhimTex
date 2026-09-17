@@ -53,6 +53,8 @@ namespace DCFApixels.WhimTex
                     else declaration = Declaration(row);
                     if (i != defaultIndex) declaration = Regex.Replace(declaration, @"\s*=\s*[^\[\{~]+?(?=\s*[\[\{~]|$)", "");
                     if (!string.IsNullOrEmpty(control.tooltip)) declaration += " // " + control.tooltip;
+                    if (control.headers != null && control.headers.Length > 0)
+                        declaration = "// @header(" + string.Join(")\n// @header(", control.headers) + ")\n" + declaration;
                     rows.Add((control.order, declaration));
                 }
             }
@@ -67,7 +69,7 @@ namespace DCFApixels.WhimTex
             while ((line = reader.ReadLine()) != null)
             {
                 lineNumber++;
-                bool metadata = !block && ((lineNumber == 1 && ShaderFXMetadata.TryHeader(line, out _)) || Regex.IsMatch(line, @"^\s*//\s*@param\b"));
+                bool metadata = !block && ((lineNumber == 1 && ShaderFXMetadata.TryHeader(line, out _)) || Regex.IsMatch(line, @"^\s*//\s*@(?:param\b|\s*header\b)"));
                 ShaderFXSourceBuilder.MaskComments(line, ref block);
                 if (!metadata) body.AppendLine(line);
             }

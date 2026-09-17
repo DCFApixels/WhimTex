@@ -56,6 +56,13 @@ namespace DCFApixels.WhimTex
                 foreach(var definition in definitions)
                 {
                     string name=definition.name;
+                    if(definition.controls.Count>0 && definition.controls[0].headers != null)
+                        foreach(string title in definition.controls[0].headers)
+                        {
+                            var heading=new Label(title);
+                            heading.AddToClassList("whimtex-fx-parameter-header");
+                            parameters.Add(heading);
+                        }
                     int firstField=parameters.childCount;
                     string label=ObjectNames.NicifyVariableName(name.TrimStart('_'));
                     ShaderFXParameter Current()=>paintSettings.dynamics.hlslParameters.Find(p=>p.name==name)??definition;

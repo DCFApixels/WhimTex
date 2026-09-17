@@ -1,14 +1,21 @@
 // @whimtex-effect Lighting/Bevel Emboss
+// @header(Height Source)
 // @param texture2D _HeightMap = self // Height image before this FX, or another layer. No raw distance data is used.
 // @param enum _HeightChannel = Luminance {Luminance: 0, R: 1, G: 2, B: 3, Alpha: 4} // Channel mapped to height in the 0 to 1 range.
-// @param enum _Output = Both {Both: 0, HighlightOnly: 1, ShadowOnly: 2} // Output lighting on transparency; choose blending on the layer.
+// @header(Surface Profile)
 // @param float _Depth = 6 [~-64 .. ~64] // Positive raises the surface; negative engraves it.
 // @param curve _Profile // Map the selected channel from 0 to 1 into height. Linear preserves the input profile.
 // @param float _Smoothing = 2 [0 .. ~8] // Normal sampling radius in document pixels; reduces contour stair steps.
-// @param normal _LightDirection = (-0.5, 0.5, 1)
-// @param color _Highlight = (1, 1, 1, 1)
-// @param color _Shadow = (0.05, 0.05, 0.05, 1)
+// @header(Lighting)
+// @param enum _Output = Both {Both: 0, HighlightOnly: 1, ShadowOnly: 2} // Select the transparent lighting component. No effect when Base Color alpha is 1.
+// @param normal _LightDirection = (-0.5, 0.5, 1) // Direction from the surface toward the light.
+// @param color _BaseColor = (1, 1, 1, 0) // RGB tints the surface. Alpha blends lighting only (0) into the filled surface (1); use layer opacity for overall opacity.
+// @param color _LightColor = (1, 1, 1, 1) // Highlight tint; alpha controls strength in Lighting Only mode.
+// @param color _ShadowColor = (0.05, 0.05, 0.05, 1) // Shadow tint; alpha controls strength in Lighting Only mode.
 // @param float _Intensity = 1 [0 .. ~4]
+// @param float _Ambient = 0.15 [0 .. ~1] // Ambient surface illumination, faded in by Base Color alpha.
+
+#include "Packages/com.dcfapixels.whimtex/src/Shaders/SurfaceLighting.cginc"
 
 float BevelHeight(float2 uv)
 {
@@ -33,12 +40,6 @@ float4 ApplyFX(float2 uv, float4 color)
     float br = BevelHeight(uv + stepUV * float2(1, -1));
     float dx = (3.0 * (tr + br - tl - bl) + 10.0 * (BevelHeight(uv + float2(stepUV.x, 0)) - BevelHeight(uv - float2(stepUV.x, 0)))) / (32.0 * radius);
     float dy = (3.0 * (tl + tr - bl - br) + 10.0 * (BevelHeight(uv + float2(0, stepUV.y)) - BevelHeight(uv - float2(0, stepUV.y)))) / (32.0 * radius);
-    float3 n = normalize(float3(-dx, -dy, 1.0));
-    float delta = (dot(n, _LightDirection) - _LightDirection.z) * max(_Intensity, 0.0);
-    float highlight = _Output == 2 ? 0.0 : saturate(delta);
-    float shadow = _Output == 1 ? 0.0 : saturate(-delta);
-    float4 tint = delta >= 0.0 ? _Highlight : _Shadow;
-    // Straight alpha: the layer blending stage supplies the final compositing mode.
-    // Do not inherit the host alpha: a separate Processor can light another layer.
-    return float4(tint.rgb, saturate((highlight + shadow) * tint.a));
+    return WhimTexSurfaceLighting(float3(-dx, -dy, 1.0), color.a, _Output, _LightDirection,
+        _BaseColor, _LightColor, _ShadowColor, _Intensity, _Ambient);
 }
