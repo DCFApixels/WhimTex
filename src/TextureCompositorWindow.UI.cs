@@ -2564,7 +2564,7 @@ namespace DCFApixels.WhimTex
             {
                 if (pencilCursorElement == null) return;
                 bool visible = pencilCursor && cursorVisible && brushSettings != null;
-                TextureTransform transform = drawingLayer?.transform ?? TextureTransform.Default;
+                TextureTransform transform = drawingLayer != null ? drawingLayer.Owner.CanvasTransform : TextureTransform.Default;
                 Rect rect = new Rect(ImageRect.position - contentRect.position, ImageRect.size);
                 if (!visible || !TiledCanvasUtility.IsInvertible(transform) || rect.width <= 0f || rect.height <= 0f)
                 {

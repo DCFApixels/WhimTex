@@ -74,7 +74,7 @@ namespace DCFApixels.WhimTex
             ExecuteContextChange(into ? "Move Layers Into Groups" : "Move Layers Out Of Groups", () =>
             {
                 var moves = LayerSelectionOperations.PlanGroupMoves(compositor, roots, into);
-                LayerSelectionOperations.ApplyGroupMoves(moves, into);
+                LayerSelectionOperations.ApplyGroupMoves(moves, into, compositor);
                 if (into)
                     foreach (var move in moves) groupExpansion[move.group.Id] = true;
             });

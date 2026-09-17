@@ -139,6 +139,19 @@ namespace DCFApixels.WhimTex
                         refresh.Add(() => field.SetValueWithoutNotify(Find(id).floatValue));
                     }
                     break;
+                case ShaderFXParameterType.Vector2:
+                    var vector2 = new Vector2Field(label);
+                    vector2.RegisterValueChangedCallback(e => Change(id, p => p.vectorValue = e.newValue));
+                    Add(vector2); refresh.Add(() => vector2.SetValueWithoutNotify(Find(id).vectorValue));
+                    break;
+                case ShaderFXParameterType.Vector3:
+                case ShaderFXParameterType.Normal:
+                    var vector3 = new Vector3Field(label);
+                    bool normal = declaration.type == ShaderFXParameterType.Normal;
+                    vector3.RegisterValueChangedCallback(e => Change(id, p => p.vectorValue = normal ? ShaderFXParameter.NormalizeNormal(e.newValue) : e.newValue));
+                    Add(vector3); refresh.Add(() => vector3.SetValueWithoutNotify(Find(id).vectorValue));
+                    if (normal) Add(new Button(() => TextureCompositorWindow.EditFXNormal(effect,id)) { text = "Edit on Canvas" });
+                    break;
                 case ShaderFXParameterType.Vector:
                     var vector = new Vector4Field(label);
                     vector.RegisterValueChangedCallback(e => Change(id, p => p.vectorValue = e.newValue));
@@ -155,25 +168,26 @@ namespace DCFApixels.WhimTex
                     color.RegisterCallback<DetachFromPanelEvent>(_ => data.Dispose());
                     break;
                 case ShaderFXParameterType.Texture2D:
-                    var texture = new ObjectField(label) { objectType = typeof(Texture2D), allowSceneObjects = false };
-                    texture.RegisterValueChangedCallback(e => Change(id, p => p.textureValue = e.newValue as Texture2D));
-                    Add(texture); refresh.Add(() => texture.SetValueWithoutNotify(Find(id).textureValue));
+                    var texture = new ShaderFXTextureField(effect, id, label);
+                    Add(texture); refresh.Add(texture.Refresh);
                     break;
                 case ShaderFXParameterType.Transform2D:
                     var foldout = new Foldout { text = label, value = true };
                     Add(foldout);
                     var position = new Vector2Field("Position");
                     var size = new Vector2Field("Size");
-                    var rotation = new FloatField("Rotation");
+                    var rotation = new DoubleField("Rotation");
+                    var document = TextureCompositorWindow.FindFXTransformDocument(effect);
+                    Vector2 Dimensions() => document != null ? new Vector2(document.width, document.height) : Vector2.one;
                     position.tooltip = "Normalized input coordinates. (0.5, 0.5) is the image center.";
                     size.tooltip = "Relative to the input image. (1, 1) covers the whole image.";
-                    position.RegisterValueChangedCallback(e => Change(id, p => p.transformValue.position = e.newValue));
-                    size.RegisterValueChangedCallback(e => Change(id, p => p.transformValue.size = new Vector2(ShaderFXTransform.SafeSize(e.newValue.x), ShaderFXTransform.SafeSize(e.newValue.y))));
-                    rotation.RegisterValueChangedCallback(e => Change(id, p => p.transformValue.rotation = e.newValue));
+                    position.RegisterValueChangedCallback(e => Change(id, p => p.transformValue.EditPosition(e.newValue, Dimensions())));
+                    size.RegisterValueChangedCallback(e => Change(id, p => p.transformValue.EditSize(new Vector2(ShaderFXTransform.SafeSize(e.newValue.x), ShaderFXTransform.SafeSize(e.newValue.y)), Dimensions())));
+                    rotation.RegisterValueChangedCallback(e => Change(id, p => p.transformValue.EditRotation(e.newValue, Dimensions())));
                     foldout.Add(position); foldout.Add(size); foldout.Add(rotation);
                     foldout.Add(new Button(() => TextureCompositorWindow.EditFXTransform(effect, id)) { text = "Edit on Canvas", tooltip = "Toggle the green FX frame on the selected layer. Rotate around its center; no pivot handle." });
                     foldout.Add(new Button(() => Change(id, p => p.transformValue = ShaderFXTransform.Default)) { text = "Reset Transform" });
-                    refresh.Add(() => { var p = Find(id); position.SetValueWithoutNotify(p.transformValue.position); size.SetValueWithoutNotify(p.transformValue.size); rotation.SetValueWithoutNotify(p.transformValue.rotation); });
+                    refresh.Add(() => { var p = Find(id); p.transformValue.GetDisplay(Dimensions(), out var location, out var scale, out var angle); position.SetValueWithoutNotify(location); size.SetValueWithoutNotify(scale); rotation.SetValueWithoutNotify(angle); });
                     break;
             }
             if (!string.IsNullOrEmpty(control?.tooltip))

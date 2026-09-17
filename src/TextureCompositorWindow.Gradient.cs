@@ -11,7 +11,7 @@ namespace DCFApixels.WhimTex
         private GradientLayerBehaviour gradientCanvasLayer => GetSelectedLayer()?.Behaviour as GradientLayerBehaviour;
         private VisualElement gradientCanvasOverlay;
         private GradientCanvasManipulator gradientCanvasManipulator;
-        private bool IsGradientCanvasEnabled => compositor != null && gradientCanvasLayer != null && PreviewFXParameter == null &&
+        private bool IsGradientCanvasEnabled => !(HasMultipleTransformSelection && previewTool == PreviewTool.Transform) && compositor != null && gradientCanvasLayer != null && PreviewFXParameter == null &&
             gradientCanvasLayer.gradientType != GradientLayerBehaviour.GradientType.Circular &&
             !WhimTexApi.IsLayerContentLocked(compositor, gradientCanvasLayer.Owner) &&
             !WhimTexApi.ContainsReservation(gradientCanvasLayer.Owner);
@@ -31,7 +31,7 @@ namespace DCFApixels.WhimTex
             private readonly TextureCompositorWindow owner;
             private GradientLayerBehaviour layer;
             private WhimTexGradient originalGradient;
-            private TextureTransform originalTransform;
+            private TextureTransform originalTransform, originalLocal;
             private Vector2 pointerStart, start, end;
             private int pointer = -1, handle, undo = -1;
             private int selected = -1;
@@ -73,7 +73,10 @@ namespace DCFApixels.WhimTex
             }
             private void Points(out Vector2 a, out Vector2 b)
             {
-                GradientCanvasGeometry.Endpoints(owner.gradientCanvasLayer, Size, out a, out b);
+                owner.compositor.RefreshTransformHierarchy();
+                GradientCanvasGeometry.UvEndpoints(owner.gradientCanvasLayer, out var ua, out var ub);
+                var t = owner.gradientCanvasLayer.Owner.CanvasTransform;
+                a = GradientCanvasGeometry.Point(ua, t, Size); b = GradientCanvasGeometry.Point(ub, t, Size);
                 a=View(a); b=View(b);
             }
             private static Vector2 Offset(Vector2 a, Vector2 b)
@@ -86,18 +89,18 @@ namespace DCFApixels.WhimTex
             {
                 float screenTime=Mathf.Clamp01(Vector2.Dot(p-a,b-a)/Mathf.Max(.0001f,(b-a).sqrMagnitude));
                 var g=owner.gradientCanvasLayer;
-                if(g.transform.storage==TransformStorage.TRS) return screenTime;
+                if(g.Owner.CanvasTransform.storage==TransformStorage.TRS) return screenTime;
                 GradientCanvasGeometry.UvEndpoints(g,out var ua,out var ub);
-                var m=g.transform.matrix;
+                var m=g.Owner.CanvasTransform.matrix;
                 double wa=m.m20*ua.x+m.m21*ua.y+m.m22, wb=m.m20*ub.x+m.m21*ub.y+m.m22;
                 return (float)(screenTime*wa/(wb*(1-screenTime)+screenTime*wa));
             }
             private Vector2 KeyPosition(Vector2 a,Vector2 b,float time)
             {
                 var g=owner.gradientCanvasLayer;
-                if(g.transform.storage==TransformStorage.TRS) return Vector2.Lerp(a,b,time);
+                if(g.Owner.CanvasTransform.storage==TransformStorage.TRS) return Vector2.Lerp(a,b,time);
                 GradientCanvasGeometry.UvEndpoints(g,out var ua,out var ub);
-                return View(GradientCanvasGeometry.Point(Vector2.Lerp(ua,ub,time),g.transform,Size));
+                return View(GradientCanvasGeometry.Point(Vector2.Lerp(ua,ub,time),g.Owner.CanvasTransform,Size));
             }
             private void Down(PointerDownEvent e)
             {
@@ -134,8 +137,9 @@ namespace DCFApixels.WhimTex
                     owner.gradientCanvasOverlay.MarkDirtyRepaint();
                     OpenColor(hit); e.StopImmediatePropagation(); return;
                 }
-                layer=owner.gradientCanvasLayer; originalGradient=g.Clone(); originalTransform=layer.transform;
-                GradientCanvasGeometry.Endpoints(layer,Size,out start,out end);
+                layer=owner.gradientCanvasLayer; originalGradient=g.Clone(); originalTransform=owner.compositor.GetCanvasTransform(layer); originalLocal=layer.transform;
+                GradientCanvasGeometry.UvEndpoints(layer,out var startUv,out var endUv);
+                start=GradientCanvasGeometry.Point(startUv,originalTransform,Size); end=GradientCanvasGeometry.Point(endUv,originalTransform,Size);
                 pointerStart=Document(p); handle=hit; selected=hit>=0?hit:-1;
                 selectionLayer=layer; pendingRemoval=false;
                 owner.gradientCanvasOverlay.MarkDirtyRepaint();
@@ -199,8 +203,8 @@ namespace DCFApixels.WhimTex
                 else
                 {
                     Vector2 delta=Document(e.localPosition)-pointerStart;
-                    layer.transform=originalTransform;
-                    GradientCanvasGeometry.MoveEndpoint(layer,Size,start,end,handle==-2,delta);
+                    var next = GradientCanvasGeometry.MoveEndpointTransform(layer,Size,start,end,handle==-2,delta,originalTransform);
+                    owner.compositor.SetCanvasTransform(layer,next);
                 }
                 owner.RequestTransformPreview(); owner.gradientCanvasOverlay.MarkDirtyRepaint();
                 e.StopImmediatePropagation();
@@ -267,7 +271,7 @@ namespace DCFApixels.WhimTex
                 if(target.HasPointerCapture(captured))target.ReleasePointer(captured);
                 if(cancel && layer!=null && undo>=0)
                 {
-                    layer.transform=originalTransform; layer.gradient=originalGradient;
+                    layer.transform=originalLocal; layer.gradient=originalGradient;
                 }
                 if(undo>=0 && commit)Commit();
                 undo=-1; layer=null;
@@ -402,17 +406,20 @@ namespace DCFApixels.WhimTex
         }
         internal static void MoveEndpoint(GradientLayerBehaviour g,Vector2 size,Vector2 a,Vector2 b,bool first,Vector2 delta)
         {
+            g.transform = MoveEndpointTransform(g,size,a,b,first,delta,g.transform);
+        }
+        internal static TextureTransform MoveEndpointTransform(GradientLayerBehaviour g,Vector2 size,Vector2 a,Vector2 b,bool first,Vector2 delta,TextureTransform t)
+        {
             bool linear=g.gradientType==GradientLayerBehaviour.GradientType.Horizontal || g.gradientType==GradientLayerBehaviour.GradientType.Vertical;
-            var t=g.transform;
             if(!linear && first)
             {
                 if(t.storage==TransformStorage.Projective)
                     t.TrySetMatrix(ProjectiveMatrix.Translate(delta.x/size.x,delta.y/size.y)*t.matrix);
                 else t.position+=(Double2)delta;
-                g.transform=t; return;
+                return t;
             }
             Vector2 old=b-a, next=first?b-a-delta:b-a+delta;
-            if(old.sqrMagnitude<.000001f || next.sqrMagnitude<.01f)return;
+            if(old.sqrMagnitude<.000001f || next.sqrMagnitude<.01f)return t;
             float factor=next.magnitude/old.magnitude;
             float rotation=Mathf.Atan2(old.x*next.y-old.y*next.x,Vector2.Dot(old,next))*Mathf.Rad2Deg;
             Vector2 anchor=linear && first?b:a;
@@ -429,7 +436,7 @@ namespace DCFApixels.WhimTex
                 t.position=(Double2)anchor+ProjectiveMatrix.Rotate(rotation).Point((pivot+t.position-(Double2)anchor)*factor)-pivot;
                 t.scale=t.scale*factor; t.rotation+=rotation;
             }
-            g.transform=t;
+            return t;
         }
     }
 

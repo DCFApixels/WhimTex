@@ -205,6 +205,7 @@ namespace DCFApixels.WhimTex
                     if (insertionAnchor != null && document.TryFindLayer(insertionAnchor, out var selectedContainer, out int selectedIndex))
                     { container = selectedContainer; index = selectedIndex; }
                     string namePrefix = shape.kind.ToString();
+                    document.PlaceCanvasTransform(layer, container);
                     Cancel();
                     owner.AddLayer(container, index, layer, namePrefix);
                 }

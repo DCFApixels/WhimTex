@@ -4,6 +4,45 @@ using UnityEngine.UIElements;
 
 namespace DCFApixels.WhimTex
 {
+    [CustomPropertyDrawer(typeof(ShaderFXTransform))]
+    internal sealed class ShaderFXTransformDrawer : PropertyDrawer
+    {
+        public override VisualElement CreatePropertyGUI(SerializedProperty property)
+        {
+            var root = new Foldout { text = property.displayName, value = true };
+            var effect = property.serializedObject.targetObject as ShaderFX;
+            var document = effect != null ? TextureCompositorWindow.FindFXTransformDocument(effect) : null;
+            UnityEngine.Vector2 Dimensions() => document != null ? new UnityEngine.Vector2(document.width, document.height) : UnityEngine.Vector2.one;
+            var position = new Vector2Field("Position");
+            var size = new Vector2Field("Size");
+            var rotation = new DoubleField("Rotation");
+            root.Add(position); root.Add(size); root.Add(rotation);
+            void Refresh(SerializedProperty p)
+            {
+                var transform = (ShaderFXTransform)p.boxedValue;
+                transform.GetDisplay(Dimensions(), out var location, out var scale, out var angle);
+                position.SetValueWithoutNotify(location); size.SetValueWithoutNotify(scale); rotation.SetValueWithoutNotify(angle);
+            }
+            void Change(System.Func<ShaderFXTransform, ShaderFXTransform> edit)
+            {
+                if (effect != null && WhimTexApi.IsShaderFXContentLocked(effect)) return;
+                property.serializedObject.Update();
+                property.boxedValue = edit((ShaderFXTransform)property.boxedValue);
+                property.serializedObject.ApplyModifiedProperties();
+                effect?.NotifyValuesChanged();
+                Refresh(property);
+            }
+            position.RegisterValueChangedCallback(e => Change(t => { t.EditPosition(e.newValue, Dimensions()); return t; }));
+            size.RegisterValueChangedCallback(e => Change(t => {
+                t.EditSize(new Double2(ShaderFXTransform.SafeSize(e.newValue.x), ShaderFXTransform.SafeSize(e.newValue.y)), Dimensions()); return t; }));
+            rotation.RegisterValueChangedCallback(e => Change(t => { t.EditRotation(e.newValue, Dimensions()); return t; }));
+            root.Add(new Button(() => Change(_ => ShaderFXTransform.Default)) { text = "Reset Transform" });
+            root.TrackPropertyValue(property, Refresh);
+            Refresh(property);
+            return root;
+        }
+    }
+
     [CustomEditor(typeof(ShaderFX))]
     public sealed class ShaderFXEditor : Editor
     {
@@ -82,7 +121,7 @@ namespace DCFApixels.WhimTex
             })
             {
                 text = "Save HLSL Preset…",
-                tooltip = "Save code with current parameter values as defaults in the user ShaderFX folder or project Assets. Texture defaults reference project assets; they are not embedded."
+                tooltip = "Save code with current parameter values as defaults in the user ShaderFX folder or project Assets. Texture defaults reference project assets; they are not embedded. Layer sources are document-local and are not stored in HLSL presets."
             });
 
             TextField diagnostics = new TextField
@@ -173,7 +212,8 @@ namespace DCFApixels.WhimTex
             {
                 nameof(ShaderFXParameter.floatValue), nameof(ShaderFXParameter.colorValue),
                 nameof(ShaderFXParameter.vectorValue), nameof(ShaderFXParameter.textureValue), nameof(ShaderFXParameter.transformValue),
-                nameof(ShaderFXParameter.floatValue), nameof(ShaderFXParameter.floatValue), nameof(ShaderFXParameter.gradientValue)
+                nameof(ShaderFXParameter.floatValue), nameof(ShaderFXParameter.floatValue), nameof(ShaderFXParameter.gradientValue),
+                nameof(ShaderFXParameter.vectorValue), nameof(ShaderFXParameter.vectorValue), nameof(ShaderFXParameter.vectorValue)
             };
             VisualElement[] fields = new VisualElement[valueNames.Length];
             for (int i = 0; i < fields.Length; i++)
@@ -220,6 +260,26 @@ namespace DCFApixels.WhimTex
                     });
                     fields[i] = gradient;
                 }
+                else if (i == (int)ShaderFXParameterType.Vector2)
+                {
+                    var field = new Vector2Field("Value");
+                    field.SetValueWithoutNotify(value.vector4Value);
+                    field.RegisterValueChangedCallback(e => { value.serializedObject.Update(); value.vector4Value = e.newValue; value.serializedObject.ApplyModifiedProperties(); ((ShaderFX)value.serializedObject.targetObject).NotifyValuesChanged(); });
+                    field.TrackPropertyValue(value, p => field.SetValueWithoutNotify(p.vector4Value));
+                    fields[i] = field;
+                }
+                else if (i == (int)ShaderFXParameterType.Vector3 || i == (int)ShaderFXParameterType.Normal)
+                {
+                    bool normal = i == (int)ShaderFXParameterType.Normal;
+                    var field = new Vector3Field("Value");
+                    field.SetValueWithoutNotify(value.vector4Value);
+                    field.RegisterValueChangedCallback(e => { value.serializedObject.Update(); value.vector4Value = normal ? ShaderFXParameter.NormalizeNormal(e.newValue) : e.newValue; value.serializedObject.ApplyModifiedProperties(); ((ShaderFX)value.serializedObject.targetObject).NotifyValuesChanged(); });
+                    field.TrackPropertyValue(value, p => field.SetValueWithoutNotify(p.vector4Value));
+                    fields[i] = field;
+                }
+                else if (valueNames[i] == nameof(ShaderFXParameter.textureValue))
+                    fields[i] = new ShaderFXTextureField((ShaderFX)property.serializedObject.targetObject,
+                        property.FindPropertyRelative("id").stringValue, "Value");
                 else if (valueNames[i] == nameof(ShaderFXParameter.colorValue))
                 {
                     ColorField color = WhimTexColorInputs.Bind(new ColorField("Value"), value,
@@ -237,10 +297,13 @@ namespace DCFApixels.WhimTex
                 TextureCompositorWindow.EditFXTransform((ShaderFX)property.serializedObject.targetObject, current.stringValue);
             }) { text = "Edit Transform on Canvas" };
             root.Add(editTransform);
+            var editNormal = new Button(() => TextureCompositorWindow.EditFXNormal((ShaderFX)property.serializedObject.targetObject, property.FindPropertyRelative("id").stringValue)) { text = "Edit Normal on Canvas" };
+            root.Add(editNormal);
             void RefreshType(SerializedProperty current)
             {
                 for (int i = 0; i < fields.Length; i++)
                     fields[i].EnableInClassList("whimtex-shader-fx-hidden", i != current.enumValueIndex);
+                editNormal.EnableInClassList("whimtex-shader-fx-hidden", current.enumValueIndex != (int)ShaderFXParameterType.Normal);
                 editTransform.EnableInClassList("whimtex-shader-fx-hidden", current.enumValueIndex != (int)ShaderFXParameterType.Transform2D);
             }
             root.TrackPropertyValue(type, RefreshType);

@@ -54,6 +54,7 @@ namespace DCFApixels.WhimTex
                 {
                     Layer copy = JsonUtility.FromJson<Layer>(JsonUtility.ToJson(source));
                     PrepareCopy(source, copy);
+                    if (!duplicate) copy.transform = sourceDocument.GetCanvasTransform(source);
                 }
                 foreach (Layer copy in copies.Values)
                     if (copy?.Behaviour is TargetedLayerBehaviour effect &&
@@ -64,6 +65,9 @@ namespace DCFApixels.WhimTex
                         else if (!duplicate)
                             effect.TargetLayerId = null;
                     }
+
+                foreach (var effect in effects.Values)
+                    effect.RemapTextureLayers(copiedIds, !duplicate);
 
                 if (recordUndo)
                 {
@@ -169,7 +173,7 @@ namespace DCFApixels.WhimTex
                         sourceIndex + 1 < sourceContainer.Count ? sourceContainer[sourceIndex + 1] : null);
                 if (copy.modifiers != null)
                     for (int i = 0; i < copy.modifiers.Count; i++)
-                        if (copy.modifiers[i] is ShaderFX effect && effect.EmbeddedOwner != null)
+                        if (copy.modifiers[i] is ShaderFX effect && (effect.EmbeddedOwner != null || effect.HasLayerTextureSources))
                         {
                             if (!effects.TryGetValue(effect, out ShaderFX effectCopy))
                             {

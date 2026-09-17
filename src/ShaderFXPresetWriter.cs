@@ -73,6 +73,12 @@ namespace DCFApixels.WhimTex
             return source;
         }
 
+        private static string Number(double value)
+        {
+            if (!ProjectiveMatrix.Finite(value)) throw new FormatException("Preset defaults must be finite numbers.");
+            return value.ToString("R", CultureInfo.InvariantCulture);
+        }
+
         private static string Number(float value)
         {
             if (float.IsNaN(value) || float.IsInfinity(value)) throw new FormatException("Preset defaults must be finite numbers.");
@@ -95,15 +101,29 @@ namespace DCFApixels.WhimTex
                 case ShaderFXParameterType.Color:
                     var c = p.colorValue;
                     return prefix + "color " + p.name + " = (" + Number(c.r) + ", " + Number(c.g) + ", " + Number(c.b) + ", " + Number(c.a) + ")";
+                case ShaderFXParameterType.Vector2:
+                case ShaderFXParameterType.Vector3:
+                case ShaderFXParameterType.Normal:
+                    var n = p.type == ShaderFXParameterType.Normal ? (UnityEngine.Vector4)ShaderFXParameter.NormalizeNormal(p.vectorValue) : p.vectorValue;
+                    string kind = p.type == ShaderFXParameterType.Normal ? "normal" : p.type == ShaderFXParameterType.Vector2 ? "float2" : "float3";
+                    return prefix + kind + " " + p.name + " = (" + Number(n.x) + ", " + Number(n.y) + (p.type == ShaderFXParameterType.Vector2 ? "" : ", " + Number(n.z)) + ")";
                 case ShaderFXParameterType.Vector:
                     var v = p.vectorValue;
                     return prefix + "float4 " + p.name + " = (" + Number(v.x) + ", " + Number(v.y) + ", " + Number(v.z) + ", " + Number(v.w) + ")";
                 case ShaderFXParameterType.Transform2D:
                     var t = p.transformValue;
+                    if (t.storage == TransformStorage.Projective)
+                    {
+                        var m = t.matrix;
+                        return prefix + "transform2D " + p.name + " = matrix(" +
+                            Number(m.m00) + ", " + Number(m.m01) + ", " + Number(m.m02) + ", " +
+                            Number(m.m10) + ", " + Number(m.m11) + ", " + Number(m.m12) + ", " +
+                            Number(m.m20) + ", " + Number(m.m21) + ", " + Number(m.m22) + ")";
+                    }
                     return prefix + "transform2D " + p.name + " = (" + Number(t.position.x) + ", " + Number(t.position.y) + ", " + Number(t.size.x) + ", " + Number(t.size.y) + ", " + Number(t.rotation) + ")";
                 case ShaderFXParameterType.Texture2D:
                     string declaration = prefix + "texture2D " + p.name;
-                    if (p.textureValue == null) return declaration;
+                    if (p.textureSource == ShaderFXTextureSource.Layer || p.textureValue == null) return declaration;
                     if (!AssetDatabase.TryGetGUIDAndLocalFileIdentifier(p.textureValue, out string guid, out long localId) || string.IsNullOrEmpty(guid))
                         throw new IOException("Texture " + p.name + " must be a saved project asset to be used as a preset default.");
                     return declaration + " = \"guid:" + guid + ":" + localId.ToString(CultureInfo.InvariantCulture) + "\"";

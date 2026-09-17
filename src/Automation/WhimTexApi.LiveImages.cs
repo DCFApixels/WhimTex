@@ -240,11 +240,12 @@ namespace DCFApixels.WhimTex
             {
                 using var source = HdrUtility.ReadPixels(image, Allocator.Temp);
                 Rect placement = LiveImagePlacement(job.region, image.width, image.height, fit);
+                var canvasTransform = target != null ? job.document.GetCanvasTransform(target) : TextureTransform.Default;
                 for (int y = 0, i = 0; y < height; y++)
                 for (int x = 0; x < width; x++, i++)
                 {
                     Vector2 uv = new Vector2((x + .5f) / width, (y + .5f) / height);
-                    if (target != null) uv = TiledCanvasUtility.ToDocument(uv, target.transform, job.width, job.height);
+                    if (target != null) uv = TiledCanvasUtility.ToDocument(uv, canvasTransform, job.width, job.height);
                     float px = uv.x * job.width, py = uv.y * job.height;
                     if (px < job.region.xMin || py < job.region.yMin || px >= job.region.xMax || py >= job.region.yMax) continue;
                     float coverage = LiveSelectionCoverage(job, (int)px, (int)py) / 255f;

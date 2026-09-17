@@ -70,7 +70,7 @@ namespace DCFApixels.WhimTex
                 source.filterMode = FilterMode.Bilinear;
                 source.wrapMode = TextureWrapMode.Clamp;
                 GL.sRGBWrite = false;
-                var renderedContext = ProceduralUv.Prepare(material, transform, context);
+                var renderedContext = ProceduralUv.Prepare(material, Owner, context);
                 Graphics.Blit(null, source, material, 0);
                 return ApplyTransformAndModifiers(source, renderedContext);
             }

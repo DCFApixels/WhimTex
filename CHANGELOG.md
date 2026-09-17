@@ -4,6 +4,21 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+## [0.10.20] - 2026-09-17
+
+### Added
+
+- Hierarchical group transforms and multi-layer transforms with shared TRS, skew and perspective editing.
+- Projective Transform2D FX parameters and layer-local coordinates for procedural shader shapes.
+- Layer-backed texture parameters, including disabled Drawing/procedural sources and full-color groups, with dependency validation and cache integration.
+- Float2, float3 and normal FX parameters, including an on-canvas normal direction handle with hemisphere switching.
+- Regression coverage for group transforms, multi-layer editing, shader coordinates, texture sources and vector parameters.
+
+### Changed
+
+- Updated EN/RU/ZH guides and authoring contracts; removed the standalone gradient test window.
+- Updated the heart clipboard example to the current gradient format.
+
 ## [0.10.19] - 2026-09-16
 
 ### Added

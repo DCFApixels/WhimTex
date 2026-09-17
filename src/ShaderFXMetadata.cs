@@ -11,13 +11,20 @@ namespace DCFApixels.WhimTex
     internal static class ShaderFXMetadata
     {
         private static readonly Regex Header = new Regex(@"^//\s*@whimtex-effect\s+([^\r\n]+?)\s*$");
-        private static readonly Regex Parameter = new Regex(@"^\s*//\s*@param\s+(float|bool|float4|color|texture2D|transform2D|gradient)\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*=\s*([^\[\];~]+?))?\s*(?:\[\s*(.*?)\s*\.\.\s*(.*?)\s*\])?\s*$");
+        private static readonly Regex Parameter = new Regex(@"^\s*//\s*@param\s+(float|bool|float2|float3|float4|normal|color|texture2D|transform2D|gradient)\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*=\s*([^\[\];~]+?))?\s*(?:\[\s*(.*?)\s*\.\.\s*(.*?)\s*\])?\s*$");
 
         internal static bool TryHeader(string firstLine, out string menuPath)
         {
             Match match = Header.Match((firstLine ?? "").TrimStart('\uFEFF'));
             menuPath = match.Success ? match.Groups[1].Value.Trim() : null;
             return match.Success;
+        }
+
+        private static double TransformNumber(string value)
+        {
+            double result = double.Parse(value.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture);
+            if (!ProjectiveMatrix.Finite(result)) throw new FormatException("Transform components must be finite.");
+            return result;
         }
 
         internal static bool HasDeclarations(string source) => Regex.IsMatch(source ?? "", @"(?m)^\s*//\s*@param\b");
@@ -93,6 +100,21 @@ namespace DCFApixels.WhimTex
                                 p.hasMaximum && !p.softMaximum && p.floatValue > p.maximum))
                                 throw new FormatException("Default " + value + " is outside the declared range.");
                             break;
+                        case "float2":
+                        case "float3":
+                        case "normal":
+                            int count = kind == "float2" ? 2 : 3;
+                            p.type = kind == "normal" ? ShaderFXParameterType.Normal : count == 2 ? ShaderFXParameterType.Vector2 : ShaderFXParameterType.Vector3;
+                            p.vectorValue = kind == "normal" ? new Vector4(0,0,1,0) : Vector4.zero;
+                            if (explicitDefault)
+                            {
+                                if (!value.StartsWith("(") || !value.EndsWith(")")) throw new FormatException("Expected components in parentheses.");
+                                var values = value.Substring(1,value.Length-2).Split(',');
+                                if (values.Length != count) throw new FormatException("Expected " + count + " components.");
+                                for (int i=0;i<count;i++) p.vectorValue[i] = Number(values[i]);
+                            }
+                            if (kind == "normal") p.vectorValue = ShaderFXParameter.NormalizeNormal(p.vectorValue);
+                            break;
                         case "float4":
                         case "color":
                             if (!explicitDefault) value = "(0, 0, 0, 0)";
@@ -121,13 +143,22 @@ namespace DCFApixels.WhimTex
                             p.type = ShaderFXParameterType.Transform2D;
                             if (value.Length != 0)
                             {
-                                if (!value.StartsWith("(") || !value.EndsWith(")")) throw new FormatException("Expected (x, y, width, height, angle).");
+                                if (value.StartsWith("matrix(") && value.EndsWith(")"))
+                                {
+                                    string[] entries = value.Substring(7, value.Length - 8).Split(',');
+                                    if (entries.Length != 9) throw new FormatException("Expected nine row-major matrix components.");
+                                    double D(int i) => TransformNumber(entries[i]);
+                                    var matrix = new ProjectiveMatrix { m00=D(0),m01=D(1),m02=D(2),m10=D(3),m11=D(4),m12=D(5),m20=D(6),m21=D(7),m22=D(8) };
+                                    if (!p.transformValue.TrySetMatrix(matrix)) throw new FormatException("Transform matrix must be invertible with no horizon crossing its rectangle.");
+                                    break;
+                                }
+                                if (!value.StartsWith("(") || !value.EndsWith(")")) throw new FormatException("Expected (x, y, width, height, angle) or matrix(nine row-major values).");
                                 string[] components = value.Substring(1, value.Length - 2).Split(',');
                                 if (components.Length != 5) throw new FormatException("Expected five transform components.");
                                 p.transformValue = new ShaderFXTransform
                                 {
-                                    position = new Vector2(Number(components[0]), Number(components[1])),
-                                    size = new Vector2(Number(components[2]), Number(components[3])), rotation = Number(components[4])
+                                    position = new Double2(TransformNumber(components[0]), TransformNumber(components[1])),
+                                    size = new Double2(TransformNumber(components[2]), TransformNumber(components[3])), rotation = TransformNumber(components[4])
                                 };
                             }
                             break;
@@ -228,6 +259,8 @@ namespace DCFApixels.WhimTex
                 p.colorValue = match.colorValue;
                 p.vectorValue = match.vectorValue;
                 p.textureValue = match.textureValue;
+                p.textureSource = match.textureSource;
+                p.textureLayerId = match.textureLayerId;
                 p.gradientValue = match.gradientValue?.Clone();
                 p.transformValue = match.transformValue;
             }
@@ -240,6 +273,7 @@ namespace DCFApixels.WhimTex
             target.floatValue = source.floatValue; target.colorValue = source.colorValue;
             target.gradientValue = source.gradientValue?.Clone();
             target.vectorValue = source.vectorValue; target.textureValue = source.textureValue; target.transformValue = source.transformValue;
+            target.textureSource = source.textureSource; target.textureLayerId = source.textureLayerId;
         }
     }
 }

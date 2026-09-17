@@ -79,6 +79,8 @@ namespace DCFApixels.WhimTex
                 result.swizzle = default;
                 result.modifiers.Clear();
             }
+            if ((applyTransform || source.IsGroup) && source.transformCache?.parent != null)
+                result.transform.TrySetMatrix(source.transformCache.parentInverse);
             result.pixels = texture;
             // Source settings must survive conversion from a File layer to owned pixels.
             Texture samplingSource = source.SamplingSource;
@@ -203,12 +205,12 @@ namespace DCFApixels.WhimTex
 
         internal void BeginTiledStroke(Vector2 sourceUv, int width, int height)
         {
-            BeginStroke(TiledCanvasUtility.CanonicalSource(sourceUv, transform, width, height));
+            BeginStroke(TiledCanvasUtility.CanonicalSource(sourceUv, Owner.CanvasTransform, width, height));
             strokeWrapCanvas = true;
         }
 
         private Vector2 StrokeShapePoint(Vector2 sourceUv, int width, int height) => strokeWrapCanvas
-            ? TiledCanvasUtility.CanonicalSource(sourceUv, transform, width, height)
+            ? TiledCanvasUtility.CanonicalSource(sourceUv, Owner.CanvasTransform, width, height)
             : sourceUv;
 
         internal void EndStroke()
@@ -312,10 +314,10 @@ namespace DCFApixels.WhimTex
             Color color = parameters.Color;
             if (color.a <= 0f || parameters.Dynamics != null && (parameters.Dynamics.opacity <= 0f || parameters.Dynamics.flow <= 0f))
                 return;
-            if (!TiledCanvasUtility.IsInvertible(transform)) return;
+            if (!TiledCanvasUtility.IsInvertible(Owner.CanvasTransform)) return;
             var canvasSize = new Vector2(outputWidth, outputHeight);
-            fromSourceUv = transform.Map(fromSourceUv, canvasSize);
-            toSourceUv = transform.Map(toSourceUv, canvasSize);
+            fromSourceUv = Owner.CanvasTransform.Map(fromSourceUv, canvasSize);
+            toSourceUv = Owner.CanvasTransform.Map(toSourceUv, canvasSize);
             if (!ProjectiveMatrix.Finite(fromSourceUv.x) || !ProjectiveMatrix.Finite(fromSourceUv.y) ||
                 !ProjectiveMatrix.Finite(toSourceUv.x) || !ProjectiveMatrix.Finite(toSourceUv.y)) return;
             RenderTexture surface = EnsurePaintSurface(outputWidth, outputHeight);
@@ -370,7 +372,7 @@ namespace DCFApixels.WhimTex
                 outputHeight,
                 patternCenter,
                 parameters.WrapCanvas,
-                transform,
+                Owner.CanvasTransform,
                 colorRange == LayerColorRange.Standard,
                 !isolatedStroke && HdrUtility.IsHdr(pixels), parameters.SelectionMask, dynamics, parameters.StandardColorInputs,
                 stampBlend, blendRange == LayerBlendRange.HDR);
@@ -652,7 +654,7 @@ namespace DCFApixels.WhimTex
             if (UsesMirrorPattern && repeatBoundaryMode == PaintRepeatBoundaryMode.Clip &&
                 (mirrorAcrossVerticalAxis || mirrorAcrossHorizontalAxis))
             {
-                int region = GetMirrorRegion(clipStrokeToInitialShape ? transform.Map(strokeRepeatShapeAnchor,new Vector2(outputWidth,outputHeight)) : sourceUv, outputWidth, outputHeight);
+                int region = GetMirrorRegion(clipStrokeToInitialShape ? Owner.CanvasTransform.Map(strokeRepeatShapeAnchor,new Vector2(outputWidth,outputHeight)) : sourceUv, outputWidth, outputHeight);
                 AddMirrorClippedStamp(sourceUv, region);
                 if (mirrorAcrossVerticalAxis)
                     AddMirrorClippedStamp(ReflectPoint(sourceUv, true, outputWidth, outputHeight), region ^ 1);
@@ -855,8 +857,8 @@ namespace DCFApixels.WhimTex
             int outputWidth,
             int outputHeight)
         {
-            anchorUv=transform.Map(anchorUv,new Vector2(outputWidth,outputHeight));
-            pointUv=transform.Map(pointUv,new Vector2(outputWidth,outputHeight));
+            anchorUv=Owner.CanvasTransform.Map(anchorUv,new Vector2(outputWidth,outputHeight));
+            pointUv=Owner.CanvasTransform.Map(pointUv,new Vector2(outputWidth,outputHeight));
             int primaryCount = Mathf.Clamp(repeatCount, MinimumRepeatCount, MaximumRepeatCount);
             int secondaryCount = Mathf.Clamp(repeatSecondaryCount, MinimumRepeatCount, MaximumRepeatCount);
 

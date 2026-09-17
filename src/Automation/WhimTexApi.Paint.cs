@@ -74,7 +74,7 @@ namespace DCFApixels.WhimTex
             JArray values = (JArray)operation["points"];
             string space = Text(operation, "space", "canvasPixels");
             Require(space == "canvasPixels" || space == "layerUv", "space must be canvasPixels or layerUv.");
-            Require(space != "canvasPixels" || layer.transform.tiling == TransformTilingMode.Clip,
+            Require(space != "canvasPixels" || document.GetCanvasTransform(layer).tiling == TransformTilingMode.Clip,
                 "canvasPixels painting requires Clip tiling. For repeating transforms, use layerUv to edit the source tile explicitly.");
             bool erase = Bool(operation, "erase");
             PaintStrokeParameters parameters = layer.GetStrokeParameters(erase);
@@ -87,12 +87,12 @@ namespace DCFApixels.WhimTex
             for (int i = 0; i < values.Count; i++)
             {
                 Vector2 point = Vector(values[i], "point");
-                uv[i] = space == "layerUv" ? point : CanvasToLayerUv(point, document, layer.transform);
+                uv[i] = space == "layerUv" ? point : CanvasToLayerUv(point, document, document.GetCanvasTransform(layer));
                 Require(uv[i].x >= -4f && uv[i].x <= 5f && uv[i].y >= -4f && uv[i].y <= 5f, "Stroke points are too far outside the source canvas.", "resource_limit");
                 if (i > 0)
                     {
                         var dimensions=new Vector2(document.width,document.height);
-                        Vector2 a=layer.transform.Map(uv[i-1],dimensions),b=layer.transform.Map(uv[i],dimensions);
+                        Vector2 a=document.GetCanvasTransform(layer).Map(uv[i-1],dimensions),b=document.GetCanvasTransform(layer).Map(uv[i],dimensions);
                         Require(ProjectiveMatrix.Finite(a.x) && ProjectiveMatrix.Finite(a.y) && ProjectiveMatrix.Finite(b.x) && ProjectiveMatrix.Finite(b.y),
                             "Stroke crosses an invalid transform point.");
                         stamps += System.Math.Ceiling(Vector2.Scale(b-a,dimensions).magnitude / spacing);

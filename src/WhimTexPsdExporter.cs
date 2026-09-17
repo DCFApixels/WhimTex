@@ -32,6 +32,7 @@ namespace DCFApixels.WhimTex
             if (File.Exists(destination) && !overwrite) throw new IOException("The PSD destination already exists.");
             if (!Directory.Exists(Path.GetDirectoryName(destination))) throw new DirectoryNotFoundException("The destination folder does not exist.");
 
+            document.RefreshTransformHierarchy();
             var report = new PsdExportReport();
             var records = new List<PsdWriter.LayerRecord>();
             Collect(document, document.layers, records, report, new HashSet<Layer>(), new HashSet<uint>());
@@ -172,7 +173,7 @@ namespace DCFApixels.WhimTex
                     Add(record, "GdFl", Gradient(gradient, document.width, document.height));
                     record.openPixels = () => GradientPixels(document, gradient, record.mask);
                     report.editableFillCount++;
-                    if (!gradient.transform.IsIdentity() ||
+                    if (!gradient.Owner.CanvasTransform.IsIdentity() ||
                         (gradient.gradientType != GradientLayerBehaviour.GradientType.Horizontal && gradient.gradientType != GradientLayerBehaviour.GradientType.Vertical))
                         report.Note(layer, "Gradient geometry/interpolation is editable but may differ, especially on a non-square canvas.");
                 }
@@ -211,16 +212,16 @@ namespace DCFApixels.WhimTex
 
         private static bool CanExportOutline(OutlineLayerBehaviour layer, bool modifiers) =>
             !modifiers && !layer.fillCenter && layer.outlineOffset == 0f &&
-            layer.transform.IsIdentity() && layer.outlineWidth > 0f && layer.outlineWidth <= 250f &&
+            layer.Owner.CanvasTransform.IsIdentity() && layer.outlineWidth > 0f && layer.outlineWidth <= 250f &&
             (layer.metric == DistanceMetric.EuclideanExact || layer.metric == DistanceMetric.EuclideanApproximate);
 
         private static bool CanExportGradient(GradientLayerBehaviour layer, bool modifiers)
         {
-            if (modifiers || layer.transform.storage == TransformStorage.Projective || layer.gradient == null || layer.gradient.Mode != WhimTexGradientMode.Classic ||
+            if (modifiers || layer.Owner.CanvasTransform.storage == TransformStorage.Projective || layer.gradient == null || layer.gradient.Mode != WhimTexGradientMode.Classic ||
                 layer.gradient.ColorSpace != ColorSpace.Gamma || layer.gradient.Smoothness != 0f ||
-                (layer.transform.tiling != TransformTilingMode.Clip && layer.transform.tiling != TransformTilingMode.Source)) return false;
+                (layer.Owner.CanvasTransform.tiling != TransformTilingMode.Clip && layer.Owner.CanvasTransform.tiling != TransformTilingMode.Source)) return false;
             bool linear = layer.gradientType == GradientLayerBehaviour.GradientType.Horizontal || layer.gradientType == GradientLayerBehaviour.GradientType.Vertical;
-            Vector2 scale = layer.transform.scaleF;
+            Vector2 scale = layer.Owner.CanvasTransform.scaleF;
             if (Mathf.Abs(scale.x) < 0.00001f || Mathf.Abs(scale.y) < 0.00001f) return false;
             if (!linear && (scale.x <= 0 || !Mathf.Approximately(scale.x, scale.y))) return false;
             return layer.gradientType != GradientLayerBehaviour.GradientType.Circular || Mathf.Approximately(layer.circularRepetitions, 1f);
@@ -271,7 +272,7 @@ namespace DCFApixels.WhimTex
                 default: type = "Rdl "; break;
             }
             Vector2 center = GradientLayerBehaviour.BaseCenter;
-            TextureTransform transform = layer.transform;
+            TextureTransform transform = layer.Owner.CanvasTransform;
             Vector2 pivot = Vector2.Scale(transform.pivotF, new Vector2(width, height));
             Vector2 local = Vector2.Scale(Vector2.Scale(center, new Vector2(width, height)) - pivot, transform.scaleF);
             float radians = transform.rotationF * Mathf.Deg2Rad;

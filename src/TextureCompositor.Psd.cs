@@ -8,6 +8,7 @@ namespace DCFApixels.WhimTex
         internal Texture2D RenderPsdGroupContent(Layer group)
         {
             RenderTexture rendered = GetClearRenderTexture(width, height);
+            RefreshTransformHierarchy();
             RenderTexture previous = RenderTexture.active;
             try
             {
@@ -26,10 +27,11 @@ namespace DCFApixels.WhimTex
         internal Texture2D RenderPsdCoverage(Layer layer)
         {
             RenderTexture rendered = null;
+            RefreshTransformHierarchy();
             RenderTexture previous = RenderTexture.active;
             try
             {
-                var fill = new ColorFillLayerBehaviour { color = Color.white, transform = layer.transform, filterMode = layer.filterMode };
+                var fill = new ColorFillLayerBehaviour { color = Color.white, transform = GetCanvasTransform(layer), filterMode = layer.filterMode };
                 rendered = fill.Render(new LayerRenderContext(this, null, width, height, 1f));
                 return CopyToTexture2D(rendered, uploadToGpu: false);
             }
@@ -43,6 +45,7 @@ namespace DCFApixels.WhimTex
         internal Texture2D RenderPsdPixels(Layer layer, bool effectInput = false)
         {
             RenderTexture rendered = null;
+            RefreshTransformHierarchy();
             RenderTexture previous = RenderTexture.active;
             try
             {

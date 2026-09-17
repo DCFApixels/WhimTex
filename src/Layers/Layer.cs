@@ -16,6 +16,7 @@ namespace DCFApixels.WhimTex
         public readonly float scaleMultiplier;
         public readonly bool applyTransform;
         public readonly bool applyModifiers;
+        public readonly bool transformFxCoordinates;
 
         public LayerRenderContext(
             TextureCompositor compositor,
@@ -24,7 +25,8 @@ namespace DCFApixels.WhimTex
             int height,
             float scaleMultiplier,
             bool applyTransform = true,
-            bool applyModifiers = true)
+            bool applyModifiers = true,
+            bool? transformFxCoordinates = null)
         {
             this.compositor = compositor;
             this.input = input;
@@ -33,6 +35,7 @@ namespace DCFApixels.WhimTex
             this.scaleMultiplier = Mathf.Max(0.0001f, scaleMultiplier);
             this.applyTransform = applyTransform;
             this.applyModifiers = applyModifiers;
+            this.transformFxCoordinates = transformFxCoordinates ?? applyTransform;
         }
     }
 
@@ -53,6 +56,30 @@ namespace DCFApixels.WhimTex
         public LayerSwizzle swizzle;
         public List<UnityEngine.Object> modifiers = new List<UnityEngine.Object>();
         public TextureTransform transform = TextureTransform.Default;
+        [NonSerialized] internal LayerTransformCache transformCache;
+        internal TextureTransform CanvasTransform
+        {
+            get
+            {
+                var value = transform;
+                if (transformCache?.parent != null)
+                {
+                    value.storage = TransformStorage.Projective;
+                    value.matrix = transformCache.world;
+                }
+                return value;
+            }
+        }
+        internal TextureTransform RenderTransform
+        {
+            get
+            {
+                var value = CanvasTransform;
+                if ((RequiresInput || Behaviour is ShaderProcessorLayerBehaviour) && transformCache?.parent != null)
+                    value.matrix = transformCache.world * transformCache.parentInverse;
+                return value;
+            }
+        }
         public LayerFilterMode filterMode = LayerFilterMode.Source;
         [SerializeReference] private LayerBehaviour behaviour;
         [SerializeField] private string behaviourId;
@@ -168,6 +195,20 @@ namespace DCFApixels.WhimTex
 
         internal RenderTexture Render(in LayerRenderContext context) => Behaviour?.Render(context);
 
+        internal void SetRenderInverse(Material material, string prefix, in LayerRenderContext context)
+        {
+            if (!context.applyTransform) { ProjectiveMatrix.Identity.SetShader(material, prefix); return; }
+            var cache = transformCache;
+            if (cache != null && cache.document == context.compositor && cache.local.Equals(transform))
+            {
+                if (RequiresInput || Behaviour is ShaderProcessorLayerBehaviour) cache.inputInverseGpu.Set(material, prefix);
+                else cache.inverseGpu.Set(material, prefix);
+                return;
+            }
+            RenderTransform.ToMatrix(context.compositor.width, context.compositor.height).TryInverse(out var inverse);
+            inverse.SetShader(material, prefix);
+        }
+
         internal Texture SamplingSource => this?.Behaviour is FileLayerBehaviour file ? file.sourceTexture :
             this?.Behaviour is DrawingLayerBehaviour drawing ? drawing.StoredTexture : null;
 
@@ -255,7 +296,7 @@ namespace DCFApixels.WhimTex
                 else
                 {
                     // Even identity transforms must use the independent filter/wrap settings.
-                    TextureTransform applied = context.applyTransform ? transform : TextureTransform.Default;
+                    TextureTransform applied = context.applyTransform ? RenderTransform : TextureTransform.Default;
                     Texture samplingSource = SamplingSource;
                     if (samplingSource == null)
                         samplingSource = source;
@@ -274,9 +315,7 @@ namespace DCFApixels.WhimTex
                             wrapU = wrapV = TextureWrapMode.Mirror;
                             break;
                     }
-                    if (!applied.ToMatrix(context.compositor.width, context.compositor.height).TryInverse(out var inverse))
-                        inverse = default;
-                    inverse.SetShader(transformMaterial, "_TransformRow");
+                    SetRenderInverse(transformMaterial, "_TransformRow", context);
                     transformMaterial.SetInt("_ClipOutside", applied.tiling == TransformTilingMode.Clip || applied.tiling == TransformTilingMode.Unbounded ? 1 : 0);
                     transformMaterial.SetInt("_WrapModeU", (int)wrapU);
                     transformMaterial.SetInt("_WrapModeV", (int)wrapV);
@@ -303,11 +342,26 @@ namespace DCFApixels.WhimTex
                 return;
             for (int i = 0; i < modifiers.Count; i++)
             {
+                using var textureInputs = modifiers[i] is ShaderFX textureFX
+                    ? context.compositor.BindShaderTextureLayers(textureFX, this, context) : null;
                 Material modifier = modifiers[i] is ShaderFX shaderFX
                     ? shaderFX.GetMaterial(context)
                     : modifiers[i] as Material;
                 if (modifier == null)
                     continue;
+                textureInputs?.Apply(modifier);
+                if (modifiers[i] is ShaderFX)
+                {
+                    if (!context.transformFxCoordinates)
+                        ProjectiveMatrix.Identity.SetShader(modifier, "_WhimTex_LayerToLocalRow");
+                    else if (transformCache != null)
+                        transformCache.inverseGpu.Set(modifier, "_WhimTex_LayerToLocalRow");
+                    else
+                    {
+                        CanvasTransform.ToMatrix(context.compositor.width, context.compositor.height).TryInverse(out var inverse);
+                        inverse.SetShader(modifier, "_WhimTex_LayerToLocalRow");
+                    }
+                }
 
                 RenderTexture next = RenderTexture.GetTemporary(
                     context.width,

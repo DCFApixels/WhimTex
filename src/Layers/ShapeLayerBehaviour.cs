@@ -98,11 +98,10 @@ namespace DCFApixels.WhimTex
             Material material = WhimTexMaterials.Shape;
             if (material == null || !material.shader.isSupported)
                 throw new InvalidOperationException("Shape shader is unavailable or unsupported on this graphics device.");
-            TextureTransform applied = context.applyTransform ? transform : TextureTransform.Default;
+            TextureTransform applied = context.applyTransform ? Owner.RenderTransform : TextureTransform.Default;
             float width = context.compositor.width, height = context.compositor.height;
             material.SetVector("_CanvasSize", new Vector4(width, height, 0f, 0f));
-            applied.ToMatrix(width,height).TryInverse(out var inverse);
-            inverse.SetShader(material,"_ShapeRow");
+            Owner.SetRenderInverse(material,"_ShapeRow",context);
             applied.GetDisplay(new Vector2(width,height),out _,out var displayScale,out _);
             material.SetVector("_ShapeScale",(Vector2)displayScale);
             material.SetInt("_ShapeTiling", (int)applied.tiling);

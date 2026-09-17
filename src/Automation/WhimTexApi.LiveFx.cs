@@ -30,6 +30,17 @@ namespace DCFApixels.WhimTex
             return false;
         }
 
+        private static JObject FxTransformSnapshot(ShaderFXTransform transform)
+        {
+            if (transform.storage == TransformStorage.Projective)
+            {
+                var m = transform.matrix;
+                return new JObject { ["matrix"] = new JArray(m.m00,m.m01,m.m02,m.m10,m.m11,m.m12,m.m20,m.m21,m.m22) };
+            }
+            return new JObject { ["position"] = new JArray(transform.position.x, transform.position.y),
+                ["size"] = new JArray(transform.size.x, transform.size.y), ["rotation"] = transform.rotation };
+        }
+
         internal static bool IsShaderFXContentLocked(ShaderFX effect)
         {
             if (effect == null) return false;
@@ -123,6 +134,8 @@ namespace DCFApixels.WhimTex
                 Require(fx.Parameters.Count <= 32, "At most 32 FX parameters are supported by live authoring.", "resource_limit");
                 if (op == "add") layer.modifiers.Insert(index, fx);
                 else layer.modifiers[index] = fx;
+                foreach (var parameter in fx.TextureLayerParameters())
+                    Require(owner.IsUsableShaderTexture(layer, parameter.textureLayerId), "Texture layer would create a cyclic dependency.", "invalid_target");
                 Require(layer.modifiers.Count <= 32, "At most 32 FX entries per layer are supported by live authoring.", "resource_limit");
             }
         }
@@ -148,12 +161,30 @@ namespace DCFApixels.WhimTex
                     case ShaderFXParameterType.Enum:
                     case ShaderFXParameterType.Float: value.floatValue = Number(spec["value"], "value", -1000000, 1000000); break;
                     case ShaderFXParameterType.Color: value.colorValue = AgentJson.Color(spec["value"]); break;
+                    case ShaderFXParameterType.Vector2:
+                    case ShaderFXParameterType.Vector3:
+                    case ShaderFXParameterType.Normal:
+                        int components = value.type == ShaderFXParameterType.Vector2 ? 2 : 3;
+                        Require(spec["value"] is JArray values && values.Count == components, "Wrong vector component count.");
+                        value.vectorValue = Vector4.zero;
+                        for (int i=0;i<components;i++) value.vectorValue[i] = Number(spec["value"][i], "component", -1000000, 1000000);
+                        if (value.type == ShaderFXParameterType.Normal) value.vectorValue = ShaderFXParameter.NormalizeNormal(value.vectorValue);
+                        break;
                     case ShaderFXParameterType.Vector:
                         Require(spec["value"] is JArray vector && vector.Count == 4, "Vector value must have four components.");
                         value.vectorValue = new Vector4(Number(spec["value"][0], "x", -1000000, 1000000), Number(spec["value"][1], "y", -1000000, 1000000),
                             Number(spec["value"][2], "z", -1000000, 1000000), Number(spec["value"][3], "w", -1000000, 1000000));
                         break;
                     case ShaderFXParameterType.Texture2D:
+                        if (spec["value"] is JObject layerSource)
+                        {
+                            Keys(layerSource, "layer");
+                            string layerId = Text(layerSource, "layer");
+                            Require(owner != null && owner.FindLayer(layerId)?.Behaviour != null, "Texture source layer not found.", "invalid_target");
+                            value.textureSource = ShaderFXTextureSource.Layer;
+                            value.textureLayerId = layerId;
+                            break;
+                        }
                         string path = Text(spec, "value");
                         Require(path.StartsWith("Assets/", StringComparison.Ordinal) || path.StartsWith("Packages/", StringComparison.Ordinal), "Texture value must be a project asset path.");
                         ValidateSegments(path);
@@ -163,20 +194,34 @@ namespace DCFApixels.WhimTex
                         break;
                     case ShaderFXParameterType.Transform2D:
                         JObject area = Obj(spec["value"], "Transform2D value");
-                        Keys(area, "position", "size", "rotation");
+                        Keys(area, "position", "size", "rotation", "matrix");
+                        var dimensions = owner != null ? new Vector2(owner.width, owner.height) : Vector2.one;
+                        if (area["matrix"] != null)
+                        {
+                            Require(area["position"] == null && area["size"] == null && area["rotation"] == null,
+                                "matrix cannot be combined with position, size or rotation.");
+                            Require(area["matrix"] is JArray && ((JArray)area["matrix"]).Count == 9, "matrix must contain nine row-major numbers.");
+                            var a = (JArray)area["matrix"];
+                            var m = new ProjectiveMatrix {
+                                m00=TransformNumber(a[0]),m01=TransformNumber(a[1]),m02=TransformNumber(a[2]),
+                                m10=TransformNumber(a[3]),m11=TransformNumber(a[4]),m12=TransformNumber(a[5]),
+                                m20=TransformNumber(a[6]),m21=TransformNumber(a[7]),m22=TransformNumber(a[8]) };
+                            Require(value.transformValue.TrySetMatrix(m), "Transform2D matrix must be invertible with no horizon crossing its rectangle.");
+                            break;
+                        }
                         foreach (string field in new[] { "position", "size" })
                         {
                             if (area[field] == null) continue;
                             Require(area[field] is JArray pair && pair.Count == 2, field + " must have two components.");
-                            var v = new Vector2(Number(area[field][0], field + ".x", -1000000, 1000000), Number(area[field][1], field + ".y", -1000000, 1000000));
-                            if (field == "position") value.transformValue.position = v;
+                            var v = TransformVector(area[field], field);
+                            if (field == "position") value.transformValue.EditPosition(v, dimensions);
                             else
                             {
-                                Require(Mathf.Abs(v.x) >= 0.00001f && Mathf.Abs(v.y) >= 0.00001f, "Transform2D size cannot be zero.");
-                                value.transformValue.size = v;
+                                Require(Math.Abs(v.x) >= 0.00001 && Math.Abs(v.y) >= 0.00001, "Transform2D size cannot be zero.");
+                                value.transformValue.EditSize(v, dimensions);
                             }
                         }
-                        if (area["rotation"] != null) value.transformValue.rotation = Number(area["rotation"], "rotation", -1000000, 1000000);
+                        if (area["rotation"] != null) value.transformValue.EditRotation(TransformNumber(area["rotation"]), dimensions);
                         break;
                 }
                 result.Add(value);
@@ -204,12 +249,14 @@ namespace DCFApixels.WhimTex
                         if (p == null) continue;
                         JToken value = p.type == ShaderFXParameterType.Bool ? new JValue(p.BoolValue) :
                             p.type == ShaderFXParameterType.Gradient ? GradientSnapshot(p.gradientValue ?? new WhimTexGradient()) :
-                            p.type == ShaderFXParameterType.Transform2D ? new JObject {
-                            ["position"] = new JArray(p.transformValue.position.x, p.transformValue.position.y),
-                            ["size"] = new JArray(p.transformValue.size.x, p.transformValue.size.y), ["rotation"] = p.transformValue.rotation } :
+                            p.type == ShaderFXParameterType.Transform2D ? FxTransformSnapshot(p.transformValue) :
                             p.type == ShaderFXParameterType.Color ? (JToken)Json(p.colorValue) :
+                            p.type == ShaderFXParameterType.Vector2 ? new JArray(p.vectorValue.x, p.vectorValue.y) :
+                            p.type == ShaderFXParameterType.Vector3 || p.type == ShaderFXParameterType.Normal ? new JArray(p.vectorValue.x, p.vectorValue.y, p.vectorValue.z) :
                             p.type == ShaderFXParameterType.Vector ? new JArray(p.vectorValue.x, p.vectorValue.y, p.vectorValue.z, p.vectorValue.w) :
-                            p.type == ShaderFXParameterType.Texture2D ? new JValue(p.textureValue == null ? "" : AssetDatabase.GetAssetPath(p.textureValue)) : new JValue(p.floatValue);
+                            p.type == ShaderFXParameterType.Texture2D ? (p.textureSource == ShaderFXTextureSource.Layer
+                                ? (JToken)new JObject { ["layer"] = p.textureLayerId }
+                                : new JValue(p.textureValue == null ? "" : AssetDatabase.GetAssetPath(p.textureValue))) : new JValue(p.floatValue);
                         parameters.Add(new JObject { ["name"] = p.name, ["id"] = p.id, ["type"] = p.type.ToString(), ["value"] = value,
                             ["minimum"] = p.hasMinimum ? (JToken)new JValue(p.minimum) : JValue.CreateNull(),
                             ["maximum"] = p.hasMaximum ? (JToken)new JValue(p.maximum) : JValue.CreateNull() });

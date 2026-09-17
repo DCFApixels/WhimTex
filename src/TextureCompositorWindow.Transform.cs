@@ -8,6 +8,32 @@ namespace DCFApixels.WhimTex
     public sealed partial class TextureCompositorWindow
     {
         [NonSerialized] private double nextTransformPreviewAt;
+        [NonSerialized] private MultiLayerTransform multiLayerTransform;
+        private bool HasMultipleTransformSelection => selectedLayerIds != null && selectedLayerIds.Count > 1;
+        private MultiLayerTransform CurrentMultiTransform
+        {
+            get
+            {
+                if (multiLayerTransform == null || !multiLayerTransform.Matches(compositor, selectedLayerIds))
+                    multiLayerTransform = new MultiLayerTransform(compositor, selectedLayerIds);
+                return multiLayerTransform;
+            }
+        }
+        private bool TransformSelectionAvailable
+        {
+            get
+            {
+                if (compositor == null) return false;
+                if (PreviewFXParameter != null || !HasMultipleTransformSelection) return true;
+                foreach (var id in selectedLayerIds)
+                {
+                    var layer = compositor.FindLayer(id);
+                    if (layer == null || layer.Behaviour == null || WhimTexApi.IsLayerContentLocked(compositor, layer) ||
+                        WhimTexApi.ContainsReservation(layer)) return false;
+                }
+                return true;
+            }
+        }
         private VisualElement previewTransformOverlay;
         private PreviewTransformManipulator previewTransformManipulator;
         [NonSerialized] private ShaderFX previewTransformFX;
@@ -27,7 +53,17 @@ namespace DCFApixels.WhimTex
         }
 
         private TextureTransform CurrentPreviewTransform => PreviewFXParameter is ShaderFXParameter p
-            ? p.transformValue.ToLayerTransform(new Vector2(compositor.width, compositor.height)) : GetSelectedLayer().transform;
+            ? p.transformValue.ToLayerTransform(new Vector2(compositor.width, compositor.height)) : HasMultipleTransformSelection ? CurrentMultiTransform.Frame : compositor.GetCanvasTransform(GetSelectedLayer());
+
+        internal static TextureCompositor FindFXTransformDocument(ShaderFX effect)
+        {
+            if (effect.EmbeddedOwner != null) return effect.EmbeddedOwner;
+            TextureCompositorWindow best = null;
+            foreach (var window in Resources.FindObjectsOfTypeAll<TextureCompositorWindow>())
+                if (window.compositor != null && window.GetSelectedLayer() is Layer layer && layer.modifiers.Contains(effect) &&
+                    (best == null || window == focusedWindow || best != focusedWindow && window.AgentFocusOrder > best.AgentFocusOrder)) best = window;
+            return best != null ? best.compositor : null;
+        }
 
         internal static void EditFXTransform(ShaderFX effect, string parameterId)
         {
@@ -42,6 +78,7 @@ namespace DCFApixels.WhimTex
                     !WhimTexApi.IsLayerContentLocked(window.compositor, selected) &&
                     (best == null || window == focusedWindow || best != focusedWindow && window.AgentFocusOrder > best.AgentFocusOrder)) best = window;
             if (best == null) { EditorUtility.DisplayDialog("FX Transform", "Select a layer using this FX in a WhimTex window first.", "OK"); return; }
+            best.normalFX = null;
             bool toggleOff = best.previewTransformFX == effect && best.previewTransformParameterId == parameterId;
             best.SetPreviewTool(toggleOff ? best.previewTransformReturnTool : PreviewTool.Transform);
             if (!toggleOff)
@@ -53,12 +90,13 @@ namespace DCFApixels.WhimTex
             best.Focus();
         }
 
-        private bool IsPreviewTransformEnabled => !IsGradientCanvasEnabled && previewTool == PreviewTool.Transform &&
-            GetSelectedLayer() is Layer layer && layer.Behaviour != null && (!layer.IsGroup || PreviewFXParameter != null) &&
+        private bool IsPreviewTransformEnabled => NormalParameter == null && !IsGradientCanvasEnabled && previewTool == PreviewTool.Transform && TransformSelectionAvailable &&
+            GetSelectedLayer() is Layer layer && layer.Behaviour != null &&
             !WhimTexApi.IsLayerContentLocked(compositor, layer) && !WhimTexApi.ContainsReservation(layer);
 
         private void BuildPreviewTransformTool()
         {
+            BuildNormalTool();
             previewTransformOverlay = new VisualElement { pickingMode = PickingMode.Ignore };
             previewTransformOverlay.StretchToParentSize();
             toolkitPreviewCanvas.Add(previewTransformOverlay);
@@ -72,7 +110,7 @@ namespace DCFApixels.WhimTex
         {
             VisualElement row = WhimTexUI.CreateToolbar();
             row.AddToClassList("whimtex-transform-settings");
-            toolkitHeaderBindings.Add(() => row.SetEnabled(PreviewFXParameter == null));
+            toolkitHeaderBindings.Add(() => row.SetEnabled(PreviewFXParameter == null && !HasMultipleTransformSelection));
             VisualElement tilingGroup = WhimTexUI.CreateRow();
             tilingGroup.AddToClassList("whimtex-transform-option");
             tilingGroup.Add(CreateCompactLabel("Tiling", 38f));
@@ -86,7 +124,7 @@ namespace DCFApixels.WhimTex
             tiling.RegisterValueChangedCallback(evt =>
             {
                 Layer selected = GetSelectedLayer();
-                if (selected == null || selected.IsGroup)
+                if (selected == null)
                     return;
                 FinishPreviewTransform();
                 ApplyToolkitChange("Change Transform Tiling", () => selected.transform.tiling = (TransformTilingMode)evt.newValue);
@@ -104,7 +142,7 @@ namespace DCFApixels.WhimTex
             filter.RegisterValueChangedCallback(evt =>
             {
                 Layer selected = GetSelectedLayer();
-                if (selected == null || selected.IsGroup)
+                if (selected == null)
                     return;
                 FinishPreviewTransform();
                 FinishPaintingStroke();
@@ -155,6 +193,7 @@ namespace DCFApixels.WhimTex
 
         private void SetPreviewTool(PreviewTool tool)
         {
+            normalFX = null;
             areaSelectionManipulator?.Cancel();
             CancelPreviewEyedropper();
             bool changePixelPreview = (previewTool == PreviewTool.Pencil) != (tool == PreviewTool.Pencil);
@@ -256,7 +295,7 @@ namespace DCFApixels.WhimTex
             private readonly TextureCompositorWindow owner;
             private Layer layer;
             private LayerBehaviour gestureBehaviour;
-            private TextureTransform original;
+            private TextureTransform original, originalLocal;
             private Vector2 size;
             private Vector2 pointerStart;
             private Vector2 lastPointerPosition;
@@ -266,6 +305,7 @@ namespace DCFApixels.WhimTex
             private bool lastAlt;
             private readonly Double2[] corners = new Double2[4];
             private Rect gestureImageRect;
+            private MultiLayerTransform gestureMulti;
             private ShaderFX gestureFX;
             private ShaderFXParameter gestureParameter;
 
@@ -302,6 +342,7 @@ namespace DCFApixels.WhimTex
                     !ReferenceEquals(gestureParameter, owner.PreviewFXParameter) ||
                     !ReferenceEquals(layer, owner.GetSelectedLayer()) ||
                     !ReferenceEquals(gestureBehaviour, layer?.Behaviour) ||
+                    (gestureMulti != null && !gestureMulti.Matches(owner.compositor, owner.selectedLayerIds)) ||
                     size != new Vector2(owner.compositor.width, owner.compositor.height)))
                     End(false, true);
                 if (owner.previewTransformFX != null && owner.PreviewFXParameter == null)
@@ -398,6 +439,9 @@ namespace DCFApixels.WhimTex
                 layer = selected;
                 gestureBehaviour = selected.Behaviour;
                 original = owner.CurrentPreviewTransform;
+                originalLocal = selected.transform;
+                gestureMulti = owner.PreviewFXParameter == null && owner.HasMultipleTransformSelection ? owner.CurrentMultiTransform : null;
+                gestureMulti?.Begin();
                 lastAlt = evt.altKey;
                 gestureParameter = owner.PreviewFXParameter;
                 gestureFX = gestureParameter != null ? owner.previewTransformFX : null;
@@ -550,7 +594,7 @@ namespace DCFApixels.WhimTex
                 if (undoGroup < 0 && delta.sqrMagnitude < 0.000001f)
                     return;
                 TextureTransform next = original;
-                bool complex = gestureFX == null && (original.storage == TransformStorage.Projective || (disableSnap && handle < MoveHandle));
+                bool complex = original.storage == TransformStorage.Projective || (disableSnap && handle < MoveHandle);
                 if (complex)
                 {
                     if (!UpdateProjective(current, delta, constrain, disableSnap, out next)) return;
@@ -653,7 +697,7 @@ namespace DCFApixels.WhimTex
                 {
                     Undo.IncrementCurrentGroup();
                     undoGroup = Undo.GetCurrentGroup();
-                    string undoName = gestureFX != null ? "Transform FX Area" : handle == PivotHandle ? "Move Layer Pivot" : "Transform Layer";
+                    string undoName = gestureFX != null ? "Transform FX Area" : handle == PivotHandle ? "Move Layer Pivot" : gestureMulti != null ? "Transform Selected Layers" : "Transform Layer";
                     Undo.SetCurrentGroupName(undoName);
                     Undo.RegisterCompleteObjectUndo(gestureFX != null ? (UnityEngine.Object)gestureFX : owner.compositor, undoName);
                 }
@@ -754,7 +798,8 @@ namespace DCFApixels.WhimTex
             {
                 if (gestureParameter != null)
                     gestureParameter.transformValue = ShaderFXTransform.FromLayerTransform(value, size);
-                else if (layer != null) layer.transform = value;
+                else if (gestureMulti != null) gestureMulti.Apply(value, handle == PivotHandle);
+                else if (layer != null) owner.compositor.SetCanvasTransform(layer, value);
             }
 
             public void End(bool cancel, bool commit)
@@ -768,7 +813,11 @@ namespace DCFApixels.WhimTex
                 if (commit && undoGroup >= 0 && owner.compositor != null)
                 {
                     if (cancel)
-                        WriteTransform(original);
+                    {
+                        if (gestureParameter != null) WriteTransform(original);
+                        else if (gestureMulti != null) gestureMulti.Cancel();
+                        else if (layer != null) layer.transform = originalLocal;
+                    }
                     if (gestureFX != null)
                     {
                         EditorUtility.SetDirty(gestureFX);
@@ -786,6 +835,7 @@ namespace DCFApixels.WhimTex
                 }
                 layer = null;
                 gestureBehaviour = null;
+                gestureMulti = null;
                 gestureFX = null;
                 gestureParameter = null;
                 undoGroup = -1;

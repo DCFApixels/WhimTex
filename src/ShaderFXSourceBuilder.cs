@@ -48,6 +48,25 @@ namespace DCFApixels.WhimTex
             return found;
         }
 
+        // Upgrade only generated helpers in the last applied source, never pending user code.
+        internal static string UpgradeTransformHelpers(string source, List<ShaderFXParameter> parameters)
+        {
+            if (string.IsNullOrEmpty(source)) return source;
+            foreach (var parameter in parameters)
+            {
+                if (parameter.type != ShaderFXParameterType.Transform2D) continue;
+                foreach (string direction in new[] { "ToLocal", "ToInput" })
+                {
+                    string prefix = parameter.InternalPrefix + direction;
+                    if (source.Contains("float4 " + prefix + "Row2;")) continue;
+                    string old = $"float2 {parameter.name}_{direction}(float2 uv) {{ float3 p = float3(uv, 1.0); return float2(dot({prefix}Row0.xyz, p), dot({prefix}Row1.xyz, p)); }}";
+                    string replacement = $"float4 {prefix}Row2;\nfloat2 {parameter.name}_{direction}(float2 uv) {{ float3 p = float3(uv, 1.0); float w = dot({prefix}Row2.xyz, p); w = w < 0.0 ? min(w, -1e-7) : max(w, 1e-7); return float2(dot({prefix}Row0.xyz, p), dot({prefix}Row1.xyz, p)) / w; }}";
+                    source = source.Replace(old, replacement);
+                }
+            }
+            return source;
+        }
+
         internal static string Build(ShaderFX effect, string assetPath)
         {
             ShaderFXSourceBuilder builder = new ShaderFXSourceBuilder();
@@ -56,7 +75,7 @@ namespace DCFApixels.WhimTex
             HashSet<string> names = new HashSet<string>(StringComparer.Ordinal)
             {
                 "_MainTex", "_MainTex_TexelSize", "_InputSize", "_CanvasSize", "_PreviewScale",
-                "ApplyFX", "SampleInput", "SpriteFXFragment", "vert_img", "v2f_img"
+                "ApplyFX", "SampleInput", "LayerToLocal", "SpriteFXFragment", "vert_img", "v2f_img"
             };
             foreach (ShaderFXParameter parameter in effect.Parameters)
             {
@@ -76,6 +95,12 @@ namespace DCFApixels.WhimTex
                         properties.AppendLine($"{name} (\"{name}\", Vector) = (1,1,1,1)");
                         uniforms.AppendLine($"float4 {name};");
                         break;
+                    case ShaderFXParameterType.Vector2:
+                    case ShaderFXParameterType.Vector3:
+                    case ShaderFXParameterType.Normal:
+                        properties.AppendLine($"{name} (\"{name}\", Vector) = (0,0,0,0)");
+                        uniforms.AppendLine($"float{(parameter.type == ShaderFXParameterType.Vector2 ? 2 : 3)} {name};");
+                        break;
                     case ShaderFXParameterType.Vector:
                         properties.AppendLine($"{name} (\"{name}\", Vector) = (0,0,0,0)");
                         uniforms.AppendLine($"float4 {name};");
@@ -92,8 +117,8 @@ namespace DCFApixels.WhimTex
                         string prefix = parameter.InternalPrefix;
                         foreach (string direction in new[] { "ToLocal", "ToInput" })
                         {
-                            uniforms.AppendLine($"float4 {prefix}{direction}Row0;\nfloat4 {prefix}{direction}Row1;");
-                            uniforms.AppendLine($"float2 {name}_{direction}(float2 uv) {{ float3 p = float3(uv, 1.0); return float2(dot({prefix}{direction}Row0.xyz, p), dot({prefix}{direction}Row1.xyz, p)); }}");
+                            uniforms.AppendLine($"float4 {prefix}{direction}Row0;\nfloat4 {prefix}{direction}Row1;\nfloat4 {prefix}{direction}Row2;");
+                            uniforms.AppendLine($"float2 {name}_{direction}(float2 uv) {{ float3 p = float3(uv, 1.0); float w = dot({prefix}{direction}Row2.xyz, p); w = w < 0.0 ? min(w, -1e-7) : max(w, 1e-7); return float2(dot({prefix}{direction}Row0.xyz, p), dot({prefix}{direction}Row1.xyz, p)) / w; }}");
                         }
                         break;
                     case ShaderFXParameterType.Gradient:
@@ -116,6 +141,8 @@ namespace DCFApixels.WhimTex
                 "#pragma vertex vert_img\n#pragma fragment SpriteFXFragment\n#pragma target 3.5\n" +
                 "#include \"UnityCG.cginc\"\n" + NoiseLibraryInclude + "sampler2D _MainTex;\nfloat4 _MainTex_TexelSize;\n" +
                 "float4 _InputSize;\nfloat4 _CanvasSize;\nfloat _PreviewScale;\n" + uniforms +
+                "float4 _WhimTex_LayerToLocalRow0, _WhimTex_LayerToLocalRow1, _WhimTex_LayerToLocalRow2;\n" +
+                "float2 LayerToLocal(float2 uv) { float3 p = float3(uv, 1); float w = dot(_WhimTex_LayerToLocalRow2.xyz, p); w = abs(w) < 1e-8 ? (w < 0 ? -1e-8 : 1e-8) : w; return float2(dot(_WhimTex_LayerToLocalRow0.xyz, p), dot(_WhimTex_LayerToLocalRow1.xyz, p)) / w; }\n" +
                 "float4 SampleInput(float2 uv) { return tex2D(_MainTex, uv); }\n" +
                 LineDirective(1, assetPath) + expanded + "\n#line 1 \"SpriteFXWrapper\"\n" +
                 "float4 SpriteFXFragment(v2f_img input) : SV_Target { return ApplyFX(input.uv, SampleInput(input.uv)); }\n" +

@@ -84,6 +84,7 @@ namespace DCFApixels.WhimTex
                     if (layer?.AsGroup() is Layer movingGroup)
                         Require(!ContainsContainer(movingGroup, destination), "A group cannot be moved into itself or its descendants.");
                     Require(document.TryFindLayer(layer, out List<Layer> source, out int sourceIndex), "Layer not found.");
+                    document.PreserveTransformForMove(layer, destination);
                     source.RemoveAt(sourceIndex);
                     destination.Insert(Int(operation, "index", 0, 0, destination.Count), layer);
                     break;
@@ -286,7 +287,6 @@ namespace DCFApixels.WhimTex
 
         private static void SetTransform(TextureCompositor document, Layer layer, JObject settings)
         {
-            Require(!layer.IsGroup, "Groups do not have a transform.");
             Keys(settings, "reset", "position", "scale", "pivot", "rotation", "tiling", "originalAspect", "matrix");
             TextureTransform transform = Bool(settings, "reset") ? TextureTransform.Default : layer.transform;
             var size = new Vector2(document.width, document.height);

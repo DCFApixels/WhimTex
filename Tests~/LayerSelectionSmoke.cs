@@ -74,17 +74,17 @@ try
     document.layers = Layers(group, b, c, d);
     var plan = Call("PlanGroupMoves", document, Layers(b, c), true);
     Check(Same(document.layers, group, b, c, d) && Same(group.layers, a), "Group move planning is read-only");
-    Call("ApplyGroupMoves", plan, true);
+    Call("ApplyGroupMoves", plan, true, document);
     Check(Same(document.layers, group, d) && Same(group.layers, a, b, c), "Move selected run into preceding group");
     plan = Call("PlanGroupMoves", document, Layers(b, c), false);
-    Call("ApplyGroupMoves", plan, false);
+    Call("ApplyGroupMoves", plan, false, document);
     Check(Same(document.layers, group, b, c, d) && Same(group.layers, a), "Move out preserves sibling order");
 
     group.layers = Layers(a, b);
     nested.layers = Layers(c, d);
     document.layers = Layers(group, nested, e);
     plan = Call("PlanGroupMoves", document, Layers(a, b, c, d), false);
-    Call("ApplyGroupMoves", plan, false);
+    Call("ApplyGroupMoves", plan, false, document);
     Check(Same(document.layers, group, a, b, nested, c, d, e), "Move out of multiple groups preserves anchors");
     Check(group.layers.Count == 0 && nested.layers.Count == 0, "All eligible children moved");
     for (int count = 0; count <= 5; count++)

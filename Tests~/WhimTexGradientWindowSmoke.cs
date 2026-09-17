@@ -79,7 +79,6 @@ public static class WhimTexGradientWindowSmoke
             Check(((WhimTexGradient)Field(w,"gradient")).Mode==WhimTexGradientMode.Fixed,"Redo failed");
         }
         finally { Undo.ClearUndo(w); UnityEngine.Object.DestroyImmediate(w); }
-        WhimTexGradientTestWindow.Open();
-        return "Gradient window checks passed: HDR, keys, alpha, modes, preview, Undo/Redo. Standalone window opened.";
+        return "Gradient window checks passed: HDR, keys, alpha, modes, preview, Undo/Redo.";
     }
 }

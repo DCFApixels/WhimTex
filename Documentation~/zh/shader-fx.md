@@ -11,6 +11,12 @@ next_page: "zh/preview.md"
 
 # Shader FX 与处理器
 
+向量参数提供两个、三个或四个数值分量。法线参数表示单位方向，并提供 **Edit on Canvas**。拖动端点：靠近中心时朝向相机，到达最大半径时平行于画布。单击端点可切换 **+**（朝向相机）与 **−**（背向相机）。
+
+纹理参数支持 **Texture**（资源）和 **Layer**（当前文档中的图层）。选择来源模式，或将图层拖到参数字段上。支持程序化图层和绘制图层，包括已隐藏的来源。组提供彩色内容，但隐藏的子图层仍不显示。来源缺失时输出透明，循环引用不可选。
+
+在 FX 中编写的程序化形状可通过 `LayerToLocal(uv)` 跟随图层变换。坐标约定详见[着色器编写参考](../ShaderFX.md)。
+
 当你需要内置图层无法提供的效果时，可以使用自定义着色器效果。
 你可以使用现有效果并调整其参数，无需编写代码。
 
@@ -103,6 +109,8 @@ HLSL 预设放入 ShaderFX 或其子文件夹；重新打开 **+ Preset** 即可
 
 带有 Transform 2D 参数的效果提供 **Edit on Canvas**。选择它会显示绿色边框，
 然后可以移动、缩放或旋转该边框。旋转围绕其中心进行；没有轴心控制。
+按住 Ctrl/Cmd 拖动角点可自由变形，拖动边缘可倾斜；Ctrl/Cmd + Alt + Shift 拖动角点可成对调整透视。
+Ctrl/Cmd + Alt 会对称移动对角点。Position、Size 和 Rotation 保留已有变形；**Reset Transform** 清除变形。
 再次点击该按钮或切换工具即可退出此模式。按 Escape 取消当前拖拽。
 
 <a href="{{ '/Images/shader-processor-transform.png' | relative_url }}"><img src="{{ '/Images/shader-processor-transform.png' | relative_url }}" alt="WhimTex Shader Processor using a Spherize preset with a green Transform 2D frame on the preview" width="720"></a>

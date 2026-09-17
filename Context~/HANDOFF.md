@@ -19,6 +19,7 @@
 - Групповые FX: собрать детей → FX → Swizzle/Color Range → внешняя opacity/blend.
   FX изолируют Pass Through с Normal; без FX сквозной режим возвращается, если не мешают Swizzle/обтравка.
   Properties группы: только read-only фактический `Compositing`.
+- Group transforms: local data only; parent→children is the sole serialized relationship. TextureCompositor.TransformHierarchy caches canvas matrices/inverses/GPU rows; invalidates by local value, parent identity/version and canvas size. Group frame is its own unit rectangle, not child bounds. Targeted effects conjugate their local transform into canvas space to avoid applying the parent twice.
 - Source pixels ≠ canvas pixels. Исходное разрешение Drawing сохраняется; вписывание — трансформом.
 - Градиент — сериализуемое значение + GPU LUT. Кеш LUT зависит от данных; кеш произвольного FX
   нельзя считать постоянным: возможны время, внешние текстуры и зависимости слоёв.

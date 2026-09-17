@@ -205,6 +205,7 @@ namespace DCFApixels.WhimTex
             if (layer == null || !TryFindLayer(layer, out List<Layer> container, out int index))
                 return null;
 
+            RefreshTransformHierarchy();
             // Unlike RenderComposite, these paths enter layer rendering directly.
             // Do not leave their temporary output bound in the caller's render state.
             RenderTexture previous = RenderTexture.active;
@@ -241,6 +242,7 @@ namespace DCFApixels.WhimTex
                 throw new InvalidOperationException("The layer no longer belongs to this composition.");
 
             RenderTexture previous = RenderTexture.active;
+            RefreshTransformHierarchy();
             RenderTexture rendered = null;
             try
             {
@@ -450,6 +452,7 @@ namespace DCFApixels.WhimTex
 
         private RenderTexture RenderComposite(int outputWidth, int outputHeight, float scaleMultiplier)
         {
+            RefreshTransformHierarchy();
             EffectRenderCache localCache = null;
             if (effectCache == null)
             {
@@ -917,10 +920,16 @@ namespace DCFApixels.WhimTex
         {
             if (candidate == null)
                 return false;
-            if (ReferenceEquals(candidate, soughtLayer))
+            if (ReferenceEquals(candidate, soughtLayer) || soughtLayer != null && candidate.Id == soughtLayer.Id)
                 return true;
             if (!visited.Add(candidate))
                 return false;
+
+            if (candidate.modifiers != null)
+                foreach (var modifier in candidate.modifiers)
+                    if (modifier is ShaderFX fx)
+                        foreach (var parameter in fx.TextureLayerParameters())
+                            if (LayerDependsOn(FindLayer(parameter.textureLayerId), soughtLayer, visited)) return true;
 
             if (candidate.clippingMask && LayerDependsOn(GetClippingBase(candidate), soughtLayer, visited))
                 return true;

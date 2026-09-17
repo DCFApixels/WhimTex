@@ -216,7 +216,7 @@ other raster layers fall back to Clip. Gradient keys still bound the available c
 Position is an offset in canvas pixels: default `[0,0]`, positive X right, positive Y up.
 Pivot is normalized bottom-left UV, default `[0.5,0.5]`; scale `[1,1]` covers the canvas.
 Rotation is counterclockwise. Changing pivot does not compensate position. Negative scale mirrors an axis;
-absolute scale components must be at least 0.00001. No group transform.
+absolute scale components must be at least 0.00001. Groups also accept transform. Child transforms are local to their parent group; the canvas matrix is parent canvas matrix multiplied by the local matrix. Group frames use the group's own unit rectangle, not child bounds.
 
 Alternatively, use `matrix: [m00,m01,m02,m10,m11,m12,m20,m21,m22]` for skew or perspective.
 The row-major 3×3 matrix maps normalized source UV to normalized canvas UV (bottom-left origin):
@@ -393,6 +393,8 @@ input at another UV, including earlier FX. Return straight RGBA in linear workin
 Shader Processor receives the lower composite; a regular layer's FX receives that layer's image.
 To generate an image from scratch, use a Color layer with FX replacing its color.
 
+`LayerToLocal(uv)` converts canvas UV to the owning layer's local UV, including parent group transforms and perspective. Use it for procedural shapes that must follow the layer transform. `ApplyFX` UV and `SampleInput` remain canvas-space; do not pass local UV to `SampleInput`. The helper does not wrap or clamp coordinates.
+
 Available inputs include `_MainTex`, `_MainTex_TexelSize`, `_InputSize`, `_CanvasSize`
 (width, height, reciprocal width, reciprocal height), `_PreviewScale`; `UnityCG.cginc` is already included.
 Do not redeclare these or generated parameters/helpers. Do not use invented time, depth or scene inputs.
@@ -403,6 +405,9 @@ Do not redeclare these or generated parameters/helpers. Do not use invented time
 // @param float _Offset = 0 [.. 10]
 // @param float _Amount = 10
 // @param bool _IncludeAlpha = false
+// @param float2 _Offset = (0, 0)
+// @param float3 _Direction = (1, 0, 0)
+// @param normal _Normal = (0, 0, 1)
 // @param float4 _Channels = (0, 0, 0.5, 1)
 // @param color _Tint = (1, 1, 1, 1)
 // @param texture2D _Mask
@@ -437,6 +442,8 @@ All parameter types allow omitting `= value`. The last explicit default for a va
 exists, scalar/vector/color defaults are zero. Repeated `float`/`bool`/`enum` controls share one float
 uniform. Other repeated types must match exactly. Control ranges do not clamp values set through
 another control. Preset export saves the current value once. These dropdown/linked controls are FX-only.
+`float2`, `float3` and `float4` are raw vectors with two, three and four components. `normal` generates a normalized `float3`; its default and zero-vector fallback are `(0, 0, 1)`. It also offers an on-canvas direction handle; no range is accepted. Defaults are optional. Unknown parameter types are rejected.
+
 `float4` is a raw vector; `color` is a color picker. Texture parameters without a source default to white;
 the user may assign them later. Clipboard JSON cannot bind an asset texture to a shader parameter: a
 Drawing layer with a `url` is the way to bring an image into the pasted tree.
@@ -452,7 +459,8 @@ and fresh preset instances start black-to-white. Clipboard FX currently cannot s
 keys separately from the code.
 
 Transform2D uses `(centerX, centerY, width, height, angleDegrees)` in normalized input units.
-Omitted default means the full image. Generated helpers are `_Area_ToLocal(uv)` and `_Area_ToInput(localUV)`.
+Omitted default means the full image. For skew/perspective, use `// @param transform2D _Area = matrix(1, 0.2, 0, 0, 1, 0, 0.15, 0, 1)`: nine row-major values mapping local UV to input UV. The matrix must be invertible with no horizon crossing the unit rectangle. Do not combine matrix and TRS defaults.
+Generated helpers are `_Area_ToLocal(uv)` and `_Area_ToInput(localUV)`; both support perspective.
 Local `[0,0]`/`[1,1]` are corners and `[0.5,0.5]` is center. Out-of-range coordinates are valid.
 There is **no automatic mask or falloff**: implement it in HLSL if desired. The user can edit the
 frame with green canvas handles. Never reference reserved `_WhimTex_` internal uniforms.

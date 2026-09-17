@@ -10,7 +10,7 @@ public static class WhimTexGradientProductSmoke
     public static string Main()
     {
         var flags = BindingFlags.NonPublic | BindingFlags.Instance;
-        var host = ScriptableObject.CreateInstance<WhimTexGradientTestWindow>();
+        var host = ScriptableObject.CreateInstance<EditorWindow>();
         WhimTexGradientWindow editor = null;
         try
         {

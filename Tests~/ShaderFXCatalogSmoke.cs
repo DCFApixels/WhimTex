@@ -22,7 +22,7 @@ Check(parameters[1].hasMinimum && !parameters[1].hasMaximum, "Minimum only");
 Check(!parameters[2].hasMinimum && parameters[2].hasMaximum, "Maximum only");
 Check(!parameters[3].hasMinimum && !parameters[3].hasMaximum, "Unbounded");
 Check(parameters[5].type == DCFApixels.WhimTex.ShaderFXParameterType.Color && parameters[5].colorValue.b == 2, "HDR color metadata");
-Check(parameters[7].transformValue.size == Vector2.one, "Transform defaults");
+Check(parameters[7].transformValue.size == new DCFApixels.WhimTex.Double2(1, 1), "Transform defaults");
 var renamed = Parse(head + "// @param transform2D _OtherArea");
 metadata.GetMethod("PreserveValues", Hidden).Invoke(null, new object[] { renamed, new List<DCFApixels.WhimTex.ShaderFXParameter> { parameters[7] } });
 Check(renamed[0].id == parameters[7].id, "Rename in place retains ID");
@@ -46,12 +46,12 @@ for (int n = 0; n < 400; n++)
     float Next(float low, float high) => low + (float)random.NextDouble() * (high - low);
     var transform = new DCFApixels.WhimTex.ShaderFXTransform { position = new Vector2(Next(-1, 2), Next(-1, 2)), size = new Vector2(Next(.1f, 3), Next(.1f, 3)), rotation = Next(-360, 360) };
     if ((n & 1) != 0) transform.size.x *= -1;
-    var args = new object[] { new Vector2(Next(8, 2000), Next(8, 2000)), null, null, null, null };
+    var args = new object[] { new Vector2(Next(8, 2000), Next(8, 2000)), null, null, null, null, null, null };
     rowsMethod.Invoke(transform, args);
     var uv = new Vector2(Next(-1, 2), Next(-1, 2));
     Vector2 Map(Vector2 v, Vector4 a, Vector4 b) => new Vector2(a.x*v.x+a.y*v.y+a.z, b.x*v.x+b.y*v.y+b.z);
     Vector2 local = Map(uv, (Vector4)args[1], (Vector4)args[2]);
-    Vector2 restored = Map(local, (Vector4)args[3], (Vector4)args[4]);
+    Vector2 restored = Map(local, (Vector4)args[4], (Vector4)args[5]);
     Check((restored - uv).magnitude < .002f, "Rectangular transform round trip " + n);
 }
 
@@ -74,7 +74,7 @@ try
     string built = (string)assembly.GetType("DCFApixels.WhimTex.ShaderFXSourceBuilder").GetMethod("Build", Hidden).Invoke(null, new object[] { fx, "Assets/Test.hlsl" });
     Check(built.Contains("_WhimTex_Area_" + id + "_ToLocalRow0"), "Readable, stable generated names");
     var getMaterial = typeof(DCFApixels.WhimTex.ShaderFX).GetMethod("GetMaterial", Hidden);
-    object context = Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.LayerRenderContext"), document, null, 16, 8, 1f, true, true);
+    object context = Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.LayerRenderContext"), document, null, 16, 8, 1f, true, true, null);
     Color Render()
     {
         var material = (Material)getMaterial.Invoke(fx, new[] { context });
@@ -86,7 +86,7 @@ try
     Color first = Render();
     Check(Mathf.Abs(first.b - .25f) < .001f && Mathf.Abs(first.a - 1) < .001f, "GPU values");
     list[0].floatValue = .75f;
-    list[1].transformValue.position += new Vector2(.125f, 0);
+    list[1].transformValue.position += new DCFApixels.WhimTex.Double2(.125, 0);
     Color second = Render();
     Check(Mathf.Abs(second.b - .75f) < .001f && Mathf.Abs(second.r - (first.r - .125f)) < .001f, "GPU live transform and float");
     Check(ReferenceEquals(shader, shaderField.GetValue(fx)), "Value edits reuse compiled shader");

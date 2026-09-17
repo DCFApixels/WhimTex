@@ -610,8 +610,8 @@ namespace DCFApixels.WhimTex
                 1f - (mousePosition.y - imageRect.y) / imageRect.height);
             if (tiledPreview)
             {
-                if (!TiledCanvasUtility.IsInvertible(layer.transform)) return false;
-                sourceUv = TiledCanvasUtility.ToSource(documentUv, layer.transform, compositor.width, compositor.height);
+                if (!TiledCanvasUtility.IsInvertible(compositor.GetCanvasTransform(layer))) return false;
+                sourceUv = TiledCanvasUtility.ToSource(documentUv, compositor.GetCanvasTransform(layer), compositor.width, compositor.height);
                 return !float.IsNaN(sourceUv.x) && !float.IsNaN(sourceUv.y) &&
                        !float.IsInfinity(sourceUv.x) && !float.IsInfinity(sourceUv.y);
             }
@@ -622,12 +622,12 @@ namespace DCFApixels.WhimTex
 
         private bool TryMapDocumentToLayerUv(Vector2 documentUv, DrawingLayerBehaviour layer, out Vector2 sourceUv)
         {
-            sourceUv = layer.transform.Unmap(documentUv, new Vector2(compositor.width, compositor.height));
+            sourceUv = compositor.GetCanvasTransform(layer).Unmap(documentUv, new Vector2(compositor.width, compositor.height));
             return sourceUv.x >= 0f && sourceUv.x <= 1f && sourceUv.y >= 0f && sourceUv.y <= 1f;
         }
 
         private Vector2 MapLayerToDocumentUv(Vector2 sourceUv, DrawingLayerBehaviour layer) =>
-            layer.transform.Map(sourceUv, new Vector2(compositor.width, compositor.height));
+            compositor.GetCanvasTransform(layer).Map(sourceUv, new Vector2(compositor.width, compositor.height));
 
         private void RememberPaintingPoint(Vector2 sourceUv)
         {
@@ -718,6 +718,7 @@ namespace DCFApixels.WhimTex
             ExecuteContextChange("Group Sprite Layers", () =>
             {
                 Layer group = new GroupLayerBehaviour { layerName = compositor.AllocateGroupName() };
+                foreach (Layer layer in selected) compositor.PreserveTransformForMove(layer, container);
                 foreach (Layer layer in selected)
                     if (compositor.TryFindLayer(layer, out List<Layer> source, out _))
                         source.Remove(layer);

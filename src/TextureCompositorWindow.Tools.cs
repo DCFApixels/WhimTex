@@ -186,7 +186,7 @@ namespace DCFApixels.WhimTex
                 case PreviewTool.Brush:
                 case PreviewTool.Pencil:
                 case PreviewTool.Fill: return layer?.Behaviour is DrawingLayerBehaviour;
-                case PreviewTool.Transform: return layer?.Behaviour != null && !layer.IsGroup;
+                case PreviewTool.Transform: return layer?.Behaviour != null;
                 case PreviewTool.Zoom:
                 case PreviewTool.Shape:
                 case PreviewTool.RectangleSelect:
@@ -299,7 +299,7 @@ namespace DCFApixels.WhimTex
             }
             if (previewTransformButton != null)
             {
-                previewTransformButton.EnableInClassList("whimtex-tool-button--unavailable", selected == null || selected.IsGroup);
+                previewTransformButton.EnableInClassList("whimtex-tool-button--unavailable", selected == null);
                 previewTransformButton.EnableInClassList("whimtex-tool-button--selected", displayedTool == PreviewTool.Transform);
             }
             if (previewFillButton != null)

@@ -8,7 +8,9 @@ using UnityEngine.Scripting.APIUpdating;
 
 namespace DCFApixels.WhimTex
 {
-    public enum ShaderFXParameterType { Float, Color, Vector, Texture2D, Transform2D, Bool, Enum, Gradient }
+    public enum ShaderFXTextureSource { Texture, Layer }
+
+    public enum ShaderFXParameterType { Float, Color, Vector, Texture2D, Transform2D, Bool, Enum, Gradient, Vector2, Vector3, Normal }
 
     [Serializable]
     public sealed class ShaderFXParameterControl
@@ -32,6 +34,8 @@ namespace DCFApixels.WhimTex
         [ColorUsage(true, true)] public Color colorValue = Color.white;
         public Vector4 vectorValue;
         public Texture2D textureValue;
+        public ShaderFXTextureSource textureSource;
+        public string textureLayerId;
         public WhimTexGradient gradientValue;
         public ShaderFXTransform transformValue = ShaderFXTransform.Default;
         [HideInInspector] public string id = Guid.NewGuid().ToString("N");
@@ -54,13 +58,18 @@ namespace DCFApixels.WhimTex
                     cachedName = name;
                     cachedId = id;
                     string prefix = InternalPrefix;
-                    transformPropertyIds = new[] { Shader.PropertyToID(prefix + "ToLocalRow0"), Shader.PropertyToID(prefix + "ToLocalRow1"),
-                        Shader.PropertyToID(prefix + "ToInputRow0"), Shader.PropertyToID(prefix + "ToInputRow1") };
+                    transformPropertyIds = new[] { Shader.PropertyToID(prefix + "ToLocalRow0"), Shader.PropertyToID(prefix + "ToLocalRow1"), Shader.PropertyToID(prefix + "ToLocalRow2"),
+                        Shader.PropertyToID(prefix + "ToInputRow0"), Shader.PropertyToID(prefix + "ToInputRow1"), Shader.PropertyToID(prefix + "ToInputRow2") };
                 }
                 return transformPropertyIds;
             }
         }
         internal float Clamp(float value) => hasMinimum && !softMinimum && value < minimum ? minimum : hasMaximum && !softMaximum && value > maximum ? maximum : value;
+        internal static Vector3 NormalizeNormal(Vector4 value)
+        {
+            var v = new Vector3(value.x, value.y, value.z);
+            return v.sqrMagnitude > 1e-12f && !float.IsInfinity(v.sqrMagnitude) ? v.normalized : Vector3.forward;
+        }
         internal bool BoolValue => floatValue >= 0.5f;
 
         internal ShaderFXParameter Copy()
@@ -84,17 +93,22 @@ namespace DCFApixels.WhimTex
                 case ShaderFXParameterType.Float: material.SetFloat(propertyName, controls.Count > 0 ? floatValue : Clamp(floatValue)); break;
                 case ShaderFXParameterType.Bool: material.SetFloat(propertyName, BoolValue ? 1f : 0f); break;
                 case ShaderFXParameterType.Color: HdrUtility.SetShaderColor(material, propertyName, colorValue); break;
+                case ShaderFXParameterType.Vector2:
+                case ShaderFXParameterType.Vector3:
                 case ShaderFXParameterType.Vector: material.SetVector(propertyName, vectorValue); break;
+                case ShaderFXParameterType.Normal: material.SetVector(propertyName, NormalizeNormal(vectorValue)); break;
                 case ShaderFXParameterType.Texture2D:
                     material.SetTexture(propertyName, textureValue != null ? textureValue : Texture2D.whiteTexture);
                     break;
                 case ShaderFXParameterType.Transform2D:
-                    transformValue.GetRows(dimensions, out var l0, out var l1, out var i0, out var i1);
+                    transformValue.GetRows(dimensions, out var l0, out var l1, out var l2, out var i0, out var i1, out var i2);
                     int[] ids = declaration.TransformPropertyIds;
                     material.SetVector(ids[0], l0);
                     material.SetVector(ids[1], l1);
-                    material.SetVector(ids[2], i0);
-                    material.SetVector(ids[3], i1);
+                    material.SetVector(ids[2], l2);
+                    material.SetVector(ids[3], i0);
+                    material.SetVector(ids[4], i1);
+                    material.SetVector(ids[5], i2);
                     break;
             }
         }
@@ -119,6 +133,7 @@ namespace DCFApixels.WhimTex
         [SerializeField, HideInInspector] private string shaderKey = Guid.NewGuid().ToString("N");
         [SerializeField, HideInInspector] private bool shaderCreationRecorded;
         [NonSerialized] private Material material;
+        [NonSerialized] private Shader materialSourceShader, upgradedTransformShader;
         [NonSerialized] private Dictionary<ShaderFXParameter, GradientBinding> gradientBindings;
 
         private sealed class GradientBinding : IDisposable
@@ -364,10 +379,17 @@ namespace DCFApixels.WhimTex
         {
             if (compiledShader == null)
                 return null;
-            if (material == null || material.shader != compiledShader)
+            if (material == null || materialSourceShader != compiledShader)
             {
                 ReleaseMaterial();
-                material = new Material(compiledShader) { hideFlags = HideFlags.HideAndDontSave };
+                materialSourceShader = compiledShader;
+                string upgraded = ShaderFXSourceBuilder.UpgradeTransformHelpers(appliedSource, appliedParameters);
+                if (upgraded != appliedSource)
+                {
+                    upgradedTransformShader = ShaderUtil.CreateShaderAsset(upgraded, true);
+                    if (upgradedTransformShader != null) upgradedTransformShader.hideFlags = HideFlags.HideAndDontSave;
+                }
+                material = new Material(upgradedTransformShader != null ? upgradedTransformShader : compiledShader) { hideFlags = HideFlags.HideAndDontSave };
             }
             foreach (ShaderFXParameter applied in appliedParameters)
             {
@@ -499,6 +521,9 @@ namespace DCFApixels.WhimTex
             if (material != null)
                 DestroyImmediate(material);
             material = null;
+            materialSourceShader = null;
+            if (upgradedTransformShader != null) DestroyImmediate(upgradedTransformShader);
+            upgradedTransformShader = null;
         }
     }
 }

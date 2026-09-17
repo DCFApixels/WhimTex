@@ -295,14 +295,7 @@ namespace DCFApixels.WhimTex
             bool fxExpanded, Action<bool> fxExpansionChanged)
         {
             bool group = layer?.IsGroup == true;
-            if (group)
-            {
-                var transform = CreateInspectorSection("Transform", "transformSection", LayerActionIcon.Kind.Transform,
-                    false, available: false);
-                transform.tooltip = "Transform the individual layers inside this group.";
-                root.Add(transform);
-            }
-            else AddTextureTransform(root, layer, owner, apply, bindings);
+            AddTextureTransform(root, layer, owner, apply, bindings);
 
             LayerColorSettingsView.Build(root, layer, apply, bindings, colorExpanded, colorExpansionChanged, owner);
             var properties = CreateInspectorSection($"Properties ({TextureCompositor.LayerMenuName(layer)})", "propertiesSection", LayerActionIcon.Kind.Properties,

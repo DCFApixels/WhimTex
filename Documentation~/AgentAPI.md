@@ -254,7 +254,7 @@ Changing SDF Source Channel therefore also changes the group's source-cache requ
 
 Discover blend modes, ranges, group compositing and distance metrics with `whimtex_describe`.
 Groups default to PassThrough; set `compositing:"Isolated"` to apply their own blend mode and ranges.
-Group opacity applies to the complete result, not separately to every child. Group transforms/FX are rejected.
+Group opacity applies to the complete result, not separately to every child. Groups support transforms and FX. Child transforms are parent-local; canvas matrices compose from parent to child. The group's frame is its own unit rectangle rather than the bounds of its children. The move operation preserves canvas placement when changing parents.
 `swizzle` accepts `R`, `G`, `B`, `A`, `1-R`, `1-G`, `1-B`, `1-A`, `0`, `1`, `R * A`, `G * A`, `B * A` as strings.
 Product names include spaces, matching `Describe`. All mappings read the original input RGBA:
 `["R * A","G * A","B * A","1"]` multiplies RGB by the input alpha and sets output alpha to 1.

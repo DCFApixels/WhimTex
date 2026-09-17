@@ -95,8 +95,9 @@ namespace DCFApixels.WhimTex
             return moves;
         }
 
-        internal static void ApplyGroupMoves(List<GroupMove> moves, bool into)
+        internal static void ApplyGroupMoves(List<GroupMove> moves, bool into, TextureCompositor document)
         {
+            foreach (var move in moves) document.PreserveTransformForMove(move.layer, move.destination);
             for (int step = 0; step < moves.Count; step++)
             {
                 GroupMove move = moves[into ? step : moves.Count - 1 - step];
@@ -112,6 +113,7 @@ namespace DCFApixels.WhimTex
             for (int i = selected.Count - 1; i >= 0; i--)
             {
                 if (!(selected[i]?.AsGroup() is Layer group) || !document.TryFindLayer(group, out List<Layer> container, out int index)) continue;
+                foreach (Layer child in group.layers) document.PreserveTransformForMove(child, container);
                 container.RemoveAt(index);
                 container.InsertRange(index, group.layers);
                 result.Remove(group);

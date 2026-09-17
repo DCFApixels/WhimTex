@@ -82,6 +82,8 @@ Changing either on a selected row updates all selected layers.
 
 Use the eye to hide a layer. The eye in the column header reveals all layers.
 
+Select several layers in **Layers**, then use **Transform (T)** to edit them together. The initial frame is axis-aligned and encloses only the selected layer frames; selected groups contribute their own frame, not their children's bounds. Move, rotate, scale, skew and perspective work relative to this shared frame. Selecting both a group and its child does not apply the transform twice. **Esc** cancels the current drag; Undo restores the entire operation. Per-layer toolbar settings are disabled during multi-transform.
+
 ## Edit layer settings
 
 The selected layer's settings are divided into four foldouts:
@@ -101,7 +103,7 @@ Use the group's arrow to expand or collapse it.
 
 Groups start in **Pass Through**, so their layers can blend with layers outside the group.
 Choose another blend mode to blend the group as one image. Group opacity fades the whole group.
-Add **FX** to a group to process its combined image. FX automatically isolate a Pass Through group using Normal blending, so they do not affect the image outside it. Removing all FX restores Pass Through unless clipping or Swizzle still requires isolation. **Properties → Compositing** shows the effective mode, read-only. Transform remains available on individual layers only.
+Add **FX** to a group to process its combined image. FX automatically isolate a Pass Through group using Normal blending, so they do not affect the image outside it. Removing all FX restores Pass Through unless clipping or Swizzle still requires isolation. **Properties → Compositing** shows the effective mode, read-only. Groups also have **Transform**: move, rotate, scale, skew or distort the group with perspective. Children keep local transforms relative to their group. The group frame represents its own transform, not the bounds of its children. Moving layers between groups or ungrouping preserves their canvas placement.
 
 ## Duplicate, merge or delete
 

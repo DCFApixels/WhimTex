@@ -72,7 +72,7 @@ namespace DCFApixels.WhimTex
                     if (material == null || !material.shader.isSupported)
                         throw new InvalidOperationException("UV fill shader is unavailable or unsupported.");
                     GL.sRGBWrite = false;
-                    var uvContext = ProceduralUv.Prepare(material, transform, context);
+                    var uvContext = ProceduralUv.Prepare(material, Owner, context);
                     Graphics.Blit(null, source, material, 0);
                     return ApplyTransformAndModifiers(source, uvContext);
                 }

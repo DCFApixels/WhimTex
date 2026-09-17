@@ -19,6 +19,7 @@ namespace DCFApixels.WhimTex
                 VisitDrawingLayers(plan.roots, drawing => drawing.SyncSurfaceToTexture());
                 texture = RasterizeMerge(plan);
                 merged = DrawingLayerBehaviour.FromMergedTexture(texture);
+                PlaceCanvasTransform(merged.Owner, plan.destination);
                 foreach (Layer layer in plan.included)
                     if (layer.blendRange == LayerBlendRange.HDR)
                         merged.blendRange = LayerBlendRange.HDR;

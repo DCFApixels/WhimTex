@@ -499,6 +499,7 @@ namespace DCFApixels.WhimTex
                     insertion--;
             ExecuteModelChange("Move Sprite Layers", () =>
             {
+                foreach (Layer layer in layers) compositor.PreserveTransformForMove(layer, destination);
                 foreach (Layer layer in layers)
                     if (compositor.TryFindLayer(layer, out List<Layer> source, out _))
                         source.Remove(layer);

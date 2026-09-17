@@ -11,6 +11,12 @@ next_page: "en/preview.md"
 
 # Shader FX and Processor
 
+Vector parameters provide two, three or four numeric components. A normal parameter provides a unit direction and **Edit on Canvas**. Drag its endpoint: near the center it faces the camera; at the maximum radius it points along the canvas. Click the endpoint to switch between **+** (toward the camera) and **−** (away).
+
+A texture parameter can use **Texture** (an asset) or **Layer** (a layer in this document). Choose the source mode or drag a layer onto the parameter. Procedural and Drawing layers are supported, even when hidden. Groups provide their colored contents; hidden children remain hidden. Missing sources produce transparency, and circular references cannot be selected.
+
+Procedural shapes written in an FX can follow the layer transform using `LayerToLocal(uv)`. See the [shader authoring reference](../ShaderFX.md) for the coordinate contract.
+
 Use a custom shader effect when you need a look that the built-in layers do not provide.
 You can use an existing effect and adjust its parameters without writing code.
 
@@ -111,6 +117,9 @@ A new instance of that preset starts with a black-to-white gradient.
 
 Effects with a Transform 2D parameter offer **Edit on Canvas**. Select it to show a green frame,
 then move, resize or rotate the frame. Rotation is around its center; there is no pivot control.
+Use Ctrl/Cmd + corner to distort, Ctrl/Cmd + edge to skew, or Ctrl/Cmd + Alt + Shift + corner
+for paired perspective adjustment. Alt with Ctrl/Cmd moves the opposite corner symmetrically.
+Position, Size and Rotation preserve the deformation; **Reset Transform** removes it.
 Click the button again or switch tools to leave this mode. Escape cancels the current drag.
 
 <a href="{{ '/Images/shader-processor-transform.png' | relative_url }}"><img src="{{ '/Images/shader-processor-transform.png' | relative_url }}" alt="WhimTex Shader Processor using a Spherize preset with a green Transform 2D frame on the preview" width="720"></a>

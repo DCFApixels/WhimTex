@@ -7,18 +7,23 @@ using DCFApixels.WhimTex;
 
 public static class WhimTexGradientIntegrationSmoke
 {
+    public sealed class TestHost : EditorWindow
+    {
+        [SerializeField] private WhimTexGradient gradient = new WhimTexGradient();
+        [SerializeField] private WhimTexGradient secondGradient = new WhimTexGradient();
+    }
     const BindingFlags Flags = BindingFlags.NonPublic | BindingFlags.Instance;
     static object Field(object target, string name) => target.GetType().GetField(name, Flags).GetValue(target);
     static object Call(object target, string name) => target.GetType().GetMethod(name, Flags).Invoke(target,null);
     static void Check(bool value,string message) { if(!value)throw new Exception(message); }
     public static string Main()
     {
-        var host=ScriptableObject.CreateInstance<WhimTexGradientTestWindow>();
+        var host=ScriptableObject.CreateInstance<TestHost>();
         WhimTexGradientWindow editor=null;
         string clipboard=EditorGUIUtility.systemCopyBuffer;
         try
         {
-            host.Show(); host.CreateGUI();
+            host.Show();
             editor=WhimTexGradientWindow.Open(host,"gradient");
             ((ColorField)Field(editor,"color")).value=Color.red;
             Check(((WhimTexGradient)Field(host,"gradient")).Evaluate(0).r==1,"Owner not updated");
@@ -37,7 +42,7 @@ public static class WhimTexGradientIntegrationSmoke
             Check(((WhimTexGradient)Field(host,"secondGradient")).Evaluate(0).b==1,"Second binding failed");
             Check(((WhimTexGradient)Field(host,"gradient")).Evaluate(0).r==1,"First binding overwritten");
             string json=EditorJsonUtility.ToJson(host);
-            var copy=ScriptableObject.CreateInstance<WhimTexGradientTestWindow>();
+            var copy=ScriptableObject.CreateInstance<TestHost>();
             try
             {
                 EditorJsonUtility.FromJsonOverwrite(json,copy);

@@ -268,7 +268,7 @@ Remove accepts only op/index. Add/replace accept `code` and optional `parameters
   (encoded RGB + alpha, converted to linear for the shader), `Vector` (four raw values), `Texture2D`
   (existing Assets/Packages texture path). Texture uniforms include `<name>_TexelSize`.
   Use valid unique HLSL identifiers; do not redeclare the generated uniforms in code.
-- `Transform2D` accepts `value: {"position":[0.5,0.5],"size":[1,1],"rotation":0}`; fields are optional.
+- `Transform2D` accepts `value: {"position":[0.5,0.5],"size":[1,1],"rotation":0}`; fields are optional. Alternatively use `value: {"matrix":[1,0.2,0,0,1,0,0.15,0,1]}` for skew/perspective: nine row-major doubles mapping local UV to input UV. Matrix and TRS fields cannot be combined. The matrix must be invertible with no horizon crossing the unit rectangle. Inspection returns either TRS fields or `matrix`.
   Position/size are normalized to the input image, rotation is in degrees. Size components must have
   magnitude at least `0.00001`. Generates `<name>_ToLocal(uv)` and `<name>_ToInput(uv)` helpers.
 - `Gradient` accepts the same gradient value (color-stop array or object with `colors`, `alphas`,
@@ -407,6 +407,8 @@ reservations by session and layer ID:
   is cleaned; the API does not delete user-provided images.
 
 ## Agent guidance
+
+`LayerToLocal(uv)` converts canvas UV to the owning layer's local UV, including parent group transforms and perspective. Use it for procedural shapes that must follow the layer transform. `ApplyFX` UV and `SampleInput` remain canvas-space; do not pass local UV to `SampleInput`. The helper does not wrap or clamp coordinates.
 
 The portable skill is [Skills~/whimtex-live/SKILL.md](https://github.com/DCFApixels/WhimTex/blob/main/Skills~/whimtex-live/SKILL.md).
 It describes intent-based source selection, reservation ownership and recovery without requiring

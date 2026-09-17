@@ -9,6 +9,12 @@ search_exclude: true
 
 # Shader authoring
 
+### Layer-backed texture parameters
+
+The `texture2D` declaration and `tex2D` sampling syntax are unchanged. In the editor, choose Texture or Layer. Layer references store a same-document layer ID and resolve the standalone rendered result, including transforms and FX, without its lower backdrop. Disabled sources are allowed as with SDF Target; a disabled Shader Processor retains its bypass semantics. Groups supply full-color contents. Missing or cyclic sources bind transparent pixels.
+
+Layer inputs use the effect-render cache for stable sources; arbitrary shader-driven results remain uncached to preserve time-dependent effects. Switching sources does not recompile HLSL. HLSL preset export omits document-local layer bindings. Clipboard JSON does not expose these bindings; the live FX API accepts a texture parameter value `{ "layer": "layer-id" }` instead of an asset path. Copying layers remaps references to copied sources and clears uncopied external sources when pasting into another document.
+
 For browser AI generation, start with the [JSON layers and HLSL authoring guide](AI/README.md).
 It is self-contained and includes clipboard-ready examples.
 
@@ -29,6 +35,8 @@ float4 ApplyFX(float2 uv, float4 color)
 
 Parameters support Float, Color, Vector, Texture2D and Transform2D. Their uniforms are generated automatically.
 Code and declarations stay drafts until Apply; a compile error keeps the last working effect.
+
+`LayerToLocal(uv)` converts canvas UV to local layer UV, including parent transforms and perspective. Use it for procedural shapes that should follow the layer. It does not clamp or wrap UV; `SampleInput` still expects canvas UV.
 
 `SampleInput(uv)` reads the layer after earlier modifiers. Return straight RGBA; opacity/blending
 come later. Built-in inputs include `_MainTex`, `_MainTex_TexelSize`, `_InputSize`,
@@ -88,6 +96,9 @@ under user `ShaderFX` or project `Assets`. Existing effects are not detached or 
 // @param float _Scale = 1 [0 ..]
 // @param float _Offset = 0 [.. 10]
 // @param float _Amount = 10
+// @param float2 _Offset = (0, 0)
+// @param float3 _Direction = (1, 0, 0)
+// @param normal _Normal = (0, 0, 1)
 // @param float4 _Channels = (0, 0, 0.5, 1)
 // @param bool _IncludeAlpha = false
 // @param color _Tint = (1, 1, 1, 1)
@@ -175,6 +186,10 @@ overwrite it. Ranges constrain edits through that control, not the shared value 
 Saving a preset writes the current value into one declaration and omits other initializers.
 Enum and linked controls are FX features; HLSL brushes currently use their existing parameter UI.
 
+`float2` and `float3` expose two and three raw components. `normal` generates a normalized `float3`, defaults to `(0, 0, 1)`, and uses that direction when given a zero vector. All three accept optional tuple defaults without ranges. Live API values are arrays with the corresponding component count.
+
+For `normal`, **Edit on Canvas** shows a fixed-screen-radius handle at the canvas center. The center points toward the camera; the radius edge points along the canvas. Dragging outside the radius clamps the projected direction. Clicking the handle without dragging switches the Z hemisphere: **+** faces the camera, **−** faces away. X points right and Y up in canvas coordinates; rotating the preview rotates the handle without changing the value. Changing values does not recompile the shader.
+
 Labels are derived from names: `_NoiseScale` becomes **Noise Scale**. `float4` is four raw components;
 `color` is a color picker using the editor's HDR/Standard input setting and existing linear conversion.
 
@@ -201,7 +216,16 @@ degrees around the center, with the image aspect ratio taken into account. Nonze
 mirror axes; UI edits keep magnitude at least `0.00001` to avoid a singular inverse.
 Internal uniforms use `_WhimTex_<parameter>_<stable ID>_ToLocalRow0` and corresponding rows.
 Changing values updates material uniforms, not shader source. The green canvas handles share the
-layer transform's move/scale/rotate and snapping behavior, but have no pivot. Only one FX frame is edited at once.
+layer transform's move/scale/rotate and free-transform gestures, but have no pivot. Ctrl/Cmd + corner
+deforms a corner; Ctrl/Cmd + edge skews; Alt adds opposite-corner symmetry, and Ctrl/Cmd + Alt + Shift
+moves a pair of corners for perspective. Only one FX frame is edited at once.
+Position/Size/Rotation edits preserve existing skew and perspective. Reset Transform restores TRS.
+Transforms store double-precision TRS or a projective 3×3 matrix; GPU uniforms use float rows 0–2
+with a signed, guarded homogeneous divide. Saving a deformed HLSL preset writes its default as
+`matrix(m00, m01, m02, m10, m11, m12, m20, m21, m22)`, mapping local UV to input UV.
+The matrix must be invertible and its horizon must not cross the unit rectangle.
+Old saved affine helpers are upgraded once into a transient shader when first rendered; pending code
+and saved shader assets are left untouched.
 The frame refers to the input coordinate space of that FX, not the inverse of later distortions.
 Define any region mask/falloff in the effect itself; Transform2D does not automatically clip or mask.
 

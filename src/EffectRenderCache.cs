@@ -39,6 +39,7 @@ namespace DCFApixels.WhimTex
         internal void BeginFrame(TextureCompositor owner, DrawingLayerBehaviour painting = null)
         {
             if (document != owner) { Dispose(); document = owner; }
+            owner.RefreshTransformHierarchy();
             liveDrawing = painting;
             frame++;
             stamps.Clear(); visiting.Clear(); colorSources.Clear(); requiredEntries.Clear();
@@ -71,6 +72,17 @@ namespace DCFApixels.WhimTex
                 if (effect.RequiresColorInput) colorSources.Add(input);
                 VisitRequired(input);
             }
+            if (layer.modifiers != null)
+                foreach (var modifier in layer.modifiers)
+                    if (modifier is ShaderFX fx)
+                        foreach (var parameter in fx.TextureLayerParameters())
+                        {
+                            Layer input = document.FindLayer(parameter.textureLayerId);
+                            if (input == null) continue;
+                            RequireEntry(input, "fx-input");
+                            colorSources.Add(input);
+                            VisitRequired(input);
+                        }
             if (layer.clippingMask) VisitRequired(document.GetClippingBase(layer));
         }
 
@@ -99,7 +111,7 @@ namespace DCFApixels.WhimTex
                 // Arbitrary material/code FX may depend on time or external resources. Do not memoize them.
                 if (!snapshotShaders && layer.modifiers != null)
                     foreach (var modifier in layer.modifiers) if (modifier != null) return stamps[layer] = 0;
-                ulong hash = 14695981039346656037UL;
+                ulong hash = Mix(14695981039346656037UL, layer.transformCache?.version ?? 0);
                 string settings = JsonUtility.ToJson(layer);
                 foreach (char c in settings) hash = Mix(hash, c);
                 if (snapshotShaders && layer.modifiers != null)
@@ -112,6 +124,12 @@ namespace DCFApixels.WhimTex
                             foreach (char c in JsonUtility.ToJson(modifier)) hash = Mix(hash, c);
                             foreach (var parameter in shaderFX.Parameters)
                                 if (parameter?.textureValue != null) hash = Mix(hash, parameter.textureValue.updateCount);
+                            foreach (var parameter in shaderFX.TextureLayerParameters())
+                            {
+                                ulong dependency = Stamp(document.FindLayer(parameter.textureLayerId));
+                                if (dependency == 0) return stamps[layer] = 0;
+                                hash = Mix(hash, dependency);
+                            }
                         }
                         if (modifier is Material material)
                         {
