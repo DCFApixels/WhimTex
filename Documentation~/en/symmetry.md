@@ -40,7 +40,7 @@ Choose **Continue** when you want a stroke to travel into neighboring segments.
 
 ## Paint seamless edges
 
-1. Enable **Tiled** above the Preview.
+1. Enable **Tiled** in the preview footer.
 2. Choose Brush or Pencil and paint on any visible copy.
 3. Paint across a border: the clipped part continues on the opposite edge.
 4. Zoom out to check the repeated pattern.

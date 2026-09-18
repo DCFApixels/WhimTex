@@ -87,6 +87,61 @@ namespace DCFApixels.WhimTex
             var textureSettings = new Foldout { text = "Texture", value = true, viewDataKey = "output-texture" };
             textureSettings.AddToClassList("whimtex-output-section");
             var settings = serializedObject.FindProperty("outputSettings");
+            var linkedProperty = settings.FindPropertyRelative("linkedTextureGuid");
+            var linkedTexture = new ObjectField { objectType = typeof(Texture2D), allowSceneObjects = false, name = "linked-output-texture" };
+            WhimTexOutputSettingsRow.Add(output, "Linked Output", linkedTexture,
+                "Overwrite this image on each document save, at canvas resolution. Its own Unity import settings are preserved. PNG, TGA, JPG or EXR in Assets. None disables this additional output.", "linkedTextureGuid");
+            var linkedActions = new VisualElement();
+            linkedActions.AddToClassList("whimtex-linked-output-actions");
+            var linkedSettings = new Button(() => Selection.activeObject = linkedTexture.value) { text = "Texture Settings", tooltip = "Select the linked image to edit its standard Unity import settings." };
+            var clearLinked = new Button(() =>
+            {
+                linkedProperty.stringValue = "";
+                serializedObject.ApplyModifiedProperties();
+                document.MarkChanged();
+            }) { text = "Clear", tooltip = "Stop updating this image. The existing file is not deleted." };
+            linkedActions.Add(linkedSettings);
+            linkedActions.Add(clearLinked);
+            output.Add(linkedActions);
+            var linkedNote = new Label("Save overwrites the linked image. Import settings are edited on that image; settings below affect embedded output only.");
+            linkedNote.AddToClassList("whimtex-linked-output-note");
+            output.Add(linkedNote);
+            void RefreshLinked(SerializedProperty property)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(property.stringValue);
+                linkedTexture.SetValueWithoutNotify(string.IsNullOrEmpty(path) ? null : AssetDatabase.LoadAssetAtPath<Texture2D>(path));
+                bool assigned = !string.IsNullOrEmpty(property.stringValue);
+                linkedActions.EnableInClassList("whimtex-output-settings-hidden", !assigned);
+                linkedNote.EnableInClassList("whimtex-output-settings-hidden", !assigned);
+                linkedSettings.SetEnabled(linkedTexture.value != null);
+            }
+            RefreshLinked(linkedProperty);
+            root.TrackPropertyValue(linkedProperty, RefreshLinked);
+            linkedTexture.RegisterValueChangedCallback(evt =>
+            {
+                string guid = evt.newValue == null ? "" : AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(evt.newValue));
+                try
+                {
+                    if (evt.newValue != null)
+                    {
+                        if (!AssetDatabase.IsMainAsset(evt.newValue) || string.IsNullOrEmpty(guid))
+                            throw new System.InvalidOperationException("Choose a PNG, TGA, JPG or EXR image asset.");
+                        string path = TextureCompositor.GetLinkedTexturePath(guid);
+                        if (guid != linkedProperty.stringValue && !EditorUtility.DisplayDialog("Link Output Texture",
+                            "Each save of this document will overwrite the image in:\n" + path +
+                            "\n\nIts import settings will be preserved. Do not use a source image you want to keep unchanged.", "Link", "Cancel"))
+                        { RefreshLinked(linkedProperty); return; }
+                    }
+                    linkedProperty.stringValue = guid;
+                    serializedObject.ApplyModifiedProperties();
+                    document.MarkChanged();
+                }
+                catch (System.Exception error)
+                {
+                    RefreshLinked(linkedProperty);
+                    EditorUtility.DisplayDialog("Linked Output", error.Message, "OK");
+                }
+            });
             WhimTexOutputSettingsRow.AddProperty(output, settings.FindPropertyRelative("outputType"), "Output Type", "Texture only, or texture with sprite subassets.");
             output.Add(textureSettings);
             void AddSetting(VisualElement parent, string path, string label, string tooltip)

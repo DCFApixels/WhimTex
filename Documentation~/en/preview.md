@@ -47,7 +47,7 @@ Pencil always shows the preview with Point filtering at full quality, without ch
 
 View rotation does not rotate the layers or affect saving and export.
 
-**Tiled** is in the **Canvas** bar beside W, H and Filter. Enable it to see repeated copies
+**Tiled** is a toggle button in the preview footer, beside UV and Guides. Enable it to see repeated copies
 and work across the edges: painting, erasing, filling and selections wrap to the opposite side.
 The saved image size and layer transforms remain unchanged.
 See [seamless painting](symmetry.md).

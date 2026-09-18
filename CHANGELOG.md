@@ -4,6 +4,21 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+## [0.10.25] - 2026-09-18
+
+### Added
+
+- Linked Output images: document saves update an assigned PNG, TGA, JPG or EXR at canvas resolution while preserving its GUID, import settings, platform overrides and sprite references. Save As of an existing document disconnects the new copy's output link.
+- Texture-only output, sRGB and Alpha Is Transparency controls, maximum output size, resize algorithms, advanced mipmap settings and manual/automatic BC compression.
+- Resizable and collapsible output preview with checkerboard, channel and mip selection, dimensions and memory/file-size information.
+- Output-settings validation, Revert with Undo, pending-change highlighting and regression tests.
+
+### Changed
+
+- Refined Output Settings layout, aligned fields, sprite pivot choices and explicit border controls.
+- Output now sits beside canvas dimensions; Tiled is a compact text-sized footer toggle beside UV and Guides.
+- Updated EN/RU/ZH saving, preview and tiling documentation.
+
 ## [0.10.24] - 2026-09-18
 
 ### Added

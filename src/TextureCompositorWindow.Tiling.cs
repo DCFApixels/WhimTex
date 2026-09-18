@@ -6,18 +6,20 @@ namespace DCFApixels.WhimTex
     public sealed partial class TextureCompositorWindow
     {
         [SerializeField] private bool tiledPreview;
+        [System.NonSerialized] private Button tiledPreviewButton;
 
-        private void AddTiledPreviewControl()
+        private Button BuildTiledPreviewButton()
         {
-            Toggle tiled = new Toggle("Tiled")
+            tiledPreviewButton = new Button(() => SetTiledPreview(!tiledPreview))
             {
-                value = tiledPreview,
+                name = "tiledPreviewButton",
+                text = "Tiled",
                 tooltip = "Repeat the canvas across Preview. Brush and eraser wrap across canvas edges without changing layer transforms or export size."
             };
-            tiled.AddToClassList("whimtex-preview-tiling");
-            toolkitSettingsBindings.Track(tiled, () => tiledPreview);
-            tiled.RegisterValueChangedCallback(evt => SetTiledPreview(evt.newValue));
-            toolkitCanvasToolbar.Add(tiled);
+            tiledPreviewButton.AddToClassList("whimtex-channel-button");
+            tiledPreviewButton.AddToClassList("whimtex-tiled-button");
+            tiledPreviewButton.EnableInClassList("whimtex-channel-button--enabled", tiledPreview);
+            return tiledPreviewButton;
         }
 
         private void SetTiledPreview(bool enabled)
@@ -27,6 +29,7 @@ namespace DCFApixels.WhimTex
             FinishPreviewTransform();
             CancelPreviewZoomGesture();
             tiledPreview = enabled;
+            tiledPreviewButton?.EnableInClassList("whimtex-channel-button--enabled", tiledPreview);
             lineAnchorLayer = null;
             UpdateToolkitPreviewPresentation();
         }

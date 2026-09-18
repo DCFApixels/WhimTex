@@ -1207,6 +1207,7 @@ namespace DCFApixels.WhimTex
 
             compositor.SyncDrawingLayerTextures();
             TextureCompositor copy = Instantiate(compositor);
+            if (AssetDatabase.Contains(compositor)) copy.SpriteOutputSettings.linkedTextureGuid = null;
             try
             {
                 copy.CloneEmbeddedShaderFX();

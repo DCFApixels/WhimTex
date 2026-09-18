@@ -36,6 +36,7 @@ namespace DCFApixels.WhimTex
             var context = CreatePreviewFooterGroup("previewFooterContext", true);
             context.Add(BuildPostFxButton());
             context.Add(BuildUvButton());
+            context.Add(BuildTiledPreviewButton());
             context.Add(BuildGuidesButton());
             left.Add(context);
             footer.RegisterCallback<GeometryChangedEvent>(evt =>

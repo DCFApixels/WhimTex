@@ -28,6 +28,14 @@ Unity normally shows the **last saved image**. Enable [Live Update](preview.md#s
 to see edits on a model before saving. If a linked texture changes, save the document again to update its output image.
 File layers keep their links to source textures; keep those sources in the project.
 
+## Linked output image
+
+Open **Output** beside the canvas W/H fields. In **Linked Output**, assign an existing PNG, TGA, JPG/JPEG or EXR image in **Assets**. Confirm the link: each document save replaces that image with the composition at full canvas resolution. Do not assign a source image you want to keep unchanged. PNG/TGA preserve alpha; JPG composites transparency over white; EXR preserves linear HDR. For LDR images, RGB is encoded according to the target's sRGB setting (normal maps use linear data).
+
+The image keeps its GUID and import settings, including platform overrides and sprite slicing. Use **Texture Settings** to select it and edit its standard Unity Inspector. Embedded output settings below do not resize or compress the linked source image. The existing embedded texture and its Live Update are unchanged; the linked image updates only on Save.
+
+**Clear** disconnects the output without deleting the image. Moving or renaming it inside Unity preserves the link. A missing, read-only or unsupported target blocks saving until corrected or cleared. **Save As** from an already saved document clears the link on the new copy so it does not overwrite the original document's output; the first save of a new document retains its assigned link.
+
 ## Embedded output settings
 
 **Alpha Is Transparency** extends edge RGB into transparent pixels to reduce filtering fringes; it never removes alpha. This processing happens on Save, not Live Update. **sRGB (Color Texture)** is a separate checkbox for RGBA32; HDR remains linear.

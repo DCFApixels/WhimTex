@@ -47,6 +47,7 @@ namespace DCFApixels.WhimTex
             fields = Array.Empty<string>();
             try
             {
+                GetLinkedTexturePath(SpriteOutputSettings.linkedTextureGuid);
                 SpriteOutputSettings.Validate(width, height);
                 if (!Enum.IsDefined(typeof(FilterMode), outputFilter))
                     throw new OutputSettingsError("Choose a valid texture filter.", "outputFilter");
@@ -55,6 +56,8 @@ namespace DCFApixels.WhimTex
                 return null;
             }
             catch (OutputSettingsError error) { fields = error.Fields; return error.Message; }
+            catch (System.IO.IOException error) { fields = new[] { "linkedTextureGuid" }; return error.Message; }
+            catch (UnauthorizedAccessException error) { fields = new[] { "linkedTextureGuid" }; return error.Message; }
             catch (InvalidOperationException error) { fields = new[] { "spriteMode" }; return error.Message; }
         }
     }

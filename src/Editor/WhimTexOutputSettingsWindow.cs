@@ -51,6 +51,7 @@ namespace DCFApixels.WhimTex
         private void InvalidateFileSize()
         {
             fileSizeDirty = true;
+            lastDirtyCount = int.MinValue;
             previewRenderer?.ReleaseTexture();
         }
 

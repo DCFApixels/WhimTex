@@ -208,18 +208,6 @@
     flex-shrink: 0;
 }
 
-.whimtex-preview-tiling {
-    flex-shrink: 0;
-    margin-left: 8px;
-    margin-right: 4px;
-}
-
-.whimtex-preview-tiling > .unity-toggle__label {
-    min-width: 0;
-    width: auto;
-    margin-right: 4px;
-}
-
 .whimtex-preview-canvas-shadow {
     position: absolute;
 }
@@ -599,6 +587,13 @@
 .unity-button.whimtex-channel-button.whimtex-guides-button {
     width: 52px;
     min-width: 52px;
+}
+
+.unity-button.whimtex-channel-button.whimtex-tiled-button {
+    width: auto;
+    min-width: 0;
+    padding-left: 4px;
+    padding-right: 4px;
 }
 
 .unity-button.whimtex-channel-button.whimtex-live-output-button {
@@ -2312,3 +2307,17 @@
 .whimtex-double2-input { flex-direction: row; }
 .whimtex-double2-component { flex-grow: 1; flex-basis: 0; min-width: 0; }
 .whimtex-double2-component > .unity-base-field__label { min-width: 12px; width: 12px; }
+.whimtex-linked-output-actions {
+    flex-direction: row;
+    margin-left: 190px;
+}
+.whimtex-linked-output-actions > Button {
+    flex-grow: 1;
+}
+.whimtex-linked-output-note {
+    white-space: normal;
+    margin-left: 4px;
+    margin-right: 4px;
+    margin-bottom: 6px;
+    color: rgb(170, 170, 170);
+}

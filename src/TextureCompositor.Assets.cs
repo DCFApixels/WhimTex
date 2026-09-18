@@ -17,6 +17,7 @@ namespace DCFApixels.WhimTex
         [Serializable]
         public sealed class OutputSettings
         {
+            public string linkedTextureGuid;
             public OutputType outputType = OutputType.Sprite;
             public OutputStorage storage = OutputStorage.HdrHalf;
             public bool alphaIsTransparency;
@@ -136,8 +137,11 @@ namespace DCFApixels.WhimTex
 
         [SerializeField, HideInInspector] private OutputSettings outputSettings = new OutputSettings();
 
-        internal Texture2D CreateSavedOutput()
+        internal Texture2D CreateSavedOutput() => CreateSavedOutputWithLinkedTexture(null, out _);
+
+        private Texture2D CreateSavedOutputWithLinkedTexture(string linkedPath, out byte[] linkedBytes)
         {
+            linkedBytes = null;
             var settings = outputSettings ?? new OutputSettings();
             NormalizeModel();
             settings.Validate(width, height);
@@ -154,6 +158,7 @@ namespace DCFApixels.WhimTex
             bool previousSrgb = GL.sRGBWrite;
             try
             {
+                if (!string.IsNullOrEmpty(linkedPath)) linkedBytes = EncodeLinkedTexture(composite, linkedPath);
                 bool srgb = settings.storage == OutputStorage.SrgbRgba32;
                 var rtFormat = format == TextureFormat.RGBA32 ? RenderTextureFormat.ARGB32 :
                     format == TextureFormat.RGBAFloat ? RenderTextureFormat.ARGBFloat : RenderTextureFormat.ARGBHalf;
@@ -294,6 +299,8 @@ namespace DCFApixels.WhimTex
                 AssetDatabase.LoadMainAssetAtPath(path) != null))
                 throw new InvalidOperationException("Save As requires a new document and an unused asset path.");
 
+            string linkedPath = GetLinkedTexturePath(SpriteOutputSettings.linkedTextureGuid);
+
             StopLiveOutput();
             Undo.FlushUndoRecordObjects();
             RemoveUnusedEmbeddedShaderFX();
@@ -304,7 +311,7 @@ namespace DCFApixels.WhimTex
             RenderTexture previous = RenderTexture.active;
             try
             {
-                rendered = CreateSavedOutput();
+                rendered = CreateSavedOutputWithLinkedTexture(linkedPath, out byte[] linkedBytes);
                 if (rendered == null)
                     throw new InvalidOperationException("The compositor returned no output texture.");
                 if (createAsset)
@@ -372,6 +379,7 @@ namespace DCFApixels.WhimTex
                 AssetDatabase.SetMainObject(outputTexture, path);
                 AssetDatabase.WriteImportSettingsIfDirty(path);
                 AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+                if (linkedBytes != null) WriteLinkedTexture(linkedPath, linkedBytes);
                 TextureCompositorProjectPreview.ClearCache();
                 NotifyOutputTextureChanged();
                 Changed?.Invoke(this);
@@ -379,6 +387,7 @@ namespace DCFApixels.WhimTex
             catch
             {
                 savedOutputSettings = previousSettings;
+                EditorUtility.SetDirty(this);
                 throw;
             }
             finally

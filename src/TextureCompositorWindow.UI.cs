@@ -365,9 +365,6 @@ namespace DCFApixels.WhimTex
             Button export = WhimTexUI.CreateToolbarButton("Export", ShowExportMenu, 64f);
             export.tooltip = "Export the flattened texture as PNG, JPEG, TGA, EXR, or a Unity Texture2D asset.";
             toolbar.Add(export);
-            Button outputSettings = WhimTexUI.CreateToolbarButton("Output", () => WhimTexOutputSettingsWindow.Open(compositor), 58f);
-            outputSettings.tooltip = "Output Settings: texture storage, sampling, mipmaps and sprite settings for this document.";
-            toolbar.Add(outputSettings);
             Button userSettings = WhimTexUI.CreateToolbarButton(string.Empty, WhimTexUserSettingsWindow.Open, 26f);
             userSettings.name = "userSettingsButton";
             userSettings.tooltip = "User Settings";
@@ -433,6 +430,10 @@ namespace DCFApixels.WhimTex
                     ApplyToolkitChange("Change Sprite Canvas Height", () => compositor.height = value);
             });
             toolkitCanvasToolbar.Add(height);
+            Button outputSettings = WhimTexUI.CreateToolbarButton("Output", () => WhimTexOutputSettingsWindow.Open(compositor), 58f);
+            outputSettings.name = "canvasOutputSettings";
+            outputSettings.tooltip = "Output Settings: linked output image, texture storage, sampling, mipmaps and sprite settings for this document.";
+            toolkitCanvasToolbar.Add(outputSettings);
             var filter = new EnumField("Filter", compositor.outputFilter) { name = "canvasOutputFilter" };
             filter.AddToClassList("whimtex-canvas-filter");
             filter.tooltip = "Final image filtering, saved with the document. Point keeps pixels sharp; Bilinear smooths them. Trilinear blends mip levels when available (this does not generate mipmaps). Pencil temporarily uses Point in the preview only.";
@@ -444,7 +445,6 @@ namespace DCFApixels.WhimTex
                     ApplyToolkitChange("Change Canvas Filter", () => compositor.outputFilter = value);
             });
             toolkitCanvasToolbar.Add(filter);
-            AddTiledPreviewControl();
 
             toolkitPreviewActions = new VisualElement();
             toolkitPreviewActions.AddToClassList("whimtex-preview-actions");
@@ -1582,6 +1582,7 @@ namespace DCFApixels.WhimTex
             areaSelectionOverlay?.Invalidate();
             bool transforming = IsPreviewTransformEnabled;
             toolkitPreviewCanvas.SetTiled(tiledPreview);
+            tiledPreviewButton?.EnableInClassList("whimtex-channel-button--enabled", tiledPreview);
             toolkitPreviewCanvas.SetPencilCursor(previewTool == PreviewTool.Pencil);
             toolkitPreviewCanvas.SetDocument(channelPreviewTexture != null ? (Texture)channelPreviewTexture : PreviewPresentationSource,
                 compositor.width, compositor.height,
