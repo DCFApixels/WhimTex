@@ -21,7 +21,7 @@ namespace DCFApixels.WhimTex
                 throw new InvalidOperationException("This graphics device does not support live texture updates.");
             if (target.format != TextureFormat.RGBA32 && target.format != TextureFormat.RGBAHalf &&
                 target.format != TextureFormat.RGBAFloat)
-                throw new InvalidOperationException("Save the compositor again to update its output texture format.");
+                throw new InvalidOperationException("Live Update requires uncompressed output. Choose Compression None in Output Settings and save first.");
             this.target = target;
             savedFilter = target.filterMode;
         }

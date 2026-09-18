@@ -10,11 +10,25 @@ namespace DCFApixels.WhimTex
         private const string OutputSpriteName = "Output Sprite";
 
         public enum OutputStorage { HdrHalf, HdrFloat, LinearRgba32, SrgbRgba32 }
+        public enum OutputType { Texture = 1, Sprite = 0 }
+        public enum OutputCompression { None, BC1, BC3, BC7, BC6H, Automatic }
+        public enum OutputCompressionLevel { None, LowQuality, NormalQuality, HighQuality }
 
         [Serializable]
         public sealed class OutputSettings
         {
+            public OutputType outputType = OutputType.Sprite;
             public OutputStorage storage = OutputStorage.HdrHalf;
+            public bool alphaIsTransparency;
+            public bool readable = true;
+            public int maxSize = 16384;
+            public TextureResizeAlgorithm resizeAlgorithm = TextureResizeAlgorithm.Mitchell;
+            public TextureImporterMipFilter mipFilter = TextureImporterMipFilter.BoxFilter;
+            public bool preserveCoverage;
+            [Range(0, 1)] public float alphaCutoff = 0.5f;
+            public OutputCompression compression;
+            public TextureCompressionQuality compressionQuality = TextureCompressionQuality.Normal;
+            public OutputCompressionLevel compressionLevel = OutputCompressionLevel.NormalQuality;
             public TextureWrapMode wrapU = TextureWrapMode.Clamp;
             public TextureWrapMode wrapV = TextureWrapMode.Clamp;
             [Range(0, 16)] public int anisoLevel = 1;
@@ -29,22 +43,95 @@ namespace DCFApixels.WhimTex
 
             internal void Validate(int width, int height)
             {
-                if (!Enum.IsDefined(typeof(OutputSpriteMode), spriteMode) || !Enum.IsDefined(typeof(OutputStorage), storage) ||
-                    !Enum.IsDefined(typeof(TextureWrapMode), wrapU) || !Enum.IsDefined(typeof(TextureWrapMode), wrapV) ||
-                    !Enum.IsDefined(typeof(SpriteMeshType), meshType))
-                    throw new InvalidOperationException("Invalid output texture or sprite mode.");
-                if (!Finite(pixelsPerUnit) || pixelsPerUnit <= 0 || !Finite(pivot.x) || !Finite(pivot.y) ||
+                if (!Enum.IsDefined(typeof(OutputType), outputType)) throw new OutputSettingsError("Choose a valid output type.", "outputType");
+                if (!Enum.IsDefined(typeof(OutputStorage), storage)) throw new OutputSettingsError("Choose a valid storage format.", "storage");
+                if (!Enum.IsDefined(typeof(TextureWrapMode), wrapU)) throw new OutputSettingsError("Choose a valid horizontal wrap mode.", "wrapU");
+                if (!Enum.IsDefined(typeof(TextureWrapMode), wrapV)) throw new OutputSettingsError("Choose a valid vertical wrap mode.", "wrapV");
+                if (anisoLevel < 0 || anisoLevel > 16)
+                    throw new OutputSettingsError("Aniso Level must be 0–16.", "anisoLevel");
+                if (maxSize < 4 || maxSize > 16384 || !Mathf.IsPowerOfTwo(maxSize))
+                    throw new OutputSettingsError("Max Size must be a power of two between 4 and 16384.", "maxSize");
+                if (!Enum.IsDefined(typeof(TextureResizeAlgorithm), resizeAlgorithm))
+                    throw new OutputSettingsError("Choose a valid resize algorithm.", "resizeAlgorithm");
+                if (!Enum.IsDefined(typeof(TextureImporterMipFilter), mipFilter))
+                    throw new OutputSettingsError("Choose a valid mipmap filter.", "mipFilter");
+                if (!Finite(alphaCutoff) || alphaCutoff < 0 || alphaCutoff > 1)
+                    throw new OutputSettingsError("Alpha Cutoff must be between 0 and 1.", "alphaCutoff");
+                var size = GetSize(width, height);
+                ValidateCompression(size.x, size.y);
+                if (outputType == OutputType.Texture) return;
+                if (!Enum.IsDefined(typeof(OutputSpriteMode), spriteMode)) throw new OutputSettingsError("Choose a valid sprite mode.", "spriteMode");
+                if (!Enum.IsDefined(typeof(SpriteMeshType), meshType)) throw new OutputSettingsError("Choose a valid mesh type.", "meshType");
+                if (!Finite(pixelsPerUnit) || pixelsPerUnit <= 0)
+                    throw new OutputSettingsError("Pixels Per Unit must be finite and greater than zero.", "pixelsPerUnit");
+                if (!Finite(pivot.x) || !Finite(pivot.y) ||
                     pivot.x < 0 || pivot.x > 1 || pivot.y < 0 || pivot.y > 1)
-                    throw new InvalidOperationException("Pixels Per Unit must be positive; Pivot must be between 0 and 1.");
+                    throw new OutputSettingsError("Pivot coordinates must be between 0 and 1.", "pivot");
                 for (int i = 0; i < 4; i++)
-                    if (!Finite(border[i]) || border[i] < 0) throw new InvalidOperationException("Sprite borders must be finite and non-negative.");
+                    if (!Finite(border[i]) || border[i] < 0) throw new OutputSettingsError("Sprite borders must be finite and non-negative.", "border");
                 if (border.x + border.z > width || border.y + border.w > height)
-                    throw new InvalidOperationException("Sprite borders exceed the canvas dimensions.");
+                    throw new OutputSettingsError("Sprite borders exceed the canvas dimensions.", "border");
                 if (anisoLevel < 0 || anisoLevel > 16 || extrude < 0 || extrude > 32)
-                    throw new InvalidOperationException("Aniso Level must be 0–16; Extrude must be 0–32.");
+                    throw new OutputSettingsError("Aniso Level must be 0–16; Extrude must be 0–32.", "extrude");
             }
 
             private static bool Finite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
+
+            internal Vector2Int GetSize(int width, int height)
+            {
+                float scale = Mathf.Min(1f, (float)maxSize / Mathf.Max(width, height));
+                return new Vector2Int(Mathf.Max(1, Mathf.RoundToInt(width * scale)), Mathf.Max(1, Mathf.RoundToInt(height * scale)));
+            }
+
+            internal bool CompressionEnabled => compression != OutputCompression.None &&
+                (compression != OutputCompression.Automatic || compressionLevel != OutputCompressionLevel.None);
+
+            internal TextureFormat ResolveCompression(Texture2D texture)
+            {
+                if (compression != OutputCompression.Automatic) return CompressedFormat;
+                bool hdr = storage == OutputStorage.HdrHalf || storage == OutputStorage.HdrFloat;
+                bool alpha = false;
+                if (hdr)
+                {
+                    foreach (Color pixel in texture.GetPixels())
+                        if (pixel.a != 1f || pixel.r < 0f || pixel.g < 0f || pixel.b < 0f)
+                            return texture.format;
+                    return TextureFormat.BC6H;
+                }
+                var pixels = texture.GetPixelData<Color32>(0);
+                for (int i = 0; i < pixels.Length; i++)
+                    if (pixels[i].a != 255) { alpha = true; break; }
+                return compressionLevel == OutputCompressionLevel.HighQuality ? TextureFormat.BC7 :
+                    alpha ? TextureFormat.DXT5 : TextureFormat.DXT1;
+            }
+
+            internal TextureCompressionQuality ResolvedCompressionQuality => compression != OutputCompression.Automatic
+                ? compressionQuality : compressionLevel == OutputCompressionLevel.LowQuality ? TextureCompressionQuality.Fast
+                : compressionLevel == OutputCompressionLevel.HighQuality ? TextureCompressionQuality.Best : TextureCompressionQuality.Normal;
+
+            internal TextureFormat CompressedFormat => compression switch
+            {
+                OutputCompression.BC1 => TextureFormat.DXT1,
+                OutputCompression.BC3 => TextureFormat.DXT5,
+                OutputCompression.BC7 => TextureFormat.BC7,
+                OutputCompression.BC6H => TextureFormat.BC6H,
+                _ => throw new InvalidOperationException("No compression format selected.")
+            };
+
+            private void ValidateCompression(int width, int height)
+            {
+                if (!Enum.IsDefined(typeof(OutputCompression), compression) || !Enum.IsDefined(typeof(TextureCompressionQuality), compressionQuality) ||
+                    !Enum.IsDefined(typeof(OutputCompressionLevel), compressionLevel))
+                    throw new OutputSettingsError("Invalid texture compression settings.", "compression", "compressionQuality", "compressionLevel");
+                if (!CompressionEnabled) return;
+                bool hdr = storage == OutputStorage.HdrHalf || storage == OutputStorage.HdrFloat;
+                if (compression != OutputCompression.Automatic && hdr != (compression == OutputCompression.BC6H))
+                    throw new OutputSettingsError("BC6H requires HDR storage. BC1, BC3 and BC7 require Linear RGBA32 or sRGB RGBA32 storage.", "storage", "compression");
+                if (width % 4 != 0 || height % 4 != 0)
+                    throw new OutputSettingsError("BC compression requires output dimensions divisible by 4. Adjust Max Size or the canvas dimensions.", "maxSize", "compression");
+                if (compression != OutputCompression.Automatic && !SystemInfo.SupportsTextureFormat(CompressedFormat))
+                    throw new OutputSettingsError("This graphics device does not support the selected compressed format.", "compression");
+            }
         }
 
         [SerializeField, HideInInspector] private OutputSettings outputSettings = new OutputSettings();
@@ -54,7 +141,7 @@ namespace DCFApixels.WhimTex
             var settings = outputSettings ?? new OutputSettings();
             NormalizeModel();
             settings.Validate(width, height);
-            if (settings.spriteMode == OutputSpriteMode.Multiple)
+            if (settings.outputType == OutputType.Sprite && settings.spriteMode == OutputSpriteMode.Multiple)
                 ValidateSpriteSlices(GetSpriteSlices(), width, height);
             TextureFormat format = settings.storage == OutputStorage.HdrHalf ? TextureFormat.RGBAHalf :
                 settings.storage == OutputStorage.HdrFloat ? TextureFormat.RGBAFloat : TextureFormat.RGBA32;
@@ -86,6 +173,20 @@ namespace DCFApixels.WhimTex
                 RenderTexture.active = converted;
                 texture.ReadPixels(new Rect(0, 0, width, height), 0, 0, false);
                 texture.Apply(settings.mipMaps, false);
+                Texture2D processed = ProcessOutputTexture(texture, settings);
+                DestroyImmediate(texture);
+                texture = processed;
+                if (settings.CompressionEnabled)
+                {
+                    TextureFormat compressedFormat = settings.ResolveCompression(texture);
+                    if (!SystemInfo.SupportsTextureFormat(compressedFormat))
+                        throw new InvalidOperationException("This graphics device does not support the automatically selected compression format.");
+                    if (compressedFormat != texture.format)
+                        EditorUtility.CompressTexture(texture, compressedFormat, settings.ResolvedCompressionQuality);
+                    if (texture.format != compressedFormat)
+                        throw new InvalidOperationException("Unity could not compress the output into the requested format.");
+                    texture.Apply(false, false);
+                }
                 return texture;
             }
             catch { if (texture != null) DestroyImmediate(texture); throw; }
@@ -133,8 +234,9 @@ namespace DCFApixels.WhimTex
 
         internal bool HasUnsavedAssetChanges()
         {
-            if (EditorUtility.IsDirty(this) || outputTexture == null || outputSprite == null ||
-                EditorUtility.IsDirty(outputTexture) || EditorUtility.IsDirty(outputSprite)) return true;
+            if (EditorUtility.IsDirty(this) || outputTexture == null || EditorUtility.IsDirty(outputTexture)) return true;
+            if (SpriteOutputSettings.outputType == OutputType.Sprite &&
+                (outputSprite == null || EditorUtility.IsDirty(outputSprite))) return true;
             foreach (ShaderFX effect in embeddedShaderFX)
                 if (effect != null && EditorUtility.IsDirty(effect)) return true;
             return HasDirtyPixels(layers);
@@ -198,6 +300,7 @@ namespace DCFApixels.WhimTex
             SyncDrawingLayerTextures();
             Texture2D rendered = null;
             Sprite generatedSprite = null;
+            string previousSettings = savedOutputSettings;
             RenderTexture previous = RenderTexture.active;
             try
             {
@@ -232,10 +335,12 @@ namespace DCFApixels.WhimTex
                 }
 
                 var settings = outputSettings ?? new OutputSettings();
+                if (settings.outputType == OutputType.Sprite)
+                {
                 generatedSprite = Sprite.Create(outputTexture,
                     new Rect(0f, 0f, outputTexture.width, outputTexture.height),
-                    settings.pivot, settings.pixelsPerUnit, (uint)settings.extrude, settings.meshType,
-                    settings.border, settings.generatePhysicsShape);
+                    settings.pivot, settings.pixelsPerUnit * outputTexture.width / width, (uint)settings.extrude, settings.meshType,
+                    ScaleOutputBorder(settings.border), settings.generatePhysicsShape);
                 if (generatedSprite == null)
                     throw new InvalidOperationException("Unity could not create the output sprite.");
                 generatedSprite.name = OutputSpriteName;
@@ -254,9 +359,14 @@ namespace DCFApixels.WhimTex
                     EditorUtility.CopySerialized(generatedSprite, outputSprite);
                 }
 
-                EditorUtility.SetDirty(outputTexture);
                 SaveSliceOutputs(path);
                 EditorUtility.SetDirty(outputSprite);
+                }
+                else RemoveOutputSprites(path);
+
+                if (!settings.readable) outputTexture.Apply(false, true);
+                EditorUtility.SetDirty(outputTexture);
+                savedOutputSettings = CaptureOutputSettings();
                 EditorUtility.SetDirty(this);
                 AssetDatabase.SaveAssetIfDirty(this);
                 AssetDatabase.SetMainObject(outputTexture, path);
@@ -265,6 +375,11 @@ namespace DCFApixels.WhimTex
                 TextureCompositorProjectPreview.ClearCache();
                 NotifyOutputTextureChanged();
                 Changed?.Invoke(this);
+            }
+            catch
+            {
+                savedOutputSettings = previousSettings;
+                throw;
             }
             finally
             {

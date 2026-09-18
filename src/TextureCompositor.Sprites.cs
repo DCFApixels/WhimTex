@@ -73,6 +73,17 @@ namespace DCFApixels.WhimTex
             return sliceOutputs.Exists(x => x.sprite == sprite);
         }
 
+        private void RemoveOutputSprites(string path)
+        {
+            if (outputSprite != null && AssetDatabase.GetAssetPath(outputSprite) == path)
+                DestroyImmediate(outputSprite, true);
+            outputSprite = null;
+            foreach (var entry in sliceOutputs)
+                if (entry.sprite != null && AssetDatabase.GetAssetPath(entry.sprite) == path)
+                    DestroyImmediate(entry.sprite, true);
+            sliceOutputs.Clear();
+        }
+
         private void SaveSliceOutputs(string path)
         {
             bool multiple = SpriteOutputSettings.spriteMode == OutputSpriteMode.Multiple;
@@ -98,8 +109,10 @@ namespace DCFApixels.WhimTex
                     continue;
                 }
                 var settings = SpriteOutputSettings;
-                Sprite generated = Sprite.Create(outputTexture, slice.rect, slice.pivot, settings.pixelsPerUnit,
-                    (uint)settings.extrude, settings.meshType, slice.border, settings.generatePhysicsShape);
+                float sx = (float)outputTexture.width / width, sy = (float)outputTexture.height / height;
+                Rect rect = new Rect(slice.rect.x * sx, slice.rect.y * sy, slice.rect.width * sx, slice.rect.height * sy);
+                Sprite generated = Sprite.Create(outputTexture, rect, slice.pivot, settings.pixelsPerUnit * sx,
+                    (uint)settings.extrude, settings.meshType, ScaleOutputBorder(slice.border), settings.generatePhysicsShape);
                 if (generated == null) throw new InvalidOperationException("Could not create sprite '" + slice.name + "'.");
                 try
                 {

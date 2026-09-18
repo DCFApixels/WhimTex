@@ -80,29 +80,145 @@ namespace DCFApixels.WhimTex
         internal static VisualElement BuildOutputSettings(SerializedObject serializedObject)
         {
             var root = new VisualElement();
-            var output = new Foldout { text = "Output Settings", value = true };
-            var textureSettings = new Foldout { text = "Texture", value = true };
-            output.Add(textureSettings);
-            textureSettings.Add(new PropertyField(serializedObject.FindProperty("outputFilter"), "Filter Mode"));
+            root.AddToClassList("whimtex-output-settings-fields");
+            var document = (TextureCompositor)serializedObject.targetObject;
+            document.EnsureOutputSettingsBaseline();
+            var output = new VisualElement();
+            var textureSettings = new Foldout { text = "Texture", value = true, viewDataKey = "output-texture" };
+            textureSettings.AddToClassList("whimtex-output-section");
             var settings = serializedObject.FindProperty("outputSettings");
+            WhimTexOutputSettingsRow.AddProperty(output, settings.FindPropertyRelative("outputType"), "Output Type", "Texture only, or texture with sprite subassets.");
+            output.Add(textureSettings);
             void AddSetting(VisualElement parent, string path, string label, string tooltip)
             {
-                parent.Add(new PropertyField(settings.FindPropertyRelative(path), label) { tooltip = tooltip });
+                WhimTexOutputSettingsRow.AddProperty(parent, settings.FindPropertyRelative(path), label, tooltip);
             }
-            AddSetting(textureSettings, "storage", "Storage", "HDR Half: 16-bit float per channel (default). HDR Float: 32-bit storage of the existing half-float composite. Linear RGBA32: 8-bit linear data. sRGB RGBA32: 8-bit encoded color. RGBA32 clamps HDR values.");
+            var storageProperty = settings.FindPropertyRelative("storage");
+            var storage = new PopupField<string>(new System.Collections.Generic.List<string> { "HDR Half", "HDR Float", "RGBA32" }, 0);
+            var srgb = new Toggle();
+            WhimTexOutputSettingsRow.Add(textureSettings, "Storage", storage, "Output channel precision. RGBA32 clamps HDR values.", "storage");
+            var srgbRow = WhimTexOutputSettingsRow.Add(textureSettings, "sRGB (Color Texture)", srgb, "Enable for color textures; disable for linear data. HDR storage remains linear.");
+            void RefreshStorage(SerializedProperty property)
+            {
+                storage.SetValueWithoutNotify(property.intValue < 2 ? storage.choices[property.intValue] : "RGBA32");
+                srgb.SetValueWithoutNotify(property.intValue == (int)TextureCompositor.OutputStorage.SrgbRgba32);
+                srgbRow.SetEnabled(property.intValue >= 2);
+            }
+            RefreshStorage(storageProperty);
+            root.TrackPropertyValue(storageProperty, RefreshStorage);
+            storage.RegisterValueChangedCallback(evt =>
+            {
+                storageProperty.intValue = evt.newValue == "HDR Half" ? 0 : evt.newValue == "HDR Float" ? 1 : srgb.value ? 3 : 2;
+                serializedObject.ApplyModifiedProperties();
+                ((TextureCompositor)serializedObject.targetObject).MarkChanged();
+            });
+            srgb.RegisterValueChangedCallback(evt =>
+            {
+                storageProperty.intValue = evt.newValue ? 3 : 2;
+                serializedObject.ApplyModifiedProperties();
+                ((TextureCompositor)serializedObject.targetObject).MarkChanged();
+            });
+            var advanced = new Foldout { text = "Advanced", value = true, viewDataKey = "output-advanced" };
+            advanced.AddToClassList("whimtex-output-advanced");
+            AddSetting(textureSettings, "alphaIsTransparency", "Alpha Is Transparency", "Extend edge colors into transparent pixels to reduce filtering fringes. Alpha is preserved. Applied on save, not Live Update.");
+            textureSettings.Add(advanced);
+            AddSetting(advanced, "readable", "Read/Write", "Keep a CPU copy. Required for Live Update and Sprite Editor. Disabling reduces memory after saving.");
+            AddSetting(advanced, "mipMaps", "Generate Mip Maps", "Generate smaller texture levels using Unity's texture generator.");
+            var mipOptions = new VisualElement();
+            AddSetting(mipOptions, "mipFilter", "Mipmap Filtering", "Unity's Box or Kaiser mipmap filter.");
+            AddSetting(mipOptions, "preserveCoverage", "Preserve Coverage", "Preserve alpha-test coverage in smaller mip levels.");
+            var cutoff = WhimTexOutputSettingsRow.AddProperty(mipOptions, settings.FindPropertyRelative("alphaCutoff"), "Alpha Cutoff", "Alpha-test threshold for coverage preservation.");
+            void RefreshCoverage(SerializedProperty property) => cutoff.parent.SetEnabled(property.boolValue);
+            RefreshCoverage(settings.FindPropertyRelative("preserveCoverage"));
+            root.TrackPropertyValue(settings.FindPropertyRelative("preserveCoverage"), RefreshCoverage);
+            advanced.Add(mipOptions);
+            void RefreshMips(SerializedProperty property) => mipOptions.SetEnabled(property.boolValue);
+            RefreshMips(settings.FindPropertyRelative("mipMaps"));
+            root.TrackPropertyValue(settings.FindPropertyRelative("mipMaps"), RefreshMips);
             AddSetting(textureSettings, "wrapU", "Wrap U", "Horizontal sampling outside the texture. Does not change layer tiling.");
             AddSetting(textureSettings, "wrapV", "Wrap V", "Vertical sampling outside the texture. Does not change layer tiling.");
+            WhimTexOutputSettingsRow.AddProperty(textureSettings, serializedObject.FindProperty("outputFilter"), "Filter Mode", "Saved texture sampling filter.");
             AddSetting(textureSettings, "anisoLevel", "Aniso Level", "Anisotropic filtering, 0–16. Useful for textures seen at grazing angles.");
-            AddSetting(textureSettings, "mipMaps", "Generate Mip Maps", "Generate the full mip chain using Unity's standard generation. No custom mip filtering or alpha-coverage preservation.");
-            var spriteSettings = new Foldout { text = "Sprite", value = true };
+            var compression = new VisualElement();
+            compression.AddToClassList("unity-help-box");
+            compression.AddToClassList("whimtex-output-compression");
+            var compressionTitle = new Label("Compression");
+            compressionTitle.AddToClassList("whimtex-output-compression-title");
+            compression.Add(compressionTitle);
+            var maxSizeProperty = settings.FindPropertyRelative("maxSize");
+            var maxSizes = new System.Collections.Generic.List<int>
+                { 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384 };
+            var maxSize = new PopupField<int>(maxSizes, Mathf.Max(0, maxSizes.IndexOf(maxSizeProperty.intValue)))
+            { tooltip = "Maximum saved dimension. Does not resize the document." };
+            WhimTexOutputSettingsRow.Add(compression, "Max Size", maxSize, maxSize.tooltip, "maxSize");
+            root.TrackPropertyValue(maxSizeProperty, property => maxSize.SetValueWithoutNotify(property.intValue));
+            maxSize.RegisterValueChangedCallback(evt =>
+            {
+                maxSizeProperty.intValue = evt.newValue;
+                serializedObject.ApplyModifiedProperties();
+                ((TextureCompositor)serializedObject.targetObject).MarkChanged();
+            });
+            AddSetting(compression, "resizeAlgorithm", "Resize Algorithm", "Unity's Mitchell or Bilinear downsampling.");
+            AddSetting(compression, "compression", "Format", "Compress the saved output only. BC1/BC3/BC7 require RGBA32; BC6H requires HDR. Canvas dimensions must be divisible by 4.");
+            var compressionOptions = new VisualElement();
+            compressionOptions.AddToClassList("whimtex-output-compression-group");
+            var automaticOptions = new VisualElement();
+            automaticOptions.AddToClassList("whimtex-output-compression-group");
+            AddSetting(automaticOptions, "compressionLevel", "Compression", "None, Low Quality, Normal Quality or High Quality. Automatic chooses a BC format from the saved image's alpha and HDR data.");
+            compression.Add(automaticOptions);
+            var manualOptions = new VisualElement();
+            manualOptions.AddToClassList("whimtex-output-compression-group");
+            AddSetting(manualOptions, "compressionQuality", "Compression Quality", "Fast, Normal or Best. Higher quality can take longer to save.");
+            compressionOptions.Add(manualOptions);
+            var compressionNote = new HelpBox("", HelpBoxMessageType.Info);
+            compressionOptions.Add(compressionNote);
+            compression.Add(compressionOptions);
+            void RefreshCompression(SerializedProperty property)
+            {
+                bool automatic = property.intValue == (int)TextureCompositor.OutputCompression.Automatic;
+                bool enabled = property.intValue != (int)TextureCompositor.OutputCompression.None &&
+                    (!automatic || settings.FindPropertyRelative("compressionLevel").intValue != (int)TextureCompositor.OutputCompressionLevel.None);
+                automaticOptions.EnableInClassList("whimtex-output-settings-hidden", !automatic);
+                manualOptions.EnableInClassList("whimtex-output-settings-hidden", automatic);
+                compressionOptions.EnableInClassList("whimtex-output-settings-hidden", !enabled);
+                compressionNote.text = automatic
+                    ? "Applied on Save, not per platform. HDR with alpha or negative RGB stays uncompressed. Compressed output disables Live Update."
+                    : "Applied on Save, not per platform. " +
+                        (property.intValue == (int)TextureCompositor.OutputCompression.BC1 || property.intValue == (int)TextureCompositor.OutputCompression.BC6H ? "This format discards alpha. " : "") +
+                        "Compressed output disables Live Update.";
+            }
+            RefreshCompression(settings.FindPropertyRelative("compression"));
+            root.TrackPropertyValue(settings.FindPropertyRelative("compression"), RefreshCompression);
+            root.TrackPropertyValue(settings.FindPropertyRelative("compressionLevel"), _ => RefreshCompression(settings.FindPropertyRelative("compression")));
+            var spriteSettings = new Foldout { text = "Sprite", value = true, viewDataKey = "output-sprite" };
+            spriteSettings.AddToClassList("whimtex-output-section");
+            spriteSettings.name = "output-sprite-settings";
             output.Add(spriteSettings);
-            var mode = new PropertyField(settings.FindPropertyRelative("spriteMode"), "Sprite Mode");
+            var textureOnlyNote = new HelpBox("Texture creates no sprites. Applying this type removes existing output sprites and breaks references to them. Sprite settings and slicing are kept for switching back.", HelpBoxMessageType.Warning);
+            output.Add(textureOnlyNote);
+            void RefreshType(SerializedProperty property)
+            {
+                bool sprite = property.intValue == (int)TextureCompositor.OutputType.Sprite;
+                spriteSettings.EnableInClassList("whimtex-output-settings-hidden", !sprite);
+                textureOnlyNote.EnableInClassList("whimtex-output-settings-hidden", sprite || document.OutputSprite == null);
+            }
+            RefreshType(settings.FindPropertyRelative("outputType"));
+            root.TrackPropertyValue(settings.FindPropertyRelative("outputType"), RefreshType);
+            root.TrackSerializedObjectValue(serializedObject, _ =>
+            {
+                RefreshType(settings.FindPropertyRelative("outputType"));
+                WhimTexOutputSettingsRow.Validate(root, document);
+            });
+            var mode = WhimTexOutputSettingsRow.AddProperty(spriteSettings, settings.FindPropertyRelative("spriteMode"), "Sprite Mode", "Single sprite or multiple slices.");
             mode.SetEnabled(WhimTexSpriteEditorBridge.Available);
-            spriteSettings.Add(mode);
             var spriteEditor = new Button(() =>
             {
                 serializedObject.ApplyModifiedProperties();
-                var document = (TextureCompositor)serializedObject.targetObject;
+                if (!document.SpriteOutputSettings.readable)
+                {
+                    EditorUtility.DisplayDialog("Sprite Editor", "Enable Read/Write before editing sprites.", "OK");
+                    return;
+                }
                 if (document.SpriteOutputSettings.spriteMode == TextureCompositor.OutputSpriteMode.Multiple && document.OutputTexture != null)
                 {
                     try { TextureCompositor.ValidateSpriteSlices(document.GetSpriteSlices(), document.width, document.height); }
@@ -125,15 +241,48 @@ namespace DCFApixels.WhimTex
             AddSetting(spriteSettings, "pixelsPerUnit", "Pixels Per Unit", "Canvas pixels per world unit; must be greater than zero.");
             var single = new VisualElement();
             spriteSettings.Add(single);
-            AddSetting(single, "pivot", "Pivot", "Normalized position: (0, 0) bottom left, (0.5, 0.5) center, (1, 1) top right.");
-            AddSetting(single, "border", "Border (px)", "9-slice borders in canvas pixels: X = Left, Y = Bottom, Z = Right, W = Top. Opposing borders must fit within the canvas.");
+            var pivotProperty = settings.FindPropertyRelative("pivot");
+            var pivotNames = new System.Collections.Generic.List<string>
+                { "Custom", "Center", "Top Left", "Top Center", "Top Right", "Left Center", "Right Center", "Bottom Left", "Bottom Center", "Bottom Right" };
+            var pivots = new[] { Vector2.zero, new Vector2(.5f, .5f), new Vector2(0, 1), new Vector2(.5f, 1), Vector2.one,
+                new Vector2(0, .5f), new Vector2(1, .5f), Vector2.zero, new Vector2(.5f, 0), new Vector2(1, 0) };
+            var pivotPreset = new PopupField<string>(pivotNames, 0);
+            WhimTexOutputSettingsRow.Add(single, "Pivot Alignment", pivotPreset);
+            void RefreshPivot(SerializedProperty property)
+            {
+                int index = 0;
+                for (int i = 1; i < pivots.Length; i++) if (property.vector2Value.Equals(pivots[i])) { index = i; break; }
+                pivotPreset.SetValueWithoutNotify(pivotNames[index]);
+            }
+            RefreshPivot(pivotProperty);
+            root.TrackPropertyValue(pivotProperty, RefreshPivot);
+            pivotPreset.RegisterValueChangedCallback(_ =>
+            {
+                if (pivotPreset.index == 0) return;
+                pivotProperty.vector2Value = pivots[pivotPreset.index];
+                serializedObject.ApplyModifiedProperties();
+                document.MarkChanged();
+            });
+            AddSetting(single, "pivot", "Pivot", "Normalized position. Edit either coordinate for a custom pivot.");
+            var border = new VisualElement();
+            border.AddToClassList("whimtex-output-border");
+            string[] borderNames = { "Left", "Bottom", "Right", "Top" }, components = { "x", "y", "z", "w" };
+            for (int i = 0; i < borderNames.Length; i++)
+            {
+                var field = new FloatField(borderNames[i]);
+                field.BindProperty(settings.FindPropertyRelative("border").FindPropertyRelative(components[i]));
+                border.Add(field);
+            }
+            WhimTexOutputSettingsRow.Add(single, "Border (px)", border, "9-slice borders in canvas pixels. Opposing borders must fit within the canvas.", "border");
             void RefreshMode(SerializedProperty property) => single.SetEnabled(property.enumValueIndex == (int)TextureCompositor.OutputSpriteMode.Single);
             RefreshMode(settings.FindPropertyRelative("spriteMode"));
             single.TrackPropertyValue(settings.FindPropertyRelative("spriteMode"), RefreshMode);
             AddSetting(spriteSettings, "meshType", "Mesh Type", "Full Rect or Unity-generated Tight geometry. Use Full Rect for 9-sliced sprites.");
             AddSetting(spriteSettings, "extrude", "Extrude", "Sprite mesh extrusion passed to Unity's sprite generation (0–32).");
             AddSetting(spriteSettings, "generatePhysicsShape", "Generate Physics Shape", "Ask Unity to generate a fallback physics shape from the sprite.");
+            output.Add(compression);
             root.Add(output);
+            WhimTexOutputSettingsRow.Validate(root, document);
             return root;
         }
 

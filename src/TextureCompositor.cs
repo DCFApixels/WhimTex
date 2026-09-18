@@ -51,6 +51,7 @@ namespace DCFApixels.WhimTex
         private void OnEnable()
         {
             NormalizeModel();
+            EnsureOutputSettingsBaseline();
             undoDeserialized = Undo.isProcessing;
             CaptureNativeUndoVersions();
         }

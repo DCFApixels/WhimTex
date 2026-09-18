@@ -19,7 +19,9 @@ namespace DCFApixels.WhimTex
         }
 
         private bool CanPublishLiveOutput => compositor != null &&
-            compositor.OutputTexture != null && AssetDatabase.Contains(compositor);
+            compositor.OutputTexture != null && AssetDatabase.Contains(compositor) &&
+            compositor.OutputTexture.isReadable &&
+            !UnityEngine.Experimental.Rendering.GraphicsFormatUtility.IsCompressedFormat(compositor.OutputTexture.graphicsFormat);
 
         private Button BuildLiveOutputButton()
         {
@@ -49,7 +51,11 @@ namespace DCFApixels.WhimTex
             liveOutputButton.EnableInClassList("whimtex-channel-button--enabled", liveOutputEnabled);
             liveOutputButton.tooltip = CanPublishLiveOutput
                 ? "Live Update: show edits on objects and in File layers using this compositor texture. Turning off restores the saved image. Save writes the changes; texture references stay unchanged."
-                : "Live Update: save the compositor first, then assign its texture to a material.";
+                : compositor != null && compositor.OutputTexture != null && UnityEngine.Experimental.Rendering.GraphicsFormatUtility.IsCompressedFormat(compositor.OutputTexture.graphicsFormat)
+                    ? "Live Update: compressed output updates on Save. Choose Compression None and save to enable live updates."
+                    : compositor != null && compositor.OutputTexture != null && !compositor.OutputTexture.isReadable
+                        ? "Live Update requires Read/Write. Enable it in Output Settings and save."
+                        : "Live Update: save the compositor first, then assign its texture to a material.";
         }
 
         private void PublishLiveOutput()

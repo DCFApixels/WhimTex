@@ -24,7 +24,8 @@ namespace DCFApixels.WhimTex
         ISpriteDataProviderFactory<Texture2D>, ISpriteDataProviderFactory<Sprite>
     {
         public ISpriteEditorDataProvider CreateDataProvider(TextureCompositor document) =>
-            document != null && AssetDatabase.Contains(document) && document.OutputTexture != null ? new WhimTexSpriteDataProvider(document) : null;
+            document != null && document.SpriteOutputSettings.outputType == TextureCompositor.OutputType.Sprite &&
+            AssetDatabase.Contains(document) && document.OutputTexture != null && document.OutputTexture.isReadable ? new WhimTexSpriteDataProvider(document) : null;
         public ISpriteEditorDataProvider CreateDataProvider(Texture2D texture)
         {
             var document = TextureCompositor.FindDocument(texture);
@@ -56,11 +57,12 @@ namespace DCFApixels.WhimTex
         internal WhimTexSpriteDataProvider(TextureCompositor document) { this.document = document; }
         public UnityEngine.Object targetObject => document;
         public float pixelsPerUnit => document.SpriteOutputSettings.pixelsPerUnit;
-        public SpriteImportMode spriteImportMode => document.SpriteOutputSettings.spriteMode == TextureCompositor.OutputSpriteMode.Multiple ? SpriteImportMode.Multiple : SpriteImportMode.Single;
+        public SpriteImportMode spriteImportMode => document.SpriteOutputSettings.outputType == TextureCompositor.OutputType.Texture ? SpriteImportMode.None :
+            document.SpriteOutputSettings.spriteMode == TextureCompositor.OutputSpriteMode.Multiple ? SpriteImportMode.Multiple : SpriteImportMode.Single;
         public Texture2D texture => document.OutputTexture;
         public Texture2D previewTexture => texture;
         public Texture2D GetReadableTexture2D() => texture;
-        public void GetTextureActualWidthAndHeight(out int w, out int h) { w = texture.width; h = texture.height; }
+        public void GetTextureActualWidthAndHeight(out int w, out int h) { w = document.width; h = document.height; }
         public T GetDataProvider<T>() where T : class => this as T;
         public bool HasDataProvider(Type type) => type.IsInstanceOfType(this);
 
@@ -75,7 +77,7 @@ namespace DCFApixels.WhimTex
             originalBorder = document.SpriteOutputSettings.border;
             original = document.GetSpriteSlices();
             if (mode == TextureCompositor.OutputSpriteMode.Single)
-                rects = new[] { new SpriteRect { name = "Output Sprite", spriteID = new GUID(TextureCompositor.SingleSpriteId), rect = new Rect(0, 0, texture.width, texture.height),
+                rects = new[] { new SpriteRect { name = "Output Sprite", spriteID = new GUID(TextureCompositor.SingleSpriteId), rect = new Rect(0, 0, width, height),
                     pivot = originalPivot, border = originalBorder, alignment = SpriteAlignment.Custom } };
             else
             {
@@ -121,7 +123,7 @@ namespace DCFApixels.WhimTex
         {
             if (document == null || !AssetDatabase.Contains(document)) throw new InvalidOperationException("The WhimTex document is no longer available.");
             var settings = document.SpriteOutputSettings;
-            if (settings.spriteMode != mode || document.width != width || document.height != height ||
+            if (settings.outputType != TextureCompositor.OutputType.Sprite || settings.spriteMode != mode || document.width != width || document.height != height ||
                 settings.pivot != originalPivot || settings.border != originalBorder || !SameSlices(original, document.GetSpriteSlices()))
                 throw new InvalidOperationException("WhimTex sprite settings changed while Sprite Editor was open. Reopen Sprite Editor before applying.");
             var slices = new TextureCompositor.SpriteSlice[rects.Length];

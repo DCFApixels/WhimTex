@@ -30,13 +30,31 @@ File layers keep their links to source textures; keep those sources in the proje
 
 ## Embedded output settings
 
-Click **Output** in WhimTex, or select the saved asset in Project and click **WhimTex Output Settings…** in its Inspector. Both open the same settings window for the document. Use **Apply & Save Output**, or save in WhimTex, to rebuild the embedded texture and single **Output Sprite**. For an unsaved document, configure the settings here and save it in WhimTex first. Editing these fields does not bake the output on every keystroke.
+**Alpha Is Transparency** extends edge RGB into transparent pixels to reduce filtering fringes; it never removes alpha. This processing happens on Save, not Live Update. **sRGB (Color Texture)** is a separate checkbox for RGBA32; HDR remains linear.
+
+**Max Size** limits saved dimensions without changing the canvas; **Resize Algorithm** selects Mitchell or Bilinear. Sprite rectangles and borders scale with the output while metadata remains in canvas pixels. **Advanced** includes Box/Kaiser mipmap filtering, **Preserve Coverage** and **Alpha Cutoff**. **Read/Write** keeps a CPU copy; disabling it prevents Live Update and Sprite Editor until enabled and saved again. Live Update uses a fast preview path, so final resizing, alpha processing and mip filtering are applied on Save.
+
+The resizable preview footer shows the last saved output over a checkerboard. Drag the **Preview** header to resize it independently of the settings scroll area. Continue dragging down past the minimum height to hide the preview entirely; drag the remaining header upward to restore it. Information is overlaid at the bottom: dimensions, format, color space, mip count, estimated GPU/CPU pixel storage and actual asset file size. The memory estimate excludes driver alignment and Unity object overhead. Asset file size includes the document and its layers, but not `.meta`; it is not the texture's runtime memory usage.
+
+The bottom **Compression** panel also offers **Format: Automatic**, with **Compression: None / Low Quality / Normal Quality / High Quality**. For LDR, Low/Normal choose BC1 for opaque images or BC3 for transparency, using Fast/Normal encoder quality; High uses BC7 with Best quality. Opaque non-negative HDR uses BC6H; HDR with alpha or negative RGB remains uncompressed to preserve those values. None disables compression. These are save-time BC presets, not Unity's platform-dependent import modes. Manual formats retain their separate encoder-quality control.
+
+**Output Type** selects **Texture** (no sprite subassets) or **Sprite** (Single/Multiple sprites). Sprite remains the default for compatibility. In Texture mode sprite controls are hidden and sprite settings do not restrict saving. Applying Texture removes existing output sprites and breaks references to them; slicing and sprite settings are retained for switching back. The output texture keeps its reference.
+
+Click **Output** in WhimTex, or select the saved asset in Project and click **WhimTex Output Settings…** in its Inspector. Both open the same settings window for the document. Use **Apply & Save Output**, or save in WhimTex, to rebuild the embedded texture and single **Output Sprite**. The button is highlighted when the document has unsaved changes, including layer edits. For an unsaved document, configure the settings here and save it in WhimTex first. Editing these fields does not bake the output on every keystroke.
 
 - **Texture:** Filter Mode, Wrap U/V, Aniso Level and Generate Mip Maps. Wrap affects texture sampling, not layer tiling.
 - **Storage:** HDR Half (default), HDR Float, Linear RGBA32 or sRGB RGBA32. RGBA32 clamps values to 0–1; sRGB encodes RGB for color sampling. HDR Float changes storage precision, not the half-float working compositor's precision.
-- **Sprite:** Pixels Per Unit, normalized Pivot, Border in pixels (X/Y/Z/W = left/bottom/right/top), Full Rect/Tight Mesh Type, Extrude and Generate Physics Shape. Use Full Rect for 9-slice. Borders must fit within the canvas.
+- **Sprite:** Pixels Per Unit, normalized Pivot with **Pivot Alignment** positions and manual coordinates, **Left / Bottom / Right / Top** Border fields in pixels, Full Rect/Tight Mesh Type, Extrude and Generate Physics Shape. Use Full Rect for 9-slice. Borders must fit within the canvas.
 
-Defaults preserve HDR Half without mipmaps and a centered, full-rect sprite at 100 PPU. Read/Write stays enabled for Live Update restoration. Compression, platform overrides, custom mip filters and alpha-coverage preservation are not provided here. These settings affect the saved document's embedded output, not separate image exports.
+Invalid settings are highlighted with an explanation beside the field; **Apply & Save Output** remains disabled until they are corrected. Warnings about removing sprites appear only when the document actually has saved sprites.
+
+**Revert** restores the last applied output settings and Filter Mode without changing layers, canvas size or sprite slices. It supports Undo. For older documents without a saved settings snapshot, the initially loaded settings are the starting point until the next save.
+
+The **Preview** header offers **RGBA / RGB / Alpha** and a mip-level selector. These affect only the preview, work with Read/Write disabled, and never alter the saved image. **Preview requires Apply** means the displayed image is still the last saved output. The channel and mip selectors are controls; drag the remaining header area to resize or hide the preview.
+
+**Generate Mip Maps** is available for both output types. **Compression** offers None, BC1, BC3, BC7 and BC6H with Fast/Normal/Best quality. BC1/BC3/BC7 require RGBA32 storage; BC6H requires HDR and stores non-negative RGB without alpha. BC1 does not preserve full alpha; use BC3 or BC7 for transparency. Canvas dimensions must be divisible by four. Compression applies on Save, not to the editable canvas. Compressed output updates on Save; Live Update requires Compression None and another save. BC formats require a compatible target device; no automatic platform conversion is performed.
+
+Defaults preserve uncompressed HDR Half without mipmaps and a centered, full-rect sprite at 100 PPU. Read/Write is enabled by default. Platform overrides are not provided. These settings affect embedded output, not separate image exports.
 
 ### Sprite slicing (optional)
 
