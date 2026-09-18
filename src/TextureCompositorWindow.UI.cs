@@ -365,6 +365,9 @@ namespace DCFApixels.WhimTex
             Button export = WhimTexUI.CreateToolbarButton("Export", ShowExportMenu, 64f);
             export.tooltip = "Export the flattened texture as PNG, JPEG, TGA, EXR, or a Unity Texture2D asset.";
             toolbar.Add(export);
+            Button outputSettings = WhimTexUI.CreateToolbarButton("Output", () => WhimTexOutputSettingsWindow.Open(compositor), 58f);
+            outputSettings.tooltip = "Output Settings: texture storage, sampling, mipmaps and sprite settings for this document.";
+            toolbar.Add(outputSettings);
             Button userSettings = WhimTexUI.CreateToolbarButton(string.Empty, WhimTexUserSettingsWindow.Open, 26f);
             userSettings.name = "userSettingsButton";
             userSettings.tooltip = "User Settings";

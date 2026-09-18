@@ -28,6 +28,29 @@ Unity normally shows the **last saved image**. Enable [Live Update](preview.md#s
 to see edits on a model before saving. If a linked texture changes, save the document again to update its output image.
 File layers keep their links to source textures; keep those sources in the project.
 
+## Embedded output settings
+
+Click **Output** in WhimTex, or select the saved asset in Project and click **WhimTex Output Settings…** in its Inspector. Both open the same settings window for the document. Use **Apply & Save Output**, or save in WhimTex, to rebuild the embedded texture and single **Output Sprite**. For an unsaved document, configure the settings here and save it in WhimTex first. Editing these fields does not bake the output on every keystroke.
+
+- **Texture:** Filter Mode, Wrap U/V, Aniso Level and Generate Mip Maps. Wrap affects texture sampling, not layer tiling.
+- **Storage:** HDR Half (default), HDR Float, Linear RGBA32 or sRGB RGBA32. RGBA32 clamps values to 0–1; sRGB encodes RGB for color sampling. HDR Float changes storage precision, not the half-float working compositor's precision.
+- **Sprite:** Pixels Per Unit, normalized Pivot, Border in pixels (X/Y/Z/W = left/bottom/right/top), Full Rect/Tight Mesh Type, Extrude and Generate Physics Shape. Use Full Rect for 9-slice. Borders must fit within the canvas.
+
+Defaults preserve HDR Half without mipmaps and a centered, full-rect sprite at 100 PPU. Read/Write stays enabled for Live Update restoration. Compression, platform overrides, custom mip filters and alpha-coverage preservation are not provided here. These settings affect the saved document's embedded output, not separate image exports.
+
+### Sprite slicing (optional)
+
+Install **2D Sprite** (`com.unity.2d.sprite`) through Unity Package Manager to enable slicing controls. WhimTex does not install it automatically.
+
+1. Save the document, then open **Output → Sprite**.
+2. Choose **Sprite Mode → Multiple**, then click **Sprite Editor**. This saves the current output before opening Unity's editor.
+3. Use **Slice** or draw rectangles; edit each sprite's name, pivot and border, then click **Apply**.
+4. Expand the document in Project to use its individual sprites.
+
+**Single** uses the whole canvas. Switching to Single keeps the saved slices hidden so switching back preserves their references. Renaming or moving an existing slice also preserves its reference; deleting a slice removes its sprite and can break references to it. If resizing the canvas leaves a slice outside its bounds, fix the rectangles before saving.
+
+Without 2D Sprite, slicing controls are disabled, but previously saved slices continue to be generated when saving. Custom outlines, skinning and secondary textures are not supported by this integration.
+
 ## Choose an export format
 
 Use **Export** in the window header:

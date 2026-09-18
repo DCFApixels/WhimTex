@@ -39,7 +39,7 @@ next_page: "zh/symmetry.md"
 
 使用模型的 UV 布局来绘制其纹理的各个部分：
 
-1. 在预览页脚中启用 **UV** 并指定 **Mesh**。在 Project 中展开模型资源以找到它的网格。
+1. 在预览页脚中启用 **UV**，将 Project 中的网格或模型指定给 **Mesh**。模型会自动使用层级中的第一个网格，包括非激活节点。要选择其他网格，请展开模型并直接指定所需网格。
 2. 选择 **UV Channel**（通常是 **UV0**），并可选地选择 **Submesh** 以显示单个材质槽。
 3. 按住或拖动 **Area Select**（`M`）并在 **UV Island** 上松开，或在 UV 面板中点击 **Select UV Islands**。
 4. 点击岛屿内部的任意位置。`Shift` 添加岛屿，`Alt` 减去岛屿，`Shift+Alt` 取交集。

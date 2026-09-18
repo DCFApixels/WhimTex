@@ -9,6 +9,95 @@ namespace DCFApixels.WhimTex
     {
         private const string OutputSpriteName = "Output Sprite";
 
+        public enum OutputStorage { HdrHalf, HdrFloat, LinearRgba32, SrgbRgba32 }
+
+        [Serializable]
+        public sealed class OutputSettings
+        {
+            public OutputStorage storage = OutputStorage.HdrHalf;
+            public TextureWrapMode wrapU = TextureWrapMode.Clamp;
+            public TextureWrapMode wrapV = TextureWrapMode.Clamp;
+            [Range(0, 16)] public int anisoLevel = 1;
+            public bool mipMaps;
+            public OutputSpriteMode spriteMode;
+            public float pixelsPerUnit = 100f;
+            public Vector2 pivot = new Vector2(.5f, .5f);
+            public Vector4 border;
+            public SpriteMeshType meshType = SpriteMeshType.FullRect;
+            [Range(0, 32)] public int extrude;
+            public bool generatePhysicsShape;
+
+            internal void Validate(int width, int height)
+            {
+                if (!Enum.IsDefined(typeof(OutputSpriteMode), spriteMode) || !Enum.IsDefined(typeof(OutputStorage), storage) ||
+                    !Enum.IsDefined(typeof(TextureWrapMode), wrapU) || !Enum.IsDefined(typeof(TextureWrapMode), wrapV) ||
+                    !Enum.IsDefined(typeof(SpriteMeshType), meshType))
+                    throw new InvalidOperationException("Invalid output texture or sprite mode.");
+                if (!Finite(pixelsPerUnit) || pixelsPerUnit <= 0 || !Finite(pivot.x) || !Finite(pivot.y) ||
+                    pivot.x < 0 || pivot.x > 1 || pivot.y < 0 || pivot.y > 1)
+                    throw new InvalidOperationException("Pixels Per Unit must be positive; Pivot must be between 0 and 1.");
+                for (int i = 0; i < 4; i++)
+                    if (!Finite(border[i]) || border[i] < 0) throw new InvalidOperationException("Sprite borders must be finite and non-negative.");
+                if (border.x + border.z > width || border.y + border.w > height)
+                    throw new InvalidOperationException("Sprite borders exceed the canvas dimensions.");
+                if (anisoLevel < 0 || anisoLevel > 16 || extrude < 0 || extrude > 32)
+                    throw new InvalidOperationException("Aniso Level must be 0–16; Extrude must be 0–32.");
+            }
+
+            private static bool Finite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
+        }
+
+        [SerializeField, HideInInspector] private OutputSettings outputSettings = new OutputSettings();
+
+        internal Texture2D CreateSavedOutput()
+        {
+            var settings = outputSettings ?? new OutputSettings();
+            NormalizeModel();
+            settings.Validate(width, height);
+            if (settings.spriteMode == OutputSpriteMode.Multiple)
+                ValidateSpriteSlices(GetSpriteSlices(), width, height);
+            TextureFormat format = settings.storage == OutputStorage.HdrHalf ? TextureFormat.RGBAHalf :
+                settings.storage == OutputStorage.HdrFloat ? TextureFormat.RGBAFloat : TextureFormat.RGBA32;
+            if (!SystemInfo.SupportsTextureFormat(format))
+                throw new InvalidOperationException("This device does not support the selected output texture format.");
+            RenderTexture composite = RenderComposite(width, height, 1f);
+            RenderTexture converted = null;
+            Texture2D texture = null;
+            RenderTexture previous = RenderTexture.active;
+            bool previousSrgb = GL.sRGBWrite;
+            try
+            {
+                bool srgb = settings.storage == OutputStorage.SrgbRgba32;
+                var rtFormat = format == TextureFormat.RGBA32 ? RenderTextureFormat.ARGB32 :
+                    format == TextureFormat.RGBAFloat ? RenderTextureFormat.ARGBFloat : RenderTextureFormat.ARGBHalf;
+                converted = RenderTexture.GetTemporary(width, height, 0, rtFormat, RenderTextureReadWrite.Linear);
+                var conversion = WhimTexMaterials.Hdr;
+                conversion.SetFloat("_Saturate", format == TextureFormat.RGBA32 ? 1f : 0f);
+                conversion.SetFloat("_Encode", srgb ? 1f : 0f);
+                conversion.SetFloat("_UseSwizzle", 0f);
+                GL.sRGBWrite = false;
+                Graphics.Blit(composite, converted, conversion, 0);
+                texture = new Texture2D(width, height, format, settings.mipMaps, !srgb)
+                {
+                    hideFlags = HideFlags.HideAndDontSave,
+                    filterMode = outputFilter, wrapModeU = settings.wrapU, wrapModeV = settings.wrapV,
+                    anisoLevel = settings.anisoLevel
+                };
+                RenderTexture.active = converted;
+                texture.ReadPixels(new Rect(0, 0, width, height), 0, 0, false);
+                texture.Apply(settings.mipMaps, false);
+                return texture;
+            }
+            catch { if (texture != null) DestroyImmediate(texture); throw; }
+            finally
+            {
+                GL.sRGBWrite = previousSrgb;
+                RenderTexture.active = previous;
+                if (converted != null) RenderTexture.ReleaseTemporary(converted);
+                RenderTexture.ReleaseTemporary(composite);
+            }
+        }
+
         [SerializeField, HideInInspector] private Texture2D outputTexture;
         [SerializeField, HideInInspector] private Sprite outputSprite;
 
@@ -112,7 +201,7 @@ namespace DCFApixels.WhimTex
             RenderTexture previous = RenderTexture.active;
             try
             {
-                rendered = Compose();
+                rendered = CreateSavedOutput();
                 if (rendered == null)
                     throw new InvalidOperationException("The compositor returned no output texture.");
                 if (createAsset)
@@ -139,18 +228,18 @@ namespace DCFApixels.WhimTex
                 }
                 else
                 {
-                    rendered.wrapModeU = outputTexture.wrapModeU;
-                    rendered.wrapModeV = outputTexture.wrapModeV;
-                    rendered.anisoLevel = outputTexture.anisoLevel;
                     EditorUtility.CopySerialized(rendered, outputTexture);
                 }
 
+                var settings = outputSettings ?? new OutputSettings();
                 generatedSprite = Sprite.Create(outputTexture,
                     new Rect(0f, 0f, outputTexture.width, outputTexture.height),
-                    new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect);
+                    settings.pivot, settings.pixelsPerUnit, (uint)settings.extrude, settings.meshType,
+                    settings.border, settings.generatePhysicsShape);
                 if (generatedSprite == null)
                     throw new InvalidOperationException("Unity could not create the output sprite.");
                 generatedSprite.name = OutputSpriteName;
+                UnityEditor.U2D.SpriteEditorExtension.SetSpriteID(generatedSprite, new GUID(SingleSpriteId));
                 generatedSprite.hideFlags = HideFlags.None;
                 if (outputSprite == null)
                 {
@@ -166,6 +255,7 @@ namespace DCFApixels.WhimTex
                 }
 
                 EditorUtility.SetDirty(outputTexture);
+                SaveSliceOutputs(path);
                 EditorUtility.SetDirty(outputSprite);
                 EditorUtility.SetDirty(this);
                 AssetDatabase.SaveAssetIfDirty(this);

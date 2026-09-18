@@ -4,6 +4,19 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+## [0.10.24] - 2026-09-18
+
+### Added
+
+- Shared Output Settings window accessible from WhimTex and the saved asset Inspector: texture storage, sampling, mipmaps and sprite settings including pivot and 9-slice borders.
+- Optional Unity 2D Sprite integration for Single/Multiple sprite editing. Slice data and generated sprites remain usable without the package; existing sprite references survive renaming, reordering and mode changes.
+- Regression coverage for output formats, Live Update restoration, sprite slicing and settings-window lifecycle.
+
+### Changed
+
+- UV mesh fields also accept model assets and resolve the first available mesh in their hierarchy.
+- Updated EN/RU/ZH saving and UV documentation.
+
 ## [0.10.23] - 2026-09-17
 
 ### Added

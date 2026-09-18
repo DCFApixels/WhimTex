@@ -28,6 +28,29 @@ Unity 通常显示的是**最后保存的图像**。启用 [Live Update](preview
 即可在保存前于模型上查看编辑效果。如果关联纹理发生变化，请再次保存文档以更新输出图像。
 文件图层会保留它们与源纹理的链接；请把这些源文件保留在项目中。
 
+## 内嵌输出设置
+
+点击 WhimTex 中的 **Output**，或在 Project 中选择已保存资源，然后点击 Inspector 中的 **WhimTex Output Settings…**。两种方式都会打开该文档的同一个设置窗口。点击 **Apply & Save Output** 或在 WhimTex 中保存，可更新内嵌纹理和单个 **Output Sprite**。新文档可先配置参数，再在 WhimTex 中首次保存；编辑字段不会在每次输入时重新生成输出。
+
+- **Texture：**Filter Mode、Wrap U/V、Aniso Level 和 Generate Mip Maps。Wrap 控制纹理采样，而非图层平铺。
+- **Storage：**HDR Half（默认）、HDR Float、Linear RGBA32 或 sRGB RGBA32。RGBA32 将数值限制在 0–1；sRGB 对 RGB 进行颜色编码。HDR Float 仅改变存储精度，不提高合成器的半精度计算精度。
+- **Sprite：**Pixels Per Unit、归一化 Pivot、像素 Border（X/Y/Z/W 对应左/下/右/上）、Full Rect/Tight Mesh Type、Extrude 和 Generate Physics Shape。九宫格使用 Full Rect；边框必须位于画布尺寸内。
+
+默认保持 HDR Half、无 mipmap、100 PPU 和居中轴心的矩形精灵。Read/Write 保持启用，以便 Live Update 恢复保存的纹理。此处暂不提供压缩、平台覆盖、自定义 mipmap 滤波或透明覆盖率保持。设置仅影响文档的内嵌输出，不影响单独导出的图像。
+
+### 精灵切片（可选）
+
+通过 Unity Package Manager 安装 **2D Sprite**（`com.unity.2d.sprite`）以启用切片编辑。WhimTex 不会自动安装该包。
+
+1. 保存文档，打开 **Output → Sprite**。
+2. 将 **Sprite Mode** 设为 **Multiple**，点击 **Sprite Editor**。打开 Unity 编辑器前会保存当前输出。
+3. 使用 **Slice** 或手动绘制矩形，设置各精灵的名称、轴心和边框，然后点击 **Apply**。
+4. 在 Project 中展开文档，即可使用各个精灵。
+
+**Single** 使用整个画布。切换到 Single 会隐藏并保留切片，切回 Multiple 不会破坏引用。重命名或修改现有切片的矩形也会保留引用；删除切片会移除对应精灵，可能导致已有引用失效。缩小画布后，若切片超出边界，请先修改矩形再保存。
+
+未安装 2D Sprite 时，切片编辑不可用，但保存文档时仍会生成已保存的切片。本集成不支持自定义轮廓、蒙皮或辅助纹理。
+
 ## 选择导出格式
 
 使用窗口标题栏中的 **Export**：

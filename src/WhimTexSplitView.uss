@@ -1633,6 +1633,12 @@
     white-space: normal;
 }
 
+.whimtex-output-settings-scroll {
+    flex-grow: 1;
+    min-height: 0;
+    padding: 4px;
+}
+
 .whimtex-pattern-field--hidden {
     display: none;
 }

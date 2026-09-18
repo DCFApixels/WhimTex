@@ -65,11 +65,22 @@ namespace DCFApixels.WhimTex
             uvDrawer.Add(fields); panel.Add(uvDrawer);
             uvMeshField = WhimTexUI.ConfigureField(new ObjectField("Mesh")
             {
-                objectType = typeof(Mesh), allowSceneObjects = false,
-                tooltip = "Drop a Mesh from the Project window. Expand a model asset to find its meshes. Stored with this document; the mesh is never modified."
+                objectType = typeof(UnityEngine.Object), allowSceneObjects = false,
+                tooltip = "Drop a Mesh or model from the Project window. Models use the first mesh in their hierarchy, including inactive objects. Stored with this document; the mesh is never modified."
             });
-            uvMeshField.RegisterValueChangedCallback(evt => ChangeUvReference(() =>
-            { compositor.uvReferenceMesh = evt.newValue as Mesh; compositor.uvReferenceSubmesh = -1; }));
+            uvMeshField.RegisterValueChangedCallback(evt =>
+            {
+                Mesh mesh = ResolveUvMesh(evt.newValue);
+                if (evt.newValue != null && mesh == null)
+                {
+                    uvMeshField.SetValueWithoutNotify(compositor != null ? compositor.uvReferenceMesh : null);
+                    ShowNotification(new GUIContent("Choose a Mesh or a model containing a mesh."));
+                    return;
+                }
+                ChangeUvReference(() =>
+                { compositor.uvReferenceMesh = mesh; compositor.uvReferenceSubmesh = -1; });
+                uvMeshField.SetValueWithoutNotify(compositor != null ? compositor.uvReferenceMesh : null);
+            });
             fields.Add(uvMeshField);
             uvChannelField = WhimTexUI.ConfigureField(new DropdownField("UV Channel",
                 new List<string> { "UV0", "UV1", "UV2", "UV3", "UV4", "UV5", "UV6", "UV7" }, 0));
@@ -94,6 +105,20 @@ namespace DCFApixels.WhimTex
             uvStatus = new HelpBox("Assign a Mesh to show its UV islands.", HelpBoxMessageType.Info);
             fields.Add(uvStatus);
         }
+        private static Mesh ResolveUvMesh(UnityEngine.Object source)
+        {
+            if (source is Mesh mesh) return mesh;
+            if (!(source is GameObject model)) return null;
+            foreach (Transform node in model.GetComponentsInChildren<Transform>(true))
+            {
+                var filter = node.GetComponent<MeshFilter>();
+                if (filter != null && filter.sharedMesh != null) return filter.sharedMesh;
+                var skinned = node.GetComponent<SkinnedMeshRenderer>();
+                if (skinned != null && skinned.sharedMesh != null) return skinned.sharedMesh;
+            }
+            return null;
+        }
+
         private void ChangeUvReference(Action change)
         {
             if (compositor == null) return;
