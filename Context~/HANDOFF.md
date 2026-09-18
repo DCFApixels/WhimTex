@@ -33,6 +33,7 @@
 | Задача | Точка входа |
 | --- | --- |
 | Модель и типы слоёв | [Layer.cs](../src/Layers/Layer.cs), [Layers/](../src/Layers/) |
+| Формат документа | [DOCUMENT_FORMAT.md](DOCUMENT_FORMAT.md), [WhimTexDocumentContainer.cs](../src/WhimTexDocumentContainer.cs) |
 | Рендер и зависимости | [TextureCompositor.cs](../src/TextureCompositor.cs), partial-файлы `.Clipping`, `.EffectCache`, `.Psd`, [EffectRenderCache.cs](../src/EffectRenderCache.cs) |
 | Окно и инструменты | [TextureCompositorWindow.cs](../src/TextureCompositorWindow.cs), partial-файлы по функциям |
 | Общие настройки слоёв | [WhimTexUI.cs](../src/WhimTexUI.cs), [LayerColorSettingsView.cs](../src/LayerColorSettingsView.cs) |
