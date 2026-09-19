@@ -66,9 +66,9 @@ namespace DCFApixels.WhimTex
             if (!composite.isReadable)
                 throw new WhimTexDocumentException("The composite image of the document is not readable and cannot be saved.");
             bool hdr = composite.format == TextureFormat.RGBAHalf || composite.format == TextureFormat.RGBAFloat;
-            byte[] image = hdr
-                ? WhimTexTiffImage.Write(composite.width, composite.height, composite.GetPixels())
-                : WhimTexTiffImage.Write(composite.width, composite.height, composite.GetPixels32());
+            int sourceBits = composite.format == TextureFormat.RGBAHalf ? 16 : hdr ? 32 : 8;
+            byte[] image = WhimTexTiffImage.WriteRaw(composite.width, composite.height,
+                composite.GetRawTextureData<byte>().ToArray(), sourceBits);
             // A malformed carrier imports without an error but silently loses sprite sub-assets, so the
             // image is read back before the document ever reaches its folder.
             if (!WhimTexTiffImage.TryReadPixels(image, out int width, out int height, out byte[] decoded, out string error))

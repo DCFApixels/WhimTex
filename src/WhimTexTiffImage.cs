@@ -134,6 +134,53 @@ namespace DCFApixels.WhimTex
             return file;
         }
 
+        /// <summary>
+        /// Writes the carrier from the texture's own raw bytes, without a managed Color array or a
+        /// per-pixel conversion: at 16 bytes per pixel those copies cost more than the compression.
+        /// Half-float sources are widened to float, because Unity reads a 16-bit float TIFF as integer
+        /// data and loses the values above 1.
+        /// </summary>
+        public static byte[] WriteRaw(int width, int height, byte[] raw, int sourceBits, bool compress = true)
+        {
+            if (raw == null) throw new WhimTexDocumentException("The texture has no raw data.");
+            if (sourceBits != 8 && sourceBits != 16 && sourceBits != 32)
+                throw new WhimTexDocumentException("Unsupported source sample size: " + sourceBits + " bits.");
+            int sourceBytes = sourceBits / 8;
+            int rowBytes = width * 4 * sourceBytes;
+            if (raw.Length < (long)rowBytes * height)
+                throw new WhimTexDocumentException("The raw texture data is smaller than the image size.");
+            bool widen = sourceBits == 16;
+            int targetBytes = widen ? 4 : sourceBytes;
+            var data = new byte[(long)width * height * 4 * targetBytes > int.MaxValue
+                ? throw new WhimTexDocumentException("The image is too large to write.")
+                : width * height * 4 * targetBytes];
+            for (int y = 0; y < height; y++)
+            {
+                int target = y * width * 4 * targetBytes;
+                int source = (height - 1 - y) * rowBytes; // TIFF rows are top-down, Unity's start at the bottom
+                if (!widen)
+                {
+                    Buffer.BlockCopy(raw, source, data, target, rowBytes);
+                    continue;
+                }
+                for (int i = 0; i < width * 4; i++)
+                {
+                    ushort half = (ushort)(raw[source + i * 2] | raw[source + i * 2 + 1] << 8);
+                    PutFloat(data, target + i * 4, Mathf.HalfToFloat(half));
+                }
+            }
+            return Build(width, height, data, targetBytes * 8, widen || sourceBits == 32 ? SampleFormatFloat : SampleFormatUnsigned, compress);
+        }
+
+        private static void PutFloat(byte[] buffer, int offset, float value)
+        {
+            int bits = BitConverter.SingleToInt32Bits(value);
+            buffer[offset] = (byte)bits;
+            buffer[offset + 1] = (byte)(bits >> 8);
+            buffer[offset + 2] = (byte)(bits >> 16);
+            buffer[offset + 3] = (byte)(bits >> 24);
+        }
+
         /// <summary>Reads the image back out of a carrier: used to verify our own output before writing it.</summary>
         public static bool TryReadPixels(byte[] file, out int width, out int height, out byte[] raw, out string error)
         {
