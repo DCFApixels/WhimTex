@@ -257,6 +257,18 @@ namespace DCFApixels.WhimTex
                 _writer.Write(localId);
             }
 
+            /// <summary>FNV-1a over 8-byte words: a cheap content identity for the block cache.</summary>
+            private static ulong Hash64(byte[] data)
+            {
+                const ulong prime = 1099511628211UL;
+                ulong hash = 14695981039346656037UL;
+                int i = 0;
+                int limit = data.Length - 7;
+                for (; i < limit; i += 8) hash = (hash ^ BitConverter.ToUInt64(data, i)) * prime;
+                for (; i < data.Length; i++) hash = (hash ^ data[i]) * prime;
+                return hash;
+            }
+
             private void WriteTexture(Texture2D texture)
             {
                 if (texture == null) { _writer.Write(TagNull); return; }
@@ -282,7 +294,11 @@ namespace DCFApixels.WhimTex
                 _writer.Write(!texture.isDataSRGB);
                 _writer.Write(block);
                 byte[] raw = texture.GetRawTextureData<byte>().ToArray();
-                _container.Set(block, raw, System.IO.Compression.CompressionLevel.Fastest);
+                // Layer pixels dominate save time, and a save only ever changes a few layers. The key is a
+                // content identity, so an unchanged layer is not deflated again and identical pixels share
+                // one block even across layers or documents.
+                string cacheKey = raw.Length + ":" + Hash64(raw).ToString("x16");
+                _container.SetCompressed(block, cacheKey, raw, System.IO.Compression.CompressionLevel.Fastest);
             }
 
             /// <summary>A shared object is written once: the document must keep object identity across the graph.</summary>

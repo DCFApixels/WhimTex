@@ -236,4 +236,25 @@ Check(liveAfter.mipmapCount > 1, "mip chain can be re-enabled for the next sessi
 Check(DCFApixels.WhimTex.WhimTexDocumentContainer.TryReadPayload(System.IO.File.ReadAllBytes(livePath), out _, out _),
     "document payload survived a save during a session");
 
+// --- 9. compressed block cache: a reused deflate result must equal a fresh one byte for byte ---
+byte[] cacheBytes = Random(512 * 1024, 21);
+var cacheMiss = New();
+cacheMiss.SetCompressed("pixels:cached", "k1", cacheBytes, System.IO.Compression.CompressionLevel.Fastest);
+byte[] cacheMissBytes = cacheMiss.Serialize();
+var cacheHit = New();
+cacheHit.SetCompressed("pixels:cached", "k1", cacheBytes, System.IO.Compression.CompressionLevel.Fastest);
+Check(Same(cacheMissBytes, cacheHit.Serialize()), "a cached deflate result equals the freshly deflated one");
+var cachePlain = New();
+cachePlain.Set("pixels:cached", cacheBytes, System.IO.Compression.CompressionLevel.Fastest);
+Check(Same(cacheMissBytes, cachePlain.Serialize()), "the cache does not change the serialized bytes");
+byte[] changedBytes = Random(512 * 1024, 22);
+var cacheChanged = New();
+cacheChanged.SetCompressed("pixels:cached", "k2", changedBytes, System.IO.Compression.CompressionLevel.Fastest);
+Check(!Same(cacheMissBytes, cacheChanged.Serialize()), "a new cache key produces new bytes");
+var cacheEvicted = New();
+cacheEvicted.SetCompressed("pixels:cached", "k1", cacheBytes, System.IO.Compression.CompressionLevel.Fastest);
+cacheEvicted.Remove("pixels:cached");
+cacheEvicted.SetCompressed("pixels:cached", "k1", cacheBytes, System.IO.Compression.CompressionLevel.Fastest);
+Check(Same(cacheMissBytes, cacheEvicted.Serialize()), "a removed block can be stored again under the same key");
+
 return "PASS: container checks=" + checks + ", " + report;

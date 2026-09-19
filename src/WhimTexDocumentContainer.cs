@@ -42,7 +42,23 @@ namespace DCFApixels.WhimTex
         private readonly Dictionary<string, byte[]> _blocks = new Dictionary<string, byte[]>(StringComparer.Ordinal);
         private readonly Dictionary<string, CompressionLevel> _levels = new Dictionary<string, CompressionLevel>(StringComparer.Ordinal);
         private readonly Dictionary<string, Entry> _entries = new Dictionary<string, Entry>(StringComparer.Ordinal);
+        private readonly Dictionary<string, string> _cacheKeys = new Dictionary<string, string>(StringComparer.Ordinal);
         private byte[] _payload;
+
+        // Pixel blocks are the dominant cost of a save, and every save builds a fresh container, so the
+        // deflated result is kept outside the container. A block joins the cache through SetCompressed with
+        // a key that describes its content: the same key means the same bytes and nothing is deflated again.
+        private static readonly Dictionary<string, Compressed> CompressedCache = new Dictionary<string, Compressed>(StringComparer.Ordinal);
+        private static readonly Queue<string> CompressedCacheOrder = new Queue<string>();
+        private static long _compressedCacheBytes;
+        private const long MaximumCompressedCacheBytes = 192L * 1024 * 1024;
+
+        /// <summary>A deflated block. Incompressible blocks are stored as they are, so the flag travels with the bytes.</summary>
+        private sealed class Compressed
+        {
+            public byte[] bytes;
+            public bool compressed;
+        }
 
         public int Count => _order.Count;
         public IReadOnlyList<string> Names => _order;
@@ -56,6 +72,14 @@ namespace DCFApixels.WhimTex
             _entries.Remove(name);
             _blocks[name] = data;
             _levels[name] = level;
+            _cacheKeys.Remove(name);
+        }
+
+        /// <summary>Stores block data whose compression is expensive, reusing the previous result while the key is unchanged.</summary>
+        public void SetCompressed(string name, string cacheKey, byte[] data, CompressionLevel level = CompressionLevel.Fastest)
+        {
+            Set(name, data, level);
+            if (!string.IsNullOrEmpty(cacheKey)) _cacheKeys[name] = cacheKey;
         }
 
         public bool Remove(string name)
@@ -64,6 +88,7 @@ namespace DCFApixels.WhimTex
             _levels.Remove(name);
             _entries.Remove(name);
             _blocks.Remove(name);
+            _cacheKeys.Remove(name);
             return existed;
         }
 
@@ -104,20 +129,64 @@ namespace DCFApixels.WhimTex
                 writer.Write(Encoding.ASCII.GetBytes(PayloadMagic));
                 writer.Write(CurrentVersion);
                 writer.Write(_order.Count);
-                foreach (string name in _order)
+                var storedBlocks = new byte[_order.Count][];
+                for (int i = 0; i < _order.Count; i++)
                 {
+                    string name = _order[i];
                     byte[] raw = Get(name);
-                    byte[] stored = Compress(raw, _levels[name]);
+                    byte[] stored = Stored(name, raw, out bool compressed);
+                    storedBlocks[i] = stored;
                     byte[] nameBytes = Encoding.UTF8.GetBytes(name);
                     writer.Write(nameBytes.Length);
                     writer.Write(nameBytes);
-                    writer.Write((int)(stored == raw ? 0 : 1));
+                    writer.Write((int)(compressed ? 1 : 0));
                     writer.Write((long)raw.Length);
                     writer.Write((long)stored.Length);
                 }
-                foreach (string name in _order) writer.Write(Compress(Get(name), _levels[name]));
+                foreach (byte[] stored in storedBlocks) writer.Write(stored);
             }
             return stream.ToArray();
+        }
+
+        /// <summary>Deflates a block, reusing a cached result for an unchanged cache key.</summary>
+        private byte[] Stored(string name, byte[] raw, out bool compressed)
+        {
+            if (!_cacheKeys.TryGetValue(name, out string cacheKey) || cacheKey == null)
+            {
+                byte[] fresh = Compress(raw, _levels[name]);
+                compressed = !ReferenceEquals(fresh, raw);
+                return fresh;
+            }
+            lock (CompressedCache)
+            {
+                if (CompressedCache.TryGetValue(cacheKey, out Compressed cached))
+                {
+                    compressed = cached.compressed;
+                    return cached.bytes;
+                }
+            }
+            byte[] stored = Compress(raw, _levels[name]);
+            var entry = new Compressed { bytes = stored, compressed = !ReferenceEquals(stored, raw) };
+            compressed = entry.compressed;
+            lock (CompressedCache)
+            {
+                if (!CompressedCache.ContainsKey(cacheKey))
+                {
+                    CompressedCache[cacheKey] = entry;
+                    CompressedCacheOrder.Enqueue(cacheKey);
+                    _compressedCacheBytes += entry.bytes.Length;
+                    while (_compressedCacheBytes > MaximumCompressedCacheBytes && CompressedCacheOrder.Count > 0)
+                    {
+                        string oldest = CompressedCacheOrder.Dequeue();
+                        if (CompressedCache.TryGetValue(oldest, out Compressed evicted))
+                        {
+                            _compressedCacheBytes -= evicted.bytes.Length;
+                            CompressedCache.Remove(oldest);
+                        }
+                    }
+                }
+            }
+            return stored;
         }
 
         /// <summary>Reads a container. Block payloads are inflated on demand, so opening a document does not touch every layer.</summary>
