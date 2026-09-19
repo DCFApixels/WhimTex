@@ -85,7 +85,7 @@ namespace DCFApixels.WhimTex
             {
                 bool wasLive = WhimTexDocumentSession.IsLive;
                 WhimTexDocumentSession.Stop("document save");
-                string written = WhimTexDocumentFile.Save(document, path);
+                string written = WhimTexDocumentFile.Save(document, path, deferImport: !wasLive);
                 DocumentFiles[document] = written;
                 TextureCompositorWindow owner = WindowFor(document);
                 if (owner != null)

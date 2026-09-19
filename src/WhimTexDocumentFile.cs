@@ -25,7 +25,7 @@ namespace DCFApixels.WhimTex
         public static bool IsDocument(string assetPath) => WhimTexTiffCarrier.IsDocument(assetPath);
 
         /// <summary>Saves the document and returns the path actually written: the carrier extension depends on the storage format.</summary>
-        public static string Save(TextureCompositor document, string path)
+        public static string Save(TextureCompositor document, string path, bool deferImport = false)
         {
             if (document == null) throw new WhimTexDocumentException("There is no document to save.");
             if (string.IsNullOrEmpty(path)) throw new WhimTexDocumentException("The document path is empty.");
@@ -53,15 +53,34 @@ namespace DCFApixels.WhimTex
                     throw new WhimTexDocumentException("The produced document could not be read back: " + error);
                 WhimTexDocumentContainer.Parse(verification);
                 // Saving an unchanged document must not write the file or pay for an import: the carrier
-                // is byte for byte deterministic, so an identical file means identical content.
-                wrote = !CarrierMatches(path, carrier);
-                if (wrote) WhimTexDocumentContainer.WriteFileAtomic(path, carrier);
+                // is byte for byte deterministic, so an identical file means identical content. Auto refresh
+                // stays off while the file changes, otherwise Unity imports it once for the write itself and
+                // again for the explicit import below.
+                AssetDatabase.DisallowAutoRefresh();
+                try
+                {
+                    wrote = !CarrierMatches(path, carrier);
+                    if (wrote) WhimTexDocumentContainer.WriteFileAtomic(path, carrier);
+                }
+                finally
+                {
+                    AssetDatabase.AllowAutoRefresh();
+                }
             }
             finally
             {
                 if (composite != null) UnityEngine.Object.DestroyImmediate(composite);
             }
-            if (wrote || firstSave) AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+            if (wrote || firstSave)
+            {
+                // A deferred import lets a save return without waiting for Unity to decode the carrier and
+                // compress the texture. The texture object stays the same, so references and bindings remain
+                // valid while the new pixels arrive a moment later. A first save must import synchronously,
+                // because the asset has to exist before anything can point at it.
+                ImportAssetOptions options = ImportAssetOptions.ForceUpdate;
+                if (!deferImport || firstSave) options |= ImportAssetOptions.ForceSynchronousImport;
+                AssetDatabase.ImportAsset(path, options);
+            }
             ConfigureImportedCarrier(path, firstSave, compositeIsSrgb);
             // The file image is the composite: the saved document must point at it, not at a stale texture.
             BindImportedComposite(document, path);
