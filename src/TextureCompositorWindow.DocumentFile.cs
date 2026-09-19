@@ -88,7 +88,14 @@ namespace DCFApixels.WhimTex
                 string written = WhimTexDocumentFile.Save(document, path);
                 DocumentFiles[document] = written;
                 TextureCompositorWindow owner = WindowFor(document);
-                if (owner != null) owner.documentFilePath = written;
+                if (owner != null)
+                {
+                    owner.documentFilePath = written;
+                    // The document is not an asset, so its dirty state lives on the window and has to be
+                    // cleared here: otherwise the title keeps its asterisk and Save stays enabled.
+                    owner.temporaryDocumentDirty = false;
+                    owner.UpdateUnsavedChangesState();
+                }
                 if (wasLive) WhimTexDocumentSession.Start(document, written);
                 var image = AssetDatabase.LoadAssetAtPath<Texture2D>(written);
                 if (image != null)
