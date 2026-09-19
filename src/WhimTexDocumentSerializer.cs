@@ -452,6 +452,8 @@ namespace DCFApixels.WhimTex
                 _objects.Add(texture);
                 texture.LoadRawTextureData(raw);
                 texture.Apply(false, false);
+                // The texture owns the pixels now, so the inflated copy can be collected.
+                _container.Remove(block);
                 return texture;
             }
 

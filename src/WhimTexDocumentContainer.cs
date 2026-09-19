@@ -41,38 +41,57 @@ namespace DCFApixels.WhimTex
         private readonly List<string> _order = new List<string>();
         private readonly Dictionary<string, byte[]> _blocks = new Dictionary<string, byte[]>(StringComparer.Ordinal);
         private readonly Dictionary<string, CompressionLevel> _levels = new Dictionary<string, CompressionLevel>(StringComparer.Ordinal);
+        private readonly Dictionary<string, Entry> _entries = new Dictionary<string, Entry>(StringComparer.Ordinal);
+        private byte[] _payload;
 
         public int Count => _order.Count;
         public IReadOnlyList<string> Names => _order;
-        public bool HasDocument => _blocks.ContainsKey(DocumentBlock);
+        public bool HasDocument => _order.Contains(DocumentBlock);
 
         public void Set(string name, byte[] data, CompressionLevel level = CompressionLevel.Optimal)
         {
             if (data == null) throw new WhimTexDocumentException("Block '" + name + "' has no data.");
             ValidateName(name);
-            if (!_blocks.ContainsKey(name)) _order.Add(name);
+            if (!_blocks.ContainsKey(name) && !_entries.ContainsKey(name)) _order.Add(name);
+            _entries.Remove(name);
             _blocks[name] = data;
             _levels[name] = level;
         }
 
         public bool Remove(string name)
         {
-            if (!_blocks.Remove(name)) return false;
-            _order.Remove(name);
+            bool existed = _order.Remove(name);
             _levels.Remove(name);
-            return true;
+            _entries.Remove(name);
+            _blocks.Remove(name);
+            return existed;
         }
 
-        public bool Contains(string name) => _blocks.ContainsKey(name);
+        public bool Contains(string name) => _blocks.ContainsKey(name) || _entries.ContainsKey(name);
 
+        /// <summary>Returns a block, inflating it on first use: a document never holds every layer at once.</summary>
         public byte[] Get(string name)
         {
-            if (!_blocks.TryGetValue(name, out var data))
-                throw new WhimTexDocumentException("Block '" + name + "' is missing.");
-            return data;
+            if (_blocks.TryGetValue(name, out byte[] cached)) return cached;
+            if (_entries.TryGetValue(name, out Entry entry))
+            {
+                Require(_payload, entry.dataOffset, entry.storedLength);
+                byte[] data = entry.compression == 0
+                    ? Slice(_payload, entry.dataOffset, (int)entry.storedLength)
+                    : Decompress(_payload, entry.dataOffset, (int)entry.storedLength, entry.rawLength, name);
+                _blocks[name] = data;
+                return data;
+            }
+            throw new WhimTexDocumentException("Block '" + name + "' is missing.");
         }
 
-        public bool TryGet(string name, out byte[] data) => _blocks.TryGetValue(name, out data);
+        public bool TryGet(string name, out byte[] data)
+        {
+            if (_blocks.TryGetValue(name, out data)) return true;
+            if (!_entries.ContainsKey(name)) { data = null; return false; }
+            data = Get(name);
+            return true;
+        }
 
         public string PixelBlockName(string layerId) => PixelBlockPrefix + layerId;
 
@@ -87,7 +106,7 @@ namespace DCFApixels.WhimTex
                 writer.Write(_order.Count);
                 foreach (string name in _order)
                 {
-                    byte[] raw = _blocks[name];
+                    byte[] raw = Get(name);
                     byte[] stored = Compress(raw, _levels[name]);
                     byte[] nameBytes = Encoding.UTF8.GetBytes(name);
                     writer.Write(nameBytes.Length);
@@ -96,7 +115,7 @@ namespace DCFApixels.WhimTex
                     writer.Write((long)raw.Length);
                     writer.Write((long)stored.Length);
                 }
-                foreach (string name in _order) writer.Write(Compress(_blocks[name], _levels[name]));
+                foreach (string name in _order) writer.Write(Compress(Get(name), _levels[name]));
             }
             return stream.ToArray();
         }
@@ -136,15 +155,18 @@ namespace DCFApixels.WhimTex
                 entries.Add(new Entry { name = name, compression = compression, rawLength = rawLength, storedLength = storedLength });
             }
             var result = new WhimTexDocumentContainer();
+            result._payload = payload;
             foreach (Entry entry in entries)
             {
                 Require(payload, offset, entry.storedLength);
-                result._order.Add(entry.name);
-                result._blocks[entry.name] = entry.compression == 0
-                    ? Slice(payload, offset, (int)entry.storedLength)
-                    : Decompress(payload, offset, (int)entry.storedLength, entry.rawLength, entry.name);
-                result._levels[entry.name] = CompressionLevel.Optimal;
-                offset += (int)entry.storedLength;
+                Entry stored = entry;
+                stored.dataOffset = offset;
+                result._order.Add(stored.name);
+                result._entries[stored.name] = stored;
+                result._levels[stored.name] = CompressionLevel.Optimal;
+                offset += (int)stored.storedLength;
+                // Blocks stay compressed until someone asks for them, so opening a document does not
+                // inflate every drawing layer and does not hold pixels and textures in memory together.
             }
             return result;
         }
@@ -308,6 +330,7 @@ namespace DCFApixels.WhimTex
             public int compression;
             public long rawLength;
             public long storedLength;
+            public int dataOffset;
         }
 
         private static void ValidateName(string name)
