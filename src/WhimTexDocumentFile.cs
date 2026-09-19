@@ -29,9 +29,12 @@ namespace DCFApixels.WhimTex
         {
             if (document == null) throw new WhimTexDocumentException("There is no document to save.");
             if (string.IsNullOrEmpty(path)) throw new WhimTexDocumentException("The document path is empty.");
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            long modelMs = 0, carrierMs = 0, writeMs = 0, importMs = 0;
             var container = new WhimTexDocumentContainer();
             container.Set(WhimTexDocumentContainer.DocumentBlock,
                 WhimTexDocumentSerializer.Serialize(document, container), System.IO.Compression.CompressionLevel.Optimal);
+            modelMs = stopwatch.ElapsedMilliseconds;
 
             Texture2D composite = null;
             bool firstSave = false;
@@ -49,6 +52,7 @@ namespace DCFApixels.WhimTex
                 path = WithExtension(path, WhimTexTiffCarrier.Extension);
                 firstSave = !File.Exists(path);
                 byte[] carrier = WhimTexTiffCarrier.Write(container, composite);
+                carrierMs = stopwatch.ElapsedMilliseconds - modelMs;
                 if (!WhimTexTiffCarrier.TryRead(carrier, out byte[] verification, out string error))
                     throw new WhimTexDocumentException("The produced document could not be read back: " + error);
                 WhimTexDocumentContainer.Parse(verification);
@@ -66,11 +70,13 @@ namespace DCFApixels.WhimTex
                 {
                     AssetDatabase.AllowAutoRefresh();
                 }
+                writeMs = stopwatch.ElapsedMilliseconds - modelMs - carrierMs;
             }
             finally
             {
                 if (composite != null) UnityEngine.Object.DestroyImmediate(composite);
             }
+            long beforeImport = stopwatch.ElapsedMilliseconds;
             if (wrote || firstSave)
             {
                 // A deferred import lets a save return without waiting for Unity to decode the carrier and
@@ -81,6 +87,14 @@ namespace DCFApixels.WhimTex
                 if (!deferImport || firstSave) options |= ImportAssetOptions.ForceSynchronousImport;
                 AssetDatabase.ImportAsset(path, options);
             }
+            importMs = stopwatch.ElapsedMilliseconds - beforeImport;
+            stopwatch.Stop();
+            // Reported only when a save is slow enough to be felt, so the numbers come from a real document
+            // instead of a synthetic one.
+            if (stopwatch.ElapsedMilliseconds > 250)
+                Debug.Log("WhimTex: saved " + path + " in " + stopwatch.ElapsedMilliseconds + "ms (model "
+                    + modelMs + "ms, carrier " + carrierMs + "ms, file " + writeMs + "ms, import " + importMs
+                    + "ms, written " + wrote + ", deferred " + (deferImport && !firstSave) + ")");
             ConfigureImportedCarrier(path, firstSave, compositeIsSrgb);
             // The file image is the composite: the saved document must point at it, not at a stale texture.
             BindImportedComposite(document, path);
