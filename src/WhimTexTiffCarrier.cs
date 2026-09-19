@@ -65,19 +65,29 @@ namespace DCFApixels.WhimTex
             if (composite == null) throw new WhimTexDocumentException("The document produced no composite image.");
             if (!composite.isReadable)
                 throw new WhimTexDocumentException("The composite image of the document is not readable and cannot be saved.");
-            bool hdr = composite.format == TextureFormat.RGBAHalf || composite.format == TextureFormat.RGBAFloat;
-            int sourceBits = composite.format == TextureFormat.RGBAHalf ? 16 : hdr ? 32 : 8;
-            byte[] image = WhimTexTiffImage.WriteRaw(composite.width, composite.height,
-                composite.GetRawTextureData<byte>().ToArray(), sourceBits);
+            bool halfSource = composite.format == TextureFormat.RGBAHalf;
+            bool floatSource = composite.format == TextureFormat.RGBAFloat;
+            int sourceBits = halfSource ? 16 : floatSource ? 32 : 8;
+            byte[] rawPixels = composite.GetRawTextureData<byte>().ToArray();
+            // The sample format follows the content, not the document setting: colours that all fit inside
+            // 0..1 do not need float samples, a float file and BC6H compression on every single import.
+            bool needsFloat = sourceBits != 8 && WhimTexTiffImage.HasValuesOutsideUnitRange(rawPixels, sourceBits);
+            int targetBits = needsFloat ? 32 : 8;
+            // Dropping half-float to 8-bit linear bands in the shadows, so those values are encoded to sRGB
+            // and the carrier flags tell Unity to decode them back. Data that is already 8-bit keeps its own
+            // encoding: a linear data texture must not be reinterpreted.
+            bool encodeSrgb = targetBits == 8 && sourceBits != 8 && !composite.isDataSRGB;
+            byte[] image = WhimTexTiffImage.WriteRaw(composite.width, composite.height, rawPixels, sourceBits,
+                targetBits, encodeSrgb);
             // A malformed carrier imports without an error but silently loses sprite sub-assets, so the
             // image is read back before the document ever reaches its folder.
             if (!WhimTexTiffImage.TryReadPixels(image, out int width, out int height, out byte[] decoded, out string error))
                 throw new WhimTexDocumentException("The produced carrier image is invalid: " + error);
-            int expected = composite.width * composite.height * 4 * (hdr ? 4 : 1);
+            int expected = composite.width * composite.height * 4 * (targetBits / 8);
             if (width != composite.width || height != composite.height || decoded.Length != expected)
                 throw new WhimTexDocumentException("The produced carrier image does not match the composite.");
             // A few bytes the import pipeline can fetch without touching the model or the pixels.
-            container.Set(FlagsBlock, new[] { (byte)(composite.isDataSRGB ? 1 : 0) },
+            container.Set(FlagsBlock, new[] { (byte)(encodeSrgb || composite.isDataSRGB ? 1 : 0) },
                 System.IO.Compression.CompressionLevel.Fastest);
             byte[] payload = container.Serialize();            var result = new byte[image.Length + payload.Length + 16];
             Buffer.BlockCopy(image, 0, result, 0, image.Length);

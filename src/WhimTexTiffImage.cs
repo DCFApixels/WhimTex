@@ -137,39 +137,112 @@ namespace DCFApixels.WhimTex
         /// <summary>
         /// Writes the carrier from the texture's own raw bytes, without a managed Color array or a
         /// per-pixel conversion: at 16 bytes per pixel those copies cost more than the compression.
-        /// Half-float sources are widened to float, because Unity reads a 16-bit float TIFF as integer
-        /// data and loses the values above 1.
+        /// Half-float sources are widened to float when the target keeps 32-bit samples, because Unity
+        /// reads a 16-bit float TIFF as integer data and loses the values above 1.
         /// </summary>
-        public static byte[] WriteRaw(int width, int height, byte[] raw, int sourceBits, bool compress = true)
+        public static byte[] WriteRaw(int width, int height, byte[] raw, int sourceBits, int targetBits = 0,
+            bool linearToSrgb = false, bool compress = true)
         {
             if (raw == null) throw new WhimTexDocumentException("The texture has no raw data.");
             if (sourceBits != 8 && sourceBits != 16 && sourceBits != 32)
                 throw new WhimTexDocumentException("Unsupported source sample size: " + sourceBits + " bits.");
+            if (targetBits == 0) targetBits = sourceBits == 16 ? 32 : sourceBits;
+            if (targetBits != 8 && targetBits != 32)
+                throw new WhimTexDocumentException("Unsupported target sample size: " + targetBits + " bits.");
+            if (targetBits == 32 && sourceBits == 8)
+                throw new WhimTexDocumentException("An 8-bit source cannot be written as 32-bit samples.");
             int sourceBytes = sourceBits / 8;
+            int targetBytes = targetBits / 8;
             int rowBytes = width * 4 * sourceBytes;
             if (raw.Length < (long)rowBytes * height)
                 throw new WhimTexDocumentException("The raw texture data is smaller than the image size.");
-            bool widen = sourceBits == 16;
-            int targetBytes = widen ? 4 : sourceBytes;
-            var data = new byte[(long)width * height * 4 * targetBytes > int.MaxValue
-                ? throw new WhimTexDocumentException("The image is too large to write.")
-                : width * height * 4 * targetBytes];
+            long total = (long)width * height * 4 * targetBytes;
+            if (total > int.MaxValue) throw new WhimTexDocumentException("The image is too large to write.");
+            var data = new byte[total];
+            float[] lookup = linearToSrgb ? SrgbLookup() : null;
             for (int y = 0; y < height; y++)
             {
                 int target = y * width * 4 * targetBytes;
                 int source = (height - 1 - y) * rowBytes; // TIFF rows are top-down, Unity's start at the bottom
-                if (!widen)
+                if (sourceBits == targetBits && !linearToSrgb)
                 {
                     Buffer.BlockCopy(raw, source, data, target, rowBytes);
                     continue;
                 }
                 for (int i = 0; i < width * 4; i++)
                 {
-                    ushort half = (ushort)(raw[source + i * 2] | raw[source + i * 2 + 1] << 8);
-                    PutFloat(data, target + i * 4, Mathf.HalfToFloat(half));
+                    float value;
+                    if (sourceBits == 16)
+                    {
+                        ushort half = (ushort)(raw[source + i * 2] | raw[source + i * 2 + 1] << 8);
+                        value = Mathf.HalfToFloat(half);
+                    }
+                    else if (sourceBits == 32)
+                        value = BitConverter.Int32BitsToSingle(raw[source + i * 4] | raw[source + i * 4 + 1] << 8 |
+                            raw[source + i * 4 + 2] << 16 | raw[source + i * 4 + 3] << 24);
+                    else
+                        value = raw[source + i] / 255f;
+                    if (targetBytes == 4) PutFloat(data, target + i * 4, value);
+                    else data[target + i] = ToByte(lookup == null ? value : EncodeSrgb(value, lookup));
                 }
             }
-            return Build(width, height, data, targetBytes * 8, widen || sourceBits == 32 ? SampleFormatFloat : SampleFormatUnsigned, compress);
+            return Build(width, height, data, targetBits,
+                targetBits == 32 ? SampleFormatFloat : SampleFormatUnsigned, compress);
+        }
+
+        /// <summary>
+        /// True when a channel falls outside 0..1. Such values cannot be stored in 8-bit samples at all,
+        /// which is what decides the carrier format: a document that only holds ordinary colours must not
+        /// pay for float samples and BC6H compression on every save and import.
+        /// </summary>
+        public static bool HasValuesOutsideUnitRange(byte[] raw, int sourceBits)
+        {
+            const float upper = 1.0005f;
+            const float lower = -0.0005f;
+            if (sourceBits == 8) return false;
+            int samples = raw.Length / (sourceBits / 8);
+            for (int i = 0; i < samples; i++)
+            {
+                float value;
+                if (sourceBits == 16)
+                {
+                    ushort half = (ushort)(raw[i * 2] | raw[i * 2 + 1] << 8);
+                    value = Mathf.HalfToFloat(half);
+                }
+                else
+                    value = BitConverter.Int32BitsToSingle(raw[i * 4] | raw[i * 4 + 1] << 8 |
+                        raw[i * 4 + 2] << 16 | raw[i * 4 + 3] << 24);
+                if (value > upper || value < lower) return true;
+            }
+            return false;
+        }
+
+        private static float[] SrgbLookup()
+        {
+            var lookup = new float[1025];
+            for (int i = 0; i <= 1024; i++)
+            {
+                float value = i / 1024f;
+                lookup[i] = value <= 0.0031308f ? value * 12.92f : 1.055f * Mathf.Pow(value, 1f / 2.4f) - 0.055f;
+            }
+            return lookup;
+        }
+
+        /// <summary>Linear to sRGB through a table: half-float values dropped to 8-bit linear band in shadows.</summary>
+        private static float EncodeSrgb(float value, float[] lookup)
+        {
+            if (value <= 0f) return 0f;
+            if (value >= 1f) return 1f;
+            float scaled = value * 1024f;
+            int index = (int)scaled;
+            float low = lookup[index];
+            return index >= 1024 ? low : low + (lookup[index + 1] - low) * (scaled - index);
+        }
+
+        private static byte ToByte(float value)
+        {
+            float clamped = value < 0f ? 0f : value > 1f ? 1f : value;
+            return (byte)(clamped * 255f + 0.5f);
         }
 
         private static void PutFloat(byte[] buffer, int offset, float value)
