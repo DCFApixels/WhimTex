@@ -24,12 +24,7 @@ namespace DCFApixels.WhimTex
         /// <summary>True when the file carries a WhimTex document, used to distinguish documents from plain images.</summary>
         public static bool IsDocument(string assetPath)
         {
-            if (string.IsNullOrEmpty(assetPath) || !File.Exists(assetPath)) return false;
-            try
-            {
-                return WhimTexDocumentContainer.TryReadPayload(File.ReadAllBytes(assetPath), out _, out _);
-            }
-            catch (IOException) { return false; }
+            return WhimTexTiffCarrier.TryRead(assetPath, out _, out _);
         }
 
         /// <summary>Saves the document and returns the path actually written: the carrier extension depends on the storage format.</summary>
@@ -48,14 +43,11 @@ namespace DCFApixels.WhimTex
                 if (composite == null) throw new WhimTexDocumentException("The document produced no composite image.");
                 if (!composite.isReadable)
                     throw new WhimTexDocumentException("The composite image of the document is not readable and cannot be saved.");
-                bool hdr = composite.format == TextureFormat.RGBAHalf || composite.format == TextureFormat.RGBAFloat;
-                path = WithExtension(path, hdr ? ExrExtension : PngExtension);
-                byte[] carrier = hdr
-                    ? container.WriteExr(composite.EncodeToEXR(Texture2D.EXRFlags.OutputAsFloat))
-                    : container.WritePng(composite.EncodeToPNG());
-                // Read our own output back before replacing anything: a malformed carrier imports without an
-                // error but silently loses sprite sub-assets.
-                if (!WhimTexDocumentContainer.TryReadPayload(carrier, out byte[] verification, out string error))
+                // One carrier format for every document: the extension is part of the asset path, so
+                // switching it later would break every reference that points at this texture.
+                path = WithExtension(path, WhimTexTiffCarrier.Extension);
+                byte[] carrier = WhimTexTiffCarrier.Write(container, composite);
+                if (!WhimTexTiffCarrier.TryRead(carrier, out byte[] verification, out string error))
                     throw new WhimTexDocumentException("The produced document could not be read back: " + error);
                 WhimTexDocumentContainer.Parse(verification);
                 WhimTexDocumentContainer.WriteFileAtomic(path, carrier);
@@ -89,7 +81,7 @@ namespace DCFApixels.WhimTex
             try
             {
                 byte[] file = File.ReadAllBytes(path);
-                if (!WhimTexDocumentContainer.TryReadPayload(file, out byte[] payload, out error)) return false;
+                if (!WhimTexTiffCarrier.TryRead(file, out byte[] payload, out error)) return false;
                 var container = WhimTexDocumentContainer.Parse(payload);
                 if (!container.TryGet(WhimTexDocumentContainer.DocumentBlock, out byte[] model))
                 {
