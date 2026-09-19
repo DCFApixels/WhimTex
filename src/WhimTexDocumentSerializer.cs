@@ -284,7 +284,7 @@ namespace DCFApixels.WhimTex
 
         // --- writer ---
 
-        private sealed class Writer
+        private sealed class Writer : IWhimTexDocumentWriter
         {
             private readonly BinaryWriter _writer;
             private readonly WhimTexDocumentContainer _container;
@@ -461,6 +461,52 @@ namespace DCFApixels.WhimTex
                 foreach (object item in list) Write(item, element);
             }
 
+            // --- manual mode: a type writes its own fields, with the automatic encoding ---
+
+            private int _manualRemaining = -1;
+
+            public void Begin(int count)
+            {
+                if (_manualRemaining >= 0)
+                    throw new WhimTexDocumentException("A manually serialized type called Begin twice.");
+                _manualRemaining = count;
+                _writer.Write(count);
+            }
+
+            private void Named(string name, object value, Type type)
+            {
+                if (_manualRemaining < 0)
+                    throw new WhimTexDocumentException("A manually serialized type wrote a value before Begin.");
+                _manualRemaining--;
+                _writer.Write(name);
+                Write(value, type);
+            }
+
+            public void Write(string name, int value) => Named(name, value, typeof(int));
+            public void Write(string name, long value) => Named(name, value, typeof(long));
+            public void Write(string name, float value) => Named(name, value, typeof(float));
+            public void Write(string name, double value) => Named(name, value, typeof(double));
+            public void Write(string name, bool value) => Named(name, value, typeof(bool));
+            public void Write(string name, char value) => Named(name, value, typeof(char));
+            public void Write(string name, string value) => Named(name, value, typeof(string));
+            public void Write(string name, Vector2 value) => Named(name, value, typeof(Vector2));
+            public void Write(string name, Vector3 value) => Named(name, value, typeof(Vector3));
+            public void Write(string name, Vector4 value) => Named(name, value, typeof(Vector4));
+            public void Write(string name, Vector2Int value) => Named(name, value, typeof(Vector2Int));
+            public void Write(string name, Vector3Int value) => Named(name, value, typeof(Vector3Int));
+            public void Write(string name, Quaternion value) => Named(name, value, typeof(Quaternion));
+            public void Write(string name, Color value) => Named(name, value, typeof(Color));
+            public void Write(string name, Color32 value) => Named(name, value, typeof(Color32));
+            public void Write(string name, Rect value) => Named(name, value, typeof(Rect));
+            public void Write(string name, RectInt value) => Named(name, value, typeof(RectInt));
+            public void Write(string name, Bounds value) => Named(name, value, typeof(Bounds));
+            public void Write(string name, AnimationCurve value) => Named(name, value, typeof(AnimationCurve));
+            public void WriteEnum<T>(string name, T value) where T : struct, Enum => Named(name, value, typeof(T));
+            public void WriteObject(string name, object value, Type type) => Named(name, value, type);
+            public void WriteList(string name, IList value, Type type) => Named(name, value, type);
+            public void WriteReference(string name, UnityEngine.Object value) => Named(name, value, typeof(UnityEngine.Object));
+            public void WriteTexture(string name, Texture2D value) => Named(name, value, typeof(Texture2D));
+
             private void WriteObject(object value, Type type)
             {
                 if (IsUnityType(type))
@@ -471,6 +517,16 @@ namespace DCFApixels.WhimTex
                 _writer.Write(TagObject);
                 _writer.Write(type.FullName);
                 if (value is ISerializationCallbackReceiver receiver) receiver.OnBeforeSerialize();
+                if (value is IWhimTexDocumentSerializable manual)
+                {
+                    // A manual type writes its own field names and values, but takes the same shape on the
+                    // wire: the count it declares is checked against what it actually wrote.
+                    _manualRemaining = -1;
+                    manual.WriteDocument(this);
+                    if (_manualRemaining != 0)
+                        throw new WhimTexDocumentException("A manually serialized type wrote a value count that does not match its fields: " + type.FullName + ".");
+                    return;
+                }
                 FieldInfo[] fields = Fields(type);
                 _writer.Write(fields.Length);
                 foreach (FieldInfo field in fields)
@@ -483,7 +539,7 @@ namespace DCFApixels.WhimTex
 
         // --- reader ---
 
-        private sealed class Reader
+        private sealed class Reader : IWhimTexDocumentReader
         {
             private readonly BinaryReader _reader;
             private readonly WhimTexDocumentContainer _container;
@@ -649,18 +705,30 @@ namespace DCFApixels.WhimTex
                     ? ScriptableObject.CreateInstance(type)
                     : Activator.CreateInstance(type, true);
                 _objects.Add(instance);
-                for (int i = 0; i < fieldCount; i++)
+                if (instance is IWhimTexDocumentSerializable manual)
                 {
-                    string fieldName = _reader.ReadString();
-                    FieldInfo field = FindField(type, fieldName);
-                    object value = Read(field?.FieldType);
-                    if (field == null) continue;
-                    try
+                    // A manual type consumes its own values and must read every one of them: a value left
+                    // behind would silently shift everything that follows in the stream.
+                    _manualCount = -1;
+                    manual.ReadDocument(this);
+                    if (_manualCount < 0)
+                        throw new WhimTexDocumentException("A manually deserialized type did not read its value count: " + type.FullName + ".");
+                }
+                else
+                {
+                    for (int i = 0; i < fieldCount; i++)
                     {
-                        if (value != null || !field.FieldType.IsValueType) field.SetValue(instance, value);
+                        string fieldName = _reader.ReadString();
+                        FieldInfo field = FindField(type, fieldName);
+                        object value = Read(field?.FieldType);
+                        if (field == null) continue;
+                        try
+                        {
+                            if (value != null || !field.FieldType.IsValueType) field.SetValue(instance, value);
+                        }
+                        catch (ArgumentException) { }
+                        catch (InvalidCastException) { }
                     }
-                    catch (ArgumentException) { }
-                    catch (InvalidCastException) { }
                 }
                 if (instance is ISerializationCallbackReceiver receiver) receiver.OnAfterDeserialize();
                 return instance;
@@ -676,6 +744,48 @@ namespace DCFApixels.WhimTex
             }
 
             private static T ParseEnum<T>(string name) where T : struct => (T)Enum.Parse(typeof(T), name);
+
+            // --- manual mode: a type reads its own fields, in the automatic encoding ---
+
+            private int _manualCount = -1;
+
+            public int Count
+            {
+                get
+                {
+                    if (_manualCount < 0) _manualCount = _reader.ReadInt32();
+                    return _manualCount;
+                }
+            }
+
+            public string NextName() => _reader.ReadString();
+            public int ReadInt() => (int)Read(typeof(int));
+            public long ReadLong() => (long)Read(typeof(long));
+            public float ReadFloat() => (float)Read(typeof(float));
+            public double ReadDouble() => (double)Read(typeof(double));
+            public bool ReadBool() => (bool)Read(typeof(bool));
+            public char ReadChar() => (char)Read(typeof(char));
+            public string ReadString() => (string)Read(typeof(string));
+            public Vector2 ReadVector2() => (Vector2)Read(typeof(Vector2));
+            public Vector3 ReadVector3() => (Vector3)Read(typeof(Vector3));
+            public Vector4 ReadVector4() => (Vector4)Read(typeof(Vector4));
+            public Vector2Int ReadVector2Int() => (Vector2Int)Read(typeof(Vector2Int));
+            public Vector3Int ReadVector3Int() => (Vector3Int)Read(typeof(Vector3Int));
+            public Quaternion ReadQuaternion() => (Quaternion)Read(typeof(Quaternion));
+            public Color ReadColor() => (Color)Read(typeof(Color));
+            public Color32 ReadColor32() => (Color32)Read(typeof(Color32));
+            public Rect ReadRect() => (Rect)Read(typeof(Rect));
+            public RectInt ReadRectInt() => (RectInt)Read(typeof(RectInt));
+            public Bounds ReadBounds() => (Bounds)Read(typeof(Bounds));
+            AnimationCurve IWhimTexDocumentReader.ReadCurve() => (AnimationCurve)Read(typeof(AnimationCurve));
+            public T ReadEnum<T>() where T : struct, Enum => (T)Read(typeof(T));
+            public object ReadObject(Type type) => Read(type);
+            // These names already exist on the reader's own value dispatch, so they are implemented
+            // explicitly: through the interface they mean "read the next value as this type".
+            IList IWhimTexDocumentReader.ReadList(Type type) => (IList)Read(type);
+            UnityEngine.Object IWhimTexDocumentReader.ReadReference() => Read(null) as UnityEngine.Object;
+            Texture2D IWhimTexDocumentReader.ReadTexture() => Read(typeof(Texture2D)) as Texture2D;
+            public void Skip() => Read(null);
         }
 
         private sealed class ReferenceComparer : IEqualityComparer<object>
