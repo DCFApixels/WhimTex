@@ -16,7 +16,45 @@ namespace DCFApixels.WhimTex
     internal static class WhimTexTiffCarrier
     {
         public const string Extension = ".tiff";
+        /// <summary>Written into the importer's .meta so opening an asset does not have to read the file.</summary>
+        public const string MetaMarker = "whimtex.document";
         private const string FooterMagic = "WHIMTEXD";
+
+        /// <summary>
+        /// Cheap check used when an asset is opened. The marker in the .meta answers without touching the
+        /// file; otherwise only the signature and the footer are read, never the whole image.
+        /// </summary>
+        public static bool IsDocument(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return false;
+            var importer = UnityEditor.AssetImporter.GetAtPath(path);
+            if (importer != null && !string.IsNullOrEmpty(importer.userData))
+                return importer.userData.Contains(MetaMarker);
+            return HasFooter(path);
+        }
+
+        private static bool HasFooter(string path)
+        {
+            try
+            {
+                if (!File.Exists(path)) return false;
+                using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                if (stream.Length < 24) return false;
+                var head = new byte[4];
+                if (stream.Read(head, 0, head.Length) != head.Length) return false;
+                bool tiff = head[0] == 'I' && head[1] == 'I' && head[2] == 42 && head[3] == 0 ||
+                            head[0] == 'M' && head[1] == 'M' && head[2] == 0 && head[3] == 42;
+                if (!tiff) return TryRead(path, out _, out _); // earlier PNG and EXR carriers
+                stream.Seek(-8, SeekOrigin.End);
+                var tail = new byte[8];
+                if (stream.Read(tail, 0, tail.Length) != tail.Length) return false;
+                return Encoding.ASCII.GetString(tail) == FooterMagic;
+            }
+            catch (IOException)
+            {
+                return false;
+            }
+        }
 
         /// <summary>Builds the carrier: 8-bit samples for ordinary documents, 32-bit float for HDR ones.</summary>
         public static byte[] Write(WhimTexDocumentContainer container, Texture2D composite)

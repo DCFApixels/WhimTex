@@ -22,10 +22,7 @@ namespace DCFApixels.WhimTex
         private const string ModelField = "outputTexture";
 
         /// <summary>True when the file carries a WhimTex document, used to distinguish documents from plain images.</summary>
-        public static bool IsDocument(string assetPath)
-        {
-            return WhimTexTiffCarrier.TryRead(assetPath, out _, out _);
-        }
+        public static bool IsDocument(string assetPath) => WhimTexTiffCarrier.IsDocument(assetPath);
 
         /// <summary>Saves the document and returns the path actually written: the carrier extension depends on the storage format.</summary>
         public static string Save(TextureCompositor document, string path)
@@ -37,15 +34,19 @@ namespace DCFApixels.WhimTex
                 WhimTexDocumentSerializer.Serialize(document, container), System.IO.Compression.CompressionLevel.Optimal);
 
             Texture2D composite = null;
+            bool firstSave = false;
+            bool compositeIsSrgb = false;
             try
             {
                 composite = document.Compose();
                 if (composite == null) throw new WhimTexDocumentException("The document produced no composite image.");
                 if (!composite.isReadable)
                     throw new WhimTexDocumentException("The composite image of the document is not readable and cannot be saved.");
+                compositeIsSrgb = composite.isDataSRGB;
                 // One carrier format for every document: the extension is part of the asset path, so
                 // switching it later would break every reference that points at this texture.
                 path = WithExtension(path, WhimTexTiffCarrier.Extension);
+                firstSave = !File.Exists(path);
                 byte[] carrier = WhimTexTiffCarrier.Write(container, composite);
                 if (!WhimTexTiffCarrier.TryRead(carrier, out byte[] verification, out string error))
                     throw new WhimTexDocumentException("The produced document could not be read back: " + error);
@@ -57,9 +58,32 @@ namespace DCFApixels.WhimTex
                 if (composite != null) UnityEngine.Object.DestroyImmediate(composite);
             }
             AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+            ConfigureImportedCarrier(path, firstSave, compositeIsSrgb);
             // The file image is the composite: the saved document must point at it, not at a stale texture.
             BindImportedComposite(document, path);
             return path;
+        }
+
+        /// <summary>
+        /// Marks the file as a WhimTex document in the importer's .meta, and on the first save sets the
+        /// sRGB flag from the document itself. Later saves keep whatever the user configured there,
+        /// because that flag decides how Unity reads the 8-bit samples.
+        /// </summary>
+        private static void ConfigureImportedCarrier(string path, bool firstSave, bool srgb)
+        {
+            if (!(AssetImporter.GetAtPath(path) is TextureImporter importer)) return;
+            bool changed = false;
+            if (string.IsNullOrEmpty(importer.userData) || !importer.userData.Contains(WhimTexTiffCarrier.MetaMarker))
+            {
+                importer.userData = WhimTexTiffCarrier.MetaMarker;
+                changed = true;
+            }
+            if (firstSave && importer.sRGBTexture != srgb)
+            {
+                importer.sRGBTexture = srgb;
+                changed = true;
+            }
+            if (changed) importer.SaveAndReimport();
         }
 
         public static TextureCompositor Load(string path)

@@ -232,11 +232,21 @@ namespace DCFApixels.WhimTex
 
         private static uint Adler32(byte[] data)
         {
+            // Deferred modulo: taking the remainder per byte costs more than the checksum itself.
+            const uint modulus = 65521;
             uint a = 1, b = 0;
-            foreach (byte value in data)
+            int index = 0;
+            while (index < data.Length)
             {
-                a = (a + value) % 65521;
-                b = (b + a) % 65521;
+                int block = Math.Min(5552, data.Length - index);
+                for (int i = 0; i < block; i++)
+                {
+                    a += data[index + i];
+                    b += a;
+                }
+                a %= modulus;
+                b %= modulus;
+                index += block;
             }
             return b << 16 | a;
         }
