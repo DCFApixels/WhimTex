@@ -52,6 +52,7 @@ namespace DCFApixels.WhimTex
         private static readonly Queue<string> CompressedCacheOrder = new Queue<string>();
         private static long _compressedCacheBytes;
         private const long MaximumCompressedCacheBytes = 192L * 1024 * 1024;
+        private const long ParallelDeflateBytes = 4L * 1024 * 1024;
 
         /// <summary>A deflated block. Incompressible blocks are stored as they are, so the flag travels with the bytes.</summary>
         private sealed class Compressed
@@ -129,19 +130,31 @@ namespace DCFApixels.WhimTex
                 writer.Write(Encoding.ASCII.GetBytes(PayloadMagic));
                 writer.Write(CurrentVersion);
                 writer.Write(_order.Count);
+                var raws = new byte[_order.Count][];
                 var storedBlocks = new byte[_order.Count][];
+                var compressedFlags = new bool[_order.Count];
+                long totalBytes = 0;
                 for (int i = 0; i < _order.Count; i++)
                 {
-                    string name = _order[i];
-                    byte[] raw = Get(name);
-                    byte[] stored = Stored(name, raw, out bool compressed);
-                    storedBlocks[i] = stored;
-                    byte[] nameBytes = Encoding.UTF8.GetBytes(name);
+                    raws[i] = Get(_order[i]);
+                    totalBytes += raws[i].Length;
+                }
+                // Blocks are independent, so a layered document is deflated on all cores. Small documents
+                // keep the plain loop: there the thread pool costs more than the work it takes over.
+                if (_order.Count > 1 && totalBytes >= ParallelDeflateBytes)
+                    System.Threading.Tasks.Parallel.For(0, _order.Count,
+                        i => storedBlocks[i] = Stored(_order[i], raws[i], out compressedFlags[i]));
+                else
+                    for (int i = 0; i < _order.Count; i++)
+                        storedBlocks[i] = Stored(_order[i], raws[i], out compressedFlags[i]);
+                for (int i = 0; i < _order.Count; i++)
+                {
+                    byte[] nameBytes = Encoding.UTF8.GetBytes(_order[i]);
                     writer.Write(nameBytes.Length);
                     writer.Write(nameBytes);
-                    writer.Write((int)(compressed ? 1 : 0));
-                    writer.Write((long)raw.Length);
-                    writer.Write((long)stored.Length);
+                    writer.Write((int)(compressedFlags[i] ? 1 : 0));
+                    writer.Write((long)raws[i].Length);
+                    writer.Write((long)storedBlocks[i].Length);
                 }
                 foreach (byte[] stored in storedBlocks) writer.Write(stored);
             }

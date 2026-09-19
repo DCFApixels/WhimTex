@@ -257,4 +257,21 @@ cacheEvicted.Remove("pixels:cached");
 cacheEvicted.SetCompressed("pixels:cached", "k1", cacheBytes, System.IO.Compression.CompressionLevel.Fastest);
 Check(Same(cacheMissBytes, cacheEvicted.Serialize()), "a removed block can be stored again under the same key");
 
+// --- 10. an image holding NaN and infinite samples still writes, instead of failing the whole save ---
+var wild = new byte[8 * 8 * 4 * 2];
+for (int i = 0; i < wild.Length; i += 2)
+{
+    ushort sample = (ushort)(i % 6 == 0 ? 0x7E00 : i % 6 == 2 ? 0x7C00 : 0x3C00); // NaN, +infinity, 1.0
+    wild[i] = (byte)sample;
+    wild[i + 1] = (byte)(sample >> 8);
+}
+Check(DCFApixels.WhimTex.WhimTexTiffImage.HasValuesOutsideUnitRange(wild, 16), "NaN samples ask for float samples");
+byte[] wildImage = DCFApixels.WhimTex.WhimTexTiffImage.WriteRaw(8, 8, wild, 16, 8, true);
+Check(DCFApixels.WhimTex.WhimTexTiffImage.TryReadPixels(wildImage, out int wildWidth, out int wildHeight, out byte[] wildPixels, out string wildError),
+    "an image holding NaN is written and read back: " + wildError);
+Check(wildWidth == 8 && wildHeight == 8 && wildPixels.Length == 8 * 8 * 4, "the NaN image keeps its size");
+bool clean = true;
+foreach (byte value in wildPixels) if (value != 0 && value != 255) { clean = false; break; }
+Check(clean, "NaN and infinite samples became 0 or 1, never a stray value");
+
 return "PASS: container checks=" + checks + ", " + report;

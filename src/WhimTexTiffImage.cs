@@ -160,14 +160,33 @@ namespace DCFApixels.WhimTex
             if (total > int.MaxValue) throw new WhimTexDocumentException("The image is too large to write.");
             var data = new byte[total];
             float[] lookup = linearToSrgb ? SrgbLookup() : null;
-            for (int y = 0; y < height; y++)
+            // Half-float samples that end up as 8-bit go through a table: a 4096x4096 composite holds 67
+            // million samples, and converting them one at a time costs more than compressing the result.
+            byte[] halfToByte = null;
+            if (sourceBits == 16 && targetBits == 8)
+            {
+                halfToByte = new byte[65536];
+                for (int i = 0; i < 65536; i++)
+                {
+                    float sample = Mathf.HalfToFloat((ushort)i);
+                    halfToByte[i] = ToByte(lookup == null ? sample : EncodeSrgb(sample, lookup));
+                }
+            }
+            bool copyRows = sourceBits == targetBits && !linearToSrgb;
+            void Row(int y)
             {
                 int target = y * width * 4 * targetBytes;
                 int source = (height - 1 - y) * rowBytes; // TIFF rows are top-down, Unity's start at the bottom
-                if (sourceBits == targetBits && !linearToSrgb)
+                if (copyRows)
                 {
                     Buffer.BlockCopy(raw, source, data, target, rowBytes);
-                    continue;
+                    return;
+                }
+                if (halfToByte != null)
+                {
+                    for (int i = 0; i < width * 4; i++)
+                        data[target + i] = halfToByte[raw[source + i * 2] | raw[source + i * 2 + 1] << 8];
+                    return;
                 }
                 for (int i = 0; i < width * 4; i++)
                 {
@@ -186,6 +205,9 @@ namespace DCFApixels.WhimTex
                     else data[target + i] = ToByte(lookup == null ? value : EncodeSrgb(value, lookup));
                 }
             }
+            // Rows are independent, so a large image is converted on all cores; only managed math runs here.
+            if (height >= 64) System.Threading.Tasks.Parallel.For(0, height, Row);
+            else for (int y = 0; y < height; y++) Row(y);
             return Build(width, height, data, targetBits,
                 targetBits == 32 ? SampleFormatFloat : SampleFormatUnsigned, compress);
         }
@@ -212,7 +234,7 @@ namespace DCFApixels.WhimTex
                 else
                     value = BitConverter.Int32BitsToSingle(raw[i * 4] | raw[i * 4 + 1] << 8 |
                         raw[i * 4 + 2] << 16 | raw[i * 4 + 3] << 24);
-                if (value > upper || value < lower) return true;
+                if (float.IsNaN(value) || value > upper || value < lower) return true;
             }
             return false;
         }
@@ -231,7 +253,9 @@ namespace DCFApixels.WhimTex
         /// <summary>Linear to sRGB through a table: half-float values dropped to 8-bit linear band in shadows.</summary>
         private static float EncodeSrgb(float value, float[] lookup)
         {
-            if (value <= 0f) return 0f;
+            // A composite can hold NaN, and every comparison against it is false, so it must be rejected
+            // before the value is scaled into a table index.
+            if (float.IsNaN(value) || value <= 0f) return 0f;
             if (value >= 1f) return 1f;
             float scaled = value * 1024f;
             int index = (int)scaled;
@@ -241,8 +265,8 @@ namespace DCFApixels.WhimTex
 
         private static byte ToByte(float value)
         {
-            float clamped = value < 0f ? 0f : value > 1f ? 1f : value;
-            return (byte)(clamped * 255f + 0.5f);
+            if (float.IsNaN(value) || value < 0f) return 0;
+            return (byte)((value > 1f ? 1f : value) * 255f + 0.5f);
         }
 
         private static void PutFloat(byte[] buffer, int offset, float value)
