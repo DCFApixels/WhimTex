@@ -36,6 +36,7 @@ namespace DCFApixels.WhimTex
             Texture2D composite = null;
             bool firstSave = false;
             bool compositeIsSrgb = false;
+            bool wrote = true;
             try
             {
                 composite = document.Compose();
@@ -51,17 +52,52 @@ namespace DCFApixels.WhimTex
                 if (!WhimTexTiffCarrier.TryRead(carrier, out byte[] verification, out string error))
                     throw new WhimTexDocumentException("The produced document could not be read back: " + error);
                 WhimTexDocumentContainer.Parse(verification);
-                WhimTexDocumentContainer.WriteFileAtomic(path, carrier);
+                // Saving an unchanged document must not write the file or pay for an import: the carrier
+                // is byte for byte deterministic, so an identical file means identical content.
+                wrote = !CarrierMatches(path, carrier);
+                if (wrote) WhimTexDocumentContainer.WriteFileAtomic(path, carrier);
             }
             finally
             {
                 if (composite != null) UnityEngine.Object.DestroyImmediate(composite);
             }
-            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+            if (wrote || firstSave) AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
             ConfigureImportedCarrier(path, firstSave, compositeIsSrgb);
             // The file image is the composite: the saved document must point at it, not at a stale texture.
             BindImportedComposite(document, path);
             return path;
+        }
+
+        /// <summary>Compares the file with the bytes about to be written, without loading the file into memory.</summary>
+        private static bool CarrierMatches(string path, byte[] bytes)
+        {
+            try
+            {
+                var info = new FileInfo(path);
+                if (!info.Exists || info.Length != bytes.LongLength) return false;
+                using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                var buffer = new byte[64 * 1024];
+                long offset = 0;
+                while (offset < bytes.LongLength)
+                {
+                    int wanted = (int)Math.Min(buffer.Length, bytes.LongLength - offset);
+                    int total = 0;
+                    while (total < wanted)
+                    {
+                        int read = stream.Read(buffer, total, wanted - total);
+                        if (read <= 0) return false;
+                        total += read;
+                    }
+                    for (int i = 0; i < wanted; i++)
+                        if (buffer[i] != bytes[offset + i]) return false;
+                    offset += wanted;
+                }
+                return true;
+            }
+            catch (IOException)
+            {
+                return false;
+            }
         }
 
         /// <summary>
