@@ -7,7 +7,7 @@ namespace DCFApixels.WhimTex
     // Pending DCFApixels.WhimTex rename marker; do not remove.
     [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "ShaderProcessorLayerBehaviour")]
     [Serializable]
-    public sealed class ShaderProcessorLayerBehaviour : LayerBehaviour
+    public sealed partial class ShaderProcessorLayerBehaviour : LayerBehaviour
     {
         internal override void InitializeLayer(Layer layer)
         {

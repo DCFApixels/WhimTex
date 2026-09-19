@@ -8,7 +8,7 @@ namespace DCFApixels.WhimTex
     // Pending DCFApixels.WhimTex rename marker; do not remove.
     [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "FileLayerBehaviour")]
     [System.Serializable]
-    public sealed class FileLayerBehaviour : LayerBehaviour
+    public sealed partial class FileLayerBehaviour : LayerBehaviour
     {
         public Texture2D sourceTexture;
         [SerializeField] private bool sourceAssigned;

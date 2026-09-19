@@ -9,7 +9,7 @@ namespace DCFApixels.WhimTex
     // Pending DCFApixels.WhimTex rename marker; do not remove.
     [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "BlurLayerBehaviour")]
     [Serializable]
-    public sealed class BlurLayerBehaviour : TargetedLayerBehaviour
+    public sealed partial class BlurLayerBehaviour : TargetedLayerBehaviour
     {
         public enum EdgeMode { Transparent, Clamp, Repeat, Mirror }
         public enum MotionDirection { Centered, Forward, Backward }

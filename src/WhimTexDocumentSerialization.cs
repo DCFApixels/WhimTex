@@ -49,6 +49,8 @@ namespace DCFApixels.WhimTex
         void WriteEnum<T>(string name, T value) where T : struct, System.Enum;
         /// <summary>Writes a nested object graph; each type decides for itself whether it is manual.</summary>
         void WriteObject(string name, object value, System.Type type);
+        /// <summary>Writes this object's fields the automatic way. Used when generated code does not cover them.</summary>
+        void WriteAutomaticFields(object value);
         void WriteList(string name, System.Collections.IList value, System.Type type);
         void WriteReference(string name, UnityEngine.Object value);
         void WriteTexture(string name, UnityEngine.Texture2D value);
@@ -86,6 +88,8 @@ namespace DCFApixels.WhimTex
         System.Collections.IList ReadList(System.Type type);
         UnityEngine.Object ReadReference();
         UnityEngine.Texture2D ReadTexture();
+        /// <summary>Reads this object's fields the automatic way. Used when generated code does not cover them.</summary>
+        void ReadAutomaticFields(object value);
         /// <summary>Consumes a value this build does not use: never leave one unread.</summary>
         void Skip();
     }

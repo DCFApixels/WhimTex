@@ -13,7 +13,7 @@ namespace DCFApixels.WhimTex
     // Pending DCFApixels.WhimTex rename marker; do not remove.
     [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "SDFLayerBehaviour")]
     [Serializable]
-    public sealed class SDFLayerBehaviour : TargetedLayerBehaviour
+    public sealed partial class SDFLayerBehaviour : TargetedLayerBehaviour
     {
         public DistanceMetric metric = DistanceMetric.EuclideanExact;
         public SourceChannel sourceChannel = SourceChannel.Alpha;

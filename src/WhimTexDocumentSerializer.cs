@@ -139,6 +139,9 @@ namespace DCFApixels.WhimTex
         /// <summary>Fields the last loaded document carried but this build no longer declares.</summary>
         public static IReadOnlyList<string> LastSkippedFields => _skippedFields;
 
+        /// <summary>How many fields the automatic pass writes for a type. Used to check generated code.</summary>
+        internal static int ReflectedFieldCount(Type type) => Fields(type).Length;
+
         /// <summary>
         /// Every name a field was ever serialized under. Field order never mattered because the value
         /// carries its name, and a renamed field keeps loading because [FormerlySerializedAs] names are
@@ -520,13 +523,23 @@ namespace DCFApixels.WhimTex
                 if (value is IWhimTexDocumentSerializable manual)
                 {
                     // A manual type writes its own field names and values, but takes the same shape on the
-                    // wire: the count it declares is checked against what it actually wrote.
+                    // wire: the count it declares is checked against what it actually wrote. A nested manual
+                    // object must not disturb the count of the object that contains it.
+                    int outer = _manualRemaining;
                     _manualRemaining = -1;
                     manual.WriteDocument(this);
                     if (_manualRemaining != 0)
                         throw new WhimTexDocumentException("A manually serialized type wrote a value count that does not match its fields: " + type.FullName + ".");
+                    _manualRemaining = outer;
                     return;
                 }
+                WriteAutomaticFields(value, type);
+            }
+
+            public void WriteAutomaticFields(object value) => WriteAutomaticFields(value, value.GetType());
+
+            private void WriteAutomaticFields(object value, Type type)
+            {
                 FieldInfo[] fields = Fields(type);
                 _writer.Write(fields.Length);
                 foreach (FieldInfo field in fields)
@@ -689,12 +702,12 @@ namespace DCFApixels.WhimTex
             private object ReadObject()
             {
                 Type type = ResolveType(_reader.ReadString());
-                int fieldCount = _reader.ReadInt32();
                 if (type == null)
                 {
-                    // Keep the object numbering in step with the writer, then consume the fields.
+                    // Keep the object numbering in step with the writer, then consume the values.
+                    int missing = _reader.ReadInt32();
                     _objects.Add(null);
-                    for (int i = 0; i < fieldCount; i++)
+                    for (int i = 0; i < missing; i++)
                     {
                         _reader.ReadString();
                         Read(null);
@@ -707,28 +720,16 @@ namespace DCFApixels.WhimTex
                 _objects.Add(instance);
                 if (instance is IWhimTexDocumentSerializable manual)
                 {
-                    // A manual type consumes its own values and must read every one of them: a value left
-                    // behind would silently shift everything that follows in the stream.
+                    // A manual type consumes its own values. Generated code falls back to this same
+                    // automatic pass when it does not cover every field, so neither side can lose values.
+                    int outer = _manualCount;
                     _manualCount = -1;
                     manual.ReadDocument(this);
-                    if (_manualCount < 0)
-                        throw new WhimTexDocumentException("A manually deserialized type did not read its value count: " + type.FullName + ".");
+                    _manualCount = outer;
                 }
                 else
                 {
-                    for (int i = 0; i < fieldCount; i++)
-                    {
-                        string fieldName = _reader.ReadString();
-                        FieldInfo field = FindField(type, fieldName);
-                        object value = Read(field?.FieldType);
-                        if (field == null) continue;
-                        try
-                        {
-                            if (value != null || !field.FieldType.IsValueType) field.SetValue(instance, value);
-                        }
-                        catch (ArgumentException) { }
-                        catch (InvalidCastException) { }
-                    }
+                    ReadAutomaticFields(instance);
                 }
                 if (instance is ISerializationCallbackReceiver receiver) receiver.OnAfterDeserialize();
                 return instance;
@@ -786,6 +787,26 @@ namespace DCFApixels.WhimTex
             UnityEngine.Object IWhimTexDocumentReader.ReadReference() => Read(null) as UnityEngine.Object;
             Texture2D IWhimTexDocumentReader.ReadTexture() => Read(typeof(Texture2D)) as Texture2D;
             public void Skip() => Read(null);
+
+            /// <summary>The automatic pass: reads a value count and assigns every value to its field by name.</summary>
+            public void ReadAutomaticFields(object value)
+            {
+                Type type = value.GetType();
+                int count = _reader.ReadInt32();
+                for (int i = 0; i < count; i++)
+                {
+                    string fieldName = _reader.ReadString();
+                    FieldInfo field = FindField(type, fieldName);
+                    object fieldValue = Read(field?.FieldType);
+                    if (field == null) continue;
+                    try
+                    {
+                        if (fieldValue != null || !field.FieldType.IsValueType) field.SetValue(value, fieldValue);
+                    }
+                    catch (ArgumentException) { }
+                    catch (InvalidCastException) { }
+                }
+            }
         }
 
         private sealed class ReferenceComparer : IEqualityComparer<object>

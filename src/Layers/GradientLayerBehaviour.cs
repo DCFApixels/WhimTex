@@ -8,7 +8,7 @@ namespace DCFApixels.WhimTex
     // Pending DCFApixels.WhimTex rename marker; do not remove.
     [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "GradientLayerBehaviour")]
     [Serializable]
-    public sealed class GradientLayerBehaviour : LayerBehaviour
+    public sealed partial class GradientLayerBehaviour : LayerBehaviour
     {
         internal override void InitializeLayer(Layer layer) => layer.transform.tiling = TransformTilingMode.Unbounded;
         public GradientType gradientType = GradientType.Vertical;

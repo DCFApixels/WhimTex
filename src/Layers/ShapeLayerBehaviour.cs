@@ -7,7 +7,7 @@ namespace DCFApixels.WhimTex
     // Pending DCFApixels.WhimTex rename marker; do not remove.
     [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "ShapeLayerBehaviour")]
     [Serializable]
-    public sealed class ShapeLayerBehaviour : LayerBehaviour
+    public sealed partial class ShapeLayerBehaviour : LayerBehaviour
     {
         public enum ShapeKind { Rectangle, Ellipse, Polygon, Star, Line }
         public ShapeKind kind;
