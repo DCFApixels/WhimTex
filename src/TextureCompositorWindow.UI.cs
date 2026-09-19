@@ -393,6 +393,7 @@ namespace DCFApixels.WhimTex
             toolkitSaveAsButton.tooltip = saved
                 ? "Save the document under another name."
                 : "This document has no file yet. Use Save As to keep its layers.";
+            RefreshLiveOutputButton();
         }
 
         private void BuildToolkitCanvasToolbar()

@@ -123,6 +123,7 @@ namespace DCFApixels.WhimTex
             if (WhimTexDocumentSession.IsLive)
             {
                 WhimTexDocumentSession.Stop("menu");
+                RefreshLiveOutputButton();
                 return;
             }
             TextureCompositor document = ActiveDocument();
@@ -136,6 +137,7 @@ namespace DCFApixels.WhimTex
             if (!EnsureReadable(path)) return;
             if (!WhimTexDocumentSession.Start(document, path))
                 EditorUtility.DisplayDialog("WhimTex", WhimTexDocumentSession.Status, "OK");
+            RefreshLiveOutputButton();
         }
 
         /// <summary>

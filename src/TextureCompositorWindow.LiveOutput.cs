@@ -18,15 +18,24 @@ namespace DCFApixels.WhimTex
             RequestPreview();
         }
 
+        /// <summary>A document whose file is an imported image is updated through the document session.</summary>
+        private bool HasDocumentFile => compositor != null && TryGetDocumentFile(compositor, out _);
+
         private bool CanPublishLiveOutput => compositor != null &&
-            compositor.OutputTexture != null && AssetDatabase.Contains(compositor) &&
-            compositor.OutputTexture.isReadable &&
-            !UnityEngine.Experimental.Rendering.GraphicsFormatUtility.IsCompressedFormat(compositor.OutputTexture.graphicsFormat);
+            (HasDocumentFile || compositor.OutputTexture != null && AssetDatabase.Contains(compositor) &&
+             compositor.OutputTexture.isReadable &&
+             !UnityEngine.Experimental.Rendering.GraphicsFormatUtility.IsCompressedFormat(compositor.OutputTexture.graphicsFormat));
 
         private Button BuildLiveOutputButton()
         {
             liveOutputButton = new Button(() =>
             {
+                if (HasDocumentFile)
+                {
+                    ToggleLiveUpdate();
+                    RefreshLiveOutputButton();
+                    return;
+                }
                 liveOutputEnabled = !liveOutputEnabled;
                 if (!liveOutputEnabled) compositor?.StopLiveOutput();
                 else RequestPreview(true);
@@ -48,8 +57,13 @@ namespace DCFApixels.WhimTex
         {
             if (liveOutputButton == null) return;
             liveOutputButton.SetEnabled(CanPublishLiveOutput);
-            liveOutputButton.EnableInClassList("whimtex-channel-button--enabled", liveOutputEnabled);
-            liveOutputButton.tooltip = CanPublishLiveOutput
+            liveOutputButton.EnableInClassList("whimtex-channel-button--enabled",
+                HasDocumentFile ? WhimTexDocumentSession.IsLive : liveOutputEnabled);
+            liveOutputButton.tooltip = HasDocumentFile
+                ? (WhimTexDocumentSession.IsLive
+                    ? "Live Update edits the imported image of this document. Click to stop and restore the imported texture."
+                    : "Live Update: edit the imported document image in place, so materials show edits without re-encoding the file.")
+                : CanPublishLiveOutput
                 ? "Live Update: show edits on objects and in File layers using this compositor texture. Turning off restores the saved image. Save writes the changes; texture references stay unchanged."
                 : compositor != null && compositor.OutputTexture != null && UnityEngine.Experimental.Rendering.GraphicsFormatUtility.IsCompressedFormat(compositor.OutputTexture.graphicsFormat)
                     ? "Live Update: compressed output updates on Save. Choose Compression None and save to enable live updates."
@@ -60,6 +74,7 @@ namespace DCFApixels.WhimTex
 
         private void PublishLiveOutput()
         {
+            if (HasDocumentFile) return; // the document session publishes on its own
             if (!liveOutputEnabled || !CanPublishLiveOutput) return;
             try
             {
