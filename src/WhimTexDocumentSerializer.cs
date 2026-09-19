@@ -382,24 +382,29 @@ namespace DCFApixels.WhimTex
                 _writer.Write(localId);
             }
 
-            /// <summary>FNV-1a in four independent streams, straight over native pixels: no managed copy is made.</summary>
+            /// <summary>
+            /// FNV-1a in four independent streams over native pixels. The bytes are read as 8-byte words
+            /// through a single cast instead of a slice per word: on a 52MB document the bounds check and the
+            /// call for every word cost more than the mixing does.
+            /// </summary>
             private static ulong Hash64(Unity.Collections.NativeArray<byte> data)
             {
                 const ulong prime = 1099511628211UL;
                 ulong h1 = 14695981039346656037UL, h2 = h1 ^ 0x9E3779B97F4A7C15UL;
                 ulong h3 = h1 ^ 0xBF58476D1CE4E5B9UL, h4 = h1 ^ 0x94D049BB133111EBUL;
-                System.ReadOnlySpan<byte> span = data.AsSpan();
+                System.ReadOnlySpan<byte> bytes = data.AsSpan();
+                System.ReadOnlySpan<ulong> words = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, ulong>(bytes);
                 int i = 0;
-                int limit = span.Length - 31;
-                for (; i < limit; i += 32)
+                int last = words.Length - 3;
+                for (; i < last; i += 4)
                 {
-                    h1 = (h1 ^ BitConverter.ToUInt64(span.Slice(i))) * prime;
-                    h2 = (h2 ^ BitConverter.ToUInt64(span.Slice(i + 8))) * prime;
-                    h3 = (h3 ^ BitConverter.ToUInt64(span.Slice(i + 16))) * prime;
-                    h4 = (h4 ^ BitConverter.ToUInt64(span.Slice(i + 24))) * prime;
+                    h1 = (h1 ^ words[i]) * prime;
+                    h2 = (h2 ^ words[i + 1]) * prime;
+                    h3 = (h3 ^ words[i + 2]) * prime;
+                    h4 = (h4 ^ words[i + 3]) * prime;
                 }
-                for (; i < span.Length - 7; i += 8) h1 = (h1 ^ BitConverter.ToUInt64(span.Slice(i))) * prime;
-                for (; i < span.Length; i++) h1 = (h1 ^ span[i]) * prime;
+                for (; i < words.Length; i++) h1 = (h1 ^ words[i]) * prime;
+                for (int tail = words.Length * 8; tail < bytes.Length; tail++) h1 = (h1 ^ bytes[tail]) * prime;
                 return ((h1 ^ h2) * prime ^ h3) * prime ^ h4;
             }
 
