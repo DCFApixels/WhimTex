@@ -274,4 +274,30 @@ bool clean = true;
 foreach (byte value in wildPixels) if (value != 0 && value != 255) { clean = false; break; }
 Check(clean, "NaN and infinite samples became 0 or 1, never a stray value");
 
+// --- 11. a large image is stored as several strips and reads back byte for byte ---
+int StripCount(byte[] tiff)
+{
+    int entries = tiff[8] | tiff[9] << 8;
+    for (int i = 0; i < entries; i++)
+    {
+        int entry = 10 + i * 12;
+        if ((tiff[entry] | tiff[entry + 1] << 8) == 273)
+            return tiff[entry + 4] | tiff[entry + 5] << 8 | tiff[entry + 6] << 16 | tiff[entry + 7] << 24;
+    }
+    return 0;
+}
+const int bigWidth = 1024, bigHeight = 1024, bigRow = bigWidth * 4;
+var bigRaw = new byte[bigWidth * bigHeight * 4];
+for (int i = 0; i < bigRaw.Length; i++) bigRaw[i] = (byte)(i >> 5);
+byte[] bigImage = DCFApixels.WhimTex.WhimTexTiffImage.WriteRaw(bigWidth, bigHeight, bigRaw, 8, 8, false);
+Check(StripCount(bigImage) > 1, "a large image is split into strips, got " + StripCount(bigImage));
+Check(DCFApixels.WhimTex.WhimTexTiffImage.TryReadPixels(bigImage, out int bigBackWidth, out int bigBackHeight, out byte[] bigBack, out string bigError),
+    "the striped image reads back: " + bigError);
+Check(bigBackWidth == bigWidth && bigBackHeight == bigHeight && bigBack.Length == bigRaw.Length, "the striped image keeps its size");
+bool bigSame = true;
+for (int y = 0; y < bigHeight && bigSame; y++)
+    for (int i = 0; i < bigRow; i++)
+        if (bigBack[y * bigRow + i] != bigRaw[(bigHeight - 1 - y) * bigRow + i]) { bigSame = false; break; }
+Check(bigSame, "strips decode to the same pixels in TIFF row order");
+
 return "PASS: container checks=" + checks + ", " + report;

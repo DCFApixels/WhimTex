@@ -94,14 +94,44 @@ namespace DCFApixels.WhimTex
             return Build(width, height, stream.ToArray(), 32, SampleFormatFloat, compress);
         }
 
+        /// <summary>Strips are independent zlib streams: several of them compress on all cores at once.</summary>
+        private static int StripCount(int rawLength, int height, bool compress)
+        {
+            if (!compress || height < 2) return 1;
+            // Two megabytes per strip keeps the largest one from deciding when the save is done.
+            int wanted = (int)System.Math.Min(64, System.Math.Max(1, rawLength / (2 * 1024 * 1024)));
+            return System.Math.Max(1, System.Math.Min(wanted, height));
+        }
+
         private static byte[] Build(int width, int height, byte[] raw, int bitsPerSample, int sampleFormat, bool compress)
         {
-            byte[] stored = compress ? Deflate(raw) : raw;
+            int rowBytes = width * 4 * (bitsPerSample / 8);
+            int strips = StripCount(raw.Length, height, compress);
+            int rowsPerStrip = (height + strips - 1) / strips;
+            strips = (height + rowsPerStrip - 1) / rowsPerStrip;
+            var stored = new byte[strips][];
+            if (!compress) stored[0] = raw;
+            else if (strips == 1) stored[0] = Deflate(raw, 0, raw.Length);
+            else
+                System.Threading.Tasks.Parallel.For(0, strips, i =>
+                {
+                    int first = i * rowsPerStrip;
+                    int rows = System.Math.Min(rowsPerStrip, height - first);
+                    stored[i] = Deflate(raw, first * rowBytes, rows * rowBytes);
+                });
             int compression = compress ? CompressionDeflate : CompressionNone;
+            // A strip list of one entry is stored inside the directory entry itself, a longer one points at
+            // an array, which is what the format asks for.
+            bool inlineStrips = strips == 1;
             int bitsArray = HeaderSize + IfdSize;
             int formatArray = bitsArray + 8;
-            int dataOffset = formatArray + 8;
-            var file = new byte[dataOffset + stored.Length];
+            int offsetsArray = formatArray + 8;
+            int countsArray = offsetsArray + 4 * strips;
+            int dataOffset = inlineStrips ? offsetsArray : countsArray + 4 * strips;
+            long total = dataOffset;
+            foreach (byte[] part in stored) total += part.Length;
+            if (total > int.MaxValue) throw new WhimTexDocumentException("The image is too large to write.");
+            var file = new byte[total];
             file[0] = (byte)'I'; file[1] = (byte)'I';
             PutU16(file, 2, 42);
             PutU32(file, 4, HeaderSize);
@@ -120,17 +150,27 @@ namespace DCFApixels.WhimTex
             Add(TagBitsPerSample, TypeShort, 4, (uint)bitsArray);
             Add(TagCompression, TypeShort, 1, (uint)compression);
             Add(TagPhotometric, TypeShort, 1, 2);
-            Add(TagStripOffsets, TypeLong, 1, (uint)dataOffset);
+            Add(TagStripOffsets, TypeLong, (uint)strips, inlineStrips ? (uint)dataOffset : (uint)offsetsArray);
             Add(TagSamplesPerPixel, TypeShort, 1, 4);
-            Add(TagRowsPerStrip, TypeLong, 1, (uint)height);
-            Add(TagStripByteCounts, TypeLong, 1, (uint)stored.Length);
+            Add(TagRowsPerStrip, TypeLong, 1, (uint)rowsPerStrip);
+            Add(TagStripByteCounts, TypeLong, (uint)strips, inlineStrips ? (uint)stored[0].Length : (uint)countsArray);
             Add(TagPlanarConfig, TypeShort, 1, 1);
             Add(TagExtraSamples, TypeShort, 1, 2);
             Add(TagSampleFormat, TypeShort, 4, (uint)formatArray);
             PutU32(file, entry, 0);
             for (int i = 0; i < 4; i++) PutU16(file, bitsArray + i * 2, (ushort)bitsPerSample);
             for (int i = 0; i < 4; i++) PutU16(file, formatArray + i * 2, (ushort)sampleFormat);
-            System.Array.Copy(stored, 0, file, dataOffset, stored.Length);
+            int offset = dataOffset;
+            for (int i = 0; i < strips; i++)
+            {
+                if (!inlineStrips)
+                {
+                    PutU32(file, offsetsArray + i * 4, (uint)offset);
+                    PutU32(file, countsArray + i * 4, (uint)stored[i].Length);
+                }
+                System.Array.Copy(stored[i], 0, file, offset, stored[i].Length);
+                offset += stored[i].Length;
+            }
             return file;
         }
 
@@ -222,21 +262,35 @@ namespace DCFApixels.WhimTex
             const float upper = 1.0005f;
             const float lower = -0.0005f;
             if (sourceBits == 8) return false;
-            int samples = raw.Length / (sourceBits / 8);
-            for (int i = 0; i < samples; i++)
+            int bytesPerSample = sourceBits / 8;
+            int samples = raw.Length / bytesPerSample;
+            var found = new bool[1];
+            int perChunk = System.Math.Max(1, 8 * 1024 * 1024 / bytesPerSample);
+            int chunks = (samples + perChunk - 1) / perChunk;
+            // A composite holds hundreds of megabytes, so the scan runs on all cores and stops early.
+            System.Threading.Tasks.Parallel.For(0, chunks, (chunk, state) =>
             {
-                float value;
-                if (sourceBits == 16)
+                int last = System.Math.Min(samples, (chunk + 1) * perChunk);
+                for (int i = chunk * perChunk; i < last; i++)
                 {
-                    ushort half = (ushort)(raw[i * 2] | raw[i * 2 + 1] << 8);
-                    value = Mathf.HalfToFloat(half);
+                    float value;
+                    if (sourceBits == 16)
+                    {
+                        ushort half = (ushort)(raw[i * 2] | raw[i * 2 + 1] << 8);
+                        value = Mathf.HalfToFloat(half);
+                    }
+                    else
+                        value = BitConverter.Int32BitsToSingle(raw[i * 4] | raw[i * 4 + 1] << 8 |
+                            raw[i * 4 + 2] << 16 | raw[i * 4 + 3] << 24);
+                    if (float.IsNaN(value) || value > upper || value < lower)
+                    {
+                        found[0] = true;
+                        state.Stop();
+                        return;
+                    }
                 }
-                else
-                    value = BitConverter.Int32BitsToSingle(raw[i * 4] | raw[i * 4 + 1] << 8 |
-                        raw[i * 4 + 2] << 16 | raw[i * 4 + 3] << 24);
-                if (float.IsNaN(value) || value > upper || value < lower) return true;
-            }
-            return false;
+            });
+            return found[0];
         }
 
         private static float[] SrgbLookup()
@@ -285,10 +339,11 @@ namespace DCFApixels.WhimTex
             if (!IsTiff(file)) { error = "The image is not a TIFF."; return false; }
             int ifd = (int)ReadU32(file, 4);
             if (ifd <= 0 || ifd + 2 > file.Length) { error = "The TIFF header is invalid."; return false; }
-            int count = ReadU16(file, ifd);
+            int entryCount = ReadU16(file, ifd);
             int bitsPerSample = 0, compression = 1, samples = 1, format = 1;
-            long stripOffset = -1, stripBytes = -1;
-            for (int i = 0; i < count; i++)
+            int rowsPerStrip = 0, stripCount = 1;
+            long offsetsValue = -1, countsValue = -1;
+            for (int i = 0; i < entryCount; i++)
             {
                 int entry = ifd + 2 + i * 12;
                 if (entry + 12 > file.Length) { error = "The TIFF directory is truncated."; return false; }
@@ -300,8 +355,10 @@ namespace DCFApixels.WhimTex
                     case TagImageLength: height = (int)value; break;
                     case TagCompression: compression = (int)value; break;
                     case TagSamplesPerPixel: samples = (int)value; break;
-                    case TagStripOffsets: stripOffset = value; break;
-                    case TagStripByteCounts: stripBytes = value; break;
+                    // A long tag with several values points at an array, a single one sits in the entry.
+                    case TagStripOffsets: offsetsValue = value; stripCount = (int)ReadU32(file, entry + 4); break;
+                    case TagStripByteCounts: countsValue = value; break;
+                    case TagRowsPerStrip: rowsPerStrip = (int)value; break;
                     // Multi-value SHORT tags hold an offset to an array of 16-bit values.
                     case TagBitsPerSample: bitsPerSample = ReadU16(file, (int)value); break;
                     case TagSampleFormat: format = ReadU16(file, (int)value); break;
@@ -309,36 +366,65 @@ namespace DCFApixels.WhimTex
             }
             if (width <= 0 || height <= 0) { error = "The TIFF has no image size."; return false; }
             if (samples != 4) { error = "Only RGBA TIFF images are supported, got " + samples + " samples."; return false; }
-            if (stripOffset < 0 || stripBytes <= 0 || stripOffset + stripBytes > file.Length)
-            { error = "The TIFF strip is out of bounds."; return false; }
-            byte[] stored = new byte[stripBytes];
-            System.Array.Copy(file, (int)stripOffset, stored, 0, (int)stripBytes);
-            int expected = width * height * 4 * (bitsPerSample / 8);
-            if (compression == CompressionDeflate)
-            {
-                if (!TryInflate(stored, expected, out raw, out error)) return false;
-            }
-            else if (compression == CompressionNone)
-            {
-                if (stored.Length != expected) { error = "The TIFF strip size does not match the image size."; return false; }
-                raw = stored;
-            }
-            else { error = "Unsupported TIFF compression: " + compression + "."; return false; }
-            if (raw.Length != expected) { error = "The TIFF decoded to " + raw.Length + " bytes instead of " + expected + "."; return false; }
             if (bitsPerSample != 8 && bitsPerSample != 32) { error = "Unsupported TIFF bit depth: " + bitsPerSample + "."; return false; }
             if (format != SampleFormatUnsigned && format != SampleFormatFloat) { error = "Unsupported TIFF sample format."; return false; }
+            if (compression != CompressionDeflate && compression != CompressionNone)
+            { error = "Unsupported TIFF compression: " + compression + "."; return false; }
+            if (offsetsValue < 0 || countsValue < 0 || stripCount <= 0) { error = "The TIFF has no pixel data."; return false; }
+            if (rowsPerStrip <= 0) rowsPerStrip = height;
+            int bytesPerPixel = 4 * (bitsPerSample / 8);
+            int expected = width * height * bytesPerPixel;
+            var decoded = new byte[expected];
+            var stripSource = new int[stripCount];
+            var stripStored = new int[stripCount];
+            var stripDecoded = new int[stripCount];
+            var stripTarget = new int[stripCount];
+            int written = 0;
+            for (int i = 0; i < stripCount; i++)
+            {
+                int offset = (int)(stripCount == 1 ? offsetsValue : ReadU32(file, (int)offsetsValue + i * 4));
+                int bytes = (int)(stripCount == 1 ? countsValue : ReadU32(file, (int)countsValue + i * 4));
+                if (offset < 0 || bytes <= 0 || (long)offset + bytes > file.Length)
+                { error = "The TIFF strip is out of bounds."; return false; }
+                int rows = System.Math.Min(rowsPerStrip, height - i * rowsPerStrip);
+                if (rows <= 0) { error = "The TIFF declares more strips than it has rows."; return false; }
+                int decodedBytes = rows * width * bytesPerPixel;
+                if (written + decodedBytes > expected) { error = "The TIFF strips are larger than the image."; return false; }
+                stripSource[i] = offset;
+                stripStored[i] = bytes;
+                stripDecoded[i] = decodedBytes;
+                stripTarget[i] = written;
+                written += decodedBytes;
+            }
+            if (written != expected) { error = "The TIFF decoded to " + written + " bytes instead of " + expected + "."; return false; }
+            // Strips are separate streams, so a large image is verified on all cores; each one is inflated
+            // straight into its place in the image, without a second copy.
+            var problems = new string[stripCount];
+            System.Threading.Tasks.Parallel.For(0, stripCount, i =>
+            {
+                var stored = new byte[stripStored[i]];
+                System.Array.Copy(file, stripSource[i], stored, 0, stored.Length);
+                if (compression == CompressionDeflate)
+                {
+                    if (!TryInflate(stored, decoded, stripTarget[i], stripDecoded[i], out string problem)) problems[i] = problem;
+                }
+                else if (stored.Length != stripDecoded[i]) problems[i] = "The TIFF strip size does not match the image size.";
+                else System.Array.Copy(stored, 0, decoded, stripTarget[i], stored.Length);
+            });
+            foreach (string problem in problems) if (problem != null) { error = problem; return false; }
+            raw = decoded;
             return true;
         }
 
         // --- compression: TIFF Deflate expects a zlib stream, while DeflateStream writes raw deflate ---
 
-        private static byte[] Deflate(byte[] raw)
+        private static byte[] Deflate(byte[] raw, int offset, int count)
         {
             using var stream = new MemoryStream();
             stream.WriteByte(0x78);
             stream.WriteByte(0x01);
-            using (var deflate = new DeflateStream(stream, System.IO.Compression.CompressionLevel.Fastest, true)) deflate.Write(raw, 0, raw.Length);
-            uint adler = Adler32(raw);
+            using (var deflate = new DeflateStream(stream, System.IO.Compression.CompressionLevel.Fastest, true)) deflate.Write(raw, offset, count);
+            uint adler = Adler32(raw, offset, count);
             stream.WriteByte((byte)(adler >> 24));
             stream.WriteByte((byte)(adler >> 16));
             stream.WriteByte((byte)(adler >> 8));
@@ -346,25 +432,22 @@ namespace DCFApixels.WhimTex
             return stream.ToArray();
         }
 
-        private static bool TryInflate(byte[] stored, int expected, out byte[] raw, out string error)
+        private static bool TryInflate(byte[] stored, byte[] target, int targetOffset, int expected, out string error)
         {
-            raw = null;
             error = null;
             if (stored.Length < 6) { error = "The compressed TIFF strip is truncated."; return false; }
             try
             {
                 using var stream = new MemoryStream(stored, 2, stored.Length - 6, false);
                 using var deflate = new DeflateStream(stream, CompressionMode.Decompress);
-                var result = new byte[expected];
                 int read = 0;
                 while (read < expected)
                 {
-                    int step = deflate.Read(result, read, expected - read);
+                    int step = deflate.Read(target, targetOffset + read, expected - read);
                     if (step <= 0) break;
                     read += step;
                 }
                 if (read != expected) { error = "The compressed TIFF strip decoded to " + read + " bytes instead of " + expected + "."; return false; }
-                raw = result;
                 return true;
             }
             catch (InvalidDataException exception)
@@ -374,18 +457,18 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private static uint Adler32(byte[] data)
+        private static uint Adler32(byte[] data, int offset, int count)
         {
             // Deferred modulo: taking the remainder per byte costs more than the checksum itself.
             const uint modulus = 65521;
             uint a = 1, b = 0;
             int index = 0;
-            while (index < data.Length)
+            while (index < count)
             {
-                int block = Math.Min(5552, data.Length - index);
+                int block = Math.Min(5552, count - index);
                 for (int i = 0; i < block; i++)
                 {
-                    a += data[index + i];
+                    a += data[offset + index + i];
                     b += a;
                 }
                 a %= modulus;

@@ -257,16 +257,24 @@ namespace DCFApixels.WhimTex
                 _writer.Write(localId);
             }
 
-            /// <summary>FNV-1a over 8-byte words: a cheap content identity for the block cache.</summary>
+            /// <summary>FNV-1a in four independent streams: one stream runs at a few hundred megabytes per second.</summary>
             private static ulong Hash64(byte[] data)
             {
                 const ulong prime = 1099511628211UL;
-                ulong hash = 14695981039346656037UL;
+                ulong h1 = 14695981039346656037UL, h2 = h1 ^ 0x9E3779B97F4A7C15UL;
+                ulong h3 = h1 ^ 0xBF58476D1CE4E5B9UL, h4 = h1 ^ 0x94D049BB133111EBUL;
                 int i = 0;
-                int limit = data.Length - 7;
-                for (; i < limit; i += 8) hash = (hash ^ BitConverter.ToUInt64(data, i)) * prime;
-                for (; i < data.Length; i++) hash = (hash ^ data[i]) * prime;
-                return hash;
+                int limit = data.Length - 31;
+                for (; i < limit; i += 32)
+                {
+                    h1 = (h1 ^ BitConverter.ToUInt64(data, i)) * prime;
+                    h2 = (h2 ^ BitConverter.ToUInt64(data, i + 8)) * prime;
+                    h3 = (h3 ^ BitConverter.ToUInt64(data, i + 16)) * prime;
+                    h4 = (h4 ^ BitConverter.ToUInt64(data, i + 24)) * prime;
+                }
+                for (; i < data.Length - 7; i += 8) h1 = (h1 ^ BitConverter.ToUInt64(data, i)) * prime;
+                for (; i < data.Length; i++) h1 = (h1 ^ data[i]) * prime;
+                return ((h1 ^ h2) * prime ^ h3) * prime ^ h4;
             }
 
             private void WriteTexture(Texture2D texture)
