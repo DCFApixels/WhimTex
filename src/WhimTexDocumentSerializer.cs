@@ -476,35 +476,98 @@ namespace DCFApixels.WhimTex
                 _writer.Write(count);
             }
 
-            private void Named(string name, object value, Type type)
+            /// <summary>Counts a value and writes its name. Keeping the value out of an object parameter is
+            /// what stops a value-type field from being boxed on its way out.</summary>
+            private void Before(string name)
             {
                 if (_manualRemaining < 0)
                     throw new WhimTexDocumentException("A manually serialized type wrote a value before Begin.");
                 _manualRemaining--;
                 _writer.Write(name);
+            }
+
+            private void Named(string name, object value, Type type)
+            {
+                Before(name);
                 Write(value, type);
             }
 
-            public void Write(string name, int value) => Named(name, value, typeof(int));
-            public void Write(string name, long value) => Named(name, value, typeof(long));
-            public void Write(string name, float value) => Named(name, value, typeof(float));
-            public void Write(string name, double value) => Named(name, value, typeof(double));
-            public void Write(string name, bool value) => Named(name, value, typeof(bool));
-            public void Write(string name, char value) => Named(name, value, typeof(char));
-            public void Write(string name, string value) => Named(name, value, typeof(string));
-            public void Write(string name, Vector2 value) => Named(name, value, typeof(Vector2));
-            public void Write(string name, Vector3 value) => Named(name, value, typeof(Vector3));
-            public void Write(string name, Vector4 value) => Named(name, value, typeof(Vector4));
-            public void Write(string name, Vector2Int value) => Named(name, value, typeof(Vector2Int));
-            public void Write(string name, Vector3Int value) => Named(name, value, typeof(Vector3Int));
-            public void Write(string name, Quaternion value) => Named(name, value, typeof(Quaternion));
-            public void Write(string name, Color value) => Named(name, value, typeof(Color));
-            public void Write(string name, Color32 value) => Named(name, value, typeof(Color32));
-            public void Write(string name, Rect value) => Named(name, value, typeof(Rect));
-            public void Write(string name, RectInt value) => Named(name, value, typeof(RectInt));
-            public void Write(string name, Bounds value) => Named(name, value, typeof(Bounds));
-            public void Write(string name, AnimationCurve value) => Named(name, value, typeof(AnimationCurve));
+            // Value types are written straight to the stream: the tag and the payload are exactly what the
+            // automatic pass writes, so both passes stay interchangeable byte for byte.
+            public void Write(string name, int value) { Before(name); _writer.Write(TagInt); _writer.Write(value); }
+            public void Write(string name, long value) { Before(name); _writer.Write(TagLong); _writer.Write(value); }
+            public void Write(string name, float value) { Before(name); _writer.Write(TagFloat); _writer.Write(value); }
+            public void Write(string name, double value) { Before(name); _writer.Write(TagDouble); _writer.Write(value); }
+            public void Write(string name, bool value) { Before(name); _writer.Write(TagBool); _writer.Write(value); }
+            public void Write(string name, char value) { Before(name); _writer.Write(TagChar); _writer.Write(value); }
+            public void Write(string name, string value)
+            {
+                Before(name);
+                if (value == null) { _writer.Write(TagNull); return; }
+                _writer.Write(TagString);
+                _writer.Write(value);
+            }
+            public void Write(string name, Vector2 value)
+            {
+                Before(name); _writer.Write(TagVector2);
+                _writer.Write(value.x); _writer.Write(value.y);
+            }
+            public void Write(string name, Vector3 value)
+            {
+                Before(name); _writer.Write(TagVector3);
+                _writer.Write(value.x); _writer.Write(value.y); _writer.Write(value.z);
+            }
+            public void Write(string name, Vector4 value)
+            {
+                Before(name); _writer.Write(TagVector4);
+                _writer.Write(value.x); _writer.Write(value.y); _writer.Write(value.z); _writer.Write(value.w);
+            }
+            public void Write(string name, Vector2Int value)
+            {
+                Before(name); _writer.Write(TagVector2Int);
+                _writer.Write(value.x); _writer.Write(value.y);
+            }
+            public void Write(string name, Vector3Int value)
+            {
+                Before(name); _writer.Write(TagVector3Int);
+                _writer.Write(value.x); _writer.Write(value.y); _writer.Write(value.z);
+            }
+            public void Write(string name, Quaternion value)
+            {
+                Before(name); _writer.Write(TagQuaternion);
+                _writer.Write(value.x); _writer.Write(value.y); _writer.Write(value.z); _writer.Write(value.w);
+            }
+            public void Write(string name, Color value)
+            {
+                Before(name); _writer.Write(TagColor);
+                _writer.Write(value.r); _writer.Write(value.g); _writer.Write(value.b); _writer.Write(value.a);
+            }
+            public void Write(string name, Color32 value)
+            {
+                Before(name); _writer.Write(TagColor32);
+                _writer.Write(value.r); _writer.Write(value.g); _writer.Write(value.b); _writer.Write(value.a);
+            }
+            public void Write(string name, Rect value)
+            {
+                Before(name); _writer.Write(TagRect);
+                _writer.Write(value.x); _writer.Write(value.y); _writer.Write(value.width); _writer.Write(value.height);
+            }
+            public void Write(string name, RectInt value)
+            {
+                Before(name); _writer.Write(TagRectInt);
+                _writer.Write(value.x); _writer.Write(value.y); _writer.Write(value.width); _writer.Write(value.height);
+            }
+            public void Write(string name, Bounds value)
+            {
+                Before(name); _writer.Write(TagBounds);
+                _writer.Write(value.center.x); _writer.Write(value.center.y); _writer.Write(value.center.z);
+                _writer.Write(value.size.x); _writer.Write(value.size.y); _writer.Write(value.size.z);
+            }
+
+            // An enum carries its own type name, curves, objects, lists and asset references are reference
+            // types, so those keep the shared path.
             public void WriteEnum<T>(string name, T value) where T : struct, Enum => Named(name, value, typeof(T));
+            public void Write(string name, AnimationCurve value) => Named(name, value, typeof(AnimationCurve));
             public void WriteObject(string name, object value, Type type) => Named(name, value, type);
             public void WriteList(string name, IList value, Type type) => Named(name, value, type);
             public void WriteReference(string name, UnityEngine.Object value) => Named(name, value, typeof(UnityEngine.Object));
@@ -564,9 +627,10 @@ namespace DCFApixels.WhimTex
                 _container = container;
             }
 
-            public object Read(Type declared)
+            public object Read(Type declared) => ReadTagged(_reader.ReadByte(), declared);
+
+            private object ReadTagged(byte tag, Type declared)
             {
-                byte tag = _reader.ReadByte();
                 switch (tag)
                 {
                     case TagNull: return null;
@@ -760,25 +824,91 @@ namespace DCFApixels.WhimTex
             }
 
             public string NextName() => _reader.ReadString();
-            public int ReadInt() => (int)Read(typeof(int));
-            public long ReadLong() => (long)Read(typeof(long));
-            public float ReadFloat() => (float)Read(typeof(float));
-            public double ReadDouble() => (double)Read(typeof(double));
-            public bool ReadBool() => (bool)Read(typeof(bool));
-            public char ReadChar() => (char)Read(typeof(char));
-            public string ReadString() => (string)Read(typeof(string));
-            public Vector2 ReadVector2() => (Vector2)Read(typeof(Vector2));
-            public Vector3 ReadVector3() => (Vector3)Read(typeof(Vector3));
-            public Vector4 ReadVector4() => (Vector4)Read(typeof(Vector4));
-            public Vector2Int ReadVector2Int() => (Vector2Int)Read(typeof(Vector2Int));
-            public Vector3Int ReadVector3Int() => (Vector3Int)Read(typeof(Vector3Int));
-            public Quaternion ReadQuaternion() => (Quaternion)Read(typeof(Quaternion));
-            public Color ReadColor() => (Color)Read(typeof(Color));
-            public Color32 ReadColor32() => (Color32)Read(typeof(Color32));
-            public Rect ReadRect() => (Rect)Read(typeof(Rect));
-            public RectInt ReadRectInt() => (RectInt)Read(typeof(RectInt));
-            public Bounds ReadBounds() => (Bounds)Read(typeof(Bounds));
+            // A value is read straight from its tag, so nothing is boxed on the way in. A tag that does not
+            // match the field (a field whose type changed between versions, or a null) falls back to the
+            // shared pass, which is exactly how the automatic path treats such a value.
+            public int ReadInt() { byte tag = _reader.ReadByte(); if (tag == TagInt) return _reader.ReadInt32(); return ReadTagged(tag, typeof(int)) is int value ? value : default; }
+            public long ReadLong() { byte tag = _reader.ReadByte(); if (tag == TagLong) return _reader.ReadInt64(); return ReadTagged(tag, typeof(long)) is long value ? value : default; }
+            public float ReadFloat() { byte tag = _reader.ReadByte(); if (tag == TagFloat) return _reader.ReadSingle(); return ReadTagged(tag, typeof(float)) is float value ? value : default; }
+            public double ReadDouble() { byte tag = _reader.ReadByte(); if (tag == TagDouble) return _reader.ReadDouble(); return ReadTagged(tag, typeof(double)) is double value ? value : default; }
+            public bool ReadBool() { byte tag = _reader.ReadByte(); if (tag == TagBool) return _reader.ReadBoolean(); return ReadTagged(tag, typeof(bool)) is bool value && value; }
+            public char ReadChar() { byte tag = _reader.ReadByte(); if (tag == TagChar) return _reader.ReadChar(); return ReadTagged(tag, typeof(char)) is char value ? value : default; }
+            public string ReadString()
+            {
+                byte tag = _reader.ReadByte();
+                if (tag == TagString) return _reader.ReadString();
+                return ReadTagged(tag, typeof(string)) as string;
+            }
+            public Vector2 ReadVector2()
+            {
+                byte tag = _reader.ReadByte();
+                if (tag == TagVector2) return new Vector2(_reader.ReadSingle(), _reader.ReadSingle());
+                return ReadTagged(tag, typeof(Vector2)) is Vector2 value ? value : default;
+            }
+            public Vector3 ReadVector3()
+            {
+                byte tag = _reader.ReadByte();
+                if (tag == TagVector3) return new Vector3(_reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle());
+                return ReadTagged(tag, typeof(Vector3)) is Vector3 value ? value : default;
+            }
+            public Vector4 ReadVector4()
+            {
+                byte tag = _reader.ReadByte();
+                if (tag == TagVector4) return new Vector4(_reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle());
+                return ReadTagged(tag, typeof(Vector4)) is Vector4 value ? value : default;
+            }
+            public Vector2Int ReadVector2Int()
+            {
+                byte tag = _reader.ReadByte();
+                if (tag == TagVector2Int) return new Vector2Int(_reader.ReadInt32(), _reader.ReadInt32());
+                return ReadTagged(tag, typeof(Vector2Int)) is Vector2Int value ? value : default;
+            }
+            public Vector3Int ReadVector3Int()
+            {
+                byte tag = _reader.ReadByte();
+                if (tag == TagVector3Int) return new Vector3Int(_reader.ReadInt32(), _reader.ReadInt32(), _reader.ReadInt32());
+                return ReadTagged(tag, typeof(Vector3Int)) is Vector3Int value ? value : default;
+            }
+            public Quaternion ReadQuaternion()
+            {
+                byte tag = _reader.ReadByte();
+                if (tag == TagQuaternion) return new Quaternion(_reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle());
+                return ReadTagged(tag, typeof(Quaternion)) is Quaternion value ? value : default;
+            }
+            public Color ReadColor()
+            {
+                byte tag = _reader.ReadByte();
+                if (tag == TagColor) return new Color(_reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle());
+                return ReadTagged(tag, typeof(Color)) is Color value ? value : default;
+            }
+            public Color32 ReadColor32()
+            {
+                byte tag = _reader.ReadByte();
+                if (tag == TagColor32) return new Color32(_reader.ReadByte(), _reader.ReadByte(), _reader.ReadByte(), _reader.ReadByte());
+                return ReadTagged(tag, typeof(Color32)) is Color32 value ? value : default;
+            }
+            public Rect ReadRect()
+            {
+                byte tag = _reader.ReadByte();
+                if (tag == TagRect) return new Rect(_reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle());
+                return ReadTagged(tag, typeof(Rect)) is Rect value ? value : default;
+            }
+            public RectInt ReadRectInt()
+            {
+                byte tag = _reader.ReadByte();
+                if (tag == TagRectInt) return new RectInt(_reader.ReadInt32(), _reader.ReadInt32(), _reader.ReadInt32(), _reader.ReadInt32());
+                return ReadTagged(tag, typeof(RectInt)) is RectInt value ? value : default;
+            }
+            public Bounds ReadBounds()
+            {
+                byte tag = _reader.ReadByte();
+                if (tag == TagBounds)
+                    return new Bounds(new Vector3(_reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle()),
+                        new Vector3(_reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle()));
+                return ReadTagged(tag, typeof(Bounds)) is Bounds value ? value : default;
+            }
             AnimationCurve IWhimTexDocumentReader.ReadCurve() => (AnimationCurve)Read(typeof(AnimationCurve));
+            // An enum carries its own type name, so it keeps the shared pass.
             public T ReadEnum<T>() where T : struct, Enum => (T)Read(typeof(T));
             public object ReadObject(Type type) => Read(type);
             // These names already exist on the reader's own value dispatch, so they are implemented
