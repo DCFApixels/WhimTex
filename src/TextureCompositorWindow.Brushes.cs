@@ -54,7 +54,7 @@ namespace DCFApixels.WhimTex
             tip.RegisterValueChangedCallback(evt =>
             {
                 var texture = evt.newValue as Texture2D;
-                if (texture != null && compositor != null && ReferenceEquals(TextureCompositor.FindDocument(texture), compositor))
+                if (WhimTexDocumentService.IsOwnOutput(compositor, texture))
                 {
                     tip.SetValueWithoutNotify(paintSettings.dynamics.tip);
                     ShowNotification(new GUIContent("Choose a texture other than this document's output."));

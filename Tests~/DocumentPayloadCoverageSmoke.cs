@@ -13,7 +13,7 @@ void Check(bool ok, string message) { if (!ok) throw new System.Exception("FAIL[
 var derived = new System.Collections.Generic.HashSet<string>
 {
     "compiledShader", "appliedCode", "appliedSource", "appliedParameters", "diagnostics", "lastApplyFailed",
-    "embeddedOwner", "transformCache", "outputTexture", "outputSprite", "sliceOutputs"
+    "embeddedOwner", "transformCache", "outputTexture", "outputSprite", "sliceOutputs", "documentLoadWarning", "documentBinding"
 };
 System.Collections.Generic.List<System.Reflection.FieldInfo> Fields(Type type)
 {
@@ -140,6 +140,11 @@ foreach (Type type in typeof(DCFApixels.WhimTex.LayerBehaviour).Assembly.GetType
         behaviourTypes.Add(type);
 behaviourTypes.Sort((a, b) => string.CompareOrdinal(a.Name, b.Name));
 var doc = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>();
+DCFApixels.WhimTex.TextureCompositor loaded = null;
+string folder = "Assets/WhimTexCoverage_" + System.Guid.NewGuid().ToString("N");
+UnityEditor.AssetDatabase.CreateFolder("Assets", System.IO.Path.GetFileName(folder));
+try
+{
 doc.width = doc.height = 16;
 var mutated = new System.Collections.Generic.List<object>();
 foreach (Type type in behaviourTypes)
@@ -159,8 +164,8 @@ report.Append("behaviourTypes=").Append(behaviourTypes.Count).Append(" fieldsTou
 
 // --- round trip ---
 phase = "roundtrip";
-string path = DCFApixels.WhimTex.WhimTexDocumentFile.Save(doc, "Assets/WhimTexSpike/coverage-test");
-Check(DCFApixels.WhimTex.WhimTexDocumentFile.TryLoad(path, out DCFApixels.WhimTex.TextureCompositor loaded, out string error),
+string path = DCFApixels.WhimTex.WhimTexDocumentFile.Save(doc, folder + "/coverage-test");
+Check(DCFApixels.WhimTex.WhimTexDocumentFile.TryLoad(path, out loaded, out string error),
     "document loads: " + error);
 Check(loaded.layers.Count == doc.layers.Count, "layer count " + loaded.layers.Count + " != " + doc.layers.Count);
 
@@ -186,3 +191,10 @@ Check(mismatches == 0, "field mismatches=" + mismatches + problems);
 string documentIssue = Compare(doc, loaded, typeof(DCFApixels.WhimTex.TextureCompositor), 0, new System.Collections.Generic.HashSet<object>());
 Check(documentIssue == null, "document level: " + documentIssue);
 return "PASS: coverage checks=" + checks + ", " + report;
+}
+finally
+{
+    UnityEngine.Object.DestroyImmediate(doc);
+    if (loaded != null) UnityEngine.Object.DestroyImmediate(loaded);
+    UnityEditor.AssetDatabase.DeleteAsset(folder);
+}

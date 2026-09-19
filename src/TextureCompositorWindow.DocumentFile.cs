@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEditor.Callbacks;
@@ -9,17 +8,33 @@ namespace DCFApixels.WhimTex
     /// <summary>
     /// Menu entries and asset opening for documents stored in the carrier image format.
     ///
-    /// This is an addition, not a replacement: the legacy <c>.asset</c> path keeps working, and a
-    /// document switches to the new format only when it is explicitly saved as one. Live Update works
-    /// on the carrier image, so it needs Read/Write enabled in that image's .meta and a document that
-    /// already has a file.
+    /// TIFF files keep their native importer. Legacy asset export remains separate; Live Update
+    /// temporarily enables Read/Write through the document session when it is needed.
     /// </summary>
     public sealed partial class TextureCompositorWindow
     {
-        private static readonly Dictionary<TextureCompositor, string> DocumentFiles = new Dictionary<TextureCompositor, string>();
-
-        /// <summary>Kept on the window so the document keeps knowing its file across a domain reload.</summary>
+        /// <summary>Compatibility with existing serialized windows; new identity lives on the document.</summary>
         [SerializeField] private string documentFilePath;
+        [SerializeField] private string documentFileGuid;
+        [SerializeField] private TextureCompositor documentFileOwner;
+
+        private void BindDocumentFile(string path)
+        {
+            if (WhimTexDocumentService.PathOf(compositor) != path) WhimTexDocumentService.Bind(compositor, path);
+            WhimTexDocumentService.Attach(this, compositor);
+            documentFileOwner = compositor;
+            documentFilePath = path;
+            documentFileGuid = AssetDatabase.AssetPathToGUID(path);
+            RefreshDocumentTitle(true);
+        }
+
+        private void ClearDocumentFile()
+        {
+            WhimTexDocumentService.Detach(this);
+            documentFileOwner = null;
+            documentFileGuid = null;
+            documentFilePath = null;
+        }
 
         private static TextureCompositorWindow WindowFor(TextureCompositor document)
         {
@@ -42,12 +57,21 @@ namespace DCFApixels.WhimTex
         {
             path = null;
             if (document == null) return false;
-            if (DocumentFiles.TryGetValue(document, out path) && !string.IsNullOrEmpty(path) && File.Exists(path)) return true;
-            path = null;
+            path = WhimTexDocumentService.PathOf(document);
+            if (!string.IsNullOrEmpty(path)) return true;
             TextureCompositorWindow owner = WindowFor(document);
-            if (owner == null || string.IsNullOrEmpty(owner.documentFilePath) || !File.Exists(owner.documentFilePath)) return false;
-            path = owner.documentFilePath;
-            DocumentFiles[document] = path;
+            path = null;
+            // Upgrade a window serialized before bindings stored their owner/GUID. The imported
+            // output is proof of ownership; a stale window path alone must never be trusted.
+            if (owner != null && owner.documentFileOwner == null && string.IsNullOrEmpty(owner.documentFileGuid) &&
+                !string.IsNullOrEmpty(owner.documentFilePath) && document.OutputTexture != null &&
+                AssetDatabase.GetAssetPath(document.OutputTexture) == owner.documentFilePath)
+                owner.BindDocumentFile(owner.documentFilePath);
+            if (owner == null || owner.documentFileOwner != document) return false;
+            path = AssetDatabase.GUIDToAssetPath(owner.documentFileGuid);
+            if (string.IsNullOrEmpty(path) || !File.Exists(path)) return false;
+            owner.documentFilePath = path;
+            owner.BindDocumentFile(path);
             return true;
         }
 
@@ -70,33 +94,43 @@ namespace DCFApixels.WhimTex
         private static bool SaveDocumentAs(TextureCompositor document)
         {
             if (document == null) return false;
-            string suggested = (string.IsNullOrEmpty(document.name) ? "WhimTex Document" : document.name) + ".whimtex";
+            string suggested = TryGetDocumentFile(document, out string currentPath) ? Path.GetFileNameWithoutExtension(currentPath)
+                : (string.IsNullOrEmpty(document.name) ? "WhimTex Document" : document.name) + ".whimtex";
             string path = EditorUtility.SaveFilePanelInProject("Save WhimTex Document", suggested, "tiff",
                 "The document is stored as a TIFF image, so Unity imports it as a texture with full import settings.");
             if (string.IsNullOrEmpty(path)) return false;
             return SaveDocumentTo(document, path);
         }
 
-        /// <summary>Writing a document stops Live Update first: a reimport would reset the uncompressed surface.</summary>
+        /// <summary>Writing pauses Live Update without toggling Read/Write around each save.</summary>
         private static bool SaveDocumentTo(TextureCompositor document, string path)
         {
             if (document == null || string.IsNullOrEmpty(path)) return false;
+            TextureCompositor copy = null;
             try
             {
-                bool wasLive = WhimTexDocumentSession.IsLive;
-                WhimTexDocumentSession.Stop("document save");
-                string written = WhimTexDocumentFile.Save(document, path, deferImport: !wasLive);
-                DocumentFiles[document] = written;
                 TextureCompositorWindow owner = WindowFor(document);
+                owner?.PrepareDocumentSave();
+                if (AssetDatabase.Contains(document))
+                    copy = WhimTexDocumentFile.CreateEditableCopy(document);
+                var target = copy != null ? copy : document;
+                bool wasLive = WhimTexDocumentSession.IsLiveFor(document);
+                string written = WhimTexDocumentFile.Save(target, path, deferImport: !wasLive);
                 if (owner != null)
                 {
-                    owner.documentFilePath = written;
+                    if (copy != null)
+                    {
+                        WhimTexApi.TransferLiveDocument(owner.agentSessionId, document, copy);
+                        owner.agentSessionDocument = copy;
+                        owner.SetCompositor(copy);
+                        copy = null; // window now owns the working document
+                    }
+                    owner.BindDocumentFile(written);
                     // The document is not an asset, so its dirty state lives on the window and has to be
                     // cleared here: otherwise the title keeps its asterisk and Save stays enabled.
                     owner.temporaryDocumentDirty = false;
                     owner.UpdateUnsavedChangesState();
                 }
-                if (wasLive) WhimTexDocumentSession.Start(document, written);
                 var image = AssetDatabase.LoadAssetAtPath<Texture2D>(written);
                 if (image != null)
                 {
@@ -112,21 +146,40 @@ namespace DCFApixels.WhimTex
                 EditorUtility.DisplayDialog("WhimTex", error.Message, "OK");
                 return false;
             }
+            finally { if (copy != null) DestroyImmediate(copy); }
+        }
+
+        private void OpenDocumentOutputSettings()
+        {
+            if (compositor == null) return;
+            if (AssetDatabase.Contains(compositor)) { WhimTexOutputSettingsWindow.Open(compositor); return; }
+            if (!TryGetDocumentFile(compositor, out string path))
+            {
+                if (!SaveDocument()) return;
+                if (!TryGetDocumentFile(compositor, out path)) return;
+            }
+            var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+            if (texture != null)
+            {
+                Selection.activeObject = texture;
+                EditorGUIUtility.PingObject(texture);
+            }
         }
 
         [MenuItem("Assets/WhimTex/Toggle Live Update", true)]
         private static bool ValidateToggleLiveUpdate() => ActiveDocument() != null;
 
         [MenuItem("Assets/WhimTex/Toggle Live Update")]
-        private static void ToggleLiveUpdate()
+        private static void ToggleLiveUpdate() => ToggleLiveUpdate(ActiveDocument());
+
+        private static void ToggleLiveUpdate(TextureCompositor document)
         {
-            if (WhimTexDocumentSession.IsLive)
+            if (WhimTexDocumentSession.IsLiveFor(document))
             {
                 WhimTexDocumentSession.Stop("menu");
                 RefreshLiveUpdateButtons();
                 return;
             }
-            TextureCompositor document = ActiveDocument();
             if (document == null) return;
             if (!TryGetDocumentFile(document, out string path))
             {
@@ -134,7 +187,6 @@ namespace DCFApixels.WhimTex
                     "Save the document as a WhimTex file first: Live Update edits the imported image of that file.", "OK");
                 return;
             }
-            if (!EnsureReadable(path)) return;
             if (!WhimTexDocumentSession.Start(document, path))
                 EditorUtility.DisplayDialog("WhimTex", WhimTexDocumentSession.Status, "OK");
             RefreshLiveUpdateButtons();
@@ -147,27 +199,25 @@ namespace DCFApixels.WhimTex
                 if (window != null) window.RefreshLiveOutputButton();
         }
 
-        /// <summary>
-        /// Live Update needs a CPU-accessible texture. The flag lives in the .meta, so enabling it is
-        /// reported rather than hidden: it is a change to the imported asset, not to the document.
-        /// </summary>
-        private static bool EnsureReadable(string path)
-        {
-            if (!(AssetImporter.GetAtPath(path) is TextureImporter importer)) return true;
-            if (importer.isReadable) return true;
-            importer.isReadable = true;
-            importer.SaveAndReimport();
-            Debug.Log("WhimTex: Read/Write enabled on " + path + " for Live Update. " +
-                      "It is stored in the .meta and can be turned off in the texture inspector.");
-            return true;
-        }
-
         [OnOpenAsset]
         private static bool OpenWhimTexDocument(EntityId entityId, int line)
         {
             var target = EditorUtility.EntityIdToObject(entityId);
             string path = target == null ? null : AssetDatabase.GetAssetPath(target);
+            return OpenWhimTexDocumentPath(path);
+        }
+
+        private static bool OpenWhimTexDocumentPath(string path)
+        {
             if (string.IsNullOrEmpty(path) || !WhimTexDocumentFile.IsDocument(path)) return false;
+            foreach (TextureCompositorWindow existing in Resources.FindObjectsOfTypeAll<TextureCompositorWindow>())
+                if (existing != null && TryGetDocumentFile(existing.compositor, out string openPath) &&
+                    string.Equals(openPath, path, System.StringComparison.OrdinalIgnoreCase))
+                {
+                    existing.Show();
+                    existing.Focus();
+                    return true;
+                }
             if (!WhimTexDocumentFile.TryLoad(path, out TextureCompositor document, out string error))
             {
                 EditorUtility.DisplayDialog("WhimTex", error, "OK");
@@ -175,8 +225,7 @@ namespace DCFApixels.WhimTex
             }
             var window = CreateWindow<TextureCompositorWindow>("WhimTex", typeof(TextureCompositorWindow));
             window.SetCompositor(document);
-            DocumentFiles[document] = path;
-            window.documentFilePath = path;
+            window.BindDocumentFile(path);
             window.Show();
             window.Repaint();
             return true;

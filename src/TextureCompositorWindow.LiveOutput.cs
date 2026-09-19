@@ -32,7 +32,7 @@ namespace DCFApixels.WhimTex
             {
                 if (HasDocumentFile)
                 {
-                    ToggleLiveUpdate();
+                    ToggleLiveUpdate(compositor);
                     RefreshLiveOutputButton();
                     return;
                 }
@@ -58,9 +58,9 @@ namespace DCFApixels.WhimTex
             if (liveOutputButton == null) return;
             liveOutputButton.SetEnabled(CanPublishLiveOutput);
             liveOutputButton.EnableInClassList("whimtex-channel-button--enabled",
-                HasDocumentFile ? WhimTexDocumentSession.IsLive : liveOutputEnabled);
+                HasDocumentFile ? WhimTexDocumentSession.IsLiveFor(compositor) : liveOutputEnabled);
             liveOutputButton.tooltip = HasDocumentFile
-                ? (WhimTexDocumentSession.IsLive
+                ? (WhimTexDocumentSession.IsLiveFor(compositor)
                     ? "Live Update edits the imported image of this document. Click to stop and restore the imported texture."
                     : "Live Update: edit the imported document image in place, so materials show edits without re-encoding the file.")
                 : CanPublishLiveOutput
@@ -74,7 +74,11 @@ namespace DCFApixels.WhimTex
 
         private void PublishLiveOutput()
         {
-            if (HasDocumentFile) return; // the document session publishes on its own
+            if (HasDocumentFile)
+            {
+                WhimTexDocumentSession.Publish(compositor, previewTexture);
+                return;
+            }
             if (!liveOutputEnabled || !CanPublishLiveOutput) return;
             try
             {
@@ -92,6 +96,7 @@ namespace DCFApixels.WhimTex
 
         private void StopLiveOutput()
         {
+            WhimTexDocumentSession.StopFor(compositor, "window closed or document changed");
             compositor?.StopLiveOutput();
             liveOutputEnabled = false;
             RefreshLiveOutputButton();

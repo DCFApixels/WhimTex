@@ -455,6 +455,14 @@ namespace DCFApixels.WhimTex
             SyncSurfaceToTexture();
         }
 
+        internal void SyncPendingSurfaceToTexture()
+        {
+            // A surface created for preview is only a derived copy. Reading it back
+            // can quantize otherwise untouched source pixels and invalidate save caches.
+            if (paintSurfaceDirty || pixels == null)
+                SyncSurfaceToTexture();
+        }
+
         internal void SyncSurfaceToTexture()
         {
             if (paintSurface == null)
@@ -526,7 +534,7 @@ namespace DCFApixels.WhimTex
 
         internal void CloneStoredTexture()
         {
-            SyncSurfaceToTexture();
+            SyncPendingSurfaceToTexture();
             if (pixels == null)
                 return;
 

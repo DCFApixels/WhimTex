@@ -42,7 +42,7 @@ namespace DCFApixels.WhimTex
                     string path = ReadAssetPath(Text(brush, "tip"));
                     var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
                     Require(texture != null, "No imported Texture2D at " + path + ".", "texture_not_found");
-                    Require(!ReferenceEquals(TextureCompositor.FindDocument(texture), document), "A document cannot use its own output as a brush tip.");
+                    Require(!WhimTexDocumentService.IsOwnOutput(document, texture), "A document cannot use its own output as a brush tip.");
                     dynamics.tip = texture;
                 }
             }

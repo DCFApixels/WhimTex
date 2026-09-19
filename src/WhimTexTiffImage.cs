@@ -225,7 +225,10 @@ namespace DCFApixels.WhimTex
                 if (halfToByte != null)
                 {
                     for (int i = 0; i < width * 4; i++)
-                        data[target + i] = halfToByte[raw[source + i * 2] | raw[source + i * 2 + 1] << 8];
+                    {
+                        ushort sample = (ushort)(raw[source + i * 2] | raw[source + i * 2 + 1] << 8);
+                        data[target + i] = (i & 3) == 3 ? ToByte(Mathf.HalfToFloat(sample)) : halfToByte[sample];
+                    }
                     return;
                 }
                 for (int i = 0; i < width * 4; i++)
@@ -242,7 +245,7 @@ namespace DCFApixels.WhimTex
                     else
                         value = raw[source + i] / 255f;
                     if (targetBytes == 4) PutFloat(data, target + i * 4, value);
-                    else data[target + i] = ToByte(lookup == null ? value : EncodeSrgb(value, lookup));
+                    else data[target + i] = ToByte(lookup == null || (i & 3) == 3 ? value : EncodeSrgb(value, lookup));
                 }
             }
             // Rows are independent, so a large image is converted on all cores; only managed math runs here.
@@ -334,6 +337,12 @@ namespace DCFApixels.WhimTex
 
         /// <summary>Reads the image back out of a carrier: used to verify our own output before writing it.</summary>
         public static bool TryReadPixels(byte[] file, out int width, out int height, out byte[] raw, out string error)
+            => ReadPixelsCore(file, true, out width, out height, out raw, out error);
+
+        internal static bool Validate(byte[] file, out int width, out int height, out string error)
+            => ReadPixelsCore(file, false, out width, out height, out _, out error);
+
+        private static bool ReadPixelsCore(byte[] file, bool retainPixels, out int width, out int height, out byte[] raw, out string error)
         {
             width = 0; height = 0; raw = null; error = null;
             if (!IsTiff(file)) { error = "The image is not a TIFF."; return false; }
@@ -364,17 +373,19 @@ namespace DCFApixels.WhimTex
                     case TagSampleFormat: format = ReadU16(file, (int)value); break;
                 }
             }
-            if (width <= 0 || height <= 0) { error = "The TIFF has no image size."; return false; }
+            if (width <= 0 || height <= 0 || width > 16384 || height > 16384) { error = "Invalid TIFF image size."; return false; }
             if (samples != 4) { error = "Only RGBA TIFF images are supported, got " + samples + " samples."; return false; }
             if (bitsPerSample != 8 && bitsPerSample != 32) { error = "Unsupported TIFF bit depth: " + bitsPerSample + "."; return false; }
             if (format != SampleFormatUnsigned && format != SampleFormatFloat) { error = "Unsupported TIFF sample format."; return false; }
             if (compression != CompressionDeflate && compression != CompressionNone)
             { error = "Unsupported TIFF compression: " + compression + "."; return false; }
-            if (offsetsValue < 0 || countsValue < 0 || stripCount <= 0) { error = "The TIFF has no pixel data."; return false; }
+            if (offsetsValue < 0 || countsValue < 0 || stripCount <= 0 || stripCount > height) { error = "The TIFF has no pixel data."; return false; }
             if (rowsPerStrip <= 0) rowsPerStrip = height;
             int bytesPerPixel = 4 * (bitsPerSample / 8);
-            int expected = width * height * bytesPerPixel;
-            var decoded = new byte[expected];
+            long expectedSize = (long)width * height * bytesPerPixel;
+            if (expectedSize > int.MaxValue) { error = "The TIFF image is too large."; return false; }
+            int expected = (int)expectedSize;
+            var decoded = retainPixels ? new byte[expected] : null;
             var stripSource = new int[stripCount];
             var stripStored = new int[stripCount];
             var stripDecoded = new int[stripCount];
@@ -402,14 +413,12 @@ namespace DCFApixels.WhimTex
             var problems = new string[stripCount];
             System.Threading.Tasks.Parallel.For(0, stripCount, i =>
             {
-                var stored = new byte[stripStored[i]];
-                System.Array.Copy(file, stripSource[i], stored, 0, stored.Length);
                 if (compression == CompressionDeflate)
                 {
-                    if (!TryInflate(stored, decoded, stripTarget[i], stripDecoded[i], out string problem)) problems[i] = problem;
+                    if (!TryInflate(file, stripSource[i], stripStored[i], decoded, stripTarget[i], stripDecoded[i], out string problem)) problems[i] = problem;
                 }
-                else if (stored.Length != stripDecoded[i]) problems[i] = "The TIFF strip size does not match the image size.";
-                else System.Array.Copy(stored, 0, decoded, stripTarget[i], stored.Length);
+                else if (stripStored[i] != stripDecoded[i]) problems[i] = "The TIFF strip size does not match the image size.";
+                else if (decoded != null) System.Array.Copy(file, stripSource[i], decoded, stripTarget[i], stripStored[i]);
             });
             foreach (string problem in problems) if (problem != null) { error = problem; return false; }
             raw = decoded;
@@ -432,22 +441,31 @@ namespace DCFApixels.WhimTex
             return stream.ToArray();
         }
 
-        private static bool TryInflate(byte[] stored, byte[] target, int targetOffset, int expected, out string error)
+        private static bool TryInflate(byte[] stored, int offset, int count, byte[] target, int targetOffset, int expected, out string error)
         {
             error = null;
-            if (stored.Length < 6) { error = "The compressed TIFF strip is truncated."; return false; }
+            if (count < 6) { error = "The compressed TIFF strip is truncated."; return false; }
             try
             {
-                using var stream = new MemoryStream(stored, 2, stored.Length - 6, false);
+                using var stream = new MemoryStream(stored, offset + 2, count - 6, false);
                 using var deflate = new DeflateStream(stream, CompressionMode.Decompress);
+                byte[] scratch = target == null ? new byte[Math.Min(expected, 65536)] : null;
                 int read = 0;
+                uint a = 1, b = 0;
                 while (read < expected)
                 {
-                    int step = deflate.Read(target, targetOffset + read, expected - read);
+                    byte[] buffer = target ?? scratch;
+                    int destination = target == null ? 0 : targetOffset + read;
+                    int step = deflate.Read(buffer, destination, Math.Min(65536, expected - read));
                     if (step <= 0) break;
+                    for (int i = 0; i < step; i++) { a = (a + buffer[destination + i]) % 65521; b = (b + a) % 65521; }
                     read += step;
                 }
                 if (read != expected) { error = "The compressed TIFF strip decoded to " + read + " bytes instead of " + expected + "."; return false; }
+                int checksumOffset = offset + count - 4;
+                uint checksum = (uint)stored[checksumOffset] << 24 | (uint)stored[checksumOffset + 1] << 16 |
+                    (uint)stored[checksumOffset + 2] << 8 | stored[checksumOffset + 3];
+                if (deflate.ReadByte() != -1 || checksum != (b << 16 | a)) { error = "Invalid TIFF strip checksum or length."; return false; }
                 return true;
             }
             catch (InvalidDataException exception)

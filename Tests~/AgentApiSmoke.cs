@@ -15,10 +15,13 @@ try
 }
 finally { UnityEngine.Object.DestroyImmediate(image); }
 
+var previews = new System.Collections.Generic.List<string>();
+try
+{
 // Resolve the API's JSON assembly explicitly: some Editor packages embed another copy.
 var jsonType = typeof(DCFApixels.WhimTex.WhimTexApi)
     .GetMethod("SetBrush", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)
-    .GetParameters()[1].ParameterType;
+    .GetParameters().Single(p => p.ParameterType.FullName == "Newtonsoft.Json.Linq.JObject").ParameterType;
 object Json(string value) => jsonType.GetMethod("Parse", new[] { typeof(string) }).Invoke(null, new object[] { value });
 object At(object value, params object[] keys)
 {
@@ -71,6 +74,7 @@ UnityEngine.Color Pixel(string suffix, int x, int y)
     var result = Ok(DCFApixels.WhimTex.WhimTexApi.Render(fixture + "/Icon.asset",
         "Temp/WhimTex/" + System.Guid.NewGuid().ToString("N") + "-" + suffix + ".png", 64));
     var texture = new UnityEngine.Texture2D(2, 2);
+    previews.Add(Text(result, "outputPath"));
     try
     {
         Check(UnityEngine.ImageConversion.LoadImage(texture, System.IO.File.ReadAllBytes(Text(result, "outputPath"))), "Preview decodes");
@@ -147,4 +151,12 @@ Set(save, "save", true);
 Ok(DCFApixels.WhimTex.WhimTexApi.ExecuteJson(save.ToString()));
 var reloaded = Inspect();
 Check(Flag(reloaded, "document", "hasOutputTexture") && Flag(reloaded, "document", "hasOutputSprite"), "Rebaked subassets remain available");
-return new { success = true, checks, fixture, sourcePng };
+return new { success = true, checks };
+}
+catch (System.Exception error) { return new { success = false, checks, error = error.ToString() }; }
+finally
+{
+    UnityEditor.AssetDatabase.DeleteAsset(fixture);
+    System.IO.File.Delete(sourcePng);
+    foreach (var preview in previews) System.IO.File.Delete(preview);
+}

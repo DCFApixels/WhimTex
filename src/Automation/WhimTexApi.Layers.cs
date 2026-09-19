@@ -175,7 +175,7 @@ namespace DCFApixels.WhimTex
                 string path = ReadAssetPath(Text(settings, "source"));
                 var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
                 Require(texture != null, "No imported Texture2D at " + path + ". Import the image first.", "texture_not_found");
-                Require(!ReferenceEquals(TextureCompositor.FindDocument(texture), document), "A document cannot sample its own output texture.");
+                Require(!WhimTexDocumentService.IsOwnOutput(document, texture), "A document cannot sample its own output texture.");
                 file.AssignSourceTexture(texture, document);
             }
             layer.colorRange = Enum(settings, "colorRange", layer.colorRange);

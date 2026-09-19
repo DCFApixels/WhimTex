@@ -157,6 +157,26 @@ namespace DCFApixels.WhimTex
                 "ENDCG\n}\n}\nFallback Off\n}\n";
         }
 
+        // Preserve dependencies across Save As/migration without expanding their methods or
+        // changing the editor's pending code. Only paths in the saved model are made project-relative.
+        internal static string DocumentCode(string source, string sourcePath) =>
+            string.IsNullOrEmpty(source) || !source.Contains("#") ? source : new ShaderFXSourceBuilder().ResolveIncludes(source, sourcePath);
+
+        internal static bool HasRelativeIncludes(string source)
+        {
+            bool block = false;
+            using var reader = new StringReader(source ?? "");
+            string line;
+            while ((line = reader.ReadLine()) != null)
+            {
+                var match = Include.Match(MaskComments(line, ref block));
+                if (!match.Success) continue;
+                string path = match.Groups[2].Value.Replace('\\', '/');
+                if (!path.StartsWith("Assets/", StringComparison.Ordinal) && !path.StartsWith("Packages/", StringComparison.Ordinal)) return true;
+            }
+            return false;
+        }
+
         private string ResolveIncludes(string source, string sourcePath)
         {
             if (source.Length > MaximumCharacters)

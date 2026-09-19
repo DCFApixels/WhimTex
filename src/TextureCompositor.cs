@@ -25,6 +25,8 @@ namespace DCFApixels.WhimTex
         [SerializeField, HideInInspector] private List<ShaderFX> embeddedShaderFX = new List<ShaderFX>();
 
         internal static event Action<TextureCompositor> Changed;
+        [SerializeField, HideInInspector] internal string documentLoadWarning;
+        [SerializeField, HideInInspector] internal WhimTexDocumentBinding documentBinding;
 
         internal static void NotifyShaderFXChanged(ShaderFX effect)
         {
@@ -63,6 +65,7 @@ namespace DCFApixels.WhimTex
 
         private void OnDisable()
         {
+            WhimTexDocumentSession.StopFor(this, "document disabled");
             ReleaseLayerThumbnails();
             StopLiveOutput();
             ReleaseLayerResources(layers, preserveDrawingPixels: true);
@@ -71,6 +74,7 @@ namespace DCFApixels.WhimTex
 
         private void OnDestroy()
         {
+            if (documentBinding != null && documentBinding.owner == this) DestroyImmediate(documentBinding);
             ReleaseLayerThumbnails();
             ReleaseLayerResources(layers);
             foreach (ShaderFX effect in embeddedShaderFX)
@@ -345,6 +349,7 @@ namespace DCFApixels.WhimTex
 
         internal void MarkChanged()
         {
+            if (documentBinding != null) documentBinding.dirty = true;
             undoDeserialized = false;
             NormalizeModel();
             RemoveUnusedEmbeddedShaderFX();
@@ -360,7 +365,7 @@ namespace DCFApixels.WhimTex
 
         internal void SyncDrawingLayerTextures()
         {
-            VisitDrawingLayers(layers, drawing => drawing.SyncSurfaceToTexture());
+            VisitDrawingLayers(layers, drawing => drawing.SyncPendingSurfaceToTexture());
         }
 
         internal void CloneDrawingLayerTextures()

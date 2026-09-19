@@ -285,7 +285,7 @@ namespace DCFApixels.WhimTex
         {
             foreach (var layer in Enumerate(data.Document.layers))
                 if (layer.Behaviour is FileLayerBehaviour file && file.sourceTexture != null &&
-                    ReferenceEquals(TextureCompositor.FindDocument(file.sourceTexture), destination))
+                    WhimTexDocumentService.IsOwnOutput(destination, file.sourceTexture))
                 {
                     file.sourceTexture = null;
                     data.Warnings.Add(layer.layerName + ": a document cannot reference its own texture; the File layer will be empty.");

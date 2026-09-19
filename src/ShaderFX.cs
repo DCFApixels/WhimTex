@@ -147,6 +147,7 @@ namespace DCFApixels.WhimTex
         [SerializeField, HideInInspector] private string diagnostics = "Not applied yet. Click Apply to compile this effect.";
         [SerializeField, HideInInspector] private bool lastApplyFailed;
         [SerializeField, HideInInspector] private TextureCompositor embeddedOwner;
+        [SerializeField, HideInInspector] private string documentIncludeBasePath;
         [SerializeField, HideInInspector] private string shaderKey = Guid.NewGuid().ToString("N");
         [SerializeField, HideInInspector] private bool shaderCreationRecorded;
         [NonSerialized] private Material material;
@@ -186,13 +187,19 @@ namespace DCFApixels.WhimTex
         internal bool LastApplyFailed => lastApplyFailed;
         internal bool HasAppliedShader => compiledShader != null;
         internal TextureCompositor EmbeddedOwner => embeddedOwner;
+        internal void RestoreDocumentOwner(TextureCompositor owner) => embeddedOwner = owner;
         internal string ShaderKey => string.IsNullOrEmpty(shaderKey) ? shaderKey = Guid.NewGuid().ToString("N") : shaderKey;
         internal string SourcePath
         {
             get
             {
                 if (!string.IsNullOrEmpty(catalogSourcePath)) return catalogSourcePath;
+                if (!string.IsNullOrEmpty(documentIncludeBasePath)) return documentIncludeBasePath;
+                string documentPath = WhimTexDocumentService.PathOf(embeddedOwner);
+                if (!string.IsNullOrEmpty(documentPath)) return documentPath;
                 string path = AssetDatabase.GetAssetPath(embeddedOwner != null ? (UnityEngine.Object)embeddedOwner : this);
+                if (string.IsNullOrEmpty(path) && embeddedOwner != null && embeddedOwner.OutputTexture != null)
+                    path = AssetDatabase.GetAssetPath(embeddedOwner.OutputTexture);
                 return !string.IsNullOrEmpty(path) ? path : "Assets/Untitled.spritefx";
             }
         }
@@ -254,6 +261,27 @@ namespace DCFApixels.WhimTex
                 if (test != null) DestroyImmediate(test);
                 if (candidate != null) DestroyImmediate(candidate);
             }
+        }
+
+        internal void RestoreDocumentShader()
+        {
+            EditorApplication.delayCall -= ReloadCatalogAfterEnable;
+            if (AssetDatabase.Contains(this) || HasAppliedShader) return;
+            try { ApplyAgentDraft(); }
+            catch (Exception error)
+            {
+                lastApplyFailed = true;
+                diagnostics = error.Message;
+                throw;
+            }
+        }
+
+        internal void SuspendDocumentCatalogReload() => EditorApplication.delayCall -= ReloadCatalogAfterEnable;
+
+        internal void PreserveDocumentIncludeBase()
+        {
+            if (!AssetDatabase.Contains(this) && string.IsNullOrEmpty(documentIncludeBasePath) &&
+                ShaderFXSourceBuilder.HasRelativeIncludes(code)) documentIncludeBasePath = SourcePath;
         }
 
         internal ShaderFX CloneForDocument(TextureCompositor owner)

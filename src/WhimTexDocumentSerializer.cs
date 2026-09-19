@@ -64,10 +64,11 @@ namespace DCFApixels.WhimTex
         {
             "compiledShader", "appliedCode", "appliedSource", "appliedParameters", "diagnostics",
             "lastApplyFailed", "shaderCreationRecorded", "embeddedOwner", "transformCache",
-            "outputTexture", "outputSprite", "sliceOutputs"
+            "outputTexture", "outputSprite", "sliceOutputs", "documentLoadWarning", "documentBinding"
         };
 
         private static readonly Dictionary<string, Type> KnownTypes = new Dictionary<string, Type>(StringComparer.Ordinal);
+        private static readonly Dictionary<Type, FieldInfo[]> CachedFields = new Dictionary<Type, FieldInfo[]>();
 
         public static byte[] Serialize(object root, WhimTexDocumentContainer container)
         {
@@ -75,9 +76,10 @@ namespace DCFApixels.WhimTex
             using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, true))
             {
                 writer.Write(FormatVersion);
-                var context = new Writer(writer, container);
+                var context = new Writer(writer, container, root as TextureCompositor);
                 context.Write(root, root == null ? typeof(object) : root.GetType());
             }
+            if (stream.Length > 64L * 1024 * 1024) throw new WhimTexDocumentException("The document model exceeds the 64 MiB budget.");
             return stream.ToArray();
         }
 
@@ -92,14 +94,28 @@ namespace DCFApixels.WhimTex
             _missingTypeNames.Clear();
             _skippedFieldNames.Clear();
             _skippedFields.Clear();
+            _unresolvedReferences.Clear();
             var context = new Reader(reader, container);
-            return context.Read(expectedType);
+            try
+            {
+                object result = context.Read(expectedType);
+                if (result != null && expectedType != null && !expectedType.IsInstanceOfType(result))
+                    throw new WhimTexDocumentException("Unexpected document root type.");
+                if (stream.Position != stream.Length) throw new WhimTexDocumentException("Unexpected trailing model data.");
+                return result;
+            }
+            catch (Exception error)
+            {
+                context.ReleaseCreatedObjects();
+                throw new WhimTexDocumentException("Cannot read the document model: " + error.Message, error);
+            }
         }
 
         // --- fields ---
 
         private static FieldInfo[] Fields(Type type)
         {
+            lock (CachedFields) if (CachedFields.TryGetValue(type, out FieldInfo[] cached)) return cached;
             var fields = new List<FieldInfo>();
             for (Type current = type; current != null && current != typeof(object); current = current.BaseType)
             {
@@ -118,7 +134,9 @@ namespace DCFApixels.WhimTex
                     fields.Add(field);
                 }
             }
-            return fields.ToArray();
+            FieldInfo[] result = fields.ToArray();
+            lock (CachedFields) CachedFields[type] = result;
+            return result;
         }
 
         /// <summary>Unity types are never walked by reflection: each one needs an explicit handler.</summary>
@@ -216,14 +234,15 @@ namespace DCFApixels.WhimTex
         /// </summary>
         private static bool MatchesMovedName(Type type, string name, string simple, string space)
         {
-            foreach (object attribute in AttributesNamed(type, "MovedFromAttribute"))
+            foreach (CustomAttributeData attribute in type.GetCustomAttributesData())
             {
-                string oldName = StringMember(attribute, "name");
+                if (attribute.AttributeType != typeof(UnityEngine.Scripting.APIUpdating.MovedFromAttribute)) continue;
+                var args = attribute.ConstructorArguments;
+                string oldName = args.Count == 4 ? args[3].Value as string : null;
+                string oldSpace = args.Count == 4 ? args[1].Value as string : args.Count == 1 ? args[0].Value as string : null;
                 if (string.IsNullOrEmpty(oldName)) oldName = type.Name;
-                string oldSpace = StringMember(attribute, "namespace");
-                if (oldName == simple && (oldSpace == null || space == null || oldSpace == space)) return true;
-                string full = oldSpace == null ? oldName : oldSpace + "." + oldName;
-                if (full == name) return true;
+                if (oldSpace == null) oldSpace = type.Namespace;
+                if ((string.IsNullOrEmpty(oldSpace) ? oldName : oldSpace + "." + oldName) == name) return true;
             }
             return false;
         }
@@ -252,6 +271,8 @@ namespace DCFApixels.WhimTex
 
         /// <summary>Types the last loaded document referenced but this build does not have.</summary>
         public static IReadOnlyList<string> LastMissingTypes => _missingTypes;
+        public static IReadOnlyList<string> LastUnresolvedReferences => _unresolvedReferences;
+        private static readonly List<string> _unresolvedReferences = new List<string>();
 
         private static readonly List<string> _missingTypes = new List<string>();
         private static readonly HashSet<string> _missingTypeNames = new HashSet<string>(StringComparer.Ordinal);
@@ -281,10 +302,6 @@ namespace DCFApixels.WhimTex
             return resolved;
         }
 
-        private static bool IsEightBit(TextureFormat format) =>
-            format == TextureFormat.RGBA32 || format == TextureFormat.ARGB32 || format == TextureFormat.RGB24 ||
-            format == TextureFormat.Alpha8 || format == TextureFormat.R8;
-
         // --- writer ---
 
         private sealed class Writer : IWhimTexDocumentWriter
@@ -293,17 +310,46 @@ namespace DCFApixels.WhimTex
             private readonly WhimTexDocumentContainer _container;
             private readonly Dictionary<object, int> _ids = new Dictionary<object, int>(ReferenceComparer.Instance);
             private readonly List<object> _objects = new List<object>();
-            private int _textureIndex;
 
-            public Writer(BinaryWriter writer, WhimTexDocumentContainer container)
+            private int _textureIndex;
+            private long _textureBytes;
+            private int _depth, _values;
+
+            private readonly HashSet<Texture2D> _ownedTextures = new();
+            private readonly TextureCompositor _owner;
+
+            public Writer(BinaryWriter writer, WhimTexDocumentContainer container, TextureCompositor owner)
             {
                 _writer = writer;
                 _container = container;
+                _owner = owner;
+                if (owner != null) CollectOwned(owner.layers);
+            }
+
+            private void CollectOwned(List<Layer> layers)
+            {
+                if (layers == null) return;
+                foreach (var layer in layers)
+                {
+                    if (layer?.Behaviour is DrawingLayerBehaviour drawing && drawing.StoredTexture != null)
+                        _ownedTextures.Add(drawing.StoredTexture);
+                    if (layer != null) CollectOwned(layer.children);
+                }
             }
 
             public void Write(object value, Type declared)
             {
+                if (++_values > 1000000 || ++_depth > 128) throw new WhimTexDocumentException("Document graph exceeds safety limits.");
+                try { WriteValue(value, declared); }
+                finally { _depth--; }
+            }
+
+            private void WriteValue(object value, Type declared)
+            {
                 if (value == null) { _writer.Write(TagNull); return; }
+                if (value is ShaderFX) _container.HasExternalInputs = true;
+                if (value is string text && System.Text.Encoding.UTF8.GetByteCount(text) > 1024 * 1024)
+                    throw new WhimTexDocumentException("Document string exceeds the 1 MiB budget.");
                 Type type = value.GetType();
                 if (type.IsEnum)
                 {
@@ -354,6 +400,7 @@ namespace DCFApixels.WhimTex
             private void WriteCurve(AnimationCurve curve)
             {
                 Keyframe[] keys = curve.keys;
+                if (keys.Length > 65536) throw new WhimTexDocumentException("Too many curve keys.");
                 _writer.Write(TagCurve);
                 _writer.Write(curve.preWrapMode.ToString());
                 _writer.Write(curve.postWrapMode.ToString());
@@ -370,48 +417,24 @@ namespace DCFApixels.WhimTex
             private void WriteReference(UnityEngine.Object value)
             {
                 if (value == null) { _writer.Write(TagNull); return; }
-                if (!UnityEditor.AssetDatabase.Contains(value))
+                if (ReferenceEquals(value, _owner) || !UnityEditor.AssetDatabase.Contains(value) || value is ShaderFX fx && fx.EmbeddedOwner != null)
                 {
                     // A document-owned object must not be lost: it is stored inline as an object graph.
                     WriteObject(value, value.GetType());
                     return;
                 }
+                _container.HasExternalInputs = true;
                 _writer.Write(TagReference);
                 UnityEditor.AssetDatabase.TryGetGUIDAndLocalFileIdentifier(value, out string guid, out long localId);
                 _writer.Write(guid ?? string.Empty);
                 _writer.Write(localId);
             }
 
-            /// <summary>
-            /// FNV-1a in four independent streams over native pixels. The bytes are read as 8-byte words
-            /// through a single cast instead of a slice per word: on a 52MB document the bounds check and the
-            /// call for every word cost more than the mixing does.
-            /// </summary>
-            private static ulong Hash64(Unity.Collections.NativeArray<byte> data)
-            {
-                const ulong prime = 1099511628211UL;
-                ulong h1 = 14695981039346656037UL, h2 = h1 ^ 0x9E3779B97F4A7C15UL;
-                ulong h3 = h1 ^ 0xBF58476D1CE4E5B9UL, h4 = h1 ^ 0x94D049BB133111EBUL;
-                System.ReadOnlySpan<byte> bytes = data.AsSpan();
-                System.ReadOnlySpan<ulong> words = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, ulong>(bytes);
-                int i = 0;
-                int last = words.Length - 3;
-                for (; i < last; i += 4)
-                {
-                    h1 = (h1 ^ words[i]) * prime;
-                    h2 = (h2 ^ words[i + 1]) * prime;
-                    h3 = (h3 ^ words[i + 2]) * prime;
-                    h4 = (h4 ^ words[i + 3]) * prime;
-                }
-                for (; i < words.Length; i++) h1 = (h1 ^ words[i]) * prime;
-                for (int tail = words.Length * 8; tail < bytes.Length; tail++) h1 = (h1 ^ bytes[tail]) * prime;
-                return ((h1 ^ h2) * prime ^ h3) * prime ^ h4;
-            }
 
             private void WriteTexture(Texture2D texture)
             {
                 if (texture == null) { _writer.Write(TagNull); return; }
-                if (UnityEditor.AssetDatabase.Contains(texture) && !IsDocumentOwned(texture))
+                if (UnityEditor.AssetDatabase.Contains(texture) && !_ownedTextures.Contains(texture))
                 {
                     WriteReference(texture);
                     return;
@@ -432,15 +455,28 @@ namespace DCFApixels.WhimTex
                 // isDataSRGB and the constructor's linear flag are opposites; store the constructor flag.
                 _writer.Write(!texture.isDataSRGB);
                 _writer.Write(block);
+                using (var settings = new MemoryStream())
+                {
+                    using (var writer = new BinaryWriter(settings, System.Text.Encoding.UTF8, true))
+                    {
+                        writer.Write((int)texture.filterMode);
+                        writer.Write((int)texture.wrapModeU); writer.Write((int)texture.wrapModeV); writer.Write((int)texture.wrapModeW);
+                        writer.Write(texture.anisoLevel); writer.Write(texture.mipMapBias);
+                    }
+                    _container.Set(block + ":sampling", settings.ToArray());
+                }
                 // Pixels stay in native memory: copying every layer into the managed heap would hand the
                 // garbage collector hundreds of megabytes per save, and the container frees what it owns.
                 Unity.Collections.NativeArray<byte> view = texture.GetRawTextureData<byte>();
+                _textureBytes += view.Length;
+                if (view.Length > 256L * 1024 * 1024 || _textureBytes > 1024L * 1024 * 1024)
+                    throw new WhimTexDocumentException("Embedded textures exceed the save budget (256 MiB per texture, 1 GiB total).");
+                // Native fingerprint is only a fast lookup: the container compares every raw byte
+                // before accepting a cached block. File integrity still uses SHA-256, once per new block.
+                string cacheKey = _container.ReusePixelCache ? view.Length + ":hash128:" + Hash128.Compute(view) : null;
+                if (cacheKey != null && _container.TryReusePixels(block, cacheKey, view)) return;
                 var pixels = new Unity.Collections.NativeArray<byte>(view.Length, Unity.Collections.Allocator.Persistent);
                 Unity.Collections.NativeArray<byte>.Copy(view, pixels);
-                // Layer pixels dominate save time, and a save only ever changes a few layers. The key is a
-                // content identity, so an unchanged layer is not deflated again and identical pixels share
-                // one block even across layers or documents.
-                string cacheKey = pixels.Length + ":" + Hash64(pixels).ToString("x16");
                 _container.SetNative(block, cacheKey, pixels, System.IO.Compression.CompressionLevel.Fastest);
             }
 
@@ -453,16 +489,10 @@ namespace DCFApixels.WhimTex
                 return true;
             }
 
-            private static bool IsDocumentOwned(Texture2D texture)
-            {
-                // Sub-assets of a legacy document asset are document data, not external references.
-                string path = UnityEditor.AssetDatabase.GetAssetPath(texture);
-                return !string.IsNullOrEmpty(path) && UnityEditor.AssetDatabase.LoadMainAssetAtPath(path) != texture
-                       && !(UnityEditor.AssetDatabase.LoadMainAssetAtPath(path) is Texture2D);
-            }
 
             private void WriteList(IList list, Type type)
             {
+                if (list.Count > 1000000) throw new WhimTexDocumentException("Too many list entries.");
                 _writer.Write(TagList);
                 _writer.Write(list.Count);
                 Type element = type.IsArray ? type.GetElementType() : ElementType(type);
@@ -613,7 +643,10 @@ namespace DCFApixels.WhimTex
                 foreach (FieldInfo field in fields)
                 {
                     _writer.Write(field.Name);
-                    Write(field.GetValue(value), field.FieldType);
+                    object fieldValue = field.GetValue(value);
+                    if (value is ShaderFX effect && field.Name == "code")
+                        fieldValue = ShaderFXSourceBuilder.DocumentCode((string)fieldValue, effect.SourcePath);
+                    Write(fieldValue, field.FieldType);
                 }
             }
         }
@@ -625,6 +658,32 @@ namespace DCFApixels.WhimTex
             private readonly BinaryReader _reader;
             private readonly WhimTexDocumentContainer _container;
             private readonly List<object> _objects = new List<object>();
+            private int _depth, _values;
+            private long _textureBytes;
+            private const int MaxValues = 1000000;
+
+            public void ReleaseCreatedObjects()
+            {
+                for (int i = _objects.Count - 1; i >= 0; i--)
+                    if (_objects[i] is UnityEngine.Object value && value != null && !UnityEditor.AssetDatabase.Contains(value))
+                        UnityEngine.Object.DestroyImmediate(value);
+            }
+
+            private string ReadText()
+            {
+                uint length = 0;
+                for (int shift = 0; shift <= 28; shift += 7)
+                {
+                    byte part = _reader.ReadByte();
+                    if (shift == 28 && part > 7) throw new WhimTexDocumentException("Invalid string length.");
+                    length |= (uint)(part & 127) << shift;
+                    if ((part & 128) != 0) continue;
+                    if (length > 1024 * 1024 || length > _reader.BaseStream.Length - _reader.BaseStream.Position)
+                        throw new WhimTexDocumentException("Document string exceeds safety limits.");
+                    return System.Text.Encoding.UTF8.GetString(_reader.ReadBytes((int)length));
+                }
+                throw new WhimTexDocumentException("Invalid string length.");
+            }
 
             public Reader(BinaryReader reader, WhimTexDocumentContainer container)
             {
@@ -632,7 +691,20 @@ namespace DCFApixels.WhimTex
                 _container = container;
             }
 
-            public object Read(Type declared) => ReadTagged(_reader.ReadByte(), declared);
+            public object Read(Type declared)
+            {
+                if (++_values > MaxValues || ++_depth > 128) throw new WhimTexDocumentException("Document graph exceeds safety limits.");
+                try { return ReadTagged(_reader.ReadByte(), declared); }
+                finally { _depth--; }
+            }
+
+            private int ReadCount(int maximum, int minimumBytes)
+            {
+                int count = _reader.ReadInt32();
+                if (count < 0 || count > maximum || (long)count * minimumBytes > _reader.BaseStream.Length - _reader.BaseStream.Position)
+                    throw new WhimTexDocumentException("Invalid collection length in the document.");
+                return count;
+            }
 
             private object ReadTagged(byte tag, Type declared)
             {
@@ -651,7 +723,7 @@ namespace DCFApixels.WhimTex
                     case TagFloat: return _reader.ReadSingle();
                     case TagDouble: return _reader.ReadDouble();
                     case TagChar: return _reader.ReadChar();
-                    case TagString: return _reader.ReadString();
+                    case TagString: return ReadText();
                     case TagVector2: return new Vector2(_reader.ReadSingle(), _reader.ReadSingle());
                     case TagVector3: return new Vector3(_reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle());
                     case TagVector4: return new Vector4(_reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle());
@@ -662,13 +734,14 @@ namespace DCFApixels.WhimTex
                     case TagColor32: return new Color32(_reader.ReadByte(), _reader.ReadByte(), _reader.ReadByte(), _reader.ReadByte());
                     case TagRect: return new Rect(_reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle());
                     case TagRectInt: return new RectInt(_reader.ReadInt32(), _reader.ReadInt32(), _reader.ReadInt32(), _reader.ReadInt32());
-                    case TagBounds: return new Bounds((Vector3)Read(declared), (Vector3)Read(declared));
+                    case TagBounds: return new Bounds(new Vector3(_reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle()),
+                        new Vector3(_reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle()));
                     case TagCurve: return ReadCurve();
                     case TagReference: return ReadReference();
                     case TagTexture: return ReadTexture();
                     case TagEnum: return ReadEnum();
                     case TagList: return ReadList(declared);
-                    case TagObject: return ReadObject();
+                    case TagObject: return ReadObjectValue(declared);
                     case TagObjectRef:
                         int id = _reader.ReadInt32();
                         if (id < 0 || id >= _objects.Count) throw new WhimTexDocumentException("Invalid object reference " + id + " in the document.");
@@ -681,10 +754,10 @@ namespace DCFApixels.WhimTex
             {
                 var curve = new AnimationCurve
                 {
-                    preWrapMode = ParseEnum<WrapMode>(_reader.ReadString()),
-                    postWrapMode = ParseEnum<WrapMode>(_reader.ReadString())
+                    preWrapMode = ParseEnum<WrapMode>(ReadText()),
+                    postWrapMode = ParseEnum<WrapMode>(ReadText())
                 };
-                int count = _reader.ReadInt32();
+                int count = ReadCount(65536, 28);
                 var keys = new Keyframe[count];
                 for (int i = 0; i < count; i++)
                     keys[i] = new Keyframe(_reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle(),
@@ -696,26 +769,28 @@ namespace DCFApixels.WhimTex
 
             private object ReadEnum()
             {
-                string typeName = _reader.ReadString();
-                string name = _reader.ReadString();
+                string typeName = ReadText();
+                string name = ReadText();
                 long number = _reader.ReadInt64();
                 Type type = ResolveType(typeName);
                 if (type == null) return null;
+                if (!type.IsEnum) throw new WhimTexDocumentException("Invalid enum type: " + typeName);
                 return Enum.IsDefined(type, name) ? Enum.Parse(type, name) : Enum.ToObject(type, number);
             }
 
             private object ReadReference()
             {
-                string guid = _reader.ReadString();
+                string guid = ReadText();
                 long localId = _reader.ReadInt64();
                 if (string.IsNullOrEmpty(guid) && localId == 0) return null;
                 string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guid);
-                if (string.IsNullOrEmpty(path)) return null;
+                if (string.IsNullOrEmpty(path)) { _unresolvedReferences.Add(guid + ":" + localId); return null; }
                 if (localId == 0)
                 {
                     var main = UnityEditor.AssetDatabase.LoadMainAssetAtPath(path);
                     if (main != null) return main;
                     foreach (var asset in UnityEditor.AssetDatabase.LoadAllAssetsAtPath(path)) return asset;
+                    _unresolvedReferences.Add(guid + ":" + localId);
                     return null;
                 }
                 foreach (var asset in UnityEditor.AssetDatabase.LoadAllAssetsAtPath(path))
@@ -723,24 +798,46 @@ namespace DCFApixels.WhimTex
                     UnityEditor.AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out string _, out long id);
                     if (id == localId) return asset;
                 }
-                return UnityEditor.AssetDatabase.LoadMainAssetAtPath(path);
+                _unresolvedReferences.Add(guid + ":" + localId);
+                return null;
             }
 
             private object ReadTexture()
             {
                 int width = _reader.ReadInt32();
                 int height = _reader.ReadInt32();
-                string formatName = _reader.ReadString();
+                string formatName = ReadText();
                 int mipCount = _reader.ReadInt32();
                 bool linear = _reader.ReadBoolean();
-                string block = _reader.ReadString();
-                if (!_container.TryGet(block, out byte[] raw))
-                    throw new WhimTexDocumentException("Texture block '" + block + "' is missing from the document.");
-                var format = (TextureFormat)Enum.Parse(typeof(TextureFormat), formatName);
-                var texture = new Texture2D(width, height, format, mipCount > 1, linear);
+                string block = ReadText();
+                if (width <= 0 || height <= 0 || width > 16384 || height > 16384 || mipCount < 1 ||
+                    mipCount > 1 + (int)Math.Floor(Math.Log(Math.Max(width, height), 2)))
+                    throw new WhimTexDocumentException("Invalid embedded texture dimensions.");
+                long length = _container.LengthOf(block);
+                _textureBytes += length;
+                if (length > 256L * 1024 * 1024 || _textureBytes > 1024L * 1024 * 1024)
+                    throw new WhimTexDocumentException("Embedded textures exceed the load budget (256 MiB per texture, 1 GiB total).");
+                byte[] raw = _container.Get(block);
+                if (!Enum.TryParse(formatName, out TextureFormat format) || !Enum.IsDefined(typeof(TextureFormat), format))
+                    throw new WhimTexDocumentException("Invalid embedded texture format.");
+                var texture = new Texture2D(width, height, format, mipCount, linear) { hideFlags = HideFlags.HideAndDontSave };
                 _objects.Add(texture);
+                if (texture.GetRawTextureData<byte>().Length != raw.Length)
+                    throw new WhimTexDocumentException("Embedded texture byte count does not match its dimensions.");
                 texture.LoadRawTextureData(raw);
                 texture.Apply(false, false);
+                string sampling = block + ":sampling";
+                if (_container.Contains(sampling))
+                {
+                    if (_container.LengthOf(sampling) != 24) throw new WhimTexDocumentException("Invalid texture sampling settings.");
+                    using var stream = new MemoryStream(_container.Get(sampling), false);
+                    using var settings = new BinaryReader(stream);
+                    texture.filterMode = (FilterMode)settings.ReadInt32();
+                    texture.wrapModeU = (TextureWrapMode)settings.ReadInt32();
+                    texture.wrapModeV = (TextureWrapMode)settings.ReadInt32();
+                    texture.wrapModeW = (TextureWrapMode)settings.ReadInt32();
+                    texture.anisoLevel = settings.ReadInt32(); texture.mipMapBias = settings.ReadSingle();
+                }
                 // The texture owns the pixels now, so the inflated copy can be collected.
                 _container.Remove(block);
                 return texture;
@@ -748,8 +845,7 @@ namespace DCFApixels.WhimTex
 
             private object ReadList(Type declared)
             {
-                int count = _reader.ReadInt32();
-                if (count < 0) throw new WhimTexDocumentException("Negative list length in the document.");
+                int count = ReadCount(MaxValues, 1);
                 Type element = declared != null && declared.IsArray ? declared.GetElementType() : ElementType(declared);
                 if (declared != null && declared.IsArray)
                 {
@@ -761,40 +857,50 @@ namespace DCFApixels.WhimTex
                 var list = (IList)Activator.CreateInstance(listType);
                 for (int i = 0; i < count; i++)
                 {
-                    // A dropped unknown object must not leave nulls in the document graph.
                     object item = Read(element);
-                    if (item != null) list.Add(item);
+                    list.Add(item);
                 }
                 return list;
             }
 
-            private object ReadObject()
+            private object ReadObjectValue(Type declared)
             {
-                Type type = ResolveType(_reader.ReadString());
-                if (type == null)
+                Type type = ResolveType(ReadText());
+                if (type == null || declared == null)
                 {
                     // Keep the object numbering in step with the writer, then consume the values.
-                    int missing = _reader.ReadInt32();
+                    int missing = ReadCount(65536, 2);
                     _objects.Add(null);
                     for (int i = 0; i < missing; i++)
                     {
-                        _reader.ReadString();
+                        ReadText();
                         Read(null);
                     }
                     return null;
                 }
+                if (type.IsAbstract || type.ContainsGenericParameters || IsUnityType(type) ||
+                    declared != null && !declared.IsAssignableFrom(type) ||
+                    type.Assembly != typeof(TextureCompositor).Assembly && !typeof(LayerBehaviour).IsAssignableFrom(type) &&
+                    (declared == typeof(object) || declared == null || declared.Assembly != type.Assembly) ||
+                    typeof(UnityEngine.Object).IsAssignableFrom(type) && type != typeof(TextureCompositor) && type != typeof(ShaderFX) ||
+                    !typeof(UnityEngine.Object).IsAssignableFrom(type) && !type.IsSerializable)
+                    throw new WhimTexDocumentException("Unsupported or incompatible object type: " + type.FullName);
                 object instance = typeof(ScriptableObject).IsAssignableFrom(type)
                     ? ScriptableObject.CreateInstance(type)
                     : Activator.CreateInstance(type, true);
                 _objects.Add(instance);
+                if (instance is UnityEngine.Object owned) owned.hideFlags = HideFlags.HideAndDontSave;
                 if (instance is IWhimTexDocumentSerializable manual)
                 {
                     // A manual type consumes its own values. Generated code falls back to this same
                     // automatic pass when it does not cover every field, so neither side can lose values.
                     int outer = _manualCount;
+                    Type outerType = _manualType;
                     _manualCount = -1;
+                    _manualType = type;
                     manual.ReadDocument(this);
                     _manualCount = outer;
+                    _manualType = outerType;
                 }
                 else
                 {
@@ -818,17 +924,19 @@ namespace DCFApixels.WhimTex
             // --- manual mode: a type reads its own fields, in the automatic encoding ---
 
             private int _manualCount = -1;
+            private Type _manualType;
+            private string _manualName;
 
             public int Count
             {
                 get
                 {
-                    if (_manualCount < 0) _manualCount = _reader.ReadInt32();
+                    if (_manualCount < 0) _manualCount = ReadCount(65536, 2);
                     return _manualCount;
                 }
             }
 
-            public string NextName() => _reader.ReadString();
+            public string NextName() => _manualName = ReadText();
             // A value is read straight from its tag, so nothing is boxed on the way in. A tag that does not
             // match the field (a field whose type changed between versions, or a null) falls back to the
             // shared pass, which is exactly how the automatic path treats such a value.
@@ -841,7 +949,7 @@ namespace DCFApixels.WhimTex
             public string ReadString()
             {
                 byte tag = _reader.ReadByte();
-                if (tag == TagString) return _reader.ReadString();
+                if (tag == TagString) return ReadText();
                 return ReadTagged(tag, typeof(string)) as string;
             }
             public Vector2 ReadVector2()
@@ -921,16 +1029,20 @@ namespace DCFApixels.WhimTex
             IList IWhimTexDocumentReader.ReadList(Type type) => (IList)Read(type);
             UnityEngine.Object IWhimTexDocumentReader.ReadReference() => Read(null) as UnityEngine.Object;
             Texture2D IWhimTexDocumentReader.ReadTexture() => Read(typeof(Texture2D)) as Texture2D;
-            public void Skip() => Read(null);
+            public void Skip()
+            {
+                if (_manualType != null) RecordSkippedField(_manualType, _manualName ?? "unknown");
+                Read(null);
+            }
 
             /// <summary>The automatic pass: reads a value count and assigns every value to its field by name.</summary>
             public void ReadAutomaticFields(object value)
             {
                 Type type = value.GetType();
-                int count = _reader.ReadInt32();
+                int count = ReadCount(65536, 2);
                 for (int i = 0; i < count; i++)
                 {
-                    string fieldName = _reader.ReadString();
+                    string fieldName = ReadText();
                     FieldInfo field = FindField(type, fieldName);
                     object fieldValue = Read(field?.FieldType);
                     if (field == null) continue;
@@ -938,8 +1050,8 @@ namespace DCFApixels.WhimTex
                     {
                         if (fieldValue != null || !field.FieldType.IsValueType) field.SetValue(value, fieldValue);
                     }
-                    catch (ArgumentException) { }
-                    catch (InvalidCastException) { }
+                    catch (ArgumentException) { RecordSkippedField(type, fieldName); }
+                    catch (InvalidCastException) { RecordSkippedField(type, fieldName); }
                 }
             }
         }

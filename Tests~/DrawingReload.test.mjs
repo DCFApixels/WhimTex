@@ -31,6 +31,13 @@ assert.ok(drawing.includes('[NonSerialized] private bool paintSurfaceDirty;'));
 assert.ok(!paint.includes('SyncSurfaceToTexture()'), 'Painting does not gain extra readbacks');
 const sync = body(drawing, 'internal void SyncSurfaceToTexture()');
 assert.ok(sync.indexOf('paintSurfaceDirty = false') > sync.indexOf('pixels.Apply(false, false)'));
+const syncPending = new Function('state', `with (state) { ${body(drawing, 'internal void SyncPendingSurfaceToTexture()')} }`);
+for (const dirty of [false, true]) for (const pixels of [null, {}]) {
+    let calls = 0;
+    syncPending({ paintSurfaceDirty: dirty, pixels, SyncSurfaceToTexture() { calls++; } });
+    assert.equal(calls, dirty || pixels === null ? 1 : 0, 'Saving only reads back dirty/new Drawing surfaces');
+}
+assert.ok(body(compositor, 'internal void SyncDrawingLayerTextures()').includes('drawing.SyncPendingSurfaceToTexture()'));
 assert.ok(body(drawing, 'private void ReleasePaintSurface()').includes('paintSurfaceDirty = false'));
 const suspend = new Function('state', `with (state) { ${body(drawing, 'internal void ReleasePaintResources()')} }`);
 const dispose = new Function('state', `with (state) { ${body(drawing, 'internal override void ReleaseTransientResources()')} }`);

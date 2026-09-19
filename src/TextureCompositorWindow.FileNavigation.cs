@@ -21,8 +21,8 @@ namespace DCFApixels.WhimTex
                 !(layer?.Behaviour is FileLayerBehaviour file) || file.sourceTexture == null ||
                 FindLayerDragControl(row, evt.target as VisualElement) != null ||
                 !IsLayerDragArea(row, evt.target as VisualElement)) return false;
-            TextureCompositor document = TextureCompositor.FindDocument(file.sourceTexture);
-            if (document == null) return false;
+            Texture2D source = file.sourceTexture;
+            if (!WhimTexDocumentService.IsDocumentAsset(source)) return false;
             WhimTexUI.ConsumeEvent(evt);
             activeLayerDrag?.Cancel();
             FinishPreviewTransform();
@@ -31,7 +31,8 @@ namespace DCFApixels.WhimTex
             RefreshToolkitInterface();
             UnityEditor.EditorApplication.delayCall += () =>
             {
-                if (this != null && document != null) OpenReferencedDocument(document);
+                if (this != null && source != null && !OpenWhimTexDocumentPath(UnityEditor.AssetDatabase.GetAssetPath(source)))
+                    OpenReferencedDocument(TextureCompositor.FindDocument(source));
             };
             return true;
         }

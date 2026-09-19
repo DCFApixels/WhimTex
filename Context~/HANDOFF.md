@@ -34,6 +34,9 @@
 | --- | --- |
 | Модель и типы слоёв | [Layer.cs](../src/Layers/Layer.cs), [Layers/](../src/Layers/) |
 | Формат документа | [DOCUMENT_FORMAT.md](DOCUMENT_FORMAT.md), [WhimTexDocumentContainer.cs](../src/WhimTexDocumentContainer.cs) |
+| Независимая сборка TIFF, без смены API агентов | [TIFF_AUTHORING.md](TIFF_AUTHORING.md), [WhimTexDocumentBuild.cs](../src/WhimTexDocumentBuild.cs) |
+| Проверка переезда на TIFF: build, сбои, большие Drawing | [TIFF_VALIDATION.md](TIFF_VALIDATION.md) |
+| Узкие места 4K Drawing Save: замеры и план оптимизации | [TIFF_SAVE_PERFORMANCE.md](TIFF_SAVE_PERFORMANCE.md) |
 | Рендер и зависимости | [TextureCompositor.cs](../src/TextureCompositor.cs), partial-файлы `.Clipping`, `.EffectCache`, `.Psd`, [EffectRenderCache.cs](../src/EffectRenderCache.cs) |
 | Окно и инструменты | [TextureCompositorWindow.cs](../src/TextureCompositorWindow.cs), partial-файлы по функциям |
 | Общие настройки слоёв | [WhimTexUI.cs](../src/WhimTexUI.cs), [LayerColorSettingsView.cs](../src/LayerColorSettingsView.cs) |

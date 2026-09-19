@@ -89,9 +89,9 @@ namespace DCFApixels.WhimTex
         {
             menu.AddItem(new GUIContent("User Settings…"), false, WhimTexUserSettingsWindow.Open);
             menu.AddSeparator("");
-            menu.AddItem(new GUIContent("Save As WhimTex File…"), false, SaveDocumentAsFile);
-            menu.AddItem(new GUIContent(WhimTexDocumentSession.IsLive ? "Stop Live Update" : "Start Live Update"),
-                false, ToggleLiveUpdate);
+            menu.AddItem(new GUIContent("Save As WhimTex File…"), false, () => SaveDocumentAs(compositor));
+            menu.AddItem(new GUIContent(WhimTexDocumentSession.IsLiveFor(compositor) ? "Stop Live Update" : "Start Live Update"),
+                false, () => ToggleLiveUpdate(compositor));
         }
 
         internal static void ConfirmResetEditorSettings(EditorWindow notificationWindow)
@@ -198,12 +198,14 @@ namespace DCFApixels.WhimTex
             WhimTexUserSettings.Changed += OnPreviewAppearanceChanged;
             AssemblyReloadEvents.beforeAssemblyReload += StopLiveOutput;
             EditorApplication.quitting += StopLiveOutput;
+            WhimTexDocumentSession.StateChanged += RefreshLiveOutputButton;
             EditorApplication.projectChanged += OnLiveOutputProjectChanged;
 
             if (compositor == null)
                 SetCompositor(CreateTemporaryCompositor());
             else
                 compositor.NormalizeModel();
+            WhimTexDocumentService.Attach(this, compositor);
             UpdateUnsavedChangesState();
             RequestPreview(true);
 
@@ -213,6 +215,7 @@ namespace DCFApixels.WhimTex
 
         private void OnDisable()
         {
+            WhimTexDocumentService.Detach(this);
             StopKeyboardNudge();
             CancelImageUrlPaste();
             uvMap = null; uvCachedMesh = null; uvCachedDocument = null;
@@ -233,6 +236,7 @@ namespace DCFApixels.WhimTex
             WhimTexUserSettings.Changed -= OnPreviewAppearanceChanged;
             AssemblyReloadEvents.beforeAssemblyReload -= StopLiveOutput;
             EditorApplication.quitting -= StopLiveOutput;
+            WhimTexDocumentSession.StateChanged -= RefreshLiveOutputButton;
             EditorApplication.projectChanged -= OnLiveOutputProjectChanged;
             ClearLayerDragData();
             ReleasePreview();
@@ -268,6 +272,7 @@ namespace DCFApixels.WhimTex
 
         private void OnDestroy()
         {
+            ClearDocumentFile();
             if (compositor != null && !AssetDatabase.Contains(compositor))
                 DestroyImmediate(compositor);
             compositor = null;
@@ -277,20 +282,19 @@ namespace DCFApixels.WhimTex
         {
             RefreshDocumentTitle();
             RefreshLiveOutputButton();
-            hasUnsavedChanges = HasPreviewLayers &&
-                (HasDocumentChanges() || paintingLayer != null ||
-                 previewTransformManipulator != null && previewTransformManipulator.IsDragging);
+            hasUnsavedChanges = HasDocumentChanges() || paintingLayer != null ||
+                 previewTransformManipulator != null && previewTransformManipulator.IsDragging;
             saveChangesMessage = "Save this WhimTex document before closing?\n\n" +
                 "Save opens Save As to choose a file. Discard closes without saving. Cancel keeps the window open.";
             RefreshDocumentSaveControls();
         }
 
         private bool HasDocumentChanges() => compositor != null &&
-            (AssetDatabase.Contains(compositor) ? compositor.HasUnsavedAssetChanges() : temporaryDocumentDirty);
+            (AssetDatabase.Contains(compositor) ? compositor.HasUnsavedAssetChanges() : temporaryDocumentDirty || compositor.documentBinding?.dirty == true);
 
         public override void SaveChanges()
         {
-            if (HasPreviewLayers && !SaveDocument())
+            if (!SaveDocument())
                 return;
             temporaryDocumentDirty = false;
             base.SaveChanges();
@@ -1140,7 +1144,9 @@ namespace DCFApixels.WhimTex
             ResetAreaSelection();
             ClearPreviewGuides();
             previewGuidesDocument = next;
+            ClearDocumentFile();
             compositor = next;
+            WhimTexDocumentService.Attach(this, compositor);
             outputDependencyDirty = false;
             compositor.NormalizeModel();
             SelectOnlyLayer(null);
@@ -1158,7 +1164,7 @@ namespace DCFApixels.WhimTex
         private bool ResolveUnsavedTemporaryDocument()
         {
             PrepareDocumentSave();
-            if (!HasPreviewLayers || !HasDocumentChanges())
+            if (!HasDocumentChanges())
                 return true;
 
             int choice = EditorUtility.DisplayDialogComplex(
@@ -1168,7 +1174,7 @@ namespace DCFApixels.WhimTex
                 "Don't Save",
                 "Cancel");
             if (choice == 0)
-                return SaveAsAsset();
+                return SaveDocument();
             return choice == 1;
         }
 
@@ -1211,6 +1217,7 @@ namespace DCFApixels.WhimTex
 
             compositor.SyncDrawingLayerTextures();
             TextureCompositor copy = Instantiate(compositor);
+            copy.documentBinding = null;
             if (AssetDatabase.Contains(compositor)) copy.SpriteOutputSettings.linkedTextureGuid = null;
             try
             {

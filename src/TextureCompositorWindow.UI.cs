@@ -335,6 +335,11 @@ namespace DCFApixels.WhimTex
                 () => compositor.OutputTexture != null ? (UnityEngine.Object)compositor.OutputTexture : compositor);
             toolkitDocumentField.RegisterValueChangedCallback(evt =>
             {
+                if (evt.newValue != null && OpenWhimTexDocumentPath(AssetDatabase.GetAssetPath(evt.newValue)))
+                {
+                    toolkitDocumentField.SetValueWithoutNotify(compositor.OutputTexture != null ? (UnityEngine.Object)compositor.OutputTexture : compositor);
+                    return;
+                }
                 TextureCompositor selected = TextureCompositor.FindDocument(evt.newValue);
                 if (selected == null || selected == compositor)
                 {
@@ -431,9 +436,9 @@ namespace DCFApixels.WhimTex
                     ApplyToolkitChange("Change Sprite Canvas Height", () => compositor.height = value);
             });
             toolkitCanvasToolbar.Add(height);
-            Button outputSettings = WhimTexUI.CreateToolbarButton("Output", () => WhimTexOutputSettingsWindow.Open(compositor), 58f);
+            Button outputSettings = WhimTexUI.CreateToolbarButton("Output", OpenDocumentOutputSettings, 58f);
             outputSettings.name = "canvasOutputSettings";
-            outputSettings.tooltip = "Output Settings: linked output image, texture storage, sampling, mipmaps and sprite settings for this document.";
+            outputSettings.tooltip = "Select the saved TIFF to edit its native texture import settings in Inspector. An unsaved document must be saved first. Legacy assets keep their Output Settings window.";
             toolkitCanvasToolbar.Add(outputSettings);
             var filter = new EnumField("Filter", compositor.outputFilter) { name = "canvasOutputFilter" };
             filter.AddToClassList("whimtex-canvas-filter");
@@ -892,7 +897,7 @@ namespace DCFApixels.WhimTex
                     if (ReferenceEquals(source, checkedSource) && path == checkedPath) return;
                     checkedSource = source;
                     checkedPath = path;
-                    referenceAccent.EnableInClassList("whimtex-hidden", TextureCompositor.FindDocument(source) == null);
+                    referenceAccent.EnableInClassList("whimtex-hidden", !WhimTexDocumentService.IsDocumentAsset(source));
                 });
             }
             if (layer.Behaviour == null)

@@ -29,9 +29,12 @@ namespace DCFApixels.WhimTex
         public static bool IsDocument(string path)
         {
             if (string.IsNullOrEmpty(path)) return false;
+            string extension = Path.GetExtension(path);
+            if (!string.Equals(extension, ".tiff", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(extension, ".tif", StringComparison.OrdinalIgnoreCase)) return false;
             var importer = UnityEditor.AssetImporter.GetAtPath(path);
-            if (importer != null && !string.IsNullOrEmpty(importer.userData))
-                return importer.userData.Contains(MetaMarker);
+            if (importer != null && !string.IsNullOrEmpty(importer.userData) && importer.userData.Contains(MetaMarker))
+                return true;
             return HasFooter(path);
         }
 
@@ -46,7 +49,7 @@ namespace DCFApixels.WhimTex
                 if (stream.Read(head, 0, head.Length) != head.Length) return false;
                 bool tiff = head[0] == 'I' && head[1] == 'I' && head[2] == 42 && head[3] == 0 ||
                             head[0] == 'M' && head[1] == 'M' && head[2] == 0 && head[3] == 42;
-                if (!tiff) return TryRead(path, out _, out _); // earlier PNG and EXR carriers
+                if (!tiff) return false;
                 stream.Seek(-8, SeekOrigin.End);
                 var tail = new byte[8];
                 if (stream.Read(tail, 0, tail.Length) != tail.Length) return false;
@@ -59,7 +62,14 @@ namespace DCFApixels.WhimTex
         }
 
         /// <summary>Builds the carrier: 8-bit samples for ordinary documents, 32-bit float for HDR ones.</summary>
-        public static byte[] Write(WhimTexDocumentContainer container, Texture2D composite)
+        public static byte[] Write(WhimTexDocumentContainer container, Texture2D composite, bool? srgbOutput = null)
+        {
+            using var stream = new MemoryStream();
+            WriteTo(stream, container, composite, srgbOutput);
+            return stream.ToArray();
+        }
+
+        internal static void WriteTo(Stream stream, WhimTexDocumentContainer container, Texture2D composite, bool? srgbOutput = null)
         {
             if (container == null) throw new WhimTexDocumentException("There is no document container to write.");
             if (composite == null) throw new WhimTexDocumentException("The document produced no composite image.");
@@ -76,28 +86,46 @@ namespace DCFApixels.WhimTex
             // Dropping half-float to 8-bit linear bands in the shadows, so those values are encoded to sRGB
             // and the carrier flags tell Unity to decode them back. Data that is already 8-bit keeps its own
             // encoding: a linear data texture must not be reinterpreted.
-            bool encodeSrgb = targetBits == 8 && sourceBits != 8 && !composite.isDataSRGB;
+            bool encodeSrgb = targetBits == 8 && sourceBits != 8 && !composite.isDataSRGB && (srgbOutput ?? true);
             byte[] image = WhimTexTiffImage.WriteRaw(composite.width, composite.height, rawPixels, sourceBits,
                 targetBits, encodeSrgb);
             // A malformed carrier imports without an error but silently loses sprite sub-assets, so the
             // image is read back before the document ever reaches its folder.
-            if (!WhimTexTiffImage.TryReadPixels(image, out int width, out int height, out byte[] decoded, out string error))
+            if (!WhimTexTiffImage.Validate(image, out int width, out int height, out string error))
                 throw new WhimTexDocumentException("The produced carrier image is invalid: " + error);
-            int expected = composite.width * composite.height * 4 * (targetBits / 8);
-            if (width != composite.width || height != composite.height || decoded.Length != expected)
+            if (width != composite.width || height != composite.height)
                 throw new WhimTexDocumentException("The produced carrier image does not match the composite.");
             // A few bytes the import pipeline can fetch without touching the model or the pixels.
             container.Set(FlagsBlock, new[] { (byte)(encodeSrgb || composite.isDataSRGB ? 1 : 0) },
                 System.IO.Compression.CompressionLevel.Fastest);
-            byte[] payload = container.Serialize();            var result = new byte[image.Length + payload.Length + 16];
-            Buffer.BlockCopy(image, 0, result, 0, image.Length);
-            Buffer.BlockCopy(payload, 0, result, image.Length, payload.Length);
-            Buffer.BlockCopy(BitConverter.GetBytes((long)payload.Length), 0, result, image.Length + payload.Length, 8);
-            Buffer.BlockCopy(Encoding.ASCII.GetBytes(FooterMagic), 0, result, image.Length + payload.Length + 8, 8);
-            return result;
+            stream.Write(image, 0, image.Length);
+            long start = stream.Position;
+            container.WriteTo(stream);
+            long length = stream.Position - start;
+            using var writer = new BinaryWriter(stream, Encoding.UTF8, true);
+            writer.Write(length);
+            writer.Write(Encoding.ASCII.GetBytes(FooterMagic));
         }
 
-        /// <summary>Extracts the document payload, also accepting the earlier PNG and EXR carriers.</summary>
+        internal static WhimTexDocumentContainer OpenContainer(string path)
+        {
+            var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            try
+            {
+                if (stream.Length < 24 || stream.Length > 4L * 1024 * 1024 * 1024)
+                    throw new WhimTexDocumentException("Invalid file size (maximum 4 GiB).");
+                using var reader = new BinaryReader(stream, Encoding.UTF8, true);
+                if (!WhimTexTiffImage.IsTiff(reader.ReadBytes(8)))
+                    throw new WhimTexDocumentException("WhimTex documents must be TIFF images.");
+                stream.Position = stream.Length - 16;
+                long length = reader.ReadInt64();
+                if (Encoding.ASCII.GetString(reader.ReadBytes(8)) != FooterMagic) throw new WhimTexDocumentException("The TIFF carries no WhimTex document.");
+                return WhimTexDocumentContainer.Open(stream, stream.Length - 16 - length, length);
+            }
+            catch { stream.Dispose(); throw; }
+        }
+
+        /// <summary>Extracts the TIFF document payload for in-memory diagnostics/tests.</summary>
         public static bool TryRead(byte[] file, out byte[] payload, out string error)
         {
             payload = null;
@@ -120,15 +148,18 @@ namespace DCFApixels.WhimTex
                 Buffer.BlockCopy(file, (int)(file.Length - 16 - length), payload, 0, (int)length);
                 return true;
             }
-            return WhimTexDocumentContainer.TryReadPayload(file, out payload, out error);
+            error = "WhimTex documents must be TIFF images.";
+            return false;
         }
 
-        public static bool TryRead(string path, out byte[] payload, out string error)        {
+        public static bool TryRead(string path, out byte[] payload, out string error)
+        {
             payload = null;
             error = null;
             try
             {
                 if (string.IsNullOrEmpty(path) || !File.Exists(path)) { error = "The document file was not found: " + path; return false; }
+                if (new FileInfo(path).Length > 512L * 1024 * 1024) { error = "Use the streaming loader for documents larger than 512 MiB."; return false; }
                 return TryRead(File.ReadAllBytes(path), out payload, out error);
             }
             catch (IOException exception)
@@ -146,11 +177,24 @@ namespace DCFApixels.WhimTex
         {
             srgb = false;
             isDocument = false;
-            if (!TryRead(path, out byte[] payload, out error)) return false;
-            isDocument = true;
-            if (!WhimTexDocumentContainer.TryReadBlock(payload, FlagsBlock, out byte[] flags, out error)) return false;
-            srgb = flags.Length > 0 && (flags[0] & 1) != 0;
-            return true;
+            error = null;
+            try
+            {
+                using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                if (stream.Length < 24) return false;
+                using var reader = new BinaryReader(stream, Encoding.UTF8, true);
+                if (!WhimTexTiffImage.IsTiff(reader.ReadBytes(8))) return false;
+                stream.Position = stream.Length - 16;
+                long length = reader.ReadInt64();
+                if (Encoding.ASCII.GetString(reader.ReadBytes(8)) != FooterMagic) return false;
+                byte[] flags = WhimTexDocumentContainer.ReadSmallBlock(stream, stream.Length - 16 - length, length, FlagsBlock);
+                if (flags.Length != 1) throw new WhimTexDocumentException("Invalid carrier flags.");
+                srgb = (flags[0] & 1) != 0;
+                isDocument = true;
+                return true;
+            }
+            catch (Exception exception) when (exception is IOException || exception is WhimTexDocumentException || exception is UnauthorizedAccessException)
+            { error = exception.Message; return false; }
         }
     }
 }

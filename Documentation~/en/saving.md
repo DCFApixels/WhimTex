@@ -19,14 +19,42 @@ Export only when you need a separate image file.
 Press `Ctrl+S`. The first save asks for a location; later saves update the same file.
 **Save As** makes a separate copy. If you close a document with changes,
 you can save, discard them or cancel closing.
-Documents with no layers close or switch without a save prompt, but can still be saved manually.
+An untouched new document closes without a prompt. Deleting the last layer is still a change and can be saved.
 
-The saved asset is ready to use as a **texture**.
-Expand it in Project to use **Output Sprite**. Double-click it to continue editing.
+The saved asset is ready to use as a **texture**. Double-click it to continue editing;
+if it is already open, WhimTex focuses that window.
 
 Unity normally shows the **last saved image**. Enable [Live Update](preview.md#see-your-paint-on-a-model)
 to see edits on a model before saving. If a linked texture changes, save the document again to update its output image.
 File layers keep their links to source textures; keep those sources in the project.
+
+## TIFF documents (experimental branch)
+
+New documents are saved as **Name.whimtex.tiff**: one editable document that Unity imports as a texture.
+Select it in Project, or click **Output**, to configure compression, mipmaps, sprites and platform overrides in Unity's standard Inspector. TIFF uses no separate settings window; an unsaved document must be saved first.
+For sprites, select **Sprite (2D and UI)** there and use the standard Sprite Editor.
+Keep the TIFF and its `.meta` together; moving the asset within Unity preserves its link to the open document.
+Do not resave the TIFF in another image editor: that can remove the editable layers.
+
+**Live Update** also works with compressed output: the working image is temporarily uncompressed.
+Read/Write is enabled only when needed and restored when the session ends; the `.meta` is temporarily modified.
+Closing/switching the document, script reload or external reimport stops the session. Saving another document does not affect it.
+Building a Player also stops Live Update and uses the **last saved TIFF**, without saving or discarding your pending edits. Enable Live Update again manually afterward. If the texture cannot be restored, the build is stopped.
+If Unity reports an import error after saving, the saved TIFF is retained. Fix the import error and save again; WhimTex retries the import even when the file contents are unchanged.
+Saving the active document briefly pauses Live Update and resumes it after import, without switching Read/Write off and on.
+Live Update supports 2D **Default** and **Sprite** imports; Crunch and other texture types update on Save instead.
+This experimental TIFF path currently allows one Live Update session at a time. Final import processing may differ from the live preview.
+
+Missing types, fields or referenced assets produce a warning and block saving to prevent data loss.
+Restore the required package/assets and reopen the document. LDR saves follow the texture's sRGB setting;
+HDR TIFF stores linear values and disables sRGB. Alpha is never sRGB-encoded.
+
+Apply any pending Shader FX code before saving. If the TIFF changed outside the current editing session, reopen it or use **Save As**; WhimTex will not overwrite the external version.
+Saving a legacy `.asset` as TIFF copies its editable Drawing pixels and leaves the original asset intact. References to its old output are not reassigned automatically.
+PNG/EXR export remains ordinary image export, without editable layers.
+
+The sections below about linked images and embedded output settings apply to the **legacy `.asset` workflow**,
+available through **Export → Compositor Asset, legacy (.asset)**, not to TIFF import settings.
 
 ## Linked output image
 

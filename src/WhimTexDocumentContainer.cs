@@ -17,33 +17,32 @@ namespace DCFApixels.WhimTex
     /// Byte-level container of a WhimTex document. The document itself is a set of named blocks:
     /// the serialized model plus one block per drawing layer.
     ///
-    /// The container is carried inside a regular image file, because Unity only applies
-    /// TextureImporter settings (compression, mipmaps, platform overrides, sprite borders) to
-    /// assets imported from an image file by extension:
-    ///   * PNG — an ancillary chunk placed right before IEND;
-    ///   * EXR — the payload appended after the last pixel chunk, located by a footer.
-    /// Both carriers were verified to survive import, reimport and platform switching, and Unity
-    /// never rewrites the source bytes.
+    /// The writer appends this container to a native TIFF image; regular image export is separate.
     /// </summary>
     public sealed class WhimTexDocumentContainer : IDisposable
     {
         public const int CurrentVersion = 1;
         public const string DocumentBlock = "document";
-        public const string PixelBlockPrefix = "pixels:";
 
         private const string PayloadMagic = "WHIMTEXD";
-        private const string PngChunkType = "whTX";
         private const int MaximumBlockCount = 65536;
         private const int MaximumNameLength = 512;
         private const long MaximumTotalBytes = 8L * 1024 * 1024 * 1024;
-        private static readonly byte[] PngSignature = { 137, 80, 78, 71, 13, 10, 26, 10 };
 
         private readonly List<string> _order = new List<string>();
         private readonly Dictionary<string, byte[]> _blocks = new Dictionary<string, byte[]>(StringComparer.Ordinal);
         private readonly Dictionary<string, CompressionLevel> _levels = new Dictionary<string, CompressionLevel>(StringComparer.Ordinal);
         private readonly Dictionary<string, Entry> _entries = new Dictionary<string, Entry>(StringComparer.Ordinal);
         private readonly Dictionary<string, string> _cacheKeys = new Dictionary<string, string>(StringComparer.Ordinal);
+        private readonly Dictionary<string, Compressed> _reused = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, Compressed> _prepared = new(StringComparer.Ordinal);
+        private readonly HashSet<string> _exposed = new(StringComparer.Ordinal);
         private byte[] _payload;
+        private Stream _source;
+        private bool _leaveSourceOpen;
+        private long _sourceStart;
+        private const string IntegrityBlock = "integrity:sha256";
+        private Dictionary<string, byte[]> _integrity;
 
         // Texture pixels are the bulk of a document, so they are kept in native memory: copying hundreds of
         // megabytes into the managed heap on every save is what the garbage collector would have to collect.
@@ -52,32 +51,79 @@ namespace DCFApixels.WhimTex
         private readonly List<Unity.Collections.NativeArray<byte>> _owned = new List<Unity.Collections.NativeArray<byte>>();
 
         // Pixel blocks are the dominant cost of a save, and every save builds a fresh container, so the
-        // deflated result is kept outside the container. A block joins the cache through SetCompressed with
-        // a key that describes its content: the same key means the same bytes and nothing is deflated again.
+        // stored result is kept outside the container. Keys select candidates; exact raw comparison
+        // proves equality before reuse. Immutable results include their already calculated SHA-256.
         private static readonly Dictionary<string, Compressed> CompressedCache = new Dictionary<string, Compressed>(StringComparer.Ordinal);
-        private static readonly Queue<string> CompressedCacheOrder = new Queue<string>();
+        private static readonly LinkedList<string> CompressedCacheOrder = new();
+        private static readonly Dictionary<string, LinkedListNode<string>> CompressedCacheNodes = new(StringComparer.Ordinal);
         private static long _compressedCacheBytes;
-        private const long MaximumCompressedCacheBytes = 192L * 1024 * 1024;
+        // Fits four 4K RGBA32 blocks without an unbounded per-document/history cache.
+        private const long MaximumCompressedCacheBytes = 256L * 1024 * 1024;
         private const long ParallelDeflateBytes = 4L * 1024 * 1024;
 
         /// <summary>A deflated block. Incompressible blocks are stored as they are, so the flag travels with the bytes.</summary>
         private sealed class Compressed
         {
-            public byte[] bytes;
-            public bool compressed;
+            public readonly byte[] bytes, digest;
+            public readonly bool compressed;
+            public readonly long rawLength;
+
+            public Compressed(byte[] ownedBytes, bool compressed, long rawLength)
+            {
+                bytes = ownedBytes;
+                this.compressed = compressed;
+                this.rawLength = rawLength;
+                digest = Digest(bytes);
+            }
         }
 
         public int Count => _order.Count;
         public IReadOnlyList<string> Names => _order;
         public bool HasDocument => _order.Contains(DocumentBlock);
+        internal bool HasExternalInputs { get; set; }
+        internal bool ReusePixelCache { get; set; } = true;
+
+        internal long LengthOf(string name)
+        {
+            if (_blocks.TryGetValue(name, out byte[] bytes)) return bytes.LongLength;
+            if (_native.TryGetValue(name, out var native)) return native.Length;
+            if (_reused.TryGetValue(name, out var reused)) return reused.rawLength;
+            if (_entries.TryGetValue(name, out Entry entry)) return entry.rawLength;
+            throw new WhimTexDocumentException("Missing block '" + name + "'.");
+        }
+
+        internal string ContentSignature()
+        {
+            PrepareStoredBlocks();
+            using var hash = System.Security.Cryptography.SHA256.Create();
+            foreach (string name in _order)
+            {
+                byte[] label = Encoding.UTF8.GetBytes(name + "\0");
+                hash.TransformBlock(label, 0, label.Length, null, 0);
+                // Fast cache fingerprints are only lookup hints, never proof of equality.
+                // The save signature uses SHA-256 of the exact immutable stored blocks.
+                Compressed block = _prepared[name];
+                byte[] metadata = BitConverter.GetBytes(block.rawLength);
+                hash.TransformBlock(metadata, 0, metadata.Length, null, 0);
+                byte[] encoding = { (byte)(block.compressed ? 1 : 0) };
+                hash.TransformBlock(encoding, 0, encoding.Length, null, 0);
+                hash.TransformBlock(block.digest, 0, block.digest.Length, null, 0);
+            }
+            hash.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+            return Convert.ToBase64String(hash.Hash);
+        }
 
         public void Set(string name, byte[] data, CompressionLevel level = CompressionLevel.Optimal)
         {
             if (data == null) throw new WhimTexDocumentException("Block '" + name + "' has no data.");
             ValidateName(name);
-            if (!_blocks.ContainsKey(name) && !_entries.ContainsKey(name)) _order.Add(name);
+            PrepareMutation();
+            if (!Contains(name)) _order.Add(name);
             _entries.Remove(name);
-            _blocks[name] = data;
+            _reused.Remove(name);
+            _prepared.Remove(name);
+            _exposed.Remove(name);
+            _blocks[name] = (byte[])data.Clone();
             _native.Remove(name);
             _levels[name] = level;
             _cacheKeys.Remove(name);
@@ -96,14 +142,36 @@ namespace DCFApixels.WhimTex
         {
             if (!data.IsCreated) throw new WhimTexDocumentException("Block '" + name + "' has no data.");
             ValidateName(name);
-            if (!_blocks.ContainsKey(name) && !_native.ContainsKey(name) && !_entries.ContainsKey(name)) _order.Add(name);
+            PrepareMutation();
+            if (!Contains(name)) _order.Add(name);
             _entries.Remove(name);
+            _reused.Remove(name);
+            _prepared.Remove(name);
+            _exposed.Remove(name);
             _blocks.Remove(name);
             _native[name] = data;
             _owned.Add(data);
             _levels[name] = level;
             _cacheKeys.Remove(name);
             if (!string.IsNullOrEmpty(cacheKey)) _cacheKeys[name] = cacheKey;
+        }
+
+        // A native Hash128 is a cheap candidate lookup. Exact comparison also detects raw CPU
+        // edits without Apply, Undo, and even a hash collision; no reliance on UI dirty flags.
+        internal bool TryReusePixels(string name, string cacheKey, Unity.Collections.NativeArray<byte> pixels)
+        {
+            Compressed cached = FindCached(cacheKey);
+            if (cached == null || !Matches(cached, pixels.AsSpan())) return false;
+            ValidateName(name);
+            PrepareMutation();
+            if (!Contains(name)) _order.Add(name);
+            _blocks.Remove(name); _native.Remove(name); _entries.Remove(name);
+            _prepared.Remove(name);
+            _exposed.Remove(name);
+            _reused[name] = cached;
+            _cacheKeys[name] = cacheKey;
+            _levels[name] = CompressionLevel.Fastest;
+            return true;
         }
 
         /// <summary>Frees the native blocks the container owns.</summary>
@@ -115,15 +183,25 @@ namespace DCFApixels.WhimTex
             _native.Clear();
             _levels.Clear();
             _cacheKeys.Clear();
+            _reused.Clear();
+            _prepared.Clear();
+            _exposed.Clear();
             _entries.Clear();
             _blocks.Clear();
             _order.Clear();
             _payload = null;
+            if (!_leaveSourceOpen) _source?.Dispose();
+            _source = null;
+            _integrity = null;
         }
 
         public bool Remove(string name)
         {
+            PrepareMutation();
             _native.Remove(name);
+            _reused.Remove(name);
+            _prepared.Remove(name);
+            _exposed.Remove(name);
             bool existed = _order.Remove(name);
             _levels.Remove(name);
             _entries.Remove(name);
@@ -132,12 +210,31 @@ namespace DCFApixels.WhimTex
             return existed;
         }
 
-        public bool Contains(string name) => _blocks.ContainsKey(name) || _native.ContainsKey(name) || _entries.ContainsKey(name);
+        private void PrepareMutation()
+        {
+            // Pin the original manifest before changing its directory. Otherwise a valid
+            // add/remove on a parsed container would look like an incomplete manifest.
+            if (_integrity != null || !Contains(IntegrityBlock)) return;
+            foreach (string name in _order)
+                if (name != IntegrityBlock && _entries.ContainsKey(name)) { Get(name); break; }
+        }
+
+        public bool Contains(string name) => _blocks.ContainsKey(name) || _native.ContainsKey(name) || _entries.ContainsKey(name) || _reused.ContainsKey(name);
 
         /// <summary>Returns a block, inflating it on first use: a document never holds every layer at once.</summary>
         public byte[] Get(string name)
         {
+            // Get exposes mutable raw bytes, never the immutable global cache entry.
+            _prepared.Remove(name);
+            _exposed.Add(name);
             if (_blocks.TryGetValue(name, out byte[] cached)) return cached;
+            if (_reused.TryGetValue(name, out Compressed reused))
+            {
+                var data = reused.compressed ? Decompress(reused.bytes, 0, reused.bytes.Length, reused.rawLength, name) : (byte[])reused.bytes.Clone();
+                _blocks[name] = data;
+                _reused.Remove(name);
+                return data;
+            }
             // A native block becomes managed bytes only when a caller asks for them: the save path deflates
             // it where it already lies.
             if (_native.TryGetValue(name, out Unity.Collections.NativeArray<byte> native) && native.IsCreated)
@@ -149,10 +246,20 @@ namespace DCFApixels.WhimTex
             }
             if (_entries.TryGetValue(name, out Entry entry))
             {
-                Require(_payload, entry.dataOffset, entry.storedLength);
+                byte[] payload = _payload;
+                int offset = entry.dataOffset;
+                if (_source != null)
+                {
+                    _source.Position = _sourceStart + entry.dataOffset;
+                    payload = new byte[(int)entry.storedLength];
+                    ReadExactly(_source, payload);
+                    offset = 0;
+                }
+                Require(payload, offset, entry.storedLength);
+                VerifyStored(name, payload.AsSpan(offset, (int)entry.storedLength));
                 byte[] data = entry.compression == 0
-                    ? Slice(_payload, entry.dataOffset, (int)entry.storedLength)
-                    : Decompress(_payload, entry.dataOffset, (int)entry.storedLength, entry.rawLength, name);
+                    ? (_source != null ? payload : Slice(payload, offset, (int)entry.storedLength))
+                    : Decompress(payload, offset, (int)entry.storedLength, entry.rawLength, name);
                 _blocks[name] = data;
                 return data;
             }
@@ -161,122 +268,266 @@ namespace DCFApixels.WhimTex
 
         public bool TryGet(string name, out byte[] data)
         {
-            if (_blocks.TryGetValue(name, out data)) return true;
-            if (!_entries.ContainsKey(name) && !_native.ContainsKey(name)) { data = null; return false; }
+            if (!Contains(name)) { data = null; return false; }
             data = Get(name);
             return true;
         }
 
-        public string PixelBlockName(string layerId) => PixelBlockPrefix + layerId;
 
         /// <summary>Serializes the container: a header with per-block sizes followed by the block payloads.</summary>
         public byte[] Serialize()
         {
             using var stream = new MemoryStream();
+            WriteTo(stream);
+            return stream.ToArray();
+        }
+
+        internal void WriteTo(Stream stream)
+        {
+            // Verify a parsed input before removing/rebuilding its integrity manifest.
+            if (Contains(IntegrityBlock))
+                foreach (string name in _order) Get(name);
+            Remove(IntegrityBlock);
+            if (_order.Count >= MaximumBlockCount) throw new WhimTexDocumentException("Too many container blocks.");
+            PrepareStoredBlocks();
             using (var writer = new BinaryWriter(stream, Encoding.UTF8, true))
             {
                 writer.Write(Encoding.ASCII.GetBytes(PayloadMagic));
                 writer.Write(CurrentVersion);
-                writer.Write(_order.Count);
-                var raws = new byte[_order.Count][];
-                var natives = new Unity.Collections.NativeArray<byte>[_order.Count];
-                var lengths = new long[_order.Count];
-                var storedBlocks = new byte[_order.Count][];
-                var compressedFlags = new bool[_order.Count];
-                long totalBytes = 0;
+                writer.Write(_order.Count + 1);
+                using var integrity = new MemoryStream();
+                using var checksums = new BinaryWriter(integrity, Encoding.UTF8, true);
+                checksums.Write(_order.Count);
                 for (int i = 0; i < _order.Count; i++)
                 {
-                    if (_native.TryGetValue(_order[i], out Unity.Collections.NativeArray<byte> native) && native.IsCreated)
-                    {
-                        natives[i] = native;
-                        lengths[i] = native.Length;
-                    }
-                    else
-                    {
-                        raws[i] = Get(_order[i]);
-                        lengths[i] = raws[i].Length;
-                    }
-                    totalBytes += lengths[i];
-                }
-                // Blocks are independent, so a layered document is deflated on all cores. Small documents
-                // keep the plain loop: there the thread pool costs more than the work it takes over.
-                if (_order.Count > 1 && totalBytes >= ParallelDeflateBytes)
-                    System.Threading.Tasks.Parallel.For(0, _order.Count,
-                        i => storedBlocks[i] = Stored(_order[i], raws[i], natives[i], lengths[i], out compressedFlags[i]));
-                else
-                    for (int i = 0; i < _order.Count; i++)
-                        storedBlocks[i] = Stored(_order[i], raws[i], natives[i], lengths[i], out compressedFlags[i]);
-                for (int i = 0; i < _order.Count; i++)
-                {
+                    Compressed block = _prepared[_order[i]];
                     byte[] nameBytes = Encoding.UTF8.GetBytes(_order[i]);
                     writer.Write(nameBytes.Length);
                     writer.Write(nameBytes);
-                    writer.Write((int)(compressedFlags[i] ? 1 : 0));
-                    writer.Write(lengths[i]);
-                    writer.Write(storedBlocks[i] != null ? (long)storedBlocks[i].Length : lengths[i]);
+                    writer.Write(block.compressed ? 1 : 0);
+                    writer.Write(block.rawLength);
+                    writer.Write((long)block.bytes.Length);
+                    checksums.Write(_order[i]);
+                    checksums.Write(block.digest);
                 }
-                // A null entry means the block is written as it is, straight out of native memory.
+                byte[] manifest = integrity.ToArray();
+                byte[] manifestName = Encoding.UTF8.GetBytes(IntegrityBlock);
+                writer.Write(manifestName.Length); writer.Write(manifestName);
+                writer.Write(0); writer.Write((long)manifest.Length); writer.Write((long)manifest.Length);
                 for (int i = 0; i < _order.Count; i++)
-                {
-                    if (storedBlocks[i] != null) writer.Write(storedBlocks[i]);
-                    else if (natives[i].IsCreated) writer.Write(natives[i].AsSpan());
-                    else writer.Write(raws[i]);
-                }
+                    writer.Write(_prepared[_order[i]].bytes);
+                writer.Write(manifest);
             }
-            return stream.ToArray();
         }
 
-        /// <summary>Deflates a block wherever its bytes live, reusing a cached result for an unchanged key.
-        /// A null result means the block is stored as it is.</summary>
-        private byte[] Stored(string name, byte[] raw, Unity.Collections.NativeArray<byte> native, long length, out bool compressed)
+        internal void PrepareStoredBlocks()
         {
-            if (!_cacheKeys.TryGetValue(name, out string cacheKey) || cacheKey == null)
-                return Deflate(raw, native, length, _levels[name], out compressed);
-            lock (CompressedCache)
+            var names = new List<string>();
+            var raws = new List<byte[]>();
+            var natives = new List<Unity.Collections.NativeArray<byte>>();
+            long total = 0, largest = 1, pending = 0;
+            foreach (string name in _order)
             {
-                if (CompressedCache.TryGetValue(cacheKey, out Compressed cached))
+                long length = LengthOf(name);
+                total += length;
+                if (total > MaximumTotalBytes) throw new WhimTexDocumentException("Document is too large.");
+                if (_prepared.ContainsKey(name) && !_exposed.Contains(name)) continue;
+                if (_reused.TryGetValue(name, out Compressed reused)) { _prepared[name] = reused; continue; }
+                names.Add(name);
+                if (_native.TryGetValue(name, out var native)) { natives.Add(native); raws.Add(null); }
+                else { natives.Add(default); raws.Add(_blocks.TryGetValue(name, out byte[] raw) ? raw : Get(name)); }
+                largest = Math.Max(largest, length);
+                pending += length;
+            }
+            var results = new Compressed[names.Count];
+            void Prepare(int i) => results[i] = Stored(names[i], raws[i], natives[i]);
+            // Compression AND SHA-256 run together, not a parallel deflate followed by serial hashing.
+            // Bound simultaneous input to ~256 MiB and at most four jobs; buffers/results cost extra.
+            int workers = (int)Math.Max(1, Math.Min(4, Math.Min(Environment.ProcessorCount, 256L * 1024 * 1024 / largest)));
+            if (names.Count > 1 && pending >= ParallelDeflateBytes && workers > 1)
+                System.Threading.Tasks.Parallel.For(0, names.Count,
+                    new System.Threading.Tasks.ParallelOptions { MaxDegreeOfParallelism = workers }, Prepare);
+            else for (int i = 0; i < names.Count; i++) Prepare(i);
+            for (int i = 0; i < names.Count; i++)
+            {
+                string name = names[i];
+                _prepared[name] = results[i];
+                // The immutable stored block now owns everything needed by Save. Do not keep
+                // hundreds of MiB of raw snapshots alive during Compose/TIFF encoding as well.
+                if (_native.TryGetValue(name, out var native))
                 {
-                    compressed = cached.compressed;
-                    return cached.bytes;
+                    _native.Remove(name);
+                    _reused[name] = results[i];
+                    _owned.Remove(native);
+                    native.Dispose();
                 }
             }
-            byte[] stored = Deflate(raw, native, length, _levels[name], out bool wasCompressed);
-            compressed = wasCompressed;
-            var entry = new Compressed { bytes = stored, compressed = wasCompressed };
-            lock (CompressedCache)
-            {
-                if (!CompressedCache.ContainsKey(cacheKey))
-                {
-                    CompressedCache[cacheKey] = entry;
-                    CompressedCacheOrder.Enqueue(cacheKey);
-                    _compressedCacheBytes += stored == null ? 0 : stored.Length;
-                    while (_compressedCacheBytes > MaximumCompressedCacheBytes && CompressedCacheOrder.Count > 0)
-                    {
-                        string oldest = CompressedCacheOrder.Dequeue();
-                        if (CompressedCache.TryGetValue(oldest, out Compressed evicted))
-                        {
-                            _compressedCacheBytes -= evicted.bytes == null ? 0 : evicted.bytes.Length;
-                            CompressedCache.Remove(oldest);
-                        }
-                    }
-                }
-            }
-            return stored;
         }
 
-        /// <summary>Compresses a block from managed or native memory. Null means the bytes are kept as they are.</summary>
-        private static byte[] Deflate(byte[] raw, Unity.Collections.NativeArray<byte> native, long length,
-            CompressionLevel level, out bool compressed)
+        private static byte[] Digest(ReadOnlySpan<byte> data)
+        {
+            using var hash = System.Security.Cryptography.IncrementalHash.CreateHash(System.Security.Cryptography.HashAlgorithmName.SHA256);
+            hash.AppendData(data);
+            return hash.GetHashAndReset();
+        }
+
+        private void VerifyStored(string name, ReadOnlySpan<byte> stored)
+        {
+            if (name == IntegrityBlock || !Contains(IntegrityBlock)) return;
+            if (_integrity == null)
+            {
+                if (LengthOf(IntegrityBlock) > 8 * 1024 * 1024) throw new WhimTexDocumentException("Invalid integrity manifest.");
+                using var stream = new MemoryStream(Get(IntegrityBlock), false);
+                using var reader = new BinaryReader(stream, Encoding.UTF8);
+                int count = reader.ReadInt32();
+                if (count != _order.Count - 1) throw new WhimTexDocumentException("Incomplete integrity manifest.");
+                var hashes = new Dictionary<string, byte[]>(StringComparer.Ordinal);
+                for (int i = 0; i < count; i++)
+                {
+                    string block = reader.ReadString();
+                    if (block == IntegrityBlock || !Contains(block) || block.Length > MaximumNameLength || hashes.ContainsKey(block))
+                        throw new WhimTexDocumentException("Invalid integrity entry.");
+                    byte[] digest = reader.ReadBytes(32);
+                    if (digest.Length != 32) throw new WhimTexDocumentException("Truncated integrity entry.");
+                    hashes.Add(block, digest);
+                }
+                if (stream.Position != stream.Length) throw new WhimTexDocumentException("Unexpected integrity data.");
+                _integrity = hashes;
+            }
+            if (!_integrity.TryGetValue(name, out byte[] expected) || !Digest(stored).AsSpan().SequenceEqual(expected))
+                throw new WhimTexDocumentException("Checksum failed for document block '" + name + "'.");
+        }
+
+        internal static WhimTexDocumentContainer Open(Stream stream, long start, long length)
+        {
+            if (start < 0 || length < 16 || length > int.MaxValue || start > stream.Length - length)
+                throw new WhimTexDocumentException("Invalid document extent or document exceeds the 2 GiB container limit.");
+            stream.Position = start;
+            using var reader = new BinaryReader(stream, Encoding.UTF8, true);
+            if (Encoding.ASCII.GetString(reader.ReadBytes(8)) != PayloadMagic || reader.ReadInt32() != CurrentVersion)
+                throw new WhimTexDocumentException("Unsupported document container.");
+            int count = reader.ReadInt32();
+            if (count < 0 || count > MaximumBlockCount) throw new WhimTexDocumentException("Invalid block count.");
+            var result = new WhimTexDocumentContainer();
+            long total = 0, storedTotal = 0;
+            for (int i = 0; i < count; i++)
+            {
+                int nameLength = reader.ReadInt32();
+                if (nameLength <= 0 || nameLength > MaximumNameLength || stream.Position > start + length - nameLength - 20)
+                    throw new WhimTexDocumentException("Invalid block directory.");
+                string name = Encoding.UTF8.GetString(reader.ReadBytes(nameLength));
+                int compression = reader.ReadInt32();
+                long raw = reader.ReadInt64(), stored = reader.ReadInt64();
+                if (result._entries.ContainsKey(name) || compression < 0 || compression > 1 || raw < 0 || raw > int.MaxValue ||
+                    stored < 0 || stored > int.MaxValue || compression == 0 && raw != stored)
+                    throw new WhimTexDocumentException("Invalid block metadata.");
+                total += raw; storedTotal += stored;
+                if (total > MaximumTotalBytes || storedTotal > length) throw new WhimTexDocumentException("Document exceeds safety limits.");
+                result._order.Add(name);
+                result._entries.Add(name, new Entry { name = name, compression = compression, rawLength = raw, storedLength = stored });
+                result._levels[name] = CompressionLevel.Optimal;
+            }
+            if (stream.Position + storedTotal != start + length) throw new WhimTexDocumentException("Invalid document payload size.");
+            int position = checked((int)(stream.Position - start));
+            foreach (string name in result._order)
+            {
+                Entry entry = result._entries[name];
+                entry.dataOffset = position;
+                result._entries[name] = entry;
+                position = checked(position + (int)entry.storedLength);
+            }
+            result._source = stream;
+            result._sourceStart = start;
+            return result;
+        }
+
+        private static void ReadExactly(Stream stream, byte[] data)
+        {
+            int offset = 0;
+            while (offset < data.Length)
+            {
+                int read = stream.Read(data, offset, data.Length - offset);
+                if (read == 0) throw new WhimTexDocumentException("Truncated document block.");
+                offset += read;
+            }
+        }
+
+        private static Compressed FindCached(string key)
+        {
+            if (key == null) return null;
+            lock (CompressedCache)
+            {
+                if (!CompressedCache.TryGetValue(key, out Compressed cached)) return null;
+                LinkedListNode<string> node = CompressedCacheNodes[key];
+                CompressedCacheOrder.Remove(node);
+                CompressedCacheOrder.AddLast(node);
+                return cached;
+            }
+        }
+
+        private static bool Matches(Compressed candidate, ReadOnlySpan<byte> raw)
+        {
+            if (candidate.rawLength != raw.Length) return false;
+            if (!candidate.compressed) return candidate.bytes.AsSpan().SequenceEqual(raw);
+            // A lookup hash collision must not replace pixels with another layer's data.
+            // Verify equality without allocating a full decoded layer or trusting updateCount/Undo.
+            using var source = new MemoryStream(candidate.bytes, false);
+            using var inflate = new DeflateStream(source, CompressionMode.Decompress);
+            byte[] scratch = System.Buffers.ArrayPool<byte>.Shared.Rent(65536);
+            try
+            {
+                int offset = 0;
+                while (offset < raw.Length)
+                {
+                    int count = inflate.Read(scratch, 0, Math.Min(65536, raw.Length - offset));
+                    if (count == 0 || !scratch.AsSpan(0, count).SequenceEqual(raw.Slice(offset, count))) return false;
+                    offset += count;
+                }
+                return inflate.ReadByte() == -1;
+            }
+            finally { System.Buffers.ArrayPool<byte>.Shared.Return(scratch); }
+        }
+
+        private Compressed Stored(string name, byte[] raw, Unity.Collections.NativeArray<byte> native)
+        {
+            ReadOnlySpan<byte> pixels = raw != null ? raw.AsSpan() : native.AsSpan();
+            _cacheKeys.TryGetValue(name, out string cacheKey);
+            Compressed cached = FindCached(cacheKey);
+            if (cached != null && Matches(cached, pixels)) return cached;
+            byte[] stored = Deflate(pixels, _levels[name], out bool compressed);
+            var entry = new Compressed(stored, compressed, pixels.Length);
+            if (cacheKey == null || stored.Length > MaximumCompressedCacheBytes) return entry;
+            lock (CompressedCache)
+            {
+                if (CompressedCache.TryGetValue(cacheKey, out Compressed old))
+                {
+                    _compressedCacheBytes -= old.bytes.Length;
+                    CompressedCacheOrder.Remove(CompressedCacheNodes[cacheKey]);
+                }
+                CompressedCache[cacheKey] = entry;
+                CompressedCacheNodes[cacheKey] = CompressedCacheOrder.AddLast(cacheKey);
+                _compressedCacheBytes += stored.Length;
+                while ((_compressedCacheBytes > MaximumCompressedCacheBytes || CompressedCache.Count > 1024) && CompressedCacheOrder.Count > 0)
+                {
+                    string oldest = CompressedCacheOrder.First.Value;
+                    CompressedCacheOrder.RemoveFirst();
+                    _compressedCacheBytes -= CompressedCache[oldest].bytes.Length;
+                    CompressedCache.Remove(oldest);
+                    CompressedCacheNodes.Remove(oldest);
+                }
+            }
+            return entry;
+        }
+
+        // Always return owned bytes, including incompressible native blocks. This lets the cache
+        // retain the decision not to compress and never exposes a caller's mutable array as cached data.
+        private static byte[] Deflate(ReadOnlySpan<byte> raw, CompressionLevel level, out bool compressed)
         {
             using var stream = new MemoryStream();
             using (var deflate = new DeflateStream(stream, level, true))
-            {
-                if (raw != null) deflate.Write(raw, 0, raw.Length);
-                else deflate.Write(native.AsSpan());
-            }
-            byte[] stored = stream.ToArray();
-            compressed = stored.Length < length;
-            return compressed ? stored : raw;
+                deflate.Write(raw);
+            compressed = stream.Length < raw.Length;
+            return compressed ? stream.ToArray() : raw.ToArray();
         }
 
         /// <summary>Reads a container. Block payloads are inflated on demand, so opening a document does not touch every layer.</summary>
@@ -293,6 +544,7 @@ namespace DCFApixels.WhimTex
             if (count < 0 || count > MaximumBlockCount) throw new WhimTexDocumentException("Invalid block count: " + count + ".");
 
             var entries = new List<Entry>(count);
+            var names = new HashSet<string>(StringComparer.Ordinal);
             long total = 0;
             int offset = 16;
             for (int i = 0; i < count; i++)
@@ -303,12 +555,15 @@ namespace DCFApixels.WhimTex
                     throw new WhimTexDocumentException("Invalid block name length: " + nameLength + ".");
                 Require(payload, offset, nameLength);
                 string name = Encoding.UTF8.GetString(payload, offset, nameLength); offset += nameLength;
+                if (!names.Add(name)) throw new WhimTexDocumentException("Duplicate block '" + name + "'.");
                 Require(payload, offset, 20);
                 int compression = BitConverter.ToInt32(payload, offset); offset += 4;
                 long rawLength = BitConverter.ToInt64(payload, offset); offset += 8;
                 long storedLength = BitConverter.ToInt64(payload, offset); offset += 8;
                 if (compression != 0 && compression != 1) throw new WhimTexDocumentException("Unknown compression " + compression + " for block '" + name + "'.");
-                if (rawLength < 0 || storedLength < 0) throw new WhimTexDocumentException("Negative block size for '" + name + "'.");
+                if (rawLength < 0 || rawLength > int.MaxValue || storedLength < 0 || storedLength > int.MaxValue ||
+                    compression == 0 && rawLength != storedLength)
+                    throw new WhimTexDocumentException("Invalid block size for '" + name + "'.");
                 total += rawLength;
                 if (total > MaximumTotalBytes) throw new WhimTexDocumentException("The document declares more than " + MaximumTotalBytes + " bytes of data.");
                 entries.Add(new Entry { name = name, compression = compression, rawLength = rawLength, storedLength = storedLength });
@@ -327,102 +582,62 @@ namespace DCFApixels.WhimTex
                 // Blocks stay compressed until someone asks for them, so opening a document does not
                 // inflate every drawing layer and does not hold pixels and textures in memory together.
             }
+            if (offset != payload.Length) throw new WhimTexDocumentException("Unexpected trailing container data.");
             return result;
         }
 
-        // --- carriers ---
 
-        /// <summary>Wraps a PNG produced by Unity by inserting the document chunk before IEND.</summary>
-        public byte[] WritePng(byte[] pngBytes)
+
+        internal static bool WriteStaged(string path, Action<Stream> write)
         {
-            if (!IsPng(pngBytes)) throw new WhimTexDocumentException("The image is not a PNG.");
-            int iend = FindPngChunk(pngBytes, "IEND");
-            if (iend < 0) throw new WhimTexDocumentException("The PNG has no IEND chunk.");
-            byte[] payload = Serialize();
-            byte[] chunk = BuildPngChunk(payload);
-            var result = new byte[pngBytes.Length + chunk.Length];
-            Buffer.BlockCopy(pngBytes, 0, result, 0, iend);
-            Buffer.BlockCopy(chunk, 0, result, iend, chunk.Length);
-            Buffer.BlockCopy(pngBytes, iend, result, iend + chunk.Length, pngBytes.Length - iend);
-            return result;
-        }
-
-        /// <summary>Wraps an EXR produced by Unity. The footer keeps the document out of the pixel data Unity reads.</summary>
-        public byte[] WriteExr(byte[] exrBytes)
-        {
-            if (!IsExr(exrBytes)) throw new WhimTexDocumentException("The image is not an EXR.");
-            byte[] payload = Serialize();
-            var result = new byte[exrBytes.Length + payload.Length + 16];
-            Buffer.BlockCopy(exrBytes, 0, result, 0, exrBytes.Length);
-            Buffer.BlockCopy(payload, 0, result, exrBytes.Length, payload.Length);
-            Buffer.BlockCopy(BitConverter.GetBytes((long)payload.Length), 0, result, exrBytes.Length + payload.Length, 8);
-            Buffer.BlockCopy(Encoding.ASCII.GetBytes(PayloadMagic), 0, result, exrBytes.Length + payload.Length + 8, 8);
-            return result;
-        }
-
-        public static bool IsPng(byte[] fileBytes)
-        {
-            if (fileBytes == null || fileBytes.Length < PngSignature.Length) return false;
-            for (int i = 0; i < PngSignature.Length; i++) if (fileBytes[i] != PngSignature[i]) return false;
-            return true;
-        }
-
-        public static bool IsExr(byte[] fileBytes) =>
-            fileBytes != null && fileBytes.Length > 8 && fileBytes[0] == 0x76 && fileBytes[1] == 0x2f && fileBytes[2] == 0x31 && fileBytes[3] == 0x01;
-
-        /// <summary>Extracts the raw payload from a PNG or EXR carrier, or returns false when the file carries no document.</summary>
-        public static bool TryReadPayload(byte[] fileBytes, out byte[] payload, out string error)
-        {
-            payload = null;
-            error = null;
-            if (IsPng(fileBytes))
-            {
-                int offset = FindPngChunk(fileBytes, PngChunkType);
-                if (offset < 0) { error = "The PNG carries no WhimTex document."; return false; }
-                int length = ReadInt32(fileBytes, offset);
-                if (length < 0 || offset + 12 + length > fileBytes.Length) { error = "The document chunk is truncated."; return false; }
-                uint stored = ReadUInt32(fileBytes, offset + 8 + length);
-                uint actual = Crc32(fileBytes, offset + 4, 4 + length);
-                if (stored != actual) { error = "The document chunk is corrupted."; return false; }
-                payload = Slice(fileBytes, offset + 8, length);
-                return true;
-            }
-            if (IsExr(fileBytes))
-            {
-                if (fileBytes.Length < 16 || Encoding.ASCII.GetString(fileBytes, fileBytes.Length - 8, 8) != PayloadMagic)
-                { error = "The EXR carries no WhimTex document."; return false; }
-                long length = BitConverter.ToInt64(fileBytes, fileBytes.Length - 16);
-                if (length <= 0 || length > fileBytes.Length - 16) { error = "The document footer is invalid."; return false; }
-                payload = Slice(fileBytes, (int)(fileBytes.Length - 16 - length), (int)length);
-                return true;
-            }
-            error = "The file is neither a PNG nor an EXR.";
-            return false;
-        }
-
-        /// <summary>Replaces the file contents without ever touching the sidecar .meta, which holds the import settings.</summary>
-        public static void WriteFileAtomic(string path, byte[] bytes)
-        {
-            if (string.IsNullOrEmpty(path)) throw new WhimTexDocumentException("The document path is empty.");
             string full = Path.GetFullPath(path);
-            string temporary = full + ".whimtex-tmp";
+            string temporary = full + "." + Guid.NewGuid().ToString("N") + ".whimtex-tmp";
+            var baseline = new FileInfo(full);
+            bool existed = baseline.Exists;
+            long previousLength = existed ? baseline.Length : 0;
+            DateTime previousWrite = existed ? baseline.LastWriteTimeUtc : default;
             try
             {
-                string directory = Path.GetDirectoryName(full);
-                if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
-                using (var stream = new FileStream(temporary, FileMode.Create, FileAccess.Write, FileShare.None))
+                Directory.CreateDirectory(Path.GetDirectoryName(full));
+                using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None))
                 {
-                    stream.Write(bytes, 0, bytes.Length);
+                    write(stream);
+                    if (stream.Length > 4L * 1024 * 1024 * 1024) throw new WhimTexDocumentException("Document exceeds the 4 GiB file limit.");
                     stream.Flush(true);
                 }
+                baseline.Refresh();
+                if (baseline.Exists != existed || existed && (baseline.Length != previousLength || baseline.LastWriteTimeUtc != previousWrite))
+                    throw new WhimTexDocumentException("The destination changed during save; it was not overwritten.");
+                if (File.Exists(full) && FilesEqual(full, temporary)) { File.Delete(temporary); return false; }
                 if (File.Exists(full)) File.Replace(temporary, full, null);
                 else File.Move(temporary, full);
+                return true;
             }
             catch (Exception error)
             {
                 TryDelete(temporary);
                 throw new WhimTexDocumentException("Could not write the document: " + error.Message, error);
             }
+        }
+
+        private static bool FilesEqual(string first, string second)
+        {
+            using var a = File.OpenRead(first);
+            using var b = File.OpenRead(second);
+            if (a.Length != b.Length) return false;
+            var left = new byte[65536]; var right = new byte[left.Length];
+            long remaining = a.Length;
+            while (remaining > 0)
+            {
+                int count = (int)Math.Min(left.Length, remaining);
+                int offset = 0;
+                while (offset < count) { int n = a.Read(left, offset, count - offset); if (n == 0) return false; offset += n; }
+                offset = 0;
+                while (offset < count) { int n = b.Read(right, offset, count - offset); if (n == 0) return false; offset += n; }
+                if (!left.AsSpan(0, count).SequenceEqual(right.AsSpan(0, count))) return false;
+                remaining -= count;
+            }
+            return true;
         }
 
         public static void TryDelete(string path)
@@ -440,45 +655,26 @@ namespace DCFApixels.WhimTex
         {
             data = null;
             error = null;
-            if (payload == null) { error = "The document payload is missing."; return false; }
-            if (payload.Length < 16) { error = "The document payload is truncated."; return false; }
-            if (Encoding.ASCII.GetString(payload, 0, 8) != PayloadMagic)
+            try
             {
-                error = "The file does not contain a WhimTex document.";
-                return false;
+                using var container = Parse(payload);
+                if (container.TryGet(name, out data)) return true;
+                error = "Block '" + name + "' is missing.";
             }
-            int count = BitConverter.ToInt32(payload, 12);
-            if (count < 0 || count > MaximumBlockCount) { error = "Invalid block count: " + count + "."; return false; }
-            int offset = 16;
-            for (int i = 0; i < count; i++)
-            {
-                Require(payload, offset, 4);
-                int nameLength = BitConverter.ToInt32(payload, offset); offset += 4;
-                if (nameLength <= 0 || nameLength > MaximumNameLength) { error = "Invalid block name length."; return false; }
-                Require(payload, offset, nameLength);
-                string blockName = Encoding.UTF8.GetString(payload, offset, nameLength); offset += nameLength;
-                Require(payload, offset, 20);
-                int compression = BitConverter.ToInt32(payload, offset); offset += 4;
-                long rawLength = BitConverter.ToInt64(payload, offset); offset += 8;
-                long storedLength = BitConverter.ToInt64(payload, offset); offset += 8;
-                if (name != blockName)
-                {
-                    offset += (int)storedLength;
-                    continue;
-                }
-                if (compression != 0 && compression != 1) { error = "Unknown compression for block '" + name + "'."; return false; }
-                if (rawLength < 0 || storedLength < 0 || offset + storedLength > payload.Length)
-                {
-                    error = "Block '" + name + "' is out of bounds.";
-                    return false;
-                }
-                data = compression == 0
-                    ? Slice(payload, offset, (int)storedLength)
-                    : Decompress(payload, offset, (int)storedLength, rawLength, name);
-                return true;
-            }
-            error = "Block '" + name + "' is missing.";
+            catch (Exception exception) when (exception is IOException || exception is WhimTexDocumentException)
+            { error = exception.Message; }
             return false;
+        }
+
+        // The directory precedes ALL payloads. Scan it once, then seek directly to the small
+        // requested block; imports must not allocate/read the image or Drawing pixels.
+        internal static byte[] ReadSmallBlock(Stream stream, long start, long length, string name)
+        {
+            using var container = Open(stream, start, length);
+            container._leaveSourceOpen = true;
+            if (container.LengthOf(name) > 4096 || container._entries[name].storedLength > 4096)
+                throw new WhimTexDocumentException("Small block exceeds the 4 KiB budget.");
+            return container.Get(name);
         }
 
         // --- internals ---
@@ -495,12 +691,12 @@ namespace DCFApixels.WhimTex
         private static void ValidateName(string name)
         {
             if (string.IsNullOrEmpty(name)) throw new WhimTexDocumentException("A block name cannot be empty.");
-            if (name.Length > MaximumNameLength) throw new WhimTexDocumentException("The block name is too long.");
+            if (Encoding.UTF8.GetByteCount(name) > MaximumNameLength) throw new WhimTexDocumentException("The block name is too long.");
         }
 
         private static void Require(byte[] buffer, int offset, long length)
         {
-            if (offset < 0 || length < 0 || offset + length > buffer.Length)
+            if (offset < 0 || offset > buffer.Length || length < 0 || length > buffer.Length - offset)
                 throw new WhimTexDocumentException("The document payload is truncated.");
         }
 
@@ -509,14 +705,6 @@ namespace DCFApixels.WhimTex
             var result = new byte[length];
             Buffer.BlockCopy(buffer, offset, result, 0, length);
             return result;
-        }
-
-        private static byte[] Compress(byte[] raw, CompressionLevel level)
-        {
-            using var stream = new MemoryStream();
-            using (var deflate = new DeflateStream(stream, level, true)) deflate.Write(raw, 0, raw.Length);
-            byte[] stored = stream.ToArray();
-            return stored.Length < raw.Length ? stored : raw;
         }
 
         private static byte[] Decompress(byte[] buffer, int offset, int storedLength, long rawLength, string name)
@@ -531,68 +719,9 @@ namespace DCFApixels.WhimTex
                 if (step <= 0) throw new WhimTexDocumentException("Block '" + name + "' ended before its declared size.");
                 read += step;
             }
+            if (deflate.ReadByte() != -1) throw new WhimTexDocumentException("Block '" + name + "' exceeds its declared size.");
             return result;
         }
 
-        private static int FindPngChunk(byte[] fileBytes, string type)
-        {
-            if (!IsPng(fileBytes)) return -1;
-            int offset = 8;
-            while (offset + 8 <= fileBytes.Length)
-            {
-                int length = ReadInt32(fileBytes, offset);
-                if (length < 0 || offset + 12 + length > fileBytes.Length) return -1;
-                if (ReadChunkType(fileBytes, offset) == type) return offset;
-                offset += 12 + length;
-            }
-            return -1;
-        }
-
-        private static string ReadChunkType(byte[] fileBytes, int offset) =>
-            new string(new[] { (char)fileBytes[offset + 4], (char)fileBytes[offset + 5], (char)fileBytes[offset + 6], (char)fileBytes[offset + 7] });
-
-        private static byte[] BuildPngChunk(byte[] payload)
-        {
-            // PNG length and CRC fields are big-endian.
-            var chunk = new byte[12 + payload.Length];
-            WriteInt32BigEndian(chunk, 0, payload.Length);
-            Buffer.BlockCopy(Encoding.ASCII.GetBytes(PngChunkType), 0, chunk, 4, 4);
-            Buffer.BlockCopy(payload, 0, chunk, 8, payload.Length);
-            WriteUInt32BigEndian(chunk, 8 + payload.Length, Crc32(chunk, 4, 4 + payload.Length));
-            return chunk;
-        }
-
-        private static void WriteInt32BigEndian(byte[] buffer, int offset, int value)
-        {
-            buffer[offset] = (byte)(value >> 24);
-            buffer[offset + 1] = (byte)(value >> 16);
-            buffer[offset + 2] = (byte)(value >> 8);
-            buffer[offset + 3] = (byte)value;
-        }
-
-        private static void WriteUInt32BigEndian(byte[] buffer, int offset, uint value)
-        {
-            buffer[offset] = (byte)(value >> 24);
-            buffer[offset + 1] = (byte)(value >> 16);
-            buffer[offset + 2] = (byte)(value >> 8);
-            buffer[offset + 3] = (byte)value;
-        }
-
-        private static int ReadInt32(byte[] buffer, int offset) =>
-            buffer[offset] << 24 | buffer[offset + 1] << 16 | buffer[offset + 2] << 8 | buffer[offset + 3];
-
-        private static uint ReadUInt32(byte[] buffer, int offset) =>
-            (uint)(buffer[offset] << 24 | buffer[offset + 1] << 16 | buffer[offset + 2] << 8 | buffer[offset + 3]);
-
-        private static uint Crc32(byte[] data, int offset, int count)
-        {
-            uint crc = 0xFFFFFFFFu;
-            for (int i = 0; i < count; i++)
-            {
-                crc ^= data[offset + i];
-                for (int bit = 0; bit < 8; bit++) crc = (crc & 1) != 0 ? (crc >> 1) ^ 0xEDB88320u : crc >> 1;
-            }
-            return crc ^ 0xFFFFFFFFu;
-        }
     }
 }

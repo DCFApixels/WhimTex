@@ -213,7 +213,7 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private LiveOutputSession liveOutput;
         internal static event Action<CompositorOutputChange> OutputTextureChanged;
 
-        private void NotifyOutputTextureChanged()
+        internal void NotifyOutputTextureChanged()
         {
             if (outputTexture != null && OutputTextureChanged != null)
                 OutputTextureChanged.Invoke(new CompositorOutputChange(this));
