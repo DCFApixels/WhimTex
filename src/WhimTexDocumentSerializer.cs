@@ -382,82 +382,26 @@ namespace DCFApixels.WhimTex
                 _writer.Write(localId);
             }
 
-            /// <summary>
-            /// A content identity for the block cache, in managed code only: no intrinsics, so Windows, macOS
-            /// and Linux compute it the same way. The value is a key for an in-memory cache and never reaches
-            /// a file, which is why it may change between versions without touching the format.
-            /// </summary>
+            /// <summary>FNV-1a in four independent streams, straight over native pixels: no managed copy is made.</summary>
             private static ulong Hash64(Unity.Collections.NativeArray<byte> data)
             {
-                const ulong prime1 = 11400714785074694791UL;
-                const ulong prime2 = 14029467366897019727UL;
-                const ulong prime3 = 1609587929392839161UL;
-                const ulong prime4 = 9650029242287828579UL;
-                const ulong prime5 = 2870177450012600261UL;
+                const ulong prime = 1099511628211UL;
+                ulong h1 = 14695981039346656037UL, h2 = h1 ^ 0x9E3779B97F4A7C15UL;
+                ulong h3 = h1 ^ 0xBF58476D1CE4E5B9UL, h4 = h1 ^ 0x94D049BB133111EBUL;
                 System.ReadOnlySpan<byte> span = data.AsSpan();
-                int length = span.Length;
                 int i = 0;
-                ulong hash;
-                if (length >= 32)
+                int limit = span.Length - 31;
+                for (; i < limit; i += 32)
                 {
-                    ulong lane1 = unchecked(prime1 + prime2), lane2 = prime2, lane3 = 0, lane4 = unchecked(0 - prime1);
-                    int last = length - 32;
-                    do
-                    {
-                        lane1 = Round(lane1, BitConverter.ToUInt64(span.Slice(i)));
-                        lane2 = Round(lane2, BitConverter.ToUInt64(span.Slice(i + 8)));
-                        lane3 = Round(lane3, BitConverter.ToUInt64(span.Slice(i + 16)));
-                        lane4 = Round(lane4, BitConverter.ToUInt64(span.Slice(i + 24)));
-                        i += 32;
-                    } while (i <= last);
-                    hash = RotateLeft(lane1, 1) + RotateLeft(lane2, 7) + RotateLeft(lane3, 12) + RotateLeft(lane4, 18);
-                    hash = MergeRound(hash, lane1);
-                    hash = MergeRound(hash, lane2);
-                    hash = MergeRound(hash, lane3);
-                    hash = MergeRound(hash, lane4);
+                    h1 = (h1 ^ BitConverter.ToUInt64(span.Slice(i))) * prime;
+                    h2 = (h2 ^ BitConverter.ToUInt64(span.Slice(i + 8))) * prime;
+                    h3 = (h3 ^ BitConverter.ToUInt64(span.Slice(i + 16))) * prime;
+                    h4 = (h4 ^ BitConverter.ToUInt64(span.Slice(i + 24))) * prime;
                 }
-                else hash = prime5;
-                hash += (ulong)length;
-                while (i + 8 <= length)
-                {
-                    hash ^= Round(0, BitConverter.ToUInt64(span.Slice(i)));
-                    hash = RotateLeft(hash, 27) * prime1 + prime4;
-                    i += 8;
-                }
-                if (i + 4 <= length)
-                {
-                    hash ^= BitConverter.ToUInt32(span.Slice(i)) * prime1;
-                    hash = RotateLeft(hash, 23) * prime2 + prime3;
-                    i += 4;
-                }
-                while (i < length)
-                {
-                    hash ^= span[i] * prime5;
-                    hash = RotateLeft(hash, 11) * prime1;
-                    i++;
-                }
-                hash ^= hash >> 33;
-                hash *= prime2;
-                hash ^= hash >> 29;
-                hash *= prime3;
-                hash ^= hash >> 32;
-                return hash;
+                for (; i < span.Length - 7; i += 8) h1 = (h1 ^ BitConverter.ToUInt64(span.Slice(i))) * prime;
+                for (; i < span.Length; i++) h1 = (h1 ^ span[i]) * prime;
+                return ((h1 ^ h2) * prime ^ h3) * prime ^ h4;
             }
-
-            private static ulong Round(ulong lane, ulong input)
-            {
-                lane += input * 14029467366897019727UL;
-                lane = RotateLeft(lane, 31);
-                return lane * 11400714785074694791UL;
-            }
-
-            private static ulong MergeRound(ulong hash, ulong lane)
-            {
-                hash ^= Round(0, lane);
-                return hash * 11400714785074694791UL + 9650029242287828579UL;
-            }
-
-            private static ulong RotateLeft(ulong value, int bits) => value << bits | value >> (64 - bits);
 
             private void WriteTexture(Texture2D texture)
             {
