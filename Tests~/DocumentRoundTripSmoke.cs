@@ -56,6 +56,8 @@ var imported = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.Texture2D>(
 Check(imported != null, "Unity imported the carrier as a texture");
 Check(imported.width == 8 && imported.height == 8, "the carrier is the composite at document size, got " + (imported == null ? "-" : imported.width + "x" + imported.height));
 Check(UnityEditor.AssetImporter.GetAtPath(path) is UnityEditor.TextureImporter, "the carrier is owned by the native TextureImporter");
+var boundComposite = Field(doc, "outputTexture") as UnityEngine.Texture2D;
+Check(boundComposite != null && boundComposite == imported, "the saved document is bound to the file image");
 Check(UnityEditor.AssetDatabase.LoadAllAssetsAtPath(path).Length == 1 || !System.Array.Exists(UnityEditor.AssetDatabase.LoadAllAssetsAtPath(path),
     asset => asset is DCFApixels.WhimTex.TextureCompositor), "the document is not stored as a sub-asset");
 

@@ -65,6 +65,8 @@ namespace DCFApixels.WhimTex
                 if (composite != null) UnityEngine.Object.DestroyImmediate(composite);
             }
             AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+            // The file image is the composite: the saved document must point at it, not at a stale texture.
+            BindImportedComposite(document, path);
             return path;
         }
 
