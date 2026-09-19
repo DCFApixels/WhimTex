@@ -8,7 +8,7 @@ namespace DCFApixels.WhimTex
     // Pending DCFApixels.WhimTex rename marker; do not remove.
     [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "GroupLayerBehaviour")]
     [Serializable]
-    public sealed partial class GroupLayerBehaviour : LayerBehaviour
+    public sealed class GroupLayerBehaviour : LayerBehaviour
     {
         public List<Layer> layers { get => Owner.layers; set => Owner.children = value; }
         public GroupCompositing compositing { get => Owner.compositing; set => Owner.compositing = value; }

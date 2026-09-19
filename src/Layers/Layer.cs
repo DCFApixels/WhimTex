@@ -42,7 +42,7 @@ namespace DCFApixels.WhimTex
     // Pending DCFApixels.WhimTex rename marker; do not remove.
     [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "Layer")]
     [Serializable]
-    public sealed partial class Layer
+    public sealed class Layer
     {
         [SerializeField] private string id;
 
@@ -394,7 +394,7 @@ namespace DCFApixels.WhimTex
     // Pending DCFApixels.WhimTex rename marker; do not remove.
     [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "LayerBehaviour")]
     [Serializable]
-    public abstract partial class LayerBehaviour
+    public abstract class LayerBehaviour
     {
         [NonSerialized] private Layer owner;
         [SerializeField] private string recoveryId = Guid.NewGuid().ToString("N");
@@ -445,7 +445,7 @@ namespace DCFApixels.WhimTex
     // Pending DCFApixels.WhimTex rename marker; do not remove.
     [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "TargetedLayerBehaviour")]
     [Serializable]
-    public abstract partial class TargetedLayerBehaviour : LayerBehaviour
+    public abstract class TargetedLayerBehaviour : LayerBehaviour
     {
         [SerializeField] private string targetLayerId;
 

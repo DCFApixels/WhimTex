@@ -8,7 +8,7 @@ namespace DCFApixels.WhimTex
     // Pending DCFApixels.WhimTex rename marker; do not remove.
     [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "PendingLayerBehaviour")]
     [Serializable]
-    public sealed partial class PendingLayerBehaviour : LayerBehaviour
+    public sealed class PendingLayerBehaviour : LayerBehaviour
     {
         [SerializeField] internal string jobId;
         internal override RenderTexture Render(in LayerRenderContext context) => null;

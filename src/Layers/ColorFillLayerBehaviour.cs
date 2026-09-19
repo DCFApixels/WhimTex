@@ -7,7 +7,7 @@ namespace DCFApixels.WhimTex
     // Pending DCFApixels.WhimTex rename marker; do not remove.
     [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "ColorFillLayerBehaviour")]
     [Serializable]
-    public sealed partial class ColorFillLayerBehaviour : LayerBehaviour
+    public sealed class ColorFillLayerBehaviour : LayerBehaviour
     {
         public enum FillMode { Color, UV }
         public FillMode mode = FillMode.Color;

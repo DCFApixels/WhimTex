@@ -8,7 +8,7 @@ namespace DCFApixels.WhimTex
     // Pending DCFApixels.WhimTex rename marker; do not remove.
     [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "NormalMapLayerBehaviour")]
     [Serializable]
-    public sealed partial class NormalMapLayerBehaviour : TargetedLayerBehaviour
+    public sealed class NormalMapLayerBehaviour : TargetedLayerBehaviour
     {
         public enum GenerationMode { HeightMap, Texture }
         public enum HeightChannel { Luminance, Red, Green, Blue, Alpha, Maximum }

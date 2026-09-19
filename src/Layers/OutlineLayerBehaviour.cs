@@ -11,7 +11,7 @@ namespace DCFApixels.WhimTex
     // Pending DCFApixels.WhimTex rename marker; do not remove.
     [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "OutlineLayerBehaviour")]
     [Serializable]
-    public sealed partial class OutlineLayerBehaviour : TargetedLayerBehaviour
+    public sealed class OutlineLayerBehaviour : TargetedLayerBehaviour
     {
         public DistanceMetric metric = DistanceMetric.EuclideanExact;
         public Color outlineColor = Color.white;

@@ -7,7 +7,7 @@ namespace DCFApixels.WhimTex
     // Pending DCFApixels.WhimTex rename marker; do not remove.
     [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "MakeSeamlessLayerBehaviour")]
     [Serializable]
-    public sealed partial class MakeSeamlessLayerBehaviour : TargetedLayerBehaviour
+    public sealed class MakeSeamlessLayerBehaviour : TargetedLayerBehaviour
     {
         public enum HorizontalDirection { Off, LeftToRight, RightToLeft }
         public enum VerticalDirection { Off, BottomToTop, TopToBottom }
