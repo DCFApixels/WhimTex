@@ -187,6 +187,10 @@ namespace DCFApixels.WhimTex
                     error = "The document model could not be reconstructed.";
                     return false;
                 }
+                if (WhimTexDocumentSerializer.LastSkippedFields.Count > 0)
+                    Debug.LogWarning("WhimTex: the document carries fields this build no longer declares: " +
+                        string.Join(", ", WhimTexDocumentSerializer.LastSkippedFields) +
+                        ". Their values were skipped; mark a renamed field with [FormerlySerializedAs] to keep it.");
                 if (WhimTexDocumentSerializer.LastMissingTypes.Count > 0)
                     Debug.LogWarning("WhimTex: the document references layer types this build does not have: " +
                         string.Join(", ", WhimTexDocumentSerializer.LastMissingTypes) +

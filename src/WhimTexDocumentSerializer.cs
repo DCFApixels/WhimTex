@@ -90,6 +90,8 @@ namespace DCFApixels.WhimTex
                 throw new WhimTexDocumentException("Unsupported document payload version: " + version + ".");
             _missingTypes.Clear();
             _missingTypeNames.Clear();
+            _skippedFieldNames.Clear();
+            _skippedFields.Clear();
             var context = new Reader(reader, container);
             return context.Read(expectedType);
         }
@@ -126,6 +128,125 @@ namespace DCFApixels.WhimTex
             return space.StartsWith("UnityEngine", StringComparison.Ordinal) || space.StartsWith("UnityEditor", StringComparison.Ordinal);
         }
 
+        // --- migrations: the payload stores names, so names are what keeps old documents loadable ---
+
+        private static readonly Dictionary<Type, Dictionary<string, FieldInfo>> FieldNames =
+            new Dictionary<Type, Dictionary<string, FieldInfo>>();
+        private static readonly Dictionary<string, Type> MovedTypeNames = new Dictionary<string, Type>(StringComparer.Ordinal);
+        private static readonly List<string> _skippedFields = new List<string>();
+        private static readonly HashSet<string> _skippedFieldNames = new HashSet<string>(StringComparer.Ordinal);
+
+        /// <summary>Fields the last loaded document carried but this build no longer declares.</summary>
+        public static IReadOnlyList<string> LastSkippedFields => _skippedFields;
+
+        /// <summary>
+        /// Every name a field was ever serialized under. Field order never mattered because the value
+        /// carries its name, and a renamed field keeps loading because [FormerlySerializedAs] names are
+        /// part of the map.
+        /// </summary>
+        private static Dictionary<string, FieldInfo> FieldNameMap(Type type)
+        {
+            lock (FieldNames)
+            {
+                if (FieldNames.TryGetValue(type, out Dictionary<string, FieldInfo> cached)) return cached;
+            }
+            var map = new Dictionary<string, FieldInfo>(StringComparer.Ordinal);
+            foreach (FieldInfo field in Fields(type))
+            {
+                if (!map.ContainsKey(field.Name)) map[field.Name] = field;
+                foreach (object old in AttributesNamed(field, "FormerlySerializedAsAttribute"))
+                {
+                    string former = StringMember(old, "name");
+                    if (string.IsNullOrEmpty(former) || map.ContainsKey(former)) continue;
+                    map[former] = field;
+                }
+            }
+            lock (FieldNames) FieldNames[type] = map;
+            return map;
+        }
+
+        private static void RecordSkippedField(Type type, string name)
+        {
+            string label = type.Name + "." + name;
+            if (_skippedFieldNames.Add(label)) _skippedFields.Add(label);
+        }
+
+        /// <summary>
+        /// A type is stored by name, so a renamed or moved type is found through its [MovedFrom] markers.
+        /// This runs only when a plain lookup failed, which is exactly the migration case.
+        /// </summary>
+        private static Type FindMovedType(string name)
+        {
+            lock (MovedTypeNames)
+            {
+                if (MovedTypeNames.TryGetValue(name, out Type cached)) return cached;
+            }
+            string simple = name;
+            string space = null;
+            int dot = name.LastIndexOf('.');
+            if (dot > 0)
+            {
+                space = name.Substring(0, dot);
+                simple = name.Substring(dot + 1);
+            }
+            Type found = null;
+            foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                Type[] types;
+                try { types = assembly.GetTypes(); }
+                catch (Exception) { continue; }
+                foreach (Type type in types)
+                {
+                    if (!MatchesMovedName(type, name, simple, space)) continue;
+                    found = type;
+                    break;
+                }
+                if (found != null) break;
+            }
+            lock (MovedTypeNames) MovedTypeNames[name] = found;
+            return found;
+        }
+
+        /// <summary>
+        /// MovedFrom lives in a namespace that moved between Unity versions and its members differ too, so
+        /// the attribute and its strings are read by name instead of by type.
+        /// </summary>
+        private static bool MatchesMovedName(Type type, string name, string simple, string space)
+        {
+            foreach (object attribute in AttributesNamed(type, "MovedFromAttribute"))
+            {
+                string oldName = StringMember(attribute, "name");
+                if (string.IsNullOrEmpty(oldName)) oldName = type.Name;
+                string oldSpace = StringMember(attribute, "namespace");
+                if (oldName == simple && (oldSpace == null || space == null || oldSpace == space)) return true;
+                string full = oldSpace == null ? oldName : oldSpace + "." + oldName;
+                if (full == name) return true;
+            }
+            return false;
+        }
+
+        /// <summary>Attributes are matched by type name: a rename or a namespace move must not break a load.</summary>
+        private static IEnumerable<object> AttributesNamed(MemberInfo member, string attributeName)
+        {
+            object[] attributes;
+            try { attributes = member.GetCustomAttributes(false); }
+            catch (Exception) { yield break; }
+            foreach (object attribute in attributes)
+                if (attribute != null && attribute.GetType().Name == attributeName) yield return attribute;
+        }
+
+        private static string StringMember(object attribute, string namePart)
+        {
+            foreach (PropertyInfo property in attribute.GetType().GetProperties(
+                         BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
+            {
+                if (property.PropertyType != typeof(string)) continue;
+                if (property.Name.IndexOf(namePart, StringComparison.OrdinalIgnoreCase) < 0) continue;
+                if (property.GetValue(attribute) is string value && !string.IsNullOrEmpty(value)) return value;
+            }
+            return null;
+        }
+
         /// <summary>Types the last loaded document referenced but this build does not have.</summary>
         public static IReadOnlyList<string> LastMissingTypes => _missingTypes;
 
@@ -147,6 +268,7 @@ namespace DCFApixels.WhimTex
                     resolved = assembly.GetType(name);
                     if (resolved != null) break;
                 }
+            if (resolved == null) resolved = FindMovedType(name);
             if (resolved == null)
             {
                 if (_missingTypeNames.Add(name)) _missingTypes.Add(name);
@@ -546,15 +668,10 @@ namespace DCFApixels.WhimTex
 
             private static FieldInfo FindField(Type type, string name)
             {
-                for (Type current = type; current != null && current != typeof(object); current = current.BaseType)
-                {
-                    string space = current.Namespace ?? string.Empty;
-                    if (space.StartsWith("UnityEngine", StringComparison.Ordinal) || space.StartsWith("UnityEditor", StringComparison.Ordinal))
-                        break;
-                    FieldInfo field = current.GetField(name, BindingFlags.Instance | BindingFlags.Public |
-                                                             BindingFlags.NonPublic | BindingFlags.DeclaredOnly);
-                    if (field != null) return field;
-                }
+                // Index and base type are irrelevant: the value in the payload carries its field name, and
+                // the map answers to former names too. An unknown name is reported, never dropped quietly.
+                if (FieldNameMap(type).TryGetValue(name, out FieldInfo known)) return known;
+                RecordSkippedField(type, name);
                 return null;
             }
 
