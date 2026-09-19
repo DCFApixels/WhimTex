@@ -88,6 +88,8 @@ namespace DCFApixels.WhimTex
             int version = reader.ReadInt32();
             if (version != FormatVersion)
                 throw new WhimTexDocumentException("Unsupported document payload version: " + version + ".");
+            _missingTypes.Clear();
+            _missingTypeNames.Clear();
             var context = new Reader(reader, container);
             return context.Read(expectedType);
         }
@@ -124,6 +126,17 @@ namespace DCFApixels.WhimTex
             return space.StartsWith("UnityEngine", StringComparison.Ordinal) || space.StartsWith("UnityEditor", StringComparison.Ordinal);
         }
 
+        /// <summary>Types the last loaded document referenced but this build does not have.</summary>
+        public static IReadOnlyList<string> LastMissingTypes => _missingTypes;
+
+        private static readonly List<string> _missingTypes = new List<string>();
+        private static readonly HashSet<string> _missingTypeNames = new HashSet<string>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// Returns null for a type this build does not know. A document written by another version of
+        /// the package must stay readable: an unknown layer behaviour is dropped with a report instead
+        /// of failing the whole load.
+        /// </summary>
         private static Type ResolveType(string name)
         {
             if (KnownTypes.TryGetValue(name, out Type known)) return known;
@@ -134,7 +147,11 @@ namespace DCFApixels.WhimTex
                     resolved = assembly.GetType(name);
                     if (resolved != null) break;
                 }
-            if (resolved == null) throw new WhimTexDocumentException("Unknown type in the document: " + name + ".");
+            if (resolved == null)
+            {
+                if (_missingTypeNames.Add(name)) _missingTypes.Add(name);
+                return null;
+            }
             KnownTypes[name] = resolved;
             return resolved;
         }
@@ -394,6 +411,7 @@ namespace DCFApixels.WhimTex
                 string name = _reader.ReadString();
                 long number = _reader.ReadInt64();
                 Type type = ResolveType(typeName);
+                if (type == null) return null;
                 return Enum.IsDefined(type, name) ? Enum.Parse(type, name) : Enum.ToObject(type, number);
             }
 
@@ -450,25 +468,46 @@ namespace DCFApixels.WhimTex
                 }
                 var listType = typeof(List<>).MakeGenericType(element ?? typeof(object));
                 var list = (IList)Activator.CreateInstance(listType);
-                for (int i = 0; i < count; i++) list.Add(Read(element));
+                for (int i = 0; i < count; i++)
+                {
+                    // A dropped unknown object must not leave nulls in the document graph.
+                    object item = Read(element);
+                    if (item != null) list.Add(item);
+                }
                 return list;
             }
 
             private object ReadObject()
             {
                 Type type = ResolveType(_reader.ReadString());
+                int fieldCount = _reader.ReadInt32();
+                if (type == null)
+                {
+                    // Keep the object numbering in step with the writer, then consume the fields.
+                    _objects.Add(null);
+                    for (int i = 0; i < fieldCount; i++)
+                    {
+                        _reader.ReadString();
+                        Read(null);
+                    }
+                    return null;
+                }
                 object instance = typeof(ScriptableObject).IsAssignableFrom(type)
                     ? ScriptableObject.CreateInstance(type)
                     : Activator.CreateInstance(type, true);
                 _objects.Add(instance);
-                int fieldCount = _reader.ReadInt32();
                 for (int i = 0; i < fieldCount; i++)
                 {
                     string fieldName = _reader.ReadString();
                     FieldInfo field = FindField(type, fieldName);
                     object value = Read(field?.FieldType);
-                    if (field != null && value != null) field.SetValue(instance, value);
-                    else if (field != null && !field.FieldType.IsValueType) field.SetValue(instance, null);
+                    if (field == null) continue;
+                    try
+                    {
+                        if (value != null || !field.FieldType.IsValueType) field.SetValue(instance, value);
+                    }
+                    catch (ArgumentException) { }
+                    catch (InvalidCastException) { }
                 }
                 if (instance is ISerializationCallbackReceiver receiver) receiver.OnAfterDeserialize();
                 return instance;

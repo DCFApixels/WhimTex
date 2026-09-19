@@ -18,6 +18,18 @@ namespace DCFApixels.WhimTex
     {
         private static readonly Dictionary<TextureCompositor, string> DocumentFiles = new Dictionary<TextureCompositor, string>();
 
+        /// <summary>Kept on the window so the document keeps knowing its file across a domain reload.</summary>
+        [SerializeField] private string documentFilePath;
+
+        private static TextureCompositorWindow WindowFor(TextureCompositor document)
+        {
+            if (document == null) return null;
+            if (focusedWindow is TextureCompositorWindow focused && focused.compositor == document) return focused;
+            foreach (TextureCompositorWindow window in Resources.FindObjectsOfTypeAll<TextureCompositorWindow>())
+                if (window != null && window.compositor == document) return window;
+            return null;
+        }
+
         private static TextureCompositor ActiveDocument()
         {
             if (focusedWindow is TextureCompositorWindow focused && focused.compositor != null) return focused.compositor;
@@ -29,8 +41,14 @@ namespace DCFApixels.WhimTex
         private static bool TryGetDocumentFile(TextureCompositor document, out string path)
         {
             path = null;
-            return document != null && DocumentFiles.TryGetValue(document, out path) &&
-                   !string.IsNullOrEmpty(path) && File.Exists(path);
+            if (document == null) return false;
+            if (DocumentFiles.TryGetValue(document, out path) && !string.IsNullOrEmpty(path) && File.Exists(path)) return true;
+            path = null;
+            TextureCompositorWindow owner = WindowFor(document);
+            if (owner == null || string.IsNullOrEmpty(owner.documentFilePath) || !File.Exists(owner.documentFilePath)) return false;
+            path = owner.documentFilePath;
+            DocumentFiles[document] = path;
+            return true;
         }
 
         [MenuItem("Assets/WhimTex/Save Document As WhimTex File…", true)]
@@ -51,6 +69,8 @@ namespace DCFApixels.WhimTex
                 WhimTexDocumentSession.Stop("document save");
                 string written = WhimTexDocumentFile.Save(document, path);
                 DocumentFiles[document] = written;
+                TextureCompositorWindow owner = WindowFor(document);
+                if (owner != null) owner.documentFilePath = written;
                 if (wasLive) WhimTexDocumentSession.Start(document, written);
                 var image = AssetDatabase.LoadAssetAtPath<Texture2D>(written);
                 if (image != null)
@@ -120,6 +140,7 @@ namespace DCFApixels.WhimTex
             var window = CreateWindow<TextureCompositorWindow>("WhimTex", typeof(TextureCompositorWindow));
             window.SetCompositor(document);
             DocumentFiles[document] = path;
+            window.documentFilePath = path;
             window.Show();
             window.Repaint();
             return true;

@@ -94,6 +94,10 @@ namespace DCFApixels.WhimTex
                     error = "The document model could not be reconstructed.";
                     return false;
                 }
+                if (WhimTexDocumentSerializer.LastMissingTypes.Count > 0)
+                    Debug.LogWarning("WhimTex: the document references layer types this build does not have: " +
+                        string.Join(", ", WhimTexDocumentSerializer.LastMissingTypes) +
+                        ". Those layers opened without their behaviour; the document is otherwise intact.");
                 document.hideFlags = HideFlags.HideAndDontSave;
                 BindImportedComposite(document, path);
                 CompileEmbeddedEffects(document);
