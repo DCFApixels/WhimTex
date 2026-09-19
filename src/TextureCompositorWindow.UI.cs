@@ -352,18 +352,12 @@ namespace DCFApixels.WhimTex
                 }
             });
             toolbar.Add(toolkitDocumentField);
-            toolkitSaveButton = WhimTexUI.CreateToolbarButton("Save", SaveAsset, 46f);
-            toolkitSaveButton.tooltip = "Save the compositor asset (.asset) with its embedded texture and sprite (Ctrl+S). The document itself is a WhimTex file.";
+            toolkitSaveButton = WhimTexUI.CreateToolbarButton("Save", () => SaveDocument(), 46f);
+            toolkitSaveButton.tooltip = "Save the document (Ctrl+S). The document is a WhimTex file: a TIFF that Unity imports as a texture.";
             toolbar.Add(toolkitSaveButton);
-            toolkitSaveAsButton = WhimTexUI.CreateToolbarButton("Export Asset", () =>
-            {
-                SaveAsAsset();
-            }, 82f);
-            toolkitSaveAsButton.tooltip = "Save a copy as a legacy compositor asset (.asset). Use Save Doc for the WhimTex document itself.";
+            toolkitSaveAsButton = WhimTexUI.CreateToolbarButton("Save As", () => SaveDocumentAs(), 82f);
+            toolkitSaveAsButton.tooltip = "Save the document under another name.";
             toolbar.Add(toolkitSaveAsButton);
-            Button documentSave = WhimTexUI.CreateToolbarButton("Save Doc", SaveDocumentAsFile, 74f);
-            documentSave.tooltip = "Save the document as a WhimTex file: a TIFF that Unity imports as a texture with import settings, sprite slicing and platform overrides.";
-            toolbar.Add(documentSave);
             toolkitSettingsBindings.Add(RefreshDocumentSaveControls);
             RefreshDocumentSaveControls();
             Button export = WhimTexUI.CreateToolbarButton("Export", ShowExportMenu, 64f);
@@ -389,14 +383,16 @@ namespace DCFApixels.WhimTex
 
         private void RefreshDocumentSaveControls()
         {
-            bool saved = compositor != null && AssetDatabase.Contains(compositor);
+            // A document keeps its file as an imported image, so having a file is not the same as being an asset.
+            bool hasFile = compositor != null && TryGetDocumentFile(compositor, out _);
+            bool saved = compositor != null && (hasFile || AssetDatabase.Contains(compositor));
             toolkitSaveButton?.SetEnabled(saved && (HasDocumentChanges() || paintingLayer != null ||
                 previewTransformManipulator != null && previewTransformManipulator.IsDragging));
             if (toolkitSaveAsButton == null) return;
             toolkitSaveAsButton.text = compositor != null && !saved ? "⚠ Save As" : "Save As";
             toolkitSaveAsButton.tooltip = saved
-                ? "Save a copy of this document to a new file."
-                : "This document has no saved file. Use Save As to keep its layers.";
+                ? "Save the document under another name."
+                : "This document has no file yet. Use Save As to keep its layers.";
         }
 
         private void BuildToolkitCanvasToolbar()
@@ -1901,10 +1897,7 @@ namespace DCFApixels.WhimTex
             {
                 ResetOpacityEntry();
                 WhimTexUI.ConsumeEvent(evt);
-                if (compositor != null && AssetDatabase.Contains(compositor))
-                    SaveAsset();
-                else
-                    SaveAsAsset();
+                SaveDocument();
                 return;
             }
 

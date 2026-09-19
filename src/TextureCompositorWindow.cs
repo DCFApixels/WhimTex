@@ -290,7 +290,7 @@ namespace DCFApixels.WhimTex
 
         public override void SaveChanges()
         {
-            if (HasPreviewLayers && !SaveAsAsset())
+            if (HasPreviewLayers && !SaveDocument())
                 return;
             temporaryDocumentDirty = false;
             base.SaveChanges();

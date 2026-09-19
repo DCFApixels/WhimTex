@@ -55,14 +55,32 @@ namespace DCFApixels.WhimTex
         private static bool ValidateSaveDocumentAsFile() => ActiveDocument() != null;
 
         [MenuItem("Assets/WhimTex/Save Document As WhimTex File…")]
-        private static void SaveDocumentAsFile()
+        private static void SaveDocumentAsFile() => SaveDocumentAs(ActiveDocument());
+
+        /// <summary>Saves into the document's own file, or asks for one when the document has none yet.</summary>
+        private bool SaveDocument()
         {
-            TextureCompositor document = ActiveDocument();
-            if (document == null) return;
+            if (compositor == null) return true;
+            if (TryGetDocumentFile(compositor, out string path)) return SaveDocumentTo(compositor, path);
+            return SaveDocumentAs(compositor);
+        }
+
+        private void SaveDocumentAs() => SaveDocumentAs(compositor);
+
+        private static bool SaveDocumentAs(TextureCompositor document)
+        {
+            if (document == null) return false;
             string suggested = (string.IsNullOrEmpty(document.name) ? "WhimTex Document" : document.name) + ".whimtex";
             string path = EditorUtility.SaveFilePanelInProject("Save WhimTex Document", suggested, "tiff",
                 "The document is stored as a TIFF image, so Unity imports it as a texture with full import settings.");
-            if (string.IsNullOrEmpty(path)) return;
+            if (string.IsNullOrEmpty(path)) return false;
+            return SaveDocumentTo(document, path);
+        }
+
+        /// <summary>Writing a document stops Live Update first: a reimport would reset the uncompressed surface.</summary>
+        private static bool SaveDocumentTo(TextureCompositor document, string path)
+        {
+            if (document == null || string.IsNullOrEmpty(path)) return false;
             try
             {
                 bool wasLive = WhimTexDocumentSession.IsLive;
@@ -79,11 +97,13 @@ namespace DCFApixels.WhimTex
                     EditorGUIUtility.PingObject(image);
                 }
                 Debug.Log("WhimTex: document saved to " + written);
+                return true;
             }
             catch (System.Exception error)
             {
                 Debug.LogException(error);
                 EditorUtility.DisplayDialog("WhimTex", error.Message, "OK");
+                return false;
             }
         }
 
