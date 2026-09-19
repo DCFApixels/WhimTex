@@ -257,23 +257,24 @@ namespace DCFApixels.WhimTex
                 _writer.Write(localId);
             }
 
-            /// <summary>FNV-1a in four independent streams: one stream runs at a few hundred megabytes per second.</summary>
-            private static ulong Hash64(byte[] data)
+            /// <summary>FNV-1a in four independent streams, straight over native pixels: no managed copy is made.</summary>
+            private static ulong Hash64(Unity.Collections.NativeArray<byte> data)
             {
                 const ulong prime = 1099511628211UL;
                 ulong h1 = 14695981039346656037UL, h2 = h1 ^ 0x9E3779B97F4A7C15UL;
                 ulong h3 = h1 ^ 0xBF58476D1CE4E5B9UL, h4 = h1 ^ 0x94D049BB133111EBUL;
+                System.ReadOnlySpan<byte> span = data.AsSpan();
                 int i = 0;
-                int limit = data.Length - 31;
+                int limit = span.Length - 31;
                 for (; i < limit; i += 32)
                 {
-                    h1 = (h1 ^ BitConverter.ToUInt64(data, i)) * prime;
-                    h2 = (h2 ^ BitConverter.ToUInt64(data, i + 8)) * prime;
-                    h3 = (h3 ^ BitConverter.ToUInt64(data, i + 16)) * prime;
-                    h4 = (h4 ^ BitConverter.ToUInt64(data, i + 24)) * prime;
+                    h1 = (h1 ^ BitConverter.ToUInt64(span.Slice(i))) * prime;
+                    h2 = (h2 ^ BitConverter.ToUInt64(span.Slice(i + 8))) * prime;
+                    h3 = (h3 ^ BitConverter.ToUInt64(span.Slice(i + 16))) * prime;
+                    h4 = (h4 ^ BitConverter.ToUInt64(span.Slice(i + 24))) * prime;
                 }
-                for (; i < data.Length - 7; i += 8) h1 = (h1 ^ BitConverter.ToUInt64(data, i)) * prime;
-                for (; i < data.Length; i++) h1 = (h1 ^ data[i]) * prime;
+                for (; i < span.Length - 7; i += 8) h1 = (h1 ^ BitConverter.ToUInt64(span.Slice(i))) * prime;
+                for (; i < span.Length; i++) h1 = (h1 ^ span[i]) * prime;
                 return ((h1 ^ h2) * prime ^ h3) * prime ^ h4;
             }
 
@@ -301,12 +302,16 @@ namespace DCFApixels.WhimTex
                 // isDataSRGB and the constructor's linear flag are opposites; store the constructor flag.
                 _writer.Write(!texture.isDataSRGB);
                 _writer.Write(block);
-                byte[] raw = texture.GetRawTextureData<byte>().ToArray();
+                // Pixels stay in native memory: copying every layer into the managed heap would hand the
+                // garbage collector hundreds of megabytes per save, and the container frees what it owns.
+                Unity.Collections.NativeArray<byte> view = texture.GetRawTextureData<byte>();
+                var pixels = new Unity.Collections.NativeArray<byte>(view.Length, Unity.Collections.Allocator.Persistent);
+                Unity.Collections.NativeArray<byte>.Copy(view, pixels);
                 // Layer pixels dominate save time, and a save only ever changes a few layers. The key is a
                 // content identity, so an unchanged layer is not deflated again and identical pixels share
                 // one block even across layers or documents.
-                string cacheKey = raw.Length + ":" + Hash64(raw).ToString("x16");
-                _container.SetCompressed(block, cacheKey, raw, System.IO.Compression.CompressionLevel.Fastest);
+                string cacheKey = pixels.Length + ":" + Hash64(pixels).ToString("x16");
+                _container.SetNative(block, cacheKey, pixels, System.IO.Compression.CompressionLevel.Fastest);
             }
 
             /// <summary>A shared object is written once: the document must keep object identity across the graph.</summary>

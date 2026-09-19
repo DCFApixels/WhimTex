@@ -25,7 +25,7 @@ namespace DCFApixels.WhimTex
     /// Both carriers were verified to survive import, reimport and platform switching, and Unity
     /// never rewrites the source bytes.
     /// </summary>
-    public sealed class WhimTexDocumentContainer
+    public sealed class WhimTexDocumentContainer : IDisposable
     {
         public const int CurrentVersion = 1;
         public const string DocumentBlock = "document";
@@ -44,6 +44,12 @@ namespace DCFApixels.WhimTex
         private readonly Dictionary<string, Entry> _entries = new Dictionary<string, Entry>(StringComparer.Ordinal);
         private readonly Dictionary<string, string> _cacheKeys = new Dictionary<string, string>(StringComparer.Ordinal);
         private byte[] _payload;
+
+        // Texture pixels are the bulk of a document, so they are kept in native memory: copying hundreds of
+        // megabytes into the managed heap on every save is what the garbage collector would have to collect.
+        // A container owns what it was given and frees it in Dispose.
+        private readonly Dictionary<string, Unity.Collections.NativeArray<byte>> _native = new Dictionary<string, Unity.Collections.NativeArray<byte>>(StringComparer.Ordinal);
+        private readonly List<Unity.Collections.NativeArray<byte>> _owned = new List<Unity.Collections.NativeArray<byte>>();
 
         // Pixel blocks are the dominant cost of a save, and every save builds a fresh container, so the
         // deflated result is kept outside the container. A block joins the cache through SetCompressed with
@@ -72,6 +78,7 @@ namespace DCFApixels.WhimTex
             if (!_blocks.ContainsKey(name) && !_entries.ContainsKey(name)) _order.Add(name);
             _entries.Remove(name);
             _blocks[name] = data;
+            _native.Remove(name);
             _levels[name] = level;
             _cacheKeys.Remove(name);
         }
@@ -83,8 +90,40 @@ namespace DCFApixels.WhimTex
             if (!string.IsNullOrEmpty(cacheKey)) _cacheKeys[name] = cacheKey;
         }
 
+        /// <summary>Stores a block that already lives in native memory, taking ownership of it.</summary>
+        public void SetNative(string name, string cacheKey, Unity.Collections.NativeArray<byte> data,
+            CompressionLevel level = CompressionLevel.Fastest)
+        {
+            if (!data.IsCreated) throw new WhimTexDocumentException("Block '" + name + "' has no data.");
+            ValidateName(name);
+            if (!_blocks.ContainsKey(name) && !_native.ContainsKey(name) && !_entries.ContainsKey(name)) _order.Add(name);
+            _entries.Remove(name);
+            _blocks.Remove(name);
+            _native[name] = data;
+            _owned.Add(data);
+            _levels[name] = level;
+            _cacheKeys.Remove(name);
+            if (!string.IsNullOrEmpty(cacheKey)) _cacheKeys[name] = cacheKey;
+        }
+
+        /// <summary>Frees the native blocks the container owns.</summary>
+        public void Dispose()
+        {
+            foreach (Unity.Collections.NativeArray<byte> block in _owned)
+                if (block.IsCreated) block.Dispose();
+            _owned.Clear();
+            _native.Clear();
+            _levels.Clear();
+            _cacheKeys.Clear();
+            _entries.Clear();
+            _blocks.Clear();
+            _order.Clear();
+            _payload = null;
+        }
+
         public bool Remove(string name)
         {
+            _native.Remove(name);
             bool existed = _order.Remove(name);
             _levels.Remove(name);
             _entries.Remove(name);
@@ -93,12 +132,21 @@ namespace DCFApixels.WhimTex
             return existed;
         }
 
-        public bool Contains(string name) => _blocks.ContainsKey(name) || _entries.ContainsKey(name);
+        public bool Contains(string name) => _blocks.ContainsKey(name) || _native.ContainsKey(name) || _entries.ContainsKey(name);
 
         /// <summary>Returns a block, inflating it on first use: a document never holds every layer at once.</summary>
         public byte[] Get(string name)
         {
             if (_blocks.TryGetValue(name, out byte[] cached)) return cached;
+            // A native block becomes managed bytes only when a caller asks for them: the save path deflates
+            // it where it already lies.
+            if (_native.TryGetValue(name, out Unity.Collections.NativeArray<byte> native) && native.IsCreated)
+            {
+                byte[] copy = native.ToArray();
+                _blocks[name] = copy;
+                _native.Remove(name);
+                return copy;
+            }
             if (_entries.TryGetValue(name, out Entry entry))
             {
                 Require(_payload, entry.dataOffset, entry.storedLength);
@@ -114,7 +162,7 @@ namespace DCFApixels.WhimTex
         public bool TryGet(string name, out byte[] data)
         {
             if (_blocks.TryGetValue(name, out data)) return true;
-            if (!_entries.ContainsKey(name)) { data = null; return false; }
+            if (!_entries.ContainsKey(name) && !_native.ContainsKey(name)) { data = null; return false; }
             data = Get(name);
             return true;
         }
@@ -131,45 +179,59 @@ namespace DCFApixels.WhimTex
                 writer.Write(CurrentVersion);
                 writer.Write(_order.Count);
                 var raws = new byte[_order.Count][];
+                var natives = new Unity.Collections.NativeArray<byte>[_order.Count];
+                var lengths = new long[_order.Count];
                 var storedBlocks = new byte[_order.Count][];
                 var compressedFlags = new bool[_order.Count];
                 long totalBytes = 0;
                 for (int i = 0; i < _order.Count; i++)
                 {
-                    raws[i] = Get(_order[i]);
-                    totalBytes += raws[i].Length;
+                    if (_native.TryGetValue(_order[i], out Unity.Collections.NativeArray<byte> native) && native.IsCreated)
+                    {
+                        natives[i] = native;
+                        lengths[i] = native.Length;
+                    }
+                    else
+                    {
+                        raws[i] = Get(_order[i]);
+                        lengths[i] = raws[i].Length;
+                    }
+                    totalBytes += lengths[i];
                 }
                 // Blocks are independent, so a layered document is deflated on all cores. Small documents
                 // keep the plain loop: there the thread pool costs more than the work it takes over.
                 if (_order.Count > 1 && totalBytes >= ParallelDeflateBytes)
                     System.Threading.Tasks.Parallel.For(0, _order.Count,
-                        i => storedBlocks[i] = Stored(_order[i], raws[i], out compressedFlags[i]));
+                        i => storedBlocks[i] = Stored(_order[i], raws[i], natives[i], lengths[i], out compressedFlags[i]));
                 else
                     for (int i = 0; i < _order.Count; i++)
-                        storedBlocks[i] = Stored(_order[i], raws[i], out compressedFlags[i]);
+                        storedBlocks[i] = Stored(_order[i], raws[i], natives[i], lengths[i], out compressedFlags[i]);
                 for (int i = 0; i < _order.Count; i++)
                 {
                     byte[] nameBytes = Encoding.UTF8.GetBytes(_order[i]);
                     writer.Write(nameBytes.Length);
                     writer.Write(nameBytes);
                     writer.Write((int)(compressedFlags[i] ? 1 : 0));
-                    writer.Write((long)raws[i].Length);
-                    writer.Write((long)storedBlocks[i].Length);
+                    writer.Write(lengths[i]);
+                    writer.Write(storedBlocks[i] != null ? (long)storedBlocks[i].Length : lengths[i]);
                 }
-                foreach (byte[] stored in storedBlocks) writer.Write(stored);
+                // A null entry means the block is written as it is, straight out of native memory.
+                for (int i = 0; i < _order.Count; i++)
+                {
+                    if (storedBlocks[i] != null) writer.Write(storedBlocks[i]);
+                    else if (natives[i].IsCreated) writer.Write(natives[i].AsSpan());
+                    else writer.Write(raws[i]);
+                }
             }
             return stream.ToArray();
         }
 
-        /// <summary>Deflates a block, reusing a cached result for an unchanged cache key.</summary>
-        private byte[] Stored(string name, byte[] raw, out bool compressed)
+        /// <summary>Deflates a block wherever its bytes live, reusing a cached result for an unchanged key.
+        /// A null result means the block is stored as it is.</summary>
+        private byte[] Stored(string name, byte[] raw, Unity.Collections.NativeArray<byte> native, long length, out bool compressed)
         {
             if (!_cacheKeys.TryGetValue(name, out string cacheKey) || cacheKey == null)
-            {
-                byte[] fresh = Compress(raw, _levels[name]);
-                compressed = !ReferenceEquals(fresh, raw);
-                return fresh;
-            }
+                return Deflate(raw, native, length, _levels[name], out compressed);
             lock (CompressedCache)
             {
                 if (CompressedCache.TryGetValue(cacheKey, out Compressed cached))
@@ -178,28 +240,43 @@ namespace DCFApixels.WhimTex
                     return cached.bytes;
                 }
             }
-            byte[] stored = Compress(raw, _levels[name]);
-            var entry = new Compressed { bytes = stored, compressed = !ReferenceEquals(stored, raw) };
-            compressed = entry.compressed;
+            byte[] stored = Deflate(raw, native, length, _levels[name], out bool wasCompressed);
+            compressed = wasCompressed;
+            var entry = new Compressed { bytes = stored, compressed = wasCompressed };
             lock (CompressedCache)
             {
                 if (!CompressedCache.ContainsKey(cacheKey))
                 {
                     CompressedCache[cacheKey] = entry;
                     CompressedCacheOrder.Enqueue(cacheKey);
-                    _compressedCacheBytes += entry.bytes.Length;
+                    _compressedCacheBytes += stored == null ? 0 : stored.Length;
                     while (_compressedCacheBytes > MaximumCompressedCacheBytes && CompressedCacheOrder.Count > 0)
                     {
                         string oldest = CompressedCacheOrder.Dequeue();
                         if (CompressedCache.TryGetValue(oldest, out Compressed evicted))
                         {
-                            _compressedCacheBytes -= evicted.bytes.Length;
+                            _compressedCacheBytes -= evicted.bytes == null ? 0 : evicted.bytes.Length;
                             CompressedCache.Remove(oldest);
                         }
                     }
                 }
             }
             return stored;
+        }
+
+        /// <summary>Compresses a block from managed or native memory. Null means the bytes are kept as they are.</summary>
+        private static byte[] Deflate(byte[] raw, Unity.Collections.NativeArray<byte> native, long length,
+            CompressionLevel level, out bool compressed)
+        {
+            using var stream = new MemoryStream();
+            using (var deflate = new DeflateStream(stream, level, true))
+            {
+                if (raw != null) deflate.Write(raw, 0, raw.Length);
+                else deflate.Write(native.AsSpan());
+            }
+            byte[] stored = stream.ToArray();
+            compressed = stored.Length < length;
+            return compressed ? stored : raw;
         }
 
         /// <summary>Reads a container. Block payloads are inflated on demand, so opening a document does not touch every layer.</summary>

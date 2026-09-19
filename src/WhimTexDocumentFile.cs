@@ -31,7 +31,7 @@ namespace DCFApixels.WhimTex
             if (string.IsNullOrEmpty(path)) throw new WhimTexDocumentException("The document path is empty.");
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             long modelMs = 0, carrierMs = 0, writeMs = 0, importMs = 0;
-            var container = new WhimTexDocumentContainer();
+            using var container = new WhimTexDocumentContainer();
             container.Set(WhimTexDocumentContainer.DocumentBlock,
                 WhimTexDocumentSerializer.Serialize(document, container), System.IO.Compression.CompressionLevel.Optimal);
             modelMs = stopwatch.ElapsedMilliseconds;
