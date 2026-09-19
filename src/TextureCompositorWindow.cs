@@ -88,6 +88,10 @@ namespace DCFApixels.WhimTex
         public void AddItemsToMenu(GenericMenu menu)
         {
             menu.AddItem(new GUIContent("User Settings…"), false, WhimTexUserSettingsWindow.Open);
+            menu.AddSeparator("");
+            menu.AddItem(new GUIContent("Save As WhimTex File…"), false, SaveDocumentAsFile);
+            menu.AddItem(new GUIContent(WhimTexDocumentSession.IsLive ? "Stop Live Update" : "Start Live Update"),
+                false, ToggleLiveUpdate);
         }
 
         internal static void ConfirmResetEditorSettings(EditorWindow notificationWindow)
