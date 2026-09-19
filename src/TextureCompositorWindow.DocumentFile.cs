@@ -41,9 +41,9 @@ namespace DCFApixels.WhimTex
         {
             TextureCompositor document = ActiveDocument();
             if (document == null) return;
-            string suggested = string.IsNullOrEmpty(document.name) ? "WhimTex Document" : document.name;
-            string path = EditorUtility.SaveFilePanelInProject("Save WhimTex Document", suggested, "png",
-                "The document is stored as an image, so Unity imports it as a texture with full import settings.");
+            string suggested = (string.IsNullOrEmpty(document.name) ? "WhimTex Document" : document.name) + ".whimtex";
+            string path = EditorUtility.SaveFilePanelInProject("Save WhimTex Document", suggested, "tiff",
+                "The document is stored as a TIFF image, so Unity imports it as a texture with full import settings.");
             if (string.IsNullOrEmpty(path)) return;
             try
             {
@@ -58,6 +58,7 @@ namespace DCFApixels.WhimTex
                     Selection.activeObject = image;
                     EditorGUIUtility.PingObject(image);
                 }
+                Debug.Log("WhimTex: document saved to " + written);
             }
             catch (System.Exception error)
             {
