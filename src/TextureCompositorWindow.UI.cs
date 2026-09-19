@@ -353,13 +353,17 @@ namespace DCFApixels.WhimTex
             });
             toolbar.Add(toolkitDocumentField);
             toolkitSaveButton = WhimTexUI.CreateToolbarButton("Save", SaveAsset, 46f);
-            toolkitSaveButton.tooltip = "Save layers and update the embedded full-resolution texture and sprite (Ctrl+S).";
+            toolkitSaveButton.tooltip = "Save the compositor asset (.asset) with its embedded texture and sprite (Ctrl+S). The document itself is a WhimTex file.";
             toolbar.Add(toolkitSaveButton);
-            toolkitSaveAsButton = WhimTexUI.CreateToolbarButton("Save As", () =>
+            toolkitSaveAsButton = WhimTexUI.CreateToolbarButton("Export Asset", () =>
             {
                 SaveAsAsset();
             }, 82f);
+            toolkitSaveAsButton.tooltip = "Save a copy as a legacy compositor asset (.asset). Use Save Doc for the WhimTex document itself.";
             toolbar.Add(toolkitSaveAsButton);
+            Button documentSave = WhimTexUI.CreateToolbarButton("Save Doc", SaveDocumentAsFile, 74f);
+            documentSave.tooltip = "Save the document as a WhimTex file: a TIFF that Unity imports as a texture with import settings, sprite slicing and platform overrides.";
+            toolbar.Add(documentSave);
             toolkitSettingsBindings.Add(RefreshDocumentSaveControls);
             RefreshDocumentSaveControls();
             Button export = WhimTexUI.CreateToolbarButton("Export", ShowExportMenu, 64f);
