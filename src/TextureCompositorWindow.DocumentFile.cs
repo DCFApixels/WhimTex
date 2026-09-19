@@ -123,7 +123,7 @@ namespace DCFApixels.WhimTex
             if (WhimTexDocumentSession.IsLive)
             {
                 WhimTexDocumentSession.Stop("menu");
-                RefreshLiveOutputButton();
+                RefreshLiveUpdateButtons();
                 return;
             }
             TextureCompositor document = ActiveDocument();
@@ -137,7 +137,14 @@ namespace DCFApixels.WhimTex
             if (!EnsureReadable(path)) return;
             if (!WhimTexDocumentSession.Start(document, path))
                 EditorUtility.DisplayDialog("WhimTex", WhimTexDocumentSession.Status, "OK");
-            RefreshLiveOutputButton();
+            RefreshLiveUpdateButtons();
+        }
+
+        /// <summary>The footer control lives on every window that shows the document.</summary>
+        private static void RefreshLiveUpdateButtons()
+        {
+            foreach (TextureCompositorWindow window in Resources.FindObjectsOfTypeAll<TextureCompositorWindow>())
+                if (window != null) window.RefreshLiveOutputButton();
         }
 
         /// <summary>
