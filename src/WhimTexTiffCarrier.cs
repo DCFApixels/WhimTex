@@ -18,6 +18,8 @@ namespace DCFApixels.WhimTex
         public const string Extension = ".tiff";
         /// <summary>Written into the importer's .meta so opening an asset does not have to read the file.</summary>
         public const string MetaMarker = "whimtex.document";
+        /// <summary>Tiny block carrying what the import pipeline needs, so it never reads the model.</summary>
+        public const string FlagsBlock = "carrier";
         private const string FooterMagic = "WHIMTEXD";
 
         /// <summary>
@@ -74,8 +76,10 @@ namespace DCFApixels.WhimTex
             int expected = composite.width * composite.height * 4 * (hdr ? 4 : 1);
             if (width != composite.width || height != composite.height || decoded.Length != expected)
                 throw new WhimTexDocumentException("The produced carrier image does not match the composite.");
-            byte[] payload = container.Serialize();
-            var result = new byte[image.Length + payload.Length + 16];
+            // A few bytes the import pipeline can fetch without touching the model or the pixels.
+            container.Set(FlagsBlock, new[] { (byte)(composite.isDataSRGB ? 1 : 0) },
+                System.IO.Compression.CompressionLevel.Fastest);
+            byte[] payload = container.Serialize();            var result = new byte[image.Length + payload.Length + 16];
             Buffer.BlockCopy(image, 0, result, 0, image.Length);
             Buffer.BlockCopy(payload, 0, result, image.Length, payload.Length);
             Buffer.BlockCopy(BitConverter.GetBytes((long)payload.Length), 0, result, image.Length + payload.Length, 8);
@@ -109,8 +113,7 @@ namespace DCFApixels.WhimTex
             return WhimTexDocumentContainer.TryReadPayload(file, out payload, out error);
         }
 
-        public static bool TryRead(string path, out byte[] payload, out string error)
-        {
+        public static bool TryRead(string path, out byte[] payload, out string error)        {
             payload = null;
             error = null;
             try
@@ -123,6 +126,21 @@ namespace DCFApixels.WhimTex
                 error = exception.Message;
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Reads only what the import pipeline needs: the footer, the block table and the small flags block,
+        /// without inflating the model or the drawing pixels.
+        /// </summary>
+        public static bool TryReadCarrierFlags(string path, out bool srgb, out bool isDocument, out string error)
+        {
+            srgb = false;
+            isDocument = false;
+            if (!TryRead(path, out byte[] payload, out error)) return false;
+            isDocument = true;
+            if (!WhimTexDocumentContainer.TryReadBlock(payload, FlagsBlock, out byte[] flags, out error)) return false;
+            srgb = flags.Length > 0 && (flags[0] & 1) != 0;
+            return true;
         }
     }
 }

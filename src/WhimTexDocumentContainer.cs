@@ -251,6 +251,55 @@ namespace DCFApixels.WhimTex
             catch (UnauthorizedAccessException) { }
         }
 
+        /// <summary>
+        /// Reads one block without inflating the rest of the container. The import pipeline uses this to
+        /// fetch a few bytes of carrier flags from a document whose model and pixels it must not touch.
+        /// </summary>
+        public static bool TryReadBlock(byte[] payload, string name, out byte[] data, out string error)
+        {
+            data = null;
+            error = null;
+            if (payload == null) { error = "The document payload is missing."; return false; }
+            if (payload.Length < 16) { error = "The document payload is truncated."; return false; }
+            if (Encoding.ASCII.GetString(payload, 0, 8) != PayloadMagic)
+            {
+                error = "The file does not contain a WhimTex document.";
+                return false;
+            }
+            int count = BitConverter.ToInt32(payload, 12);
+            if (count < 0 || count > MaximumBlockCount) { error = "Invalid block count: " + count + "."; return false; }
+            int offset = 16;
+            for (int i = 0; i < count; i++)
+            {
+                Require(payload, offset, 4);
+                int nameLength = BitConverter.ToInt32(payload, offset); offset += 4;
+                if (nameLength <= 0 || nameLength > MaximumNameLength) { error = "Invalid block name length."; return false; }
+                Require(payload, offset, nameLength);
+                string blockName = Encoding.UTF8.GetString(payload, offset, nameLength); offset += nameLength;
+                Require(payload, offset, 20);
+                int compression = BitConverter.ToInt32(payload, offset); offset += 4;
+                long rawLength = BitConverter.ToInt64(payload, offset); offset += 8;
+                long storedLength = BitConverter.ToInt64(payload, offset); offset += 8;
+                if (name != blockName)
+                {
+                    offset += (int)storedLength;
+                    continue;
+                }
+                if (compression != 0 && compression != 1) { error = "Unknown compression for block '" + name + "'."; return false; }
+                if (rawLength < 0 || storedLength < 0 || offset + storedLength > payload.Length)
+                {
+                    error = "Block '" + name + "' is out of bounds.";
+                    return false;
+                }
+                data = compression == 0
+                    ? Slice(payload, offset, (int)storedLength)
+                    : Decompress(payload, offset, (int)storedLength, rawLength, name);
+                return true;
+            }
+            error = "Block '" + name + "' is missing.";
+            return false;
+        }
+
         // --- internals ---
 
         private struct Entry
