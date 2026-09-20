@@ -14,12 +14,14 @@ namespace DCFApixels.WhimTex
 
         private void EnsureHdrStorage()
         {
+            EnsureDeferredTexture();
             if (colorRange == LayerColorRange.HDR && pixels != null && !HdrUtility.IsHdr(pixels))
                 ChangeStorage(TextureFormat.RGBAHalf, "Promote Drawing Storage");
         }
 
         internal void ConvertTo8Bit()
         {
+            EnsureDeferredTexture();
             colorRange = LayerColorRange.Standard;
             if (pixels != null && HdrUtility.IsHdr(pixels)) ChangeStorage(TextureFormat.RGBA32, "Convert Drawing to 8-bit");
         }

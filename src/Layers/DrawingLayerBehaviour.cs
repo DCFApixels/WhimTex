@@ -22,7 +22,11 @@ namespace DCFApixels.WhimTex
         [SerializeField, HideInInspector] private int pixelsRevision;
         [SerializeField, HideInInspector] private string originalImageUrl;
         [SerializeField, HideInInspector] private int originalImageRevision;
-        internal string PortableImageUrl => pixels != null && pixelsRevision == originalImageRevision ? originalImageUrl : null;
+        [NonSerialized] private WhimTexDocumentSerializer.DeferredTextureInfo? deferredTexture;
+        // A deferred TIFF still represents the same untouched source image. Do not force a full
+        // materialization merely to preserve its portable URL during clipboard/export operations.
+        internal string PortableImageUrl => (pixels != null || deferredTexture.HasValue) &&
+            pixelsRevision == originalImageRevision ? originalImageUrl : null;
         internal void RememberImageUrl(string url)
         {
             originalImageUrl = url;
@@ -64,10 +68,17 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private Vector2 strokeRepeatShapeAnchor;
         [NonSerialized] private bool strokeWrapCanvas;
 
-        internal Texture2D StoredTexture => pixels;
-        internal long DocumentPixelBytes => paintSurface != null && (paintSurfaceDirty || pixels == null)
-            ? (long)paintSurface.width * paintSurface.height * (colorRange == LayerColorRange.HDR ? 8 : 4)
-            : pixels == null ? 0 : WhimTexDocumentLimits.ExpectedBytes(pixels.width, pixels.height, pixels.format, pixels.mipmapCount, !pixels.isDataSRGB);
+        internal Texture2D StoredTexture { get { EnsureDeferredTexture(); return pixels; } }
+        internal long DocumentPixelBytes
+        {
+            get
+            {
+                EnsureDeferredTexture();
+                return paintSurface != null && (paintSurfaceDirty || pixels == null)
+                    ? (long)paintSurface.width * paintSurface.height * (colorRange == LayerColorRange.HDR ? 8 : 4)
+                    : pixels == null ? 0 : WhimTexDocumentLimits.ExpectedBytes(pixels.width, pixels.height, pixels.format, pixels.mipmapCount, !pixels.isDataSRGB);
+            }
+        }
         internal bool UsesMirrorPattern => repeatMode == PaintRepeatMode.Mirror;
         internal bool UsesRepeatedPattern => repeatMode != PaintRepeatMode.None && !UsesMirrorPattern;
         internal float RadialStartAngleRadians => -Mathf.PI + Mathf.Repeat(radialStartAngle, 360f) * Mathf.Deg2Rad;
@@ -112,7 +123,7 @@ namespace DCFApixels.WhimTex
 
         public override Texture2D GetPreviewTexture(int size)
         {
-            return pixels;
+            return StoredTexture;
         }
 
         internal override RenderTexture Render(in LayerRenderContext context)
@@ -460,6 +471,7 @@ namespace DCFApixels.WhimTex
 
         internal void SyncPendingSurfaceToTexture()
         {
+            EnsureDeferredTexture();
             // A surface created for preview is only a derived copy. Reading it back
             // can quantize otherwise untouched source pixels and invalidate save caches.
             if (paintSurfaceDirty || pixels == null)
@@ -468,6 +480,7 @@ namespace DCFApixels.WhimTex
 
         internal void SyncSurfaceToTexture()
         {
+            EnsureDeferredTexture();
             if (paintSurface == null)
                 return;
 
@@ -523,6 +536,7 @@ namespace DCFApixels.WhimTex
         // resolution, so callers fit the transform instead of resampling it to the canvas.
         internal void AdoptStoredTexture(Texture2D texture)
         {
+            deferredTexture = null;
             originalImageUrl = null;
             if (pixels != null && !AssetDatabase.Contains(pixels))
                 UnityEngine.Object.DestroyImmediate(pixels);
@@ -537,6 +551,7 @@ namespace DCFApixels.WhimTex
 
         internal void CloneStoredTexture()
         {
+            EnsureDeferredTexture();
             SyncPendingSurfaceToTexture();
             if (pixels == null)
                 return;
@@ -551,6 +566,7 @@ namespace DCFApixels.WhimTex
         {
             if (owner == null || !AssetDatabase.Contains(owner))
                 return false;
+            EnsureDeferredTexture();
             if (pixels == null)
             {
                 EnsurePaintSurface(owner.width, owner.height);
@@ -569,6 +585,7 @@ namespace DCFApixels.WhimTex
 
         internal void DestroyStoredTextureWithUndo()
         {
+            EnsureDeferredTexture();
             ReleasePaintSurface();
             if (pixels == null)
                 return;
@@ -605,6 +622,7 @@ namespace DCFApixels.WhimTex
 
         private RenderTexture EnsurePaintSurface(int fallbackWidth, int fallbackHeight)
         {
+            EnsureDeferredTexture();
             int width = pixels != null ? pixels.width : Mathf.Max(1, fallbackWidth);
             int height = pixels != null ? pixels.height : Mathf.Max(1, fallbackHeight);
             if (paintSurface != null && paintSurface.width == width && paintSurface.height == height)
@@ -663,6 +681,30 @@ namespace DCFApixels.WhimTex
                 }
             }
             return paintSurface;
+        }
+
+        internal bool HasDeferredTexture => deferredTexture.HasValue && pixels == null;
+
+        internal void SetDeferredTexture(WhimTexDocumentSerializer.DeferredTextureInfo info)
+        {
+            if (pixels != null && !AssetDatabase.Contains(pixels))
+                UnityEngine.Object.DestroyImmediate(pixels);
+            pixels = null;
+            deferredTexture = info;
+            ReleasePaintSurface();
+        }
+
+        private void EnsureDeferredTexture()
+        {
+            if (!deferredTexture.HasValue || pixels != null)
+                return;
+            Texture2D loaded = WhimTexDocumentSerializer.MaterializeDeferredTexture(deferredTexture.Value);
+            if (loaded == null)
+                return;
+            deferredTexture = null;
+            pixels = loaded;
+            pixels.name = GetTextureName();
+            pixels.hideFlags = HideFlags.HideAndDontSave;
         }
 
         private void BuildPatternStamps(Vector2 sourceUv, int outputWidth, int outputHeight)

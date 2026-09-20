@@ -83,7 +83,8 @@ namespace DCFApixels.WhimTex
             return stream.ToArray();
         }
 
-        public static object Deserialize(byte[] bytes, WhimTexDocumentContainer container, Type expectedType)
+        public static object Deserialize(byte[] bytes, WhimTexDocumentContainer container, Type expectedType,
+            string sourcePath = null, bool deferDrawingTextures = false)
         {
             using var stream = new MemoryStream(bytes, false);
             using var reader = new BinaryReader(stream, System.Text.Encoding.UTF8, true);
@@ -95,7 +96,7 @@ namespace DCFApixels.WhimTex
             _skippedFieldNames.Clear();
             _skippedFields.Clear();
             _unresolvedReferences.Clear();
-            var context = new Reader(reader, container);
+            var context = new Reader(reader, container, sourcePath, deferDrawingTextures);
             try
             {
                 object result = context.Read(expectedType);
@@ -655,16 +656,93 @@ namespace DCFApixels.WhimTex
             }
         }
 
+        internal readonly struct DeferredTextureInfo
+        {
+            internal readonly string sourcePath, block;
+            internal readonly long sourceLength, sourceWriteTicksUtc;
+            internal readonly int width, height, mipCount;
+            internal readonly TextureFormat format;
+            internal readonly bool linear;
+
+            internal DeferredTextureInfo(string sourcePath, string block, int width, int height,
+                TextureFormat format, int mipCount, bool linear, long sourceLength, long sourceWriteTicksUtc)
+            {
+                this.sourcePath = sourcePath;
+                this.block = block;
+                this.sourceLength = sourceLength;
+                this.sourceWriteTicksUtc = sourceWriteTicksUtc;
+                this.width = width;
+                this.height = height;
+                this.format = format;
+                this.mipCount = mipCount;
+                this.linear = linear;
+            }
+        }
+
+        internal static Texture2D MaterializeDeferredTexture(DeferredTextureInfo info)
+        {
+            var file = new FileInfo(info.sourcePath);
+            if (!file.Exists || file.Length != info.sourceLength || file.LastWriteTimeUtc.Ticks != info.sourceWriteTicksUtc)
+                throw new WhimTexDocumentException("The TIFF changed after opening; reopen the document before using its deferred Drawing pixels.");
+            using var container = WhimTexTiffCarrier.OpenContainer(info.sourcePath);
+            long length = container.LengthOf(info.block);
+            long total = 0;
+            WhimTexDocumentLimits.CheckTexture(length, ref total, "Deferred Drawing block '" + info.block + "'");
+            if (WhimTexDocumentLimits.ExpectedBytes(info.width, info.height, info.format, info.mipCount, info.linear) != length)
+                throw new WhimTexDocumentException("Embedded texture byte count does not match its dimensions.");
+            byte[] raw = container.Get(info.block);
+            var texture = new Texture2D(info.width, info.height, info.format, info.mipCount, info.linear)
+            {
+                hideFlags = HideFlags.HideAndDontSave
+            };
+            try
+            {
+                if (texture.GetRawTextureData<byte>().Length != raw.Length)
+                    throw new WhimTexDocumentException("Embedded texture byte count does not match its dimensions.");
+                texture.LoadRawTextureData(raw);
+                texture.Apply(false, false);
+                string sampling = info.block + ":sampling";
+                if (container.Contains(sampling))
+                {
+                    if (container.LengthOf(sampling) != 24)
+                        throw new WhimTexDocumentException("Invalid texture sampling settings.");
+                    using var stream = new MemoryStream(container.Get(sampling), false);
+                    using var settings = new BinaryReader(stream);
+                    texture.filterMode = (FilterMode)settings.ReadInt32();
+                    texture.wrapModeU = (TextureWrapMode)settings.ReadInt32();
+                    texture.wrapModeV = (TextureWrapMode)settings.ReadInt32();
+                    texture.wrapModeW = (TextureWrapMode)settings.ReadInt32();
+                    texture.anisoLevel = settings.ReadInt32();
+                    texture.mipMapBias = settings.ReadSingle();
+                }
+                return texture;
+            }
+            catch
+            {
+                UnityEngine.Object.DestroyImmediate(texture);
+                throw;
+            }
+        }
+
         // --- reader ---
 
         private sealed class Reader : IWhimTexDocumentReader
         {
             private readonly BinaryReader _reader;
             private readonly WhimTexDocumentContainer _container;
+            private readonly string _sourcePath;
+            private readonly bool _deferDrawingTextures;
             private readonly List<object> _objects = new List<object>();
             private int _depth, _values;
             private long _textureBytes;
             private const int MaxValues = 1000000;
+
+            private sealed class DeferredTextureReference
+            {
+                private readonly DrawingLayerBehaviour _owner;
+                internal DeferredTextureReference(DrawingLayerBehaviour owner) { _owner = owner; }
+                internal Texture2D Resolve() => _owner.StoredTexture;
+            }
 
             public void ReleaseCreatedObjects()
             {
@@ -689,10 +767,12 @@ namespace DCFApixels.WhimTex
                 throw new WhimTexDocumentException("Invalid string length.");
             }
 
-            public Reader(BinaryReader reader, WhimTexDocumentContainer container)
+            public Reader(BinaryReader reader, WhimTexDocumentContainer container, string sourcePath, bool deferDrawingTextures)
             {
                 _reader = reader;
                 _container = container;
+                _sourcePath = sourcePath;
+                _deferDrawingTextures = deferDrawingTextures && !string.IsNullOrEmpty(sourcePath);
             }
 
             public object Read(Type declared)
@@ -749,7 +829,7 @@ namespace DCFApixels.WhimTex
                     case TagObjectRef:
                         int id = _reader.ReadInt32();
                         if (id < 0 || id >= _objects.Count) throw new WhimTexDocumentException("Invalid object reference " + id + " in the document.");
-                        return _objects[id];
+                        return _objects[id] is DeferredTextureReference deferred ? deferred.Resolve() : _objects[id];
                     default: throw new WhimTexDocumentException("Unknown value tag " + tag + " in the document.");
                 }
             }
@@ -851,6 +931,39 @@ namespace DCFApixels.WhimTex
                 // The texture owns the pixels now, so the inflated copy can be collected.
                 _container.Remove(block);
                 return texture;
+            }
+
+            private object ReadDeferredDrawingTexture(DrawingLayerBehaviour drawing)
+            {
+                byte tag = _reader.ReadByte();
+                if (tag == TagNull) return null;
+                if (tag != TagTexture)
+                    return ReadTagged(tag, typeof(Texture2D));
+
+                int width = _reader.ReadInt32();
+                int height = _reader.ReadInt32();
+                string formatName = ReadText();
+                int mipCount = _reader.ReadInt32();
+                bool linear = _reader.ReadBoolean();
+                string block = ReadText();
+                if (width <= 0 || height <= 0 || width > 16384 || height > 16384 || mipCount < 1 ||
+                    mipCount > 1 + (int)Math.Floor(Math.Log(Math.Max(width, height), 2)))
+                    throw new WhimTexDocumentException("Invalid embedded texture dimensions.");
+                long length = _container.LengthOf(block);
+                WhimTexDocumentLimits.CheckTexture(length, ref _textureBytes, "Drawing block '" + block + "'");
+                if (!Enum.TryParse(formatName, out TextureFormat format) || !Enum.IsDefined(typeof(TextureFormat), format))
+                    throw new WhimTexDocumentException("Invalid embedded texture format.");
+                if (WhimTexDocumentLimits.ExpectedBytes(width, height, format, mipCount, linear) != length)
+                    throw new WhimTexDocumentException("Embedded texture byte count does not match its dimensions.");
+                var file = new FileInfo(_sourcePath);
+                if (!file.Exists)
+                    throw new WhimTexDocumentException("The TIFF disappeared while loading its Drawing metadata.");
+                drawing.SetDeferredTexture(new DeferredTextureInfo(_sourcePath, block, width, height, format, mipCount, linear,
+                    file.Length, file.LastWriteTimeUtc.Ticks));
+                // The writer registered the texture before emitting TagTexture. Keep the same object-table
+                // slot so a later back-reference can materialize it instead of desynchronizing the graph.
+                _objects.Add(new DeferredTextureReference(drawing));
+                return null;
             }
 
             private object ReadList(Type declared)
@@ -1054,7 +1167,10 @@ namespace DCFApixels.WhimTex
                 {
                     string fieldName = ReadText();
                     FieldInfo field = FindField(type, fieldName);
-                    object fieldValue = Read(field?.FieldType);
+                    object fieldValue = type == typeof(DrawingLayerBehaviour) && field?.FieldType == typeof(Texture2D) &&
+                        string.Equals(field.Name, "pixels", StringComparison.Ordinal) && _deferDrawingTextures
+                        ? ReadDeferredDrawingTexture((DrawingLayerBehaviour)value)
+                        : Read(field?.FieldType);
                     if (field == null) continue;
                     try
                     {

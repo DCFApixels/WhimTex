@@ -276,7 +276,8 @@ namespace DCFApixels.WhimTex
                     error = "The document has no model block.";
                     return false;
                 }
-                document = WhimTexDocumentSerializer.Deserialize(model, container, typeof(TextureCompositor)) as TextureCompositor;
+                document = WhimTexDocumentSerializer.Deserialize(model, container, typeof(TextureCompositor),
+                    Path.GetFullPath(path), deferDrawingTextures: true) as TextureCompositor;
                 if (document == null)
                 {
                     error = "The document model could not be reconstructed.";
