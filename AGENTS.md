@@ -35,11 +35,11 @@
 
 ## Live generation
 
-- `whimtex_begin` reserves a named layer and captures context before lengthy generation. Preserve the user's subsequent placement/name/visibility changes.
+- `whimtex_assistant_begin` reserves a named layer and captures context before lengthy generation. Preserve the user's subsequent placement/name/visibility changes.
 - Choose source sampling and strict/approximate selection from the request; do not impose one policy on every generation.
-- Existing-layer FX/settings edits require `whimtex_lock`; release on success or abandonment.
+- Existing-layer FX/settings edits require `whimtex_assistant_lock`; release on success or abandonment.
 - Inline shader work uses live `fx` requests, not separate shader files by default.
-- Live image completion inserts owned Drawing pixels. For path-based imported File workflows, generate the image externally, import with `whimtex_import_image`, reuse its returned path. Read the selected workflow's contract rather than mixing the two.
+- Live image completion inserts owned Drawing pixels. For path-based imported File workflows, generate the image externally, import with `whimtex_image_import`, reuse its returned path. Read the selected workflow's contract rather than mixing the two.
 - Preserve source resolution; fit with transforms. Drawing strokes are for painting/masks/touch-ups, not a substitute for requested image generation.
 - Clipboard Drawing `url` download support is distinct from live/local image import; do not infer URL support for arbitrary API operations.
 

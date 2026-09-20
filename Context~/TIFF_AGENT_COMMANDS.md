@@ -12,14 +12,14 @@
 | Команда | Изменение | Backend |
 | --- | --- | --- |
 | `whimtex_describe` | Возвращает `storageFormats`, `backends`, `migration` и ограничения TIFF; `assetPath` может быть `.asset` или `.tiff`. | capability discovery |
-| `whimtex_inspect` | При `.asset` сохраняет legacy-путь. При `.tiff` открывает transient-модель и возвращает те же стабильные ID, настройки и `revision`. | read-only |
-| `whimtex_execute` | При `.asset` сохраняет текущую реализацию. При `.tiff` создаёт/открывает transient-модель, применяет те же операции, проверяет `expectedRevision` и сохраняет через `WhimTexDocumentBuild.Save`. | independent build |
-| `whimtex_render` | При `.asset` сохраняет текущий путь. При `.tiff` открывает документ без окна, вызывает общий renderer и пишет PNG в `Temp/WhimTex`. | independent build |
-| `whimtex_import_image` | Не менять. Это импорт исходного PNG/JPEG, а не создание WhimTex-документа. | ordinary texture |
-| `whimtex_migrate` | Явная команда для `.asset → .tiff`: `sourcePath`, `destinationPath`, `overwrite=false`. Исходный файл, `.meta`, GUID и output не изменяются. | migration |
-| `whimtex_tiff_live` | Persistent transient-сессия без окна: `begin`, `status`, `preview`, `render`, `complete`, `cancel`. | independent live |
+| `whimtex_document_inspect` | При `.asset` сохраняет legacy-путь. При `.tiff` открывает transient-модель и возвращает те же стабильные ID, настройки и `revision`. | read-only |
+| `whimtex_batch_execute` | При `.asset` сохраняет текущую реализацию. При `.tiff` создаёт/открывает transient-модель, применяет те же операции, проверяет `expectedRevision` и сохраняет через `WhimTexDocumentBuild.Save`. | batch authoring |
+| `whimtex_document_render` | При `.asset` сохраняет текущий путь. При `.tiff` открывает документ без окна, вызывает общий renderer и пишет PNG в `Temp/WhimTex`. | diagnostic |
+| `whimtex_image_import` | Не менять. Это импорт исходного PNG/JPEG, а не создание WhimTex-документа. | ordinary texture |
+| `whimtex_document_migrate` | Явная команда для `.asset → .tiff`: `sourcePath`, `destinationPath`, `overwrite=false`. Исходный файл, `.meta`, GUID и output не изменяются. | migration |
+| `whimtex_headless_live` | Persistent transient-сессия без окна: `begin`, `status`, `preview`, `render`, `complete`, `cancel`. | headless live |
 
-### Контракт `whimtex_execute` для TIFF
+### Контракт `whimtex_batch_execute` для TIFF
 
 Формат запроса остаётся v1:
 
@@ -49,7 +49,7 @@
 - операции `add`, `set`, `transform`, `target`, `move`, `stroke`, `compact` не дублируются —
   их применение должно быть отделено от загрузки и сохранения backend-сессии.
 
-### Контракт `whimtex_migrate`
+### Контракт `whimtex_document_migrate`
 
 ```json
 {
@@ -65,11 +65,11 @@
 
 ## 2. Два режима Live API
 
-`whimtex_begin`, `whimtex_lock`, `whimtex_live` и `whimtex_sessions` остаются API подключённого
+`whimtex_assistant_begin`, `whimtex_assistant_lock`, `whimtex_assistant_live` и `whimtex_assistant_sessions` остаются API подключённого
 окна. Они работают с открытой сессией, резервированием слоёв и Live Update. TIFF-батч не должен
 самовольно выбирать окно или переносить изменения в открытый документ.
 
-Для независимой TIFF-сборки используется `whimtex_tiff_live`. Она держит transient-модель между
+Для независимой TIFF-сборки используется `whimtex_headless_live`. Она держит transient-модель между
 запросами и не создаёт окно:
 
 ```json
@@ -90,16 +90,16 @@ transient-модели без записи. Оконный API и независ
 
 | Команда | Зачем нужна | Приоритет |
 | --- | --- | --- |
-| `whimtex_inspect_storage` | Быстро прочитать каталог TIFF, версии блоков, размеры модели, Drawing и общий размер без материализации Unity-текстур. | высокий |
-| `whimtex_validate` | Проверить структуру, лимиты, missing types, ссылки, HLSL и импорт. Опциональный `render:true` добавляет проверку композиции. Ничего не сохраняет. | высокий |
-| `whimtex_status` | Для указанного пути вернуть disk revision, GUID, lock/live-состояние, dirty-состояние, import errors и наличие staged recovery. `whimtex_sessions` показывает только открытые окна. | высокий |
-| `whimtex_compare` | Сравнить две ревизии/два файла по модели, Drawing-блокам и итоговому рендеру без попытки merge. Нужно для Git-конфликтов и долгосрочных эталонов. | средний |
-| `whimtex_recover` | Явно проверить и восстановить staged TIFF после оборванной записи в новый destination. Не перезаписывает исходник. | средний |
-| `whimtex_export` | Экспортировать уже загруженный результат в PNG/JPEG/TGA/EXR с явными параметрами. Сейчас `whimtex_render` закрывает только диагностический PNG-сценарий. | низкий |
+| `whimtex_storage_inspect` | Быстро прочитать каталог TIFF, версии блоков, размеры модели, Drawing и общий размер без материализации Unity-текстур. | высокий |
+| `whimtex_document_validate` | Проверить структуру, лимиты, missing types, ссылки, HLSL и импорт. Опциональный `render:true` добавляет проверку композиции. Ничего не сохраняет. | высокий |
+| `whimtex_document_status` | Для указанного пути вернуть disk revision, GUID, lock/live-состояние, dirty-состояние, import errors и наличие staged recovery. `whimtex_assistant_sessions` показывает только открытые окна. | высокий |
+| `whimtex_document_compare` | Сравнить две ревизии/два файла по модели, Drawing-блокам и итоговому рендеру без попытки merge. Нужно для Git-конфликтов и долгосрочных эталонов. | средний |
+| `whimtex_document_recover` | Явно проверить и восстановить staged TIFF после оборванной записи в новый destination. Не перезаписывает исходник. | средний |
+| `whimtex_document_export` | Экспортировать уже загруженный результат в PNG/JPEG/TGA/EXR с явными параметрами. `whimtex_document_render` закрывает диагностический PNG-сценарий. | низкий |
 
 ### Реализованные диагностические команды
 
-`whimtex_inspect_storage`, `whimtex_validate` и `whimtex_status` теперь доступны в Pipeline.
+`whimtex_storage_inspect`, `whimtex_document_validate` и `whimtex_document_status` теперь доступны в Pipeline.
 Первая читает только каталог контейнера и не создаёт Unity-текстуры. `validate` открывает
 временную модель, проверяет лимиты, ссылки и Shader FX, а при `render:true` дополнительно
 проверяет композицию. `status` не материализует модель и сообщает дисковую SHA-256 ревизию,
@@ -107,7 +107,7 @@ GUID, импорт, состояние открытого окна/live-lock и 
 
 ### Почему не нужны отдельные команды
 
-- `whimtex_save` не нужен: сохранение без дополнительных операций уже выражается `whimtex_execute`
+- `whimtex_save` не нужен: сохранение без дополнительных операций уже выражается `whimtex_batch_execute`
   с `operations: []` и `save:true`.
 - `whimtex_open` и `whimtex_focus` не нужны для независимого TIFF backend; выбор окна относится только
   к Live API.
@@ -120,10 +120,10 @@ GUID, импорт, состояние открытого окна/live-lock и 
 
 1. Применение JSON-операций осталось общим для обоих backend-ов.
 2. `inspect`, `execute` и `render` выбирают TIFF backend по расширению.
-3. Добавлены `whimtex_migrate`, диагностические команды, `whimtex_tiff_live` и regression tests
+3. Добавлены `whimtex_document_migrate`, диагностические команды, `whimtex_headless_live` и regression tests
    `TiffAgentApiSmoke`/`TiffLiveSmoke`.
 4. Старые `.asset` команды оставлены совместимыми.
 
 Следующий отдельный этап — переключить примеры агентов на TIFF по умолчанию и проверить
-долгоживущие сессии под нагрузкой. Текущие `whimtex_begin/live/lock` по-прежнему относятся
+долгоживущие сессии под нагрузкой. Текущие `whimtex_assistant_begin`, `whimtex_assistant_live` и `whimtex_assistant_lock` по-прежнему относятся
 только к открытым окнам.

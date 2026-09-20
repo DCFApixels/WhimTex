@@ -2,7 +2,7 @@
 
 Статус: внутренний backend подготовлен; path-based `WhimTexApi` и `whimtex_*` команды уже
 выбирают backend по расширению `.asset`/`.tiff`. Оконный Live API не смешивается с независимой
-сборкой, а `whimtex_tiff_live` даёт отдельную persistent transient-сессию без окна.
+сборкой, а `whimtex_headless_live` даёт отдельную persistent transient-сессию без окна.
 Старый `TextureCompositor` остаётся рабочей моделью и поддерживает чтение прежних `.asset`.
 UI больше не создаёт новые legacy `.asset`: выбранный старый документ переносится через
 `Assets → WhimTex → Migrate Legacy .asset to TIFF…`, оставляя исходник и его GUID без изменений.
@@ -47,11 +47,11 @@ Unity objects, ShaderUtil, композиция и AssetDatabase — тольк�
 ## Граница агентского API
 
 Существующие `.asset` команды остаются рабочими, а path-based API уже выбирает TIFF backend по
-расширению без изменения JSON v1. Диагностические команды `whimtex_inspect_storage`,
-`whimtex_validate` и `whimtex_status` не меняют документ и предназначены для самопроверки агента.
+расширению без изменения JSON v1. Диагностические команды `whimtex_storage_inspect`,
+`whimtex_document_validate` и `whimtex_document_status` не меняют документ и предназначены для самопроверки агента.
 Примеры агентов пока не переключены на TIFF по умолчанию; это следующий отдельный этап.
 
-Независимый Live Update использует `WhimTexApi.TiffLiveFile`/`whimtex_tiff_live`: `begin` фиксирует
+Независимый Live Update использует `WhimTexApi.TiffLiveFile`/`whimtex_headless_live`: `begin` фиксирует
 disk/model revision, `preview` пересобирает рабочую копию от исходного snapshot, `render` пишет
 временный PNG, а `complete` проверяет внешний конфликт и выполняет атомарный TIFF commit.
 `cancel` освобождает transient-модели без записи.

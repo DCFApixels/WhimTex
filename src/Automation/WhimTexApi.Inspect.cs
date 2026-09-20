@@ -34,11 +34,14 @@ namespace DCFApixels.WhimTex
                 ["asset"] = "legacy Unity ScriptableObject compositor; readable and editable for compatibility",
                 ["tiff"] = "window-independent WhimTexDocumentBuild; transient model with atomic TIFF save"
             };
-            result["migration"] = "Use WhimTexApi.Migrate(sourcePath, destinationPath, overwrite) or whimtex_migrate. The legacy .asset remains unchanged.";
+            result["migration"] = "Use WhimTexApi.Migrate(sourcePath, destinationPath, overwrite) or whimtex_document_migrate. The legacy .asset remains unchanged.";
             result["diagnostics"] = new JObject {
-                ["storage"] = "whimtex_inspect_storage / WhimTexApi.InspectStorage(assetPath): metadata-only TIFF block inspection",
-                ["validate"] = "whimtex_validate / WhimTexApi.Validate(assetPath, render): structure, limits, references and Shader FX",
-                ["status"] = "whimtex_status / WhimTexApi.Status(assetPath): disk revision, importer, dirty, lock and staged recovery state"
+                ["storage"] = "whimtex_storage_inspect / WhimTexApi.InspectStorage(assetPath): metadata-only TIFF block inspection",
+                ["validate"] = "whimtex_document_validate / WhimTexApi.Validate(assetPath, render): structure, limits, references and Shader FX",
+                ["status"] = "whimtex_document_status / WhimTexApi.Status(assetPath): disk revision, importer, dirty, lock and staged recovery state",
+                ["compare"] = "whimtex_document_compare / WhimTexApi.Compare(leftPath, rightPath, render, maxSize): model, TIFF block and optional rendered-pixel comparison",
+                ["recover"] = "whimtex_document_recover / WhimTexApi.Recover(sourcePath, destinationPath): validate and copy a staged TIFF to a new asset",
+                ["export"] = "whimtex_document_export / WhimTexApi.Export(assetPath, outputPath, maxSize, overwrite): flattened PNG/JPEG/TGA/EXR export to Temp/WhimTex"
             };
             result["colorRanges"] = new JArray(System.Enum.GetNames(typeof(LayerColorRange)));
             result["blendRanges"] = new JArray(System.Enum.GetNames(typeof(LayerBlendRange)));
@@ -81,19 +84,19 @@ namespace DCFApixels.WhimTex
             result["editing"] = "Inspect before editing; expectedRevision is mandatory on existing documents. Use @aliases within a batch. New documents require save=true. dryRun validates without drawing or saving. Save failure may leave partial asset I/O: inspect before retrying.";
             result["reference"] = "Documentation~/AgentAPI.md";
             result["liveEditing"] = new JObject {
-                ["fastBegin"] = "whimtex_begin / WhimTexApi.LiveBegin(requestId, name, source, area, sessionId, sourceLayerId, selectionMode, padding)",
+                ["fastBegin"] = "whimtex_assistant_begin / WhimTexApi.LiveBegin(requestId, name, source, area, sessionId, sourceLayerId, selectionMode, padding)",
                 ["selectionModes"] = new JArray("strict", "guide"),
-                ["sessions"] = "whimtex_sessions / WhimTexApi.LiveSessions()",
-                ["execute"] = "whimtex_live / WhimTexApi.LiveFile(requestPath)",
+                ["sessions"] = "whimtex_assistant_sessions / WhimTexApi.LiveSessions()",
+                ["execute"] = "whimtex_assistant_live / WhimTexApi.LiveFile(requestPath)",
                 ["operations"] = new JArray("inspect", "begin", "fork", "lock", "unlock", "status", "render", "preview", "complete", "fail", "cancel"),
                 ["inlineShaderFX"] = true,
-                ["lock"] = "whimtex_lock / WhimTexApi.LiveLock(requestId, layerId, sessionId, expectedRevision)",
+                ["lock"] = "whimtex_assistant_lock / WhimTexApi.LiveLock(requestId, layerId, sessionId, expectedRevision)",
                 ["reference"] = "Documentation~/LiveAgentAPI.md" };
             result["independentLiveEditing"] = new JObject {
-                ["command"] = "whimtex_tiff_live / WhimTexApi.TiffLiveFile(requestPath)",
-                ["operations"] = new JArray("begin", "status", "preview", "render", "complete", "cancel"),
+                ["command"] = "whimtex_headless_live / WhimTexApi.TiffLiveFile(requestPath)",
+                ["operations"] = new JArray("begin", "list", "status", "preview", "render", "complete", "cancel"),
                 ["windowRequired"] = false,
-                ["notes"] = "Persistent transient TIFF session. Preview replaces the working model from the begin snapshot; complete performs one atomic save after disk revision validation."
+                ["notes"] = "Persistent transient TIFF session. Preview replaces the working model from the begin snapshot; complete performs one atomic save after disk revision validation. Successful complete/cancel responses are replayable for bounded retry safety."
             };
             return result;
         });

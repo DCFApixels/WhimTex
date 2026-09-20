@@ -43,15 +43,20 @@ public static class TiffLiveSmoke
             string begin = WhimTexApi.TiffLiveJson("{\"apiVersion\":1,\"op\":\"begin\",\"sessionId\":\"" + sessionId + "\",\"assetPath\":\"" + path + "\",\"expectedRevision\":\"" + revision + "\"}");
             Check(begin.Contains("\"success\":true") && begin.Contains("\"state\":\"pending\""), "begin independent TIFF session");
             active = true;
+            string listed = WhimTexApi.TiffLiveJson("{\"apiVersion\":1,\"op\":\"list\"}");
+            Check(listed.Contains(sessionId), "list discovers independent TIFF session");
             string operations = "[{\"op\":\"add\",\"type\":\"color\",\"as\":\"live\",\"settings\":{\"name\":\"Live Overlay\",\"color\":[0.9,0.2,0.1,1]}}]";
             string previewResult = WhimTexApi.TiffLiveJson("{\"apiVersion\":1,\"op\":\"preview\",\"sessionId\":\"" + sessionId + "\",\"requestId\":\"preview-1\",\"operations\":" + operations + "}");
-            Check(previewResult.Contains("\"success\":true") && previewResult.Contains("Live Overlay"), "preview updates transient model");
+            Check(previewResult.Contains("\"success\":true") && previewResult.Contains("Live Overlay") && previewResult.Contains("\"phase\":\"preview\""), "preview updates transient model");
             string status = WhimTexApi.TiffLiveJson("{\"apiVersion\":1,\"op\":\"status\",\"sessionId\":\"" + sessionId + "\"}");
             Check(status.Contains("Live Overlay"), "status exposes preview model");
             string render = WhimTexApi.TiffLiveJson("{\"apiVersion\":1,\"op\":\"render\",\"sessionId\":\"" + sessionId + "\",\"requestId\":\"render-1\",\"outputPath\":\"" + preview + "\"}");
             Check(render.Contains("\"success\":true") && File.Exists(previewFull), "render independent session preview");
-            string complete = WhimTexApi.TiffLiveJson("{\"apiVersion\":1,\"op\":\"complete\",\"sessionId\":\"" + sessionId + "\",\"operations\":[]}");
-            Check(complete.Contains("\"success\":true") && complete.Contains("\"saved\":true"), "complete atomically saves TIFF");
+            string completeRequest = "{\"apiVersion\":1,\"op\":\"complete\",\"sessionId\":\"" + sessionId + "\",\"requestId\":\"complete-1\",\"operations\":[]}";
+            string complete = WhimTexApi.TiffLiveJson(completeRequest);
+            Check(complete.Contains("\"success\":true") && complete.Contains("\"saved\":true") && complete.Contains("\"phase\":\"complete\""), "complete atomically saves TIFF");
+            string completeRetry = WhimTexApi.TiffLiveJson(completeRequest);
+            Check(completeRetry.Contains("\"success\":true") && completeRetry.Contains("\"replayed\":true"), "complete retry is idempotent after save");
             active = false;
             Check(WhimTexApi.Inspect(path).Contains("Live Overlay"), "completed TIFF persists preview model");
             string conflictRevision = Revision(WhimTexApi.Inspect(path));
@@ -67,7 +72,11 @@ public static class TiffLiveSmoke
             finally { UnityEngine.Object.DestroyImmediate(externalDocument); }
             string conflictComplete = WhimTexApi.TiffLiveJson("{\"apiVersion\":1,\"op\":\"complete\",\"sessionId\":\"" + conflictSessionId + "\",\"operations\":[]}");
             Check(conflictComplete.Contains("\"success\":false") && conflictComplete.Contains("revision_conflict"), "complete rejects external TIFF change");
-            WhimTexApi.TiffLiveJson("{\"apiVersion\":1,\"op\":\"cancel\",\"sessionId\":\"" + conflictSessionId + "\"}");
+            string cancelRequest = "{\"apiVersion\":1,\"op\":\"cancel\",\"sessionId\":\"" + conflictSessionId + "\",\"requestId\":\"cancel-1\"}";
+            string cancel = WhimTexApi.TiffLiveJson(cancelRequest);
+            Check(cancel.Contains("\"success\":true") && cancel.Contains("\"phase\":\"cancel\""), "cancel closes conflict session");
+            string cancelRetry = WhimTexApi.TiffLiveJson(cancelRequest);
+            Check(cancelRetry.Contains("\"success\":true") && cancelRetry.Contains("\"replayed\":true"), "cancel retry is idempotent");
             conflictActive = false;
             string createdPath = folder + "/Created.tiff";
             string createBegin = WhimTexApi.TiffLiveJson("{\"apiVersion\":1,\"op\":\"begin\",\"sessionId\":\"" + createSessionId + "\",\"assetPath\":\"" + createdPath + "\",\"create\":true,\"width\":16,\"height\":16}");
@@ -75,7 +84,7 @@ public static class TiffLiveSmoke
             createActive = true;
             string createPreview = WhimTexApi.TiffLiveJson("{\"apiVersion\":1,\"op\":\"preview\",\"sessionId\":\"" + createSessionId + "\",\"operations\":[{\"op\":\"add\",\"type\":\"color\",\"settings\":{\"name\":\"Created Live\",\"color\":[0.1,0.4,1,1]}}]}");
             Check(createPreview.Contains("\"success\":true"), "preview new TIFF live session");
-            string createComplete = WhimTexApi.TiffLiveJson("{\"apiVersion\":1,\"op\":\"complete\",\"sessionId\":\"" + createSessionId + "\",\"operations\":[]}");
+            string createComplete = WhimTexApi.TiffLiveJson("{\"apiVersion\":1,\"op\":\"complete\",\"sessionId\":\"" + createSessionId + "\",\"requestId\":\"create-complete-1\",\"operations\":[]}");
             Check(createComplete.Contains("\"success\":true") && File.Exists(Path.Combine(projectRoot, createdPath)), "complete creates new TIFF");
             createActive = false;
             return "PASS: independent TIFF live begin, preview, status, render, complete, and persistence.";

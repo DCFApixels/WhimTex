@@ -19,8 +19,21 @@ assert.match(window, /void OnEnable\(\)\s*\{\s*RefreshDocumentTitle\(true\)/,
   'Restored windows update their persisted title without resetting their document');
 assert.match(read('src/TextureCompositorWindow.DocumentTitle.cs'), /WhimTexBranding.WindowTitle\(title\)/);
 const commands = read('src/Automation/Pipeline/WhimTexCommands.cs');
-for (const id of ['begin', 'sessions', 'live', 'lock', 'describe', 'execute', 'render', 'inspect', 'import_image'])
-  assert.ok(commands.includes(`"whimtex_${id}"`), `Stable CLI command: ${id}`);
+const canonicalCommands = [
+  'whimtex_assistant_begin', 'whimtex_assistant_lock', 'whimtex_assistant_sessions', 'whimtex_assistant_live',
+  'whimtex_describe', 'whimtex_document_inspect', 'whimtex_batch_execute', 'whimtex_image_import',
+  'whimtex_document_render', 'whimtex_document_migrate', 'whimtex_storage_inspect',
+  'whimtex_document_validate', 'whimtex_document_status', 'whimtex_document_compare',
+  'whimtex_document_recover', 'whimtex_document_export', 'whimtex_headless_live'
+];
+for (const id of canonicalCommands)
+  assert.ok(commands.includes(`CliCommand("${id}"`), `Canonical CLI command: ${id}`);
+for (const id of [
+  'whimtex_begin', 'whimtex_sessions', 'whimtex_live', 'whimtex_lock', 'whimtex_execute',
+  'whimtex_render', 'whimtex_inspect', 'whimtex_import_image', 'whimtex_migrate',
+  'whimtex_inspect_storage', 'whimtex_validate', 'whimtex_status', 'whimtex_compare',
+  'whimtex_recover', 'whimtex_export', 'whimtex_tiff_live'
+]) assert.ok(!commands.includes(`CliCommand("${id}"`), `Legacy CLI command removed: ${id}`);
 for (const [file, key] of [
   ['src/WhimTexColorInputs.cs', 'DCFApixels.WhimTex.HdrColorInputs'],
   ['src/WhimTexUserSettings.cs', 'DCFApixels.WhimTex.PresetsFolder'],

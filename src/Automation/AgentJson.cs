@@ -10,6 +10,7 @@ namespace DCFApixels.WhimTex
     internal sealed class WhimTexApiException : Exception
     {
         public readonly string Code;
+        public string Phase { get; set; }
         public WhimTexApiException(string code, string message) : base(message) => Code = code;
     }
 

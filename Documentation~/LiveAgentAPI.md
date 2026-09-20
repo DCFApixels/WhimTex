@@ -22,7 +22,7 @@ Edit Mode. They never trigger compilation, refresh the AssetDatabase, or save th
 For an authorized content-generation request, reserve and capture context in one call:
 
 ```powershell
-unity command whimtex_begin --requestId 'NEW-UUID' --name 'Balcony' --source merged --area selection --project-path 'D:/Projects/MyGame' --format json
+unity command whimtex_assistant_begin --requestId 'NEW-UUID' --name 'Balcony' --source merged --area selection --project-path 'D:/Projects/MyGame' --format json
 ```
 
 `requestId` is required; generate a unique value before invoking the command and retain the exact
@@ -50,8 +50,8 @@ reservation are captured in one main-thread call, not at the instant a chat mess
 The existing optional Pipeline adapter exposes:
 
 ```powershell
-unity command whimtex_sessions --project-path 'D:/Projects/MyGame' --format json
-unity command whimtex_live --requestPath 'D:/Projects/MyGame/Temp/WhimTex/request.json' --project-path 'D:/Projects/MyGame' --format json
+unity command whimtex_assistant_sessions --project-path 'D:/Projects/MyGame' --format json
+unity command whimtex_assistant_live --requestPath 'D:/Projects/MyGame/Temp/WhimTex/request.json' --project-path 'D:/Projects/MyGame' --format json
 ```
 
 Direct equivalents, without Pipeline:
@@ -306,7 +306,7 @@ Groups support FX directly. FX process the combined children before group opacit
 Do not create a replacement placeholder for an existing layer's FX. Reserve its own content instead:
 
 ```powershell
-unity command whimtex_lock --requestId 'NEW-UUID' --layerId 'LAYER-GUID' --project-path 'D:/Projects/MyGame' --format json
+unity command whimtex_assistant_lock --requestId 'NEW-UUID' --layerId 'LAYER-GUID' --project-path 'D:/Projects/MyGame' --format json
 ```
 
 Direct equivalent: `WhimTexApi.LiveLock(requestId, layerId, sessionId, expectedRevision)`.

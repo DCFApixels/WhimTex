@@ -95,21 +95,24 @@ Import/save commands do import the specific image or compositor asset they write
 | Command | Parameters | Result |
 |---|---|---|
 | `whimtex_describe` | none | Protocol, operations, enums, limits |
-| `whimtex_inspect` | `assetPath` | Document revision, stable IDs, hierarchy and settings |
-| `whimtex_import_image` | `sourcePath`, `assetPath` | Imported texture path, GUID, dimensions |
-| `whimtex_execute` | `requestPath` | Batch result, created IDs, updated document |
-| `whimtex_render` | `assetPath`, `outputPath`, optional `maxSize=1024`, `overwrite=false` | Absolute PNG path and dimensions |
-| `whimtex_migrate` | `sourcePath`, `destinationPath`, optional `overwrite=false` | Copies legacy `.asset` to TIFF without mutating the source |
-| `whimtex_inspect_storage` | `assetPath` (`.tiff`) | Metadata-only block catalog, sizes and disk revision |
-| `whimtex_validate` | `assetPath`, optional `render=false` | Structure, limits, references and Shader FX validation; no save |
-| `whimtex_status` | `assetPath` | Disk revision, GUID, importer, dirty/live/lock and staged recovery state |
-| `whimtex_tiff_live` | `requestPath` | Persistent TIFF preview/commit session without an open WhimTex window |
+| `whimtex_document_inspect` | `assetPath` | Document revision, stable IDs, hierarchy and settings |
+| `whimtex_image_import` | `sourcePath`, `assetPath` | Imported texture path, GUID, dimensions |
+| `whimtex_batch_execute` | `requestPath` | Batch result, created IDs, updated document |
+| `whimtex_document_render` | `assetPath`, `outputPath`, optional `maxSize=1024`, `overwrite=false` | Absolute PNG path and dimensions |
+| `whimtex_document_migrate` | `sourcePath`, `destinationPath`, optional `overwrite=false` | Copies legacy `.asset` to TIFF without mutating the source |
+| `whimtex_storage_inspect` | `assetPath` (`.tiff`) | Metadata-only block catalog, sizes and disk revision |
+| `whimtex_document_validate` | `assetPath`, optional `render=false` | Structure, limits, references and Shader FX validation; no save |
+| `whimtex_document_status` | `assetPath` | Disk revision, GUID, importer, dirty/live/lock and staged recovery state |
+| `whimtex_document_compare` | `leftPath`, `rightPath`, optional `render`, `maxSize` | Compare model, TIFF storage and optional rendered pixels |
+| `whimtex_document_recover` | `sourcePath`, `destinationPath` | Recover a staged TIFF into a new document |
+| `whimtex_document_export` | `assetPath`, `outputPath`, optional `maxSize`, `overwrite` | Export a flattened document to PNG/JPEG/TGA/EXR |
+| `whimtex_headless_live` | `requestPath` | Persistent TIFF preview/commit session without an open WhimTex window |
 
 Pass `--project-path` and `--format json` on every command. The API object is nested inside the
 CLI/Pipeline response: check its `apiVersion` and `success` as well as transport success/exit code.
 An API validation error can arrive through a successful transport. `errorCode` and `error` describe it;
 `failedOperation`, when present, is zero-based (`-1` means batch/save level).
-For `whimtex_validate`, a readable document may still return `success:true` with `valid:false` and
+For `whimtex_document_validate`, a readable document may still return `success:true` with `valid:false` and
 an `errors` array; check both fields before using it as an input for another batch.
 
 Direct C# entry points, all on Unity's main thread, return a JSON string:
@@ -125,6 +128,9 @@ WhimTexApi.Migrate("Assets/Legacy/Icon.asset", "Assets/Art/Icon.whimtex.tiff", f
 WhimTexApi.InspectStorage("Assets/Art/Icon.whimtex.tiff");
 WhimTexApi.Validate("Assets/Art/Icon.whimtex.tiff", false);
 WhimTexApi.Status("Assets/Art/Icon.whimtex.tiff");
+WhimTexApi.Compare("Assets/Art/Old.whimtex.tiff", "Assets/Art/New.whimtex.tiff", true, 1024);
+WhimTexApi.Recover("Assets/Art/Wall.whimtex.tiff.whimtex-tmp", "Assets/Art/Wall-recovered.whimtex.tiff");
+WhimTexApi.Export("Assets/Art/Icon.whimtex.tiff", "Temp/WhimTex/icon.jpg", 0, true);
 WhimTexApi.TiffLiveFile(absoluteRequestPath);
 ```
 
@@ -133,7 +139,7 @@ instead of installing Pipeline solely for this tool. Send a request file to avoi
 
 ### Independent TIFF Live Update
 
-`whimtex_tiff_live` is the persistent, window-independent variant of Live Update. It keeps a
+`whimtex_headless_live` is the persistent, window-independent variant of Live Update. It keeps a
 transient model between requests and supports `begin`, `status`, `preview`, `render`, `complete`
 and `cancel`:
 
@@ -147,7 +153,7 @@ and `cancel`:
 Each `preview` is rebuilt from the snapshot captured at `begin`; it does not accumulate operations.
 `complete` verifies the original disk revision before one atomic save. If another writer changed the
 TIFF, it returns `revision_conflict` and the session remains available for `status` or `cancel`.
-The existing `whimtex_live` remains the open-window API.
+The existing `whimtex_assistant_live` remains the open-window API.
 
 ## Generated image → compositor
 
@@ -155,7 +161,7 @@ The existing `whimtex_live` remains the open-window API.
 2. Import it to a new asset path. Import never overwrites; for an existing imported texture, skip this step.
 
 ```powershell
-unity command whimtex_import_image --sourcePath 'C:/Temp/generated.png' --assetPath 'Assets/Art/AgentIcon/source.png' --project-path 'D:/Projects/MyGame' --format json
+unity command whimtex_image_import --sourcePath 'C:/Temp/generated.png' --assetPath 'Assets/Art/AgentIcon/source.png' --project-path 'D:/Projects/MyGame' --format json
 ```
 
 The API copies only that file, preserves its dimensions up to the resource limit, disables texture
@@ -186,8 +192,8 @@ PNG/JPEG only; the destination must use the same extension. No URLs or automatic
 4. Optionally run the same request with `dryRun:true`, then change it to false to apply:
 
 ```powershell
-unity command whimtex_execute --requestPath 'D:/Projects/MyGame/Temp/WhimTex/create.json' --project-path 'D:/Projects/MyGame' --format json
-unity command whimtex_render --assetPath 'Assets/Art/AgentIcon/Icon.whimtex.tiff' --outputPath 'Temp/WhimTex/icon-v1.png' --project-path 'D:/Projects/MyGame' --format json
+unity command whimtex_batch_execute --requestPath 'D:/Projects/MyGame/Temp/WhimTex/create.json' --project-path 'D:/Projects/MyGame' --format json
+unity command whimtex_document_render --assetPath 'Assets/Art/AgentIcon/Icon.whimtex.tiff' --outputPath 'Temp/WhimTex/icon-v1.png' --project-path 'D:/Projects/MyGame' --format json
 ```
 
 5. View the returned PNG. Revise the document if needed, using IDs/revision from the response or a new inspect.

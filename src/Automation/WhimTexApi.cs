@@ -46,13 +46,18 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private static JObject Failure(Exception exception) => new JObject
+    private static JObject Failure(Exception exception)
+    {
+        var result = new JObject
         {
             ["apiVersion"] = ProtocolVersion, ["success"] = false,
             ["errorCode"] = exception is WhimTexApiException api ? api.Code : exception is JsonException ? "invalid_json" : "operation_failed",
             ["error"] = exception.Message,
             ["applied"] = exception is WhimTexApiException failed && failed.Code == "rollback_failed", ["saved"] = false
         };
+        if (exception is WhimTexApiException phased && !string.IsNullOrEmpty(phased.Phase)) result["phase"] = phased.Phase;
+        return result;
+    }
 
         private static JObject Success() => new JObject { ["apiVersion"] = ProtocolVersion, ["success"] = true };
 
