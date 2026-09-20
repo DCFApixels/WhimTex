@@ -7,9 +7,12 @@ int checks = 0;
 void Check(bool ok, string message) { if (!ok) throw new System.Exception("FAIL: " + message); checks++; }
 object Call(object target, string method, params object[] args) => target.GetType().GetMethod(method, Hidden).Invoke(target, args);
 var sessionType = typeof(DCFApixels.WhimTex.TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.WhimTexDocumentSession", true);
-object CallStatic(string name, params object[] args) => sessionType
-    .GetMethod(name, System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic)
-    .Invoke(null, args);
+object CallStatic(string name, params object[] args)
+{
+    foreach (var method in sessionType.GetMethods(System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic))
+        if (method.Name == name && method.GetParameters().Length == args.Length) return method.Invoke(null, args);
+    throw new MissingMethodException(sessionType.FullName, name);
+}
 string StatusStatic() => (string)sessionType.GetProperty("Status", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic).GetValue(null);
 bool IsLive() => (bool)sessionType.GetProperty("IsLive", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic).GetValue(null);
 // After Reinitialize the CPU copy of the texture is undefined, so live pixels must be read back through the GPU.

@@ -279,7 +279,11 @@ namespace DCFApixels.WhimTex
         /// <summary>
         /// Compatibility writer used only by migration/regression fixtures for the retired
         /// ScriptableObject format. Production UI and automation must use WhimTexDocumentFile.Save,
-        /// which writes the native TIFF container. Do not call this for new documents.
+        /// which writes the native TIFF container. It is intentionally not called by any
+        /// production save path and must never be used for new documents. Existing legacy files
+        /// are migrated through WhimTexDocumentFile.Save on a detached editable copy. This
+        /// compatibility boundary is temporary and intentionally not part of the public API; it
+        /// exists only while old documents remain migratable.
         /// </summary>
         [Obsolete("Legacy .asset writer; use WhimTexDocumentFile.Save for TIFF documents.")]
         internal void SaveLegacyAssetForCompatibility(string newAssetPath)

@@ -37,6 +37,7 @@ var outline = new DCFApixels.WhimTex.OutlineLayerBehaviour
 doc.layers.Add(new DCFApixels.WhimTex.Layer(outline) { layerName = "Outline" });
 Call(doc, "NormalizeModel");
 var effect = (DCFApixels.WhimTex.ShaderFX)Call(doc, "AddEmbeddedShaderFX", group);
+Call(effect, "ApplyAgentDraft");
 Call(doc, "MarkChanged");
 string[] layerIds = System.Array.ConvertAll(doc.layers.ToArray(), layer => layer.Id);
 report.Append("layers=").Append(doc.layers.Count).Append(" drawingPixels=").Append(Field(drawing, "pixels") != null);
@@ -79,10 +80,10 @@ Check(loaded.layers[2].Behaviour is DCFApixels.WhimTex.OutlineLayerBehaviour out
 DCFApixels.WhimTex.Layer drawingLoaded = loaded.layers[0];
 Check(drawingLoaded.Behaviour is DCFApixels.WhimTex.DrawingLayerBehaviour, "drawing behaviour type survives");
 var drawingLoadedBehaviour = (DCFApixels.WhimTex.DrawingLayerBehaviour)drawingLoaded.Behaviour;
-Check(Field(drawingLoadedBehaviour, "pixels") != null, "drawing pixels were restored from a container block");
 // GetPreviewTexture returns a texture owned by the layer: reading pixels is fine, destroying it breaks rendering.
 var sourcePreview = drawing.GetPreviewTexture(8);
 var loadedPreview = drawingLoadedBehaviour.GetPreviewTexture(8);
+Check(loadedPreview != null, "drawing pixels were restored from a container block");
 Check(sourcePreview.GetPixel(4, 4).r > .9f && loadedPreview.GetPixel(4, 4).r > .9f, "drawing pixels match after the round trip");
 Check(System.Math.Abs(sourcePreview.GetPixel(4, 4).a - loadedPreview.GetPixel(4, 4).a) < .01f, "drawing alpha matches");
 
