@@ -254,11 +254,7 @@ namespace DCFApixels.WhimTex
                 }
                 if (!AssetDatabase.Contains(document))
                 { ShowNotification(new GUIContent("Save the document in WhimTex first.")); return; }
-                if (!document.TrySaveWithOutput()) return;
-                InvalidateFileSize();
-                lastDirtyCount = int.MinValue;
-                RefreshOutputInfo();
-                RefreshApplyState();
+                ShowNotification(new GUIContent("Only TIFF documents can be saved."));
             }) { text = WhimTexLegacyMigration.IsLegacyAsset(document) ? "Save As TIFF…" : "Apply & Save Output" };
             applyButton.AddToClassList("whimtex-output-apply");
             applyButton.SetEnabled(AssetDatabase.Contains(document) || WhimTexLegacyMigration.IsLegacyAsset(document));

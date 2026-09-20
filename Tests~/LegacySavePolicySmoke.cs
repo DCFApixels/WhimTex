@@ -28,7 +28,7 @@ public static class LegacySavePolicySmoke
             legacy.height = 32;
             legacy.layers.Add(new Layer(new ColorFillLayerBehaviour { color = Color.magenta }));
             string legacyPath = folder + "/Legacy.asset";
-            typeof(TextureCompositor).GetMethod("SaveWithOutput", Any).Invoke(legacy, new object[] { legacyPath });
+            typeof(TextureCompositor).GetMethod("SaveLegacyAssetForCompatibility", Any).Invoke(legacy, new object[] { legacyPath });
             byte[] before = File.ReadAllBytes(legacyPath);
             Check(WhimTexLegacyMigrationProbe.IsLegacy(legacyPath), "legacy fixture path");
 

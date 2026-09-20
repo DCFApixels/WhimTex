@@ -13,7 +13,7 @@ public static class OutputTypeSmoke
         var d = ScriptableObject.CreateInstance<TextureCompositor>();
         string path = "Assets/WhimTexOutputTypeTest_" + Guid.NewGuid().ToString("N") + ".asset";
         object Call(string name, params object[] args) => typeof(TextureCompositor).GetMethod(name, F).Invoke(d, args);
-        void Save() => Call("SaveWithOutput", new object[] { null });
+        void Save() => Call("SaveLegacyAssetForCompatibility", new object[] { null });
         void Check(bool value, string message) { if (!value) throw new Exception(message); }
         int Count() => AssetDatabase.LoadAllAssetsAtPath(path).OfType<Sprite>().Count();
         try
@@ -23,7 +23,7 @@ public static class OutputTypeSmoke
             Check(settings.outputType == TextureCompositor.OutputType.Sprite, "Legacy default changed");
             settings.outputType = TextureCompositor.OutputType.Texture;
             settings.pixelsPerUnit = 0;
-            Call("SaveWithOutput", path);
+            Call("SaveLegacyAssetForCompatibility", path);
             var texture = d.OutputTexture;
             Check(Count() == 0 && d.OutputSprite == null, "Texture created a sprite");
             Check(!(bool)Call("HasUnsavedAssetChanges"), "Texture incorrectly marked unsaved");

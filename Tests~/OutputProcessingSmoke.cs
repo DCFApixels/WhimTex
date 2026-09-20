@@ -38,7 +38,7 @@ public static class OutputProcessingSmoke
             }
             document.layers.Add(new ColorFillLayerBehaviour());
             settings.readable = false;
-            var save = typeof(TextureCompositor).GetMethod("SaveWithOutput", F);
+            var save = typeof(TextureCompositor).GetMethod("SaveLegacyAssetForCompatibility", F);
             save.Invoke(document, new object[] { path });
             Check(!document.OutputTexture.isReadable && document.OutputTexture.width == 16, "Read/Write disabled");
             Check(Mathf.Abs(document.OutputSprite.bounds.size.x - .32f) < .001f, "Sprite world size changed after resize");

@@ -276,29 +276,13 @@ namespace DCFApixels.WhimTex
             return null;
         }
 
-        internal bool TrySaveWithOutput(string newAssetPath = null)
-        {
-            if (WhimTexLegacyMigration.IsLegacyAsset(this) ||
-                !string.IsNullOrEmpty(newAssetPath) && string.Equals(Path.GetExtension(newAssetPath), ".asset", StringComparison.OrdinalIgnoreCase))
-            {
-                EditorUtility.DisplayDialog("Legacy WhimTex asset is read-only",
-                    "Saving to the legacy .asset format is disabled. Use Save As TIFF to create a new document.", "OK");
-                return false;
-            }
-            try
-            {
-                SaveWithOutput(newAssetPath);
-                return true;
-            }
-            catch (Exception exception)
-            {
-                Debug.LogException(exception, this);
-                EditorUtility.DisplayDialog("WhimTex save failed", exception.Message, "OK");
-                return false;
-            }
-        }
-
-        internal void SaveWithOutput(string newAssetPath)
+        /// <summary>
+        /// Compatibility writer used only by migration/regression fixtures for the retired
+        /// ScriptableObject format. Production UI and automation must use WhimTexDocumentFile.Save,
+        /// which writes the native TIFF container. Do not call this for new documents.
+        /// </summary>
+        [Obsolete("Legacy .asset writer; use WhimTexDocumentFile.Save for TIFF documents.")]
+        internal void SaveLegacyAssetForCompatibility(string newAssetPath)
         {
             bool createAsset = !string.IsNullOrEmpty(newAssetPath);
             string path = createAsset ? newAssetPath : AssetDatabase.GetAssetPath(this);

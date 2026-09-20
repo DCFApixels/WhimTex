@@ -63,7 +63,7 @@ public static class TiffAgentApiSmoke
             legacyDocument.hideFlags = HideFlags.HideAndDontSave;
             legacyDocument.width = 32; legacyDocument.height = 32;
             legacyDocument.layers.Add(new Layer(new ColorFillLayerBehaviour { color = Color.red }));
-            typeof(TextureCompositor).GetMethod("SaveWithOutput", Any).Invoke(legacyDocument, new object[] { legacy });
+            typeof(TextureCompositor).GetMethod("SaveLegacyAssetForCompatibility", Any).Invoke(legacyDocument, new object[] { legacy });
             UnityEngine.Object.DestroyImmediate(legacyDocument); legacyDocument = null;
             string migration = WhimTexApi.Migrate(legacy, migrated);
             Check(migration.Contains("\"success\":true") && File.Exists(Path.Combine(projectRoot, migrated)), "legacy to TIFF migration");

@@ -16,7 +16,7 @@ public static class OutputSettingsSmoke
         int checks = 0;
         void Check(bool ok, string reason) { if (!ok) throw new Exception(reason); checks++; }
         object Call(string name, params object[] args) => typeof(TextureCompositor).GetMethod(name, F).Invoke(document, args);
-        void Save(string destination) => Call("SaveWithOutput", destination);
+        void Save(string destination) => Call("SaveLegacyAssetForCompatibility", destination);
         long Id(UnityEngine.Object value) { AssetDatabase.TryGetGUIDAndLocalFileIdentifier(value, out string guid, out long id); return id; }
         try
         {

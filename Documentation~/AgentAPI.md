@@ -38,6 +38,8 @@ use the [live editing API](LiveAgentAPI.md). The path-based batch contract below
 No WhimTex window or active selection is required. New agent documents must use a TIFF
 `assetPath` such as `Assets/Art/Icon.whimtex.tiff`. A legacy `.asset` may still be inspected or
 passed to the explicit migration command, but agents should not create new `.asset` documents.
+The retired ScriptableObject writer is kept only as an internal migration/regression fixture; it is
+not reachable from the window or agent API.
 TIFF batches use a transient `WhimTexDocumentBuild` and the common TIFF writer; they do not create
 or select a WhimTex window.
 

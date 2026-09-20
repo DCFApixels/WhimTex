@@ -12,7 +12,7 @@ public static class OutputCompressionSmoke
         var d = ScriptableObject.CreateInstance<TextureCompositor>();
         string path = "Assets/WhimTexCompressionTest_" + Guid.NewGuid().ToString("N") + ".asset";
         object Call(string method, params object[] args) => typeof(TextureCompositor).GetMethod(method, F).Invoke(d, args);
-        void Save() => Call("SaveWithOutput", new object[] { null });
+        void Save() => Call("SaveLegacyAssetForCompatibility", new object[] { null });
         void Check(bool ok, string reason) { if (!ok) throw new Exception(reason); }
         int count = 0;
         try
@@ -20,7 +20,7 @@ public static class OutputCompressionSmoke
             d.width = 16; d.height = 16; d.layers.Add(new ColorFillLayerBehaviour());
             var settings = (TextureCompositor.OutputSettings)typeof(TextureCompositor).GetField("outputSettings", F).GetValue(d);
             settings.mipMaps = true;
-            Call("SaveWithOutput", path);
+            Call("SaveLegacyAssetForCompatibility", path);
             var texture = d.OutputTexture; var sprite = d.OutputSprite;
             foreach (var compression in new[] { TextureCompositor.OutputCompression.BC1, TextureCompositor.OutputCompression.BC3,
                 TextureCompositor.OutputCompression.BC7, TextureCompositor.OutputCompression.BC6H })

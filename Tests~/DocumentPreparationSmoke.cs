@@ -167,7 +167,7 @@ public static class DocumentPreparationSmoke
                 Call(typeof(DrawingLayerBehaviour), drawing, "GetStrokeParameters", false));
             string legacyPath = folder + "/Legacy.asset";
             legacy.hideFlags = HideFlags.None;
-            Call(typeof(TextureCompositor), legacy, "SaveWithOutput", legacyPath);
+            Call(typeof(TextureCompositor), legacy, "SaveLegacyAssetForCompatibility", legacyPath);
             Check(AssetDatabase.LoadMainAssetAtPath(legacyPath) is Texture2D, "legacy main object is the output texture");
             Texture2D oldOutput = legacy.OutputTexture;
             byte[] oldBytes = File.ReadAllBytes(legacyPath);

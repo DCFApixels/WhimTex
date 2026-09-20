@@ -140,7 +140,7 @@ namespace DCFApixels.WhimTex
             {
                 if (mode == TextureCompositor.OutputSpriteMode.Multiple) document.SetSpriteSlices(slices);
                 else { settings.pivot = slices[0].pivot; settings.border = slices[0].border; document.MarkChanged(); }
-                document.SaveWithOutput(null);
+                throw new InvalidOperationException("WhimTex legacy .asset documents are read-only. Save the document as TIFF before applying sprite settings.");
             }
             catch
             {

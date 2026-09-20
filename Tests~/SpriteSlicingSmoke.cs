@@ -17,7 +17,7 @@ public static class SpriteSlicingSmoke
         int checks = 0;
         void Check(bool ok, string why) { if (!ok) throw new Exception(why); checks++; }
         object Call(TextureCompositor d, string method, params object[] args) => typeof(TextureCompositor).GetMethod(method, F).Invoke(d, args);
-        void Save() => Call(document, "SaveWithOutput", new object[] { null });
+        void Save() => Call(document, "SaveLegacyAssetForCompatibility", new object[] { null });
         Sprite Find(string name) => AssetDatabase.LoadAllAssetsAtPath(path).OfType<Sprite>().Single(x => x.name == name);
         long Id(Sprite sprite) { AssetDatabase.TryGetGUIDAndLocalFileIdentifier(sprite, out string guid, out long id); return id; }
         try
@@ -29,7 +29,7 @@ public static class SpriteSlicingSmoke
             var a = new TextureCompositor.SpriteSlice { name = "Left", rect = new Rect(0, 0, 16, 16), pivot = new Vector2(0, 1) };
             var b = new TextureCompositor.SpriteSlice { name = "Right", rect = new Rect(16, 0, 16, 16), border = Vector4.one };
             Call(document, "SetSpriteSlices", new object[] { new[] { a, b } });
-            Call(document, "SaveWithOutput", path);
+            Call(document, "SaveLegacyAssetForCompatibility", path);
             long aId = Id(Find("Left")), bId = Id(Find("Right"));
             Check(Find("Left").pivot == new Vector2(0, 16) && Find("Right").border == Vector4.one, "Slice geometry");
             Check((document.OutputSprite.hideFlags & HideFlags.HideInHierarchy) != 0, "Full sprite should be hidden in Multiple");
@@ -41,7 +41,7 @@ public static class SpriteSlicingSmoke
             settings.spriteMode = TextureCompositor.OutputSpriteMode.Multiple; Save();
             Check(Id(Find("Renamed")) == aId && Find("Renamed").hideFlags == HideFlags.None, "Round trip lost references");
             copy = UnityEngine.Object.Instantiate(document);
-            Call(copy, "SaveWithOutput", copyPath);
+            Call(copy, "SaveLegacyAssetForCompatibility", copyPath);
             Check(AssetDatabase.LoadAllAssetsAtPath(copyPath).OfType<Sprite>().Any(x => x.name == "Renamed" && x.texture == copy.OutputTexture), "Save As slices");
             Check(Id(Find("Renamed")) == aId, "Save As altered original");
             a.rect = new Rect(0, 0, 33, 16);

@@ -242,9 +242,11 @@ namespace DCFApixels.WhimTex
                         "Migrate this document to TIFF before editing sprite settings.", "OK");
                     return;
                 }
-                if (document.TrySaveWithOutput()) WhimTexSpriteEditorBridge.Open?.Invoke(document);
+                EditorUtility.DisplayDialog("Sprite Editor",
+                    "Legacy .asset documents are read-only. Save the document as TIFF before editing sprite settings.", "OK");
             }) { text = "Sprite Editor", tooltip = "Save output and open Unity Sprite Editor to slice sprites and edit their pivots and borders." };
-            spriteEditor.SetEnabled(WhimTexSpriteEditorBridge.Available && AssetDatabase.Contains(serializedObject.targetObject));
+            spriteEditor.SetEnabled(WhimTexSpriteEditorBridge.Available && AssetDatabase.Contains(serializedObject.targetObject) &&
+                !WhimTexLegacyMigration.IsLegacyAsset(document));
             spriteSettings.Add(spriteEditor);
             if (!WhimTexSpriteEditorBridge.Available)
                 spriteSettings.Add(new HelpBox("Install 2D Sprite (com.unity.2d.sprite) to edit slicing. Saved slices still work without it.", HelpBoxMessageType.Info));

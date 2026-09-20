@@ -170,18 +170,10 @@ namespace DCFApixels.WhimTex
             RequireGraphics();
             if (create)
             {
-                if (tiff)
-                {
-                    tiffBuild = WhimTexDocumentBuild.Create(width, height);
-                    document = tiffBuild.Document;
-                }
-                else
-                {
-                    document = ScriptableObject.CreateInstance<TextureCompositor>();
-                    document.name = Path.GetFileNameWithoutExtension(path);
-                    document.width = width;
-                    document.height = height;
-                }
+                // Creation is deliberately TIFF-only. Legacy ScriptableObject documents are
+                // accepted for read/dry-run/migration, never as a writable API destination.
+                tiffBuild = WhimTexDocumentBuild.Create(width, height);
+                document = tiffBuild.Document;
             }
             Undo.IncrementCurrentGroup();
             int undoGroup = Undo.GetCurrentGroup();
@@ -214,11 +206,7 @@ namespace DCFApixels.WhimTex
                         tiffBuild = WhimTexDocumentBuild.Open(path);
                         document = tiffBuild.Document;
                     }
-                    else
-                    {
-                        document.SaveWithOutput(create ? path : null);
-                        document = Load(path);
-                    }
+                    else throw new WhimTexApiException("TIFF is required for a writable agent batch.", "legacy_read_only");
                 }
                 JObject result = Success();
                 result["applied"] = true;

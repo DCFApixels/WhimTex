@@ -55,7 +55,7 @@ public static class LinkedOutputSmoke
             settings.storage = TextureCompositor.OutputStorage.LinearRgba32;
             settings.maxSize = 8;
             settings.linkedTextureGuid = imageGuid;
-            Call(d, "SaveWithOutput", documentPath);
+            Call(d, "SaveLegacyAssetForCompatibility", documentPath);
             Check(d.OutputTexture.width == 8 && d.OutputTexture.height == 4, "Embedded Max Size was ignored");
             decoded = new Texture2D(2, 2, TextureFormat.RGBA32, false);
             Check(decoded.LoadImage(File.ReadAllBytes(imagePath)), "Output is not PNG");
@@ -72,13 +72,13 @@ public static class LinkedOutputSmoke
             Check(string.IsNullOrEmpty(AssetDatabase.MoveAsset(imagePath, moved)), "Move failed");
             fill.color = Color.green;
             Call(d, "MarkChanged");
-            Call(d, "SaveWithOutput", new object[] { null });
+            Call(d, "SaveLegacyAssetForCompatibility", new object[] { null });
             decoded.LoadImage(File.ReadAllBytes(moved));
             Check(decoded.GetPixel(16, 8).g > .99f, "Moved output did not update");
             byte[] unchanged = File.ReadAllBytes(moved);
             settings.linkedTextureGuid = "";
             fill.color = Color.red; Call(d, "MarkChanged");
-            Call(d, "SaveWithOutput", new object[] { null });
+            Call(d, "SaveLegacyAssetForCompatibility", new object[] { null });
             Check(unchanged.SequenceEqual(File.ReadAllBytes(moved)), "Unlinked image was overwritten");
             fill.color = new Color(.5f, .25f, .75f, .5f); Call(d, "MarkChanged");
             foreach (string extension in new[] { ".png", ".tga", ".jpg", ".exr" })
@@ -99,7 +99,7 @@ public static class LinkedOutputSmoke
                     fill.blendRange = LayerBlendRange.HDR;
                     fill.color = new Color(2, .25f, .75f, .5f); Call(d, "MarkChanged");
                 }
-                Call(d, "SaveWithOutput", new object[] { null });
+                Call(d, "SaveLegacyAssetForCompatibility", new object[] { null });
                 var image = AssetDatabase.LoadAssetAtPath<Texture2D>(formatPath);
                 Check(image.width == 32 && image.height == 16, "Wrong source dimensions for " + extension);
                 Color pixel = image.GetPixel(16, 8);
