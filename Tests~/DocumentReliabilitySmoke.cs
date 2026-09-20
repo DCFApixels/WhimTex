@@ -33,7 +33,9 @@ public static class DocumentReliabilitySmoke
         return doc;
     }
     static byte[] Encode(object value, WhimTexDocumentContainer container) => (byte[])Call(Serializer, null, "Serialize", value, container);
-    static object Decode(byte[] bytes, WhimTexDocumentContainer container, Type type) => Call(Serializer, null, "Deserialize", bytes, container, type);
+    // Optional C# arguments are not optional when selecting a method through reflection.
+    static object Decode(byte[] bytes, WhimTexDocumentContainer container, Type type) =>
+        Call(Serializer, null, "Deserialize", bytes, container, type, null, false);
     static bool Live(TextureCompositor doc) => (bool)Call(Session, null, "IsLiveFor", doc);
     static Color ReadGpu(Texture texture)
     {

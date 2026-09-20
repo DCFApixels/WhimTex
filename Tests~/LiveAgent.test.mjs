@@ -60,7 +60,7 @@ assert.ok(jobs.includes('job.width == job.document.width && job.height == job.do
 assert.ok(complete.includes('LiveLayerRevision(target) == job.targetRevision'));
 assert.ok(complete.includes('generated.AdoptReservation(reservation)'));
 assert.ok(complete.includes('candidate.AdoptReservation(reservation)'));
-assert.ok(images.includes('TiledCanvasUtility.ToDocument(uv, target.transform'));
+assert.ok(images.includes('TiledCanvasUtility.ToDocument(uv, canvasTransform, job.width, job.height)'));
 assert.ok(images.includes('(byte[])selection.Coverage.Clone()'));
 assert.ok(images.indexOf('uint width = BigEndian') < images.indexOf('ImageConversion.LoadImage'));
 assert.ok(images.includes('FileMode.CreateNew'));

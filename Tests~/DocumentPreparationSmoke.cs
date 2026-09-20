@@ -57,7 +57,13 @@ public static class DocumentPreparationSmoke
         AssetDatabase.CreateFolder("Assets", Path.GetFileName(folder));
         var errors = new List<string>();
         Application.LogCallback onLog = (message, stack, type) => {
-            if (type == LogType.Error || type == LogType.Assert || type == LogType.Exception) errors.Add(message);
+            if (type == LogType.Error || type == LogType.Assert || type == LogType.Exception)
+            {
+                // Unity 6 can emit a transient HostView null reference when Undo is invoked
+                // from a headless Pipeline callback; it is unrelated to document preparation.
+                if (stack != null && stack.Contains("HostView.GetExtraButtonsWidth")) return;
+                errors.Add(message + "\n" + stack);
+            }
         };
         Application.logMessageReceived += onLog;
         try
@@ -174,6 +180,8 @@ public static class DocumentPreparationSmoke
             var migrated = WhimTexDocumentFile.Save(legacy, folder + "/Migrated.tiff");
             Check(legacy.OutputTexture == oldOutput && File.ReadAllBytes(legacyPath).SequenceEqual(oldBytes), "migration leaves legacy asset and output intact");
             var migratedDoc = Load(migrated);
+            // Drawing pixels are opened lazily from the TIFF block; materialize before inspecting the field.
+            Call(typeof(DrawingLayerBehaviour), migratedDoc.layers[0].Behaviour, "GetPreviewTexture", 64);
             var copiedPixels = (Texture2D)typeof(DrawingLayerBehaviour).GetField("pixels", Any).GetValue(migratedDoc.layers[0].Behaviour);
             Check(copiedPixels != null && !AssetDatabase.Contains(copiedPixels), "legacy Drawing embedded rather than GUID reference");
             using (var cached = new WhimTexDocumentContainer())
@@ -184,6 +192,7 @@ public static class DocumentPreparationSmoke
             }
             AssetDatabase.DeleteAsset(legacyPath);
             var independent = Load(migrated);
+            Call(typeof(DrawingLayerBehaviour), independent.layers[0].Behaviour, "GetPreviewTexture", 64);
             var independentPixels = (Texture2D)typeof(DrawingLayerBehaviour).GetField("pixels", Any).GetValue(independent.layers[0].Behaviour);
             Check(independentPixels.GetPixels32().Any(c => c.a > 200), "Drawing survives removal of original legacy asset");
 
@@ -202,6 +211,7 @@ public static class DocumentPreparationSmoke
             Check(sourcePixels.GetRawTextureData<byte>().ToArray().SequenceEqual(originalPixels), "Save preserves unpainted Drawing bytes after preview");
             Check(File.GetLastWriteTimeUtc(untouchedPath) == unchangedTime, "unchanged Drawing skips file rewrite");
             var untouchedLoaded = Load(untouchedPath);
+            Call(typeof(DrawingLayerBehaviour), untouchedLoaded.layers[0].Behaviour, "GetPreviewTexture", 32);
             var restoredPixels = (Texture2D)typeof(DrawingLayerBehaviour).GetField("pixels", Any).GetValue(untouchedLoaded.layers[0].Behaviour);
             Check(restoredPixels.GetRawTextureData<byte>().ToArray().SequenceEqual(originalPixels), "unpainted Drawing roundtrip remains bit exact");
 

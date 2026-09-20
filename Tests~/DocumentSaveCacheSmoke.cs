@@ -34,7 +34,9 @@ public static class DocumentSaveCacheSmoke
         hits = ((IDictionary)typeof(WhimTexDocumentContainer).GetField("_reused", Any).GetValue(c)).Count;
         signature = Signature(c);
         using var parsed = WhimTexDocumentContainer.Parse(c.Serialize());
-        var restored = (Texture2D)Serializer.GetMethod("Deserialize", Any).Invoke(null, new object[] { parsed.Get("document"), parsed, typeof(Texture2D) });
+        // Optional C# arguments are explicit when invoking through reflection.
+        var restored = (Texture2D)Serializer.GetMethod("Deserialize", Any).Invoke(null,
+            new object[] { parsed.Get("document"), parsed, typeof(Texture2D), null, false });
         try { return restored.GetRawTextureData<byte>().ToArray(); }
         finally { Object.DestroyImmediate(restored); }
     }
