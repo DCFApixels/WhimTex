@@ -31,7 +31,7 @@ Unity 通常显示的是**最后保存的图像**。启用 [Live Update](preview
 ## TIFF 文档（实验分支）
 
 新文档保存为 **Name.whimtex.tiff**：一个可编辑文件，由 Unity 作为纹理导入。
-在 Project 中选中它，或点击 **Output**，即可在 Unity 标准 Inspector 中设置压缩、mipmap、精灵及平台覆盖。TIFF 不使用单独的设置窗口；新文档需要先保存。
+在 Project 中选中它，或点击 **Output**，即可在 Unity 标准 Inspector 中设置 mipmap、压缩、精灵及平台覆盖。TIFF 不使用单独的设置窗口；新文档需要先保存。
 需要精灵时选择 **Sprite (2D and UI)**，再使用标准 Sprite Editor。
 请保留 TIFF 及其 `.meta`；在 Unity 内移动资源不会断开与已打开文档的关联。
 不要用外部图像编辑器重新保存 TIFF，否则可能丢失可编辑图层。
@@ -43,9 +43,9 @@ Unity 通常显示的是**最后保存的图像**。启用 [Live Update](preview
 - **Float32** — 保留 0–1 范围内的细微差别，例如平滑渐变或高度图；文件可能明显增大。
 
 该设置控制源 TIFF，而不是 GPU 压缩。工作渲染仍使用 half-float；Float32 无法恢复之前已丢失的精度。
-Drawing 像素保留自身的存储格式。**Output** 中的压缩和缩放仍可能进一步改变 Unity 导入的纹理。
+Drawing 像素保留自身的存储格式。导入 TIFF 的压缩、缩放和平台覆盖由 Unity 标准 Texture Importer 控制。
 
-**Live Update** 也支持压缩输出：编辑期间临时使用未压缩图像。
+**Live Update** 使用导入的 TIFF，并在会话期间要求可读写且未压缩的纹理。
 需要时会临时启用 Read/Write，结束会话后恢复；在此期间 `.meta` 会有修改。
 关闭或切换文档、脚本重载及外部重新导入都会停止会话。保存另一文档不会影响当前会话。
 构建 Player 也会停止 Live Update，并使用**最后保存的 TIFF**，不会保存或丢弃尚未保存的编辑。构建后请手动重新启用 Live Update。如果无法恢复纹理，构建将中止。
@@ -98,17 +98,20 @@ WhimTex 验证文件后可将其保存为**新的 TIFF**，原文档和临时文
 
 ## 内嵌输出设置
 
+本节仅用于兼容旧版 `.asset`。旧资源可以打开和查看，但不能原地保存；请使用 **Save As TIFF**。
+新 TIFF 的 mipmap、压缩和平台覆盖请在 Unity 标准 Inspector 中配置。
+
 **Alpha Is Transparency** 将边缘 RGB 扩展到透明像素，减少过滤产生的边缘杂色，不会移除 alpha。此处理在保存时应用，不用于 Live Update。**sRGB (Color Texture)** 是 RGBA32 的独立复选框；HDR 保持线性。
 
 **Max Size** 限制输出尺寸而不改变画布；**Resize Algorithm** 可选择 Mitchell 或 Bilinear。精灵矩形和边框随输出缩放，元数据仍使用画布像素。**Advanced** 提供 Box/Kaiser mipmap 过滤、**Preserve Coverage** 和 **Alpha Cutoff**。关闭 **Read/Write** 可移除 CPU 副本，但需要重新启用并保存后才能使用 Live Update 和 Sprite Editor。Live Update 使用快速预览路径；最终缩放、alpha 处理和 mipmap 过滤在保存时应用。
 
 底部固定预览区在棋盘格上显示最后保存的结果。拖动 **Preview** 标题栏可调整高度，不受设置区域滚动影响。达到最小高度后继续向下拖动即可完全隐藏预览；向上拖动保留的标题栏即可重新展开。图像底部叠加显示尺寸、格式、色彩空间、mip 层数、GPU/CPU 内存估算和实际资源文件大小。内存估算不包括驱动对齐和 Unity 对象开销。文件大小包括文档与图层，不包括 `.meta`，不等于纹理运行时内存占用。
 
-底部 **Compression** 面板提供 **Format: Automatic**，以及 **Compression: None / Low Quality / Normal Quality / High Quality**。对于 LDR，Low/Normal 为不透明图像选择 BC1，为透明图像选择 BC3，分别使用 Fast/Normal 编码质量；High 使用 BC7 和 Best 质量。不透明且 RGB 非负的 HDR 使用 BC6H；带透明度或负 RGB 的 HDR 保持未压缩以保留数据。None 禁用压缩。这些是在保存时应用的 BC 预设，而不是 Unity 的平台相关导入模式。手动格式仍可单独设置编码质量。
+旧版自定义压缩面板已不再显示。请在 Unity 标准 Texture Importer 中为保存的 TIFF 配置压缩和平台覆盖。
 
 **Output Type** 可选择 **Texture**（不生成精灵子资源）或 **Sprite**（Single/Multiple）。为保持兼容，默认仍为 Sprite。Texture 模式隐藏精灵设置，保存时不校验精灵参数。应用 Texture 会删除已生成的精灵并使其引用失效，但保留切片和设置以便切回 Sprite。输出纹理的引用保持不变。
 
-点击 WhimTex 中的 **Output**，或在 Project 中选择已保存资源，然后点击 Inspector 中的 **WhimTex Output Settings…**。两种方式都会打开该文档的同一个设置窗口。点击 **Apply & Save Output** 或在 WhimTex 中保存，可更新内嵌纹理和单个 **Output Sprite**。文档存在未保存的更改（包括图层编辑）时，按钮会高亮显示。新文档可先配置参数，再在 WhimTex 中首次保存；编辑字段不会在每次输入时重新生成输出。
+对于旧版 `.asset`，可在 WhimTex 点击 **Output**，或在 Inspector 点击 **WhimTex Output Settings…** 查看兼容设置。点击 **Save As TIFF** 创建新文档；原 `.asset` 永远不会被覆盖。新 TIFF 请使用 Unity 标准 Inspector。编辑字段不会在每次输入时重新生成 TIFF。
 
 - **Texture：**Filter Mode、Wrap U/V、Aniso Level 和 Generate Mip Maps。Wrap 控制纹理采样，而非图层平铺。
 - **Storage：**HDR Half（默认）、HDR Float、Linear RGBA32 或 sRGB RGBA32。RGBA32 将数值限制在 0–1；sRGB 对 RGB 进行颜色编码。HDR Float 仅改变存储精度，不提高合成器的半精度计算精度。
@@ -120,7 +123,7 @@ WhimTex 验证文件后可将其保存为**新的 TIFF**，原文档和临时文
 
 **Preview** 标题栏提供 **RGBA / RGB / Alpha** 和 mip 层级选择。这些只影响预览，关闭 Read/Write 时也可使用，不会修改保存的图像。**Preview requires Apply** 提醒当前显示的仍是上次保存的结果。通道和 mip 下拉列表是独立控件；拖动标题栏的其余区域可调整高度或隐藏预览。
 
-两种输出类型均支持 **Generate Mip Maps**。**Compression** 提供 None、BC1、BC3、BC7 和 BC6H，以及 Fast/Normal/Best 质量。BC1/BC3/BC7 需要 RGBA32；BC6H 需要 HDR，仅存储非负 RGB，不保留 alpha。BC1 不保留完整 alpha，透明图像请使用 BC3 或 BC7。画布宽高必须能被四整除。压缩仅在保存时应用，不影响编辑中的画布。压缩结果通过 Save 更新；使用 Live Update 前请选择 Compression None 并再次保存。BC 格式需要兼容设备，不会自动按目标平台转换。
+两种输出类型均支持 **Generate Mip Maps**。压缩由 Unity Texture Importer 管理，并支持按平台设置；它不会改变可编辑画布。
 
 默认保持未压缩 HDR Half、无 mipmap、100 PPU 和居中轴心的矩形精灵。Read/Write 默认启用。不支持平台覆盖。设置仅影响内嵌输出，不影响单独导出的图像。
 

@@ -28,13 +28,15 @@ namespace DCFApixels.WhimTex
             Button save = new Button(() =>
             {
                 serializedObject.ApplyModifiedProperties();
-                document.TrySaveWithOutput();
-            }) { text = "Apply & Save Output", tooltip = "Save the document and rebuild its embedded texture and sprite using Output Settings." };
-            save.SetEnabled(AssetDatabase.Contains(document));
+                TextureCompositorWindow.SaveDocumentAsTiff(document);
+            }) { text = "Save As TIFF", tooltip = "Legacy .asset documents are read-only. Create a new editable TIFF document." };
+            save.SetEnabled(WhimTexLegacyMigration.IsLegacyAsset(document));
             root.Add(save);
-            root.Add(new HelpBox("Output Settings take effect when you apply or save the document. " +
-                "Use the main asset in texture fields, or expand it in Project to use Output Sprite. " +
-                "Double-click either to edit the layers.", HelpBoxMessageType.Info));
+            root.Add(new HelpBox(WhimTexLegacyMigration.IsLegacyAsset(document)
+                ? "This legacy .asset is read-only. Use Save As TIFF to create the editable document; the source remains unchanged."
+                : "Output Settings take effect when you apply or save the document. " +
+                  "Use the main asset in texture fields, or expand it in Project to use Output Sprite. " +
+                  "Double-click either to edit the layers.", HelpBoxMessageType.Info));
 
             root.Add(new Button(() => WhimTexOutputSettingsWindow.Open(document)) { text = "Output Settings…" });
 
@@ -194,57 +196,6 @@ namespace DCFApixels.WhimTex
             AddSetting(textureSettings, "wrapV", "Wrap V", "Vertical sampling outside the texture. Does not change layer tiling.");
             WhimTexOutputSettingsRow.AddProperty(textureSettings, serializedObject.FindProperty("outputFilter"), "Filter Mode", "Saved texture sampling filter.");
             AddSetting(textureSettings, "anisoLevel", "Aniso Level", "Anisotropic filtering, 0–16. Useful for textures seen at grazing angles.");
-            var compression = new VisualElement();
-            compression.AddToClassList("unity-help-box");
-            compression.AddToClassList("whimtex-output-compression");
-            var compressionTitle = new Label("Compression");
-            compressionTitle.AddToClassList("whimtex-output-compression-title");
-            compression.Add(compressionTitle);
-            var maxSizeProperty = settings.FindPropertyRelative("maxSize");
-            var maxSizes = new System.Collections.Generic.List<int>
-                { 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384 };
-            var maxSize = new PopupField<int>(maxSizes, Mathf.Max(0, maxSizes.IndexOf(maxSizeProperty.intValue)))
-            { tooltip = "Maximum saved dimension. Does not resize the document." };
-            WhimTexOutputSettingsRow.Add(compression, "Max Size", maxSize, maxSize.tooltip, "maxSize");
-            root.TrackPropertyValue(maxSizeProperty, property => maxSize.SetValueWithoutNotify(property.intValue));
-            maxSize.RegisterValueChangedCallback(evt =>
-            {
-                maxSizeProperty.intValue = evt.newValue;
-                serializedObject.ApplyModifiedProperties();
-                ((TextureCompositor)serializedObject.targetObject).MarkChanged();
-            });
-            AddSetting(compression, "resizeAlgorithm", "Resize Algorithm", "Unity's Mitchell or Bilinear downsampling.");
-            AddSetting(compression, "compression", "Format", "Compress the saved output only. BC1/BC3/BC7 require RGBA32; BC6H requires HDR. Canvas dimensions must be divisible by 4.");
-            var compressionOptions = new VisualElement();
-            compressionOptions.AddToClassList("whimtex-output-compression-group");
-            var automaticOptions = new VisualElement();
-            automaticOptions.AddToClassList("whimtex-output-compression-group");
-            AddSetting(automaticOptions, "compressionLevel", "Compression", "None, Low Quality, Normal Quality or High Quality. Automatic chooses a BC format from the saved image's alpha and HDR data.");
-            compression.Add(automaticOptions);
-            var manualOptions = new VisualElement();
-            manualOptions.AddToClassList("whimtex-output-compression-group");
-            AddSetting(manualOptions, "compressionQuality", "Compression Quality", "Fast, Normal or Best. Higher quality can take longer to save.");
-            compressionOptions.Add(manualOptions);
-            var compressionNote = new HelpBox("", HelpBoxMessageType.Info);
-            compressionOptions.Add(compressionNote);
-            compression.Add(compressionOptions);
-            void RefreshCompression(SerializedProperty property)
-            {
-                bool automatic = property.intValue == (int)TextureCompositor.OutputCompression.Automatic;
-                bool enabled = property.intValue != (int)TextureCompositor.OutputCompression.None &&
-                    (!automatic || settings.FindPropertyRelative("compressionLevel").intValue != (int)TextureCompositor.OutputCompressionLevel.None);
-                automaticOptions.EnableInClassList("whimtex-output-settings-hidden", !automatic);
-                manualOptions.EnableInClassList("whimtex-output-settings-hidden", automatic);
-                compressionOptions.EnableInClassList("whimtex-output-settings-hidden", !enabled);
-                compressionNote.text = automatic
-                    ? "Applied on Save, not per platform. HDR with alpha or negative RGB stays uncompressed. Compressed output disables Live Update."
-                    : "Applied on Save, not per platform. " +
-                        (property.intValue == (int)TextureCompositor.OutputCompression.BC1 || property.intValue == (int)TextureCompositor.OutputCompression.BC6H ? "This format discards alpha. " : "") +
-                        "Compressed output disables Live Update.";
-            }
-            RefreshCompression(settings.FindPropertyRelative("compression"));
-            root.TrackPropertyValue(settings.FindPropertyRelative("compression"), RefreshCompression);
-            root.TrackPropertyValue(settings.FindPropertyRelative("compressionLevel"), _ => RefreshCompression(settings.FindPropertyRelative("compression")));
             var spriteSettings = new Foldout { text = "Sprite", value = true, viewDataKey = "output-sprite" };
             spriteSettings.AddToClassList("whimtex-output-section");
             spriteSettings.name = "output-sprite-settings";
@@ -284,6 +235,12 @@ namespace DCFApixels.WhimTex
                             WhimTexSpriteEditorBridge.Open?.Invoke(document);
                         return;
                     }
+                }
+                if (WhimTexLegacyMigration.IsLegacyAsset(document))
+                {
+                    EditorUtility.DisplayDialog("Legacy WhimTex asset is read-only",
+                        "Migrate this document to TIFF before editing sprite settings.", "OK");
+                    return;
                 }
                 if (document.TrySaveWithOutput()) WhimTexSpriteEditorBridge.Open?.Invoke(document);
             }) { text = "Sprite Editor", tooltip = "Save output and open Unity Sprite Editor to slice sprites and edit their pivots and borders." };
@@ -335,7 +292,6 @@ namespace DCFApixels.WhimTex
             AddSetting(spriteSettings, "meshType", "Mesh Type", "Full Rect or Unity-generated Tight geometry. Use Full Rect for 9-sliced sprites.");
             AddSetting(spriteSettings, "extrude", "Extrude", "Sprite mesh extrusion passed to Unity's sprite generation (0–32).");
             AddSetting(spriteSettings, "generatePhysicsShape", "Generate Physics Shape", "Ask Unity to generate a fallback physics shape from the sprite.");
-            output.Add(compression);
             root.Add(output);
             WhimTexOutputSettingsRow.Validate(root, document);
             return root;

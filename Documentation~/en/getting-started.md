@@ -3,7 +3,7 @@ title: "Start here"
 parent: "English"
 nav_order: 1
 lang: "en"
-description: "Install WhimTex in Unity 6 and create your first layered texture or sprite. Paint, add images and save an editable asset ready to use in your game."
+description: "Install WhimTex in Unity 6 and create your first layered texture or sprite. Paint, add images and save an editable TIFF ready to use in your game."
 permalink: "/en/getting-started/"
 translations: "en/getting-started.md,ru/getting-started.md,zh/getting-started.md"
 next_page: "en/layers.md"
@@ -26,9 +26,9 @@ https://github.com/DCFApixels/WhimTex.git
 2. Click **+** at the bottom of Layers and choose **Drawing Layer**. If you already have a texture, you can drag it from Project onto the preview instead.
 3. Choose **Transform** (`T`) to arrange the image, or **Brush** (`B`) to paint.
 4. Press `Ctrl+S` and choose where to save the document.
-5. Use the saved asset as a texture in Unity, or expand it in Project and drag **Output Sprite** into a sprite field.
+5. Use the saved TIFF as a texture in Unity, or expand it in Project and drag **Output Sprite** into a sprite field.
 
-Double-click the saved asset to continue editing. You do not need to export it first.
+Double-click the saved TIFF to continue editing. You do not need to export it first.
 It opens in its own WhimTex window without replacing your current document.
 If it is already open, Unity focuses that window instead of opening a duplicate.
 

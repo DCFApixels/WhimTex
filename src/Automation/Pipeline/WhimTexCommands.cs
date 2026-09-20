@@ -37,7 +37,7 @@ namespace DCFApixels.WhimTex
         public static JObject Describe() => JObject.Parse(WhimTexApi.Describe());
 
         [CliCommand("whimtex_document_inspect", "Read a WhimTex document's layer IDs, settings and revision before editing.", MainThreadRequired = true)]
-        public static JObject Inspect([CliArg("assetPath", "Project-relative WhimTex .asset or .tiff path", Required = true)] string assetPath)
+        public static JObject Inspect([CliArg("assetPath", "Project-relative WhimTex .tiff path, or an existing legacy .asset for read-only inspection", Required = true)] string assetPath)
             => JObject.Parse(WhimTexApi.Inspect(assetPath));
 
         [CliCommand("whimtex_batch_execute", "Validate and apply a WhimTex JSON batch file without opening the document window.", MainThreadRequired = true)]
@@ -52,7 +52,7 @@ namespace DCFApixels.WhimTex
 
         [CliCommand("whimtex_document_render", "Render an unfiltered WhimTex document PNG to Temp/WhimTex for visual inspection.", MainThreadRequired = true)]
         public static JObject Render(
-            [CliArg("assetPath", "WhimTex .asset or .tiff path", Required = true)] string assetPath,
+            [CliArg("assetPath", "Project-relative WhimTex .tiff path; existing legacy .asset is read-only", Required = true)] string assetPath,
             [CliArg("outputPath", "Project-relative Temp/WhimTex/*.png path", Required = true)] string outputPath,
             [CliArg("maxSize", "Longest output side, 1..4096")] int maxSize = 1024,
             [CliArg("overwrite", "Explicitly replace an existing preview PNG")] bool overwrite = false)
@@ -72,13 +72,13 @@ namespace DCFApixels.WhimTex
 
         [CliCommand("whimtex_document_validate", "Validate a WhimTex document without saving it.", MainThreadRequired = true)]
         public static JObject Validate(
-            [CliArg("assetPath", "Project-relative WhimTex .asset or .tiff path", Required = true)] string assetPath,
+            [CliArg("assetPath", "Project-relative WhimTex .tiff path; existing legacy .asset is read-only", Required = true)] string assetPath,
             [CliArg("render", "Also render a preview when structural validation succeeds")] bool render = false)
             => JObject.Parse(WhimTexApi.Validate(assetPath, render));
 
         [CliCommand("whimtex_document_status", "Report document disk identity, import and editor session state.", MainThreadRequired = true)]
         public static JObject Status(
-            [CliArg("assetPath", "Project-relative WhimTex .asset or .tiff path", Required = true)] string assetPath)
+            [CliArg("assetPath", "Project-relative WhimTex .tiff path; existing legacy .asset is read-only", Required = true)] string assetPath)
             => JObject.Parse(WhimTexApi.Status(assetPath));
 
         [CliCommand("whimtex_document_compare", "Compare two WhimTex documents by model/storage, optionally including a rendered preview.", MainThreadRequired = true)]
@@ -97,7 +97,7 @@ namespace DCFApixels.WhimTex
 
         [CliCommand("whimtex_document_export", "Export a flattened WhimTex document to PNG, JPEG, TGA or EXR in Temp/WhimTex.", MainThreadRequired = true)]
         public static JObject Export(
-            [CliArg("assetPath", "Project-relative WhimTex .asset or .tiff path", Required = true)] string assetPath,
+            [CliArg("assetPath", "Project-relative WhimTex .tiff path; existing legacy .asset is read-only", Required = true)] string assetPath,
             [CliArg("outputPath", "Project-relative Temp/WhimTex/*.png|jpg|tga|exr path", Required = true)] string outputPath,
             [CliArg("maxSize", "Longest output side; 0 keeps the document canvas size, 1..4096 resizes")] int maxSize = 0,
             [CliArg("overwrite", "Explicitly replace an existing output file")] bool overwrite = false)

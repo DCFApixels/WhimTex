@@ -358,7 +358,7 @@ namespace DCFApixels.WhimTex
             });
             toolbar.Add(toolkitDocumentField);
             toolkitSaveButton = WhimTexUI.CreateToolbarButton("Save", () => SaveDocument(), 46f);
-            toolkitSaveButton.tooltip = "Save the document (Ctrl+S). The document is a WhimTex file: a TIFF that Unity imports as a texture.";
+            toolkitSaveButton.tooltip = "Save the document (Ctrl+S). Legacy .asset documents are read-only and open Save As for a TIFF copy.";
             toolbar.Add(toolkitSaveButton);
             toolkitSaveAsButton = WhimTexUI.CreateToolbarButton("Save As", () => SaveDocumentAs(), 82f);
             toolkitSaveAsButton.tooltip = "Save the document under another name.";
@@ -391,11 +391,18 @@ namespace DCFApixels.WhimTex
             // A document keeps its file as an imported image, so having a file is not the same as being an asset.
             bool hasFile = compositor != null && TryGetDocumentFile(compositor, out _);
             bool saved = compositor != null && (hasFile || AssetDatabase.Contains(compositor));
+            bool legacy = compositor != null && WhimTexLegacyMigration.IsLegacyAsset(compositor);
+            if (toolkitSaveButton != null)
+                toolkitSaveButton.tooltip = legacy
+                    ? "Legacy .asset is read-only; Ctrl+S opens Save As for a TIFF copy."
+                    : "Save the document (Ctrl+S). The document is a WhimTex file: a TIFF that Unity imports as a texture.";
             toolkitSaveButton?.SetEnabled(saved && (HasDocumentChanges() || paintingLayer != null ||
                 previewTransformManipulator != null && previewTransformManipulator.IsDragging));
             if (toolkitSaveAsButton == null) return;
-            toolkitSaveAsButton.text = compositor != null && !saved ? "⚠ Save As" : "Save As";
-            toolkitSaveAsButton.tooltip = saved
+            toolkitSaveAsButton.text = legacy ? "Save As TIFF" : compositor != null && !saved ? "⚠ Save As" : "Save As";
+            toolkitSaveAsButton.tooltip = legacy
+                ? "Legacy .asset documents are read-only. Save a new editable TIFF document."
+                : saved
                 ? "Save the document under another name."
                 : "This document has no file yet. Use Save As to keep its layers.";
             RefreshLiveOutputButton();

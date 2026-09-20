@@ -66,7 +66,7 @@ namespace DCFApixels.WhimTex
                 : CanPublishLiveOutput
                 ? "Live Update: show edits on objects and in File layers using this compositor texture. Turning off restores the saved image. Save writes the changes; texture references stay unchanged."
                 : compositor != null && compositor.OutputTexture != null && UnityEngine.Experimental.Rendering.GraphicsFormatUtility.IsCompressedFormat(compositor.OutputTexture.graphicsFormat)
-                    ? "Live Update: compressed output updates on Save. Choose Compression None and save to enable live updates."
+                    ? "Live Update requires an uncompressed output. Migrate this legacy asset to TIFF, then enable Read/Write and disable compression in Unity's texture importer."
                     : compositor != null && compositor.OutputTexture != null && !compositor.OutputTexture.isReadable
                         ? "Live Update requires Read/Write. Enable it in Output Settings and save."
                         : "Live Update: save the compositor first, then assign its texture to a material.";

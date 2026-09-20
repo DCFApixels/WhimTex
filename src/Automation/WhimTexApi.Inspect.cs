@@ -31,7 +31,7 @@ namespace DCFApixels.WhimTex
             result["operations"] = new JArray("add", "set", "transform", "target", "move", "stroke", "compact");
             result["storageFormats"] = new JArray("asset", "tiff");
             result["backends"] = new JObject {
-                ["asset"] = "legacy Unity ScriptableObject compositor; readable and editable for compatibility",
+                ["asset"] = "legacy Unity ScriptableObject compositor; readable for compatibility, not writable through path-based agent batches",
                 ["tiff"] = "window-independent WhimTexDocumentBuild; transient model with atomic TIFF save"
             };
             result["migration"] = "Use WhimTexApi.Migrate(sourcePath, destinationPath, overwrite) or whimtex_document_migrate. The legacy .asset remains unchanged.";
@@ -81,7 +81,30 @@ namespace DCFApixels.WhimTex
             result["coordinates"] = "Layer index 0 is topmost. Transform position uses canvas pixels, +X right, +Y up; rotation is counterclockwise degrees. Pivot is bottom-left UV. canvasPixels stroke points use top-left origin; layerUv uses bottom-left UV.";
             result["limits"] = new JObject { ["requestBytes"] = 4194304, ["operations"] = 256, ["canvasPixels"] = MaxCanvasPixels,
                 ["layers"] = 1024, ["drawingPixels"] = 67108864, ["strokePoints"] = 4096, ["strokeStamps"] = 100000, ["strokeCoveragePixels"] = 250000000 };
-            result["editing"] = "Inspect before editing; expectedRevision is mandatory on existing documents. Use @aliases within a batch. New documents require save=true. dryRun validates without drawing or saving. Save failure may leave partial asset I/O: inspect before retrying.";
+            result["editing"] = "Inspect before editing; expectedRevision is mandatory on existing TIFF documents. Use @aliases within a batch. New documents require a TIFF assetPath and save=true. Legacy .asset batches are dryRun-only. Save failure may leave partial asset I/O: inspect before retrying.";
+            result["storagePolicy"] = new JObject {
+                ["newDocuments"] = "TIFF only (*.whimtex.tiff)",
+                ["legacyAsset"] = "Read-only for agent batches; use whimtex_document_migrate to create a TIFF copy",
+                ["readOperations"] = new JArray("whimtex_document_inspect", "whimtex_document_render", "whimtex_document_validate", "whimtex_document_status", "whimtex_document_export")
+            };
+            result["agentModes"] = new JObject {
+                ["batch"] = new JObject {
+                    ["command"] = "whimtex_batch_execute",
+                    ["windowRequired"] = false,
+                    ["assetPath"] = "TIFF for create/edit/save; legacy .asset only supports dryRun validation"
+                },
+                ["headlessLive"] = new JObject {
+                    ["command"] = "whimtex_headless_live",
+                    ["windowRequired"] = false,
+                    ["assetPath"] = "TIFF only",
+                    ["operations"] = new JArray("begin", "list", "status", "preview", "render", "complete", "cancel")
+                },
+                ["assistant"] = new JObject {
+                    ["commands"] = new JArray("whimtex_assistant_begin", "whimtex_assistant_lock", "whimtex_assistant_sessions", "whimtex_assistant_live"),
+                    ["windowRequired"] = true,
+                    ["assetPath"] = "Uses the currently open document; save legacy documents as TIFF via the UI"
+                }
+            };
             result["reference"] = "Documentation~/AgentAPI.md";
             result["liveEditing"] = new JObject {
                 ["fastBegin"] = "whimtex_assistant_begin / WhimTexApi.LiveBegin(requestId, name, source, area, sessionId, sourceLayerId, selectionMode, padding)",

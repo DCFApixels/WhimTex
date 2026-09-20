@@ -31,7 +31,7 @@ File layers keep their links to source textures; keep those sources in the proje
 ## TIFF documents (experimental branch)
 
 New documents are saved as **Name.whimtex.tiff**: one editable document that Unity imports as a texture.
-Select it in Project, or click **Output**, to configure compression, mipmaps, sprites and platform overrides in Unity's standard Inspector. TIFF uses no separate settings window; an unsaved document must be saved first.
+Select it in Project, or click **Output**, to configure mipmaps, compression, sprites and platform overrides in Unity's standard Inspector. TIFF uses no separate settings window; an unsaved document must be saved first.
 For sprites, select **Sprite (2D and UI)** there and use the standard Sprite Editor.
 Keep the TIFF and its `.meta` together; moving the asset within Unity preserves its link to the open document.
 Do not resave the TIFF in another image editor: that can remove the editable layers.
@@ -44,9 +44,9 @@ Do not resave the TIFF in another image editor: that can remove the editable lay
 
 This controls the source TIFF, not GPU compression. Working rendering remains half-float;
 Float32 cannot recover precision already lost. Drawing pixels keep their own storage format.
-Compression and resizing in **Output** can further change Unity's imported texture.
+Unity's Texture Importer controls GPU compression, resizing and platform overrides for the imported TIFF.
 
-**Live Update** also works with compressed output: the working image is temporarily uncompressed.
+**Live Update** uses the imported TIFF and requires a readable, uncompressed texture while the session is active.
 Read/Write is enabled only when needed and restored when the session ends; the `.meta` is temporarily modified.
 Closing/switching the document, script reload or external reimport stops the session. Saving another document does not affect it.
 Building a Player also stops Live Update and uses the **last saved TIFF**, without saving or discarding your pending edits. Enable Live Update again manually afterward. If the texture cannot be restored, the build is stopped.
@@ -99,17 +99,21 @@ The image keeps its GUID and import settings, including platform overrides and s
 
 ## Embedded output settings
 
+This section is compatibility documentation for legacy `.asset` files only. They can be opened and
+inspected, but cannot be saved in place; use **Save As TIFF**. For new TIFF documents, configure
+mipmaps, compression and platform overrides in Unity's standard Inspector.
+
 **Alpha Is Transparency** extends edge RGB into transparent pixels to reduce filtering fringes; it never removes alpha. This processing happens on Save, not Live Update. **sRGB (Color Texture)** is a separate checkbox for RGBA32; HDR remains linear.
 
 **Max Size** limits saved dimensions without changing the canvas; **Resize Algorithm** selects Mitchell or Bilinear. Sprite rectangles and borders scale with the output while metadata remains in canvas pixels. **Advanced** includes Box/Kaiser mipmap filtering, **Preserve Coverage** and **Alpha Cutoff**. **Read/Write** keeps a CPU copy; disabling it prevents Live Update and Sprite Editor until enabled and saved again. Live Update uses a fast preview path, so final resizing, alpha processing and mip filtering are applied on Save.
 
 The resizable preview footer shows the last saved output over a checkerboard. Drag the **Preview** header to resize it independently of the settings scroll area. Continue dragging down past the minimum height to hide the preview entirely; drag the remaining header upward to restore it. Information is overlaid at the bottom: dimensions, format, color space, mip count, estimated GPU/CPU pixel storage and actual asset file size. The memory estimate excludes driver alignment and Unity object overhead. Asset file size includes the document and its layers, but not `.meta`; it is not the texture's runtime memory usage.
 
-The bottom **Compression** panel also offers **Format: Automatic**, with **Compression: None / Low Quality / Normal Quality / High Quality**. For LDR, Low/Normal choose BC1 for opaque images or BC3 for transparency, using Fast/Normal encoder quality; High uses BC7 with Best quality. Opaque non-negative HDR uses BC6H; HDR with alpha or negative RGB remains uncompressed to preserve those values. None disables compression. These are save-time BC presets, not Unity's platform-dependent import modes. Manual formats retain their separate encoder-quality control.
+The obsolete custom output-compression panel is no longer shown. Configure compression and platform overrides in Unity's standard Texture Importer for the saved TIFF.
 
 **Output Type** selects **Texture** (no sprite subassets) or **Sprite** (Single/Multiple sprites). Sprite remains the default for compatibility. In Texture mode sprite controls are hidden and sprite settings do not restrict saving. Applying Texture removes existing output sprites and breaks references to them; slicing and sprite settings are retained for switching back. The output texture keeps its reference.
 
-Click **Output** in WhimTex, or select the saved asset in Project and click **WhimTex Output Settings…** in its Inspector. Both open the same settings window for the document. Use **Apply & Save Output**, or save in WhimTex, to rebuild the embedded texture and single **Output Sprite**. The button is highlighted when the document has unsaved changes, including layer edits. For an unsaved document, configure the settings here and save it in WhimTex first. Editing these fields does not bake the output on every keystroke.
+For a legacy asset, click **Output** in WhimTex or **WhimTex Output Settings…** in its Inspector to inspect the compatibility settings. **Save As TIFF** creates the new document; the `.asset` is never overwritten. New TIFF documents use Unity's standard Inspector instead. Editing these fields does not bake a TIFF on every keystroke.
 
 - **Texture:** Filter Mode, Wrap U/V, Aniso Level and Generate Mip Maps. Wrap affects texture sampling, not layer tiling.
 - **Storage:** HDR Half (default), HDR Float, Linear RGBA32 or sRGB RGBA32. RGBA32 clamps values to 0–1; sRGB encodes RGB for color sampling. HDR Float changes storage precision, not the half-float working compositor's precision.
@@ -121,7 +125,7 @@ Invalid settings are highlighted with an explanation beside the field; **Apply &
 
 The **Preview** header offers **RGBA / RGB / Alpha** and a mip-level selector. These affect only the preview, work with Read/Write disabled, and never alter the saved image. **Preview requires Apply** means the displayed image is still the last saved output. The channel and mip selectors are controls; drag the remaining header area to resize or hide the preview.
 
-**Generate Mip Maps** is available for both output types. **Compression** offers None, BC1, BC3, BC7 and BC6H with Fast/Normal/Best quality. BC1/BC3/BC7 require RGBA32 storage; BC6H requires HDR and stores non-negative RGB without alpha. BC1 does not preserve full alpha; use BC3 or BC7 for transparency. Canvas dimensions must be divisible by four. Compression applies on Save, not to the editable canvas. Compressed output updates on Save; Live Update requires Compression None and another save. BC formats require a compatible target device; no automatic platform conversion is performed.
+**Generate Mip Maps** remains available for both output types. Compression is owned by Unity's Texture Importer and can be configured per platform; it does not alter the editable canvas.
 
 Defaults preserve uncompressed HDR Half without mipmaps and a centered, full-rect sprite at 100 PPU. Read/Write is enabled by default. Platform overrides are not provided. These settings affect embedded output, not separate image exports.
 

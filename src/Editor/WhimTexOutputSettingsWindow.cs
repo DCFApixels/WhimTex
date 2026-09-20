@@ -75,12 +75,14 @@ namespace DCFApixels.WhimTex
             }
             bool pending = EditorUtility.IsDirty(document) || (data != null && data.hasModifiedProperties);
             pending |= settingsChanged;
-            applyButton.SetEnabled(AssetDatabase.Contains(document) && validationError == null);
+            bool legacy = WhimTexLegacyMigration.IsLegacyAsset(document);
+            applyButton.SetEnabled((AssetDatabase.Contains(document) || legacy) && validationError == null);
             applyButton.EnableInClassList("whimtex-output-apply--pending", pending);
             revertButton?.SetEnabled(settingsChanged);
             if (previewStatus != null)
                 previewStatus.text = document.OutputTexture == null ? "No saved output" : pending ? "Preview requires Apply" : "";
-            applyButton.tooltip = !AssetDatabase.Contains(document) ? "Save the document in WhimTex first."
+            applyButton.tooltip = legacy ? "Create a new TIFF copy; the legacy .asset remains unchanged."
+                : !AssetDatabase.Contains(document) ? "Save the document in WhimTex first."
                 : validationError != null ? validationError
                 : pending ? "There are unsaved changes. Apply settings, rebuild the output and save the document."
                 : "Rebuild the output and save the document.";
@@ -229,7 +231,10 @@ namespace DCFApixels.WhimTex
             previewSurface.Add(previewStatus);
             UpdatePreviewLayout();
             RefreshOutputInfo();
-            var note = new Label(AssetDatabase.Contains(document)
+            bool legacy = WhimTexLegacyMigration.IsLegacyAsset(document);
+            var note = new Label(legacy
+                ? "Legacy .asset is read-only. Saving here creates a new TIFF and leaves the source unchanged."
+                : AssetDatabase.Contains(document)
                 ? "Apply saves the document and rebuilds its output."
                 : "Save the document in WhimTex to create its output.");
             note.AddToClassList("whimtex-output-info");
@@ -239,6 +244,14 @@ namespace DCFApixels.WhimTex
                 if (document == null) return;
                 rootVisualElement.Focus();
                 data.ApplyModifiedProperties();
+                if (WhimTexLegacyMigration.IsLegacyAsset(document))
+                {
+                    TextureCompositorWindow.SaveDocumentAsTiff(document);
+                    InvalidateFileSize();
+                    lastDirtyCount = int.MinValue;
+                    RefreshApplyState();
+                    return;
+                }
                 if (!AssetDatabase.Contains(document))
                 { ShowNotification(new GUIContent("Save the document in WhimTex first.")); return; }
                 if (!document.TrySaveWithOutput()) return;
@@ -246,9 +259,9 @@ namespace DCFApixels.WhimTex
                 lastDirtyCount = int.MinValue;
                 RefreshOutputInfo();
                 RefreshApplyState();
-            }) { text = "Apply & Save Output" };
+            }) { text = WhimTexLegacyMigration.IsLegacyAsset(document) ? "Save As TIFF…" : "Apply & Save Output" };
             applyButton.AddToClassList("whimtex-output-apply");
-            applyButton.SetEnabled(AssetDatabase.Contains(document));
+            applyButton.SetEnabled(AssetDatabase.Contains(document) || WhimTexLegacyMigration.IsLegacyAsset(document));
             var actions = new VisualElement();
             actions.AddToClassList("whimtex-output-actions");
             revertButton = new Button(() =>

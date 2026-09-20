@@ -8,8 +8,9 @@ namespace DCFApixels.WhimTex
     /// <summary>
     /// Menu entries and asset opening for documents stored in the carrier image format.
     ///
-    /// TIFF files keep their native importer. Legacy asset export remains separate; Live Update
-    /// temporarily enables Read/Write through the document session when it is needed.
+    /// TIFF files keep their native importer. Legacy .asset files remain readable for migration only;
+    /// the window never writes them back. Live Update temporarily enables Read/Write through the
+    /// document session when it is needed.
     /// </summary>
     public sealed partial class TextureCompositorWindow
     {
@@ -85,11 +86,26 @@ namespace DCFApixels.WhimTex
         private bool SaveDocument()
         {
             if (compositor == null) return true;
-            if (TryGetDocumentFile(compositor, out string path)) return SaveDocumentTo(compositor, path);
+            if (TryGetDocumentFile(compositor, out string path))
+            {
+                // Legacy ScriptableObject documents remain openable for migration, but are
+                // permanently read-only. Never let Ctrl+S overwrite the .asset; route it to
+                // the explicit TIFF Save As flow instead.
+                if (IsLegacyAssetPath(path))
+                    return SaveDocumentAs(compositor);
+                return SaveDocumentTo(compositor, path);
+            }
+            if (WhimTexLegacyMigration.IsLegacyAsset(compositor))
+                return SaveDocumentAs(compositor);
             return SaveDocumentAs(compositor);
         }
 
         private void SaveDocumentAs() => SaveDocumentAs(compositor);
+
+        internal static bool SaveDocumentAsTiff(TextureCompositor document) => SaveDocumentAs(document);
+
+        internal static bool IsLegacyAssetPath(string path) =>
+            !string.IsNullOrEmpty(path) && string.Equals(Path.GetExtension(path), ".asset", System.StringComparison.OrdinalIgnoreCase);
 
         private static bool SaveDocumentAs(TextureCompositor document)
         {
@@ -106,6 +122,12 @@ namespace DCFApixels.WhimTex
         private static bool SaveDocumentTo(TextureCompositor document, string path)
         {
             if (document == null || string.IsNullOrEmpty(path)) return false;
+            if (IsLegacyAssetPath(path))
+            {
+                EditorUtility.DisplayDialog("Legacy WhimTex asset is read-only",
+                    "Legacy .asset documents can no longer be saved in place. Use Save As to create a TIFF document.", "OK");
+                return false;
+            }
             TextureCompositor copy = null;
             using var operation = new WhimTexDocumentOperation("Save WhimTex document");
             try

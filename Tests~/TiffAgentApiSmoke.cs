@@ -34,6 +34,10 @@ public static class TiffAgentApiSmoke
         TextureCompositor legacyDocument = null;
         try
         {
+            string describe = WhimTexApi.Describe();
+            Check(describe.Contains("\"agentModes\"") && describe.Contains("whimtex_batch_execute") &&
+                describe.Contains("whimtex_headless_live") && describe.Contains("whimtex_assistant_live"),
+                "Describe exposes the three agent modes");
             string create = WhimTexApi.ExecuteJson("{\"apiVersion\":1,\"assetPath\":\"" + tiff + "\",\"create\":true,\"width\":32,\"height\":32,\"operations\":[{\"op\":\"add\",\"type\":\"color\",\"as\":\"base\",\"settings\":{\"name\":\"Base\",\"color\":[0.2,0.4,0.8,1]}}]}");
             Check(create.Contains("\"success\":true"), "TIFF create through ExecuteJson");
             string inspect = WhimTexApi.Inspect(tiff);
@@ -66,7 +70,12 @@ public static class TiffAgentApiSmoke
             Check(File.Exists(Path.Combine(projectRoot, legacy)), "legacy source remains after migration");
             string legacyValidation = WhimTexApi.Validate(legacy, false);
             Check(legacyValidation.Contains("\"success\":true") && legacyValidation.Contains("\"valid\":true"), "legacy validation remains available");
-            return "PASS: TIFF create, inspect, render, legacy migration, and source preservation.";
+            string legacyRevision = Revision(WhimTexApi.Inspect(legacy));
+            string legacyEdit = WhimTexApi.ExecuteJson("{\"apiVersion\":1,\"assetPath\":\"" + legacy + "\",\"expectedRevision\":\"" + legacyRevision + "\",\"operations\":[]}");
+            Check(legacyEdit.Contains("\"success\":false") && legacyEdit.Contains("legacy_read_only"), "legacy save is rejected by agent batch API");
+            string legacyCreate = WhimTexApi.ExecuteJson("{\"apiVersion\":1,\"assetPath\":\"" + folder + "/New.asset\",\"create\":true,\"width\":8,\"height\":8,\"operations\":[]}");
+            Check(legacyCreate.Contains("\"success\":false") && legacyCreate.Contains("legacy_read_only"), "legacy creation is rejected by agent batch API");
+            return "PASS: TIFF create/edit, legacy read/migrate, legacy write rejection, and source preservation.";
         }
         finally
         {

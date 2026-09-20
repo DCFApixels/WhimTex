@@ -11,6 +11,9 @@ namespace DCFApixels.WhimTex
 
         public enum OutputStorage { HdrHalf, HdrFloat, LinearRgba32, SrgbRgba32 }
         public enum OutputType { Texture = 1, Sprite = 0 }
+        // Kept for deserializing old ScriptableObject documents and compatibility tests. New TIFF
+        // documents use Unity's TextureImporter for compression/platform overrides; the editor no
+        // longer exposes these legacy embedded-output controls.
         public enum OutputCompression { None, BC1, BC3, BC7, BC6H, Automatic }
         public enum OutputCompressionLevel { None, LowQuality, NormalQuality, HighQuality }
 
@@ -275,6 +278,13 @@ namespace DCFApixels.WhimTex
 
         internal bool TrySaveWithOutput(string newAssetPath = null)
         {
+            if (WhimTexLegacyMigration.IsLegacyAsset(this) ||
+                !string.IsNullOrEmpty(newAssetPath) && string.Equals(Path.GetExtension(newAssetPath), ".asset", StringComparison.OrdinalIgnoreCase))
+            {
+                EditorUtility.DisplayDialog("Legacy WhimTex asset is read-only",
+                    "Saving to the legacy .asset format is disabled. Use Save As TIFF to create a new document.", "OK");
+                return false;
+            }
             try
             {
                 SaveWithOutput(newAssetPath);

@@ -122,6 +122,8 @@ namespace DCFApixels.WhimTex
         public void Apply()
         {
             if (document == null || !AssetDatabase.Contains(document)) throw new InvalidOperationException("The WhimTex document is no longer available.");
+            if (WhimTexLegacyMigration.IsLegacyAsset(document))
+                throw new InvalidOperationException("Legacy WhimTex .asset documents are read-only. Migrate the document to TIFF before editing sprites.");
             var settings = document.SpriteOutputSettings;
             if (settings.outputType != TextureCompositor.OutputType.Sprite || settings.spriteMode != mode || document.width != width || document.height != height ||
                 settings.pivot != originalPivot || settings.border != originalBorder || !SameSlices(original, document.GetSpriteSlices()))

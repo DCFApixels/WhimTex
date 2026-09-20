@@ -1,7 +1,7 @@
 # Независимая сборка TIFF-документов
 
-Статус: внутренний backend подготовлен; path-based `WhimTexApi` и `whimtex_*` команды уже
-выбирают backend по расширению `.asset`/`.tiff`. Оконный Live API не смешивается с независимой
+Статус: TIFF backend подготовлен; path-based `WhimTexApi` и `whimtex_*` команды используют TIFF
+для новых документов. Оконный Live API не смешивается с независимой
 сборкой, а `whimtex_headless_live` даёт отдельную persistent transient-сессию без окна.
 Старый `TextureCompositor` остаётся рабочей моделью и поддерживает чтение прежних `.asset`.
 UI больше не создаёт новые legacy `.asset`: выбранный старый документ переносится через
@@ -46,10 +46,12 @@ Unity objects, ShaderUtil, композиция и AssetDatabase — тольк�
 
 ## Граница агентского API
 
-Существующие `.asset` команды остаются рабочими, а path-based API уже выбирает TIFF backend по
-расширению без изменения JSON v1. Диагностические команды `whimtex_storage_inspect`,
+Существующие `.asset` документы остаются читаемыми, а path-based API выбирает TIFF backend без
+изменения JSON v1. Batch API принимает legacy только для `dryRun`; запись и создание `.asset`
+возвращают `legacy_read_only`. Диагностические команды `whimtex_storage_inspect`,
 `whimtex_document_validate` и `whimtex_document_status` не меняют документ и предназначены для самопроверки агента.
-Примеры агентов пока не переключены на TIFF по умолчанию; это следующий отдельный этап.
+Новые примеры агентов используют TIFF по умолчанию; `.asset` встречается только в примере
+явной миграции.
 
 Независимый Live Update использует `WhimTexApi.TiffLiveFile`/`whimtex_headless_live`: `begin` фиксирует
 disk/model revision, `preview` пересобирает рабочую копию от исходного snapshot, `render` пишет

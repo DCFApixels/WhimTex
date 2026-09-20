@@ -1,17 +1,17 @@
 # Агентские команды для TIFF-пайплайна
 
-Статус: первый адаптер реализован и проверен. JSON v1 сохраняется; backend выбирается по
-расширению `assetPath`. Legacy `.asset` продолжает работать, TIFF использует transient
-`WhimTexDocumentBuild` и общий writer.
+Статус: TIFF-пайплайн реализован и проверен. JSON v1 сохраняется; новые документы агентов
+всегда используют `Assets/.../*.whimtex.tiff`. Legacy `.asset` продолжает работать только для
+чтения, диагностики и явной миграции; новые `.asset` создавать не следует.
 
 ## 1. Команды, необходимые для адаптации
 
-Это минимальный набор. Новые имена для обычного редактирования не нужны: существующие команды
-должны принимать и legacy `.asset`, и WhimTex TIFF.
+Это минимальный набор. Для обычного редактирования агент использует TIFF-команды; legacy `.asset`
+поддерживается только для чтения и миграции.
 
 | Команда | Изменение | Backend |
 | --- | --- | --- |
-| `whimtex_describe` | Возвращает `storageFormats`, `backends`, `migration` и ограничения TIFF; `assetPath` может быть `.asset` или `.tiff`. | capability discovery |
+| `whimtex_describe` | Возвращает `storageFormats`, `backends`, `migration` и ограничения TIFF; новый `assetPath` должен быть `.tiff`. | capability discovery |
 | `whimtex_document_inspect` | При `.asset` сохраняет legacy-путь. При `.tiff` открывает transient-модель и возвращает те же стабильные ID, настройки и `revision`. | read-only |
 | `whimtex_batch_execute` | При `.asset` сохраняет текущую реализацию. При `.tiff` создаёт/открывает transient-модель, применяет те же операции, проверяет `expectedRevision` и сохраняет через `WhimTexDocumentBuild.Save`. | batch authoring |
 | `whimtex_document_render` | При `.asset` сохраняет текущий путь. При `.tiff` открывает документ без окна, вызывает общий renderer и пишет PNG в `Temp/WhimTex`. | diagnostic |
@@ -39,11 +39,13 @@
 
 Правила:
 
-- расширение `.tiff` выбирает `WhimTexDocumentBuild`, `.asset` выбирает старый backend;
+- расширение `.tiff` выбирает `WhimTexDocumentBuild`; `.asset` допускается только для legacy-чтения и миграции;
 - `create:true` создаёт transient-модель, а не `ScriptableObject` в Assets;
 - `dryRun` не создаёт TIFF, не импортирует его и не меняет открытые документы;
 - `save:false` оставляет изменения только в текущем запросе и не создаёт сессию редактора;
 - `expectedRevision` обязателен для редактирования существующего TIFF;
+- существующий `.asset` можно передать в `whimtex_batch_execute` только с `dryRun:true`; сохранение,
+  создание и применение изменений к legacy-файлу возвращают `legacy_read_only`;
 - запись выполняется только после полной проверки операций и через существующую атомарную транзакцию;
 - после commit результат содержит путь, GUID, revision и сводку операций;
 - операции `add`, `set`, `transform`, `target`, `move`, `stroke`, `compact` не дублируются —
@@ -122,8 +124,8 @@ GUID, импорт, состояние открытого окна/live-lock и 
 2. `inspect`, `execute` и `render` выбирают TIFF backend по расширению.
 3. Добавлены `whimtex_document_migrate`, диагностические команды, `whimtex_headless_live` и regression tests
    `TiffAgentApiSmoke`/`TiffLiveSmoke`.
-4. Старые `.asset` команды оставлены совместимыми.
+4. Старые `.asset` документы оставлены читаемыми; создание и сохранение новых legacy-документов
+   агентским API запрещены.
 
-Следующий отдельный этап — переключить примеры агентов на TIFF по умолчанию и проверить
-долгоживущие сессии под нагрузкой. Текущие `whimtex_assistant_begin`, `whimtex_assistant_live` и `whimtex_assistant_lock` по-прежнему относятся
+Примеры агентов используют TIFF по умолчанию. Текущие `whimtex_assistant_begin`, `whimtex_assistant_live` и `whimtex_assistant_lock` по-прежнему относятся
 только к открытым окнам.

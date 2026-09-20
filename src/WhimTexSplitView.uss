@@ -1693,40 +1693,6 @@
     margin: 0;
 }
 
-.whimtex-output-compression {
-    flex-direction: column;
-    align-items: stretch;
-    margin-top: 8px;
-    padding: 4px;
-}
-
-
-.whimtex-output-compression-group {
-    min-width: 0;
-    align-self: stretch;
-    flex-shrink: 1;
-}
-
-.whimtex-output-compression-group > .unity-help-box {
-    min-width: 0;
-    align-self: stretch;
-    margin-left: 0;
-    margin-right: 0;
-}
-
-.whimtex-output-compression-group > .unity-help-box > .unity-help-box__text {
-    min-width: 0;
-    flex-shrink: 1;
-    flex-basis: 0;
-}
-
-.whimtex-output-compression .whimtex-output-row-label { width: 185px; }
-
-.whimtex-output-compression-title {
-    -unity-font-style: bold;
-    margin-bottom: 4px;
-}
-
 .whimtex-output-split { flex-grow: 1; min-height: 0; }
 .whimtex-output-settings-pane { min-height: 120px; flex-grow: 1; flex-basis: 0; }
 .whimtex-output-preview-footer { min-height: 20px; flex-shrink: 0; overflow: hidden; }

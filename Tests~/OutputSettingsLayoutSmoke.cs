@@ -19,7 +19,6 @@ public static class OutputSettingsLayoutSmoke
             using (var data = new SerializedObject(document))
             {
                 data.FindProperty("outputSettings.storage").intValue = (int)TextureCompositor.OutputStorage.LinearRgba32;
-                data.FindProperty("outputSettings.compression").intValue = (int)TextureCompositor.OutputCompression.Automatic;
                 data.ApplyModifiedPropertiesWithoutUndo();
             }
             type.GetMethod("Open", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, new object[] { document });
@@ -68,11 +67,9 @@ public static class OutputSettingsLayoutSmoke
             using (var data = new SerializedObject(document))
                 if (data.FindProperty("outputSettings.storage").intValue != (int)TextureCompositor.OutputStorage.SrgbRgba32)
                     throw new Exception("sRGB edit not saved");
-            var resize = window.rootVisualElement.Q<VisualElement>("output-row-Resize Algorithm").Q<PopupField<string>>();
-            resize.index = 1;
-            using (var data = new SerializedObject(document))
-                if (data.FindProperty("outputSettings.resizeAlgorithm").enumValueIndex != 1)
-                    throw new Exception("Enum edit not saved");
+            if (window.rootVisualElement.Q<VisualElement>("output-row-Compression") != null ||
+                window.rootVisualElement.Q<VisualElement>("output-row-Format") != null)
+                throw new Exception("Legacy output compression controls should not be shown");
             var footerElement = window.rootVisualElement.Q<VisualElement>("output-preview-footer");
             var surface = window.rootVisualElement.Q<VisualElement>(className: "whimtex-output-preview-surface");
             var resizePreview = type.GetMethod("ResizePreview", BindingFlags.Instance | BindingFlags.NonPublic);

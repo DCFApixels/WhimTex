@@ -62,7 +62,7 @@ a separate image file.
 
 - **Stay in Unity.** Paint and check the result without moving files between editors.
 - **Keep your work editable.** Layers, gradients, noise, outlines and Shader FX remain adjustable rather than being permanently baked.
-- **Work with your project.** The saved asset works as a **texture**, and its nested **Output Sprite** works as a sprite. Drag textures, brush presets and HLSL effects from Project, and store presets alongside your project.
+- **Work with your project.** The saved TIFF works as a **texture**, and its nested **Output Sprite** works as a sprite. Drag textures, brush presets and HLSL effects from Project, and store presets alongside your project.
 - **See it on the model.** **Live Update** shows the result on scene objects while you paint.
 - **Use procedural tools where they fit.** Create noise, gradients, shapes, distance fields and outlines with parameters rather than brush strokes.
 - **Work with AI.** A connected agent adds and edits layers in the open document. A browser AI can describe layers, a brush or HLSL effects as JSON—paste it with `Ctrl+V`. An authoring guide, schemas and examples help generate valid results; paste errors appear in the Console.
@@ -102,10 +102,10 @@ https://github.com/DCFApixels/WhimTex.git
 1. Open **Window → WhimTex** and set the canvas size. Click **New** for another document.
 2. Click **+** at the bottom of Layers and choose **Drawing Layer**. Alternatively, drag an existing texture from Project onto the preview.
 3. Arrange it with Transform (`T`), or paint with Brush (`B`) / Pencil (`P`).
-4. Press `Ctrl+S`. The editable document and full-resolution texture are saved in one `.asset`.
+4. Press `Ctrl+S`. The editable document and full-resolution texture are saved in one `.whimtex.tiff`.
 5. Assign that asset to a texture field, or use its nested **Output Sprite**.
 
-Double-click the saved asset to reopen it. PNG, TGA, JPEG, EXR, layered PSD and Texture2D
+Double-click the saved TIFF to reopen it. PNG, TGA, JPEG, EXR, layered PSD and Texture2D
 are available through **Export**.
 
 <a id="workspace"></a>

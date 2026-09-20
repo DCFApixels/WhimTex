@@ -74,6 +74,9 @@ namespace DCFApixels.WhimTex
             bool create = Bool(request, "create");
             bool dryRun = Bool(request, "dryRun");
             bool save = Bool(request, "save", true);
+            Require(tiff || (!create && dryRun),
+                "Legacy .asset documents are read-only for agent batches. Use a .tiff assetPath for create/edit/save, or use whimtex_document_migrate.",
+                "legacy_read_only");
             Require(!create || save || dryRun, "Creating a document requires save=true.");
             Require(create || (request["width"] == null && request["height"] == null), "width/height are only accepted on create.");
             int width = Int(request, "width", 512, 1, 16384);

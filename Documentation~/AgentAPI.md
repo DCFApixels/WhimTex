@@ -35,10 +35,11 @@ new default folder does not exist; a custom preset-folder path must be selected 
 The API edits the same model and uses the same renderer, brush and save path as the window.
 For reservations, generation and selected-region edits in an open (possibly unsaved) document,
 use the [live editing API](LiveAgentAPI.md). The path-based batch contract below remains unchanged.
-No WhimTex window or active selection is required. `assetPath` may point to a legacy `.asset` or
-to a TIFF document (`.tiff`). TIFF batches use a transient `WhimTexDocumentBuild` and the common
-TIFF writer; they do not create or select a WhimTex window. Legacy `.asset` batches retain their
-existing ScriptableObject lifecycle for compatibility.
+No WhimTex window or active selection is required. New agent documents must use a TIFF
+`assetPath` such as `Assets/Art/Icon.whimtex.tiff`. A legacy `.asset` may still be inspected or
+passed to the explicit migration command, but agents should not create new `.asset` documents.
+TIFF batches use a transient `WhimTexDocumentBuild` and the common TIFF writer; they do not create
+or select a WhimTex window.
 
 The window's optional **Live Update** publishes preview pixels to the existing output texture on the GPU
 without changing its asset reference or CPU pixel data. It is not an API autosave mode: use `save` to persist
@@ -115,11 +116,16 @@ An API validation error can arrive through a successful transport. `errorCode` a
 For `whimtex_document_validate`, a readable document may still return `success:true` with `valid:false` and
 an `errors` array; check both fields before using it as an input for another batch.
 
+`whimtex_describe` also returns `agentModes` and `storagePolicy`. New documents are TIFF-only:
+`whimtex_batch_execute` creates and saves only `*.whimtex.tiff`, while an existing legacy `.asset`
+can only be inspected, rendered, validated, exported or migrated. Passing a legacy `.asset` to a
+batch is allowed only with `dryRun:true`; applying or saving it returns `legacy_read_only`.
+
 Direct C# entry points, all on Unity's main thread, return a JSON string:
 
 ```csharp
 WhimTexApi.Describe();
-WhimTexApi.Inspect("Assets/Art/Icon.asset");
+WhimTexApi.Inspect("Assets/Art/Icon.whimtex.tiff");
 WhimTexApi.ExecuteJson(requestJson);
 WhimTexApi.ExecuteFile(absoluteRequestPath);
 WhimTexApi.ImportImage(absolutePngPath, "Assets/Art/Source.png");
@@ -211,7 +217,7 @@ stretches a non-square source to the full canvas; omit scale to preserve the ini
 | Request field | Meaning |
 |---|---|
 | `apiVersion` | Required integer `1` |
-| `assetPath` | Required project-relative `Assets/.../*.asset` or `Assets/.../*.tiff`; no overwrite on create |
+| `assetPath` | Required project-relative `Assets/.../*.whimtex.tiff` for new documents; legacy `.asset` is read/migrate-only |
 | `create` | Default false. True creates a new document |
 | `width`, `height` | Create only; integers, default 512 each, 1..16384 and at most 16,777,216 total pixels |
 | `expectedRevision` | Required for existing documents; copy the latest inspect/execute revision verbatim |
