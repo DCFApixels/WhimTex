@@ -65,6 +65,9 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private bool strokeWrapCanvas;
 
         internal Texture2D StoredTexture => pixels;
+        internal long DocumentPixelBytes => paintSurface != null && (paintSurfaceDirty || pixels == null)
+            ? (long)paintSurface.width * paintSurface.height * (colorRange == LayerColorRange.HDR ? 8 : 4)
+            : pixels == null ? 0 : WhimTexDocumentLimits.ExpectedBytes(pixels.width, pixels.height, pixels.format, pixels.mipmapCount, !pixels.isDataSRGB);
         internal bool UsesMirrorPattern => repeatMode == PaintRepeatMode.Mirror;
         internal bool UsesRepeatedPattern => repeatMode != PaintRepeatMode.None && !UsesMirrorPattern;
         internal float RadialStartAngleRadians => -Mathf.PI + Mathf.Repeat(radialStartAngle, 360f) * Mathf.Deg2Rad;

@@ -344,10 +344,13 @@ namespace DCFApixels.WhimTex
             // Compression AND SHA-256 run together, not a parallel deflate followed by serial hashing.
             // Bound simultaneous input to ~256 MiB and at most four jobs; buffers/results cost extra.
             int workers = (int)Math.Max(1, Math.Min(4, Math.Min(Environment.ProcessorCount, 256L * 1024 * 1024 / largest)));
-            if (names.Count > 1 && pending >= ParallelDeflateBytes && workers > 1)
-                System.Threading.Tasks.Parallel.For(0, names.Count,
-                    new System.Threading.Tasks.ParallelOptions { MaxDegreeOfParallelism = workers }, Prepare);
-            else for (int i = 0; i < names.Count; i++) Prepare(i);
+            WhimTexDocumentOperation.Run(() =>
+            {
+                if (names.Count > 1 && pending >= ParallelDeflateBytes && workers > 1)
+                    System.Threading.Tasks.Parallel.For(0, names.Count,
+                        new System.Threading.Tasks.ParallelOptions { MaxDegreeOfParallelism = workers }, Prepare);
+                else for (int i = 0; i < names.Count; i++) Prepare(i);
+            });
             for (int i = 0; i < names.Count; i++)
             {
                 string name = names[i];
@@ -364,12 +367,7 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private static byte[] Digest(ReadOnlySpan<byte> data)
-        {
-            using var hash = System.Security.Cryptography.IncrementalHash.CreateHash(System.Security.Cryptography.HashAlgorithmName.SHA256);
-            hash.AppendData(data);
-            return hash.GetHashAndReset();
-        }
+        private static byte[] Digest(ReadOnlySpan<byte> data) => WhimTexSha256.Compute(data);
 
         private void VerifyStored(string name, ReadOnlySpan<byte> stored)
         {
@@ -608,10 +606,22 @@ namespace DCFApixels.WhimTex
                 baseline.Refresh();
                 if (baseline.Exists != existed || existed && (baseline.Length != previousLength || baseline.LastWriteTimeUtc != previousWrite))
                     throw new WhimTexDocumentException("The destination changed during save; it was not overwritten.");
-                if (File.Exists(full) && FilesEqual(full, temporary)) { File.Delete(temporary); return false; }
+                WhimTexDocumentOperation.Report("Comparing saved file", .91f);
+                bool same = false;
+                if (File.Exists(full)) WhimTexDocumentOperation.Run(() => same = FilesEqual(full, temporary));
+                if (same) { File.Delete(temporary); return false; }
+                WhimTexDocumentOperation.Commit();
+                baseline.Refresh();
+                if (baseline.Exists != existed || existed && (baseline.Length != previousLength || baseline.LastWriteTimeUtc != previousWrite))
+                    throw new WhimTexDocumentException("The destination changed during save; it was not overwritten.");
                 if (File.Exists(full)) File.Replace(temporary, full, null);
                 else File.Move(temporary, full);
                 return true;
+            }
+            catch (OperationCanceledException)
+            {
+                TryDelete(temporary);
+                throw;
             }
             catch (Exception error)
             {

@@ -17,7 +17,7 @@ namespace DCFApixels.WhimTex
     /// carrier is imported by Unity without an error but silently loses sprite sub-assets, so the file
     /// must never reach the documents folder unverified.
     /// </summary>
-    public static class WhimTexTiffImage
+    public static partial class WhimTexTiffImage
     {
         private const int EntryCount = 12;
         private const int HeaderSize = 8;
@@ -458,7 +458,7 @@ namespace DCFApixels.WhimTex
                     int destination = target == null ? 0 : targetOffset + read;
                     int step = deflate.Read(buffer, destination, Math.Min(65536, expected - read));
                     if (step <= 0) break;
-                    for (int i = 0; i < step; i++) { a = (a + buffer[destination + i]) % 65521; b = (b + a) % 65521; }
+                    UpdateAdler32(buffer, destination, step, ref a, ref b);
                     read += step;
                 }
                 if (read != expected) { error = "The compressed TIFF strip decoded to " + read + " bytes instead of " + expected + "."; return false; }
@@ -477,9 +477,15 @@ namespace DCFApixels.WhimTex
 
         private static uint Adler32(byte[] data, int offset, int count)
         {
-            // Deferred modulo: taking the remainder per byte costs more than the checksum itself.
-            const uint modulus = 65521;
             uint a = 1, b = 0;
+            UpdateAdler32(data, offset, count, ref a, ref b);
+            return b << 16 | a;
+        }
+
+        private static void UpdateAdler32(byte[] data, int offset, int count, ref uint a, ref uint b)
+        {
+            // 5552 bounds the accumulators below uint.MaxValue even for an all-255 block.
+            const uint modulus = 65521;
             int index = 0;
             while (index < count)
             {
@@ -493,7 +499,6 @@ namespace DCFApixels.WhimTex
                 b %= modulus;
                 index += block;
             }
-            return b << 16 | a;
         }
 
         private static void PutU16(byte[] buffer, int offset, int value)

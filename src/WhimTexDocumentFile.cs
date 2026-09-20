@@ -47,6 +47,8 @@ namespace DCFApixels.WhimTex
             if (string.IsNullOrEmpty(path)) throw new WhimTexDocumentException("The document path is empty.");
             if (!string.IsNullOrEmpty(document.documentLoadWarning))
                 throw new WhimTexDocumentException("Saving is blocked to prevent data loss. Reopen this document with all required types, fields and assets available. " + document.documentLoadWarning);
+            WhimTexDocumentOperation.Report("Checking document limits", .02f);
+            WhimTexDocumentLimits.Validate(document);
             // Converting a legacy asset must never rebind or mutate that asset's output.
             if (AssetDatabase.Contains(document))
             {
@@ -69,6 +71,7 @@ namespace DCFApixels.WhimTex
             using var container = new WhimTexDocumentContainer();
             container.Set(WhimTexDocumentContainer.DocumentBlock,
                 WhimTexDocumentSerializer.Serialize(document, container), System.IO.Compression.CompressionLevel.Optimal);
+            WhimTexDocumentOperation.Report("Compressing and verifying Drawing blocks", .2f);
             container.PrepareStoredBlocks();
             modelMs = stopwatch.ElapsedMilliseconds;
             string signature = container.HasExternalInputs ? null : container.ContentSignature();
@@ -90,6 +93,7 @@ namespace DCFApixels.WhimTex
             bool wrote = true;
             try
             {
+                WhimTexDocumentOperation.Report("Rendering composite", .4f);
                 composite = document.Compose();
                 if (composite == null) throw new WhimTexDocumentException("The document produced no composite image.");
                 if (!composite.isReadable)
@@ -107,7 +111,7 @@ namespace DCFApixels.WhimTex
                 {
                     wrote = WhimTexDocumentContainer.WriteStaged(path, stream =>
                     {
-                        WhimTexTiffCarrier.WriteTo(stream, container, composite, importer == null ? null : (bool?)importer.sRGBTexture);
+                        WhimTexTiffCarrier.WriteTo(stream, container, composite, importer == null ? null : (bool?)importer.sRGBTexture, document.outputPrecision);
                         carrierMs = stopwatch.ElapsedMilliseconds - modelMs;
                         stream.Position = stream.Length - 16;
                         using var reader = new BinaryReader(stream, System.Text.Encoding.UTF8, true);
@@ -121,6 +125,8 @@ namespace DCFApixels.WhimTex
                     AssetDatabase.AllowAutoRefresh();
                 }
                 writeMs = stopwatch.ElapsedMilliseconds - modelMs - carrierMs;
+                // An identical staged file has not committed yet. Stop cancellation before any .meta write too.
+                WhimTexDocumentOperation.Commit();
                 // Float TIFF samples are linear. LDR encoding follows the existing importer;
                 // first import gets its flag from the carrier, never from the temporary compose texture.
                 bool srgb = (container.Get(WhimTexTiffCarrier.FlagsBlock)[0] & 1) != 0;
@@ -261,6 +267,8 @@ namespace DCFApixels.WhimTex
             try
             {
                 using var container = WhimTexTiffCarrier.OpenContainer(path);
+                WhimTexDocumentOperation.Report("Checking document directory", .02f);
+                WhimTexDocumentLimits.ValidateDirectory(container);
                 if (container.LengthOf(WhimTexDocumentContainer.DocumentBlock) > 64L * 1024 * 1024)
                     throw new WhimTexDocumentException("The document model exceeds the 64 MiB load budget.");
                 if (!container.TryGet(WhimTexDocumentContainer.DocumentBlock, out byte[] model))
@@ -304,6 +312,12 @@ namespace DCFApixels.WhimTex
                 if (prepareEffects) CompileEmbeddedEffects(document);
                 return true;
             }
+            catch (OperationCanceledException)
+            {
+                if (document != null) UnityEngine.Object.DestroyImmediate(document);
+                document = null;
+                throw;
+            }
             catch (Exception exception)
             {
                 error = exception.Message;
@@ -344,6 +358,7 @@ namespace DCFApixels.WhimTex
             foreach (ShaderFX effect in EnumerateEffects(document))
             {
                 if (AssetDatabase.Contains(effect)) continue;
+                WhimTexDocumentOperation.Report("Preparing Shader FX", .9f);
                 try { effect.RestoreDocumentShader(); }
                 catch (Exception error) { Debug.LogWarning("WhimTex: could not compile an embedded effect: " + error.Message); }
             }

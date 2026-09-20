@@ -69,7 +69,8 @@ namespace DCFApixels.WhimTex
             return stream.ToArray();
         }
 
-        internal static void WriteTo(Stream stream, WhimTexDocumentContainer container, Texture2D composite, bool? srgbOutput = null)
+        internal static void WriteTo(Stream stream, WhimTexDocumentContainer container, Texture2D composite, bool? srgbOutput = null,
+            WhimTexOutputPrecision precision = WhimTexOutputPrecision.Auto)
         {
             if (container == null) throw new WhimTexDocumentException("There is no document container to write.");
             if (composite == null) throw new WhimTexDocumentException("The document produced no composite image.");
@@ -78,27 +79,26 @@ namespace DCFApixels.WhimTex
             bool halfSource = composite.format == TextureFormat.RGBAHalf;
             bool floatSource = composite.format == TextureFormat.RGBAFloat;
             int sourceBits = halfSource ? 16 : floatSource ? 32 : 8;
-            byte[] rawPixels = composite.GetRawTextureData<byte>().ToArray();
-            // The sample format follows the content, not the document setting: colours that all fit inside
-            // 0..1 do not need float samples, a float file and BC6H compression on every single import.
-            bool needsFloat = sourceBits != 8 && WhimTexTiffImage.HasValuesOutsideUnitRange(rawPixels, sourceBits);
+            var rawPixels = composite.GetRawTextureData<byte>();
+            // Auto follows the content; explicit Float32 also preserves fine differences within 0..1.
+            bool needsFloat = precision == WhimTexOutputPrecision.Float32;
+            WhimTexDocumentOperation.Report("Checking output precision", .42f);
+            if (precision == WhimTexOutputPrecision.Auto && sourceBits != 8)
+                WhimTexDocumentOperation.Run(() => needsFloat = WhimTexTiffImage.HasValuesOutsideUnitRange(rawPixels, sourceBits));
             int targetBits = needsFloat ? 32 : 8;
             // Dropping half-float to 8-bit linear bands in the shadows, so those values are encoded to sRGB
             // and the carrier flags tell Unity to decode them back. Data that is already 8-bit keeps its own
             // encoding: a linear data texture must not be reinterpreted.
             bool encodeSrgb = targetBits == 8 && sourceBits != 8 && !composite.isDataSRGB && (srgbOutput ?? true);
-            byte[] image = WhimTexTiffImage.WriteRaw(composite.width, composite.height, rawPixels, sourceBits,
-                targetBits, encodeSrgb);
+            WhimTexTiffImage.WriteRawTo(stream, composite.width, composite.height, rawPixels, sourceBits,
+                targetBits, encodeSrgb, targetBits == 32 && composite.isDataSRGB);
             // A malformed carrier imports without an error but silently loses sprite sub-assets, so the
             // image is read back before the document ever reaches its folder.
-            if (!WhimTexTiffImage.Validate(image, out int width, out int height, out string error))
-                throw new WhimTexDocumentException("The produced carrier image is invalid: " + error);
-            if (width != composite.width || height != composite.height)
-                throw new WhimTexDocumentException("The produced carrier image does not match the composite.");
+            WhimTexTiffImage.ValidateStream(stream);
             // A few bytes the import pipeline can fetch without touching the model or the pixels.
-            container.Set(FlagsBlock, new[] { (byte)(encodeSrgb || composite.isDataSRGB ? 1 : 0) },
+            container.Set(FlagsBlock, new[] { (byte)(targetBits == 8 && (encodeSrgb || composite.isDataSRGB) ? 1 : 0) },
                 System.IO.Compression.CompressionLevel.Fastest);
-            stream.Write(image, 0, image.Length);
+            WhimTexDocumentOperation.Report("Writing document blocks", .85f);
             long start = stream.Position;
             container.WriteTo(stream);
             long length = stream.Position - start;

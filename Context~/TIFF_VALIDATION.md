@@ -4,6 +4,47 @@
 Проверяется экспериментальная реализация, не готовность всех платформ к релизу.
 Старый `.asset` и публичные команды агентов не заменены.
 
+## Дополнение 2026-09-20: Burst SHA-256
+
+Подключён переносимый Burst SHA-256 для stored-block integrity при записи/чтении;
+малые блоки и отключённый Burst остаются на .NET. Формат и digest побайтно совместимы.
+**812 DocumentBurstHashProbe + 32 DocumentBurstIntegritySmoke + 54 DocumentSaveCacheSmoke** — пройдены.
+Независимый .NET-only writer подтвердил byte-exact output, повреждённые raw/compressed блоки отвергаются.
+Компиляция через Unity прошла. Только memory-only проверки: пользовательские документы/сцены не менялись,
+новые Assets не создавались. Настройки Burst не переключались; fallback проверен отдельно.
+Измерения и границы вывода: [TIFF_SAVE_PERFORMANCE.md](TIFF_SAVE_PERFORMANCE.md#burst-sha-256-2026-09-20).
+Windows Editor / Burst 2.0 проверены; остальные ОС, Burst 1.8 и Player здесь не запускались.
+
+## Дополнение 2026-09-20: точность, отмена, streaming, recovery
+
+Unity **6000.7.0a6 / DX12**, та же экспериментальная ветка. Компиляция через подключённый Editor без ошибок.
+Новый `Tests~/DocumentProductionSmoke.cs`, entry `DocumentProductionSmoke.Run`: **68 проверок**:
+
+- Auto / EightBit / Float32: bit depth, сохранение настройки, неизменный GUID, no-op timestamp;
+  Float32 сохраняет точные значения half-float композиции внутри 0–1.
+- Новый streamed TIFF byte-exact с прежним writer на RGBA32/RGBAHalf, rectangular/single/multi-strip;
+  повреждение полосы отклоняется. Проверка использует самостоятельный старый encode path как reference.
+- Отмена до render, во время подготовки/записи и перед Commit оставляет прежний TIFF и правки;
+  отмена при совпавших байтах не меняет `.meta`. Собственный staging удаляется.
+- Отмена Drawing Open на worker-этапе освобождает частичную модель; следующий Open читает все байты точно;
+  повреждённый pixel block обнаруживается SHA-проверкой. Частичные Unity objects не остаются.
+- Отменённый Live Save возобновляет Live Update; Stop возвращает Read/Write.
+- Предельные размеры/бюджет и дубликаты hierarchy отвергаются до рендера; mismatch metadata/pixel length — до Texture2D allocation.
+- Recovery копирует полный staged TIFF в новый asset с новым GUID, оставляет оригинал/staging;
+  существующее назначение и неполная запись не допускаются.
+- Настоящий UITK control Precision создаётся в отдельном временном окне, меняет модель и поддерживает Undo;
+  окно уничтожается, фокус/Selection возвращаются. Визуальная проверка всех ширин/тем не выполнялась.
+
+Повторно: **54 DocumentSaveCacheSmoke + 38 DocumentPreparationSmoke + 44 DocumentReliabilitySmoke**;
+в сумме с новым тестом **204 проверки**. Source-тесты DrawingReload/EmptyDocumentSave и проверка 75 страниц
+EN/RU/ZH документации пройдены. Уникальные тестовые Assets удалены; пользовательские сцены/документы не менялись.
+
+4K stress benchmark и честные ограничения сравнения: [TIFF_SAVE_PERFORMANCE.md](TIFF_SAVE_PERFORMANCE.md).
+Отмена — не async-редактирование: уже запущенный пакет должен завершиться, render/import могут блокировать UI.
+После начала Commit отмены нет. Новый progress не меняет public agent API.
+Player в этом дополнении **не пересобирался**; реальный hard crash/power loss не выполнялся.
+Ранее выполненный Player/build результат ниже относится к предыдущей проверке.
+
 ## Live Update и Player
 
 `WhimTexDocumentBuildGuard` использует публичный `IPreprocessBuildWithReport`.

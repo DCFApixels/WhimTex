@@ -19,8 +19,6 @@ namespace DCFApixels.WhimTex
             menu.AddItem(new GUIContent("Layered PSD (.psd)"), false, ExportPsd);
             menu.AddSeparator(string.Empty);
             menu.AddItem(new GUIContent("Unity Texture2D (.asset)"), false, () => ExportTexture(TextureExportFormat.Asset));
-            menu.AddSeparator(string.Empty);
-            menu.AddItem(new GUIContent("Compositor Asset, legacy (.asset)"), false, () => SaveAsAsset());
             menu.ShowAsContext();
         }
 

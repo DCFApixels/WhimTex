@@ -18,6 +18,7 @@ namespace DCFApixels.WhimTex
         public int width = 512;
         public int height = 512;
         public FilterMode outputFilter = FilterMode.Bilinear;
+        public WhimTexOutputPrecision outputPrecision = WhimTexOutputPrecision.Auto;
         [SerializeField, HideInInspector] internal Mesh uvReferenceMesh;
         [SerializeField, HideInInspector] internal int uvReferenceChannel;
         [SerializeField, HideInInspector] internal int uvReferenceSubmesh = -1;

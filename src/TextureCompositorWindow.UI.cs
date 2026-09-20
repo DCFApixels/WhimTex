@@ -440,6 +440,16 @@ namespace DCFApixels.WhimTex
             outputSettings.name = "canvasOutputSettings";
             outputSettings.tooltip = "Select the saved TIFF to edit its native texture import settings in Inspector. An unsaved document must be saved first. Legacy assets keep their Output Settings window.";
             toolkitCanvasToolbar.Add(outputSettings);
+            if (!AssetDatabase.Contains(compositor))
+            {
+                var precision = new PopupField<string>("Precision", new List<string> { "Auto", "8-bit", "Float32" }, Mathf.Clamp((int)compositor.outputPrecision, 0, 2))
+                    { name = "canvasOutputPrecision", tooltip = "TIFF source precision, independent of GPU compression. Auto uses 8-bit unless HDR is needed; 8-bit clamps to 0–1; Float32 preserves fine values even within 0–1. Working rendering remains half-float. Drawing storage limits: 256 MiB per texture, 1 GiB total; canvas up to 16384, decoded TIFF image below 2 GiB." };
+                precision.AddToClassList("whimtex-canvas-precision");
+                toolkitSettingsBindings.Track(precision, () => precision.choices[Mathf.Clamp((int)compositor.outputPrecision, 0, 2)]);
+                precision.RegisterValueChangedCallback(evt => ApplyToolkitChange("Change TIFF Precision",
+                    () => compositor.outputPrecision = (WhimTexOutputPrecision)precision.choices.IndexOf(evt.newValue)));
+                toolkitCanvasToolbar.Add(precision);
+            }
             var filter = new EnumField("Filter", compositor.outputFilter) { name = "canvasOutputFilter" };
             filter.AddToClassList("whimtex-canvas-filter");
             filter.tooltip = "Final image filtering, saved with the document. Point keeps pixels sharp; Bilinear smooths them. Trilinear blends mip levels when available (this does not generate mipmaps). Pencil temporarily uses Point in the preview only.";

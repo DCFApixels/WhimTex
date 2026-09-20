@@ -933,6 +933,18 @@
     flex-shrink: 0;
 }
 
+.whimtex-canvas-precision {
+    flex-basis: 158px;
+    min-width: 142px;
+    flex-shrink: 1;
+}
+
+.whimtex-canvas-precision > .unity-base-field__label {
+    min-width: 56px;
+    width: 56px;
+    flex-shrink: 0;
+}
+
 .whimtex-eyedropper-lens {
     position: absolute;
     left: 0;

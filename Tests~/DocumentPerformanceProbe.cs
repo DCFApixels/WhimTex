@@ -47,6 +47,7 @@ public static class DocumentPerformanceProbe
         public bool hdr, randomPixels, unchangedKeptTimestamp;
         public long fileBytes;
         public List<Measurement> measurements = new List<Measurement>();
+        public List<string> saveStages = new List<string>();
     }
     static Measurement Measure(string operation, Action action)
     {
@@ -85,6 +86,10 @@ public static class DocumentPerformanceProbe
         TextureCompositor loaded = null;
         var ownedPixels = new List<Texture2D>();
         var report = new Report { unity = Application.unityVersion, graphics = SystemInfo.graphicsDeviceType.ToString(), size = size, layers = layers, hdr = hdr, randomPixels = randomPixels };
+        Application.LogCallback log = (message, _, type) => {
+            if (message.StartsWith("WhimTex: saved " + folder, StringComparison.Ordinal)) report.saveStages.Add(message);
+        };
+        Application.logMessageReceived += log;
         try
         {
             for (int index = 0; index < layers; index++)
@@ -136,13 +141,14 @@ public static class DocumentPerformanceProbe
             // run_script sees Localization's embedded Json.NET as well; select the public assembly explicitly.
             string json = (string)Type.GetType("Newtonsoft.Json.JsonConvert, Newtonsoft.Json")
                 .GetMethod("SerializeObject", new[] { typeof(object) }).Invoke(null, new object[] { report });
-            File.WriteAllText(output + "/perf-" + size + "-" + layers + "-" + (hdr ? "hdr" : "ldr") + "-" + randomPixels + "-optimized.json", json);
+            File.WriteAllText(output + "/perf-" + size + "-" + layers + "-" + (hdr ? "hdr" : "ldr") + "-" + randomPixels + "-streaming.json", json);
             if (loaded.layers.Count != layers || !report.unchangedKeptTimestamp)
                 throw new Exception("Performance probe correctness check failed; inspect the saved report.");
             return report;
         }
         finally
         {
+            Application.logMessageReceived -= log;
             if (doc != null) Object.DestroyImmediate(doc);
             if (loaded != null) Object.DestroyImmediate(loaded);
             foreach (var texture in ownedPixels) if (texture != null) Object.DestroyImmediate(texture);

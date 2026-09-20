@@ -1186,68 +1186,6 @@ namespace DCFApixels.WhimTex
             Undo.FlushUndoRecordObjects();
         }
 
-        private void SaveAsset()
-        {
-            PrepareDocumentSave();
-            if (compositor == null || !AssetDatabase.Contains(compositor))
-                return;
-
-            if (!compositor.TrySaveWithOutput())
-                return;
-            UpdateUnsavedChangesState();
-            RefreshToolkitInterface();
-        }
-
-        private bool SaveAsAsset()
-        {
-            PrepareDocumentSave();
-            if (compositor == null)
-                return false;
-
-            string defaultName = compositor != null && !string.IsNullOrWhiteSpace(compositor.name)
-                ? compositor.name
-                : "Untitled";
-            string path = EditorUtility.SaveFilePanelInProject(
-                "Save Texture Compositor",
-                defaultName,
-                "asset",
-                "Choose a location for the compositor asset.");
-            if (string.IsNullOrEmpty(path))
-                return false;
-
-            compositor.SyncDrawingLayerTextures();
-            TextureCompositor copy = Instantiate(compositor);
-            copy.documentBinding = null;
-            if (AssetDatabase.Contains(compositor)) copy.SpriteOutputSettings.linkedTextureGuid = null;
-            try
-            {
-                copy.CloneEmbeddedShaderFX();
-            }
-            catch (Exception exception)
-            {
-                DestroyImmediate(copy);
-                Debug.LogException(exception);
-                EditorUtility.DisplayDialog("WhimTex Save As failed", exception.Message, "OK");
-                return false;
-            }
-            copy.CloneDrawingLayerTextures();
-            copy.name = Path.GetFileNameWithoutExtension(path);
-            copy.hideFlags = HideFlags.None;
-            path = AssetDatabase.GenerateUniqueAssetPath(path);
-            if (!copy.TrySaveWithOutput(path))
-            {
-                if (!AssetDatabase.Contains(copy))
-                    DestroyImmediate(copy);
-                return false;
-            }
-            WhimTexApi.TransferLiveDocument(agentSessionId, compositor, copy);
-            agentSessionDocument = copy;
-            SetCompositor(copy);
-            Selection.activeObject = copy.OutputTexture;
-            EditorGUIUtility.PingObject(copy.OutputTexture);
-            return true;
-        }
-
         private void ImportExportedTextureIfNeeded(string path, bool asSprite)
         {
             string fullPath = Path.GetFullPath(path).Replace('\\', '/');

@@ -104,6 +104,11 @@ namespace DCFApixels.WhimTex
                 if (stream.Position != stream.Length) throw new WhimTexDocumentException("Unexpected trailing model data.");
                 return result;
             }
+            catch (OperationCanceledException)
+            {
+                context.ReleaseCreatedObjects();
+                throw;
+            }
             catch (Exception error)
             {
                 context.ReleaseCreatedObjects();
@@ -468,9 +473,8 @@ namespace DCFApixels.WhimTex
                 // Pixels stay in native memory: copying every layer into the managed heap would hand the
                 // garbage collector hundreds of megabytes per save, and the container frees what it owns.
                 Unity.Collections.NativeArray<byte> view = texture.GetRawTextureData<byte>();
-                _textureBytes += view.Length;
-                if (view.Length > 256L * 1024 * 1024 || _textureBytes > 1024L * 1024 * 1024)
-                    throw new WhimTexDocumentException("Embedded textures exceed the save budget (256 MiB per texture, 1 GiB total).");
+                WhimTexDocumentLimits.CheckTexture(view.Length, ref _textureBytes, "Drawing texture '" + texture.name + "'");
+                WhimTexDocumentOperation.Report("Preparing Drawing pixels", .1f);
                 // Native fingerprint is only a fast lookup: the container compares every raw byte
                 // before accepting a cached block. File integrity still uses SHA-256, once per new block.
                 string cacheKey = _container.ReusePixelCache ? view.Length + ":hash128:" + Hash128.Compute(view) : null;
@@ -814,12 +818,18 @@ namespace DCFApixels.WhimTex
                     mipCount > 1 + (int)Math.Floor(Math.Log(Math.Max(width, height), 2)))
                     throw new WhimTexDocumentException("Invalid embedded texture dimensions.");
                 long length = _container.LengthOf(block);
-                _textureBytes += length;
-                if (length > 256L * 1024 * 1024 || _textureBytes > 1024L * 1024 * 1024)
-                    throw new WhimTexDocumentException("Embedded textures exceed the load budget (256 MiB per texture, 1 GiB total).");
-                byte[] raw = _container.Get(block);
+                WhimTexDocumentLimits.CheckTexture(length, ref _textureBytes, "Drawing block '" + block + "'");
                 if (!Enum.TryParse(formatName, out TextureFormat format) || !Enum.IsDefined(typeof(TextureFormat), format))
                     throw new WhimTexDocumentException("Invalid embedded texture format.");
+                if (WhimTexDocumentLimits.ExpectedBytes(width, height, format, mipCount, linear) != length)
+                    throw new WhimTexDocumentException("Embedded texture byte count does not match its dimensions.");
+                // Do not prefetch neighbouring Drawing blocks here. Opening a document only needs
+                // the block currently being materialized; prefetching four blocks keeps all of their
+                // decompressed byte arrays alive next to the Texture2D objects and can briefly double
+                // memory for large documents. The container remains lazy, so reading one block at a
+                // time lets each temporary byte array be released immediately after Apply().
+                WhimTexDocumentOperation.Report("Reading and verifying Drawing pixels", .25f);
+                byte[] raw = _container.Get(block);
                 var texture = new Texture2D(width, height, format, mipCount, linear) { hideFlags = HideFlags.HideAndDontSave };
                 _objects.Add(texture);
                 if (texture.GetRawTextureData<byte>().Length != raw.Length)

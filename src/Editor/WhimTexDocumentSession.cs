@@ -273,6 +273,21 @@ namespace DCFApixels.WhimTex
             EditorPrefs.DeleteKey(RecoveryKey);
         }
 
+        [MenuItem("Tools/WhimTex/Recovery/Retry Live Update Recovery")]
+        private static void RetryRecovery()
+        {
+            if (_live != null || _saving != null || _enablingReadable)
+            { EditorUtility.DisplayDialog("WhimTex", "Stop Live Update and wait for saving to finish first.", "OK"); return; }
+            try
+            {
+                RecoverReadable();
+                EditorUtility.DisplayDialog("WhimTex", EditorPrefs.HasKey(RecoveryKey)
+                    ? "The texture is still missing. Restore the TIFF and its .meta, then retry. Recovery information has been retained."
+                    : "No pending Live Update recovery remains.", "OK");
+            }
+            catch (Exception error) { Debug.LogException(error); EditorUtility.DisplayDialog("WhimTex", error.Message, "OK"); }
+        }
+
         private static void Tick()
         {
             if (_live == null) return;

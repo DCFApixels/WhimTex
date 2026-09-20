@@ -13,18 +13,28 @@ namespace DCFApixels.WhimTex
     [InitializeOnLoad]
     internal static class TextureCompositorProjectPreview
     {
+        // Legacy fallback for the small Project-window icons of old .asset documents.
+        // TIFF documents use Unity's native TextureImporter previews and do not need this
+        // callback. Keep the implementation available for compatibility, but leave it
+        // disabled while the legacy icon path is not required.
+        private const bool EnableLegacyAssetProjectIcons = false;
+
         private static readonly Dictionary<ProjectItemId, Texture2D> Outputs = new Dictionary<ProjectItemId, Texture2D>();
 
         static TextureCompositorProjectPreview()
         {
+            if (EnableLegacyAssetProjectIcons)
+            {
+
 #if UNITY_6000_4_OR_NEWER
-            EditorApplication.projectWindowItemByEntityIdOnGUI += DrawProjectIcon;
+                EditorApplication.projectWindowItemByEntityIdOnGUI += DrawProjectIcon;
 #else
-            EditorApplication.projectWindowItemInstanceOnGUI += DrawProjectIcon;
+                EditorApplication.projectWindowItemInstanceOnGUI += DrawProjectIcon;
 #endif
-            EditorApplication.projectChanged += ClearCache;
-            AssemblyReloadEvents.beforeAssemblyReload += Unregister;
-            EditorApplication.quitting += Unregister;
+                EditorApplication.projectChanged += ClearCache;
+                AssemblyReloadEvents.beforeAssemblyReload += Unregister;
+                EditorApplication.quitting += Unregister;
+            }
         }
 
         private static void DrawProjectIcon(ProjectItemId itemId, Rect selectionRect)
@@ -72,6 +82,9 @@ namespace DCFApixels.WhimTex
 
         internal static void ClearCache()
         {
+            if (!EnableLegacyAssetProjectIcons)
+                return;
+
             Outputs.Clear();
             EditorApplication.RepaintProjectWindow();
         }

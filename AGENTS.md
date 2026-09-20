@@ -17,6 +17,12 @@
 - Never increase version without an explicit request, including when committing/pushing.
 - Do not introduce product-analogue names into code, UI or documentation.
 
+## Cross-platform code
+
+- Cross-platform code is the default. OS-specific system-library calls, platform-specific native binaries, explicit CPU/GPU instruction-set intrinsics and hardware/vendor-specific implementation paths may be researched and proposed, with their portability tradeoffs explained, but require explicit user approval before implementation or use. A portable fallback does not waive this requirement; a general optimization request is not approval for such an exception.
+- Use portable C# and supported cross-platform Unity APIs. Burst/Jobs are allowed for portable algorithms; automatic compiler/backend targeting is not permission to write hardware-specific branches or intrinsics.
+- These restrictions also apply to new test and benchmark code. Existing platform-specific diagnostic helpers are not a precedent or permission to expand their use.
+
 ## Execution and safety
 
 - Follow root project AGENTS.md. Compile only through the connected Unity Editor/Pipeline; no standalone MSBuild or dotnet build. One compilation at a time; check completion/errors. Player builds require a separate request.

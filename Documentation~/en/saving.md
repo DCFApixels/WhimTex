@@ -36,6 +36,16 @@ For sprites, select **Sprite (2D and UI)** there and use the standard Sprite Edi
 Keep the TIFF and its `.meta` together; moving the asset within Unity preserves its link to the open document.
 Do not resave the TIFF in another image editor: that can remove the editable layers.
 
+**Precision**, next to the canvas size, selects the saved image precision:
+
+- **Auto** — 8 bits per channel for the ordinary range; Float32 when the result needs HDR.
+- **8-bit** — always 8 bits per channel; values outside 0–1 are clipped only in the output image.
+- **Float32** — retains fine differences even within 0–1, for example in smooth gradients or height maps. Files may be considerably larger.
+
+This controls the source TIFF, not GPU compression. Working rendering remains half-float;
+Float32 cannot recover precision already lost. Drawing pixels keep their own storage format.
+Compression and resizing in **Output** can further change Unity's imported texture.
+
 **Live Update** also works with compressed output: the working image is temporarily uncompressed.
 Read/Write is enabled only when needed and restored when the session ends; the `.meta` is temporarily modified.
 Closing/switching the document, script reload or external reimport stops the session. Saving another document does not affect it.
@@ -53,8 +63,31 @@ Apply any pending Shader FX code before saving. If the TIFF changed outside the 
 Saving a legacy `.asset` as TIFF copies its editable Drawing pixels and leaves the original asset intact. References to its old output are not reassigned automatically.
 PNG/EXR export remains ordinary image export, without editable layers.
 
+### Long operations and limits
+
+Long saves and opens show cancellable progress. Cancelling a save keeps the previous TIFF and your current edits;
+allow the processing step already in progress to finish. The final file replacement and Unity import cannot be cancelled.
+This is not background editing: the document cannot be edited during the operation, and rendering/import may briefly block the interface.
+
+TIFF document limits: each canvas dimension up to **16384**, working half-float buffer and decoded output image each below **2 GiB**,
+embedded pixels up to **256 MiB per texture** and **1 GiB total**, before file compression.
+For example, one 8192×8192 RGBAHalf Drawing takes 512 MiB and cannot be saved; reduce its source resolution
+or split the document. These are implementation limits, not a promise of smooth editing at the maximum sizes.
+
+### Recovering an interrupted save
+
+If a crash leaves a **.whimtex-tmp** file, choose **Tools → WhimTex → Recovery → Recover Staged TIFF…**.
+WhimTex verifies it and offers to save a **new TIFF**. The original document and temporary file are kept.
+Incomplete or damaged writes cannot be recovered this way. The recovered copy gets a new GUID and default import settings;
+existing references are not reassigned to it. This is not autosave: edits made without starting Save cannot be recovered here.
+
+If Live Update's temporary Read/Write setting was not restored after a failure, restore the missing asset or fix its import error,
+then choose **Tools → WhimTex → Recovery → Retry Live Update Recovery**. Do not delete the recovery journal manually.
+
 The sections below about linked images and embedded output settings apply to the **legacy `.asset` workflow**,
-available through **Export → Compositor Asset, legacy (.asset)**, not to TIFF import settings.
+not to TIFF import settings. Legacy documents remain readable, but the window no longer creates new `.asset` documents.
+To migrate one, select it in the Project window and choose **Assets → WhimTex → Migrate Legacy .asset to TIFF…**.
+The original `.asset` and its GUID stay unchanged; migration creates a separate TIFF.
 
 ## Linked output image
 

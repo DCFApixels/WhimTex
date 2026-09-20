@@ -107,6 +107,7 @@ namespace DCFApixels.WhimTex
         {
             if (document == null || string.IsNullOrEmpty(path)) return false;
             TextureCompositor copy = null;
+            using var operation = new WhimTexDocumentOperation("Save WhimTex document");
             try
             {
                 TextureCompositorWindow owner = WindowFor(document);
@@ -140,6 +141,7 @@ namespace DCFApixels.WhimTex
                 Debug.Log("WhimTex: document saved to " + written);
                 return true;
             }
+            catch (System.OperationCanceledException) { return false; }
             catch (System.Exception error)
             {
                 Debug.LogException(error);
@@ -218,11 +220,17 @@ namespace DCFApixels.WhimTex
                     existing.Focus();
                     return true;
                 }
-            if (!WhimTexDocumentFile.TryLoad(path, out TextureCompositor document, out string error))
+            using var operation = new WhimTexDocumentOperation("Open WhimTex document");
+            TextureCompositor document;
+            try
             {
-                EditorUtility.DisplayDialog("WhimTex", error, "OK");
-                return true;
+                if (!WhimTexDocumentFile.TryLoad(path, out document, out string error))
+                {
+                    EditorUtility.DisplayDialog("WhimTex", error, "OK");
+                    return true;
+                }
             }
+            catch (System.OperationCanceledException) { return true; }
             var window = CreateWindow<TextureCompositorWindow>("WhimTex", typeof(TextureCompositorWindow));
             window.SetCompositor(document);
             window.BindDocumentFile(path);
