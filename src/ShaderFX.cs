@@ -267,7 +267,26 @@ namespace DCFApixels.WhimTex
         {
             EditorApplication.delayCall -= ReloadCatalogAfterEnable;
             if (AssetDatabase.Contains(this) || HasAppliedShader) return;
-            try { ApplyAgentDraft(); }
+            try
+            {
+                // The serialized code is deliberately kept as a fallback. For a catalog-linked
+                // effect it is normally the document-safe snapshot produced during serialization,
+                // not the current source file, so prefer the catalog when it is still available.
+                if (IsCatalogLinked)
+                {
+                    string fallback = code;
+                    bool locked = WhimTexApi.IsShaderFXContentLocked(this);
+                    ReloadCatalogSource(true);
+                    if (HasAppliedShader && !lastApplyFailed) return;
+
+                    // A live edit lock only postpones catalog refresh; retain the link so the
+                    // unlock callback can retry it. A deleted or broken preset, however, must
+                    // detach and use the source snapshot stored in the TIFF.
+                    if (!locked) DetachCatalog();
+                    code = fallback;
+                }
+                ApplyAgentDraft();
+            }
             catch (Exception error)
             {
                 lastApplyFailed = true;
