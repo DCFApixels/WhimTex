@@ -17,6 +17,11 @@ namespace DCFApixels.WhimTex
         private static Live _live;
         private static double _lastPublish;
         private static bool _dirty, _enablingReadable;
+        // SaveAndReimport can finish asynchronously. Keep the recovery journal
+        // protected until Start has actually installed the live session; otherwise
+        // a late import callback can mistake the temporary readable state for a
+        // successfully recovered (non-readable) texture and delete the journal.
+        private static string _pendingReadableEnableGuid;
         private static SavePause _saving;
 
         internal static IDisposable SuspendForSave(TextureCompositor document)
@@ -105,7 +110,9 @@ namespace DCFApixels.WhimTex
                     throw new InvalidOperationException("Live Update cannot reinitialize Crunch textures. Disable Crunch or update on Save.");
                 if (!importer.isReadable)
                 {
-                    EditorPrefs.SetString(RecoveryKey, AssetDatabase.AssetPathToGUID(path));
+                    string guid = AssetDatabase.AssetPathToGUID(path);
+                    EditorPrefs.SetString(RecoveryKey, guid);
+                    _pendingReadableEnableGuid = guid;
                     _enablingReadable = true;
                     try { importer.isReadable = true; importer.SaveAndReimport(); }
                     finally { _enablingReadable = false; }
@@ -113,6 +120,7 @@ namespace DCFApixels.WhimTex
                 var target = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
                 WhimTexDocumentFile.ValidateImportedTexture(path);
                 _live = new Live(document, target, path);
+                _pendingReadableEnableGuid = null;
                 _dirty = false;
                 Status = "Live Update on " + path;
                 StateChanged?.Invoke();
@@ -120,6 +128,7 @@ namespace DCFApixels.WhimTex
             }
             catch (Exception error)
             {
+                _pendingReadableEnableGuid = null;
                 RecoverReadable();
                 AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
                 Status = "Live Update unavailable: " + error.Message;
@@ -216,7 +225,9 @@ namespace DCFApixels.WhimTex
                 StateChanged?.Invoke();
             }
             string guid = EditorPrefs.GetString(RecoveryKey, "");
-            if (_live == null && _saving == null && !string.IsNullOrEmpty(guid) && AssetDatabase.GUIDToAssetPath(guid) == path && !_enablingReadable)
+            bool pendingEnable = !string.IsNullOrEmpty(_pendingReadableEnableGuid) &&
+                string.Equals(_pendingReadableEnableGuid, guid, StringComparison.OrdinalIgnoreCase);
+            if (_live == null && _saving == null && !pendingEnable && !string.IsNullOrEmpty(guid) && AssetDatabase.GUIDToAssetPath(guid) == path && !_enablingReadable)
             {
                 importer.isReadable = false;
             }
@@ -236,6 +247,10 @@ namespace DCFApixels.WhimTex
                     StateChanged?.Invoke();
                 }
                 string recoveryGuid = EditorPrefs.GetString(RecoveryKey, "");
+                bool pendingEnable = !string.IsNullOrEmpty(_pendingReadableEnableGuid) &&
+                    string.Equals(_pendingReadableEnableGuid, recoveryGuid, StringComparison.OrdinalIgnoreCase);
+                if (pendingEnable && AssetDatabase.GUIDToAssetPath(recoveryGuid) == path)
+                    continue;
                 if (_saving == null && !_enablingReadable && !string.IsNullOrEmpty(recoveryGuid) && AssetDatabase.GUIDToAssetPath(recoveryGuid) == path)
                 {
                     var importer = AssetImporter.GetAtPath(path) as TextureImporter;
