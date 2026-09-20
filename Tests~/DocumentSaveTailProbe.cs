@@ -110,14 +110,26 @@ public static class DocumentSaveTailProbe
             if (result.totalMs >= 30 || result.samples.Any(s => s.name.StartsWith("WhimTexSaveProbe."))) trial.frames.Add(result);
         }
     }
-    public static async Task<string> Run(string source = "Assets/Г.tiff", int repeats = 2, bool profiling = true)
+    public static async Task<string> Run(string source = "Packages/com.dcfapixels.whimtex/Tests~/Fixtures/BASE_Heart.tiff", int repeats = 2, bool profiling = true)
     {
         if (repeats < 1 || repeats > 3) throw new ArgumentOutOfRangeException(nameof(repeats));
         if (!File.Exists(source) || !WhimTexDocumentFile.IsDocument(source)) throw new Exception("Source document missing.");
         if (ProfilerDriver.enabled || ProfilerDriver.deepProfiling) throw new Exception("Stop existing profiling before running this isolated probe.");
         if ((bool)T("WhimTexDocumentSession").GetProperty("IsLive", Any).GetValue(null)) throw new Exception("Stop user Live Update before running probe.");
-        var sourceBytes = File.ReadAllBytes(source);
-        var sourceMeta = File.ReadAllBytes(source + ".meta");
+        string sourceForCopy = source;
+        string stagedSourceFolder = null;
+        if (source.StartsWith("Packages/", StringComparison.Ordinal))
+        {
+            stagedSourceFolder = "Assets/WhimTexSaveTailSource_" + Guid.NewGuid().ToString("N");
+            AssetDatabase.CreateFolder("Assets", Path.GetFileName(stagedSourceFolder));
+            sourceForCopy = stagedSourceFolder + "/Source.tiff";
+            string sourcePhysical = Path.GetFullPath(source.Replace('/', Path.DirectorySeparatorChar));
+            string stagedPhysical = Path.GetFullPath(sourceForCopy.Replace('/', Path.DirectorySeparatorChar));
+            File.Copy(sourcePhysical, stagedPhysical, false);
+            AssetDatabase.ImportAsset(sourceForCopy, ImportAssetOptions.ForceSynchronousImport);
+        }
+        var sourceBytes = File.ReadAllBytes(sourceForCopy);
+        var sourceMeta = File.Exists(sourceForCopy + ".meta") ? File.ReadAllBytes(sourceForCopy + ".meta") : null;
         var selection = Selection.objects;
         var focus = EditorWindow.focusedWindow;
         bool profileEditor = ProfilerDriver.profileEditor, profileCpu = ProfilerDriver.IsAreaEnabled(ProfilerArea.CPU);
@@ -131,7 +143,7 @@ public static class DocumentSaveTailProbe
         AssetDatabase.CreateFolder("Assets", Path.GetFileName(report.folder));
         try
         {
-            if (!AssetDatabase.CopyAsset(source, path)) throw new Exception("Copy failed.");
+            if (!AssetDatabase.CopyAsset(sourceForCopy, path)) throw new Exception("Copy failed.");
             doc = WhimTexDocumentFile.Load(path);
             report.width = doc.width; report.height = doc.height; report.layers = doc.layers.Count;
             var fill = new ColorFillLayerBehaviour { color = new Color(1, 0, 0, .02f) };
@@ -230,7 +242,9 @@ public static class DocumentSaveTailProbe
             if (!full.StartsWith(assets, StringComparison.OrdinalIgnoreCase) || !Path.GetFileName(full).StartsWith("WhimTexSaveTailProbe_", StringComparison.Ordinal))
                 throw new IOException("Unsafe cleanup target.");
             report.cleanup = AssetDatabase.DeleteAsset(report.folder) && !Directory.Exists(report.folder);
-            report.sourceUnchanged = File.ReadAllBytes(source).SequenceEqual(sourceBytes) && File.ReadAllBytes(source + ".meta").SequenceEqual(sourceMeta);
+            report.sourceUnchanged = File.ReadAllBytes(sourceForCopy).SequenceEqual(sourceBytes) &&
+                (sourceMeta == null ? !File.Exists(sourceForCopy + ".meta") : File.ReadAllBytes(sourceForCopy + ".meta").SequenceEqual(sourceMeta));
+            if (stagedSourceFolder != null) AssetDatabase.DeleteAsset(stagedSourceFolder);
             string output = "Temp/WhimTex/TiffValidationResults/save-tail-probe" + (profiling ? "" : "-no-profiler") + ".json";
             WriteJson(output, report);
         }

@@ -1,10 +1,11 @@
 // One-off probe: attributes the document model serialization time. It hashes every pixel block the same
 // way the serializer's block cache does, so the cost of the cache key can be compared with the whole call.
-// Expects Assets/GGG.tiff to exist; run with Unity Pipeline eval_file.
+// Uses the package-owned BASE_Heart fixture; run with Unity Pipeline eval_file.
 const System.Reflection.BindingFlags Any = System.Reflection.BindingFlags.Static
     | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
-string path = "Assets/GGG.tiff";
-if (!System.IO.File.Exists(path)) return "SKIP: " + path + " is missing";
+string path = System.IO.Path.Combine(System.IO.Directory.GetParent(UnityEngine.Application.dataPath).FullName,
+    "Packages/com.dcfapixels.whimtex/Tests~/Fixtures/BASE_Heart.tiff");
+if (!System.IO.File.Exists(path)) return "SKIP: package fixture is missing";
 var serializer = typeof(DCFApixels.WhimTex.WhimTexDocumentFile).Assembly
     .GetType("DCFApixels.WhimTex.WhimTexDocumentSerializer");
 var serialize = serializer.GetMethod("Serialize", Any);
