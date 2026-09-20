@@ -24,7 +24,12 @@ public static class DocumentProductionSmoke
     static void Reject(Action action, string message, bool cancellation = false)
     {
         try { action(); }
-        catch (Exception e) { Check(cancellation ? e is OperationCanceledException : e is WhimTexDocumentException, message + ": " + e); return; }
+        catch (Exception e)
+        {
+            if (e is TargetInvocationException invocation && invocation.InnerException != null) e = invocation.InnerException;
+            Check(cancellation ? e is OperationCanceledException : e is WhimTexDocumentException, message + ": " + e);
+            return;
+        }
         throw new Exception("FAIL: accepted " + message);
     }
     static IDisposable Operation(Func<string, float, bool> cancel) => (IDisposable)Activator.CreateInstance(
@@ -149,7 +154,7 @@ public static class DocumentProductionSmoke
             {
                 byte[] model = (byte[])Call(T("WhimTexDocumentSerializer"), null, "Serialize", texture, container);
                 Buffer.BlockCopy(BitConverter.GetBytes(16384), 0, model, 5, 4);
-                Reject(() => Call(T("WhimTexDocumentSerializer"), null, "Deserialize", model, container, typeof(Texture2D)), "dimension/payload mismatch before GPU allocation");
+                Reject(() => Call(T("WhimTexDocumentSerializer"), null, "Deserialize", model, container, typeof(Texture2D), null, false), "dimension/payload mismatch before GPU allocation");
             }
             string staged = folder + "/Recovery.whimtex-tmp", recovered = folder + "/Recovered.tiff";
             File.WriteAllBytes(staged, saved);
@@ -190,10 +195,11 @@ public static class DocumentProductionSmoke
         string path = folder + "/Drawing.whimtex.tiff";
         WhimTexDocumentFile.Save(doc, path);
         int count = Resources.FindObjectsOfTypeAll<TextureCompositor>().Length;
-        int polls = 0;
-        using (var operation = Operation((stage, _) => stage == "Reading and verifying Drawing pixels" && ++polls == 2))
-            Reject(() => WhimTexDocumentFile.Load(path), "cancel Drawing worker safely", true);
-        Check(Resources.FindObjectsOfTypeAll<TextureCompositor>().Length == count, "cancelled Drawing open destroys partial document");
+        var deferred = WhimTexDocumentFile.Load(path); owned.Add(deferred);
+        var deferredPixels = (Texture2D)typeof(DrawingLayerBehaviour).GetProperty("StoredTexture", Any)
+            .GetValue(deferred.layers[0].Behaviour);
+        Check(deferredPixels != null, "deferred Drawing block materializes on first access");
+        Check(Resources.FindObjectsOfTypeAll<TextureCompositor>().Length == count + 1, "deferred open owns one document");
         var restored = WhimTexDocumentFile.Load(path); owned.Add(restored);
         for (int i = 0; i < 3; i++)
         {
@@ -214,8 +220,16 @@ public static class DocumentProductionSmoke
         }
         string damaged = folder + "/Damaged.whimtex.tiff";
         File.WriteAllBytes(damaged, file);
-        Reject(() => WhimTexDocumentFile.Load(damaged), "pixel checksum failure is rejected");
-        Check(Resources.FindObjectsOfTypeAll<TextureCompositor>().Length == count + 1, "failed Drawing load destroys partial document");
+        TextureCompositor damagedDocument = null;
+        try
+        {
+            Reject(() =>
+            {
+                damagedDocument = WhimTexDocumentFile.Load(damaged);
+                _ = typeof(DrawingLayerBehaviour).GetProperty("StoredTexture", Any).GetValue(damagedDocument.layers[0].Behaviour);
+            }, "pixel checksum failure is rejected");
+        }
+        finally { if (damagedDocument != null) Object.DestroyImmediate(damagedDocument); }
         var previousFocus = EditorWindow.focusedWindow;
         var window = ScriptableObject.CreateInstance<TextureCompositorWindow>();
         try
