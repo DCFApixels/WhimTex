@@ -34,7 +34,7 @@ public static class LegacySavePolicySmoke
 
             window = ScriptableObject.CreateInstance<TextureCompositorWindow>();
             typeof(TextureCompositorWindow).GetMethod("SetCompositor", Any).Invoke(window, new object[] { legacy });
-            string tiffPath = folder + "/Migrated.whimtex.tiff";
+            string tiffPath = folder + "/Migrated.tiff";
             bool saved = (bool)typeof(TextureCompositorWindow).GetMethod("SaveDocumentTo", Any)
                 .Invoke(null, new object[] { legacy, tiffPath });
             Check(saved, "window SaveDocumentTo accepts TIFF destination");

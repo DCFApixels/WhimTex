@@ -45,7 +45,7 @@
 Контракт и проверенные факты: [DOCUMENT_FORMAT.md](DOCUMENT_FORMAT.md). Реализация контейнера:
 `src/WhimTexDocumentContainer.cs`, тесты `Tests~/DocumentReliabilitySmoke.cs` и `Tests~/DocumentPreparationSmoke.cs`.
 
-- Документ — один **нативный TIFF** (`.whimtex.tiff` для LDR и HDR) с секцией документа
+- Документ — один **нативный TIFF** (`.tiff` для LDR и HDR) с секцией документа
   внутри: своего расширения и `ScriptedImporter` недостаточно, потому что платформенные overrides и
   штатный инспектор текстуры принадлежат `TextureImporter`. ZIP и «документ + отдельная текстура»
   отвергнуты по тем же причинам.

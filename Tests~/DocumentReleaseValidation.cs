@@ -64,7 +64,7 @@ public static class DocumentReleaseValidation
         string recovery = (string)Session.GetField("RecoveryKey", Any).GetValue(null);
         Check(!EditorPrefs.HasKey(recovery), "no user's pending recovery journal");
         var doc = Document(Color.green, 32); TextureCompositor loaded = null;
-        string path = folder + "/Fault.whimtex.tiff";
+        string path = folder + "/Fault.tiff";
         try
         {
             File.Delete(raw + ".00000000000000000000000000000000.whimtex-tmp");
@@ -140,9 +140,9 @@ public static class DocumentReleaseValidation
 
             // Replace the source externally, without asking our writer to acknowledge it.
             var external = Document(Color.blue, 32);
-            try { WhimTexDocumentFile.Save(external, folder + "/External.whimtex.tiff"); }
+            try { WhimTexDocumentFile.Save(external, folder + "/External.tiff"); }
             finally { Object.DestroyImmediate(external); }
-            File.Copy(folder + "/External.whimtex.tiff", path, true);
+            File.Copy(folder + "/External.tiff", path, true);
             File.SetLastWriteTimeUtc(path, DateTime.UtcNow.AddSeconds(3));
             Reject(() => WhimTexDocumentFile.Save(doc, path), "external replacement blocks stale save");
             return Record("faults", new { success = true, checks });

@@ -137,7 +137,7 @@ public static class SmallDocumentSaveProbe
         var ownedPixels = new List<Texture2D>();
         var activeSelection = Selection.objects;
         Sample active = null;
-        string path = folder + "/Probe.whimtex.tiff";
+        string path = folder + "/Probe.tiff";
         Application.LogCallback log = (message, _, __) =>
         {
             if (active != null && message.StartsWith("WhimTex: saved " + path, StringComparison.Ordinal)) active.pipelineLog = message;

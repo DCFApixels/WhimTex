@@ -36,7 +36,7 @@ The API edits the same model and uses the same renderer, brush and save path as 
 For reservations, generation and selected-region edits in an open (possibly unsaved) document,
 use the [live editing API](LiveAgentAPI.md). The path-based batch contract below remains unchanged.
 No WhimTex window or active selection is required. New agent documents must use a TIFF
-`assetPath` such as `Assets/Art/Icon.whimtex.tiff`. A legacy `.asset` may still be inspected or
+`assetPath` such as `Assets/Art/Icon.tiff`. A legacy `.asset` may still be inspected or
 passed to the explicit migration command, but agents should not create new `.asset` documents.
 The retired ScriptableObject writer is kept only as an internal migration/regression fixture; it is
 not reachable from the window or agent API.
@@ -119,7 +119,7 @@ For `whimtex_document_validate`, a readable document may still return `success:t
 an `errors` array; check both fields before using it as an input for another batch.
 
 `whimtex_describe` also returns `agentModes` and `storagePolicy`. New documents are TIFF-only:
-`whimtex_batch_execute` creates and saves only `*.whimtex.tiff`, while an existing legacy `.asset`
+`whimtex_batch_execute` creates and saves only `*.tiff`, while an existing legacy `.asset`
 can only be inspected, rendered, validated, exported or migrated. Passing a legacy `.asset` to a
 batch is allowed only with `dryRun:true`; applying or saving it returns `legacy_read_only`.
 
@@ -127,18 +127,18 @@ Direct C# entry points, all on Unity's main thread, return a JSON string:
 
 ```csharp
 WhimTexApi.Describe();
-WhimTexApi.Inspect("Assets/Art/Icon.whimtex.tiff");
+WhimTexApi.Inspect("Assets/Art/Icon.tiff");
 WhimTexApi.ExecuteJson(requestJson);
 WhimTexApi.ExecuteFile(absoluteRequestPath);
 WhimTexApi.ImportImage(absolutePngPath, "Assets/Art/Source.png");
-WhimTexApi.Render("Assets/Art/Icon.whimtex.tiff", "Temp/WhimTex/icon.png", 1024, false);
-WhimTexApi.Migrate("Assets/Legacy/Icon.asset", "Assets/Art/Icon.whimtex.tiff", false);
-WhimTexApi.InspectStorage("Assets/Art/Icon.whimtex.tiff");
-WhimTexApi.Validate("Assets/Art/Icon.whimtex.tiff", false);
-WhimTexApi.Status("Assets/Art/Icon.whimtex.tiff");
-WhimTexApi.Compare("Assets/Art/Old.whimtex.tiff", "Assets/Art/New.whimtex.tiff", true, 1024);
-WhimTexApi.Recover("Assets/Art/Wall.whimtex.tiff.whimtex-tmp", "Assets/Art/Wall-recovered.whimtex.tiff");
-WhimTexApi.Export("Assets/Art/Icon.whimtex.tiff", "Temp/WhimTex/icon.jpg", 0, true);
+WhimTexApi.Render("Assets/Art/Icon.tiff", "Temp/WhimTex/icon.png", 1024, false);
+WhimTexApi.Migrate("Assets/Legacy/Icon.asset", "Assets/Art/Icon.tiff", false);
+WhimTexApi.InspectStorage("Assets/Art/Icon.tiff");
+WhimTexApi.Validate("Assets/Art/Icon.tiff", false);
+WhimTexApi.Status("Assets/Art/Icon.tiff");
+WhimTexApi.Compare("Assets/Art/Old.tiff", "Assets/Art/New.tiff", true, 1024);
+WhimTexApi.Recover("Assets/Art/Wall.tiff.whimtex-tmp", "Assets/Art/Wall-recovered.tiff");
+WhimTexApi.Export("Assets/Art/Icon.tiff", "Temp/WhimTex/icon.jpg", 0, true);
 WhimTexApi.TiffLiveFile(absoluteRequestPath);
 ```
 
@@ -152,7 +152,7 @@ transient model between requests and supports `begin`, `status`, `preview`, `ren
 and `cancel`:
 
 ```json
-{"apiVersion":1,"op":"begin","sessionId":"wall-live","assetPath":"Assets/Art/Wall.whimtex.tiff","expectedRevision":"<inspect revision>"}
+{"apiVersion":1,"op":"begin","sessionId":"wall-live","assetPath":"Assets/Art/Wall.tiff","expectedRevision":"<inspect revision>"}
 {"apiVersion":1,"op":"preview","sessionId":"wall-live","requestId":"preview-1","operations":[{"op":"add","type":"color","as":"overlay","settings":{"name":"Overlay","color":[1,0.2,0.1,1]}}]}
 {"apiVersion":1,"op":"render","sessionId":"wall-live","requestId":"render-1","outputPath":"Temp/WhimTex/wall-preview.png","overwrite":true}
 {"apiVersion":1,"op":"complete","sessionId":"wall-live","operations":[]}
@@ -181,7 +181,7 @@ PNG/JPEG only; the destination must use the same extension. No URLs or automatic
 ```json
 {
   "apiVersion": 1,
-  "assetPath": "Assets/Art/AgentIcon/Icon.whimtex.tiff",
+  "assetPath": "Assets/Art/AgentIcon/Icon.tiff",
   "create": true,
   "width": 1024,
   "height": 1024,
@@ -201,7 +201,7 @@ PNG/JPEG only; the destination must use the same extension. No URLs or automatic
 
 ```powershell
 unity command whimtex_batch_execute --requestPath 'D:/Projects/MyGame/Temp/WhimTex/create.json' --project-path 'D:/Projects/MyGame' --format json
-unity command whimtex_document_render --assetPath 'Assets/Art/AgentIcon/Icon.whimtex.tiff' --outputPath 'Temp/WhimTex/icon-v1.png' --project-path 'D:/Projects/MyGame' --format json
+unity command whimtex_document_render --assetPath 'Assets/Art/AgentIcon/Icon.tiff' --outputPath 'Temp/WhimTex/icon-v1.png' --project-path 'D:/Projects/MyGame' --format json
 ```
 
 5. View the returned PNG. Revise the document if needed, using IDs/revision from the response or a new inspect.
@@ -219,7 +219,7 @@ stretches a non-square source to the full canvas; omit scale to preserve the ini
 | Request field | Meaning |
 |---|---|
 | `apiVersion` | Required integer `1` |
-| `assetPath` | Required project-relative `Assets/.../*.whimtex.tiff` for new documents; legacy `.asset` is read/migrate-only |
+| `assetPath` | Required project-relative `Assets/.../*.tiff` for new documents; legacy `.asset` is read/migrate-only |
 | `create` | Default false. True creates a new document |
 | `width`, `height` | Create only; integers, default 512 each, 1..16384 and at most 16,777,216 total pixels |
 | `expectedRevision` | Required for existing documents; copy the latest inspect/execute revision verbatim |

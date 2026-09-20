@@ -30,7 +30,7 @@ Unity 通常显示的是**最后保存的图像**。启用 [Live Update](preview
 
 ## TIFF 文档（实验分支）
 
-新文档保存为 **Name.whimtex.tiff**：一个可编辑文件，由 Unity 作为纹理导入。
+新文档保存为 **Name.tiff**：一个可编辑文件，由 Unity 作为纹理导入。
 在 Project 中选中它，或点击 **Output**，即可在 Unity 标准 Inspector 中设置 mipmap、压缩、精灵及平台覆盖。TIFF 不使用单独的设置窗口；新文档需要先保存。
 需要精灵时选择 **Sprite (2D and UI)**，再使用标准 Sprite Editor。
 请保留 TIFF 及其 `.meta`；在 Unity 内移动资源不会断开与已打开文档的关联。

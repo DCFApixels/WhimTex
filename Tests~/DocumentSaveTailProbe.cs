@@ -127,7 +127,7 @@ public static class DocumentSaveTailProbe
         var legacyDraw = (ProjectDrawCallback)T("TextureCompositorProjectPreview")
             .GetMethod("DrawProjectIcon", Any).CreateDelegate(typeof(ProjectDrawCallback));
         bool legacyDetached = false;
-        string path = report.folder + "/Probe.whimtex.tiff";
+        string path = report.folder + "/Probe.tiff";
         AssetDatabase.CreateFolder("Assets", Path.GetFileName(report.folder));
         try
         {

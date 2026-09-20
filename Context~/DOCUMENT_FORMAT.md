@@ -5,7 +5,7 @@
 
 ## Файл и импорт
 
-- Один `Name.whimtex.tiff` и его обычный Unity `.meta`.
+- Один `Name.tiff` и его обычный Unity `.meta`.
 - Пиксели TIFF — готовая композиция; после них находятся контейнер модели и пиксели Drawing.
 - Нативный `TextureImporter` предоставляет Inspector, mipmaps, компрессию, Sprite Editor и platform overrides.
 - `outputPrecision` (`WhimTexOutputPrecision`, default Auto): Auto выбирает 8 бит на канал для LDR

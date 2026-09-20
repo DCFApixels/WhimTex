@@ -84,7 +84,7 @@ public static class DocumentReliabilitySmoke
             var doc = Document(new Color(.18f, .3f, .5f, .25f));
             var reference = doc.Compose(); Owned.Add(reference);
             Color expected = ReadGpu(reference);
-            string path = WhimTexDocumentFile.Save(doc, folder + "/A.whimtex.tiff");
+            string path = WhimTexDocumentFile.Save(doc, folder + "/A.tiff");
             string guid = AssetDatabase.AssetPathToGUID(path);
             var importer = (TextureImporter)AssetImporter.GetAtPath(path);
             Check(importer.sRGBTexture, "first save sRGB follows the carrier");
@@ -106,7 +106,7 @@ public static class DocumentReliabilitySmoke
             Check(image.width == 64 && image.height == 32, "rectangular live dimensions");
             Check(Near(ReadGpu(image), expected), "GPU live RGB/alpha");
             var other = Document(Color.green);
-            WhimTexDocumentFile.Save(other, folder + "/B.whimtex.tiff");
+            WhimTexDocumentFile.Save(other, folder + "/B.tiff");
             Check(Live(doc) && !Live(other), "saving B does not stop/reassign live A");
             Call(Session, null, "Stop", "regression test");
             Check(!((TextureImporter)AssetImporter.GetAtPath(path)).isReadable, "Read/Write restored");
@@ -158,7 +158,7 @@ public static class DocumentReliabilitySmoke
             Call(typeof(DrawingLayerBehaviour), drawing, "PaintPoint", new Vector2(.5f, .5f), 64, 32,
                 Call(typeof(DrawingLayerBehaviour), drawing, "GetStrokeParameters", false));
             // Deliberately do NOT finish the stroke or synchronize the CPU texture here.
-            string paintPath = WhimTexDocumentFile.Save(paintDoc, folder + "/Painting.whimtex.tiff");
+            string paintPath = WhimTexDocumentFile.Save(paintDoc, folder + "/Painting.tiff");
             var paintLoaded = WhimTexDocumentFile.Load(paintPath); Owned.Add(paintLoaded);
             var drawn = paintLoaded.Compose(); Owned.Add(drawn);
             Check(ReadGpu(drawn).r > .9f && ReadGpu(drawn).a > .9f, "unfinished GPU Drawing pixels survive save/load");
@@ -188,7 +188,7 @@ public static class DocumentReliabilitySmoke
                     if (model.Skip(i).Take(token.Length).SequenceEqual(token)) { Buffer.BlockCopy(Encoding.UTF8.GetBytes("ghost"), 0, model, i, 5); break; }
                 container.Set("document", model);
                 byte[] carrier = (byte[])Call(Carrier, null, "Write", container, hdr, null);
-                string incomplete = folder + "/Incomplete.whimtex.tiff";
+                string incomplete = folder + "/Incomplete.tiff";
                 File.WriteAllBytes(incomplete, carrier); AssetDatabase.ImportAsset(incomplete);
                 var loaded = WhimTexDocumentFile.Load(incomplete); Owned.Add(loaded);
                 Reject(() => WhimTexDocumentFile.Save(loaded, incomplete), "unknown fields block lossy save");
@@ -202,7 +202,7 @@ public static class DocumentReliabilitySmoke
                     if (model.Skip(i).Take(token.Length).SequenceEqual(token)) { model[i] = (byte)'X'; break; }
                 container.Set("document", model);
                 byte[] carrier = (byte[])Call(Carrier, null, "Write", container, hdr, null);
-                string missingType = folder + "/MissingType.whimtex.tiff";
+                string missingType = folder + "/MissingType.tiff";
                 File.WriteAllBytes(missingType, carrier); AssetDatabase.ImportAsset(missingType);
                 var loaded = WhimTexDocumentFile.Load(missingType); Owned.Add(loaded);
                 Reject(() => WhimTexDocumentFile.Save(loaded, missingType), "unknown behaviour blocks lossy save");
@@ -212,10 +212,10 @@ public static class DocumentReliabilitySmoke
             // Window bindings are owned by a document and follow GUIDs through moves.
             var window = ScriptableObject.CreateInstance<TextureCompositorWindow>(); Owned.Add(window);
             var windowDoc = Document(Color.blue);
-            string windowPath = WhimTexDocumentFile.Save(windowDoc, folder + "/Window.whimtex.tiff");
+            string windowPath = WhimTexDocumentFile.Save(windowDoc, folder + "/Window.tiff");
             Call(typeof(TextureCompositorWindow), window, "SetCompositor", windowDoc);
             Call(typeof(TextureCompositorWindow), window, "BindDocumentFile", windowPath);
-            string moved = folder + "/Renamed.whimtex.tiff";
+            string moved = folder + "/Renamed.tiff";
             Check(string.IsNullOrEmpty(AssetDatabase.MoveAsset(windowPath, moved)), "test asset move");
             object[] binding = { windowDoc, null };
             Check((bool)typeof(TextureCompositorWindow).GetMethod("TryGetDocumentFile", Any).Invoke(null, binding) && (string)binding[1] == moved, "binding follows GUID after move");

@@ -1,7 +1,7 @@
 # Агентские команды для TIFF-пайплайна
 
 Статус: TIFF-пайплайн реализован и проверен. JSON v1 сохраняется; новые документы агентов
-всегда используют `Assets/.../*.whimtex.tiff`. Legacy `.asset` продолжает работать только для
+всегда используют `Assets/.../*.tiff`. Legacy `.asset` продолжает работать только для
 чтения, диагностики и явной миграции; новые `.asset` создавать не следует.
 
 ## 1. Команды, необходимые для адаптации
@@ -26,7 +26,7 @@
 ```json
 {
   "apiVersion": 1,
-  "assetPath": "Assets/Art/Wall.whimtex.tiff",
+  "assetPath": "Assets/Art/Wall.tiff",
   "create": true,
   "width": 1024,
   "height": 1024,
@@ -57,7 +57,7 @@
 {
   "apiVersion": 1,
   "sourcePath": "Assets/Legacy/Stone.asset",
-  "destinationPath": "Assets/Art/Stone.whimtex.tiff",
+  "destinationPath": "Assets/Art/Stone.tiff",
   "overwrite": false
 }
 ```
@@ -75,7 +75,7 @@
 запросами и не создаёт окно:
 
 ```json
-{"apiVersion":1,"op":"begin","sessionId":"wall-live","assetPath":"Assets/Art/Wall.whimtex.tiff","expectedRevision":"<inspect revision>"}
+{"apiVersion":1,"op":"begin","sessionId":"wall-live","assetPath":"Assets/Art/Wall.tiff","expectedRevision":"<inspect revision>"}
 {"apiVersion":1,"op":"preview","sessionId":"wall-live","requestId":"preview-1","operations":[{"op":"add","type":"color","as":"overlay","settings":{"name":"Overlay","color":[1,0.2,0.1,1]}}]}
 {"apiVersion":1,"op":"render","sessionId":"wall-live","requestId":"render-1","outputPath":"Temp/WhimTex/wall-preview.png","overwrite":true}
 {"apiVersion":1,"op":"complete","sessionId":"wall-live","operations":[]}

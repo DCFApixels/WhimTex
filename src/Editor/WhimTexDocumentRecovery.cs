@@ -13,7 +13,7 @@ namespace DCFApixels.WhimTex
         {
             string source = EditorUtility.OpenFilePanel("Recover an interrupted WhimTex save", "Assets", "whimtex-tmp");
             if (string.IsNullOrEmpty(source)) return;
-            string path = EditorUtility.SaveFilePanelInProject("Recover to a new TIFF", "Recovered.whimtex", "tiff",
+            string path = EditorUtility.SaveFilePanelInProject("Recover to a new TIFF", "Recovered", "tiff",
                 "Creates a new document. The original document and temporary file are kept.");
             if (string.IsNullOrEmpty(path)) return;
             using var operation = new WhimTexDocumentOperation("Recover WhimTex document");

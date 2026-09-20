@@ -78,7 +78,7 @@ public static class DocumentProductionSmoke
         {
             Strips(33, false, true); Strips(1024, false, true);
             Strips(33, true, true); Strips(1024, true, true); Strips(1024, true, false);
-            string path = folder + "/Precision.whimtex.tiff";
+            string path = folder + "/Precision.tiff";
             string guid = null;
             foreach (WhimTexOutputPrecision precision in Enum.GetValues(typeof(WhimTexOutputPrecision)))
             {
@@ -192,7 +192,7 @@ public static class DocumentProductionSmoke
             doc.layers.Add(new Layer(drawing));
             Call(typeof(DrawingLayerBehaviour), drawing, "AdoptStoredTexture", pixels);
         }
-        string path = folder + "/Drawing.whimtex.tiff";
+        string path = folder + "/Drawing.tiff";
         WhimTexDocumentFile.Save(doc, path);
         int count = Resources.FindObjectsOfTypeAll<TextureCompositor>().Length;
         var deferred = WhimTexDocumentFile.Load(path); owned.Add(deferred);
@@ -218,7 +218,7 @@ public static class DocumentProductionSmoke
             long offset = Convert.ToInt64(entry.GetType().GetField("dataOffset", Any).GetValue(entry));
             file[start + offset] ^= 1;
         }
-        string damaged = folder + "/Damaged.whimtex.tiff";
+        string damaged = folder + "/Damaged.tiff";
         File.WriteAllBytes(damaged, file);
         TextureCompositor damagedDocument = null;
         try

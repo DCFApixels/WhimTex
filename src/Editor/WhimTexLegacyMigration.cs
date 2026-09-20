@@ -27,7 +27,7 @@ namespace DCFApixels.WhimTex
                 return;
 
             string sourcePath = AssetDatabase.GetAssetPath(source);
-            string suggested = Path.GetFileNameWithoutExtension(sourcePath) + ".whimtex";
+            string suggested = Path.GetFileNameWithoutExtension(sourcePath);
             string destination = EditorUtility.SaveFilePanelInProject(
                 "Migrate WhimTex legacy asset",
                 string.IsNullOrEmpty(suggested) ? "WhimTex Document" : suggested,

@@ -83,7 +83,7 @@ namespace DCFApixels.WhimTex
                 ["layers"] = 1024, ["drawingPixels"] = 67108864, ["strokePoints"] = 4096, ["strokeStamps"] = 100000, ["strokeCoveragePixels"] = 250000000 };
             result["editing"] = "Inspect before editing; expectedRevision is mandatory on existing TIFF documents. Use @aliases within a batch. New documents require a TIFF assetPath and save=true. Legacy .asset batches are dryRun-only. Save failure may leave partial asset I/O: inspect before retrying.";
             result["storagePolicy"] = new JObject {
-                ["newDocuments"] = "TIFF only (*.whimtex.tiff)",
+                ["newDocuments"] = "TIFF only (*.tiff)",
                 ["legacyAsset"] = "Read-only for agent batches; use whimtex_document_migrate to create a TIFF copy",
                 ["readOperations"] = new JArray("whimtex_document_inspect", "whimtex_document_render", "whimtex_document_validate", "whimtex_document_status", "whimtex_document_export")
             };

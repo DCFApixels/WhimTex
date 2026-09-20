@@ -111,7 +111,7 @@ namespace DCFApixels.WhimTex
         {
             if (document == null) return false;
             string suggested = TryGetDocumentFile(document, out string currentPath) ? Path.GetFileNameWithoutExtension(currentPath)
-                : (string.IsNullOrEmpty(document.name) ? "WhimTex Document" : document.name) + ".whimtex";
+                : (string.IsNullOrEmpty(document.name) ? "WhimTex Document" : document.name);
             string path = EditorUtility.SaveFilePanelInProject("Save WhimTex Document", suggested, "tiff",
                 "The document is stored as a TIFF image, so Unity imports it as a texture with full import settings.");
             if (string.IsNullOrEmpty(path)) return false;

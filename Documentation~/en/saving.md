@@ -30,7 +30,7 @@ File layers keep their links to source textures; keep those sources in the proje
 
 ## TIFF documents (experimental branch)
 
-New documents are saved as **Name.whimtex.tiff**: one editable document that Unity imports as a texture.
+New documents are saved as **Name.tiff**: one editable document that Unity imports as a texture.
 Select it in Project, or click **Output**, to configure mipmaps, compression, sprites and platform overrides in Unity's standard Inspector. TIFF uses no separate settings window; an unsaved document must be saved first.
 For sprites, select **Sprite (2D and UI)** there and use the standard Sprite Editor.
 Keep the TIFF and its `.meta` together; moving the asset within Unity preserves its link to the open document.

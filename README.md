@@ -102,7 +102,7 @@ https://github.com/DCFApixels/WhimTex.git
 1. Open **Window → WhimTex** and set the canvas size. Click **New** for another document.
 2. Click **+** at the bottom of Layers and choose **Drawing Layer**. Alternatively, drag an existing texture from Project onto the preview.
 3. Arrange it with Transform (`T`), or paint with Brush (`B`) / Pencil (`P`).
-4. Press `Ctrl+S`. The editable document and full-resolution texture are saved in one `.whimtex.tiff`.
+4. Press `Ctrl+S`. The editable document and full-resolution texture are saved in one `.tiff` file.
 5. Assign that asset to a texture field, or use its nested **Output Sprite**.
 
 Double-click the saved TIFF to reopen it. PNG, TGA, JPEG, EXR, layered PSD and Texture2D

@@ -24,7 +24,7 @@ public static class DocumentReloadSmoke
         doc.hideFlags = HideFlags.HideAndDontSave;
         doc.width = 64; doc.height = 32;
         doc.layers.Add(new Layer(new ColorFillLayerBehaviour { color = Color.red }));
-        string path = WhimTexDocumentFile.Save(doc, folder + "/Reload.whimtex.tiff");
+        string path = WhimTexDocumentFile.Save(doc, folder + "/Reload.tiff");
         var importer = (TextureImporter)AssetImporter.GetAtPath(path);
         importer.isReadable = false; importer.SaveAndReimport();
         // Use a real EditorWindow host: a bare ScriptableObject is not restored by Unity

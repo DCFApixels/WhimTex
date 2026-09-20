@@ -122,7 +122,7 @@ public static class DocumentPerformanceProbe
                 doc.layers.Add(new Layer(drawing) { colorRange = hdr ? LayerColorRange.HDR : LayerColorRange.Standard,
                     blendRange = hdr ? LayerBlendRange.HDR : LayerBlendRange.Standard });
             }
-            string path = folder + "/Benchmark.whimtex.tiff";
+            string path = folder + "/Benchmark.tiff";
             report.measurements.Add(Measure("first_save_including_import", () => WhimTexDocumentFile.Save(doc, path)));
             var imported = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
             report.importedWidth = imported.width; report.importedHeight = imported.height; report.importedFormat = imported.format.ToString();
