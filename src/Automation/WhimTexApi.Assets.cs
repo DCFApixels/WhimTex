@@ -25,6 +25,37 @@ namespace DCFApixels.WhimTex
             return path;
         }
 
+        private static string DocumentPath(string path)
+        {
+            Require(!string.IsNullOrWhiteSpace(path), "assetPath is required.");
+            path = path.Replace('\\', '/');
+            Require(path.StartsWith("Assets/", StringComparison.Ordinal) && !path.StartsWith("Assets/StreamingAssets/", StringComparison.OrdinalIgnoreCase),
+                "Destinations must be inside Assets, outside StreamingAssets.", "invalid_path");
+            string extension = Path.GetExtension(path);
+            Require(string.Equals(extension, ".asset", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(extension, WhimTexTiffCarrier.Extension, StringComparison.OrdinalIgnoreCase),
+                "Expected a WhimTex .asset or .tiff destination.", "invalid_path");
+            ValidateSegments(path);
+            RejectLinks(FullPath(path));
+            return path;
+        }
+
+        private static bool IsTiffPath(string path) =>
+            string.Equals(Path.GetExtension(path), WhimTexTiffCarrier.Extension, StringComparison.OrdinalIgnoreCase);
+
+        private static string TiffPath(string path)
+        {
+            path = DocumentPath(path);
+            Require(IsTiffPath(path), "Expected a .tiff destination.", "invalid_path");
+            return path;
+        }
+
+        private static void ReleaseTransientDocument(TextureCompositor document)
+        {
+            if (document != null && !AssetDatabase.Contains(document))
+                Object.DestroyImmediate(document);
+        }
+
         private static string ReadAssetPath(string path)
         {
             Require(!string.IsNullOrWhiteSpace(path), "A texture asset path is required.");
@@ -71,6 +102,11 @@ namespace DCFApixels.WhimTex
 
         private static TextureCompositor Load(string path)
         {
+            if (IsTiffPath(path))
+            {
+                Require(WhimTexDocumentFile.IsDocument(path), "No WhimTex TIFF document at " + path, "document_not_found");
+                return WhimTexDocumentFile.Load(path);
+            }
             TextureCompositor document = TextureCompositor.FindDocument(AssetDatabase.LoadMainAssetAtPath(path));
             Require(document != null, "No WhimTex document at " + path, "document_not_found");
             return document;
@@ -131,22 +167,22 @@ namespace DCFApixels.WhimTex
         {
             return Respond(() =>
             {
-                string path = AssetPath(assetPath, ".asset");
+                string path = DocumentPath(assetPath);
                 TextureCompositor document = Load(path);
-                Require(!TextureCompositorWindow.IsDocumentBusyForApi(document), "Finish the current paint/transform gesture first.", "document_busy");
-                Require(maxSize >= 1 && maxSize <= 4096, "maxSize must be 1..4096.");
-                Require(!string.IsNullOrEmpty(outputPath), "outputPath is required.");
-                outputPath = outputPath.Replace('\\', '/');
-                Require(outputPath.StartsWith("Temp/WhimTex/", StringComparison.Ordinal), "Preview output must be project-relative Temp/WhimTex/*.png.", "invalid_path");
-                ValidateSegments(outputPath);
-                Require(string.Equals(Path.GetExtension(outputPath), ".png", StringComparison.OrdinalIgnoreCase), "Preview output must be PNG.");
-                string full = FullPath(outputPath);
-                RejectLinks(full);
-                Require(overwrite || !File.Exists(full), "Preview exists; choose a new path or explicitly set overwrite=true.", "already_exists");
-                RequireGraphics();
                 Texture2D preview = null;
                 try
                 {
+                    Require(!TextureCompositorWindow.IsDocumentBusyForApi(document), "Finish the current paint/transform gesture first.", "document_busy");
+                    Require(maxSize >= 1 && maxSize <= 4096, "maxSize must be 1..4096.");
+                    Require(!string.IsNullOrEmpty(outputPath), "outputPath is required.");
+                    outputPath = outputPath.Replace('\\', '/');
+                    Require(outputPath.StartsWith("Temp/WhimTex/", StringComparison.Ordinal), "Preview output must be project-relative Temp/WhimTex/*.png.", "invalid_path");
+                    ValidateSegments(outputPath);
+                    Require(string.Equals(Path.GetExtension(outputPath), ".png", StringComparison.OrdinalIgnoreCase), "Preview output must be PNG.");
+                    string full = FullPath(outputPath);
+                    RejectLinks(full);
+                    Require(overwrite || !File.Exists(full), "Preview exists; choose a new path or explicitly set overwrite=true.", "already_exists");
+                    RequireGraphics();
                     preview = document.ComposePreview(maxSize);
                     Require(preview != null, "No preview was generated.", "render_failed");
                     byte[] bytes;
@@ -163,7 +199,11 @@ namespace DCFApixels.WhimTex
                     result["revision"] = Revision(document);
                     return result;
                 }
-                finally { if (preview != null) Object.DestroyImmediate(preview); }
+                finally
+                {
+                    if (preview != null) Object.DestroyImmediate(preview);
+                    ReleaseTransientDocument(document);
+                }
             });
         }
     }

@@ -1,7 +1,8 @@
 # Агентские команды для TIFF-пайплайна
 
-Статус: контракт перед адаптацией. Команды ниже пока не переключают `WhimTexApi` и не меняют
-существующий API `.asset`. Цель — сохранить JSON v1 и выбирать backend по расширению `assetPath`.
+Статус: первый адаптер реализован и проверен. JSON v1 сохраняется; backend выбирается по
+расширению `assetPath`. Legacy `.asset` продолжает работать, TIFF использует transient
+`WhimTexDocumentBuild` и общий writer.
 
 ## 1. Команды, необходимые для адаптации
 
@@ -10,12 +11,13 @@
 
 | Команда | Изменение | Backend |
 | --- | --- | --- |
-| `whimtex_describe` | Добавить `storageFormats`, `backends`, `migration` и ограничения TIFF. Описать, что `assetPath` может быть `.asset` или `.tiff`. | capability discovery |
-| `whimtex_inspect` | При `.asset` оставить текущий путь. При `.tiff` открыть через `WhimTexDocumentBuild.Open`, вернуть те же стабильные ID, настройки и `revision`. | read-only |
-| `whimtex_execute` | При `.asset` оставить текущую реализацию. При `.tiff` создать/открыть transient-модель, применить те же операции, проверить `expectedRevision`, затем атомарно сохранить через `WhimTexDocumentBuild.Save`. | independent build |
-| `whimtex_render` | При `.asset` оставить текущий путь. При `.tiff` открыть build-сессию, вызвать `Render`, записать обычный PNG в `Temp/WhimTex`. | independent build |
+| `whimtex_describe` | Возвращает `storageFormats`, `backends`, `migration` и ограничения TIFF; `assetPath` может быть `.asset` или `.tiff`. | capability discovery |
+| `whimtex_inspect` | При `.asset` сохраняет legacy-путь. При `.tiff` открывает transient-модель и возвращает те же стабильные ID, настройки и `revision`. | read-only |
+| `whimtex_execute` | При `.asset` сохраняет текущую реализацию. При `.tiff` создаёт/открывает transient-модель, применяет те же операции, проверяет `expectedRevision` и сохраняет через `WhimTexDocumentBuild.Save`. | independent build |
+| `whimtex_render` | При `.asset` сохраняет текущий путь. При `.tiff` открывает документ без окна, вызывает общий renderer и пишет PNG в `Temp/WhimTex`. | independent build |
 | `whimtex_import_image` | Не менять. Это импорт исходного PNG/JPEG, а не создание WhimTex-документа. | ordinary texture |
-| `whimtex_migrate` | Новая явная команда для `.asset → .tiff`: `sourcePath`, `destinationPath`, `overwrite=false`. Исходный файл, `.meta`, GUID и output не изменяются. | migration |
+| `whimtex_migrate` | Явная команда для `.asset → .tiff`: `sourcePath`, `destinationPath`, `overwrite=false`. Исходный файл, `.meta`, GUID и output не изменяются. | migration |
+| `whimtex_tiff_live` | Persistent transient-сессия без окна: `begin`, `status`, `preview`, `render`, `complete`, `cancel`. | independent live |
 
 ### Контракт `whimtex_execute` для TIFF
 
@@ -61,14 +63,26 @@
 Команда должна использовать `CreateEditableCopy` и общий TIFF writer. Она не должна автоматически
 переназначать ссылки на старый output, удалять `.asset` или менять его содержимое.
 
-## 2. Live API не смешивать с независимой сборкой
+## 2. Два режима Live API
 
 `whimtex_begin`, `whimtex_lock`, `whimtex_live` и `whimtex_sessions` остаются API подключённого
 окна. Они работают с открытой сессией, резервированием слоёв и Live Update. TIFF-батч не должен
 самовольно выбирать окно или переносить изменения в открытый документ.
 
-Для открытого TIFF нужно вернуть конфликт, если его уже редактирует другое окно или live-сессия.
-Для независимой сборки используются `WhimTexDocumentBuild` и проверка disk revision.
+Для независимой TIFF-сборки используется `whimtex_tiff_live`. Она держит transient-модель между
+запросами и не создаёт окно:
+
+```json
+{"apiVersion":1,"op":"begin","sessionId":"wall-live","assetPath":"Assets/Art/Wall.whimtex.tiff","expectedRevision":"<inspect revision>"}
+{"apiVersion":1,"op":"preview","sessionId":"wall-live","requestId":"preview-1","operations":[{"op":"add","type":"color","as":"overlay","settings":{"name":"Overlay","color":[1,0.2,0.1,1]}}]}
+{"apiVersion":1,"op":"render","sessionId":"wall-live","requestId":"render-1","outputPath":"Temp/WhimTex/wall-preview.png","overwrite":true}
+{"apiVersion":1,"op":"complete","sessionId":"wall-live","operations":[]}
+```
+
+`preview` каждый раз строится от snapshot, захваченного в `begin`, поэтому повторный preview
+идемпотентен и не накапливает операции. `complete` проверяет disk revision и выполняет одну
+атомарную запись; внешнее изменение TIFF возвращает `revision_conflict`. `cancel` освобождает
+transient-модели без записи. Оконный API и независимая сессия не должны одновременно менять один файл.
 
 ## 3. Команды, которых не хватало в ходе разработки
 
@@ -83,6 +97,14 @@
 | `whimtex_recover` | Явно проверить и восстановить staged TIFF после оборванной записи в новый destination. Не перезаписывает исходник. | средний |
 | `whimtex_export` | Экспортировать уже загруженный результат в PNG/JPEG/TGA/EXR с явными параметрами. Сейчас `whimtex_render` закрывает только диагностический PNG-сценарий. | низкий |
 
+### Реализованные диагностические команды
+
+`whimtex_inspect_storage`, `whimtex_validate` и `whimtex_status` теперь доступны в Pipeline.
+Первая читает только каталог контейнера и не создаёт Unity-текстуры. `validate` открывает
+временную модель, проверяет лимиты, ссылки и Shader FX, а при `render:true` дополнительно
+проверяет композицию. `status` не материализует модель и сообщает дисковую SHA-256 ревизию,
+GUID, импорт, состояние открытого окна/live-lock и оставшиеся staged-файлы.
+
 ### Почему не нужны отдельные команды
 
 - `whimtex_save` не нужен: сохранение без дополнительных операций уже выражается `whimtex_execute`
@@ -94,11 +116,14 @@
 - Отдельный `whimtex_texture_settings` пока не нужен: настройки принадлежат штатному `TextureImporter`
   и `.meta`, а не слоистой модели.
 
-## 4. Предлагаемый порядок реализации
+## 4. Реализовано в первом адаптере
 
-1. Вынести применение JSON-операций из текущего asset lifecycle в общий backend-neutral слой.
-2. Добавить чтение/сохранение TIFF в `whimtex_inspect`, `whimtex_execute` и `whimtex_render` по расширению.
-3. Добавить `whimtex_migrate` и regression tests для `.asset → TIFF`.
-4. Добавить `whimtex_inspect_storage` и `whimtex_validate` до переключения документации агентов.
-5. Обновить `whimtex_describe`, Agent API и примеры; старые `.asset` команды оставить совместимыми.
-6. После отдельного периода проверки объявить создание `.asset` устаревшим, не удаляя чтение и миграцию.
+1. Применение JSON-операций осталось общим для обоих backend-ов.
+2. `inspect`, `execute` и `render` выбирают TIFF backend по расширению.
+3. Добавлены `whimtex_migrate`, диагностические команды, `whimtex_tiff_live` и regression tests
+   `TiffAgentApiSmoke`/`TiffLiveSmoke`.
+4. Старые `.asset` команды оставлены совместимыми.
+
+Следующий отдельный этап — переключить примеры агентов на TIFF по умолчанию и проверить
+долгоживущие сессии под нагрузкой. Текущие `whimtex_begin/live/lock` по-прежнему относятся
+только к открытым окнам.

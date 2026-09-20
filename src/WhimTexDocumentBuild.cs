@@ -5,8 +5,8 @@ using UnityEngine;
 
 namespace DCFApixels.WhimTex
 {
-    // Internal foundation for window-independent TIFF authoring. No agent commands are
-    // routed here yet. Unity objects/rendering stay on the Editor main thread.
+    // Internal foundation for window-independent TIFF authoring and agent sessions.
+    // Unity objects/rendering stay on the Editor main thread.
     internal sealed class WhimTexDocumentBuild : IDisposable
     {
         internal TextureCompositor Document { get; private set; }

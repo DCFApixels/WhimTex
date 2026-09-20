@@ -190,6 +190,11 @@ Unity Editor 6000.7, DX12. Запускать через подключённы�
   external FX, pending code, relative includes, Live→Save→Live.
 - `Tests~/AgentApiSmoke.cs` — `eval_file`: старый API создания `.asset`, рисование, группы, рендер и Undo/Redo.
   Использует уникальную папку, удаляет свои assets и временные PNG в finally.
+- `Tests~/TiffAgentApiSmoke.cs` — создание/inspect/render TIFF через path-based API, metadata-only
+  storage inspection, validation/status, dry-run и явная миграция legacy `.asset` с проверкой
+  сохранности исходника.
+- `Tests~/TiffLiveSmoke.cs` — независимая TIFF live-сессия без окна: begin/preview/status/render,
+  atomic complete, создание нового TIFF и внешний revision conflict.
 - Исторические спайки: `DocumentRoundTripSmoke`, `DocumentLiveUpdateSmoke`.
   Перед запуском проверить их фиксированные пути Assets; они не обладают одинаковыми гарантиями cleanup.
 
@@ -202,5 +207,6 @@ Unity Editor 6000.7, DX12. Запускать через подключённы�
 все режимы Sprite Editor, реальный hard crash/power loss и все варианты import worker.
 Новый Player build по-прежнему требует запроса пользователя.
 
-Независимая сборка и следующий адаптер агента: [TIFF_AUTHORING.md](TIFF_AUTHORING.md).
-Старый тип данных и публичные команды агентов на этом этапе не заменяются.
+Независимая сборка и адаптер path-based агентских команд: [TIFF_AUTHORING.md](TIFF_AUTHORING.md)
+и [TIFF_AGENT_COMMANDS.md](TIFF_AGENT_COMMANDS.md). Старый `.asset` backend и его команды
+остаются совместимыми; новые batch-документы могут использовать `.tiff`.

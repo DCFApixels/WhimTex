@@ -13,18 +13,33 @@ namespace DCFApixels.WhimTex
     {
         public static string Inspect(string assetPath) => Respond(() =>
         {
-            string path = AssetPath(assetPath, ".asset");
+            string path = DocumentPath(assetPath);
             TextureCompositor document = Load(path);
-            Require(!TextureCompositorWindow.IsDocumentBusyForApi(document), "Finish the current paint/transform gesture first.", "document_busy");
-            JObject result = Success();
-            result["document"] = Snapshot(document, path);
-            return result;
+            try
+            {
+                Require(!TextureCompositorWindow.IsDocumentBusyForApi(document), "Finish the current paint/transform gesture first.", "document_busy");
+                JObject result = Success();
+                result["document"] = Snapshot(document, path);
+                return result;
+            }
+            finally { ReleaseTransientDocument(document); }
         });
 
         public static string Describe() => Respond(() =>
         {
             JObject result = Success();
             result["operations"] = new JArray("add", "set", "transform", "target", "move", "stroke", "compact");
+            result["storageFormats"] = new JArray("asset", "tiff");
+            result["backends"] = new JObject {
+                ["asset"] = "legacy Unity ScriptableObject compositor; readable and editable for compatibility",
+                ["tiff"] = "window-independent WhimTexDocumentBuild; transient model with atomic TIFF save"
+            };
+            result["migration"] = "Use WhimTexApi.Migrate(sourcePath, destinationPath, overwrite) or whimtex_migrate. The legacy .asset remains unchanged.";
+            result["diagnostics"] = new JObject {
+                ["storage"] = "whimtex_inspect_storage / WhimTexApi.InspectStorage(assetPath): metadata-only TIFF block inspection",
+                ["validate"] = "whimtex_validate / WhimTexApi.Validate(assetPath, render): structure, limits, references and Shader FX",
+                ["status"] = "whimtex_status / WhimTexApi.Status(assetPath): disk revision, importer, dirty, lock and staged recovery state"
+            };
             result["colorRanges"] = new JArray(System.Enum.GetNames(typeof(LayerColorRange)));
             result["blendRanges"] = new JArray(System.Enum.GetNames(typeof(LayerBlendRange)));
             result["swizzleChannels"] = new JArray(LayerSwizzle.Labels);
@@ -74,6 +89,12 @@ namespace DCFApixels.WhimTex
                 ["inlineShaderFX"] = true,
                 ["lock"] = "whimtex_lock / WhimTexApi.LiveLock(requestId, layerId, sessionId, expectedRevision)",
                 ["reference"] = "Documentation~/LiveAgentAPI.md" };
+            result["independentLiveEditing"] = new JObject {
+                ["command"] = "whimtex_tiff_live / WhimTexApi.TiffLiveFile(requestPath)",
+                ["operations"] = new JArray("begin", "status", "preview", "render", "complete", "cancel"),
+                ["windowRequired"] = false,
+                ["notes"] = "Persistent transient TIFF session. Preview replaces the working model from the begin snapshot; complete performs one atomic save after disk revision validation."
+            };
             return result;
         });
 

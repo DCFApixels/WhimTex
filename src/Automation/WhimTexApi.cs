@@ -60,7 +60,10 @@ namespace DCFApixels.WhimTex
         {
             Keys(request, "apiVersion", "assetPath", "create", "width", "height", "expectedRevision", "dryRun", "save", "operations");
             Require(Int(request, "apiVersion", 0, 0, int.MaxValue) == ProtocolVersion, "apiVersion must be 1.");
-            string path = AssetPath(Text(request, "assetPath"), ".asset");
+            string path = DocumentPath(Text(request, "assetPath"));
+            bool tiff = IsTiffPath(path);
+            Require(!tiff || !tiffLiveSessions.Values.Any(session => string.Equals(session.path, path, StringComparison.OrdinalIgnoreCase)),
+                "This TIFF has an active independent live session. Complete or cancel it first.", "live_session_active");
             Require(!liveJobs.Values.Any(j => j.editing && j.state == "pending" && j.document != null &&
                 string.Equals(AssetDatabase.GetAssetPath(j.document), path, StringComparison.OrdinalIgnoreCase)), "This document has a live edit lock. Use its live job or release the lock first.", "layer_locked");
             bool create = Bool(request, "create");
@@ -74,6 +77,7 @@ namespace DCFApixels.WhimTex
             JArray operations = (JArray)request["operations"];
             Require(operations.Count <= 256, "A batch supports at most 256 operations.");
             TextureCompositor document = null;
+            WhimTexDocumentBuild tiffBuild = null;
             if (create)
             {
                 Require(!File.Exists(FullPath(path)) && !File.Exists(FullPath(path) + ".meta") &&
@@ -82,7 +86,12 @@ namespace DCFApixels.WhimTex
             }
             else
             {
-                document = Load(path);
+                if (tiff)
+                {
+                    tiffBuild = WhimTexDocumentBuild.Open(path);
+                    document = tiffBuild.Document;
+                }
+                else document = Load(path);
                 Require(!TextureCompositorWindow.IsDocumentBusyForApi(document), "Finish the current paint/transform gesture first.", "document_busy");
                 string expected = Text(request, "expectedRevision");
                 Require(!string.IsNullOrEmpty(expected), "Inspect first and supply expectedRevision when editing an existing document.", "revision_required");
@@ -91,7 +100,18 @@ namespace DCFApixels.WhimTex
             Require((long)(document != null ? document.width : width) * (document != null ? document.height : height) <= MaxCanvasPixels,
                 "Automation supports at most 16,777,216 canvas pixels per document.", "resource_limit");
 
-            TextureCompositor probe = document != null ? Object.Instantiate(document) : ScriptableObject.CreateInstance<TextureCompositor>();
+            WhimTexDocumentBuild probeBuild = null;
+            TextureCompositor probe;
+            if (document == null)
+                probe = ScriptableObject.CreateInstance<TextureCompositor>();
+            else if (tiff)
+            {
+                // Object.Instantiate would leave a TIFF's non-serialized deferred descriptors behind
+                // and could share a materialized Drawing texture. Build.Copy owns an independent model.
+                probeBuild = WhimTexDocumentBuild.Copy(document);
+                probe = probeBuild.Document;
+            }
+            else probe = Object.Instantiate(document);
             int operationIndex = -1;
             try
             {
@@ -131,17 +151,29 @@ namespace DCFApixels.WhimTex
             }
             finally
             {
-                probe.layers.Clear();
-                Object.DestroyImmediate(probe);
+                if (probeBuild != null) probeBuild.Dispose();
+                else
+                {
+                    probe.layers.Clear();
+                    Object.DestroyImmediate(probe);
+                }
             }
 
             RequireGraphics();
             if (create)
             {
-                document = ScriptableObject.CreateInstance<TextureCompositor>();
-                document.name = Path.GetFileNameWithoutExtension(path);
-                document.width = width;
-                document.height = height;
+                if (tiff)
+                {
+                    tiffBuild = WhimTexDocumentBuild.Create(width, height);
+                    document = tiffBuild.Document;
+                }
+                else
+                {
+                    document = ScriptableObject.CreateInstance<TextureCompositor>();
+                    document.name = Path.GetFileNameWithoutExtension(path);
+                    document.width = width;
+                    document.height = height;
+                }
             }
             Undo.IncrementCurrentGroup();
             int undoGroup = Undo.GetCurrentGroup();
@@ -167,8 +199,18 @@ namespace DCFApixels.WhimTex
                 {
                     saving = true;
                     EnsureAssetFolder(path);
-                    document.SaveWithOutput(create ? path : null);
-                    document = Load(path);
+                    if (tiff)
+                    {
+                        tiffBuild.Save(path);
+                        tiffBuild.Dispose();
+                        tiffBuild = WhimTexDocumentBuild.Open(path);
+                        document = tiffBuild.Document;
+                    }
+                    else
+                    {
+                        document.SaveWithOutput(create ? path : null);
+                        document = Load(path);
+                    }
                 }
                 JObject result = Success();
                 result["applied"] = true;
@@ -213,7 +255,8 @@ namespace DCFApixels.WhimTex
             {
                 Undo.IncrementCurrentGroup();
                 if (document != null) document.InvalidateDrawingLayerSurfaces();
-                if (create && document != null && !AssetDatabase.Contains(document)) Object.DestroyImmediate(document);
+                if (tiffBuild != null) tiffBuild.Dispose();
+                else if (create && document != null && !AssetDatabase.Contains(document)) Object.DestroyImmediate(document);
             }
         }
 

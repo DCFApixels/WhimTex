@@ -29,15 +29,22 @@ namespace DCFApixels.WhimTex
         /// <summary>True when the file carries a WhimTex document, used to distinguish documents from plain images.</summary>
         public static bool IsDocument(string assetPath) => WhimTexTiffCarrier.IsDocument(assetPath);
 
-        internal static (int blocks, long modelBytes, long textureBytes) InspectStorage(string path)
+        internal static (int blocks, long modelBytes, long textureBytes, string[] names, long[] sizes) InspectStorage(string path)
         {
             // Directory-only inspection: no textures, shaders, editor window, or pixel inflation.
             using var container = WhimTexTiffCarrier.OpenContainer(path);
             long pixels = 0;
+            var names = new List<string>();
+            var sizes = new List<long>();
             foreach (string name in container.Names)
+            {
+                long size = container.LengthOf(name);
+                names.Add(name);
+                sizes.Add(size);
                 if (name.StartsWith("texture:", StringComparison.Ordinal) && !name.EndsWith(":sampling", StringComparison.Ordinal))
-                    pixels += container.LengthOf(name);
-            return (container.Count, container.LengthOf(WhimTexDocumentContainer.DocumentBlock), pixels);
+                    pixels += size;
+            }
+            return (container.Count, container.LengthOf(WhimTexDocumentContainer.DocumentBlock), pixels, names.ToArray(), sizes.ToArray());
         }
 
         /// <summary>Saves the document and returns the TIFF path; HDR never changes its extension.</summary>

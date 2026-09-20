@@ -37,7 +37,7 @@ namespace DCFApixels.WhimTex
         public static JObject Describe() => JObject.Parse(WhimTexApi.Describe());
 
         [CliCommand("whimtex_inspect", "Read a compositor's layer IDs, settings and revision before editing.", MainThreadRequired = true)]
-        public static JObject Inspect([CliArg("assetPath", "Project-relative compositor .asset path", Required = true)] string assetPath)
+        public static JObject Inspect([CliArg("assetPath", "Project-relative WhimTex .asset or .tiff path", Required = true)] string assetPath)
             => JObject.Parse(WhimTexApi.Inspect(assetPath));
 
         [CliCommand("whimtex_execute", "Validate/apply a WhimTex JSON batch file. Check result.success as well as transport success.", MainThreadRequired = true)]
@@ -52,11 +52,39 @@ namespace DCFApixels.WhimTex
 
         [CliCommand("whimtex_render", "Render an unfiltered compositor PNG to Temp/WhimTex for visual inspection.", MainThreadRequired = true)]
         public static JObject Render(
-            [CliArg("assetPath", "Compositor .asset path", Required = true)] string assetPath,
+            [CliArg("assetPath", "WhimTex .asset or .tiff path", Required = true)] string assetPath,
             [CliArg("outputPath", "Project-relative Temp/WhimTex/*.png path", Required = true)] string outputPath,
             [CliArg("maxSize", "Longest output side, 1..4096")] int maxSize = 1024,
             [CliArg("overwrite", "Explicitly replace an existing preview PNG")] bool overwrite = false)
             => JObject.Parse(WhimTexApi.Render(assetPath, outputPath, maxSize, overwrite));
+
+        [CliCommand("whimtex_migrate", "Copy a legacy .asset document to a new TIFF without changing the source asset.", MainThreadRequired = true)]
+        public static JObject Migrate(
+            [CliArg("sourcePath", "Project-relative legacy .asset path", Required = true)] string sourcePath,
+            [CliArg("destinationPath", "Project-relative new .tiff path", Required = true)] string destinationPath,
+            [CliArg("overwrite", "Explicitly replace an existing TIFF")] bool overwrite = false)
+            => JObject.Parse(WhimTexApi.Migrate(sourcePath, destinationPath, overwrite));
+
+        [CliCommand("whimtex_inspect_storage", "Read TIFF block metadata without materializing the document.", MainThreadRequired = true)]
+        public static JObject InspectStorage(
+            [CliArg("assetPath", "Project-relative WhimTex .tiff path", Required = true)] string assetPath)
+            => JObject.Parse(WhimTexApi.InspectStorage(assetPath));
+
+        [CliCommand("whimtex_validate", "Validate a WhimTex document without saving it.", MainThreadRequired = true)]
+        public static JObject Validate(
+            [CliArg("assetPath", "Project-relative WhimTex .asset or .tiff path", Required = true)] string assetPath,
+            [CliArg("render", "Also render a preview when structural validation succeeds")] bool render = false)
+            => JObject.Parse(WhimTexApi.Validate(assetPath, render));
+
+        [CliCommand("whimtex_status", "Report document disk identity, import and editor session state.", MainThreadRequired = true)]
+        public static JObject Status(
+            [CliArg("assetPath", "Project-relative WhimTex .asset or .tiff path", Required = true)] string assetPath)
+            => JObject.Parse(WhimTexApi.Status(assetPath));
+
+        [CliCommand("whimtex_tiff_live", "Run a persistent TIFF live session without opening WhimTex.", MainThreadRequired = true)]
+        public static JObject TiffLive(
+            [CliArg("requestPath", "Absolute path to a TIFF live JSON request file", Required = true)] string requestPath)
+            => JObject.Parse(WhimTexApi.TiffLiveFile(requestPath));
     }
 }
 #endif

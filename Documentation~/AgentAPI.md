@@ -35,8 +35,10 @@ new default folder does not exist; a custom preset-folder path must be selected 
 The API edits the same model and uses the same renderer, brush and save path as the window.
 For reservations, generation and selected-region edits in an open (possibly unsaved) document,
 use the [live editing API](LiveAgentAPI.md). The path-based batch contract below remains unchanged.
-No WhimTex window or active selection is required. It creates ordinary compositor `.asset`
-files, with their layers, owned Drawing textures, baked Texture2D and Sprite subassets, and Project preview.
+No WhimTex window or active selection is required. `assetPath` may point to a legacy `.asset` or
+to a TIFF document (`.tiff`). TIFF batches use a transient `WhimTexDocumentBuild` and the common
+TIFF writer; they do not create or select a WhimTex window. Legacy `.asset` batches retain their
+existing ScriptableObject lifecycle for compatibility.
 
 The window's optional **Live Update** publishes preview pixels to the existing output texture on the GPU
 without changing its asset reference or CPU pixel data. It is not an API autosave mode: use `save` to persist
@@ -97,11 +99,18 @@ Import/save commands do import the specific image or compositor asset they write
 | `whimtex_import_image` | `sourcePath`, `assetPath` | Imported texture path, GUID, dimensions |
 | `whimtex_execute` | `requestPath` | Batch result, created IDs, updated document |
 | `whimtex_render` | `assetPath`, `outputPath`, optional `maxSize=1024`, `overwrite=false` | Absolute PNG path and dimensions |
+| `whimtex_migrate` | `sourcePath`, `destinationPath`, optional `overwrite=false` | Copies legacy `.asset` to TIFF without mutating the source |
+| `whimtex_inspect_storage` | `assetPath` (`.tiff`) | Metadata-only block catalog, sizes and disk revision |
+| `whimtex_validate` | `assetPath`, optional `render=false` | Structure, limits, references and Shader FX validation; no save |
+| `whimtex_status` | `assetPath` | Disk revision, GUID, importer, dirty/live/lock and staged recovery state |
+| `whimtex_tiff_live` | `requestPath` | Persistent TIFF preview/commit session without an open WhimTex window |
 
 Pass `--project-path` and `--format json` on every command. The API object is nested inside the
 CLI/Pipeline response: check its `apiVersion` and `success` as well as transport success/exit code.
 An API validation error can arrive through a successful transport. `errorCode` and `error` describe it;
 `failedOperation`, when present, is zero-based (`-1` means batch/save level).
+For `whimtex_validate`, a readable document may still return `success:true` with `valid:false` and
+an `errors` array; check both fields before using it as an input for another batch.
 
 Direct C# entry points, all on Unity's main thread, return a JSON string:
 
@@ -111,11 +120,34 @@ WhimTexApi.Inspect("Assets/Art/Icon.asset");
 WhimTexApi.ExecuteJson(requestJson);
 WhimTexApi.ExecuteFile(absoluteRequestPath);
 WhimTexApi.ImportImage(absolutePngPath, "Assets/Art/Source.png");
-WhimTexApi.Render("Assets/Art/Icon.asset", "Temp/WhimTex/icon.png", 1024, false);
+WhimTexApi.Render("Assets/Art/Icon.whimtex.tiff", "Temp/WhimTex/icon.png", 1024, false);
+WhimTexApi.Migrate("Assets/Legacy/Icon.asset", "Assets/Art/Icon.whimtex.tiff", false);
+WhimTexApi.InspectStorage("Assets/Art/Icon.whimtex.tiff");
+WhimTexApi.Validate("Assets/Art/Icon.whimtex.tiff", false);
+WhimTexApi.Status("Assets/Art/Icon.whimtex.tiff");
+WhimTexApi.TiffLiveFile(absoluteRequestPath);
 ```
 
 The full namespace is `DCFApixels.WhimTex`. With an existing C# eval bridge, call these methods
 instead of installing Pipeline solely for this tool. Send a request file to avoid shell-escaping JSON.
+
+### Independent TIFF Live Update
+
+`whimtex_tiff_live` is the persistent, window-independent variant of Live Update. It keeps a
+transient model between requests and supports `begin`, `status`, `preview`, `render`, `complete`
+and `cancel`:
+
+```json
+{"apiVersion":1,"op":"begin","sessionId":"wall-live","assetPath":"Assets/Art/Wall.whimtex.tiff","expectedRevision":"<inspect revision>"}
+{"apiVersion":1,"op":"preview","sessionId":"wall-live","requestId":"preview-1","operations":[{"op":"add","type":"color","as":"overlay","settings":{"name":"Overlay","color":[1,0.2,0.1,1]}}]}
+{"apiVersion":1,"op":"render","sessionId":"wall-live","requestId":"render-1","outputPath":"Temp/WhimTex/wall-preview.png","overwrite":true}
+{"apiVersion":1,"op":"complete","sessionId":"wall-live","operations":[]}
+```
+
+Each `preview` is rebuilt from the snapshot captured at `begin`; it does not accumulate operations.
+`complete` verifies the original disk revision before one atomic save. If another writer changed the
+TIFF, it returns `revision_conflict` and the session remains available for `status` or `cancel`.
+The existing `whimtex_live` remains the open-window API.
 
 ## Generated image → compositor
 
@@ -135,7 +167,7 @@ PNG/JPEG only; the destination must use the same extension. No URLs or automatic
 ```json
 {
   "apiVersion": 1,
-  "assetPath": "Assets/Art/AgentIcon/Icon.asset",
+  "assetPath": "Assets/Art/AgentIcon/Icon.whimtex.tiff",
   "create": true,
   "width": 1024,
   "height": 1024,
@@ -155,11 +187,11 @@ PNG/JPEG only; the destination must use the same extension. No URLs or automatic
 
 ```powershell
 unity command whimtex_execute --requestPath 'D:/Projects/MyGame/Temp/WhimTex/create.json' --project-path 'D:/Projects/MyGame' --format json
-unity command whimtex_render --assetPath 'Assets/Art/AgentIcon/Icon.asset' --outputPath 'Temp/WhimTex/icon-v1.png' --project-path 'D:/Projects/MyGame' --format json
+unity command whimtex_render --assetPath 'Assets/Art/AgentIcon/Icon.whimtex.tiff' --outputPath 'Temp/WhimTex/icon-v1.png' --project-path 'D:/Projects/MyGame' --format json
 ```
 
 5. View the returned PNG. Revise the document if needed, using IDs/revision from the response or a new inspect.
-The `.asset` is already usable as a texture/Sprite in Unity; this temporary PNG is only for inspection.
+The TIFF is imported by Unity as the composite texture/Sprite; this temporary PNG is only for inspection.
 
 An initially empty File layer automatically gets Original Aspect when assigned its first texture.
 Assigning a different HDR-format source sets both `colorRange` and `blendRange` to `HDR`.
@@ -173,7 +205,7 @@ stretches a non-square source to the full canvas; omit scale to preserve the ini
 | Request field | Meaning |
 |---|---|
 | `apiVersion` | Required integer `1` |
-| `assetPath` | Required project-relative `Assets/.../*.asset`; no overwrite on create |
+| `assetPath` | Required project-relative `Assets/.../*.asset` or `Assets/.../*.tiff`; no overwrite on create |
 | `create` | Default false. True creates a new document |
 | `width`, `height` | Create only; integers, default 512 each, 1..16384 and at most 16,777,216 total pixels |
 | `expectedRevision` | Required for existing documents; copy the latest inspect/execute revision verbatim |
