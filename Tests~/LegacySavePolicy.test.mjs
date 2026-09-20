@@ -6,6 +6,7 @@ const documentFile = read('TextureCompositorWindow.DocumentFile.cs');
 const inspector = read('Editor/TextureCompositorEditor.cs');
 const outputWindow = read('Editor/WhimTexOutputSettingsWindow.cs');
 const assets = read('TextureCompositor.Assets.cs');
+const legacyWriter = read('Editor/Legacy/TextureCompositor.LegacyAssetWriter.cs');
 const styles = read('WhimTexSplitView.uss');
 
 assert.match(documentFile, /if \(IsLegacyAssetPath\(path\)\)\s*return SaveDocumentAs\(compositor\);/,
@@ -23,9 +24,9 @@ assert.ok(!inspector.includes('whimtex-output-compression'),
 assert.ok(!styles.includes('whimtex-output-compression'),
   'Obsolete compression panel styles must be removed');
 assert.ok(!documentFile.includes('SaveWithOutput(') && !inspector.includes('TrySaveWithOutput') &&
-  !outputWindow.includes('TrySaveWithOutput') && !assets.includes('internal void SaveWithOutput'),
+  !outputWindow.includes('TrySaveWithOutput') && !assets.includes('SaveLegacyAssetForCompatibility'),
   'Production document/UI paths must not expose the retired .asset writer');
-assert.match(assets, /SaveLegacyAssetForCompatibility/,
+assert.match(legacyWriter, /SaveLegacyAssetForCompatibility/,
   'The legacy writer must remain explicitly named for migration/regression fixtures only');
 
 console.log('Legacy save policy and compression UI checks passed.');
