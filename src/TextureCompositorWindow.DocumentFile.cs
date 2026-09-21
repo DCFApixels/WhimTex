@@ -224,9 +224,20 @@ namespace DCFApixels.WhimTex
         }
 
         [OnOpenAsset]
-        private static bool OpenWhimTexDocument(EntityId entityId, int line)
+        private static bool OpenWhimTexDocument(
+#if UNITY_6000_4_OR_NEWER
+            EntityId entityId,
+#else
+            int entityId,
+#endif
+            int line)
         {
-            var target = EditorUtility.EntityIdToObject(entityId);
+            var target =
+#if UNITY_6000_4_OR_NEWER
+                UnityObjectID.FromEntityId(entityId).Resolve();
+#else
+                UnityObjectID.FromInstanceId(entityId).Resolve();
+#endif
             string path = target == null ? null : AssetDatabase.GetAssetPath(target);
             return OpenWhimTexDocumentPath(path);
         }
