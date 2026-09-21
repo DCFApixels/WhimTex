@@ -4,6 +4,40 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-09-21
+
+### Added
+
+- Editable TIFF documents: one file stores the saved composite, layer model and Drawing pixels, while Unity imports it as a normal texture.
+- Native Texture Importer settings for mipmaps, texture compression, platform overrides and sprite slicing.
+- Auto, 8-bit and Float32 output precision.
+- Lazy Drawing loading, reusable compressed blocks and portable Burst SHA-256 hashing to reduce document loading and saving work.
+- Staged saves, integrity checks, interrupted-save recovery and safeguards against overwriting externally modified documents.
+- TIFF authoring APIs for batch creation, headless live editing and Assistant editing in an open window, with inspection, comparison, validation and recovery commands.
+- Package-owned reference TIFF fixtures and regression coverage for persistence, migration, Live Update and agent workflows.
+
+### Changed
+
+- TIFF is now the main document format. Legacy WhimTex `.asset` documents can be opened and migrated, but cannot be created or saved in place.
+- TIFF output settings use Unity's standard Inspector instead of the legacy output-settings window.
+- Live Update temporarily uses an uncompressed texture, enables Read/Write when needed and restores the imported texture when the session ends.
+- Updated EN/RU/ZH documentation and READMEs for the TIFF workflow, migration, sprite import and Live Update; moved the VFX example into the layer guide.
+- Development-only diagnostic logs are gated behind `WHIMTEX_DEBUG`.
+
+### Fixed
+
+- Linked Shader FX presets survive save/reopen, with embedded source retained as a fallback if the preset is unavailable.
+- Live Update recovery and reload handling, test asset cleanup and document-path validation.
+- Unity 6.0 compatibility for object identifiers, assembly discovery and package dependencies.
+- Broken localized TIFF reference links in GitHub Pages.
+
+### Upgrade notes
+
+- To migrate an old document, use **Save As** in WhimTex or **Assets → WhimTex → Migrate Legacy .asset to TIFF…**. The original asset is preserved; existing material and File-layer references must be reassigned to the new TIFF where needed.
+- Keep TIFF files together with their `.meta` files. Resaving a WhimTex TIFF in an external image editor may discard its editable layers.
+- One TIFF Live Update session can run at a time. Default and Sprite imports are supported; Crunch and other texture types update on Save.
+- Agent integrations should use the current TIFF command names documented in the [Agent API](https://dcfapixels.github.io/WhimTex/reference/agentapi/).
+
 ## [0.10.25] - 2026-09-18
 
 ### Added
