@@ -217,7 +217,7 @@ namespace DCFApixels.WhimTex
                 simple = name.Substring(dot + 1);
             }
             Type found = null;
-            foreach (Assembly assembly in UnityEngine.Assemblies.CurrentAssemblies.GetLoadedAssemblies())
+            foreach (Assembly assembly in GetLoadedAssemblies())
             {
                 Type[] types;
                 try { types = assembly.GetTypes(); }
@@ -293,7 +293,7 @@ namespace DCFApixels.WhimTex
             if (KnownTypes.TryGetValue(name, out Type known)) return known;
             Type resolved = typeof(WhimTexDocumentSerializer).Assembly.GetType(name);
             if (resolved == null)
-                foreach (Assembly assembly in UnityEngine.Assemblies.CurrentAssemblies.GetLoadedAssemblies())
+                foreach (Assembly assembly in GetLoadedAssemblies())
                 {
                     resolved = assembly.GetType(name);
                     if (resolved != null) break;
@@ -306,6 +306,18 @@ namespace DCFApixels.WhimTex
             }
             KnownTypes[name] = resolved;
             return resolved;
+        }
+
+        // UnityEngine.Assemblies was added after the first Unity 6 releases. Keep the
+        // compatibility path isolated here so the serializer compiles on 6000.0/6000.3
+        // while newer editors avoid the AppDomain API (which Unity warns about).
+        private static IEnumerable<Assembly> GetLoadedAssemblies()
+        {
+#if UNITY_6000_7_OR_NEWER
+            return UnityEngine.Assemblies.CurrentAssemblies.GetLoadedAssemblies();
+#else
+            return AppDomain.CurrentDomain.GetAssemblies();
+#endif
         }
 
         // --- writer ---
