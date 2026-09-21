@@ -35,4 +35,4 @@ WhimTex 将新的可编辑文档保存为一个 `*.tiff` 文件。它同时是 U
 `.asset` 仍可打开查看或迁移，但新文档只保存为 TIFF，迁移不会覆盖旧资源。PNG、JPEG、TGA、
 EXR 和 PSD 是普通的扁平导出，不包含可编辑的 WhimTex 图层。
 
-完整的字节布局、限制和块规则请参阅 [TIFF 文档格式技术参考](../TIFF_FORMAT.md)。
+完整的字节布局、限制和块规则请参阅 [TIFF 文档格式技术参考]({{ '/reference/tiff-format/' | relative_url }})。

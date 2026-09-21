@@ -37,7 +37,7 @@ Keep the TIFF and its `.meta` together; moving the asset within Unity preserves 
 Do not resave the TIFF in another image editor: that can remove the editable layers.
 
 For the byte-level layout, block directory, lazy Drawing loading and integrity checks, see the
-[TIFF document format](../TIFF_FORMAT.md) technical reference.
+[TIFF document format]({{ '/reference/tiff-format/' | relative_url }}) technical reference.
 
 **Precision**, next to the canvas size, selects the saved image precision:
 

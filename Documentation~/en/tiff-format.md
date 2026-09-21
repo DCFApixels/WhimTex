@@ -41,4 +41,4 @@ migration, but new documents are TIFF-only and migration never overwrites the le
 PNG, JPEG, TGA, EXR and PSD are ordinary flattened exports and do not carry editable WhimTex layers.
 
 For the complete byte layout, limits and block-level rules, see the [TIFF document format technical
-reference](../TIFF_FORMAT.md).
+reference]({{ '/reference/tiff-format/' | relative_url }}).

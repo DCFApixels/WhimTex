@@ -37,7 +37,7 @@ Unity 通常显示的是**最后保存的图像**。启用 [Live Update](preview
 不要用外部图像编辑器重新保存 TIFF，否则可能丢失可编辑图层。
 
 有关字节布局、块目录、Drawing 延迟加载和完整性检查，请参阅
-[TIFF 文档格式技术参考](../TIFF_FORMAT.md)。
+[TIFF 文档格式技术参考]({{ '/reference/tiff-format/' | relative_url }})。
 
 画布尺寸旁的 **Precision** 用于选择保存图像的精度：
 

@@ -41,4 +41,4 @@ translations: "en/tiff-format.md,ru/tiff-format.md,zh/tiff-format.md"
 экспорт без редактируемых слоёв WhimTex.
 
 Полная побайтовая схема, ограничения и правила блоков описаны в [техническом описании формата
-TIFF](../TIFF_FORMAT.md).
+TIFF]({{ '/reference/tiff-format/' | relative_url }}).
