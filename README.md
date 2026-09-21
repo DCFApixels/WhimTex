@@ -49,8 +49,8 @@ Brush JSON examples: Documentation~/Examples/Brushes/README.md. Format: whimtex.
 It handles the small tasks that would otherwise send you to a graphics editor: touching up a texture,
 painting a particle mask, generating noise for VFX or combining layers into a sprite.
 
-The editable composition and ready-to-use texture live in one asset. Layers, effects and transforms
-stay editable, while the asset can be assigned directly to a material. Export only when you need
+The editable composition and ready-to-use texture live in one TIFF document. Layers, effects and transforms
+stay editable, while the TIFF can be assigned directly to a material. Export only when you need
 a separate image file.
 
 <p align="center">

@@ -76,7 +76,8 @@ Export does not install a layered importer or change the selected importer type.
 
 Limits: RGB, 8 bits per channel, dimensions 1–30000, at most 32767 records (a group uses two),
 and files/sections below 2 GB. An empty document receives one transparent Canvas layer so merged alpha
-remains explicit. The native `.asset` remains the authoritative, fully editable source.
+remains explicit. The native WhimTex TIFF remains the authoritative, fully editable source. A legacy
+`.asset` can be migrated to TIFF, but PSD export never changes either source document.
 
 ## Editor-side API
 

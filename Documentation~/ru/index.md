@@ -31,6 +31,7 @@ next_page: "ru/getting-started.md"
 - [Цвет, HDR и каналы](color.md)
 - [Постобработка игры](post-fx.md)
 - [Сохранение и экспорт](saving.md)
+- [TIFF-документ](tiff-format.md)
 - [Горячие клавиши](shortcuts.md)
 - [Автоматизация](automation.md)
 - [Если результат неожиданен](troubleshooting.md)

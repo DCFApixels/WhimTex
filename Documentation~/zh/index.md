@@ -31,6 +31,7 @@ next_page: "zh/getting-started.md"
 - [颜色、HDR 和通道](color.md)
 - [游戏后处理](post-fx.md)
 - [保存和导出](saving.md)
+- [TIFF 文档](tiff-format.md)
 - [键盘快捷键](shortcuts.md)
 - [自动化](automation.md)
 - [疑难解答](troubleshooting.md)

@@ -49,8 +49,8 @@ Brush JSON examples: Documentation~/Examples/Brushes/README.md. Format: whimtex.
 修饰纹理、绘制粒子遮罩、生成 VFX 噪声，或将多个图层组合成精灵——
 这些原本需要打开图像编辑器的小任务，都可以直接在 Unity 中完成。
 
-可编辑的合成文档和可直接使用的纹理保存在同一个资源中。图层、效果和变换仍可调整，
-资源本身则可以直接指定给材质。只有需要独立图像文件时才需要导出。
+可编辑的合成文档和可直接使用的纹理保存在同一个 TIFF 文档中。图层、效果和变换仍可调整，
+该 TIFF 可以直接指定给材质。只有需要独立图像文件时才需要导出。
 
 <p align="center">
   <a href="Documentation~/Images/whimtex-heart.png"><img src="Documentation~/Images/whimtex-heart.png" alt="WhimTex 中由渐变、描边、高光和 SDF 边缘光组成的分层爱心" width="720"></a>
@@ -101,10 +101,10 @@ https://github.com/DCFApixels/WhimTex.git
 1. 打开 **Window → WhimTex** 并设置画布尺寸。点击 **New** 可再创建一个文档。
 2. 点击 Layers 底部的 **+**，选择 **Drawing Layer** 创建绘制图层。也可以将已有纹理从 Project 拖到预览上。
 3. 使用 Transform（`T`）调整位置，或使用 Brush（`B`）/ Pencil（`P`）绘制。
-4. 按 `Ctrl+S`。可编辑文档和完整分辨率纹理会保存在同一个 `.asset` 中。
+4. 按 `Ctrl+S`。可编辑文档和完整分辨率纹理会保存在同一个 `.tiff` 文件中。
 5. 将该资源指定给纹理字段，或使用其内嵌的 **Output Sprite**。
 
-双击保存的资源即可再次编辑。通过 **Export** 可导出 PNG、TGA、JPEG、EXR、多图层 PSD 或 Texture2D。
+双击保存的 TIFF 即可再次编辑。通过 **Export** 可导出 PNG、TGA、JPEG、EXR、多图层 PSD 或 Texture2D。
 
 <a id="workspace"></a>
 <a id="layers"></a>

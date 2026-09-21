@@ -36,6 +36,9 @@ For sprites, select **Sprite (2D and UI)** there and use the standard Sprite Edi
 Keep the TIFF and its `.meta` together; moving the asset within Unity preserves its link to the open document.
 Do not resave the TIFF in another image editor: that can remove the editable layers.
 
+For the byte-level layout, block directory, lazy Drawing loading and integrity checks, see the
+[TIFF document format](../TIFF_FORMAT.md) technical reference.
+
 **Precision**, next to the canvas size, selects the saved image precision:
 
 - **Auto** — 8 bits per channel for the ordinary range; Float32 when the result needs HDR.

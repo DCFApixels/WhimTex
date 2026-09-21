@@ -31,6 +31,7 @@ Control names in this guide match the labels in the editor.
 - [Color, HDR and channels](color.md)
 - [Game post-processing](post-fx.md)
 - [Save and export](saving.md)
+- [TIFF document](tiff-format.md)
 - [Keyboard shortcuts](shortcuts.md)
 - [Automation](automation.md)
 - [Troubleshooting](troubleshooting.md)

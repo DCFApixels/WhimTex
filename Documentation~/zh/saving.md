@@ -36,6 +36,9 @@ Unity 通常显示的是**最后保存的图像**。启用 [Live Update](preview
 请保留 TIFF 及其 `.meta`；在 Unity 内移动资源不会断开与已打开文档的关联。
 不要用外部图像编辑器重新保存 TIFF，否则可能丢失可编辑图层。
 
+有关字节布局、块目录、Drawing 延迟加载和完整性检查，请参阅
+[TIFF 文档格式技术参考](../TIFF_FORMAT.md)。
+
 画布尺寸旁的 **Precision** 用于选择保存图像的精度：
 
 - **Auto** — 普通范围使用每通道 8 位；结果需要 HDR 时使用 Float32。

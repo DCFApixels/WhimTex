@@ -14,6 +14,7 @@ For painting, layers and export, use the artist guides in [English](en/index.md)
 Technical specifications are maintained in English.
 
 - [Agent API](AgentAPI.md): discovery, JSON operations, layer settings, painting and safety.
+- [TIFF document format](TIFF_FORMAT.md): carrier layout, model/Drawing blocks, lazy loading and recovery rules.
 - [JSON examples](Examples/index.md): ready-to-adapt image and Drawing requests.
 - [Color range, HDR and groups](HDR.md): color spaces, storage, isolation and diagnostics.
 - [Gaussian Blur and caching](GaussianBlur.md): source representations, quality and memory.
