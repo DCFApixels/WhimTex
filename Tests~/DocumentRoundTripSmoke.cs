@@ -18,8 +18,17 @@ System.Collections.Generic.List<UnityEngine.Color> Sample(UnityEngine.Texture2D 
     return samples;
 }
 
+string dir = "Assets/WhimTexRoundTrip_" + System.Guid.NewGuid().ToString("N");
+DCFApixels.WhimTex.TextureCompositor doc = null;
+DCFApixels.WhimTex.TextureCompositor loaded = null;
+DCFApixels.WhimTex.TextureCompositor second = null;
+UnityEngine.Texture2D plain = null;
+UnityEditor.AssetDatabase.CreateFolder("Assets", System.IO.Path.GetFileName(dir));
+try
+{
+
 // --- build a document with several behaviour types, a group, an effect target and a drawing layer ---
-var doc = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>();
+doc = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>();
 doc.width = doc.height = 8;
 var drawing = new DCFApixels.WhimTex.DrawingLayerBehaviour { brushColor = UnityEngine.Color.red, brushSize = 8, brushHardness = 1f };
 Call(drawing, "PaintPoint", new UnityEngine.Vector2(.5f, .5f), 8, 8, Call(drawing, "GetStrokeParameters", false));
@@ -47,8 +56,6 @@ phase = "save";
 var before = doc.Compose();
 var beforeSamples = Sample(before);
 UnityEngine.Object.DestroyImmediate(before);
-string dir = "Assets/WhimTexSpike";
-System.IO.Directory.CreateDirectory(dir);
 string path = DCFApixels.WhimTex.WhimTexDocumentFile.Save(doc, dir + "/roundtrip-test");
 report.Append(" || carrier=").Append(System.IO.Path.GetExtension(path));
 Check(System.IO.File.Exists(path), "the carrier file exists");
@@ -64,7 +71,7 @@ Check(UnityEditor.AssetDatabase.LoadAllAssetsAtPath(path).Length == 1 || !System
 
 // --- load it back ---
 phase = "load";
-Check(DCFApixels.WhimTex.WhimTexDocumentFile.TryLoad(path, out DCFApixels.WhimTex.TextureCompositor loaded, out string loadError),
+Check(DCFApixels.WhimTex.WhimTexDocumentFile.TryLoad(path, out loaded, out string loadError),
     "document loads: " + loadError);
 Check(loaded != null && loaded != doc, "a fresh document instance was reconstructed");
 Check(!UnityEditor.AssetDatabase.Contains(loaded), "the loaded document is not an asset");
@@ -114,7 +121,7 @@ report.Append(" || worstDelta=").Append(worst.ToString("F5"));
 
 // --- plain images are not documents, and the old path is untouched ---
 phase = "guards";
-var plain = new UnityEngine.Texture2D(4, 4, UnityEngine.TextureFormat.RGBA32, false, false);
+plain = new UnityEngine.Texture2D(4, 4, UnityEngine.TextureFormat.RGBA32, false, false);
 plain.Apply();
 System.IO.File.WriteAllBytes(dir + "/plain.png", plain.EncodeToPNG());
 UnityEditor.AssetDatabase.Refresh();
@@ -124,6 +131,15 @@ Check(!DCFApixels.WhimTex.WhimTexDocumentFile.TryLoad(dir + "/plain.png", out _,
 Check(!DCFApixels.WhimTex.WhimTexDocumentFile.TryLoad(dir + "/missing.png", out _, out _), "a missing file fails cleanly");
 Check(DCFApixels.WhimTex.WhimTexDocumentFile.Save(doc, dir + "/roundtrip-second").EndsWith("roundtrip-second" + System.IO.Path.GetExtension(path)),
     "saving twice keeps the same carrier extension");
-var second = DCFApixels.WhimTex.WhimTexDocumentFile.Load(dir + "/roundtrip-second" + System.IO.Path.GetExtension(path));
+second = DCFApixels.WhimTex.WhimTexDocumentFile.Load(dir + "/roundtrip-second" + System.IO.Path.GetExtension(path));
 Check(second != null && second.layers.Count == doc.layers.Count, "the second save also loads");
 return "PASS: document round trip checks=" + checks + ", " + report;
+}
+finally
+{
+    if (second != null && !UnityEditor.AssetDatabase.Contains(second)) UnityEngine.Object.DestroyImmediate(second);
+    if (loaded != null && !UnityEditor.AssetDatabase.Contains(loaded)) UnityEngine.Object.DestroyImmediate(loaded);
+    if (doc != null && !UnityEditor.AssetDatabase.Contains(doc)) UnityEngine.Object.DestroyImmediate(doc);
+    if (plain != null) UnityEngine.Object.DestroyImmediate(plain);
+    UnityEditor.AssetDatabase.DeleteAsset(dir);
+}

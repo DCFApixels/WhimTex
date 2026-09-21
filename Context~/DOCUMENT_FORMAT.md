@@ -195,8 +195,10 @@ Unity Editor 6000.7, DX12. Запускать через подключённы�
   сохранности исходника.
 - `Tests~/TiffLiveSmoke.cs` — независимая TIFF live-сессия без окна: begin/preview/status/render,
   atomic complete, создание нового TIFF и внешний revision conflict.
-- Исторические спайки: `DocumentRoundTripSmoke`, `DocumentLiveUpdateSmoke`.
-  Перед запуском проверить их фиксированные пути Assets; они не обладают одинаковыми гарантиями cleanup.
+- `Tests~/DocumentRoundTripSmoke.cs` и `Tests~/DocumentLiveUpdateSmoke.cs` — дополнительные
+  `eval_file` smoke-тесты round-trip и Live Update. Они создают уникальные папки
+  `Assets/WhimTexRoundTrip_<guid>` / `Assets/WhimTexLive_<guid>` и удаляют их в `finally`;
+  запускать их нужно именно через `eval_file`, не через `run_script`.
 
 - `Tests~/DocumentReleaseValidation.cs` + `Fixtures/WhimTexPlayerProbe.cs` — разрешённый Windows Player
   build, artifact/runtime проверки, сбои staged-записи, импорта и восстановление journal.

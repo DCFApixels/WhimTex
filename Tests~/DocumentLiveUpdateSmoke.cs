@@ -15,6 +15,12 @@ object CallStatic(string name, params object[] args)
 }
 string StatusStatic() => (string)sessionType.GetProperty("Status", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic).GetValue(null);
 bool IsLive() => (bool)sessionType.GetProperty("IsLive", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic).GetValue(null);
+
+string dir = "Assets/WhimTexLive_" + Guid.NewGuid().ToString("N");
+DCFApixels.WhimTex.TextureCompositor doc = null;
+UnityEditor.AssetDatabase.CreateFolder("Assets", System.IO.Path.GetFileName(dir));
+try
+{
 // After Reinitialize the CPU copy of the texture is undefined, so live pixels must be read back through the GPU.
 UnityEngine.Color ReadGpu(UnityEngine.Texture2D texture, int x, int y)
 {
@@ -41,7 +47,7 @@ UnityEngine.Color ReadGpu(UnityEngine.Texture2D texture, int x, int y)
 }
 
 // --- document with a drawing layer and a fill layer ---
-var doc = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>();
+doc = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>();
 doc.width = doc.height = 16;
 var drawing = new DCFApixels.WhimTex.DrawingLayerBehaviour { brushColor = UnityEngine.Color.red, brushSize = 16, brushHardness = 1f };
 Call(drawing, "PaintPoint", new UnityEngine.Vector2(.5f, .5f), 16, 16, Call(drawing, "GetStrokeParameters", false));
@@ -52,8 +58,6 @@ doc.layers.Add(fill);
 Call(doc, "NormalizeModel");
 Call(doc, "MarkChanged");
 
-string dir = "Assets/WhimTexSpike";
-System.IO.Directory.CreateDirectory(dir);
 string path = DCFApixels.WhimTex.WhimTexDocumentFile.Save(doc, dir + "/live-format-test");
 report.Append("carrier=").Append(System.IO.Path.GetExtension(path));
 
@@ -117,3 +121,10 @@ report.Append(" restoredFormat=").Append(restored.format);
 // --- a plain image cannot be used as a live document ---
 Check(!(bool)CallStatic("Start", doc, dir + "/missing-document.png"), "a missing carrier is reported instead of throwing");
 return "PASS: live update checks=" + checks + ", " + report;
+}
+finally
+{
+    try { if (IsLive()) CallStatic("Stop", "historical smoke cleanup"); } catch { }
+    if (doc != null && !UnityEditor.AssetDatabase.Contains(doc)) UnityEngine.Object.DestroyImmediate(doc);
+    UnityEditor.AssetDatabase.DeleteAsset(dir);
+}
