@@ -147,7 +147,7 @@ for (const [event, callback] of [['PointerDown', 'Down'], ['PointerMove', 'Move'
         assert.ok(src.includes(`${op}Callback<${event}Event>(${callback}, TrickleDown.TrickleDown)`));
 assert.ok(ui.indexOf('BuildPreviewGuides();') < ui.indexOf('BuildPreviewZoomTool();'));
 assert.match(ui, /KeyCode.Escape && previewGuideManipulator\?\.IsDragging == true/);
-assert.match(read('TextureCompositorWindow.cs'), /ClearPreviewGuides\(\);\s*previewGuidesDocument = next;\s*compositor = next/);
+assert.match(read('TextureCompositorWindow.cs'), /ClearPreviewGuides\(\);\s*previewGuidesDocument = next;[\s\S]*?compositor = next/);
 assert.ok(!/\bUndo\.|RenderTexture|MarkChanged|SetDirty/.test(src), 'Guides remain window-local and outside the render/Undo pipeline');
 assert.match(src, /whimtex-preview-surface/);
 assert.match(src, /ViewChanged \+= previewGuideOverlay.MarkDirtyRepaint/);

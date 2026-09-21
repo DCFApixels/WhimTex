@@ -17,10 +17,12 @@ function compile(name) {
     .replace(/, \)/g, ')')
     .replace(/string.IsNullOrEmpty\((\w+)\)/g, '(!$1)')
     .replace(/string.Empty/g, '""')
-    .replace(/\b(string|Texture2D) (path|texture) =/g, 'let $2 =')
+    .replace(/\b(string|Texture2D) (\w+)\s*=/g, 'let $2 =')
     .replace(/LoadAssetAtPath<Texture2D>/g, 'LoadAssetAtPath')
     .replace('foreach (UnityEngine.Object asset in AssetDatabase.LoadAllAssetsAtPath(path))', 'for (const asset of AssetDatabase.LoadAllAssetsAtPath(path))')
-    .replace('asset is Texture2D candidate', '((candidate = asset).kind === "Texture2D")');
+    .replace('asset is Texture2D candidate', '((candidate = asset).kind === "Texture2D")')
+    .replace(/catch\(Exception (\w+)\)/g, 'catch($1)')
+    .replace(/(\w+)\.Message/g, '$1.message');
   return new Function('settings','database','EditorApplication','texture', `
     let guid, localId, candidate;
     const AssetDatabase = { ...database, TryGetGUIDAndLocalFileIdentifier(t) {
@@ -41,7 +43,7 @@ const db={
   LoadAllAssetsAtPath:()=>[main,child]
 };
 const editor={isCompiling:false,isUpdating:false};
-const settings={dynamics:{tip:null},brushTipGuid:'asset-guid',brushTipLocalId:20,brushTipPresetPath:'',ownedPresetTip:null,
+const settings={BrushTipSource:{HLSL:'HLSL'},dynamics:{tip:null,source:'Standard'},clipboardTipId:'',tipRestoreFailed:false,brushTipGuid:'asset-guid',brushTipLocalId:20,brushTipPresetPath:'',ownedPresetTip:null,
   ReleasePresetTip() { this.ownedPresetTip=null; }};
 settings.RememberBrushTip=()=>remember(settings,db,editor);
 settings.MatchesBrushTip=t=>t.guid===settings.brushTipGuid&&t.id===settings.brushTipLocalId;

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const source = readFileSync(new URL('../src/FXPresets/Normalize.hlsl', import.meta.url), 'utf8');
+const source = readFileSync(new URL('../src/FXPresets/Normalize.hlsl', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 assert.ok(source.startsWith('// @whimtex-effect Normal Map/Normalize\n'));
 assert.ok(source.includes('channels * 2.0 - 1.0'));
 assert.ok(source.includes('SpriteDecode(channels) : channels, color.a'));

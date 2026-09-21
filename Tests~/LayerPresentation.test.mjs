@@ -24,7 +24,7 @@ for (const event of ['DragUpdatedEvent','DragPerformEvent','DragExitedEvent','Ke
     assert.ok(ghost.includes(`UnregisterCallback<${event}>`));
 }
 assert.match(window, /private void ClearLayerDragData\(\)\s*\{\s*ClearLayerDragGhost\(\)/);
-assert.match(window, /private void OnLostFocus\(\)\s*\{\s*ClearLayerDragGhost\(\)/);
+assert.match(window, /private void OnLostFocus\(\)\s*\{[\s\S]*?ClearLayerDragGhost\(\)/);
 assert.match(ghost, /OnPerform\(DragPerformEvent evt\) => owner.ClearLayerDragGhost\(\)/);
 assert.match(ghost, /new Color\(background.r, background.g, background.b, 0f\)/);
 assert.match(read('WhimTexSplitView.uss'), /\.whimtex-layer-drag-ghost\s*\{[^}]*opacity: 0.6/);
@@ -55,7 +55,7 @@ assert.match(accent, /pickingMode = PickingMode.Ignore/);
 assert.match(accent, /row.Add\(referenceAccent\)/);
 assert.doesNotMatch(accent, /thumbnail.Add\(referenceAccent\)/);
 assert.match(accent, /ReferenceEquals\(source, checkedSource\) && path == checkedPath\) return/);
-assert.match(accent, /TextureCompositor.FindDocument\(source\) == null/);
+assert.match(accent, /WhimTexDocumentService\.IsDocumentAsset\(source\)/);
 assert.doesNotMatch(accent, /new (Label|Image|Button)|RegisterCallback/);
 assert.match(styles, /\.whimtex-compositor-reference-accent \{\s*position: absolute;\s*left: 0;\s*top: 0;\s*bottom: 0;\s*width: 2px;\s*background-color: rgba\(224, 143, 70, 0.7\);/);
 console.log('Linked compositor accent: File-only, cached source detection, non-interactive left row line passed.');

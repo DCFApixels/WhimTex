@@ -8,10 +8,10 @@ assert.match(source, /evt.altKey \|\| evt.ctrlKey \|\| evt.commandKey \|\| evt.s
 assert.match(source, /layer\?\.Behaviour is FileLayerBehaviour file/);
 assert.match(source, /FindLayerDragControl\(row, evt.target as VisualElement\) != null/);
 assert.match(source, /!IsLayerDragArea\(row, evt.target as VisualElement\)/);
-assert.match(source, /TextureCompositor.FindDocument\(file.sourceTexture\)/);
+assert.match(source, /TextureCompositor.FindDocument\(source\)/);
 assert.match(source, /activeLayerDrag\?\.Cancel\(\)/);
 assert.match(source, /EditorApplication.delayCall/);
-assert.match(source, /if \(this != null && document != null\)/);
+assert.match(source, /if \(this != null && source != null/);
 assert.match(source, /candidate.compositor == document/);
 assert.match(source, /existing.Show\(\);\s*existing.Focus\(\);\s*return existing;/);
 assert.match(source, /CreateWindow<TextureCompositorWindow>\("WhimTex", typeof\(TextureCompositorWindow\)\)/);

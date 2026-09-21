@@ -324,7 +324,7 @@ assert.equal((ui.match(/CapturePaintingGuide\(/g) ?? []).length, 1, 'Capture onl
 assert.match(read('TextureCompositorWindow.cs'), /paintingPointerMoved = false;\s*paintingGuideIndex = -1;/);
 for (const name of ['SnapPreviewGuidePoint', 'SnapPreviewGuideMove', 'SnapPreviewGuideResize', 'SnapPreviewGuideRotation'])
     assert.ok(transform.includes(`owner.${name}(`));
-assert.match(transform, /else if \(!disableSnap\)\s*next.rotation = owner.SnapPreviewGuideRotation/);
+assert.match(transform, /else if \(!disableSnap\)[\s\S]*?owner\.SnapPreviewGuideRotation\(next\.rotationF\)/);
 const selection = read('TextureCompositorWindow.AreaSelectionView.cs');
 assert.equal((selection.match(/CanvasPoint\(evt.localPosition, evt.ctrlKey\)/g) ?? []).length, 1);
 assert.equal((selection.match(/UpdateCurrent\(evt.localPosition, evt.shiftKey, evt.ctrlKey\)/g) ?? []).length, 2);

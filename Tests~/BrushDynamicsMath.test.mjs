@@ -58,8 +58,7 @@ assert.match(read('src/TextureCompositor.cs'), /Graphics.Blit\(accumulator, resu
 assert.match(blend, /float4 fragBrush/);
 assert.match(shader, /multi_compile_local __ BRUSH_DYNAMICS BRUSH_TEXTURE/);
 assert.ok(!paint.includes('GL.MultiTexCoord4('), 'Only supported GL coordinate methods');
-assert.ok(paint.includes('if (explicitVertices && !stampBlend) BeginBrushMesh();'));
-assert.ok(paint.includes('else if (!explicitVertices) GL.Begin(GL.QUADS);'));
+assert.ok(paint.includes('if (!stampBlend) BeginBrushMesh();'));
 const mesh = read('src/Layers/DrawingLayerBehaviour.BrushMesh.cs');
 assert.ok(mesh.includes('brushMesh.SetUVs(5, meshColors);'));
 assert.ok(mesh.includes('brushMesh.SetUVs(6, meshStamps);'));
@@ -79,7 +78,7 @@ assert.ok(!dynamics.includes('public bool randomTint'), 'Tint randomness is deri
 assert.ok(!read('src/TextureCompositorWindow.Brushes.cs').includes('new Toggle("Random Tint")'));
 assert.ok(dynamics.includes('alphas[0].alpha != alphas[i].alpha'), 'Alpha keys also enable randomness');
 assert.ok(brush.includes('if (!brushTintPrepared)'), 'Gradient analysis is outside the per-stamp loop');
-assert.ok(dynamics.includes('tintGradient.Evaluate(SampleRandom(ref state, stampIndex, 4)) : constantTint'));
+assert.ok(dynamics.includes('tintGradient.EvaluateEncoded(SampleRandom(ref state, stampIndex, 4)) : constantTint'));
 assert.ok(read('src/TextureCompositorWindow.Brushes.cs').includes('paintSettings.dynamics.ResetTint()'));
 for (const field of ['opacity','flow','scatter','scatterBias','sizeJitter','angleJitter','angleOffset','flipX','flipY','rotationMode','randomAlgorithm','tip','tipChannel','tipSdf','proceduralMode','blend','blendApplication','seed']) {
   assert.ok(api.includes('"' + field + '"'), 'API write: ' + field);
@@ -200,7 +199,7 @@ assert.ok(read('src/TextureCompositorWindow.Brushes.cs').includes('new Slider("S
 const settingsSource = read('src/PaintToolSettings.cs');
 const drawerSource = read('src/TextureCompositorWindow.Brushes.cs');
 for (const [section, fields] of [
-  ['Tip', ['dynamics.tip', 'dynamics.tipChannel', 'dynamics.tipSdf', 'dynamics.proceduralMode', 'dynamics.tipGradient', 'brushTipGuid', 'brushTipLocalId', 'brushTipPresetPath']],
+  ['Tip', ['dynamics.tip', 'dynamics.source', 'dynamics.hlslCode', 'dynamics.hlslParameters', 'dynamics.hlslResolution', 'clipboardTipId', 'dynamics.tipChannel', 'dynamics.tipSdf', 'dynamics.proceduralMode', 'dynamics.tipGradient', 'brushTipGuid', 'brushTipLocalId', 'brushTipPresetPath']],
   ['Stamps', ['dynamics.randomAlgorithm', 'dynamics.scatter', 'dynamics.scatterBias', 'dynamics.sizeJitter', 'dynamics.angleJitter', 'dynamics.angleOffset', 'dynamics.rotationMode', 'dynamics.flipX', 'dynamics.flipY']],
   ['Color', ['dynamics.blend', 'dynamics.blendApplication']]
 ]) {

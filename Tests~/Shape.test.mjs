@@ -18,7 +18,7 @@ assert.match(tool, /owner.compositor == document && owner.previewTool == Preview
 assert.match(up, /Valid &&[\s\S]*sqrMagnitude >= 9f/);
 assert.equal((up.match(/owner.AddLayer\(/g) || []).length, 1, 'One existing transactional add on release');
 assert.match(up, /Cancel\(\);\s*owner.AddLayer/);
-assert.match(up, /string namePrefix = shape.kind.ToString\(\);\s*Cancel\(\);\s*owner.AddLayer\(container, index, layer, namePrefix\)/,
+assert.match(up, /string namePrefix = shape.kind.ToString\(\);[\s\S]*?Cancel\(\);\s*owner.AddLayer\(container, index, layer, namePrefix\)/,
     'Capture the figure name before Cancel clears the gesture; numbering stays in AddLayer');
 assert.match(up, /document.TryFindLayer\(insertionAnchor/);
 assert.match(tool, /int captured = pointer; pointer = -1;[\s\S]*target.ReleasePointer\(captured\)/,

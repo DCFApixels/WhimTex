@@ -7,15 +7,15 @@ const body = layer.match(/internal static Vector2 BrushPreviewPoint[^]*?\{([^]*?
   .replace('float margin', 'let margin').replace('new Vector2', 'point').replaceAll('Mathf.', 'math.')
   .replace(/(\d)f\b/g, '$1');
 const math = { Min: Math.min, Lerp: (a,b,t) => a+(b-a)*t, Sin: Math.sin, PI: Math.PI };
-const point = new Function('t','width','height','math','point',body);
+const point = new Function('t','width','height','math','point','marginScale',body);
 for (const width of [128, 300, 596, 768]) {
   let last = -1;
   for (let i=0; i<=96; i++) {
-    const [x,y] = point(i/96,width,192,math,(x,y)=>[x,y]);
+    const [x,y] = point(i/96,width,192,math,(x,y)=>[x,y],1);
     assert.ok(x > last && x > 0 && x < 1); last=x;
     assert.ok(y >= .32-1e-7 && y <= .68+1e-7);
   }
-  assert.equal(point(0,width,192,math,(x,y)=>[x,y])[1],.5);
+  assert.equal(point(0,width,192,math,(x,y)=>[x,y],1)[1],.5);
 }
 assert.ok(layer.includes('PaintSegment(from, to, width, height, i == 1, parameters)'));
 assert.ok(layer.includes('BeginStroke(from)') && layer.includes('EndStroke()'));

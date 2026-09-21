@@ -43,14 +43,24 @@ const LEGACY_FOLDER_FALLBACK = /^\s*private const string LegacyDataFolder = "Spr
 function scan(dir) {
   for (const entry of readdirSync(path.join(root, dir), { withFileTypes: true })) {
     const file = path.join(dir, entry.name);
-    if (entry.isDirectory()) scan(file);
+    // Legacy migration and Unity's optional Sprite Editor integration retain
+    // these compatibility names intentionally; they are not stale product
+    // branding or a second active document format.
+    if (entry.isDirectory() && file.replaceAll('\\', '/') !== 'src/Editor/Legacy') scan(file);
     else if (file.endsWith('.cs')) {
+      const normalized = file.replaceAll('\\', '/');
+      const compatibilitySurface = normalized.startsWith('src/Integrations/SpriteEditor/') ||
+        normalized.endsWith('/Editor/TextureCompositorEditor.cs') ||
+        normalized.endsWith('/Editor/WhimTexSpriteEditorBridge.cs') ||
+        normalized.endsWith('/TextureCompositor.Sprites.cs');
       // `MovedFrom` markers are required compatibility data, and the preset-folder fallback in
       // WhimTexUserSettings.cs is the only other line allowed to spell the old name.
       let source = read(file).replace(/^\s*\[MovedFrom\(.*$/gm, '');
       if (LEGACY_FOLDER_FALLBACK.test(source)) source = source.replace(LEGACY_FOLDER_FALLBACK, '');
-      assert.ok(!/SpriteEditor/.test(source), `Old type or identifier name: ${file}`);
-      assert.ok(!/Sprite Editor/.test(source), `Old display name: ${file}`);
+      if (!compatibilitySurface) {
+        assert.ok(!/SpriteEditor/.test(source), `Old type or identifier name: ${file}`);
+        assert.ok(!/Sprite Editor/.test(source), `Old display name: ${file}`);
+      }
     }
   }
 }

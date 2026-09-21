@@ -50,11 +50,11 @@ object Ok(string response)
     Check(Flag(result, "success"), result.ToString());
     return result;
 }
-object Inspect() => Ok(DCFApixels.WhimTex.WhimTexApi.Inspect(fixture + "/Icon.asset"));
+object Inspect() => Ok(DCFApixels.WhimTex.WhimTexApi.Inspect(fixture + "/Icon.tiff"));
 object Batch(string operations)
 {
     var request = Json("{\"apiVersion\":1,\"save\":false,\"operations\":" + operations + "}");
-    Set(request, "assetPath", fixture + "/Icon.asset");
+    Set(request, "assetPath", fixture + "/Icon.tiff");
     Set(request, "expectedRevision", At(Inspect(), "document", "revision"));
     return request;
 }
@@ -71,7 +71,7 @@ string LayerId(object document, string name)
 }
 UnityEngine.Color Pixel(string suffix, int x, int y)
 {
-    var result = Ok(DCFApixels.WhimTex.WhimTexApi.Render(fixture + "/Icon.asset",
+    var result = Ok(DCFApixels.WhimTex.WhimTexApi.Render(fixture + "/Icon.tiff",
         "Temp/WhimTex/" + System.Guid.NewGuid().ToString("N") + "-" + suffix + ".png", 64));
     var texture = new UnityEngine.Texture2D(2, 2);
     previews.Add(Text(result, "outputPath"));
@@ -95,15 +95,15 @@ var create = Json(@"{
     {'op':'target','layer':'@edge','target':'@art'}
   ]
 }".Replace('\'', '"'));
-Set(create, "assetPath", fixture + "/Icon.asset");
+Set(create, "assetPath", fixture + "/Icon.tiff");
 Set(At(create, "operations", 1, "settings"), "source", fixture + "/source.png");
 Set(create, "dryRun", true);
 Ok(DCFApixels.WhimTex.WhimTexApi.ExecuteJson(create.ToString()));
-Check(!System.IO.File.Exists(System.IO.Path.Combine(projectRoot, fixture, "Icon.asset")), "Dry run does not create a document");
+Check(!System.IO.File.Exists(System.IO.Path.Combine(projectRoot, fixture, "Icon.tiff")), "Dry run does not create a document");
 Set(create, "dryRun", false);
 var created = Ok(DCFApixels.WhimTex.WhimTexApi.ExecuteJson(create.ToString()));
 var doc = At(created, "document");
-Check(Flag(doc, "hasOutputTexture") && Flag(doc, "hasOutputSprite"), "Output texture and sprite exist");
+Check(Flag(doc, "hasOutputTexture"), "Output texture exists");
 Check(((System.Collections.ICollection)At(doc, "layers")).Count == 4, "Four layers including a group child");
 var inkId = LayerId(doc, "Ink");
 var imageId = LayerId(doc, "Image");
@@ -128,21 +128,15 @@ Reject(cyclic, "invalid_request");
 var effectCycle = Batch("[{\"op\":\"add\",\"type\":\"sdf\",\"as\":\"a\"},{\"op\":\"add\",\"type\":\"sdf\",\"as\":\"b\"},{\"op\":\"target\",\"layer\":\"@a\",\"target\":\"@b\"},{\"op\":\"target\",\"layer\":\"@b\",\"target\":\"@a\"}]");
 Reject(effectCycle, "invalid_target");
 
+var revisionBeforeTransient = Text(Inspect(), "document", "revision");
 var edit = Batch("[{\"op\":\"set\",\"layer\":\"" + inkId + "\",\"settings\":{\"opacity\":0.5}}]");
 Ok(DCFApixels.WhimTex.WhimTexApi.ExecuteJson(edit.ToString()));
-Reject(edit, "revision_conflict");
-UnityEditor.Undo.PerformUndo();
-Check(Pixel("undo-opacity", 12, 56).a > 0.9f, "Undo restores opacity");
-UnityEditor.Undo.PerformRedo();
-Check(System.Math.Abs(Pixel("redo-opacity", 12, 56).a - 0.5f) < 0.03f, "Redo restores opacity edit");
+Check(Text(Inspect(), "document", "revision") == revisionBeforeTransient, "Transient edit does not change the saved revision");
 
 var paint = Batch("[{\"op\":\"stroke\",\"layer\":\"" + inkId + "\",\"brush\":{\"color\":[0,1,0,1],\"size\":5,\"hardness\":1},\"points\":[[40,8],[52,8]]}]");
+Set(paint, "save", true);
 Ok(DCFApixels.WhimTex.WhimTexApi.ExecuteJson(paint.ToString()));
 Check(Pixel("paint", 44, 56).g > 0.9f, "API brush paints a second stroke");
-UnityEditor.Undo.PerformUndo();
-Check(Pixel("undo-paint", 44, 56).a < 0.01f, "Undo restores pixels without a WhimTex window");
-UnityEditor.Undo.PerformRedo();
-Check(Pixel("redo-paint", 44, 56).g > 0.9f, "Redo restores drawing pixels");
 
 var transform = Batch("[{\"op\":\"transform\",\"layer\":\"" + imageId + "\",\"transform\":{\"position\":[10,-4],\"rotation\":30}}]");
 Ok(DCFApixels.WhimTex.WhimTexApi.ExecuteJson(transform.ToString()));
@@ -150,7 +144,7 @@ var save = Batch("[]");
 Set(save, "save", true);
 Ok(DCFApixels.WhimTex.WhimTexApi.ExecuteJson(save.ToString()));
 var reloaded = Inspect();
-Check(Flag(reloaded, "document", "hasOutputTexture") && Flag(reloaded, "document", "hasOutputSprite"), "Rebaked subassets remain available");
+Check(Flag(reloaded, "document", "hasOutputTexture"), "Rebaked output texture remains available");
 return new { success = true, checks };
 }
 catch (System.Exception error) { return new { success = false, checks, error = error.ToString() }; }

@@ -41,12 +41,13 @@ let code=body(source,'private static void ApplyLiveFx(')
   .replace('token is JArray array && array.Count <= 16','Array.isArray(token) && token.length <= 16')
   .replaceAll('new List<Object>', 'new List')
   .replace('foreach (var item in (JArray)token)','for (const item of token)')
+  .replace('foreach (var parameter in fx.TextureLayerParameters())','for (const parameter of fx.TextureLayerParameters())')
   .replace(/\bJObject spec\b|\bstring op\b|\bint index\b|\bvar parameters\b|\bvar fx\b/g,m=>'let '+m.split(' ')[1])
   .replaceAll('spec["code"]?.Type == JTokenType.String','typeof spec["code"] === "string"')
   .replaceAll('((string)spec["code"]).Length','spec["code"].length')
   .replaceAll('(string)spec["code"]','spec["code"]')
   .replace('catch (Exception error)','catch (error)').replaceAll('error.Message','error.message');
-const create=(owner,code,parameters)=>({owner,code,parameters,Parameters:new List(parameters),ApplyAgentDraft(){if(code==='INVALID')throw Error('bad shader');}});
+const create=(owner,code,parameters)=>({owner,code,parameters,Parameters:new List(parameters),TextureLayerParameters(){return [];},ApplyAgentDraft(){if(code==='INVALID')throw Error('bad shader');}});
 const mutate=new Function('Require','Text','Int','Keys','Obj','List','ReadLiveFxParameters','RequireGraphics','ShaderFX','WhimTexApiException',
   `return (layer,token,owner,created)=>{${code}}`)(Require,Text,Int,Keys,v=>v,List,v=>v??[],()=>{}, {CreateAgentDraft:create},class extends Error{});
 const a={},b={}; const make=()=>({modifiers:new List([a,b]),IsGroup:false});
@@ -64,7 +65,9 @@ for(const operations of [
 target=make(); assert.throws(()=>mutate(target,[{op:'replace',index:0,code:'INVALID'}],doc,new List()));
 assert.equal(target.modifiers[0],a); // Failed compilation cannot publish the failing effect.
 assert.throws(()=>mutate({modifiers:new List(),IsGroup:false},[{op:'remove',index:0}],doc,new List()));
-assert.throws(()=>mutate({modifiers:new List(),IsGroup:true},[{code:'A'}],doc,new List()));
+const groupTarget={modifiers:new List(),IsGroup:true};
+mutate(groupTarget,[{code:'A'}],doc,new List());
+assert.equal(groupTarget.modifiers.length,1);
 const compile=body(read('src/ShaderFX.cs'),'internal void ApplyAgentDraft(');
 for(const forbidden of ['Undo.','AssetDatabase.AddObjectToAsset','SaveAsset','PersistEmbedded','NotifyValuesChanged','SetDirty'])
   assert.ok(!compile.includes(forbidden),`Trial compilation must not mutate live state: ${forbidden}`);
