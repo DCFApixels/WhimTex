@@ -6,7 +6,7 @@ lang: "en"
 permalink: "/en/saving/"
 translations: "en/saving.md,ru/saving.md,zh/saving.md"
 previous_page: "en/post-fx.md"
-next_page: "en/shortcuts.md"
+next_page: "en/tiff-format.md"
 ---
 
 # Save and export
@@ -28,43 +28,69 @@ Unity normally shows the **last saved image**. Enable [Live Update](preview.md#s
 to see edits on a model before saving. If a linked texture changes, save the document again to update its output image.
 File layers keep their links to source textures; keep those sources in the project.
 
-## TIFF documents (experimental branch)
+## Texture and sprite settings
 
-New documents are saved as **Name.tiff**: one editable document that Unity imports as a texture.
-Select it in Project, or click **Output**, to configure mipmaps, compression, sprites and platform overrides in Unity's standard Inspector. TIFF uses no separate settings window; an unsaved document must be saved first.
-For sprites, select **Sprite (2D and UI)** there and use the standard Sprite Editor.
-Keep the TIFF and its `.meta` together; moving the asset within Unity preserves its link to the open document.
-Do not resave the TIFF in another image editor: that can remove the editable layers.
+TIFF is WhimTex's main document format: one file contains the saved image and editable layers.
+Select the saved TIFF in Project, or click **Output** beside W/H, to open its standard Unity
+Texture Importer. Save a new document first.
 
-For the byte-level layout, block directory, lazy Drawing loading and integrity checks, see the
-[TIFF document format]({{ '/reference/tiff-format/' | relative_url }}) technical reference.
+- **Texture Type:** choose **Default** for a texture or **Sprite (2D and UI)** for sprites.
+- **sRGB (Color Texture):** use it for color images; data maps need the appropriate linear settings.
+- **Alpha Is Transparency:** reduces colored fringes around transparent edges without removing alpha.
+- **Generate Mip Maps**, **Filter Mode**, **Wrap Mode** and **Aniso Level:** control how Unity samples the imported texture.
+- **Max Size**, format and compression: configure the default settings, then enable platform overrides where needed.
 
-**Precision**, next to the canvas size, selects the saved image precision:
+Click **Apply** in the Inspector to apply import settings. They affect the texture used by Unity,
+not the document's editable layers or canvas size. For HDR TIFF, WhimTex uses linear data and disables sRGB.
 
-- **Auto** — 8 bits per channel for the ordinary range; Float32 when the result needs HDR.
-- **8-bit** — always 8 bits per channel; values outside 0–1 are clipped only in the output image.
-- **Float32** — retains fine differences even within 0–1, for example in smooth gradients or height maps. Files may be considerably larger.
+### Sprite slicing
 
-This controls the source TIFF, not GPU compression. Working rendering remains half-float;
-Float32 cannot recover precision already lost. Drawing pixels keep their own storage format.
-Unity's Texture Importer controls GPU compression, resizing and platform overrides for the imported TIFF.
+Install **2D Sprite** (`com.unity.2d.sprite`) through Package Manager if Sprite Editor is unavailable.
 
-**Live Update** uses the imported TIFF and requires a readable, uncompressed texture while the session is active.
-Read/Write is enabled only when needed and restored when the session ends; the `.meta` is temporarily modified.
-Closing/switching the document, script reload or external reimport stops the session. Saving another document does not affect it.
-Building a Player also stops Live Update and uses the **last saved TIFF**, without saving or discarding your pending edits. Enable Live Update again manually afterward. If the texture cannot be restored, the build is stopped.
-If Unity reports an import error after saving, the saved TIFF is retained. Fix the import error and save again; WhimTex retries the import even when the file contents are unchanged.
-Saving the active document briefly pauses Live Update and resumes it after import, without switching Read/Write off and on.
-Live Update supports 2D **Default** and **Sprite** imports; Crunch and other texture types update on Save instead.
-This experimental TIFF path currently allows one Live Update session at a time. Final import processing may differ from the live preview.
+1. Select the saved TIFF and set **Texture Type → Sprite (2D and UI)**.
+2. Choose **Sprite Mode → Single** for one sprite or **Multiple** for a sprite sheet, then **Apply**.
+3. Open **Sprite Editor**. Use **Slice** or draw rectangles, then set names, pivots and borders.
+4. Click **Apply**, expand the TIFF in Project and use its sprites.
 
-Missing types, fields or referenced assets produce a warning and block saving to prevent data loss.
-Restore the required package/assets and reopen the document. LDR saves follow the texture's sRGB setting;
-HDR TIFF stores linear values and disables sRGB. Alpha is never sRGB-encoded.
+For 9-slice, set the sprite borders and use **Mesh Type → Full Rect**; in a uGUI Image, choose
+**Image Type → Sliced**. After changing the canvas size, check that the sprite rectangles still fit.
 
-Apply any pending Shader FX code before saving. If the TIFF changed outside the current editing session, reopen it or use **Save As**; WhimTex will not overwrite the external version.
-Saving a legacy `.asset` as TIFF copies its editable Drawing pixels and leaves the original asset intact. References to its old output are not reassigned automatically.
-PNG/EXR export remains ordinary image export, without editable layers.
+## Saved image precision
+
+**Precision**, beside the canvas size, controls the image stored in the TIFF:
+
+- **Auto:** 8 bits per channel for values within 0–1; Float32 when the result needs HDR.
+- **8-bit:** always 8 bits per channel; values outside 0–1 are clipped in the saved composite.
+- **Float32:** preserves fine differences in gradients and height maps, including within 0–1; files may be larger.
+
+This is separate from GPU compression in the Inspector. Working rendering uses half-float,
+so Float32 cannot restore precision already lost. Drawing layers retain their own pixel format.
+
+## Live Update and saving
+
+[Live Update](preview.md#see-your-paint-on-a-model) shows unsaved edits on objects using the TIFF.
+One document can publish live updates at a time. During the session the texture is uncompressed,
+and Read/Write is enabled if needed; its original settings are restored when the session ends.
+The temporary Read/Write change appears in `.meta`.
+
+Saving briefly pauses Live Update and resumes it after import. Closing or switching the document,
+script reload and external reimport end the session. Building a Player also stops it and uses the
+last saved TIFF; save your edits before building and enable Live Update again afterward.
+If the texture cannot be restored, the build stops with an error.
+
+Live Update supports 2D **Default** and **Sprite** imports. Crunch and other texture types update
+when saved. Final compression and import processing can look different from the live preview.
+
+## Protect the editable document
+
+Keep the TIFF and its `.meta` together; move or rename the asset inside Unity to preserve references.
+Do not resave the TIFF in another image editor: it may remove the editable layers.
+See [TIFF document](tiff-format.md) for what the file contains.
+
+Apply pending Shader FX code before saving. If the file changed externally, reopen it or use
+**Save As**. If missing types, fields or referenced assets block saving, restore the required
+package or assets and reopen the document. If Unity reports an import error after a successful
+write, fix it and save again to retry the import.
 
 ### Long operations and limits
 
@@ -87,63 +113,15 @@ existing references are not reassigned to it. This is not autosave: edits made w
 If Live Update's temporary Read/Write setting was not restored after a failure, restore the missing asset or fix its import error,
 then choose **Tools → WhimTex → Recovery → Retry Live Update Recovery**. Do not delete the recovery journal manually.
 
-The sections below about linked images and embedded output settings apply to the **legacy `.asset` workflow**,
-not to TIFF import settings. Legacy documents remain readable, but the window no longer creates new `.asset` documents.
-To migrate one, select it in the Project window and choose **Assets → WhimTex → Migrate Legacy .asset to TIFF…**.
-The original `.asset` and its GUID stay unchanged; migration creates a separate TIFF.
+## Migrate an old document
 
-## Linked output image
+Legacy `.asset` documents can be opened, but cannot be saved back to that format.
+Use **Save As** in WhimTex, or select the old asset and choose
+**Assets → WhimTex → Migrate Legacy .asset to TIFF…**.
 
-Open **Output** beside the canvas W/H fields. In **Linked Output**, assign an existing PNG, TGA, JPG/JPEG or EXR image in **Assets**. Confirm the link: each document save replaces that image with the composition at full canvas resolution. Do not assign a source image you want to keep unchanged. PNG/TGA preserve alpha; JPG composites transparency over white; EXR preserves linear HDR. For LDR images, RGB is encoded according to the target's sRGB setting (normal maps use linear data).
-
-The image keeps its GUID and import settings, including platform overrides and sprite slicing. Use **Texture Settings** to select it and edit its standard Unity Inspector. Embedded output settings below do not resize or compress the linked source image. The existing embedded texture and its Live Update are unchanged; the linked image updates only on Save.
-
-**Clear** disconnects the output without deleting the image. Moving or renaming it inside Unity preserves the link. A missing, read-only or unsupported target blocks saving until corrected or cleared. **Save As** from an already saved document clears the link on the new copy so it does not overwrite the original document's output; the first save of a new document retains its assigned link.
-
-## Embedded output settings
-
-This section is compatibility documentation for legacy `.asset` files only. They can be opened and
-inspected, but cannot be saved in place; use **Save As TIFF**. For new TIFF documents, configure
-mipmaps, compression and platform overrides in Unity's standard Inspector.
-
-**Alpha Is Transparency** extends edge RGB into transparent pixels to reduce filtering fringes; it never removes alpha. This processing happens on Save, not Live Update. **sRGB (Color Texture)** is a separate checkbox for RGBA32; HDR remains linear.
-
-**Max Size** limits saved dimensions without changing the canvas; **Resize Algorithm** selects Mitchell or Bilinear. Sprite rectangles and borders scale with the output while metadata remains in canvas pixels. **Advanced** includes Box/Kaiser mipmap filtering, **Preserve Coverage** and **Alpha Cutoff**. **Read/Write** keeps a CPU copy; disabling it prevents Live Update and Sprite Editor until enabled and saved again. Live Update uses a fast preview path, so final resizing, alpha processing and mip filtering are applied on Save.
-
-The resizable preview footer shows the last saved output over a checkerboard. Drag the **Preview** header to resize it independently of the settings scroll area. Continue dragging down past the minimum height to hide the preview entirely; drag the remaining header upward to restore it. Information is overlaid at the bottom: dimensions, format, color space, mip count, estimated GPU/CPU pixel storage and actual asset file size. The memory estimate excludes driver alignment and Unity object overhead. Asset file size includes the document and its layers, but not `.meta`; it is not the texture's runtime memory usage.
-
-The obsolete custom output-compression panel is no longer shown. Configure compression and platform overrides in Unity's standard Texture Importer for the saved TIFF.
-
-**Output Type** selects **Texture** (no sprite subassets) or **Sprite** (Single/Multiple sprites). Sprite remains the default for compatibility. In Texture mode sprite controls are hidden and sprite settings do not restrict saving. Applying Texture removes existing output sprites and breaks references to them; slicing and sprite settings are retained for switching back. The output texture keeps its reference.
-
-For a legacy asset, click **Output** in WhimTex or **WhimTex Output Settings…** in its Inspector to inspect the compatibility settings. **Save As TIFF** creates the new document; the `.asset` is never overwritten. New TIFF documents use Unity's standard Inspector instead. Editing these fields does not bake a TIFF on every keystroke.
-
-- **Texture:** Filter Mode, Wrap U/V, Aniso Level and Generate Mip Maps. Wrap affects texture sampling, not layer tiling.
-- **Storage:** HDR Half (default), HDR Float, Linear RGBA32 or sRGB RGBA32. RGBA32 clamps values to 0–1; sRGB encodes RGB for color sampling. HDR Float changes storage precision, not the half-float working compositor's precision.
-- **Sprite:** Pixels Per Unit, normalized Pivot with **Pivot Alignment** positions and manual coordinates, **Left / Bottom / Right / Top** Border fields in pixels, Full Rect/Tight Mesh Type, Extrude and Generate Physics Shape. Use Full Rect for 9-slice. Borders must fit within the canvas.
-
-Invalid settings are highlighted with an explanation beside the field; **Apply & Save Output** remains disabled until they are corrected. Warnings about removing sprites appear only when the document actually has saved sprites.
-
-**Revert** restores the last applied output settings and Filter Mode without changing layers, canvas size or sprite slices. It supports Undo. For older documents without a saved settings snapshot, the initially loaded settings are the starting point until the next save.
-
-The **Preview** header offers **RGBA / RGB / Alpha** and a mip-level selector. These affect only the preview, work with Read/Write disabled, and never alter the saved image. **Preview requires Apply** means the displayed image is still the last saved output. The channel and mip selectors are controls; drag the remaining header area to resize or hide the preview.
-
-**Generate Mip Maps** remains available for both output types. Compression is owned by Unity's Texture Importer and can be configured per platform; it does not alter the editable canvas.
-
-Defaults preserve uncompressed HDR Half without mipmaps and a centered, full-rect sprite at 100 PPU. Read/Write is enabled by default. Platform overrides are not provided. These settings affect embedded output, not separate image exports.
-
-### Sprite slicing (optional)
-
-Install **2D Sprite** (`com.unity.2d.sprite`) through Unity Package Manager to enable slicing controls. WhimTex does not install it automatically.
-
-1. Save the document, then open **Output → Sprite**.
-2. Choose **Sprite Mode → Multiple**, then click **Sprite Editor**. This saves the current output before opening Unity's editor.
-3. Use **Slice** or draw rectangles; edit each sprite's name, pivot and border, then click **Apply**.
-4. Expand the document in Project to use its individual sprites.
-
-**Single** uses the whole canvas. Switching to Single keeps the saved slices hidden so switching back preserves their references. Renaming or moving an existing slice also preserves its reference; deleting a slice removes its sprite and can break references to it. If resizing the canvas leaves a slice outside its bounds, fix the rectangles before saving.
-
-Without 2D Sprite, slicing controls are disabled, but previously saved slices continue to be generated when saving. Custom outlines, skinning and secondary textures are not supported by this integration.
+Migration copies editable layers and Drawing pixels into a new TIFF; the original asset and its GUID
+remain unchanged. Existing materials and File layers still reference the old output: assign the
+new TIFF where needed and review its import settings. Use the TIFF Inspector for future output settings.
 
 ## Choose an export format
 

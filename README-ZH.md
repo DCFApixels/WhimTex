@@ -61,7 +61,7 @@ Brush JSON examples: Documentation~/Examples/Brushes/README.md. Format: whimtex.
 
 - **无需离开 Unity。** 绘制并检查结果，不必在不同编辑器之间传递文件。
 - **保留可编辑性。** 图层、渐变、噪声、描边和 Shader FX 都可以随时调整，而不是永久烘焙成像素。
-- **融入项目。** 保存的资源可用作**纹理**，其内嵌的 **Output Sprite** 可用作精灵。从 Project 拖入纹理、画笔预设和 HLSL 效果，预设也能与项目一起保存。
+- **融入项目。** 将保存的 TIFF 用作**纹理**，或以 **Sprite (2D and UI)** 类型导入以使用精灵。从 Project 拖入纹理、画笔预设和 HLSL 效果，预设也能与项目一起保存。
 - **在模型上查看效果。** **Live Update** 在绘制过程中实时更新场景对象上的纹理。
 - **按需使用程序化工具。** 通过参数创建噪声、渐变、形状、距离场和描边，无需逐笔绘制。
 - **与 AI 协作。** 已连接的智能体可以在打开的文档中添加和编辑图层。浏览器 AI 则可以用 JSON 描述图层、画笔或 HLSL 效果，通过 `Ctrl+V` 即可粘贴。创作指南、格式规范和示例帮助生成有效内容，粘贴错误会显示在 Console 中。
@@ -102,7 +102,7 @@ https://github.com/DCFApixels/WhimTex.git
 2. 点击 Layers 底部的 **+**，选择 **Drawing Layer** 创建绘制图层。也可以将已有纹理从 Project 拖到预览上。
 3. 使用 Transform（`T`）调整位置，或使用 Brush（`B`）/ Pencil（`P`）绘制。
 4. 按 `Ctrl+S`。可编辑文档和完整分辨率纹理会保存在同一个 `.tiff` 文件中。
-5. 将该资源指定给纹理字段，或使用其内嵌的 **Output Sprite**。
+5. 将 TIFF 指定给纹理字段。需要精灵时，在其 Inspector 中选择 **Texture Type → Sprite (2D and UI)**，点击 **Apply**，然后在 Project 中展开资源。
 
 双击保存的 TIFF 即可再次编辑。通过 **Export** 可导出 PNG、TGA、JPEG、EXR、多图层 PSD 或 Texture2D。
 

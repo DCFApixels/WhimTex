@@ -26,7 +26,7 @@ https://github.com/DCFApixels/WhimTex.git
 2. Click **+** at the bottom of Layers and choose **Drawing Layer**. If you already have a texture, you can drag it from Project onto the preview instead.
 3. Choose **Transform** (`T`) to arrange the image, or **Brush** (`B`) to paint.
 4. Press `Ctrl+S` and choose where to save the document.
-5. Use the saved TIFF as a texture in Unity, or expand it in Project and drag **Output Sprite** into a sprite field.
+5. Use the saved TIFF as a texture in Unity. For a sprite, select **Texture Type → Sprite (2D and UI)** in its Inspector and click **Apply**, then expand the TIFF in Project and use its sprite.
 
 Double-click the saved TIFF to continue editing. You do not need to export it first.
 It opens in its own WhimTex window without replacing your current document.

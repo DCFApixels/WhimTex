@@ -22,18 +22,20 @@ and hints for the active tool.
 
 Enable **UV** in the footer and assign a **Mesh** to see its UV island outlines over the image. The UV panel lets you choose the channel, submesh, line color and opacity. The outlines follow zoom, pan and view rotation and never appear in exports. To paint a specific part of the model, use [UV Island selection](selection.md#select-uv-islands).
 
+The **Mesh** field also accepts a model or GameObject containing a mesh; if it contains several meshes, WhimTex uses the first one it finds.
+
 <a href="{{ '/Images/uv-rubik-cube.png' | relative_url }}"><img src="{{ '/Images/uv-rubik-cube.png' | relative_url }}" alt="Painting a Rubik's cube texture in WhimTex with its UV outlines visible and the textured cube beside it in Unity Scene view" width="720"></a>
 
 Use the UV outlines to place details on the right faces. With [Live Update](saving.md) enabled, you can see brush edits on the model in Scene view as you paint.
 
 ## Image filtering
 
-**Canvas → Filter** selects the final image's filtering: **Point** keeps pixels crisp,
-**Bilinear** smooths pixel transitions, and **Trilinear** also blends mip levels when
-available. This does not enable mipmaps. The setting is saved with the document and
-applies to its output texture, Live Update and images exported into project Assets.
-PNG/JPEG/EXR files themselves do not store a sampling mode for other applications.
-Pencil always shows the preview with Point filtering at full quality, without changing this setting.
+**Canvas → Filter** controls image sampling in WhimTex: **Point** keeps pixels crisp,
+**Bilinear** smooths pixel transitions, and **Trilinear** blends mip levels when available.
+It does not generate mipmaps. Pencil temporarily uses Point and full preview quality.
+
+For the saved TIFF in a material or sprite, set **Filter Mode** and mipmaps in its Unity Inspector.
+PNG/JPEG/EXR files do not store a sampling mode for other applications.
 
 ## Move around
 
@@ -118,8 +120,9 @@ Saving the source refreshes the receiving window automatically. To see changes w
 **Live Update in the source window**. The receiving window does not need Live Update enabled just to display them.
 Turning Live Update off restores the saved image in the receiving window too.
 
-For a chain of documents, enable Live Update in each intermediate window that should pass its updated
-result onwards. **Save As** creates a new asset; existing File layers keep referencing the original.
+Only one TIFF document can publish Live Update at a time. A receiving window can display the
+source's live changes, but save each intermediate document to pass a chain of results onwards.
+**Save As** creates a new asset; existing File layers keep referencing the original.
 Automatic refresh across cyclic links, such as A using B while B uses A, is disabled to prevent feedback loops.
 
 ## Check brightness and channels

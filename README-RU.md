@@ -62,7 +62,7 @@ Brush JSON examples: Documentation~/Examples/Brushes/README.md. Format: whimtex.
 
 - **Не выходишь из Unity.** Рисуй и проверяй результат без переноса файлов между редакторами.
 - **Работа остаётся редактируемой.** Слои, градиенты, шум, обводки и Shader FX не запекаются безвозвратно — вернуться к ним можно в любой момент.
-- **Интеграция с проектом.** Сохранённый ассет работает как **текстура**, вложенный **Output Sprite** — как спрайт. Текстуры, пресеты кистей и HLSL-эффекты можно перетаскивать из Project, а сами пресеты — хранить вместе с проектом.
+- **Интеграция с проектом.** Используй сохранённый TIFF как **текстуру** или импортируй его как **Sprite (2D and UI)** для спрайтов. Текстуры, пресеты кистей и HLSL-эффекты можно перетаскивать из Project, а сами пресеты — хранить вместе с проектом.
 - **Видно на модели.** **Live Update** показывает результат на объекте в сцене прямо во время рисования.
 - **Процедурно, где это уместно.** Шум, градиенты, фигуры, поля расстояний и обводки создаются параметрами, а не кистью.
 - **Работа с ИИ.** Подключённый агент добавляет и редактирует слои в открытом документе. Браузерный ИИ может описать слои, кисть или HLSL-эффекты в JSON — достаточно вставить его через `Ctrl+V`. Для генерации есть инструкция, схема и примеры, а ошибки вставки выводятся в консоль.
@@ -77,7 +77,7 @@ Brush JSON examples: Documentation~/Examples/Brushes/README.md. Format: whimtex.
 - Текстуры с упакованными каналами и HDR-композиции с предпросмотром игровых Post FX.
 
 <p align="center">
-  <a href="Documentation~/Images/vfx-energy-ring.png"><img src="Documentation~/Images/vfx-energy-ring.png" alt="Энергетическое кольцо для VFX: радиальный градиент и синий шум в слоях" width="250"></a>
+  <a href="Documentation~/Images/vfx-energy-ring.png"><img src="Documentation~/Images/vfx-energy-ring.png" alt="Энергетическое кольцо для VFX: слои градиентов и шума" width="250"></a>
   <a href="Documentation~/Images/uv-rubik-cube.png"><img src="Documentation~/Images/uv-rubik-cube.png" alt="Live Update: правки текстуры сразу видны на кубе в Scene view" width="250"></a>
   <a href="Documentation~/Images/brush-settings.png"><img src="Documentation~/Images/brush-settings.png" alt="Окно WhimTex: холст, панель слоёв и настройки кисти" width="250"></a>
 </p>
@@ -103,7 +103,7 @@ https://github.com/DCFApixels/WhimTex.git
 2. Нажми **+** внизу списка Layers и выбери **Drawing Layer** — появится рисовальный слой. Готовую текстуру можно вместо этого перетащить из Project прямо на превью.
 3. Размести изображение через Transform (`T`) или рисуй Brush (`B`) / Pencil (`P`).
 4. Нажми `Ctrl+S`. Редактируемый документ и полноразмерная текстура сохранятся в одном `.tiff`.
-5. Назначь ассет в текстурное поле или используй вложенный **Output Sprite**.
+5. Назначь TIFF в текстурное поле. Для спрайтов выбери **Texture Type → Sprite (2D and UI)** в его Inspector, нажми **Apply** и разверни ассет в Project.
 
 Двойной клик по сохранённому TIFF открывает его снова. PNG, TGA, JPEG, EXR, многослойный PSD
 и Texture2D доступны через **Export**.

@@ -5,7 +5,7 @@ nav_order: 14
 lang: "zh"
 permalink: "/zh/shortcuts/"
 translations: "en/shortcuts.md,ru/shortcuts.md,zh/shortcuts.md"
-previous_page: "zh/saving.md"
+previous_page: "zh/tiff-format.md"
 next_page: "zh/automation.md"
 ---
 

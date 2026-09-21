@@ -37,9 +37,3 @@ Control names in this guide match the labels in the editor.
 - [Troubleshooting](troubleshooting.md)
 
 For generated textures, also see [Noise](noise.md) and [Normal Map](normal-map.md).
-
-## Create textures for VFX
-
-Combine gradients, [Noise](noise.md) and [Shader Processor](shader-fx.md) to create masks for energy rings, bursts and other effects. This ring combines a bright rim with fine radial streaks; its layers let you adjust the shape and detail separately.
-
-<a href="{{ '/Images/vfx-energy-ring.png' | relative_url }}"><img src="{{ '/Images/vfx-energy-ring.png' | relative_url }}" alt="A VFX energy-ring texture in WhimTex, with gradient and noise layers, a Shader Processor and a circular gradient preview" width="720"></a>

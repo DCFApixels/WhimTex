@@ -21,16 +21,20 @@ next_page: "zh/color.md"
 
 在页脚中启用 **UV** 并指定 **Mesh**，即可在图像上看到其 UV 岛轮廓。UV 面板可让你选择通道、子网格、线条颜色和不透明度。轮廓会跟随缩放、平移和视图旋转，且绝不会出现在导出中。要绘制模型的特定部分，请使用 [UV 岛选择](selection.md#选择-uv-岛屿)。
 
+**Mesh** 字段也接受包含网格的模型或 GameObject；有多个网格时，WhimTex 使用找到的第一个。
+
 <a href="{{ '/Images/uv-rubik-cube.png' | relative_url }}"><img src="{{ '/Images/uv-rubik-cube.png' | relative_url }}" alt="Painting a Rubik's cube texture in WhimTex with its UV outlines visible and the textured cube beside it in Unity Scene view" width="720"></a>
 
 利用 UV 轮廓将细节放到正确的面上。启用 [Live Update](saving.md) 后，你在绘制时可以在 Scene View 中看到模型上的画笔编辑。
 
 ## 图像过滤
 
-**Canvas → Filter** 选择最终图像的过滤方式：**Point** 保持像素锐利，
-**Bilinear** 平滑像素过渡，**Trilinear** 还会在可用时混合 mip 层级。这不会启用 mipmap。该设置会随文档保存，并应用于其输出纹理、Live Update 以及导出到项目 Assets 中的图像。
-PNG/JPEG/EXR 文件本身不会为其他应用程序存储采样模式。
-Pencil 始终使用 Point 过滤和完整质量显示预览，不修改此设置。
+**Canvas → Filter** 控制 WhimTex 内的图像采样：**Point** 保持像素锐利，
+**Bilinear** 平滑像素过渡，**Trilinear** 在有 mip 层级时混合这些层级。
+此设置不会生成 mipmap。Pencil 会临时使用 Point 和完整预览质量。
+
+对于材质或精灵使用的已保存 TIFF，请在其 Unity Inspector 中设置 **Filter Mode** 和 mipmap。
+PNG/JPEG/EXR 文件不会为其他应用程序保存采样模式。
 
 ## 移动视图
 
@@ -114,8 +118,10 @@ Live Update 显示的作品不包含 EV、通道显示遮罩、Debug 或预览 P
 **源窗口中启用 Live Update**。接收窗口无需启用 Live Update 就能显示它们。
 关闭 Live Update 也会让接收窗口恢复为已保存的图像。
 
-对于文档链，请在每一个应继续传递更新结果的中间窗口中启用 Live Update。**Save As** 会创建新资源；现有 File 图层仍引用原始资源。
-循环链接（例如 A 使用 B，而 B 使用 A）之间的自动刷新已禁用以防止反馈循环。
+同时只能有一个 TIFF 文档发布 Live Update。接收窗口可以显示源文档的实时变化，
+但要沿文档链继续传递结果，需要保存各个中间文档。
+**Save As** 创建新资源；现有 File 图层仍引用原始资源。
+循环链接（例如 A 使用 B，而 B 使用 A）之间的自动刷新已禁用，以防止反复更新。
 
 ## 检查亮度和通道
 

@@ -82,7 +82,9 @@ This image-conversion helper does not start Unity or trigger a refresh.
 - Keep matching user-guide paths under `en/`, `ru/` and `zh/`; each page lists all three in a
   `translations` front-matter value, itself included. Add a new page to every language at once.
 - Use relative Markdown links to source `.md` files. The relative-links plugin rewrites them for the site;
-  the same links remain usable when reading the sources on GitHub.
+  the same links remain usable when reading the sources on GitHub. Keep each link's label and target
+  on one source line: multiline labels can escape rewriting. For explicit site permalinks, use
+  Liquid's `relative_url` filter so the repository base path is preserved.
 - Use stable ASCII permalinks; do not move the existing API/reference files without preserving links.
 - Each page has one H1. User guides are for artists: introduce the visual task, then show steps and
   explain controls by their effect on the image. Keep only caveats that affect the result or risk losing
@@ -92,5 +94,5 @@ This image-conversion helper does not start Unity or trigger a refresh.
 - The self-contained `AI/README.md` is intentionally searchable and included in the sitemap: it is the public entry point for browser AI authoring. Its matching EN/RU/ZH workflow pages remain artist-facing.
 - After changing clipboard fields, run `node scripts/build-clipboard-schema.mjs` and `node ../Tests~/ProceduralClipboard.test.mjs`. Run `Tests~/ProceduralClipboardSmoke.cs` through Unity Pipeline separately to validate parsing, rendering and Undo against the editor.
 - Keep README as an introduction, installation, quick start and a map to these guides.
-- Do not duplicate API tables into every language. Explain workflows bilingually; link the shared contract.
+- Do not duplicate API tables into every language. Explain workflows in EN/RU/ZH; link the shared contract.
 - Keep dependency sources and licenses in the repository notices when updating the theme.

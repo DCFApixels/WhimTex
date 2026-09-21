@@ -6,7 +6,7 @@ lang: "zh"
 permalink: "/zh/saving/"
 translations: "en/saving.md,ru/saving.md,zh/saving.md"
 previous_page: "zh/post-fx.md"
-next_page: "zh/shortcuts.md"
+next_page: "zh/tiff-format.md"
 ---
 
 # 保存与导出
@@ -28,42 +28,66 @@ Unity 通常显示的是**最后保存的图像**。启用 [Live Update](preview
 即可在保存前于模型上查看编辑效果。如果关联纹理发生变化，请再次保存文档以更新输出图像。
 文件图层会保留它们与源纹理的链接；请把这些源文件保留在项目中。
 
-## TIFF 文档（实验分支）
+## 纹理与精灵设置
 
-新文档保存为 **Name.tiff**：一个可编辑文件，由 Unity 作为纹理导入。
-在 Project 中选中它，或点击 **Output**，即可在 Unity 标准 Inspector 中设置 mipmap、压缩、精灵及平台覆盖。TIFF 不使用单独的设置窗口；新文档需要先保存。
-需要精灵时选择 **Sprite (2D and UI)**，再使用标准 Sprite Editor。
-请保留 TIFF 及其 `.meta`；在 Unity 内移动资源不会断开与已打开文档的关联。
-不要用外部图像编辑器重新保存 TIFF，否则可能丢失可编辑图层。
+TIFF 是 WhimTex 的主要文档格式：一个文件同时保存合成图像和可编辑图层。
+在 Project 中选中已保存的 TIFF，或点击 W/H 旁的 **Output**，即可打开 Unity 标准
+Texture Importer。新文档需要先保存。
 
-有关字节布局、块目录、Drawing 延迟加载和完整性检查，请参阅
-[TIFF 文档格式技术参考]({{ '/reference/tiff-format/' | relative_url }})。
+- **Texture Type：**纹理选择 **Default**，精灵选择 **Sprite (2D and UI)**。
+- **sRGB (Color Texture)：**用于彩色图像；数据贴图需要对应的线性设置。
+- **Alpha Is Transparency：**减少透明边缘的杂色，不会移除 alpha。
+- **Generate Mip Maps**、**Filter Mode**、**Wrap Mode** 和 **Aniso Level：**控制导入纹理的采样。
+- **Max Size**、格式和压缩：先设置默认值，再按需要启用平台覆盖。
 
-画布尺寸旁的 **Precision** 用于选择保存图像的精度：
+点击 Inspector 中的 **Apply** 应用导入设置。这些设置影响 Unity 使用的纹理，
+不会改变可编辑图层或画布尺寸。HDR TIFF 使用线性数据；WhimTex 会为其关闭 sRGB。
 
-- **Auto** — 普通范围使用每通道 8 位；结果需要 HDR 时使用 Float32。
-- **8-bit** — 始终使用每通道 8 位；仅在输出图像中截断超出 0–1 的值。
-- **Float32** — 保留 0–1 范围内的细微差别，例如平滑渐变或高度图；文件可能明显增大。
+### 精灵切片
 
-该设置控制源 TIFF，而不是 GPU 压缩。工作渲染仍使用 half-float；Float32 无法恢复之前已丢失的精度。
-Drawing 像素保留自身的存储格式。导入 TIFF 的压缩、缩放和平台覆盖由 Unity 标准 Texture Importer 控制。
+如果 Sprite Editor 不可用，请通过 Package Manager 安装 **2D Sprite**（`com.unity.2d.sprite`）。
 
-**Live Update** 使用导入的 TIFF，并在会话期间要求可读写且未压缩的纹理。
-需要时会临时启用 Read/Write，结束会话后恢复；在此期间 `.meta` 会有修改。
-关闭或切换文档、脚本重载及外部重新导入都会停止会话。保存另一文档不会影响当前会话。
-构建 Player 也会停止 Live Update，并使用**最后保存的 TIFF**，不会保存或丢弃尚未保存的编辑。构建后请手动重新启用 Live Update。如果无法恢复纹理，构建将中止。
-如果保存后 Unity 报告导入错误，已写入的 TIFF 会保留。修复导入问题后再次保存；即使文件内容没有变化，WhimTex 也会重新尝试导入。
-保存当前文档时会短暂暂停 Live Update，并在导入后恢复，不会反复关闭和开启 Read/Write。
-Live Update 支持 2D **Default** 和 **Sprite** 导入；Crunch 压缩及其他纹理类型通过保存更新。
-实验性 TIFF 路径目前同时只支持一个 Live Update 会话。最终导入处理可能与实时预览不同。
+1. 选中已保存的 TIFF，将 **Texture Type** 设为 **Sprite (2D and UI)**。
+2. 单个精灵选择 **Sprite Mode → Single**，精灵表选择 **Multiple**，然后点击 **Apply**。
+3. 打开 **Sprite Editor**，使用 **Slice** 或绘制矩形，设置名称、轴心和边框。
+4. 点击 **Apply**，在 Project 中展开 TIFF，即可使用其精灵。
 
-缺失类型、字段或引用资源时会显示警告并阻止保存，以免丢失数据。
-恢复所需版本的软件包或资源后重新打开文档。LDR 保存遵循纹理的 sRGB 设置；
-HDR TIFF 使用线性数据并关闭 sRGB。Alpha 始终不进行 sRGB 编码。
+九宫格需要设置精灵边框和 **Mesh Type → Full Rect**，并将 uGUI Image 的
+**Image Type** 设为 **Sliced**。修改画布尺寸后，检查精灵矩形是否仍在图像范围内。
 
-保存前请先 Apply 修改后的 Shader FX 代码。如果 TIFF 在当前编辑会话之外发生更改，请重新打开或使用 **Save As**；WhimTex 不会覆盖外部版本。
-将旧 `.asset` 保存为 TIFF 会复制可编辑的 Drawing 像素，保留原资源不变。原有输出纹理的引用不会自动重新分配。
-PNG/EXR 导出仍是普通图像导出，不包含可编辑图层。
+## 保存图像的精度
+
+画布尺寸旁的 **Precision** 控制 TIFF 内保存图像的精度：
+
+- **Auto：**0–1 范围内使用每通道 8 位；结果需要 HDR 时使用 Float32。
+- **8-bit：**始终使用每通道 8 位；超出 0–1 的值在保存的合成图像中被截断。
+- **Float32：**保留渐变和高度图的细微差别，包括 0–1 范围内的差别；文件可能更大。
+
+这与 Inspector 中的 GPU 压缩是独立设置。工作渲染使用 half-float，
+因此 Float32 无法恢复之前已丢失的精度。Drawing 图层保留自己的像素格式。
+
+## Live Update 与保存
+
+[Live Update](preview.md#在模型上查看你的绘制) 可在使用该 TIFF 的对象上显示尚未保存的编辑。
+同时只能有一个文档发布实时更新。会话期间纹理使用未压缩格式，必要时临时启用 Read/Write；
+结束后恢复原设置。临时 Read/Write 更改会反映在 `.meta` 中。
+
+保存时会短暂暂停 Live Update，并在导入后恢复。关闭或切换文档、脚本重载及外部重新导入
+会结束会话。构建 Player 也会停止会话，并使用最后保存的 TIFF：构建前请保存编辑，
+构建后重新启用 Live Update。如果无法恢复纹理，构建将报错并停止。
+
+Live Update 支持 2D **Default** 和 **Sprite** 导入。Crunch 及其他纹理类型在保存时更新。
+最终压缩和导入处理的效果可能与实时预览不同。
+
+## 保留文档的可编辑性
+
+请保留 TIFF 及其 `.meta`，并在 Unity 内移动或重命名资源，以保留引用。
+不要在外部图像编辑器中重新保存 TIFF，否则可能丢失可编辑图层。
+文件内容说明见 [TIFF 文档](tiff-format.md)。
+
+保存前请先 Apply 修改后的 Shader FX 代码。如果文件被外部修改，请重新打开或使用
+**Save As**。如果缺失类型、字段或引用资源导致保存被阻止，请恢复所需软件包或资源后
+重新打开文档。如果文件写入后 Unity 报告导入错误，修复错误并再次保存以重试导入。
 
 ### 耗时操作与限制
 
@@ -86,62 +110,15 @@ WhimTex 验证文件后可将其保存为**新的 TIFF**，原文档和临时文
 如果故障后 Live Update 的临时 Read/Write 设置未恢复，请先恢复缺失资源或修复导入错误，
 再选择 **Tools → WhimTex → Recovery → Retry Live Update Recovery**。不要手动删除恢复日志。
 
-下方的关联图像与内嵌输出设置仅适用于**旧版 `.asset` 工作流**，
-不适用于 TIFF 导入设置。旧文档仍可读取，但窗口不再创建新的 `.asset` 文档。
-迁移时请在 Project 中选中旧资源，然后选择 **Assets → WhimTex → Migrate Legacy .asset to TIFF…**。
-原 `.asset` 及其 GUID 会保持不变；迁移会创建独立的 TIFF 文件。
+## 迁移旧文档
 
-## 关联输出图像
+旧版 `.asset` 文档仍可打开，但不能再保存为该格式。
+在 WhimTex 中使用 **Save As**，或选中旧资源并选择
+**Assets → WhimTex → Migrate Legacy .asset to TIFF…**。
 
-点击画布 W/H 字段旁的 **Output**，在 **Linked Output** 中指定 **Assets** 内已有的 PNG、TGA、JPG/JPEG 或 EXR 图像。确认关联后，每次保存文档都会用完整画布分辨率的合成结果覆盖该图像。不要指定需要保留原样的源图像。PNG/TGA 保留透明度；JPG 将透明区域合成到白色背景上；EXR 保留线性 HDR。LDR 图像的 RGB 编码遵循目标文件的 sRGB 设置，法线贴图使用线性数据。
-
-图像保留 GUID 和导入设置，包括平台覆盖设置及精灵切片。点击 **Texture Settings** 可选中图像并在 Unity 标准 Inspector 中修改设置。下方的内嵌输出设置不会缩小或压缩关联源文件。原有内嵌纹理及其 Live Update 保持不变；关联图像仅在 Save 时更新。
-
-**Clear** 解除关联，但不删除图像。在 Unity 内移动或重命名图像不会断开关联。目标丢失、只读或格式不受支持时会阻止保存，需要重新指定或清空该字段。对已保存的文档执行 **Save As** 时，新副本会清除关联，避免覆盖原文档的输出；新文档首次保存时保留已指定的关联。
-
-## 内嵌输出设置
-
-本节仅用于兼容旧版 `.asset`。旧资源可以打开和查看，但不能原地保存；请使用 **Save As TIFF**。
-新 TIFF 的 mipmap、压缩和平台覆盖请在 Unity 标准 Inspector 中配置。
-
-**Alpha Is Transparency** 将边缘 RGB 扩展到透明像素，减少过滤产生的边缘杂色，不会移除 alpha。此处理在保存时应用，不用于 Live Update。**sRGB (Color Texture)** 是 RGBA32 的独立复选框；HDR 保持线性。
-
-**Max Size** 限制输出尺寸而不改变画布；**Resize Algorithm** 可选择 Mitchell 或 Bilinear。精灵矩形和边框随输出缩放，元数据仍使用画布像素。**Advanced** 提供 Box/Kaiser mipmap 过滤、**Preserve Coverage** 和 **Alpha Cutoff**。关闭 **Read/Write** 可移除 CPU 副本，但需要重新启用并保存后才能使用 Live Update 和 Sprite Editor。Live Update 使用快速预览路径；最终缩放、alpha 处理和 mipmap 过滤在保存时应用。
-
-底部固定预览区在棋盘格上显示最后保存的结果。拖动 **Preview** 标题栏可调整高度，不受设置区域滚动影响。达到最小高度后继续向下拖动即可完全隐藏预览；向上拖动保留的标题栏即可重新展开。图像底部叠加显示尺寸、格式、色彩空间、mip 层数、GPU/CPU 内存估算和实际资源文件大小。内存估算不包括驱动对齐和 Unity 对象开销。文件大小包括文档与图层，不包括 `.meta`，不等于纹理运行时内存占用。
-
-旧版自定义压缩面板已不再显示。请在 Unity 标准 Texture Importer 中为保存的 TIFF 配置压缩和平台覆盖。
-
-**Output Type** 可选择 **Texture**（不生成精灵子资源）或 **Sprite**（Single/Multiple）。为保持兼容，默认仍为 Sprite。Texture 模式隐藏精灵设置，保存时不校验精灵参数。应用 Texture 会删除已生成的精灵并使其引用失效，但保留切片和设置以便切回 Sprite。输出纹理的引用保持不变。
-
-对于旧版 `.asset`，可在 WhimTex 点击 **Output**，或在 Inspector 点击 **WhimTex Output Settings…** 查看兼容设置。点击 **Save As TIFF** 创建新文档；原 `.asset` 永远不会被覆盖。新 TIFF 请使用 Unity 标准 Inspector。编辑字段不会在每次输入时重新生成 TIFF。
-
-- **Texture：**Filter Mode、Wrap U/V、Aniso Level 和 Generate Mip Maps。Wrap 控制纹理采样，而非图层平铺。
-- **Storage：**HDR Half（默认）、HDR Float、Linear RGBA32 或 sRGB RGBA32。RGBA32 将数值限制在 0–1；sRGB 对 RGB 进行颜色编码。HDR Float 仅改变存储精度，不提高合成器的半精度计算精度。
-- **Sprite：**Pixels Per Unit、带 **Pivot Alignment** 固定位置与手动坐标的归一化 Pivot、以像素为单位的 **Left / Bottom / Right / Top** Border 字段、Full Rect/Tight Mesh Type、Extrude 和 Generate Physics Shape。九宫格使用 Full Rect；边框必须位于画布尺寸内。
-
-无效设置会高亮显示，并在字段旁说明原因；修正前 **Apply & Save Output** 不可用。只有文档确实含有已保存的精灵时，才显示删除精灵的警告。
-
-**Revert** 恢复上次应用的输出设置和 Filter Mode，不改变图层、画布尺寸或精灵切片，并支持 Undo。旧文档没有设置快照时，下次保存前以初次加载的设置作为恢复起点。
-
-**Preview** 标题栏提供 **RGBA / RGB / Alpha** 和 mip 层级选择。这些只影响预览，关闭 Read/Write 时也可使用，不会修改保存的图像。**Preview requires Apply** 提醒当前显示的仍是上次保存的结果。通道和 mip 下拉列表是独立控件；拖动标题栏的其余区域可调整高度或隐藏预览。
-
-两种输出类型均支持 **Generate Mip Maps**。压缩由 Unity Texture Importer 管理，并支持按平台设置；它不会改变可编辑画布。
-
-默认保持未压缩 HDR Half、无 mipmap、100 PPU 和居中轴心的矩形精灵。Read/Write 默认启用。不支持平台覆盖。设置仅影响内嵌输出，不影响单独导出的图像。
-
-### 精灵切片（可选）
-
-通过 Unity Package Manager 安装 **2D Sprite**（`com.unity.2d.sprite`）以启用切片编辑。WhimTex 不会自动安装该包。
-
-1. 保存文档，打开 **Output → Sprite**。
-2. 将 **Sprite Mode** 设为 **Multiple**，点击 **Sprite Editor**。打开 Unity 编辑器前会保存当前输出。
-3. 使用 **Slice** 或手动绘制矩形，设置各精灵的名称、轴心和边框，然后点击 **Apply**。
-4. 在 Project 中展开文档，即可使用各个精灵。
-
-**Single** 使用整个画布。切换到 Single 会隐藏并保留切片，切回 Multiple 不会破坏引用。重命名或修改现有切片的矩形也会保留引用；删除切片会移除对应精灵，可能导致已有引用失效。缩小画布后，若切片超出边界，请先修改矩形再保存。
-
-未安装 2D Sprite 时，切片编辑不可用，但保存文档时仍会生成已保存的切片。本集成不支持自定义轮廓、蒙皮或辅助纹理。
+迁移会将可编辑图层和 Drawing 像素复制到新 TIFF，原资源及其 GUID 保持不变。
+材质和 File 图层仍引用旧输出：请按需要指定新 TIFF，并检查其导入设置。
+后续输出设置请在 TIFF 的 Inspector 中调整。
 
 ## 选择导出格式
 

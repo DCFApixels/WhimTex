@@ -5,7 +5,7 @@ nav_order: 14
 lang: "en"
 permalink: "/en/shortcuts/"
 translations: "en/shortcuts.md,ru/shortcuts.md,zh/shortcuts.md"
-previous_page: "en/saving.md"
+previous_page: "en/tiff-format.md"
 next_page: "en/automation.md"
 ---
 

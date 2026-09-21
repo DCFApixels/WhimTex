@@ -37,9 +37,3 @@ next_page: "zh/getting-started.md"
 - [疑难解答](troubleshooting.md)
 
 对于生成的纹理，另请参见[噪声](noise.md)和[法线贴图](normal-map.md)。
-
-## 为 VFX 创建纹理
-
-组合渐变、[噪声](noise.md)和 [Shader Processor](shader-fx.md)，为能量环、爆发和其他效果创建遮罩。此圆环将明亮的边缘与细微的径向条纹结合在一起；它的各个图层让你可以分别调整形状和细节。
-
-<a href="{{ '/Images/vfx-energy-ring.png' | relative_url }}"><img src="{{ '/Images/vfx-energy-ring.png' | relative_url }}" alt="WhimTex 中的 VFX 能量环纹理，包含渐变和噪声图层、一个 Shader Processor 以及圆形渐变的预览" width="720"></a>

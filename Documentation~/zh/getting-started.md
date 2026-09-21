@@ -26,7 +26,7 @@ https://github.com/DCFApixels/WhimTex.git
 2. 点击 Layers 底部的 **+**，选择 **Drawing Layer** 创建绘制图层。如果已有纹理，也可以直接从 Project 拖到预览上。
 3. 选择 **Transform**（`T`）来调整图像位置，或选择 **Brush**（`B`）进行绘制。
 4. 按 `Ctrl+S` 并选择文档的保存位置。
-5. 将保存的 TIFF 用作 Unity 中的纹理，或者在 Project 中展开它，然后把 **Output Sprite** 拖到精灵字段中。
+5. 将保存的 TIFF 用作 Unity 纹理。需要精灵时，在其 Inspector 中选择 **Texture Type → Sprite (2D and UI)** 并点击 **Apply**，然后在 Project 中展开 TIFF，使用其精灵。
 
 双击保存的 TIFF 即可继续编辑。无需先导出它。
 它会在自己的 WhimTex 窗口中打开，不会替换当前文档。

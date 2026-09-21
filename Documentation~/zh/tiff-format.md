@@ -5,11 +5,13 @@ nav_order: 13.1
 lang: "zh"
 permalink: "/zh/tiff-format/"
 translations: "en/tiff-format.md,ru/tiff-format.md,zh/tiff-format.md"
+previous_page: "zh/saving.md"
+next_page: "zh/shortcuts.md"
 ---
 
 # TIFF 文档
 
-WhimTex 将新的可编辑文档保存为一个 `*.tiff` 文件。它同时是 Unity 可导入的普通纹理和可编辑
+TIFF 是 WhimTex 的主要文档格式。一个 `*.tiff` 文件同时是 Unity 可导入的普通纹理和可编辑
 文档：可见的 TIFF 图像是最后保存的合成结果，而图层模型与 Drawing 数据位于附加的 WhimTex
 容器中。
 
@@ -32,7 +34,7 @@ WhimTex 将新的可编辑文档保存为一个 `*.tiff` 文件。它同时是 U
 ## 兼容性
 
 不要使用外部图像编辑器重新保存 WhimTex TIFF：它可能删除附加容器，只留下合成图像。旧版
-`.asset` 仍可打开查看或迁移，但新文档只保存为 TIFF，迁移不会覆盖旧资源。PNG、JPEG、TGA、
-EXR 和 PSD 是普通的扁平导出，不包含可编辑的 WhimTex 图层。
+`.asset` 仍可打开查看或迁移，但新文档只保存为 TIFF，迁移不会覆盖旧资源。PNG、JPEG、TGA 和
+EXR 只包含导出的图像，不包含可编辑图层。PSD 可以保留部分图层和效果，但不能替代 WhimTex 原文档。
 
 完整的字节布局、限制和块规则请参阅 [TIFF 文档格式技术参考]({{ '/reference/tiff-format/' | relative_url }})。
