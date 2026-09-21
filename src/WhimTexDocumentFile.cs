@@ -167,12 +167,13 @@ namespace DCFApixels.WhimTex
             if (!deferImport || firstSave) ValidateImportedTexture(path);
             importMs = stopwatch.ElapsedMilliseconds - beforeImport;
             stopwatch.Stop();
-            // Reported only when a save is slow enough to be felt, so the numbers come from a real document
-            // instead of a synthetic one.
+            // Enable the WHIMTEX_DEBUG scripting define when profiling real saves is needed.
+#if WHIMTEX_DEBUG
             if (stopwatch.ElapsedMilliseconds > 250)
                 Debug.Log("WhimTex: saved " + path + " in " + stopwatch.ElapsedMilliseconds + "ms (model "
                     + modelMs + "ms, carrier " + carrierMs + "ms, file " + writeMs + "ms, import " + importMs
                     + "ms, written " + wrote + ", deferred " + (deferImport && !firstSave) + ")");
+#endif
             // The file image is the composite: the saved document must point at it, not at a stale texture.
             BindImportedComposite(document, path);
             WhimTexDocumentService.Bind(document, path);

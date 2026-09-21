@@ -15,7 +15,9 @@ namespace DCFApixels.WhimTex
         // TIFF documents use Unity's native TextureImporter previews and do not need this
         // callback. Keep the implementation available for compatibility, but leave it
         // disabled while the legacy icon path is not required.
-        private const bool EnableLegacyAssetProjectIcons = false;
+        // Keep the compatibility path available without making the compiler treat its
+        // guarded body as unreachable code. TIFF documents use Unity's native preview.
+        private static readonly bool EnableLegacyAssetProjectIcons = false;
 
         private static readonly Dictionary<UnityObjectID, Texture2D> Outputs = new Dictionary<UnityObjectID, Texture2D>();
 

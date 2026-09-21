@@ -49,7 +49,9 @@ namespace DCFApixels.WhimTex
                 Selection.activeObject = result;
                 EditorGUIUtility.PingObject(result);
             }
+#if WHIMTEX_DEBUG
             Debug.Log("WhimTex: migrated legacy asset to " + destination, result);
+#endif
         }
 
         internal static bool TryMigrate(TextureCompositor source, string destination, out string error)

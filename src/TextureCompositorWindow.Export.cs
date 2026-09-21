@@ -43,7 +43,9 @@ namespace DCFApixels.WhimTex
                     $"Editable fills: {report.editableFillCount}. Editable outlines: {report.editableOutlineCount}.";
                 if (report.notes.Count > 0)
                 {
+#if WHIMTEX_DEBUG
                     Debug.Log("PSD export: " + path + "\n" + summary + "\n" + string.Join("\n", report.notes));
+#endif
                     summary += "\n\nSome settings were rasterized or approximated. Details are in the Console.";
                 }
                 EditorUtility.DisplayDialog("PSD exported", summary, "OK");

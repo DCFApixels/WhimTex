@@ -160,7 +160,6 @@ namespace DCFApixels.WhimTex
                     Selection.activeObject = image;
                     EditorGUIUtility.PingObject(image);
                 }
-                Debug.Log("WhimTex: document saved to " + written);
                 return true;
             }
             catch (System.OperationCanceledException) { return false; }

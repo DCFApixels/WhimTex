@@ -209,7 +209,9 @@ namespace DCFApixels.WhimTex
                     throw new InvalidOperationException("The live WhimTex texture is missing. Restore or reimport it before building.");
                 AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate | ImportAssetOptions.ForceSynchronousImport);
                 WhimTexDocumentFile.ValidateImportedTexture(path);
-                Debug.Log("WhimTex: Live Update stopped for the build. The saved TIFF is used; unsaved document edits remain in the editor.");
+#if WHIMTEX_DEBUG
+            Debug.Log("WhimTex: Live Update stopped for the build. The saved TIFF is used; unsaved document edits remain in the editor.");
+#endif
             }
         }
 

@@ -217,7 +217,7 @@ namespace DCFApixels.WhimTex
                 simple = name.Substring(dot + 1);
             }
             Type found = null;
-            foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
+            foreach (Assembly assembly in UnityEngine.Assemblies.CurrentAssemblies.GetLoadedAssemblies())
             {
                 Type[] types;
                 try { types = assembly.GetTypes(); }
@@ -293,7 +293,7 @@ namespace DCFApixels.WhimTex
             if (KnownTypes.TryGetValue(name, out Type known)) return known;
             Type resolved = typeof(WhimTexDocumentSerializer).Assembly.GetType(name);
             if (resolved == null)
-                foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
+                foreach (Assembly assembly in UnityEngine.Assemblies.CurrentAssemblies.GetLoadedAssemblies())
                 {
                     resolved = assembly.GetType(name);
                     if (resolved != null) break;
