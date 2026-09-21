@@ -4,8 +4,6 @@ using UnityEditor;
 using UnityEngine;
 #if UNITY_6000_4_OR_NEWER
 using ProjectItemId = UnityEngine.EntityId;
-#else
-using ProjectItemId = System.Int32;
 #endif
 
 namespace DCFApixels.WhimTex
@@ -19,7 +17,7 @@ namespace DCFApixels.WhimTex
         // disabled while the legacy icon path is not required.
         private const bool EnableLegacyAssetProjectIcons = false;
 
-        private static readonly Dictionary<ProjectItemId, Texture2D> Outputs = new Dictionary<ProjectItemId, Texture2D>();
+        private static readonly Dictionary<UnityObjectID, Texture2D> Outputs = new Dictionary<UnityObjectID, Texture2D>();
 
         static TextureCompositorProjectPreview()
         {
@@ -37,19 +35,32 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private static void DrawProjectIcon(ProjectItemId itemId, Rect selectionRect)
+        private static void DrawProjectIcon(
+#if UNITY_6000_4_OR_NEWER
+            ProjectItemId itemId,
+#else
+            int itemId,
+#endif
+            Rect selectionRect)
         {
+            UnityObjectID objectId =
+#if UNITY_6000_4_OR_NEWER
+                UnityObjectID.FromEntityId(itemId);
+#else
+                UnityObjectID.FromInstanceId(itemId);
+#endif
             if (Event.current.type != EventType.Repaint || selectionRect.height > 20f ||
                 selectionRect.height < 1f || selectionRect.width < 16f)
                 return;
 
-            if (!Outputs.TryGetValue(itemId, out Texture2D output))
+            if (!Outputs.TryGetValue(objectId, out Texture2D output))
             {
                 if (Outputs.Count >= 2048)
                     Outputs.Clear();
-                if (AssetDatabase.IsMainAsset(itemId))
+                UnityEngine.Object mainAsset = objectId.Resolve();
+                if (mainAsset != null && AssetDatabase.IsMainAsset(mainAsset))
                 {
-                    string path = AssetDatabase.GetAssetPath(itemId);
+                    string path = AssetDatabase.GetAssetPath(mainAsset);
                     if (path.EndsWith(".asset", StringComparison.OrdinalIgnoreCase))
                     {
                         UnityEngine.Object main = AssetDatabase.LoadMainAssetAtPath(path);
@@ -58,7 +69,7 @@ namespace DCFApixels.WhimTex
                             output = main as Texture2D ?? document.OutputTexture;
                     }
                 }
-                Outputs[itemId] = output;
+                Outputs[objectId] = output;
             }
             if (output == null)
                 return;

@@ -3,7 +3,8 @@
     "rootNamespace": "DCFApixels",
     "references": [
         "Unity.Burst",
-        "Unity.Collections"
+        "Unity.Collections",
+        "Unity.Mathematics"
     ],
     "includePlatforms": [
         "Editor"

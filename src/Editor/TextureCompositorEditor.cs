@@ -335,16 +335,16 @@ namespace DCFApixels.WhimTex
         }
 
         [OnOpenAsset]
-#if UNITY_6000_2_OR_NEWER
+#if UNITY_6000_4_OR_NEWER
         public static bool OpenTextureCompositor(EntityId instanceId, int line)
 #else
         public static bool OpenTextureCompositor(int instanceId, int line)
 #endif
         {
-#if UNITY_6000_2_OR_NEWER
-            Object asset = EditorUtility.EntityIdToObject(instanceId);
+#if UNITY_6000_4_OR_NEWER
+            Object asset = UnityObjectID.FromEntityId(instanceId).Resolve();
 #else
-            Object asset = EditorUtility.InstanceIDToObject(instanceId);
+            Object asset = UnityObjectID.FromInstanceId(instanceId).Resolve();
 #endif
             TextureCompositor compositor = TextureCompositor.FindDocument(asset);
             if (compositor == null)
