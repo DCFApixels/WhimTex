@@ -151,6 +151,7 @@ namespace DCFApixels.WhimTex
         {
             RenderTexture previous = RenderTexture.active;
             RenderTexture rendered = GetClearRenderTexture(width, height);
+            using var originalFiles = UseOriginalFilePixels(plan.included);
             try
             {
                 // Keep original containers and indices for Previous/SDF/Outline input resolution.

@@ -5,8 +5,23 @@ using UnityEngine;
 
 namespace DCFApixels.WhimTex
 {
+    internal enum ImageOpenMode { TiffDocumentsOnly, AllSupportedImages }
+    internal enum ImageOpenLayer { Drawing, File }
+
     internal static class WhimTexUserSettings
     {
+        private const string ImageOpenModeKey = "DCFApixels.WhimTex.ImageOpenMode";
+        private const string ImageOpenLayerKey = "DCFApixels.WhimTex.ImageOpenLayer";
+        internal static ImageOpenMode ImageOpening
+        {
+            get => EditorPrefs.GetInt(ImageOpenModeKey, (int)ImageOpenMode.AllSupportedImages) == 1 ? ImageOpenMode.AllSupportedImages : ImageOpenMode.TiffDocumentsOnly;
+            set { EditorPrefs.SetInt(ImageOpenModeKey, (int)value); Changed?.Invoke(); }
+        }
+        internal static ImageOpenLayer ImageLayer
+        {
+            get => EditorPrefs.GetInt(ImageOpenLayerKey, 0) == 1 ? ImageOpenLayer.File : ImageOpenLayer.Drawing;
+            set { EditorPrefs.SetInt(ImageOpenLayerKey, (int)value); Changed?.Invoke(); }
+        }
         private const string LightKey = "DCFApixels.WhimTex.Preview.CheckerLight";
         private const string DarkKey = "DCFApixels.WhimTex.Preview.CheckerDark";
         private const string ErrorKey = "DCFApixels.WhimTex.Preview.InvalidPixels";
@@ -234,6 +249,8 @@ namespace DCFApixels.WhimTex
 
         internal static void Reset()
         {
+            EditorPrefs.DeleteKey(ImageOpenModeKey);
+            EditorPrefs.DeleteKey(ImageOpenLayerKey);
             EditorPrefs.DeleteKey(PresetsFolderKey);
             ResetPreviewAppearance();
             LayerPickAlphaThreshold = DefaultLayerPickAlphaThreshold;

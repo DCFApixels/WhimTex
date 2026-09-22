@@ -183,6 +183,7 @@ namespace DCFApixels.WhimTex
 
         private void OnEnable()
         {
+            RestoreSourceImage();
             RefreshDocumentTitle(true);
             previewExposure = 0f;
             LoadPreviewToolSettings();
@@ -273,6 +274,7 @@ namespace DCFApixels.WhimTex
         private void OnDestroy()
         {
             ClearDocumentFile();
+            ClearSourceImage();
             if (compositor != null && !AssetDatabase.Contains(compositor))
                 DestroyImmediate(compositor);
             compositor = null;

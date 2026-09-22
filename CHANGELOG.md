@@ -4,6 +4,17 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+## [0.11.1] - 2026-09-22
+
+### Added
+
+- Source-resolution Drawing conversion for PNG, JPG/JPEG, EXR and TGA files, including a built-in cross-platform TGA decoder with RLE and common pixel formats.
+
+### Fixed
+
+- File-layer conversion and layer merges now read supported source files directly instead of using Unity's potentially compressed/import-limited texture.
+- Opening supported ordinary image files as Drawing layers preserves the original dimensions.
+
 ## [0.11.0] - 2026-09-21
 
 ### Added

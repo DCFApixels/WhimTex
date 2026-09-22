@@ -59,6 +59,8 @@ Pan by holding the mouse wheel and dragging. Scroll to zoom; **Fit** shows the w
 
 ## Make the workspace comfortable
 
+In **User Settings → Open Images**, **Double Click** chooses between **Tiff Documents Only** and **All Supported Images** (default) in the Project window. The latter also opens PNG, JPEG, TGA, EXR, ordinary TIFF and Texture2D `.asset` files, but not PSD. **Open As** chooses **Drawing** (editable copy of imported pixels) or **File** (reference to the imported texture). Canvas size matches the imported texture; Unity import resizing and compression therefore apply. Layered WhimTex TIFFs always open with their layers. Ordinary images open as new documents: with one layer, **Save** updates PNG, JPEG, TGA, EXR or Texture2D `.asset` sources; **Save As** creates a TIFF without changing the source import settings. Other formats use Save As. Opening PNG, JPEG, EXR or TGA as Drawing and converting these File layers to Drawing reads the source bytes directly, bypassing Unity's texture compression. Unity's EXR byte decoder is available in the Editor on Windows, macOS and Linux.
+
 The **gear button to the right of Export** opens User Settings, where you can change the transparency checkerboard's colors
 and size, or enable **Clean Preview Background** to hide the background logo and shadow. At the bottom of this settings window,
 **Reset WhimTex Settings…** restores the workspace preferences after confirmation, without deleting your documents or preset files.

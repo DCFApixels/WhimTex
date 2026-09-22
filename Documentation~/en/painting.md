@@ -16,6 +16,8 @@ Select a **Drawing** layer and paint directly on the canvas.
 Choose **Brush** (`B`) for soft strokes or **Pencil** (`P`) for crisp pixels.
 If you try to paint on another layer type, the editor offers to convert it first.
 
+A small cross marks the brush center when its outline becomes large relative to the preview.
+
 ## Shape the stroke
 
 | Control | What it changes |

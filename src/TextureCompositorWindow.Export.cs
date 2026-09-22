@@ -109,6 +109,63 @@ namespace DCFApixels.WhimTex
             }
         }
 
+        private bool TrySaveLinkedImage()
+        {
+            if (compositor == null || sourceImage == null || compositor.layers == null || compositor.layers.Count != 1 ||
+                string.IsNullOrEmpty(sourceImagePath))
+                return false;
+
+            TextureExportFormat format;
+            switch (Path.GetExtension(sourceImagePath).ToLowerInvariant())
+            {
+                case ".png": format = TextureExportFormat.Png; break;
+                case ".jpg": case ".jpeg": format = TextureExportFormat.Jpeg; break;
+                case ".tga": format = TextureExportFormat.Tga; break;
+                case ".exr": format = TextureExportFormat.Exr; break;
+                case ".asset": format = TextureExportFormat.Asset; break;
+                default: return false;
+            }
+
+            FinishPreviewTransform();
+            FinishPaintingStroke();
+            Texture2D texture = null;
+            try
+            {
+                texture = compositor.Compose();
+                if (format == TextureExportFormat.Asset)
+                {
+                    SaveExportedTextureAsset(texture, sourceImagePath);
+                }
+                else
+                {
+                    byte[] bytes = EncodeExportTexture(texture, format);
+                    if (bytes == null || bytes.Length == 0)
+                        throw new InvalidOperationException("Unity returned no image data for this format.");
+                    string outputPath = Path.IsPathFullyQualified(sourceImagePath)
+                        ? sourceImagePath
+                        : Path.Combine(Directory.GetParent(Application.dataPath).FullName, sourceImagePath);
+                    File.WriteAllBytes(outputPath, bytes);
+                    if (sourceImagePath.StartsWith("Assets/", StringComparison.OrdinalIgnoreCase))
+                        AssetDatabase.ImportAsset(sourceImagePath, ImportAssetOptions.ForceSynchronousImport);
+                }
+                sourceImage = AssetDatabase.LoadAssetAtPath<Texture2D>(sourceImagePath) ?? sourceImage;
+                temporaryDocumentDirty = false;
+                UpdateUnsavedChangesState();
+                return true;
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception);
+                EditorUtility.DisplayDialog("WhimTex save failed", exception.Message, "OK");
+                return false;
+            }
+            finally
+            {
+                if (texture != null && !AssetDatabase.Contains(texture))
+                    DestroyImmediate(texture);
+            }
+        }
+
         private static string GetExportExtension(TextureExportFormat format)
         {
             switch (format)

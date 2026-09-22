@@ -332,18 +332,19 @@ namespace DCFApixels.WhimTex
             toolkitDocumentField.style.minWidth = 140f;
             toolkitDocumentField.tooltip = "A WhimTex document or its generated texture/sprite. Double-click the saved asset in Project to edit its layers.";
             toolkitSettingsBindings.Track(toolkitDocumentField,
-                () => compositor.OutputTexture != null ? (UnityEngine.Object)compositor.OutputTexture : compositor);
+                () => sourceImage != null ? (UnityEngine.Object)sourceImage :
+                    compositor.OutputTexture != null ? (UnityEngine.Object)compositor.OutputTexture : compositor);
             toolkitDocumentField.RegisterValueChangedCallback(evt =>
             {
                 if (evt.newValue != null && OpenWhimTexDocumentPath(AssetDatabase.GetAssetPath(evt.newValue)))
                 {
-                    toolkitDocumentField.SetValueWithoutNotify(compositor.OutputTexture != null ? (UnityEngine.Object)compositor.OutputTexture : compositor);
+                    toolkitDocumentField.SetValueWithoutNotify(sourceImage != null ? (UnityEngine.Object)sourceImage : compositor.OutputTexture != null ? (UnityEngine.Object)compositor.OutputTexture : compositor);
                     return;
                 }
                 TextureCompositor selected = TextureCompositor.FindDocument(evt.newValue);
                 if (selected == null || selected == compositor)
                 {
-                    toolkitDocumentField.SetValueWithoutNotify(compositor.OutputTexture != null ? (UnityEngine.Object)compositor.OutputTexture : compositor);
+                    toolkitDocumentField.SetValueWithoutNotify(sourceImage != null ? (UnityEngine.Object)sourceImage : compositor.OutputTexture != null ? (UnityEngine.Object)compositor.OutputTexture : compositor);
                     return;
                 }
 
@@ -353,7 +354,7 @@ namespace DCFApixels.WhimTex
                 }
                 else
                 {
-                    toolkitDocumentField.SetValueWithoutNotify(compositor.OutputTexture != null ? (UnityEngine.Object)compositor.OutputTexture : compositor);
+                    toolkitDocumentField.SetValueWithoutNotify(sourceImage != null ? (UnityEngine.Object)sourceImage : compositor.OutputTexture != null ? (UnityEngine.Object)compositor.OutputTexture : compositor);
                 }
             });
             toolbar.Add(toolkitDocumentField);
@@ -389,12 +390,15 @@ namespace DCFApixels.WhimTex
         private void RefreshDocumentSaveControls()
         {
             // A document keeps its file as an imported image, so having a file is not the same as being an asset.
-            bool hasFile = compositor != null && TryGetDocumentFile(compositor, out _);
+            bool hasFile = compositor != null && (TryGetDocumentFile(compositor, out _) ||
+                !string.IsNullOrEmpty(sourceImagePath));
             bool saved = compositor != null && (hasFile || AssetDatabase.Contains(compositor));
             bool legacy = compositor != null && WhimTexLegacyMigration.IsLegacyAsset(compositor);
             if (toolkitSaveButton != null)
-                toolkitSaveButton.tooltip = legacy
+            toolkitSaveButton.tooltip = legacy
                     ? "Legacy .asset is read-only; Ctrl+S opens Save As for a TIFF copy."
+                    : sourceImage != null
+                    ? "Save the document (Ctrl+S). With one layer, the linked image is updated in its original format."
                     : "Save the document (Ctrl+S). The document is a WhimTex file: a TIFF that Unity imports as a texture.";
             toolkitSaveButton?.SetEnabled(saved && (HasDocumentChanges() || paintingLayer != null ||
                 previewTransformManipulator != null && previewTransformManipulator.IsDragging));
@@ -2592,6 +2596,23 @@ namespace DCFApixels.WhimTex
                     ? new Color(1f, 0.35f, 0.25f, 1f)
                     : new Color(1f, 1f, 1f, 0.95f);
                 StrokeCircle(painter, localCursor, radius);
+                float viewportSize = Mathf.Min(contentRect.width, contentRect.height);
+                if (viewportSize > 0f && radius * 2f >= viewportSize * 0.8f)
+                {
+                    Color cursorColor = painter.strokeColor;
+                    painter.lineCap = LineCap.Butt;
+                    for (int pass = 0; pass < 2; pass++)
+                    {
+                        painter.lineWidth = pass == 0 ? 3f : 1f;
+                        painter.strokeColor = pass == 0 ? new Color(0f, 0f, 0f, 0.95f) : cursorColor;
+                        painter.BeginPath();
+                        painter.MoveTo(localCursor + new Vector2(-4f, 0f));
+                        painter.LineTo(localCursor + new Vector2(4f, 0f));
+                        painter.MoveTo(localCursor + new Vector2(0f, -4f));
+                        painter.LineTo(localCursor + new Vector2(0f, 4f));
+                        painter.Stroke();
+                    }
+                }
             }
 
             private void UpdatePencilCursor()

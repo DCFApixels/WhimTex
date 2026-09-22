@@ -21,6 +21,7 @@ namespace DCFApixels.WhimTex
 
         private void BindDocumentFile(string path)
         {
+            ClearSourceImage();
             if (WhimTexDocumentService.PathOf(compositor) != path) WhimTexDocumentService.Bind(compositor, path);
             WhimTexDocumentService.Attach(this, compositor);
             documentFileOwner = compositor;
@@ -32,9 +33,24 @@ namespace DCFApixels.WhimTex
         private void ClearDocumentFile()
         {
             WhimTexDocumentService.Detach(this);
+            ClearSourceImage();
             documentFileOwner = null;
             documentFileGuid = null;
             documentFilePath = null;
+        }
+
+        private void BindSourceImage(Texture2D texture)
+        {
+            sourceImage = texture;
+            sourceImagePath = texture == null ? null : AssetDatabase.GetAssetPath(texture);
+            RefreshDocumentTitle(true);
+            toolkitDocumentField?.SetValueWithoutNotify(texture != null ? (UnityEngine.Object)texture : compositor);
+        }
+
+        private void ClearSourceImage()
+        {
+            sourceImage = null;
+            sourceImagePath = null;
         }
 
         private static TextureCompositorWindow WindowFor(TextureCompositor document)
@@ -86,6 +102,7 @@ namespace DCFApixels.WhimTex
         private bool SaveDocument()
         {
             if (compositor == null) return true;
+            if (TrySaveLinkedImage()) return true;
             if (TryGetDocumentFile(compositor, out string path))
             {
                 // Legacy ScriptableObject documents remain openable for migration, but are
@@ -238,7 +255,92 @@ namespace DCFApixels.WhimTex
                 UnityObjectID.FromInstanceId(entityId).Resolve();
 #endif
             string path = target == null ? null : AssetDatabase.GetAssetPath(target);
-            return OpenWhimTexDocumentPath(path);
+            if (OpenWhimTexDocumentPath(path)) return true;
+            if (WhimTexUserSettings.ImageOpening != ImageOpenMode.AllSupportedImages ||
+                !IsSupportedImagePath(path)) return false;
+            if (TextureCompositor.FindDocument(target) != null) return false;
+            var texture = target as Texture2D ?? (target as Sprite)?.texture;
+            return texture != null && OpenImageDocument(texture);
+        }
+
+        internal static bool IsSupportedImagePath(string path)
+        {
+            switch (Path.GetExtension(path ?? string.Empty).ToLowerInvariant())
+            {
+                case ".png": case ".jpg": case ".jpeg": case ".tga":
+                case ".exr": case ".tif": case ".tiff": case ".asset": return true;
+                default: return false;
+            }
+        }
+
+        private static bool OpenImageDocument(Texture2D texture)
+        {
+            TextureCompositor document = null;
+            TextureCompositorWindow window = null;
+            try
+            {
+                document = CreateInstance<TextureCompositor>();
+                document.hideFlags = HideFlags.HideAndDontSave;
+                document.name = texture.name;
+                document.width = texture.width;
+                document.height = texture.height;
+                var file = new FileLayerBehaviour();
+                file.AssignSourceTexture(texture, document);
+                LayerBehaviour layer = file;
+                if (WhimTexUserSettings.ImageLayer == ImageOpenLayer.Drawing)
+                {
+                    if (TextureCompositor.TryDecodeOriginalFileTexture(texture, out Texture2D decoded))
+                    {
+                        document.width = decoded.width;
+                        document.height = decoded.height;
+                        var drawing = DrawingLayerBehaviour.FromMergedTexture(decoded);
+                        drawing.StoredTexture.filterMode = texture.filterMode;
+                        drawing.StoredTexture.wrapModeU = texture.wrapModeU;
+                        drawing.StoredTexture.wrapModeV = texture.wrapModeV;
+                        layer = drawing;
+                    }
+                    else
+                    {
+                        var previous = RenderTexture.active;
+                        var surface = RenderTexture.GetTemporary(texture.width, texture.height, 0,
+                            RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
+                        try
+                        {
+                            Graphics.Blit(texture, surface);
+                            var drawing = DrawingLayerBehaviour.FromMergedTexture(HdrUtility.ReadLinear(surface));
+                            drawing.StoredTexture.filterMode = texture.filterMode;
+                            drawing.StoredTexture.wrapModeU = texture.wrapModeU;
+                            drawing.StoredTexture.wrapModeV = texture.wrapModeV;
+                            layer = drawing;
+                        }
+                        finally
+                        {
+                            RenderTexture.active = previous;
+                            RenderTexture.ReleaseTemporary(surface);
+                        }
+                    }
+                }
+                layer.layerName = texture.name;
+                document.layers.Add(layer);
+                document.NormalizeModel();
+                window = CreateWindow<TextureCompositorWindow>("WhimTex", typeof(TextureCompositorWindow));
+                window.SetCompositor(document);
+                window.BindSourceImage(texture);
+                window.temporaryDocumentDirty = true;
+                window.ActivateSelectedLayer(layer.Id);
+                window.UpdateUnsavedChangesState();
+                window.Show();
+                window.Repaint();
+                return true;
+            }
+            catch (System.Exception exception)
+            {
+                if (window != null) window.Close();
+                else if (document != null) DestroyImmediate(document);
+                Debug.LogException(exception);
+                EditorUtility.DisplayDialog("WhimTex", "Could not open the image: " + exception.Message, "OK");
+                return true;
+            }
         }
 
         private static bool OpenWhimTexDocumentPath(string path)

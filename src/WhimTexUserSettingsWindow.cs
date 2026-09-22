@@ -12,6 +12,8 @@ namespace DCFApixels.WhimTex
         private ColorField invalidPixels;
         private ColorField postFxBackground;
         private EnumField postFxBackgroundMode;
+        private EnumField imageOpening;
+        private EnumField imageLayer;
         private SliderInt checkerSize;
         private TextField presetsFolder;
         private Toggle cleanBackground;
@@ -45,6 +47,21 @@ namespace DCFApixels.WhimTex
             root.AddToClassList("whimtex-user-settings");
             var scroll = new ScrollView();
             root.Add(scroll);
+            AddHeading(scroll, "Open Images");
+            imageOpening = new EnumField("Double Click", WhimTexUserSettings.ImageOpening)
+            {
+                tooltip = "Open only layered WhimTex TIFF documents, or also PNG, JPEG, TGA, EXR, ordinary TIFF and Texture2D assets. PSD is excluded."
+            };
+            imageOpening.AddToClassList("whimtex-user-settings-color");
+            imageOpening.RegisterValueChangedCallback(evt => WhimTexUserSettings.ImageOpening = (ImageOpenMode)evt.newValue);
+            scroll.Add(imageOpening);
+            imageLayer = new EnumField("Open As", WhimTexUserSettings.ImageLayer)
+            {
+                tooltip = "Drawing copies the imported pixels for painting. File references the imported texture. Layered TIFF documents always retain their layers. Source files and import settings are not changed."
+            };
+            imageLayer.AddToClassList("whimtex-user-settings-color");
+            imageLayer.RegisterValueChangedCallback(evt => WhimTexUserSettings.ImageLayer = (ImageOpenLayer)evt.newValue);
+            scroll.Add(imageLayer);
             AddHeading(scroll, "Preview Background");
             cleanBackground = new Toggle("Clean Preview Background")
             {
@@ -187,6 +204,9 @@ namespace DCFApixels.WhimTex
 
         private void RefreshValues()
         {
+            imageOpening?.SetValueWithoutNotify(WhimTexUserSettings.ImageOpening);
+            imageLayer?.SetValueWithoutNotify(WhimTexUserSettings.ImageLayer);
+            imageLayer?.SetEnabled(WhimTexUserSettings.ImageOpening == ImageOpenMode.AllSupportedImages);
             cleanBackground?.SetValueWithoutNotify(!WhimTexUserSettings.ShowManta);
             layerPickAlpha?.SetValueWithoutNotify(WhimTexUserSettings.LayerPickAlphaThreshold * 100f);
             snapRadius?.SetValueWithoutNotify(WhimTexUserSettings.SnapRadius);

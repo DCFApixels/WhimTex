@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Scripting.APIUpdating;
@@ -250,6 +251,7 @@ namespace DCFApixels.WhimTex
             RenderTexture previous = RenderTexture.active;
             RefreshTransformHierarchy();
             RenderTexture rendered = null;
+            using var originalFiles = UseOriginalFilePixels(new[] { layer });
             try
             {
                 if (layer?.AsGroup() is Layer group)
@@ -281,6 +283,95 @@ namespace DCFApixels.WhimTex
                 RenderTexture.active = previous;
                 if (rendered != null)
                     RenderTexture.ReleaseTemporary(rendered);
+            }
+        }
+
+        private IDisposable UseOriginalFilePixels(IEnumerable<Layer> roots)
+        {
+            return new OriginalFilePixelsScope(roots);
+        }
+
+        internal static bool TryDecodeOriginalFileTexture(Texture2D source, out Texture2D decoded)
+        {
+            decoded = null;
+            if (source == null) return false;
+            string path = AssetDatabase.GetAssetPath(source);
+            string extension = Path.GetExtension(path ?? string.Empty).ToLowerInvariant();
+            if (extension != ".png" && extension != ".jpg" && extension != ".jpeg" && extension != ".exr" && extension != ".tga") return false;
+            try
+            {
+                byte[] bytes = File.ReadAllBytes(path);
+                TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
+                bool linear = importer != null && !importer.sRGBTexture;
+                if (extension == ".tga")
+                    return WhimTexTgaDecoder.TryDecode(bytes, linear, source.filterMode, source.wrapModeU,
+                        source.wrapModeV, out decoded);
+                decoded = new Texture2D(2, 2, TextureFormat.RGBA32, false, linear)
+                {
+                    hideFlags = HideFlags.HideAndDontSave,
+                    filterMode = source.filterMode,
+                    wrapModeU = source.wrapModeU,
+                    wrapModeV = source.wrapModeV
+                };
+                if (!ImageConversion.LoadImage(decoded, bytes, false))
+                {
+                    DestroyImmediate(decoded);
+                    decoded = null;
+                }
+                return decoded != null;
+            }
+            catch (System.Exception exception)
+            {
+                if (decoded != null) DestroyImmediate(decoded);
+#if WHIMTEX_DEBUG
+                Debug.LogWarning("WhimTex: original image decode failed for " + path + ": " + exception.Message);
+#endif
+                decoded = null;
+                return false;
+            }
+        }
+
+        private sealed class OriginalFilePixelsScope : IDisposable
+        {
+            private readonly List<Entry> entries = new List<Entry>();
+
+            internal OriginalFilePixelsScope(IEnumerable<Layer> roots)
+            {
+                if (roots == null) return;
+                foreach (Layer root in roots) Collect(root);
+            }
+
+            private void Collect(Layer layer)
+            {
+                if (layer == null) return;
+                if (layer.Behaviour is FileLayerBehaviour file &&
+                    TryDecodeOriginalFileTexture(file.sourceTexture, out Texture2D decoded))
+                {
+                    entries.Add(new Entry(file, file.sourceTexture, decoded));
+                    file.sourceTexture = decoded;
+                }
+                if (layer.AsGroup() is Layer group && group.layers != null)
+                    foreach (Layer child in group.layers) Collect(child);
+            }
+
+            public void Dispose()
+            {
+                for (int i = entries.Count - 1; i >= 0; i--)
+                {
+                    Entry entry = entries[i];
+                    entry.file.sourceTexture = entry.imported;
+                    if (entry.decoded != null) DestroyImmediate(entry.decoded);
+                }
+                entries.Clear();
+            }
+
+            private readonly struct Entry
+            {
+                internal readonly FileLayerBehaviour file;
+                internal readonly Texture2D imported;
+                internal readonly Texture2D decoded;
+                internal Entry(FileLayerBehaviour file, Texture2D imported, Texture2D decoded)
+                { this.file = file; this.imported = imported; this.decoded = decoded; }
             }
         }
 
