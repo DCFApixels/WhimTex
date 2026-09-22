@@ -226,6 +226,11 @@ namespace DCFApixels.WhimTex
             }
         }
 
+        // Snapshot the complete visible composition for tools that need to sample
+        // the final result without changing the layer being edited.
+        internal RenderTexture RenderAllLayers(int outputWidth, int outputHeight) =>
+            RenderComposite(outputWidth, outputHeight, 1f);
+
         internal RenderTexture RenderAgentLayerPreview(Layer layer, int maxSize) =>
             RenderLayerPreviewCore(layer, maxSize, true, true);
 
@@ -797,20 +802,43 @@ namespace DCFApixels.WhimTex
                 CompositeLayers(group.layers, ref accumulator, w, h, scale, stack, included);
                 return;
             }
-            RenderTexture content = GetClearRenderTexture(w, h);
+            RenderTexture content = null;
             try
             {
-                if (passThrough) Graphics.Blit(accumulator, content);
-                CompositeLayers(group.layers, ref content, w, h, scale, stack, included);
-                if (!passThrough)
+                if (!passThrough && EffectRenderCache.CanCacheLayer(group))
                 {
-                    group.ApplyModifiers(ref content, new LayerRenderContext(this, null, w, h, scale, false, true));
-                    content = FinishStage(content, group.colorRange == LayerColorRange.Standard, group.swizzle);
+                    content = CachedEffectRender(group, "group-composite", w, h, scale, false, () =>
+                    {
+                        RenderTexture result = GetClearRenderTexture(w, h);
+                        try
+                        {
+                            CompositeLayers(group.layers, ref result, w, h, scale, stack, included);
+                            group.ApplyModifiers(ref result, new LayerRenderContext(this, null, w, h, scale, false, true));
+                            result = FinishStage(result, group.colorRange == LayerColorRange.Standard, group.swizzle);
+                            return result;
+                        }
+                        catch
+                        {
+                            if (result != null) RenderTexture.ReleaseTemporary(result);
+                            throw;
+                        }
+                    });
+                }
+                else
+                {
+                    content = GetClearRenderTexture(w, h);
+                    if (passThrough) Graphics.Blit(accumulator, content);
+                    CompositeLayers(group.layers, ref content, w, h, scale, stack, included);
+                    if (!passThrough)
+                    {
+                        group.ApplyModifiers(ref content, new LayerRenderContext(this, null, w, h, scale, false, true));
+                        content = FinishStage(content, group.colorRange == LayerColorRange.Standard, group.swizzle);
+                    }
                 }
                 BlendInto(ref accumulator, content, passThrough ? (BlendMode)101 : group.EffectiveBlendMode,
                     group.opacity, group.blendRange);
             }
-            finally { RenderTexture.ReleaseTemporary(content); }
+            finally { if (content != null) RenderTexture.ReleaseTemporary(content); }
         }
 
         private RenderTexture RenderStandaloneUncached(

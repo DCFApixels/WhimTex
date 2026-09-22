@@ -29,11 +29,7 @@ namespace DCFApixels.WhimTex
         {
             ulong stamp = effectCache?.Stamp(layer) ?? 0;
             if (stamp == 0) return render();
-            // Sharpen has an expensive Gaussian preparation path. Keep its cache
-            // namespace explicit so it cannot collide with other targeted effects
-            // and so cache diagnostics can distinguish a Sharpen hit from a generic FX.
-            string cacheKind = layer.Behaviour is SharpenLayerBehaviour ? "sharpen" : kind;
-            string key = layer.Id + "/" + cacheKind + (collectingErrors ? "/debug" : "");
+            string key = layer.Id + "/" + kind + (collectingErrors ? "/debug" : "");
             bool cacheHit = effectCache.TryGet(key, stamp, w, h, scale, interactiveEffects, !alphaOnly,
                 out var cached, out var errors, out bool packedAlpha);
             // Interactive rendering is only an approximation when the dependency
@@ -111,7 +107,8 @@ namespace DCFApixels.WhimTex
             if (container == null || index < 0 || index >= container.Count) return null;
             Layer layer = container[index];
             if (layer?.Behaviour == null || !includeDisabled && !layer.enabled || renderStack != null && renderStack.Contains(layer)) return null;
-            if (layer?.Behaviour is TargetedLayerBehaviour && applyTransform && applyModifiers && applyClipping)
+            if ((layer?.Behaviour is TargetedLayerBehaviour || EffectRenderCache.CanCacheLayer(layer)) &&
+                applyTransform && applyModifiers && applyClipping)
                 return CachedEffectRender(layer, "effect", outputWidth, outputHeight, scaleMultiplier, false,
                     () => RenderStandaloneUncached(container, index, outputWidth, outputHeight, scaleMultiplier,
                         renderStack, applyTransform, applyModifiers, includeDisabled, applyClipping));

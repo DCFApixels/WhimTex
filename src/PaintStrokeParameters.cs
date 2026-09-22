@@ -17,6 +17,7 @@ namespace DCFApixels.WhimTex
         internal readonly Texture SelectionMask;
         internal readonly BrushDynamics Dynamics;
         internal readonly bool StandardColorInputs;
+        internal readonly float Pressure;
 
         internal static Vector2 SnapPencilCenter(Vector2 uv, int width, int height, float size)
         {
@@ -50,7 +51,26 @@ namespace DCFApixels.WhimTex
             Shape = source.Shape;
             Dynamics = source.Dynamics;
             StandardColorInputs = source.StandardColorInputs;
+            Pressure = source.Pressure;
         }
+
+        private PaintStrokeParameters(PaintStrokeParameters source, float pressure)
+        {
+            Color = source.Color;
+            Size = source.Size;
+            Hardness = source.Hardness;
+            SpacingPixels = source.SpacingPixels;
+            Erase = source.Erase;
+            WrapCanvas = source.WrapCanvas;
+            SelectionMask = source.SelectionMask;
+            PixelPerfect = source.PixelPerfect;
+            Shape = source.Shape;
+            Dynamics = source.Dynamics;
+            StandardColorInputs = source.StandardColorInputs;
+            Pressure = Mathf.Clamp01(float.IsNaN(pressure) || float.IsInfinity(pressure) ? 1f : pressure);
+        }
+
+        internal PaintStrokeParameters WithPressure(float pressure) => new PaintStrokeParameters(this, pressure);
 
         internal PaintStrokeParameters(Color color, float size, float hardness, float spacing, bool erase,
             bool pixelPerfect = false, PencilShape shape = PencilShape.Circle, BrushDynamics dynamics = null, bool standardColorInputs = false)
@@ -67,6 +87,7 @@ namespace DCFApixels.WhimTex
             Shape = shape;
             Dynamics = pixelPerfect ? null : dynamics;
             StandardColorInputs = standardColorInputs;
+            Pressure = 1f;
         }
     }
 }

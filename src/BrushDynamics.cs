@@ -15,6 +15,7 @@ namespace DCFApixels.WhimTex
     {
         public float opacity = 1f;
         public float flow = 1f;
+        public bool pressure = true;
         public float scatter;
         public float scatterBias;
         public float sizeJitter;

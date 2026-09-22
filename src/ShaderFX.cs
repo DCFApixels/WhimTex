@@ -137,8 +137,9 @@ namespace DCFApixels.WhimTex
         }
 
         [SerializeField, TextArea(12, 40)] private string code =
+            "// @param color _Tint = (1, 1, 1, 1)\n" +
             "// #include \"./MyLibrary.hlsl\"\n\n" +
-            "float4 ApplyFX(float2 uv, float4 color)\n{\n    return color;\n}\n";
+            "float4 ApplyFX(float2 uv, float4 color)\n{\n    return color * _Tint;\n}\n";
         [SerializeField] private List<ShaderFXParameter> parameters = new List<ShaderFXParameter>();
         [SerializeField, HideInInspector] private Shader compiledShader;
         [SerializeField, HideInInspector] private string appliedCode;
@@ -153,6 +154,8 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private Material material;
         [NonSerialized] private Shader materialSourceShader, upgradedTransformShader;
         [NonSerialized] private Dictionary<ShaderFXParameter, GradientBinding> gradientBindings;
+        [NonSerialized] private string determinismWarningSource;
+        [NonSerialized] private bool determinismWarningCached, determinismWarningFound;
 
         [NonSerialized] private Dictionary<ShaderFXParameter, WhimTexCurveTexture> curveBindings;
 
@@ -186,6 +189,20 @@ namespace DCFApixels.WhimTex
         internal string Diagnostics => diagnostics;
         internal bool LastApplyFailed => lastApplyFailed;
         internal bool HasAppliedShader => compiledShader != null;
+        internal bool UsesUnsupportedTimeInputs
+        {
+            get
+            {
+                string source = !string.IsNullOrEmpty(appliedSource) ? appliedSource : code;
+                if (!determinismWarningCached || !string.Equals(determinismWarningSource, source, StringComparison.Ordinal))
+                {
+                    determinismWarningSource = source;
+                    determinismWarningFound = ShaderFXSourceBuilder.GetDeterminismWarning(source) != null;
+                    determinismWarningCached = true;
+                }
+                return determinismWarningFound;
+            }
+        }
         internal TextureCompositor EmbeddedOwner => embeddedOwner;
         internal void RestoreDocumentOwner(TextureCompositor owner) => embeddedOwner = owner;
         internal string ShaderKey => string.IsNullOrEmpty(shaderKey) ? shaderKey = Guid.NewGuid().ToString("N") : shaderKey;
@@ -245,6 +262,8 @@ namespace DCFApixels.WhimTex
                     errors |= message.severity == ShaderCompilerMessageSeverity.Error;
                     messages.AppendLine($"{message.severity}: {message.file}:{message.line}: {message.message}");
                 }
+                string determinismWarning = ShaderFXSourceBuilder.GetDeterminismWarning(source);
+                if (!string.IsNullOrEmpty(determinismWarning)) messages.AppendLine(determinismWarning);
                 if (errors || !candidate.isSupported || test.passCount == 0)
                     throw new InvalidOperationException(messages.Length > 0 ? messages.ToString() : "Shader is unsupported on this graphics device.");
                 compiledShader = candidate;
@@ -518,6 +537,8 @@ namespace DCFApixels.WhimTex
                     errors |= message.severity == ShaderCompilerMessageSeverity.Error;
                     messages.AppendLine($"{message.severity}: {message.file}:{message.line}: {message.message}");
                 }
+                string determinismWarning = ShaderFXSourceBuilder.GetDeterminismWarning(source);
+                if (!string.IsNullOrEmpty(determinismWarning)) messages.AppendLine(determinismWarning);
                 if (errors || !candidate.isSupported || candidateMaterial.passCount == 0)
                     throw new InvalidOperationException(messages.Length > 0 ? messages.ToString() : "The shader is not supported on this graphics device.");
 

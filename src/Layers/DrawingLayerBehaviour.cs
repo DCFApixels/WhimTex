@@ -339,6 +339,8 @@ namespace DCFApixels.WhimTex
             Color color = parameters.Color;
             if (color.a <= 0f || parameters.Dynamics != null && (parameters.Dynamics.opacity <= 0f || parameters.Dynamics.flow <= 0f))
                 return;
+            color.a *= parameters.Pressure;
+            if (color.a <= 0f) return;
             if (!TiledCanvasUtility.IsInvertible(Owner.CanvasTransform)) return;
             var canvasSize = new Vector2(outputWidth, outputHeight);
             fromSourceUv = Owner.CanvasTransform.Map(fromSourceUv, canvasSize);

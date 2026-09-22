@@ -66,7 +66,8 @@ namespace DCFApixels.WhimTex
     public enum BlurBrushSampleMode
     {
         CurrentLayer = 0,
-        BelowLayers = 1
+        BelowLayers = 1,
+        AllLayers = 2
     }
 
     public enum PaintRepeatMode

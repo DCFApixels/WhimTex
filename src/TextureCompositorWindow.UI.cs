@@ -1526,6 +1526,16 @@ namespace DCFApixels.WhimTex
                 v => paintSettings.dynamics.opacity = v, "Opacity (%): maximum strength of one stroke. Release and start a new stroke to build up further.");
             AddBrushHeaderPercent(brushRow, "Flow", () => paintSettings.dynamics.flow,
                 v => paintSettings.dynamics.flow = v, "Flow (%): strength of each stamp. Overlapping stamps build up within the stroke.");
+            Toggle brushPressure = CompactField(new Toggle("Pressure")
+            {
+                value = paintSettings.dynamics.pressure,
+                tooltip = "Use tablet pressure to scale the opacity of the brush stroke."
+            }, 86f);
+            brushPressure.AddToClassList("whimtex-brush-pressure");
+            toolkitHeaderBindings.Track(brushPressure, () => paintSettings.dynamics.pressure);
+            brushPressure.RegisterValueChangedCallback(evt => ApplyPaintToolChange(
+                () => paintSettings.dynamics.pressure = evt.newValue));
+            brushRow.Add(brushPressure);
             toolkitPreviewHeader.Add(brushRow);
             AddBlurBrushSettings();
         }
@@ -1534,7 +1544,8 @@ namespace DCFApixels.WhimTex
         {
             VisualElement row = WhimTexUI.CreateToolbar();
             BindPreviewSettingsRow(row, PreviewTool.BlurBrush);
-            FloatField size = CompactField(new FloatField("Size") { value = paintSettings.blurSize }, 76f);
+            FloatField size = CompactField(new FloatField("Size") { value = paintSettings.blurSize }, 88f);
+            size.AddToClassList("whimtex-blur-size");
             toolkitHeaderBindings.Track(size, () => paintSettings.blurSize);
             size.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() => paintSettings.blurSize = Mathf.Max(1f, evt.newValue)));
             row.Add(size);
@@ -1543,20 +1554,23 @@ namespace DCFApixels.WhimTex
                 value = paintSettings.blurHardness * 100f,
                 showInputField = true,
                 tooltip = "Blur brush edge hardness."
-            }, 118f);
+            }, 160f);
+            hardness.AddToClassList("whimtex-blur-hardness");
             toolkitHeaderBindings.Track(hardness, () => paintSettings.blurHardness * 100f);
             hardness.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() =>
                 paintSettings.blurHardness = Mathf.Clamp01(evt.newValue * .01f)));
             row.Add(hardness);
             AddBrushHeaderPercent(row, "Strength", () => paintSettings.blurStrength,
                 v => paintSettings.blurStrength = v, "Blur amount per stroke.");
-            AddBrushHeaderPercent(row, "Opacity", () => paintSettings.blurOpacity,
-                v => paintSettings.blurOpacity = v, "Maximum blur strength for the stroke.");
-            Toggle pressure = new Toggle("Pressure") { value = paintSettings.blurPressure, tooltip = "Use tablet pressure to scale blur strength." };
+            AddBrushHeaderPercent(row, "Flow", () => paintSettings.blurFlow,
+                v => paintSettings.blurFlow = v, "Blur strength applied by each brush segment.");
+            Toggle pressure = CompactField(new Toggle("Pressure") { value = paintSettings.blurPressure, tooltip = "Use tablet pressure to scale blur strength." }, 86f);
+            pressure.AddToClassList("whimtex-blur-pressure");
             toolkitHeaderBindings.Track(pressure, () => paintSettings.blurPressure);
             pressure.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() => paintSettings.blurPressure = evt.newValue));
             row.Add(pressure);
             EnumField mode = CompactField(new EnumField(paintSettings.blurSampleMode), 118f);
+            mode.AddToClassList("whimtex-blur-mode");
             toolkitHeaderBindings.Track(mode, () => (Enum)paintSettings.blurSampleMode);
             mode.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() => paintSettings.blurSampleMode = (BlurBrushSampleMode)evt.newValue));
             row.Add(mode);
@@ -1776,9 +1790,12 @@ namespace DCFApixels.WhimTex
             else
                 layer.BeginStroke(originUv);
             if (previewTool == PreviewTool.BlurBrush)
-                blurSampleTexture = paintSettings.blurSampleMode == BlurBrushSampleMode.BelowLayers
-                    ? compositor.RenderLayersBelow(layer, compositor.width, compositor.height)
-                    : layer.CaptureBlurSource(compositor.width, compositor.height);
+                blurSampleTexture = paintSettings.blurSampleMode switch
+                {
+                    BlurBrushSampleMode.BelowLayers => compositor.RenderLayersBelow(layer, compositor.width, compositor.height),
+                    BlurBrushSampleMode.AllLayers => compositor.RenderAllLayers(compositor.width, compositor.height),
+                    _ => layer.CaptureBlurSource(compositor.width, compositor.height)
+                };
             RememberPaintingPoint(originUv);
             if (previewTool == PreviewTool.BlurBrush)
                 layer.BlurSegment(startUv, startUv, compositor.width, compositor.height,
@@ -1870,7 +1887,7 @@ namespace DCFApixels.WhimTex
         private float GetBlurStrength()
         {
             float pressure = paintSettings.blurPressure ? Mathf.Clamp01(paintingPressure) : 1f;
-            return Mathf.Clamp01(paintSettings.blurStrength * paintSettings.blurOpacity * pressure);
+            return Mathf.Clamp01(paintSettings.blurStrength * paintSettings.blurFlow * pressure);
         }
 
         private static float GetPointerPressure(float value) => value > 0.001f ? Mathf.Clamp01(value) : 1f;

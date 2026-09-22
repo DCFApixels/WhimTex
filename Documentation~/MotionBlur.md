@@ -70,7 +70,8 @@ and SDF can continue reading alpha from that same entry. A small source-requirem
 is shared by Normal Map, Gaussian Blur and Motion Blur so caching and source rendering agree.
 
 Output settings, targets, source changes, dimensions and interactive quality invalidate the
-existing fingerprints. Shader FX inputs that cannot be fingerprinted still bypass caching.
+existing fingerprints. Deterministic Shader FX inputs use the same cache; arbitrary Material
+modifiers and FX with unsupported time inputs still bypass caching.
 Diagnostic masks follow existing cache behavior. Undo and document changes use existing invalidation.
 
 Working buffers are temporary GPU textures, released as soon as each stage no longer needs them

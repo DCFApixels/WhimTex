@@ -12,8 +12,21 @@ namespace DCFApixels.WhimTex
             RenderTexture processed = null;
             try
             {
-                processed = layer.Render(new LayerRenderContext(this, accumulator, width, height, scale));
-                processed = FinishStage(processed, layer.colorRange == LayerColorRange.Standard, layer.swizzle);
+                RenderTexture processorInput = accumulator;
+                processed = CachedEffectRender(layer, "processor", width, height, scale, false, () =>
+                {
+                    RenderTexture result = layer.Render(new LayerRenderContext(this, processorInput, width, height, scale));
+                    try
+                    {
+                        result = FinishStage(result, layer.colorRange == LayerColorRange.Standard, layer.swizzle);
+                        return result;
+                    }
+                    catch
+                    {
+                        if (result != null) RenderTexture.ReleaseTemporary(result);
+                        throw;
+                    }
+                });
                 if (processed != null)
                     BlendInto(ref accumulator, processed, layer.blendMode == BlendMode.Normal ? (BlendMode)101 : layer.blendMode,
                         layer.opacity, layer.blendRange);

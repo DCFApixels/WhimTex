@@ -38,6 +38,10 @@ Color Balance uses three signed RGB components. Gain, Levels, Threshold, ambient
 
 The unlabeled checkbox in each Shader FX header enables or bypasses that effect without removing its settings. External FX references share this state; use **Embed** for an independent copy.
 
+FX and Shader Processor results are cached while their inputs and parameters stay unchanged. Unity time
+inputs (`_Time`, `_SinTime`, `_CosTime`, `_TimeParameters`, `unity_DeltaTime`) are unsupported:
+their use is allowed, but **Apply** reports a warning and disables caching for that result.
+
 ## Apply an existing effect
 
 1. Select the layer you want to change.

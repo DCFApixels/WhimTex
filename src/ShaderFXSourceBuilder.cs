@@ -15,6 +15,9 @@ namespace DCFApixels.WhimTex
         private const int MaximumCharacters = 2 * 1024 * 1024;
         private static readonly Regex Include = new Regex("^\\s*#\\s*(include|include_with_pragmas)\\s+\"([^\"]+)\"\\s*$");
         private static readonly Regex Identifier = new Regex("^[A-Za-z_][A-Za-z0-9_]*$");
+        private static readonly Regex UnsupportedTimeInput = new Regex(
+            @"(?<![A-Za-z0-9_])(_Time|_SinTime|_CosTime|_TimeParameters|unity_DeltaTime|unity_Time|unity_SinTime|unity_CosTime)(?![A-Za-z0-9_])",
+            RegexOptions.CultureInvariant);
         private readonly string projectRoot = Path.GetDirectoryName(Application.dataPath);
 
         internal static HashSet<string> GetDependencies(string source, string path)
@@ -46,6 +49,23 @@ namespace DCFApixels.WhimTex
             }
             Visit(source, path, 0);
             return found;
+        }
+
+        internal static string GetDeterminismWarning(string source)
+        {
+            if (string.IsNullOrEmpty(source)) return null;
+            var found = new HashSet<string>(StringComparer.Ordinal);
+            bool blockComment = false;
+            using var reader = new StringReader(source);
+            string line;
+            while ((line = reader.ReadLine()) != null)
+                foreach (Match match in UnsupportedTimeInput.Matches(MaskComments(line, ref blockComment)))
+                    found.Add(match.Value);
+            if (found.Count == 0) return null;
+            var names = new List<string>(found);
+            names.Sort(StringComparer.Ordinal);
+            return "Warning: time-dependent Unity inputs (" + string.Join(", ", names) +
+                ") are not supported by WhimTex FX. The value is not updated by the document preview/cache; use an explicit parameter instead.";
         }
 
         // Upgrade only generated helpers in the last applied source, never pending user code.

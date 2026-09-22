@@ -403,7 +403,10 @@ To generate an image from scratch, use a Color layer with FX replacing its color
 
 Available inputs include `_MainTex`, `_MainTex_TexelSize`, `_InputSize`, `_CanvasSize`
 (width, height, reciprocal width, reciprocal height), `_PreviewScale`; `UnityCG.cginc` is already included.
-Do not redeclare these or generated parameters/helpers. Do not use invented time, depth or scene inputs.
+Do not redeclare these or generated parameters/helpers. FX and Shader Processor code must be deterministic:
+do not use Unity time inputs such as `_Time`, `_SinTime`, `_CosTime`, `_TimeParameters` or
+`unity_DeltaTime`. They are not updated by the preview cache; their use only produces a warning and
+disables caching for that result. Use an explicit parameter instead.
 
 ```hlsl
 // @param float _Strength = 0.02 [0 .. 0.1]

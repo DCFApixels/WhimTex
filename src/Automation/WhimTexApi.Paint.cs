@@ -10,12 +10,13 @@ namespace DCFApixels.WhimTex
         private static void SetBrush(TextureCompositor document, DrawingLayerBehaviour layer, JObject brush)
         {
             Keys(brush, "color", "size", "hardness", "spacing", "mirrorX", "mirrorY", "mirrorAngle", "center", "repeat", "repeatCount", "repeatSecondaryCount", "radialStartAngle", "elements", "boundary",
-                "opacity", "flow", "scatter", "scatterBias", "sizeJitter", "angleJitter", "angleOffset", "flipX", "flipY", "rotationMode", "randomAlgorithm", "tintGradient", "tip", "tipChannel", "tipSdf", "proceduralMode", "tipGradient", "blend", "blendApplication", "seed");
+                "opacity", "flow", "pressure", "scatter", "scatterBias", "sizeJitter", "angleJitter", "angleOffset", "flipX", "flipY", "rotationMode", "randomAlgorithm", "tintGradient", "tip", "tipChannel", "tipSdf", "proceduralMode", "tipGradient", "blend", "blendApplication", "seed");
             layer.NormalizeSettings();
             BrushDynamics dynamics = layer.brushDynamics ??= new BrushDynamics();
             dynamics.Normalize();
             dynamics.opacity = Number(brush, "opacity", dynamics.opacity, 0f, 1f);
             dynamics.flow = Number(brush, "flow", dynamics.flow, 0f, 1f);
+            dynamics.pressure = Bool(brush, "pressure", dynamics.pressure);
             dynamics.scatter = Number(brush, "scatter", dynamics.scatter, 0f, 4f);
             dynamics.scatterBias = Number(brush, "scatterBias", dynamics.scatterBias, -1f, 1f);
             dynamics.sizeJitter = Number(brush, "sizeJitter", dynamics.sizeJitter, 0f, 1f);

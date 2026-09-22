@@ -661,6 +661,7 @@ Color alpha zero leaves no mark, including for the eraser; eraser strength other
 | `spacing` | 0.01..4, fraction of brush size (0.16 = 16%) |
 | `opacity` | 0..1, default 1; caps the complete stroke, not individual stamps |
 | `flow` | 0..1, default 1; multiplies each stamp's alpha before accumulation |
+| `pressure` | Boolean, default true; interactive painting multiplies brush opacity by tablet pressure. API strokes use full pressure |
 | `scatter` | 0..4, default 0; random disk radius in brush diameters |
 | `scatterBias` | −1..1, default 0 (UI −100..100). Negative concentrates centers near the stroke; positive near the scatter disk edge. With uniform sample `u`, normalized radius is `u^(0.5 * 2^(-4 * scatterBias))`; zero preserves `sqrt(u)`, uniform by area. Applies to Random and Sobol without consuming extra random values; ignored when scatter is zero |
 | `sizeJitter` | 0..1, default 0; size multiplier sampled from 1−jitter to 1+jitter, minimum one pixel |

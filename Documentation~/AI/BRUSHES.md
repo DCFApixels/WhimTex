@@ -64,6 +64,7 @@ Source-specific root fields:
 | hardness | 0..1; 0.8; Standard without a texture only |
 | spacing | 0.01..4 brush diameters; 0.16 |
 | opacity, flow | 0..1; 1 |
+| pressure | boolean; true. Multiplies brush opacity by tablet pressure when painting interactively. |
 | scatter | 0..4; 0 |
 | scatterBias | −1..1; 0 |
 | sizeJitter | 0..1; 0 |

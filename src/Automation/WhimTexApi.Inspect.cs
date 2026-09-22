@@ -291,7 +291,7 @@ namespace DCFApixels.WhimTex
             BrushDynamics dynamics = layer.brushDynamics ?? new BrushDynamics();
             return new JObject
             {
-                ["opacity"] = dynamics.opacity, ["flow"] = dynamics.flow, ["scatter"] = dynamics.scatter,
+                ["opacity"] = dynamics.opacity, ["flow"] = dynamics.flow, ["pressure"] = dynamics.pressure, ["scatter"] = dynamics.scatter,
                 ["scatterBias"] = dynamics.scatterBias,
                 ["sizeJitter"] = dynamics.sizeJitter,
                 ["angleJitter"] = dynamics.angleJitter,

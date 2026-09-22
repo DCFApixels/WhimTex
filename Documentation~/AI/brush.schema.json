@@ -104,6 +104,9 @@
           "minimum": 0,
           "maximum": 1
         },
+        "pressure": {
+          "type": "boolean"
+        },
         "scatter": {
           "type": "number",
           "minimum": 0,

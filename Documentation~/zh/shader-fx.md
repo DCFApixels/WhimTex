@@ -38,6 +38,10 @@ Color Balance 使用三个有符号 RGB 分量。Gain、Levels、Threshold、环
 
 Shader FX 标题栏中的无标签复选框可启用或跳过效果，并保留其设置。外部 FX 引用共享此状态；使用 **Embed** 创建独立副本。
 
+当输入和参数没有变化时，FX 与 Shader Processor 的结果会被缓存。Unity 时间输入
+（`_Time`、`_SinTime`、`_CosTime`、`_TimeParameters`、`unity_DeltaTime`）不受支持：
+允许使用它们，但点击 **Apply** 会显示警告，并为该结果停用缓存。
+
 ## 应用现有效果
 
 1. 选择要更改的图层。

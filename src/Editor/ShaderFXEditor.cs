@@ -127,10 +127,12 @@ namespace DCFApixels.WhimTex
                 verticalScrollerVisibility = ScrollerVisibility.Auto
             };
             diagnostics.AddToClassList("whimtex-shader-fx-diagnostics");
-            var diagnosticsFoldout = new Foldout { text = "Diagnostics", value = false };
-            diagnosticsFoldout.Add(diagnostics);
-            root.Add(diagnosticsFoldout);
-            var legacyParameters = new PropertyField(serializedObject.FindProperty("parameters"), "Parameters");
+            root.Add(diagnostics);
+            // Parameter metadata is authored by the // @param declarations in the
+            // shader source.  Keep the serialized list for document compatibility,
+            // but do not expose the old raw PropertyField: it allowed editing a
+            // second, conflicting set of fields and was commonly shown disabled.
+            // The purpose-built view below is also able to display legacy values.
             var declaredParameters = new ShaderFXParameterView(effect);
             detach.clicked += () => { Undo.RecordObject(effect, "Embed FX Source"); effect.DetachCatalog(); EditorUtility.SetDirty(effect); effect.NotifyValuesChanged(); RefreshStatus(); };
             apply.clicked += () =>
@@ -143,7 +145,6 @@ namespace DCFApixels.WhimTex
                 serializedObject.Update();
                 RefreshStatus();
             };
-            root.Add(legacyParameters);
             root.Add(declaredParameters);
             Foldout reference = new Foldout { text = "Shader inputs", value = false };
             var inputHelp = new Label(
@@ -168,8 +169,10 @@ namespace DCFApixels.WhimTex
                 code.SyncFromModel();
                 code.SetEnabled(!effect.IsCatalogLinked);
                 sourceButtons.EnableInClassList("whimtex-shader-fx-hidden", !effect.IsCatalogLinked);
-                legacyParameters.EnableInClassList("whimtex-shader-fx-hidden", effect.UsesCodeParameters);
-                declaredParameters.EnableInClassList("whimtex-shader-fx-hidden", !effect.UsesCodeParameters);
+                // Always use the declaration-driven view.  For an old FX without
+                // declarations it still exposes serialized values, while names,
+                // types and controls remain owned by the HLSL source.
+                declaredParameters.EnableInClassList("whimtex-shader-fx-hidden", false);
                 declaredParameters.Refresh();
                 status.messageType = effect.LastApplyFailed ? HelpBoxMessageType.Error : HelpBoxMessageType.Info;
                 status.EnableInClassList("whimtex-shader-fx-hidden", !effect.LastApplyFailed && !effect.HasPendingChanges);
@@ -178,18 +181,13 @@ namespace DCFApixels.WhimTex
                     : effect.HasPendingChanges ? "Unapplied code or parameter declarations. Click Apply when ready."
                     : "Applied. Values update without recompiling. Click Apply again after editing an included library.";
                 diagnostics.SetValueWithoutNotify(effect.Diagnostics);
-                diagnosticsFoldout.EnableInClassList("whimtex-shader-fx-hidden",
+                diagnostics.EnableInClassList("whimtex-shader-fx-hidden",
                     !effect.LastApplyFailed && (string.IsNullOrWhiteSpace(effect.Diagnostics) || effect.Diagnostics == "Applied successfully."));
                 codeFoldout.text = effect.HasPendingChanges ? "Code • unapplied" : "Code";
                 apply.SetEnabled(effect != null);
             }
 
             root.TrackSerializedObjectValue(serializedObject, _ => RefreshStatus());
-            root.RegisterCallback<SerializedPropertyChangeEvent>(evt =>
-            {
-                if (evt.changedProperty != null && evt.changedProperty.propertyPath.StartsWith("parameters", System.StringComparison.Ordinal))
-                    effect.NotifyValuesChanged();
-            });
             root.Bind(serializedObject);
             void RefreshLock() => root.SetEnabled(!WhimTexApi.IsShaderFXContentLocked(effect));
             root.RegisterCallback<AttachToPanelEvent>(_ => { WhimTexApi.LiveEditLocksChanged -= RefreshLock; WhimTexApi.LiveEditLocksChanged += RefreshLock; RefreshLock(); });
@@ -200,6 +198,9 @@ namespace DCFApixels.WhimTex
         }
     }
 
+    // Retained only for older serialized/API-created entries. The Shader FX
+    // editor no longer exposes the raw list; use // @param declarations.
+    [System.Obsolete("Legacy manual ShaderFX parameter inspector. Use // @param declarations.", false)]
     [CustomPropertyDrawer(typeof(ShaderFXParameter))]
     public sealed class ShaderFXParameterDrawer : PropertyDrawer
     {

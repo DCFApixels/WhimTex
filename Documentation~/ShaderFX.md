@@ -23,7 +23,13 @@ Lighting/Bevel Emboss is a regular FX over a `texture2D _HeightMap = self` input
 
 The `texture2D` declaration and `tex2D` sampling syntax are unchanged. In the editor, choose Texture or Layer. Layer references store a same-document layer ID and resolve the standalone rendered result, including transforms and FX, without its lower backdrop. Disabled sources are allowed as with SDF Target; a disabled Shader Processor retains its bypass semantics. Groups supply full-color contents. Missing or cyclic sources bind transparent pixels.
 
-Layer inputs use the effect-render cache for stable sources; arbitrary shader-driven results remain uncached to preserve time-dependent effects. Switching sources does not recompile HLSL. HLSL preset export omits document-local layer bindings. Clipboard JSON does not expose these bindings; the live FX API accepts a texture parameter value `{ "layer": "layer-id" }` instead of an asset path. Copying layers remaps references to copied sources and clears uncopied external sources when pasting into another document.
+Layer inputs use the shared effect-render cache for deterministic sources. Shader FX and Shader Processor
+results are cached when their inputs and serialized parameters are unchanged; the cache also tracks
+external texture updates and referenced layer stamps. Switching sources does not recompile HLSL.
+HLSL preset export omits document-local layer bindings. Clipboard JSON does not expose these bindings;
+the live FX API accepts a texture parameter value `{ "layer": "layer-id" }` instead of an asset path.
+Copying layers remaps references to copied sources and clears uncopied external sources when pasting into
+another document.
 
 For browser AI generation, start with the [JSON layers and HLSL authoring guide](AI/README.md).
 It is self-contained and includes clipboard-ready examples.
@@ -51,6 +57,10 @@ Code and declarations stay drafts until Apply; a compile error keeps the last wo
 `SampleInput(uv)` reads the layer after earlier modifiers. Return straight RGBA; opacity/blending
 come later. Built-in inputs include `_MainTex`, `_MainTex_TexelSize`, `_InputSize`,
 `_CanvasSize` (width, height, 1/width, 1/height) and `_PreviewScale`. Do not redeclare generated uniforms.
+WhimTex FX are deterministic: Unity time inputs such as `_Time`, `_SinTime`, `_CosTime`,
+`_TimeParameters` and `unity_DeltaTime` are not supported and are not updated by the preview cache.
+Their use is allowed for compatibility, but Apply adds a warning to Diagnostics and the result
+is treated as non-cacheable. Use an explicit parameter when a value must change the effect.
 
 Standard `#include` supports project/package paths and relative paths. Relative paths start in
 the document/FX asset folder, or Assets before the first save. After library edits, click Apply again;
@@ -95,9 +105,9 @@ Project/catalog discovery still uses AssetDatabase and import notifications.
 
 **Save HLSL Preset…** exports the current code with parameter declarations rewritten to current
 values, retaining float bounds and existing categories; the file name supplies the last category segment.
-Manual parameters are emitted as declarations too. Custom includes are expanded for portability
-(cyclic or oversized include trees are rejected). Engine includes remain external. Files can be saved
-under user `ShaderFX` or project `Assets`. Existing effects are not detached or switched to the saved file.
+Custom includes are expanded for portability (cyclic or oversized include trees are rejected).
+Engine includes remain external. Files can be saved under user `ShaderFX` or project `Assets`.
+Existing effects are not detached or switched to the saved file.
 
 ### Parameter declarations
 
@@ -222,7 +232,7 @@ control. Each repeated declaration can have its own tooltip. The text is trimmed
 // @param enum _Strength { Subtle: 0.25, Full: 1 } // Choose a predefined strength.
 ```
 
-`bool` displays a toggle, stored in `floatValue` and sent as a float uniform (`0` or `1`), without shader keywords or recompilation on value changes. Optional defaults are `true`/`false` or `1`/`0`; ranges are not supported. In manual parameter lists choose `Bool`.
+`bool` displays a toggle, stored in `floatValue` and sent as a float uniform (`0` or `1`), without shader keywords or recompilation on value changes. Optional defaults are `true`/`false` or `1`/`0`; ranges are not supported.
 
 ```hlsl
 // @param float _Strength = 0.63 [0 .. 1]
@@ -250,8 +260,8 @@ For `normal`, **Edit on Canvas** shows a fixed-screen-radius handle at the canva
 Labels are derived from names: `_NoiseScale` becomes **Noise Scale**. `float4` is four raw components;
 `color` is a color picker using the editor's HDR/Standard input setting and existing linear conversion.
 
-These declarations also work in the inline code editor without a catalog header. Once declarations
-are used, they define the parameter schema instead of the manual list. Existing matching name/type
+These declarations also work in the inline code editor without a catalog header. They define the
+parameter schema for the effect. Existing matching name/type
 values and IDs survive Apply; removed declarations disappear. Renaming in place without changing
 the type or layout retains identity. When simultaneously restructuring and renaming declarations,
 unmatched parameters are treated as new rather than guessing their correspondence.

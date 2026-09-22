@@ -71,8 +71,9 @@ Dependency fingerprints include serialized settings, group descendants, targeted
 texture update/dirty counters and live painting frames. Fingerprints are memoized within a render.
 Resolution, scale and interactive quality must match. Undo invalidates the window cache; changing
 documents, closing the window or reloading scripts releases it. Source-less cycles cannot hit a
-cached image. Arbitrary Material/Shader FX and their dependents bypass caching because they may
-read time or external resources not represented by the layer model.
+cached image. Deterministic Shader FX and Shader Processor results participate in the same cache.
+Arbitrary Material modifiers, or FX that use unsupported time inputs, bypass caching because their
+state is not represented safely by the layer model.
 
 Numeric-error masks are captured locally with each entry and accumulated again on cache hits.
 Neither the cache nor its masks are serialized, saved into compositor assets, or registered with

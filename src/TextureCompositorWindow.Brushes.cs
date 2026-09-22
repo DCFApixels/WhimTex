@@ -187,6 +187,14 @@ namespace DCFApixels.WhimTex
                 "Maximum strength of one stroke. Release and start a new stroke to build up further. Shared with the preview header.");
             AddBrushPercent(scroll, "Flow", () => paintSettings.dynamics.flow, v => paintSettings.dynamics.flow = v,
                 "Strength of each stamp. Overlapping stamps build up within the stroke. Shared with the preview header.");
+            var pressure = WhimTexUI.ConfigureField(new Toggle("Pressure")
+            {
+                value = paintSettings.dynamics.pressure,
+                tooltip = "Use tablet pressure to scale the opacity of the brush stroke."
+            });
+            pressure.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() => paintSettings.dynamics.pressure = evt.newValue));
+            brushSettingsBindings.Track(pressure, () => paintSettings.dynamics.pressure);
+            scroll.Add(pressure);
             var tintRow = new VisualElement();
             tintRow.AddToClassList("whimtex-brush-tint-row");
             var gradient = WhimTexUI.ConfigureField(new WhimTexGradientValueField("Tint") { value = paintSettings.dynamics.tintGradient,

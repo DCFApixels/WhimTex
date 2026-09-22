@@ -63,15 +63,29 @@ namespace DCFApixels.WhimTex
         private void VisitRequired(Layer layer)
         {
             if (layer == null || !visiting.Add(layer)) return;
-            if (layer?.AsGroup() is Layer group) VisitVisible(group.layers);
+            if (layer?.AsGroup() is Layer group)
+            {
+                VisitVisible(group.layers);
+                if (!group.IsPassThrough && CanCacheLayer(layer))
+                    RequireEntry(layer, "group-composite");
+            }
             if (layer?.Behaviour is TargetedLayerBehaviour effect)
             {
-                RequireEntry(layer, layer.Behaviour is SharpenLayerBehaviour ? "sharpen" : "effect");
+                RequireEntry(layer, "effect");
                 Layer input = Input(effect);
                 if (input?.IsGroup == true) RequireEntry(input, "group");
                 if (effect.RequiresColorInput) colorSources.Add(input);
                 VisitRequired(input);
             }
+            else if (layer?.Behaviour is ShaderProcessorLayerBehaviour &&
+                document.TryFindLayer(layer, out var processorContainer, out int processorIndex))
+            {
+                RequireEntry(layer, "processor");
+                for (int i = processorIndex + 1; i < processorContainer.Count; i++)
+                    VisitRequired(processorContainer[i]);
+            }
+            else if (CanCacheLayer(layer))
+                RequireEntry(layer, "effect");
             if (layer.modifiers != null)
                 foreach (var modifier in layer.modifiers)
                     if (modifier is ShaderFX fx && fx.Active)
@@ -100,21 +114,42 @@ namespace DCFApixels.WhimTex
             return document.TryFindLayer(effect, out var list, out int index) && index + 1 < list.Count ? list[index + 1] : null;
         }
 
+        internal static bool CanCacheLayer(Layer layer)
+        {
+            if (layer?.Behaviour is TargetedLayerBehaviour || layer?.Behaviour is ShaderProcessorLayerBehaviour)
+                return true;
+            if (layer?.modifiers == null) return false;
+            bool found = false;
+            foreach (var modifier in layer.modifiers)
+            {
+                if (!(modifier is ShaderFX fx) || !fx.Active) continue;
+                found = true;
+                if (fx.UsesUnsupportedTimeInputs) return false;
+            }
+            return found;
+        }
+
+        private static bool CanCacheModifier(UnityEngine.Object modifier)
+        {
+            return modifier is ShaderFX fx && (!fx.Active || !fx.UsesUnsupportedTimeInputs);
+        }
+
         internal ulong Stamp(Layer layer)
         {
             if (layer == null) return 1;
-            if (!snapshotShaders && layer?.Behaviour is ShaderProcessorLayerBehaviour) return 0;
             if (stamps.TryGetValue(layer, out ulong ready)) return ready;
             if (!visiting.Add(layer)) return 0;
             try
             {
-                // Arbitrary material/code FX may depend on time or external resources. Do not memoize them.
+                // ShaderFX is deterministic by contract. Arbitrary Materials remain uncached
+                // unless this cache is explicitly being used for a thumbnail snapshot.
                 if (!snapshotShaders && layer.modifiers != null)
-                    foreach (var modifier in layer.modifiers) if (modifier != null) return stamps[layer] = 0;
+                    foreach (var modifier in layer.modifiers)
+                        if (modifier != null && !CanCacheModifier(modifier)) return stamps[layer] = 0;
                 ulong hash = Mix(14695981039346656037UL, layer.transformCache?.version ?? 0);
                 string settings = JsonUtility.ToJson(layer);
                 foreach (char c in settings) hash = Mix(hash, c);
-                if (snapshotShaders && layer.modifiers != null)
+                if (layer.modifiers != null)
                     foreach (var modifier in layer.modifiers)
                     {
                         if (modifier == null) continue;
@@ -123,7 +158,7 @@ namespace DCFApixels.WhimTex
                         {
                             foreach (char c in JsonUtility.ToJson(modifier)) hash = Mix(hash, c);
                             foreach (var parameter in shaderFX.Parameters)
-                                if (parameter?.textureValue != null) hash = Mix(hash, parameter.textureValue.updateCount);
+                                if (parameter?.textureValue != null) hash = MixTexture(hash, parameter.textureValue);
                             foreach (var parameter in shaderFX.TextureLayerParameters())
                             {
                                 ulong dependency = Stamp(document.FindLayer(parameter.textureLayerId));
@@ -131,7 +166,7 @@ namespace DCFApixels.WhimTex
                                 hash = Mix(hash, dependency);
                             }
                         }
-                        if (modifier is Material material)
+                        if (snapshotShaders && modifier is Material material)
                         {
                             hash = Mix(hash, unchecked((ulong)(material.shader != null ? UnityEditor.EditorUtility.GetDirtyCount(material.shader) : 0)));
                             foreach (string property in material.GetTexturePropertyNames())
@@ -139,8 +174,7 @@ namespace DCFApixels.WhimTex
                                 Texture input = material.GetTexture(property);
                                 if (input != null)
                                 {
-                                    hash = Mix(hash, unchecked((ulong)input.GetHashCode()));
-                                    hash = Mix(hash, input.updateCount);
+                                    hash = MixTexture(hash, input);
                                 }
                             }
                         }
@@ -173,7 +207,7 @@ namespace DCFApixels.WhimTex
                     if (dependency == 0) return stamps[layer] = 0;
                     hash = Mix(hash, dependency);
                 }
-                if (snapshotShaders && layer?.Behaviour is ShaderProcessorLayerBehaviour &&
+                if (layer?.Behaviour is ShaderProcessorLayerBehaviour &&
                     document.TryFindLayer(layer, out var container, out int index))
                     for (int i = index + 1; i < container.Count; i++)
                     {
@@ -193,6 +227,21 @@ namespace DCFApixels.WhimTex
         }
 
         private static ulong Mix(ulong hash, ulong value) => unchecked((hash ^ value) * 1099511628211UL);
+
+        private static ulong MixTexture(ulong hash, Texture texture)
+        {
+            if (texture == null) return Mix(hash, 0);
+            hash = Mix(hash, unchecked((ulong)texture.GetHashCode()));
+            hash = Mix(hash, texture.updateCount);
+            hash = Mix(hash, (ulong)texture.width);
+            hash = Mix(hash, (ulong)texture.height);
+            hash = Mix(hash, (ulong)texture.graphicsFormat);
+            hash = Mix(hash, unchecked((ulong)UnityEditor.EditorUtility.GetDirtyCount(texture)));
+            hash = Mix(hash, (ulong)texture.filterMode);
+            hash = Mix(hash, (ulong)texture.wrapModeU);
+            hash = Mix(hash, (ulong)texture.wrapModeV);
+            return hash;
+        }
 
         internal bool TryGet(string key, ulong stamp, int width, int height, float scale, bool interactive,
             bool requireColor, out RenderTexture pixels, out RenderTexture errors, out bool alphaOnly)

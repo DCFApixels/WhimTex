@@ -264,8 +264,11 @@ namespace DCFApixels.WhimTex
                 foreach (var old in previous)
                     if (old != null && old.name == p.name && (Compatible(old.type, p.type) || old.type == ShaderFXParameterType.Vector && p.type == ShaderFXParameterType.Vector3))
                     {
-                        match = old;
-                        break;
+                        // If a legacy hand-authored value and a previous code
+                        // declaration coexist, migrate the hand-authored value
+                        // into the single declaration-driven parameter.
+                        if (match == null || match.declaredInCode && !old.declaredInCode)
+                            match = old;
                     }
                 // A rename in place keeps identity. Do not guess across insertions/removals or reorders.
                 if (match == null && next.Count == previous.Count && previous[i] is ShaderFXParameter candidate &&

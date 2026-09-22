@@ -78,7 +78,13 @@ namespace DCFApixels.WhimTex
             try
             {
                 if (EditorPrefs.HasKey(PaintToolSettingsPrefKey))
-                    JsonUtility.FromJsonOverwrite(EditorPrefs.GetString(PaintToolSettingsPrefKey), paintSettings);
+                {
+                    // Keep settings saved before the Blur Brush field was renamed.
+                    string saved = EditorPrefs.GetString(PaintToolSettingsPrefKey);
+                    if (saved.IndexOf("\"blurOpacity\"", StringComparison.Ordinal) >= 0)
+                        saved = saved.Replace("\"blurOpacity\"", "\"blurFlow\"");
+                    JsonUtility.FromJsonOverwrite(saved, paintSettings);
+                }
             }
             catch (ArgumentException)
             {
@@ -128,6 +134,8 @@ namespace DCFApixels.WhimTex
             PaintStrokeParameters parameters = previewTool == PreviewTool.Pencil
                 ? paintSettings.GetPencilParameters(paintingErase, GetPaintingColor())
                 : paintSettings.GetStrokeParameters(paintingErase, GetPaintingColor());
+            if (previewTool == PreviewTool.Brush && paintSettings.dynamics != null && paintSettings.dynamics.pressure)
+                parameters = parameters.WithPressure(paintingPressure);
             if (tiledPreview) parameters = parameters.WithCanvasWrap();
             return parameters.WithSelectionMask(GetAreaSelectionTexture());
         }
