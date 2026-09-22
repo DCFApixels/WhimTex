@@ -259,6 +259,7 @@ namespace DCFApixels.WhimTex
         private static Material hdrMaterial;
         private static Material normalMapMaterial;
         private static Material gaussianBlurMaterial;
+        private static Material sharpenMaterial;
         private static Material motionBlurMaterial;
         private static Material makeSeamlessMaterial;
         private static Material noiseMaterial;
@@ -277,6 +278,7 @@ namespace DCFApixels.WhimTex
         public static Material Hdr => GetOrCreate(ref hdrMaterial, "Hidden/TextureCompositor/Hdr");
         public static Material NormalMap => GetOrCreate(ref normalMapMaterial, "Hidden/TextureCompositor/NormalMap");
         public static Material GaussianBlur => GetOrCreate(ref gaussianBlurMaterial, "Hidden/TextureCompositor/GaussianBlur");
+        public static Material Sharpen => GetOrCreate(ref sharpenMaterial, "Hidden/TextureCompositor/Sharpen");
         public static Material MotionBlur => GetOrCreate(ref motionBlurMaterial, "Hidden/TextureCompositor/MotionBlur");
         public static Material MakeSeamless => GetOrCreate(ref makeSeamlessMaterial, "Hidden/TextureCompositor/MakeSeamless");
         public static Material Noise => GetOrCreate(ref noiseMaterial, "Hidden/TextureCompositor/Noise");
@@ -322,6 +324,8 @@ namespace DCFApixels.WhimTex
             noiseMaterial = null;
             if (gaussianBlurMaterial != null) UnityEngine.Object.DestroyImmediate(gaussianBlurMaterial);
             gaussianBlurMaterial = null;
+            if (sharpenMaterial != null) UnityEngine.Object.DestroyImmediate(sharpenMaterial);
+            sharpenMaterial = null;
             if (motionBlurMaterial != null) UnityEngine.Object.DestroyImmediate(motionBlurMaterial);
             motionBlurMaterial = null;
             if (makeSeamlessMaterial != null) UnityEngine.Object.DestroyImmediate(makeSeamlessMaterial);

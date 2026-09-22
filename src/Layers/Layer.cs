@@ -153,6 +153,7 @@ namespace DCFApixels.WhimTex
         public static explicit operator SDFLayerBehaviour(Layer value) => (SDFLayerBehaviour)value?.Behaviour;
         public static explicit operator NormalMapLayerBehaviour(Layer value) => (NormalMapLayerBehaviour)value?.Behaviour;
         public static explicit operator BlurLayerBehaviour(Layer value) => (BlurLayerBehaviour)value?.Behaviour;
+        public static explicit operator SharpenLayerBehaviour(Layer value) => (SharpenLayerBehaviour)value?.Behaviour;
         public static explicit operator MakeSeamlessLayerBehaviour(Layer value) => (MakeSeamlessLayerBehaviour)value?.Behaviour;
         public static explicit operator ShaderProcessorLayerBehaviour(Layer value) => (ShaderProcessorLayerBehaviour)value?.Behaviour;
         public static explicit operator GroupLayerBehaviour(Layer value) => (GroupLayerBehaviour)value?.Behaviour;
@@ -238,6 +239,8 @@ namespace DCFApixels.WhimTex
                 this?.Behaviour is DrawingLayerBehaviour drawing ? drawing.StoredTexture : null;
             if (this?.Behaviour is FileLayerBehaviour && source == null)
                 return false;
+            if (this?.Behaviour is FileLayerBehaviour && source != null)
+                source = owner.ResolveOriginalFileTexture(source as Texture2D);
             if (source != null)
                 sourceSize = new Vector2(source.width, source.height);
             return transform.TryFitOriginalAspect(canvasSize, sourceSize, out fitted, originalSize);

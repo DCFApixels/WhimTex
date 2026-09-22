@@ -267,7 +267,7 @@ namespace DCFApixels.WhimTex
         {
             switch (Path.GetExtension(path ?? string.Empty).ToLowerInvariant())
             {
-                case ".png": case ".jpg": case ".jpeg": case ".tga":
+                case ".png": case ".jpg": case ".jpeg": case ".tga": case ".bmp":
                 case ".exr": case ".tif": case ".tiff": case ".asset": return true;
                 default: return false;
             }

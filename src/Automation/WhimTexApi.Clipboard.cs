@@ -133,7 +133,7 @@ namespace DCFApixels.WhimTex
                             Keys(node, "id", "type", "name", "properties", "transform", "children", "target", "fx", "url", "asset", "contentOmitted");
                             string type = Text(node, "type");
                             Require(type == "color" || type == "gradient" || type == "noise" || type == "shape" ||
-                                type == "outline" || type == "sdf" || type == "normalMap" || type == "blur" ||
+                                type == "outline" || type == "sdf" || type == "normalMap" || type == "blur" || type == "sharpen" ||
                                 type == "makeSeamless" || type == "shaderProcessor" || type == "drawing" || type == "file" || type == "group",
                                 "Unsupported procedural layer type: " + type);
                             Layer layer = LayerTypeRegistry.Find(type).CreateLayer();

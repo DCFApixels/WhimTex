@@ -4,6 +4,14 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Sharpen effect layer with adjustable local-contrast strength, radius and edge sampling modes; available in the editor and portable agent JSON.
+
+### Changed
+
+- File layers backed by PNG, JPG/JPEG, BMP, EXR or TGA now render from a cached decode of the original source bytes, preserving source resolution without repeated file decoding.
+
 ## [0.11.1] - 2026-09-22
 
 ### Added

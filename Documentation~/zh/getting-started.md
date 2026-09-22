@@ -59,7 +59,7 @@ https://github.com/DCFApixels/WhimTex.git
 
 ## 让工作区更顺手
 
-在 **User Settings → Open Images** 中，**Double Click** 可选择在 Project 窗口双击时仅打开 **Tiff Documents Only**，或打开 **All Supported Images**（默认）。后者还支持 PNG、JPEG、TGA、EXR、普通 TIFF 和 Texture2D `.asset`，不包括 PSD。**Open As** 可选 **Drawing**（导入像素的可编辑副本）或 **File**（引用导入的纹理）。画布尺寸与导入纹理一致，因此会受到 Unity 导入缩放和压缩的影响。WhimTex TIFF 文档始终保留其图层。普通图像作为新文档打开，且只有一个图层时，**Save** 会更新 PNG、JPEG、TGA、EXR 或 Texture2D `.asset` 源文件；**Save As** 会创建 TIFF，不更改源文件的导入设置。其他格式使用 Save As。将 PNG、JPEG、EXR 或 TGA 作为 Drawing 打开，或将这些 File 图层转换为 Drawing 时会直接读取源字节，绕过 Unity 纹理压缩。Unity 的 EXR 字节解码器可在 Windows、macOS 和 Linux 编辑器中使用。
+在 **User Settings → Open Images** 中，**Double Click** 可选择在 Project 窗口双击时仅打开 **Tiff Documents Only**，或打开 **All Supported Images**（默认）。后者还支持 PNG、JPEG、BMP、TGA、EXR、普通 TIFF 和 Texture2D `.asset`，不包括 PSD。**Open As** 可选 **Drawing**（导入像素的可编辑副本）或 **File**（引用导入的纹理）。对于 PNG、JPEG、BMP、TGA 和 EXR，画布与源图层尺寸取自原始文件；其他格式使用导入纹理。基于 PNG、JPEG、BMP、TGA 或 EXR 的 File 图层在渲染时使用原始字节的缓存解码，因此 Unity 的导入缩放和压缩不会降低工作分辨率。WhimTex TIFF 文档始终保留其图层。普通图像作为新文档打开，且只有一个图层时，**Save** 会更新 PNG、JPEG、TGA、EXR 或 Texture2D `.asset` 源文件；**Save As** 会创建 TIFF，不更改源文件的导入设置。其他格式使用 Save As。将 PNG、JPEG、BMP、EXR 或 TGA 作为 Drawing 打开，或将这些 File 图层转换为 Drawing 时也会直接读取源字节。Unity 的 EXR 字节解码器可在 Windows、macOS 和 Linux 编辑器中使用。
 
 **Export 右侧的齿轮按钮**会打开 User Settings，你可以在其中更改透明棋盘格的颜色
 和尺寸，或启用 **Clean Preview Background** 来隐藏背景标志和阴影。在此设置窗口的底部，

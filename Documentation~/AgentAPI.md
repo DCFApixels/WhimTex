@@ -252,13 +252,13 @@ Gradient inputs accept either an ordered stop array or the object form documente
 {"op":"target", "layer":"@outline", "input":"Previous"}
 ```
 
-- `add`: types `file`, `drawing`, `group`, `color`, `gradient`, `noise`, `shape`, `outline`, `sdf`, `normalMap`, `blur`, `makeSeamless`, `shaderProcessor`.
+- `add`: types `file`, `drawing`, `group`, `color`, `gradient`, `noise`, `shape`, `outline`, `sdf`, `normalMap`, `blur`, `sharpen`, `makeSeamless`, `shaderProcessor`.
   Optional `parent` defaults to root, `index` to 0. `settings` and `transform` are optional patches.
 - `set`: requires `layer` and `settings`.
 - `transform`: requires `layer` and `transform`.
 - `move`: `index` is the insertion index **after removal** from the old container; omitted parent
   or `parent:""` moves to root. A group cannot move into itself or its descendants.
-- `target`: effect layers (SDF/Outline/Normal Map/Blur/Make Seamless); default input Specific. Previous means the next sibling below the effect.
+- `target`: effect layers (SDF/Outline/Normal Map/Blur/Sharpen/Make Seamless); default input Specific. Previous means the next sibling below the effect.
   Specific targets can be groups, but cannot create a dependency cycle.
 - `stroke`: Drawing only, detailed below.
 
@@ -278,6 +278,7 @@ Gradient inputs accept either an ordered stop array or the object form documente
 | Noise | `noise`: partial procedural settings object described below |
 | Shape | `shape`: partial settings object described below |
 | Blur | `blur`: partial settings object; `mode`: Gaussian (default), Linear or Circular; [Gaussian](#gaussian-blur-settings), [motion](#motion-blur-settings) |
+| Sharpen | `sharpen`: algorithm (`Gaussian`/`Adaptive`), strength 0..4, radius 0..32 px, threshold/noiseReduction/haloSuppression 0..1, channelMode (`RGB`/`Luminance`), edges |
 | Make Seamless | `makeSeamless`: `{ "horizontal": "LeftToRight", "vertical": "BottomToTop", "blendWidth": 0.2, "falloff": 1 }`; [parameters](#make-seamless-settings) |
 | Gradient, SDF | `gradient`: 1..64 `{"time":0.0,"color":[1,1,1,1]}` stops in strictly increasing time order, time 0..1 |
 
@@ -464,6 +465,27 @@ changing their Pass Through setting. Layer Transform, swizzle, clipping, opacity
 apply normally to the effect. API rendering/saving uses the full-quality algorithm, never the main
 window's interactive approximation. Export to PSD rasterizes this effect.
 See [Gaussian Blur](GaussianBlur.md) for transparency, HDR and cache behavior.
+
+### Sharpen settings
+
+Use `type:"sharpen"` and partial `settings.sharpen` updates. `algorithm` is `Gaussian`
+(smooth unsharp mask) or `Adaptive` (contrast-aware sharpening). `strength` is 0..4
+(UI 0–400%); `radius` is 0..32 original canvas pixels. `threshold`, `noiseReduction` and
+`haloSuppression` are 0..1. `channelMode` is `RGB` or `Luminance`. `edges` selects
+`Transparent`, `Clamp`, `Repeat` or `Mirror` sampling outside the source. Zero strength or
+radius leaves the source unchanged. Sharpen preserves alpha and does not clamp HDR RGB values.
+
+```json
+{"op":"add","type":"sharpen","as":"crisp","settings":{
+  "sharpen":{"algorithm":"Adaptive","strength":1.25,"radius":1.5,
+    "threshold":0.05,"noiseReduction":0.15,"haloSuppression":0.4,
+    "channelMode":"RGB","edges":"Clamp"}
+}}
+```
+
+Assign a source with `{"op":"target","layer":"@crisp","input":"Specific","target":"@source"}`.
+The effect supports hidden sources, groups, transforms, ranges, swizzle, clipping and FX
+like other targeted effects.
 
 ### Motion Blur settings
 

@@ -53,6 +53,9 @@ namespace DCFApixels.WhimTex
             result["layerTypes"] = layerTypes;
             result["blurDefaults"] = BlurSnapshot(new BlurLayerBehaviour());
             result["blurModes"] = new JArray(System.Enum.GetNames(typeof(BlurType)));
+            result["sharpenDefaults"] = SharpenSnapshot(new SharpenLayerBehaviour());
+            result["sharpenAlgorithms"] = new JArray(System.Enum.GetNames(typeof(SharpenLayerBehaviour.Algorithm)));
+            result["sharpenChannels"] = new JArray(System.Enum.GetNames(typeof(SharpenLayerBehaviour.ChannelMode)));
             result["noiseDimensions"] = new JArray(System.Enum.GetNames(typeof(NoiseLayerBehaviour.NoiseDimensions)));
             result["noiseDefaults"] = NoiseSnapshot(new NoiseLayerBehaviour());
             result["shapeDefaults"] = ShapeSnapshot(new ShapeLayerBehaviour());
@@ -70,6 +73,7 @@ namespace DCFApixels.WhimTex
             result["makeSeamlessVertical"] = new JArray(System.Enum.GetNames(typeof(MakeSeamlessLayerBehaviour.VerticalDirection)));
             result["blurDirections"] = new JArray(System.Enum.GetNames(typeof(BlurLayerBehaviour.MotionDirection)));
             result["blurEdges"] = new JArray(System.Enum.GetNames(typeof(BlurLayerBehaviour.EdgeMode)));
+            result["sharpenEdges"] = new JArray(System.Enum.GetNames(typeof(SharpenLayerBehaviour.EdgeMode)));
             result["blendModes"] = new JArray(System.Enum.GetNames(typeof(BlendMode)));
             result["tilingModes"] = new JArray(System.Enum.GetNames(typeof(TransformTilingMode)));
             result["filterModes"] = new JArray(System.Enum.GetNames(typeof(LayerFilterMode)));
@@ -254,6 +258,7 @@ namespace DCFApixels.WhimTex
                     }
                     if (layer?.Behaviour is NormalMapLayerBehaviour normal) settings["normalMap"] = NormalMapSnapshot(normal);
                     if (layer?.Behaviour is BlurLayerBehaviour blur) settings["blur"] = BlurSnapshot(blur);
+                    if (layer?.Behaviour is SharpenLayerBehaviour sharpen) settings["sharpen"] = SharpenSnapshot(sharpen);
                     if (layer?.Behaviour is MakeSeamlessLayerBehaviour seamless) settings["makeSeamless"] = MakeSeamlessSnapshot(seamless);
                     if (layer?.Behaviour is NoiseLayerBehaviour noise) settings["noise"] = NoiseSnapshot(noise);
                     if (layer?.Behaviour is ShapeLayerBehaviour shape) settings["shape"] = ShapeSnapshot(shape);

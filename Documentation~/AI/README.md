@@ -176,7 +176,7 @@ Every layer requires `type`. All other fields are optional; omitted settings use
 
 | Field | Meaning |
 | --- | --- |
-| `type` | `color`, `gradient`, `noise`, `shape`, `outline`, `sdf`, `normalMap`, `blur`, `makeSeamless`, `shaderProcessor`, `drawing`, `file`, `group` |
+| `type` | `color`, `gradient`, `noise`, `shape`, `outline`, `sdf`, `normalMap`, `blur`, `sharpen`, `makeSeamless`, `shaderProcessor`, `drawing`, `file`, `group` |
 | `name` | Display name, at most 128 characters |
 | `id` | Unique local string, 1..64 characters; only needed for references |
 | `properties` | Common settings and the type-specific settings below |
@@ -288,6 +288,10 @@ Use `properties.noise`:
   `radius` 0..256 pixels, `distance` 0..512 pixels, `angle` -180..180 degrees, `arc` 0..360 degrees,
   `center` two 0..1 values, `direction` (`Centered`, `Forward`, `Backward`),
   `edges` (`Transparent`, `Clamp`, `Repeat`, `Mirror`). Mode selects which controls matter.
+- **sharpen:** `properties.sharpen`: `algorithm` (`Gaussian`, `Adaptive`), `strength` 0..4
+  (default 1), `radius` 0..32 canvas pixels (default 1), `threshold`, `noiseReduction` and
+  `haloSuppression` 0..1, `channelMode` (`RGB`, `Luminance`), and `edges` (`Transparent`,
+  `Clamp`, `Repeat`, `Mirror`). Zero strength or radius is an identity; HDR RGB values are preserved.
 - **outline:** directly in `properties`: `color`, `outlineWidth`/`outlineSoftness` 0..16384 pixels,
   `outlineOffset` -16384..16384 pixels, `outlinePosition` (`Outside`, `Inside`, `Center`),
   `fillCenter` boolean, `fillColor`, `metric`.

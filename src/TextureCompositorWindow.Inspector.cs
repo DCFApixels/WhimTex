@@ -168,6 +168,10 @@ namespace DCFApixels.WhimTex
                     BlurLayerEditorWindow.BuildFields(root, blur, compositor, apply, toolkitInspectorBindings,
                         AddToolkitInspectorEffectTarget);
                     break;
+                case SharpenLayerBehaviour sharpen:
+                    SharpenLayerEditorWindow.BuildFields(root, sharpen, compositor, apply, toolkitInspectorBindings,
+                        AddToolkitInspectorEffectTarget);
+                    break;
                 case MakeSeamlessLayerBehaviour seamless:
                     MakeSeamlessLayerEditorWindow.BuildFields(root, seamless, compositor, apply, toolkitInspectorBindings,
                         AddToolkitInspectorEffectTarget);

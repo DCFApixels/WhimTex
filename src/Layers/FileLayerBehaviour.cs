@@ -21,10 +21,13 @@ namespace DCFApixels.WhimTex
             portableAssetLocalId = null;
             bool wasEmpty = sourceTexture == null;
             bool changed = sourceTexture != texture;
+            Texture2D sourceForSizing = texture;
+            if (texture != null && owner != null)
+                sourceForSizing = owner.ResolveOriginalFileTexture(texture);
             if (initializeCanvas && wasEmpty && !sourceAssigned && texture != null && CanInitializeCanvas(owner))
             {
-                owner.width = Mathf.Max(1, texture.width);
-                owner.height = Mathf.Max(1, texture.height);
+                owner.width = Mathf.Max(1, sourceForSizing != null ? sourceForSizing.width : texture.width);
+                owner.height = Mathf.Max(1, sourceForSizing != null ? sourceForSizing.height : texture.height);
             }
             sourceAssigned |= sourceTexture != null || texture != null;
             sourceTexture = texture;
@@ -54,7 +57,12 @@ namespace DCFApixels.WhimTex
 
         internal override RenderTexture Render(in LayerRenderContext context)
         {
-            return sourceTexture == null ? null : ApplyTransformAndModifiers(sourceTexture, context);
+            if (sourceTexture == null)
+                return null;
+            Texture2D source = context.compositor != null
+                ? context.compositor.ResolveOriginalFileTexture(sourceTexture)
+                : sourceTexture;
+            return ApplyTransformAndModifiers(source != null ? source : sourceTexture, context);
         }
     }
 }

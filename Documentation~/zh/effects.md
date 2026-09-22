@@ -27,6 +27,7 @@ next_page: "zh/blending.md"
 | 创建表面起伏 | Normal Map | Height Map 或 Texture。参见 [Normal Map](normal-map.md)。 |
 | 柔化图像 | Blur | Mode → Gaussian，然后是 Radius。 |
 | 创建运动拖尾 | Blur | Mode → Linear 或 Circular。 |
+| 恢复边缘清晰度 | Sharpen | Strength 和 Radius。 |
 | 接合相对的纹理边缘 | Make Seamless | 源边缘、Fade Width 和 Falloff。 |
 
 ## 选择效果使用的对象
@@ -92,6 +93,16 @@ Outline 的 **Width (px)** 支持小数。**Softness (px) = 0** 保持清晰而�
 2. 让 Input 保持 Previous。
 3. 隐藏组本身，只显示模糊结果。
 4. 调整 Radius 和 Strength。
+
+## Sharpen
+
+添加 **Sharpen** 可增强局部边缘对比度，同时保持源图层的 Alpha 不变。
+选择 **Gaussian** 可获得平滑锐化，选择 **Adaptive** 可减少强边缘附近的光晕。
+**Strength (%)** 控制强度（0–400%），**Radius (px)** 控制以画布像素为单位的比较距离。
+**Threshold**、**Noise Reduction** 和 **Halo Suppression** 控制细节与边缘伪影。
+**Channels** 可处理 RGB 或亮度；**Edges** 决定源边界外的采样方式：Transparent、Clamp、Repeat 或 Mirror。
+该操作会保留 HDR 颜色值。
+编辑过程中 WhimTex 使用更快的近似计算；操作结束后会重新计算更高质量的 Gaussian 加权结果。
 
 ### Linear 和 Circular
 

@@ -20,7 +20,7 @@ No connection to Unity is needed. Available in WhimTex 0.9.6 and later.
 For example: “Create a blue magical ring on a transparent background, with an editable rim and a
 separate glow. Use a 512 × 512 canvas and return WhimTex clipboard JSON.”
 
-The result can contain shapes, gradients, noise, groups, outlines, blur, normal maps, custom
+The result can contain shapes, gradients, noise, groups, outlines, blur, sharpen, normal maps, custom
 Shader FX, and a Drawing layer that downloads an image from a direct HTTP(S) link
 (`"type": "drawing"` with `url`).
 The format does not support embedded pixel data, Base64 or local file paths.

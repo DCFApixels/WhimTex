@@ -125,7 +125,7 @@ namespace DCFApixels.WhimTex
         {
             Keys(settings, "name", "enabled", "clippingMask", "opacity", "blend", "filter", "source", "colorRange", "blendRange", "swizzle", "compositing", "color", "brush",
                 "metric", "outlineWidth", "outlineSoftness", "outlinePosition", "outlineOffset", "fillCenter", "fillColor", "sourceChannel", "threshold",
-                "distancePosition", "inverted", "maxDistance", "sourceOffset", "sourceEdges", "contourOffset", "insideDistance", "outsideDistance", "profile", "gradient", "normalMap", "blur", "makeSeamless", "noise", "shape");
+                "distancePosition", "inverted", "maxDistance", "sourceOffset", "sourceEdges", "contourOffset", "insideDistance", "outsideDistance", "profile", "gradient", "normalMap", "blur", "sharpen", "makeSeamless", "noise", "shape");
             foreach (var property in settings.Properties())
             {
                 string key = property.Name;
@@ -137,6 +137,7 @@ namespace DCFApixels.WhimTex
                     key == "metric" && (layer?.Behaviour is SDFLayerBehaviour || layer?.Behaviour is OutlineLayerBehaviour) ||
                     key == "normalMap" && layer?.Behaviour is NormalMapLayerBehaviour ||
                     key == "blur" && layer?.Behaviour is BlurLayerBehaviour ||
+                    key == "sharpen" && layer?.Behaviour is SharpenLayerBehaviour ||
                     key == "makeSeamless" && layer?.Behaviour is MakeSeamlessLayerBehaviour ||
                     key == "noise" && layer?.Behaviour is NoiseLayerBehaviour ||
                     key == "shape" && layer?.Behaviour is ShapeLayerBehaviour ||
@@ -185,6 +186,8 @@ namespace DCFApixels.WhimTex
                 SetNormalMap(normal, Obj(settings["normalMap"], "normalMap"));
             if (layer?.Behaviour is BlurLayerBehaviour blur && settings["blur"] != null)
                 SetBlur(blur, Obj(settings["blur"], "blur"));
+            if (layer?.Behaviour is SharpenLayerBehaviour sharpen && settings["sharpen"] != null)
+                SetSharpen(sharpen, Obj(settings["sharpen"], "sharpen"));
             if (layer?.Behaviour is MakeSeamlessLayerBehaviour seamless && settings["makeSeamless"] != null)
                 SetMakeSeamless(seamless, Obj(settings["makeSeamless"], "makeSeamless"));
             if (layer?.Behaviour is NoiseLayerBehaviour noise && settings["noise"] != null)

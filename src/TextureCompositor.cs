@@ -29,6 +29,7 @@ namespace DCFApixels.WhimTex
         internal static event Action<TextureCompositor> Changed;
         [SerializeField, HideInInspector] internal string documentLoadWarning;
         [SerializeField, HideInInspector] internal WhimTexDocumentBinding documentBinding;
+        [NonSerialized] private Dictionary<UnityObjectID, OriginalFileCacheEntry> originalFileTextureCache;
 
         internal static void NotifyShaderFXChanged(ShaderFX effect)
         {
@@ -70,6 +71,7 @@ namespace DCFApixels.WhimTex
             WhimTexDocumentSession.StopFor(this, "document disabled");
             ReleaseLayerThumbnails();
             StopLiveOutput();
+            ReleaseOriginalFileTextureCache();
             ReleaseLayerResources(layers, preserveDrawingPixels: true);
             ReleaseDiagnostics();
         }
@@ -78,6 +80,7 @@ namespace DCFApixels.WhimTex
         {
             if (documentBinding != null && documentBinding.owner == this) DestroyImmediate(documentBinding);
             ReleaseLayerThumbnails();
+            ReleaseOriginalFileTextureCache();
             ReleaseLayerResources(layers);
             foreach (ShaderFX effect in embeddedShaderFX)
                 if (effect != null && effect.EmbeddedOwner == this && !AssetDatabase.Contains(effect))
@@ -291,13 +294,65 @@ namespace DCFApixels.WhimTex
             return new OriginalFilePixelsScope(roots);
         }
 
+        /// <summary>
+        /// Returns a cached decode of the source file when the File layer points at a
+        /// format for which WhimTex can read source bytes. The imported Unity texture
+        /// remains the fallback for unsupported/generated textures.
+        /// </summary>
+        internal Texture2D ResolveOriginalFileTexture(Texture2D source)
+        {
+            if (source == null)
+                return null;
+
+            string path = AssetDatabase.GetAssetPath(source);
+            string extension = Path.GetExtension(path ?? string.Empty).ToLowerInvariant();
+            if (!IsOriginalFileDecodeSupported(extension) || string.IsNullOrEmpty(path) || !File.Exists(path))
+                return source;
+
+            FileInfo info;
+            try { info = new FileInfo(path); }
+            catch { return source; }
+
+            TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
+            bool linear = importer != null && !importer.sRGBTexture;
+            UnityObjectID key = UnityObjectID.FromObject(source);
+            originalFileTextureCache ??= new Dictionary<UnityObjectID, OriginalFileCacheEntry>();
+            if (originalFileTextureCache.TryGetValue(key, out OriginalFileCacheEntry cached))
+            {
+                if (cached.Matches(path, info.Length, info.LastWriteTimeUtc.Ticks, source, linear))
+                    return cached.decoded ?? source;
+                cached.Dispose();
+                originalFileTextureCache.Remove(key);
+            }
+
+            Texture2D decoded = null;
+            TryDecodeOriginalFileTexture(source, out decoded);
+            originalFileTextureCache[key] = new OriginalFileCacheEntry(
+                path, info.Length, info.LastWriteTimeUtc.Ticks, source, linear, decoded);
+            return decoded ?? source;
+        }
+
+        private static bool IsOriginalFileDecodeSupported(string extension) =>
+            extension == ".png" || extension == ".jpg" || extension == ".jpeg" ||
+            extension == ".exr" || extension == ".tga" || extension == ".bmp";
+
+        private void ReleaseOriginalFileTextureCache()
+        {
+            if (originalFileTextureCache == null)
+                return;
+            foreach (OriginalFileCacheEntry entry in originalFileTextureCache.Values)
+                entry.Dispose();
+            originalFileTextureCache.Clear();
+            originalFileTextureCache = null;
+        }
+
         internal static bool TryDecodeOriginalFileTexture(Texture2D source, out Texture2D decoded)
         {
             decoded = null;
             if (source == null) return false;
             string path = AssetDatabase.GetAssetPath(source);
             string extension = Path.GetExtension(path ?? string.Empty).ToLowerInvariant();
-            if (extension != ".png" && extension != ".jpg" && extension != ".jpeg" && extension != ".exr" && extension != ".tga") return false;
+            if (!IsOriginalFileDecodeSupported(extension)) return false;
             try
             {
                 byte[] bytes = File.ReadAllBytes(path);
@@ -305,6 +360,9 @@ namespace DCFApixels.WhimTex
                 bool linear = importer != null && !importer.sRGBTexture;
                 if (extension == ".tga")
                     return WhimTexTgaDecoder.TryDecode(bytes, linear, source.filterMode, source.wrapModeU,
+                        source.wrapModeV, out decoded);
+                if (extension == ".bmp")
+                    return WhimTexBmpDecoder.TryDecode(bytes, linear, source.filterMode, source.wrapModeU,
                         source.wrapModeV, out decoded);
                 decoded = new Texture2D(2, 2, TextureFormat.RGBA32, false, linear)
                 {
@@ -372,6 +430,47 @@ namespace DCFApixels.WhimTex
                 internal readonly Texture2D decoded;
                 internal Entry(FileLayerBehaviour file, Texture2D imported, Texture2D decoded)
                 { this.file = file; this.imported = imported; this.decoded = decoded; }
+            }
+        }
+
+        private sealed class OriginalFileCacheEntry
+        {
+            internal readonly string path;
+            internal readonly long length;
+            internal readonly long writeTicks;
+            internal readonly int filter;
+            internal readonly int wrapU;
+            internal readonly int wrapV;
+            internal readonly bool linear;
+            internal readonly Texture2D decoded;
+
+            internal OriginalFileCacheEntry(string path, long length, long writeTicks, Texture2D source,
+                bool linear, Texture2D decoded)
+            {
+                this.path = path;
+                this.length = length;
+                this.writeTicks = writeTicks;
+                filter = source != null ? (int)source.filterMode : -1;
+                wrapU = source != null ? (int)source.wrapModeU : -1;
+                wrapV = source != null ? (int)source.wrapModeV : -1;
+                this.linear = linear;
+                this.decoded = decoded;
+            }
+
+            internal bool Matches(string candidatePath, long candidateLength, long candidateTicks,
+                Texture2D source, bool candidateLinear)
+            {
+                return string.Equals(path, candidatePath, StringComparison.OrdinalIgnoreCase) &&
+                    length == candidateLength && writeTicks == candidateTicks &&
+                    source != null && filter == (int)source.filterMode &&
+                    wrapU == (int)source.wrapModeU && wrapV == (int)source.wrapModeV &&
+                    linear == candidateLinear;
+            }
+
+            internal void Dispose()
+            {
+                if (decoded != null)
+                    DestroyImmediate(decoded);
             }
         }
 

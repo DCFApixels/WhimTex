@@ -20,7 +20,7 @@ translations: "en/ai-authoring.md,ru/ai-authoring.md,zh/ai-authoring.md"
 例如：“在透明背景上创建一个蓝色的魔法圆环，带有可编辑的圆环边缘和
 单独的光晕。使用 512 × 512 的画布，并返回 WhimTex clipboard JSON。”
 
-结果可以包含形状、渐变、噪声、组、描边、模糊、法线贴图、自定义
+结果可以包含形状、渐变、噪声、组、描边、模糊、锐化、法线贴图、自定义
 Shader FX，以及从直接 HTTP(S) 链接下载图像的绘制图层
 （`"type": "drawing"`，带有 `url` 字段）。
 此格式不支持内嵌像素数据、Base64 或本地文件路径。

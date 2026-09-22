@@ -33,6 +33,7 @@ const defs = {
     encoding: noiseEnum('OutputEncoding'), inverted: bool, dimensions: noiseEnum('NoiseDimensions'), direction: number(-180, 180), whiteNoiseColor: noiseEnum('WhiteNoiseColor'), whiteNoiseSize: number(1, 1024) }),
   blur: object({ mode: choice('Gaussian Linear Circular'), strength: number(0, 4), radius: number(0, 256), distance: number(0, 512), angle: number(-180, 180), arc: number(0, 360),
     center: tuple(number(0, 1), 2), direction: choice('Centered Forward Backward'), edges: choice('Transparent Clamp Repeat Mirror') }),
+  sharpen: object({ algorithm: choice('Gaussian Adaptive'), strength: number(0, 4), radius: number(0, 32), threshold: number(0, 1), noiseReduction: number(0, 1), haloSuppression: number(0, 1), channelMode: choice('RGB Luminance'), edges: choice('Transparent Clamp Repeat Mirror') }),
   shape: object({ kind: choice('Rectangle Ellipse Polygon Star Line'), fill: bool, fillColor: rgba, stroke: bool, strokeColor: rgba, strokeWidth: number(0, 8192), roundness: number(0, 1),
     cornerRoundness: tuple(number(0, 1), 4), linkCorners: bool, sides: integer(3, 32), innerRadius: number(.01, 1) }),
   makeSeamless: object({ horizontal: choice('Off LeftToRight RightToLeft'), vertical: choice('Off BottomToTop TopToBottom'), blendWidth: number(.001, .5), falloff: number(.25, 4) }),
@@ -53,7 +54,7 @@ const common = { enabled: bool, clippingMask: bool, opacity: number(0, 1), blend
 const metric = enumeration('Utils.cs', 'DistanceMetric');
 const extra = {
   color: { color: rgba, fillMode: choice('Color UV') }, gradient: { gradient: ref('gradient'), gradientOptions: ref('gradientOptions') }, noise: { noise: ref('noise') }, shape: { shape: ref('shape') },
-  blur: { blur: ref('blur') }, makeSeamless: { makeSeamless: ref('makeSeamless') }, normalMap: { normalMap: ref('normalMap') },
+  blur: { blur: ref('blur') }, sharpen: { sharpen: ref('sharpen') }, makeSeamless: { makeSeamless: ref('makeSeamless') }, normalMap: { normalMap: ref('normalMap') },
   outline: { metric, color: rgba, outlineWidth: number(0, 16384), outlineSoftness: number(0, 16384), outlinePosition: enumeration('Layers/OutlineLayerBehaviour.cs', 'OutlinePosition'), outlineOffset: number(-16384, 16384), fillCenter: bool, fillColor: rgba },
   sdf: { metric, sourceChannel: enumeration('Layers/SDFLayerBehaviour.cs', 'SourceChannel'), threshold: integer(0, 255), distancePosition: enumeration('Layers/SDFLayerBehaviour.cs', 'DistancePosition'), inverted: bool, maxDistance: number(0, 16384), sourceOffset: tuple(number(-16384,16384),2), sourceEdges: choice('Transparent Clamp Repeat Mirror'), contourOffset: number(-16384,16384), insideDistance: number(0,16384), outsideDistance: number(0,16384), profile: str(65536), gradient: ref('gradient') },
   shaderProcessor: {}, drawing: {}, file: {}, group: { compositing: choice('PassThrough Isolated') }
@@ -63,7 +64,7 @@ defs.layer = { oneOf: Object.entries(extra).map(([type, properties]) => {
   if (type === 'group') fields.children = { type: 'array', minItems: 1, maxItems: 128, items: ref('layer') };
   fields.transform = ref('transform');
   fields.fx = { type: 'array', maxItems: 16, items: ref('fx') };
-  if (['outline', 'sdf', 'blur', 'normalMap', 'makeSeamless'].includes(type)) fields.target = { ...str(64), minLength: 1 };
+  if (['outline', 'sdf', 'blur', 'sharpen', 'normalMap', 'makeSeamless'].includes(type)) fields.target = { ...str(64), minLength: 1 };
   if (type === 'drawing') fields.url = { type: 'string', maxLength: 2048, pattern: '^https?://',
     description: 'Absolute http(s) link to a PNG or JPEG. Downloaded on paste after confirmation, keeping source resolution. If neither scale nor matrix is specified, fit to the canvas; otherwise preserve the explicit transform.' };
   if (type === 'shaderProcessor') fields.properties.properties.clippingMask = { const: false };

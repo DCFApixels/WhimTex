@@ -988,6 +988,9 @@ namespace DCFApixels.WhimTex
                 case BlurLayerBehaviour blur:
                     BlurLayerEditorWindow.Open(blur, compositor);
                     break;
+                case SharpenLayerBehaviour sharpen:
+                    SharpenLayerEditorWindow.Open(sharpen, compositor);
+                    break;
                 case MakeSeamlessLayerBehaviour seamless:
                     MakeSeamlessLayerEditorWindow.Open(seamless, compositor);
                     break;
