@@ -55,6 +55,12 @@
 
 ## Documentation and dependencies
 
+### Changelog and release notes
+
+- `CHANGELOG.md` is release-oriented: each published version contains the complete set of user-facing changes accumulated since the previous published release. Do not split one release's notes by intermediate package versions, tags or unreleased commits that were never published.
+- Keep an empty `Unreleased` section for work that has not shipped yet. When publishing, move all accumulated entries into one version block and clear `Unreleased`.
+- Follow the established 0.11.0 structure: use concise `Added`, `Changed`, `Fixed` and, when relevant, `Upgrade notes` sections. Describe behavior and migration impact, not individual commits. Keep the GitHub release title and notes aligned with this block.
+
 - Update matching EN/RU/ZH user guides. Keep paths and reciprocal `translations` metadata, including the page itself; add new localized pages together.
 - Artist guides: result → controls → visible effect. Keep API/storage/cache/Undo internals in technical references, not user guides. Warnings should concern results, compatibility or loss of work.
 - README: short introduction, installation, quick start, guide links. Keep browser-AI entry points discoverable.
