@@ -573,6 +573,11 @@ namespace DCFApixels.WhimTex
 
         private void FinishPaintingStroke()
         {
+            if (blurSampleTexture != null)
+            {
+                RenderTexture.ReleaseTemporary(blurSampleTexture);
+                blurSampleTexture = null;
+            }
             int capturedPointer = paintingPointerId;
             DrawingLayerBehaviour finishedLayer = paintingLayer;
             paintingLayer = null;
@@ -599,6 +604,15 @@ namespace DCFApixels.WhimTex
             }
             finishedLayer.SyncSurfaceToTexture();
             nextPaintingPreviewAt = 0d;
+            if (previewTool == PreviewTool.BlurBrush)
+            {
+                // Blur Brush changes pixels using a stable source snapshot. Once
+                // the stroke ends, do not keep the surrounding FX stack in its
+                // interactive approximation: the next preview must use settled
+                // quality (notably for Sharpen layers above the Drawing layer).
+                effectInteractiveUntil = 0d;
+                effectRefinementPending = false;
+            }
             temporaryDocumentDirty |= compositor != null && !AssetDatabase.Contains(compositor);
             if (compositor != null)
                 compositor.MarkChanged();

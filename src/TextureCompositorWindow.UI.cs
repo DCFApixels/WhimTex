@@ -1527,6 +1527,40 @@ namespace DCFApixels.WhimTex
             AddBrushHeaderPercent(brushRow, "Flow", () => paintSettings.dynamics.flow,
                 v => paintSettings.dynamics.flow = v, "Flow (%): strength of each stamp. Overlapping stamps build up within the stroke.");
             toolkitPreviewHeader.Add(brushRow);
+            AddBlurBrushSettings();
+        }
+
+        private void AddBlurBrushSettings()
+        {
+            VisualElement row = WhimTexUI.CreateToolbar();
+            BindPreviewSettingsRow(row, PreviewTool.BlurBrush);
+            FloatField size = CompactField(new FloatField("Size") { value = paintSettings.blurSize }, 76f);
+            toolkitHeaderBindings.Track(size, () => paintSettings.blurSize);
+            size.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() => paintSettings.blurSize = Mathf.Max(1f, evt.newValue)));
+            row.Add(size);
+            Slider hardness = CompactField(new Slider("Hardness", 0f, 100f)
+            {
+                value = paintSettings.blurHardness * 100f,
+                showInputField = true,
+                tooltip = "Blur brush edge hardness."
+            }, 118f);
+            toolkitHeaderBindings.Track(hardness, () => paintSettings.blurHardness * 100f);
+            hardness.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() =>
+                paintSettings.blurHardness = Mathf.Clamp01(evt.newValue * .01f)));
+            row.Add(hardness);
+            AddBrushHeaderPercent(row, "Strength", () => paintSettings.blurStrength,
+                v => paintSettings.blurStrength = v, "Blur amount per stroke.");
+            AddBrushHeaderPercent(row, "Opacity", () => paintSettings.blurOpacity,
+                v => paintSettings.blurOpacity = v, "Maximum blur strength for the stroke.");
+            Toggle pressure = new Toggle("Pressure") { value = paintSettings.blurPressure, tooltip = "Use tablet pressure to scale blur strength." };
+            toolkitHeaderBindings.Track(pressure, () => paintSettings.blurPressure);
+            pressure.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() => paintSettings.blurPressure = evt.newValue));
+            row.Add(pressure);
+            EnumField mode = CompactField(new EnumField(paintSettings.blurSampleMode), 118f);
+            toolkitHeaderBindings.Track(mode, () => (Enum)paintSettings.blurSampleMode);
+            mode.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() => paintSettings.blurSampleMode = (BlurBrushSampleMode)evt.newValue));
+            row.Add(mode);
+            toolkitPreviewHeader.Add(row);
         }
 
         private void AddPencilSettings()
@@ -1613,7 +1647,7 @@ namespace DCFApixels.WhimTex
             toolkitPreviewCanvas.SetPencilCursor(previewTool == PreviewTool.Pencil);
             toolkitPreviewCanvas.SetDocument(channelPreviewTexture != null ? (Texture)channelPreviewTexture : PreviewPresentationSource,
                 compositor.width, compositor.height,
-                IsPreviewBrushEnabled ? drawing : null, transforming,
+                IsPreviewBrushEnabled || IsPreviewBlurBrushEnabled ? drawing : null, transforming,
                 IsPreviewPaintTool ? paintSettings : null);
             RefreshPreviewPointerCursor();
             if (toolkitPreviewError != null)
@@ -1647,6 +1681,10 @@ namespace DCFApixels.WhimTex
                         : previewTool == PreviewTool.RectangleSelect
                         ? "Drag select • Shift add • Alt subtract • Ctrl+C copy • Ctrl+V paste • Ctrl+D deselect"
                         : "Click vertices • Enter/double-click close • Backspace remove vertex • Esc cancel • Ctrl+D deselect";
+                }
+                else if (previewTool == PreviewTool.BlurBrush && IsPreviewToolAvailable(PreviewTool.BlurBrush))
+                {
+                    toolkitPreviewFooter.text = "LMB blur • soft round tip • Pressure scales strength • choose Current Layer or Below Layers";
                 }
                 else if (IsPreviewBrushEnabled)
                 {
@@ -1693,7 +1731,8 @@ namespace DCFApixels.WhimTex
             if (HandlePaintConversionPrompt(evt)) return;
             if (HandleFillPointerDown(evt)) return;
             DrawingLayerBehaviour layer = GetSelectedLayer()?.Behaviour as DrawingLayerBehaviour;
-            if (!IsPreviewBrushEnabled || paintingLayer != null || layer == null || (evt.button != 0 && evt.button != 1) || evt.altKey)
+            if (!(IsPreviewBrushEnabled || IsPreviewBlurBrushEnabled) || paintingLayer != null || layer == null ||
+                (evt.button != 0 && evt.button != 1) || evt.altKey)
                 return;
             if (!toolkitPreviewCanvas.contentRect.Contains(evt.localPosition)) return;
 
@@ -1708,6 +1747,7 @@ namespace DCFApixels.WhimTex
             paintingMouseButton = evt.button;
             paintingPointerId = evt.pointerId;
             paintingErase = erase;
+            paintingPressure = GetPointerPressure(evt.pressure);
             paintingPointerMoved = false;
             previewPointerPosition = evt.localPosition;
             toolkitPreviewCanvas.CapturePointer(evt.pointerId);
@@ -1735,8 +1775,15 @@ namespace DCFApixels.WhimTex
                 layer.BeginTiledStroke(originUv, compositor.width, compositor.height);
             else
                 layer.BeginStroke(originUv);
+            if (previewTool == PreviewTool.BlurBrush)
+                blurSampleTexture = paintSettings.blurSampleMode == BlurBrushSampleMode.BelowLayers
+                    ? compositor.RenderLayersBelow(layer, compositor.width, compositor.height)
+                    : layer.CaptureBlurSource(compositor.width, compositor.height);
             RememberPaintingPoint(originUv);
-            if (connect && originUv != startUv)
+            if (previewTool == PreviewTool.BlurBrush)
+                layer.BlurSegment(startUv, startUv, compositor.width, compositor.height,
+                    paintSettings.blurSize, paintSettings.blurHardness, GetBlurStrength(), blurSampleTexture);
+            else if (connect && originUv != startUv)
                 PaintTowardsLayerPoint(startUv);
             else
                 layer.PaintPoint(startUv, compositor.width, compositor.height, GetPaintingParameters());
@@ -1756,6 +1803,7 @@ namespace DCFApixels.WhimTex
             }
 
             Vector2 paintPosition = GetPreviewPaintPosition(evt.localPosition, evt.shiftKey, evt.ctrlKey);
+            paintingPressure = GetPointerPressure(evt.pressure);
             paintingPointerMoved |= evt.deltaPosition.sqrMagnitude > 0f;
             UpdatePreviewCursor(evt.localPosition, evt.altKey);
 
@@ -1782,8 +1830,12 @@ namespace DCFApixels.WhimTex
                 if (hasLastPaintingUv && paintingLayer.TryClipStrokeSegmentToRepeatShape(
                         lastPaintingUv, pointUv, compositor.width, compositor.height, out Vector2 clippedUv))
                 {
-                    paintingLayer.PaintSegment(lastPaintingUv, clippedUv, compositor.width, compositor.height, false,
-                        GetPaintingParameters());
+                    if (previewTool == PreviewTool.BlurBrush)
+                        paintingLayer.BlurSegment(lastPaintingUv, clippedUv, compositor.width, compositor.height,
+                            paintSettings.blurSize, paintSettings.blurHardness, GetBlurStrength(), blurSampleTexture);
+                    else
+                        paintingLayer.PaintSegment(lastPaintingUv, clippedUv, compositor.width, compositor.height, false,
+                            GetPaintingParameters());
                     RememberPaintingPoint(clippedUv);
                     RefreshPreviewDuringPainting();
                 }
@@ -1795,17 +1847,33 @@ namespace DCFApixels.WhimTex
             {
                 if (lastPaintingUv == pointUv)
                     return;
-                paintingLayer.PaintSegment(lastPaintingUv, pointUv, compositor.width, compositor.height, false,
-                    GetPaintingParameters());
+                if (previewTool == PreviewTool.BlurBrush)
+                    paintingLayer.BlurSegment(lastPaintingUv, pointUv, compositor.width, compositor.height,
+                        paintSettings.blurSize, paintSettings.blurHardness, GetBlurStrength(), blurSampleTexture);
+                else
+                    paintingLayer.PaintSegment(lastPaintingUv, pointUv, compositor.width, compositor.height, false,
+                        GetPaintingParameters());
             }
             else
             {
-                paintingLayer.PaintPoint(pointUv, compositor.width, compositor.height, GetPaintingParameters());
+                if (previewTool == PreviewTool.BlurBrush)
+                    paintingLayer.BlurSegment(pointUv, pointUv, compositor.width, compositor.height,
+                        paintSettings.blurSize, paintSettings.blurHardness, GetBlurStrength(), blurSampleTexture);
+                else
+                    paintingLayer.PaintPoint(pointUv, compositor.width, compositor.height, GetPaintingParameters());
             }
             RememberPaintingPoint(pointUv);
             hasLastPaintingUv = true;
             RefreshPreviewDuringPainting();
         }
+
+        private float GetBlurStrength()
+        {
+            float pressure = paintSettings.blurPressure ? Mathf.Clamp01(paintingPressure) : 1f;
+            return Mathf.Clamp01(paintSettings.blurStrength * paintSettings.blurOpacity * pressure);
+        }
+
+        private static float GetPointerPressure(float value) => value > 0.001f ? Mathf.Clamp01(value) : 1f;
 
         private void SetPaintingShift(bool held)
         {

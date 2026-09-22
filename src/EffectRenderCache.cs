@@ -66,7 +66,7 @@ namespace DCFApixels.WhimTex
             if (layer?.AsGroup() is Layer group) VisitVisible(group.layers);
             if (layer?.Behaviour is TargetedLayerBehaviour effect)
             {
-                RequireEntry(layer, "effect");
+                RequireEntry(layer, layer.Behaviour is SharpenLayerBehaviour ? "sharpen" : "effect");
                 Layer input = Input(effect);
                 if (input?.IsGroup == true) RequireEntry(input, "group");
                 if (effect.RequiresColorInput) colorSources.Add(input);
@@ -158,7 +158,8 @@ namespace DCFApixels.WhimTex
                     hash = Mix(hash, (ulong)texture.wrapModeU);
                     hash = Mix(hash, (ulong)texture.wrapModeV);
                 }
-                if (ReferenceEquals(layer, liveDrawing?.Owner)) hash = Mix(hash, unchecked((ulong)frame));
+                if (ReferenceEquals(layer, liveDrawing?.Owner))
+                    hash = Mix(hash, liveDrawing.PaintSurfaceRevision);
                 if (layer?.AsGroup() is Layer group && group.layers != null)
                     foreach (Layer child in group.layers)
                     {

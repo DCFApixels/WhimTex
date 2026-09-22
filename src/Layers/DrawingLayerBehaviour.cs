@@ -60,6 +60,8 @@ namespace DCFApixels.WhimTex
 
         [NonSerialized] private RenderTexture paintSurface;
         [NonSerialized] private bool paintSurfaceDirty;
+        [NonSerialized] private ulong paintSurfaceRevision;
+        internal ulong PaintSurfaceRevision => paintSurfaceRevision;
         [NonSerialized] private List<Vector2> symmetryPoints;
         [NonSerialized] private List<PaintStamp> patternStamps;
         [NonSerialized] private HashSet<PaintStamp> patternStampSet;
@@ -382,7 +384,11 @@ namespace DCFApixels.WhimTex
             color.a *= dynamics != null ? dynamics.flow : 1f;
 
             paintSurfaceDirty |= segmentStamps.Count > 0;
-            if (segmentStamps.Count > 0) originalImageUrl = null;
+            if (segmentStamps.Count > 0)
+            {
+                unchecked { paintSurfaceRevision++; }
+                originalImageUrl = null;
+            }
             PaintBrushRenderer.Draw(
                 isolatedStroke ? advancedStroke : surface,
                 segmentStamps,

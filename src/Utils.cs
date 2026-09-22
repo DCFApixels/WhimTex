@@ -63,6 +63,12 @@ namespace DCFApixels.WhimTex
         AllLayers = 1
     }
 
+    public enum BlurBrushSampleMode
+    {
+        CurrentLayer = 0,
+        BelowLayers = 1
+    }
+
     public enum PaintRepeatMode
     {
         None = 0,
@@ -259,6 +265,7 @@ namespace DCFApixels.WhimTex
         private static Material hdrMaterial;
         private static Material normalMapMaterial;
         private static Material gaussianBlurMaterial;
+        private static Material blurBrushMaterial;
         private static Material sharpenMaterial;
         private static Material motionBlurMaterial;
         private static Material makeSeamlessMaterial;
@@ -278,6 +285,7 @@ namespace DCFApixels.WhimTex
         public static Material Hdr => GetOrCreate(ref hdrMaterial, "Hidden/TextureCompositor/Hdr");
         public static Material NormalMap => GetOrCreate(ref normalMapMaterial, "Hidden/TextureCompositor/NormalMap");
         public static Material GaussianBlur => GetOrCreate(ref gaussianBlurMaterial, "Hidden/TextureCompositor/GaussianBlur");
+        public static Material BlurBrush => GetOrCreate(ref blurBrushMaterial, "Hidden/TextureCompositor/BlurBrush");
         public static Material Sharpen => GetOrCreate(ref sharpenMaterial, "Hidden/TextureCompositor/Sharpen");
         public static Material MotionBlur => GetOrCreate(ref motionBlurMaterial, "Hidden/TextureCompositor/MotionBlur");
         public static Material MakeSeamless => GetOrCreate(ref makeSeamlessMaterial, "Hidden/TextureCompositor/MakeSeamless");

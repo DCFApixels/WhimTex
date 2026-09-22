@@ -29,9 +29,20 @@ namespace DCFApixels.WhimTex
         {
             ulong stamp = effectCache?.Stamp(layer) ?? 0;
             if (stamp == 0) return render();
-            string key = layer.Id + "/" + kind + (collectingErrors ? "/debug" : "");
-            if (effectCache.TryGet(key, stamp, w, h, scale, interactiveEffects, !alphaOnly,
-                out var cached, out var errors, out bool packedAlpha))
+            // Sharpen has an expensive Gaussian preparation path. Keep its cache
+            // namespace explicit so it cannot collide with other targeted effects
+            // and so cache diagnostics can distinguish a Sharpen hit from a generic FX.
+            string cacheKind = layer.Behaviour is SharpenLayerBehaviour ? "sharpen" : kind;
+            string key = layer.Id + "/" + cacheKind + (collectingErrors ? "/debug" : "");
+            bool cacheHit = effectCache.TryGet(key, stamp, w, h, scale, interactiveEffects, !alphaOnly,
+                out var cached, out var errors, out bool packedAlpha);
+            // Interactive rendering is only an approximation when the dependency
+            // changed. If the exact settled result is still valid, reuse it instead
+            // of replacing it with a lower-quality Sharpen/blur pass.
+            if (!cacheHit && interactiveEffects)
+                cacheHit = effectCache.TryGet(key, stamp, w, h, scale, false, !alphaOnly,
+                    out cached, out errors, out packedAlpha);
+            if (cacheHit)
             {
                 MergeEffectErrors(errors);
                 var copy = HdrUtility.Temporary(w, h);

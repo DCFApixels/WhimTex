@@ -7,7 +7,7 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
-        private enum PreviewTool { None, Brush, Transform, Fill, Zoom, Pencil, RectangleSelect, PolygonSelect, Shape }
+        private enum PreviewTool { None, Brush, BlurBrush, Transform, Fill, Zoom, Pencil, RectangleSelect, PolygonSelect, Shape }
 
         [NonSerialized] private PreviewTool previewTool = PreviewTool.None;
         [NonSerialized] private PreviewTool previewSettingsTool = PreviewTool.None;
@@ -17,8 +17,11 @@ namespace DCFApixels.WhimTex
         private const string PreviewToolPrefKey = "DCFApixels.WhimTex.PreviewTool";
         private const string PreviewTransformReturnToolPrefKey = "DCFApixels.WhimTex.PreviewTransformReturnTool";
         [NonSerialized] private bool conversionPromptOpen;
+        [NonSerialized] private RenderTexture blurSampleTexture;
+        [NonSerialized] private float paintingPressure = 1f;
         [NonSerialized] private Button previewNoneButton;
         [NonSerialized] private Button previewBrushButton;
+        [NonSerialized] private Button previewBlurBrushButton;
         [NonSerialized] private Button previewPencilButton;
         [NonSerialized] private Button previewTransformButton;
         [NonSerialized] private Button previewFillButton;
@@ -26,7 +29,7 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private Button previewRectangleSelectButton;
         [NonSerialized] private Button previewPolygonSelectButton;
 
-        private bool IsPreviewPaintTool => previewTool == PreviewTool.Brush || previewTool == PreviewTool.Pencil;
+        private bool IsPreviewPaintTool => previewTool == PreviewTool.Brush || previewTool == PreviewTool.BlurBrush || previewTool == PreviewTool.Pencil;
         private bool HasPreviewLayers
         {
             get
@@ -37,8 +40,10 @@ namespace DCFApixels.WhimTex
                 return false;
             }
         }
-        private bool IsPreviewBrushEnabled => IsPreviewPaintTool &&
+        private bool IsPreviewBrushEnabled => (previewTool == PreviewTool.Brush || previewTool == PreviewTool.Pencil) &&
             (previewTool != PreviewTool.Brush || paintSettings.dynamics.source != BrushTipSource.HLSL || paintSettings.dynamics.tip != null) &&
+            GetSelectedLayer()?.Behaviour is DrawingLayerBehaviour layer && !WhimTexApi.IsLayerContentLocked(compositor, layer);
+        private bool IsPreviewBlurBrushEnabled => previewTool == PreviewTool.BlurBrush &&
             GetSelectedLayer()?.Behaviour is DrawingLayerBehaviour layer && !WhimTexApi.IsLayerContentLocked(compositor, layer);
         private bool IsPreviewFillEnabled => previewTool == PreviewTool.Fill && GetSelectedLayer()?.Behaviour is DrawingLayerBehaviour layer && !WhimTexApi.IsLayerContentLocked(compositor, layer);
 
@@ -186,6 +191,7 @@ namespace DCFApixels.WhimTex
                 case PreviewTool.Brush:
                 case PreviewTool.Pencil:
                 case PreviewTool.Fill: return layer?.Behaviour is DrawingLayerBehaviour;
+                case PreviewTool.BlurBrush: return layer?.Behaviour != null;
                 case PreviewTool.Transform: return layer?.Behaviour != null;
                 case PreviewTool.Zoom:
                 case PreviewTool.Shape:
@@ -215,6 +221,8 @@ namespace DCFApixels.WhimTex
                 "Layer Select (V). Click visible pixels to select a layer. Click a selected group again to select inside it. Shift toggles selection; Ctrl selects nested layers directly. Click empty space to deselect.");
             previewBrushButton = CreatePreviewToolButton("brushTool", PreviewTool.Brush,
                 "Brush (B). Paint on the selected Drawing layer. Choose Brush/Eraser in the header; RMB temporarily erases.");
+            previewBlurBrushButton = CreatePreviewToolButton("blurBrushTool", PreviewTool.BlurBrush,
+                "Blur Brush. Paint a soft circular blur on the selected Drawing layer. Choose the current layer or the layers below as the sample.");
             previewPencilButton = CreatePreviewToolButton("pencilTool", PreviewTool.Pencil,
                 "Pencil (P). Paint crisp pixels with a Circle, Square or Diamond tip. RMB temporarily erases; [ and ] change size.");
             previewFillButton = CreatePreviewToolButton("fillTool", PreviewTool.Fill,
@@ -240,6 +248,7 @@ namespace DCFApixels.WhimTex
             previewShapeButton.AddManipulator(shapePicker);
             toolbar.Add(previewShapeButton);
             toolbar.Add(previewBrushButton);
+            toolbar.Add(previewBlurBrushButton);
             toolbar.Add(previewPencilButton);
             toolbar.Add(previewFillButton);
             previewZoomButton = CreatePreviewToolButton("zoomTool", PreviewTool.Zoom,
@@ -291,6 +300,11 @@ namespace DCFApixels.WhimTex
             {
                 previewBrushButton.EnableInClassList("whimtex-tool-button--unavailable", !(selected?.Behaviour is DrawingLayerBehaviour));
                 previewBrushButton.EnableInClassList("whimtex-tool-button--selected", displayedTool == PreviewTool.Brush);
+            }
+            if (previewBlurBrushButton != null)
+            {
+                previewBlurBrushButton.EnableInClassList("whimtex-tool-button--unavailable", !hasLayers);
+                previewBlurBrushButton.EnableInClassList("whimtex-tool-button--selected", displayedTool == PreviewTool.BlurBrush);
             }
             if (previewPencilButton != null)
             {
@@ -358,6 +372,8 @@ namespace DCFApixels.WhimTex
                     DrawMagnifier(painter);
                 else if (tool == PreviewTool.Pencil)
                     DrawPencil(painter);
+                else if (tool == PreviewTool.BlurBrush)
+                    DrawBlurBrush(painter);
                 else if (tool == PreviewTool.RectangleSelect)
                 {
                     if (uv) DrawUvSelect(painter);
@@ -531,6 +547,30 @@ namespace DCFApixels.WhimTex
                 painter.BezierCurveTo(P(8f, 18.3f), P(7.2f, 16.6f), P(7.1f, 14.6f));
                 painter.ClosePath();
                 painter.Fill(FillRule.OddEven);
+            }
+
+            private void DrawBlurBrush(Painter2D painter)
+            {
+                Color ink = resolvedStyle.color;
+                Color top = new Color(ink.r, ink.g, ink.b, ink.a * 0.015f);
+                Color bottom = new Color(ink.r, ink.g, ink.b, ink.a * 0.55f);
+                var gradient = new Gradient();
+                gradient.SetKeys(
+                    new[] { new GradientColorKey(top, 0f), new GradientColorKey(bottom, 1f) },
+                    new[] { new GradientAlphaKey(top.a, 0f), new GradientAlphaKey(bottom.a, 1f) });
+                painter.fillGradient = FillGradient.MakeLinearGradient(
+                    gradient, P(0f, 2f), P(0f, 22f), AddressMode.Clamp);
+                painter.strokeColor = ink;
+                painter.lineWidth = 1.35f;
+                painter.BeginPath();
+                painter.MoveTo(P(12f, 2.2f));
+                painter.BezierCurveTo(P(10.2f, 5.1f), P(5.1f, 10.2f), P(5.1f, 14.1f));
+                painter.BezierCurveTo(P(5.1f, 18.5f), P(8.1f, 21.6f), P(12f, 21.6f));
+                painter.BezierCurveTo(P(15.9f, 21.6f), P(18.9f, 18.5f), P(18.9f, 14.1f));
+                painter.BezierCurveTo(P(18.9f, 10.2f), P(13.8f, 5.1f), P(12f, 2.2f));
+                painter.ClosePath();
+                painter.Fill();
+                painter.Stroke();
             }
 
             private void DrawPencil(Painter2D painter)

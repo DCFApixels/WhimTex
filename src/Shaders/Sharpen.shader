@@ -36,6 +36,7 @@ Shader "Hidden/TextureCompositor/Sharpen"
         {
             float2 p = i.uv * _MainTex_TexelSize.zw - .5;
             float2 d = float2(_Radius, 0);
+            float2 v = float2(0, _Radius);
             float4 c = at(p);
             float4 n;
             if (_UseBlur != 0)
@@ -47,7 +48,7 @@ Shader "Hidden/TextureCompositor/Sharpen"
             else if (_Fast != 0)
             {
                 // Cheap interactive approximation: four cardinal samples.
-                n = (at(p - d) + at(p + d) + at(p - d.yx) + at(p + d.yx)) * .25;
+                n = (at(p - d) + at(p + d) + at(p - v) + at(p + v)) * .25;
             }
             else
             {
@@ -56,11 +57,13 @@ Shader "Hidden/TextureCompositor/Sharpen"
                 // space, avoiding bright/dark halos around transparent edges.
                 float2 h = d * .5;
                 float2 q = d * .70710678;
+                float2 qv = float2(q.y, q.x);
                 float4 weighted = c * .20;
-                weighted += (at(p - h) + at(p + h) + at(p - h.yx) + at(p + h.yx)) * .10;
-                weighted += (at(p - d) + at(p + d) + at(p - d.yx) + at(p + d.yx)) * .05;
-                weighted += (at(p - q - q.yx) + at(p + q + q.yx) +
-                    at(p - q + q.yx) + at(p + q - q.yx)) * .05;
+                float2 hv = float2(0, h.x);
+                weighted += (at(p - h) + at(p + h) + at(p - hv) + at(p + hv)) * .10;
+                weighted += (at(p - d) + at(p + d) + at(p - v) + at(p + v)) * .05;
+                weighted += (at(p - q - qv) + at(p + q + qv) +
+                    at(p - q + qv) + at(p + q - qv)) * .05;
                 n = weighted;
             }
             float alpha = c.a;

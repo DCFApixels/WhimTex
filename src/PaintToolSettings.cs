@@ -77,6 +77,12 @@ namespace DCFApixels.WhimTex
         public int fillTolerance = 32;
         public bool fillAntialias = true;
         public int fillExpand;
+        public float blurSize = 32f;
+        public float blurHardness = 0.8f;
+        public float blurStrength = 1f;
+        public float blurOpacity = 1f;
+        public bool blurPressure = true;
+        public BlurBrushSampleMode blurSampleMode = BlurBrushSampleMode.CurrentLayer;
 
         internal static float GetSizeShortcutStep(float size) => Mathf.Max(1f, Mathf.Floor(size * 0.1f));
 

@@ -207,6 +207,25 @@ namespace DCFApixels.WhimTex
         internal RenderTexture RenderLayerPreview(Layer layer, int maxSize) =>
             RenderLayerPreviewCore(layer, maxSize, false, false);
 
+        internal RenderTexture RenderLayersBelow(Layer layer, int outputWidth, int outputHeight)
+        {
+            if (layer == null || !TryFindLayer(layer, out List<Layer> container, out int index))
+                return null;
+            RefreshTransformHierarchy();
+            RenderTexture result = GetClearRenderTexture(outputWidth, outputHeight);
+            try
+            {
+                CompositeLayers(container, ref result, outputWidth, outputHeight, 1f,
+                    new HashSet<Layer>(), firstIndex: index + 1);
+                return result;
+            }
+            catch
+            {
+                RenderTexture.ReleaseTemporary(result);
+                throw;
+            }
+        }
+
         internal RenderTexture RenderAgentLayerPreview(Layer layer, int maxSize) =>
             RenderLayerPreviewCore(layer, maxSize, true, true);
 
