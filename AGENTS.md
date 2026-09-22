@@ -57,9 +57,9 @@
 
 ### Changelog and release notes
 
-- `CHANGELOG.md` is release-oriented: each published version contains the complete set of user-facing changes accumulated since the previous published release. Do not split one release's notes by intermediate package versions, tags or unreleased commits that were never published.
-- Keep an empty `Unreleased` section for work that has not shipped yet. When publishing, move all accumulated entries into one version block and clear `Unreleased`.
-- Follow the established 0.11.0 structure: use concise `Added`, `Changed`, `Fixed` and, when relevant, `Upgrade notes` sections. Describe behavior and migration impact, not individual commits. Keep the GitHub release title and notes aligned with this block.
+- `CHANGELOG.md` remains a versioned history: keep a separate block for every package version, including versions that are published without a GitHub release.
+- GitHub release notes are a separate aggregation. For a release, merge the complete user-facing entries from every package-version block after the previous GitHub release up to the current version; do not omit intermediate versions or list commits instead of behavior.
+- Keep an empty `Unreleased` section for work that has not shipped yet. Release notes must follow the established 0.11.0 structure: concise `Added`, `Changed`, `Fixed` and, when relevant, `Upgrade notes` sections. Keep the GitHub release title and notes aligned with the aggregated range.
 
 - Update matching EN/RU/ZH user guides. Keep paths and reciprocal `translations` metadata, including the page itself; add new localized pages together.
 - Artist guides: result → controls → visible effect. Keep API/storage/cache/Undo internals in technical references, not user guides. Warnings should concern results, compatibility or loss of work.
