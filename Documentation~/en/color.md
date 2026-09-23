@@ -72,6 +72,8 @@ Click a gradient field to edit its colors and opacity. **Classic** gives familia
 **Linear** blends light, **Perceptual** keeps perceived color transitions more even,
 and **Fixed** makes hard bands. **Smoothness** softens transitions around keys;
 the small diamonds move the halfway point between neighboring keys. Fixed ignores both controls.
+**Wrap** controls samples outside 0–1: **Clamp** holds the nearest endpoint, **Repeat** tiles the gradient,
+and **Mirror** reflects each repeated interval.
 
 Use **HDR** beside the selected color when extra brightness is needed. Drag a key vertically
 away from its track to delete it; each track keeps at least one key. Right-click a gradient field

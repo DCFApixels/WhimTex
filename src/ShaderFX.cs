@@ -168,8 +168,12 @@ namespace DCFApixels.WhimTex
         private sealed class GradientBinding : IDisposable
         {
             internal readonly WhimTexGradientTexture lut = new WhimTexGradientTexture();
-            internal readonly int propertyId;
-            internal GradientBinding(ShaderFXParameter declaration) => propertyId = Shader.PropertyToID(declaration.InternalPrefix + "Gradient");
+            internal readonly int propertyId, wrapModePropertyId;
+            internal GradientBinding(ShaderFXParameter declaration)
+            {
+                propertyId = Shader.PropertyToID(declaration.InternalPrefix + "Gradient");
+                wrapModePropertyId = Shader.PropertyToID(declaration.InternalPrefix + "GradientWrap");
+            }
             public void Dispose() => lut.Dispose();
         }
         [NonSerialized] private bool notificationQueued;
@@ -509,6 +513,7 @@ namespace DCFApixels.WhimTex
                         gradientBindings.Add(applied, binding = new GradientBinding(applied));
                     value.gradientValue ??= new WhimTexGradient();
                     material.SetTexture(binding.propertyId, binding.lut.GetTexture(value.gradientValue));
+                    material.SetFloat(binding.wrapModePropertyId, (float)value.gradientValue.WrapMode);
                 }
                 else if (applied.type == ShaderFXParameterType.Curve)
                 {

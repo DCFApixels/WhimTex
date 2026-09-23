@@ -112,6 +112,53 @@ public static class ShaderFXConditionalParametersSmoke
                 finally { if (presetFX != null) UnityEngine.Object.DestroyImmediate(presetFX); }
             }
 
+            string halftoneSource = File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/Halftone.hlsl");
+            var halftoneParameters = Parse(halftoneSource);
+            ShaderFXParameter HalftoneParameter(string name) => halftoneParameters.Find(p => p.name == name);
+            Check(HalftoneParameter("_Mode").type == ShaderFXParameterType.Float &&
+                HalftoneParameter("_Mode").controls[0].type == ShaderFXParameterType.Enum &&
+                HalftoneParameter("_Mode").controls[0].optionNames.Length == 6 &&
+                HalftoneParameter("_Mode").controls[0].optionNames[1] == "CMYKTriangle" &&
+                HalftoneParameter("_Mode").controls[0].optionNames[2] == "CMYKSquare" &&
+                HalftoneParameter("_Mode").controls[0].optionNames[3] == "CMYKManual" &&
+                HalftoneParameter("_Mode").controls[0].optionNames[4] == "RGBTriangle" &&
+                HalftoneParameter("_Mode").controls[0].optionNames[5] == "RGBManual" &&
+                HalftoneParameter("_Mode").floatValue == 1f,
+                "Halftone offers CMYK and RGB plate modes while preserving the legacy CMYK default");
+            ShaderFXParameter spread = HalftoneParameter("_PlateSpread");
+            Check(spread != null && spread.controls.Count == 3 &&
+                spread.controls[0].visibleIfParameter == "_Mode" && !spread.controls[0].visibleIfNotEqual && spread.controls[0].visibleIfValue == 2f &&
+                spread.controls[1].visibleIfParameter == "_Mode" && !spread.controls[1].visibleIfNotEqual && spread.controls[1].visibleIfValue == 3f &&
+                spread.controls[2].visibleIfParameter == "_Mode" && !spread.controls[2].visibleIfNotEqual && spread.controls[2].visibleIfValue == 4f,
+                "Halftone shows the shared spacing control in all automatic modes");
+            ShaderFXParameter rotation = HalftoneParameter("_PlateRotation");
+            Check(rotation != null && rotation.controls.Count == 3 &&
+                rotation.controls[0].visibleIfParameter == "_Mode" && !rotation.controls[0].visibleIfNotEqual && rotation.controls[0].visibleIfValue == 2f &&
+                rotation.controls[1].visibleIfParameter == "_Mode" && !rotation.controls[1].visibleIfNotEqual && rotation.controls[1].visibleIfValue == 3f &&
+                rotation.controls[2].visibleIfParameter == "_Mode" && !rotation.controls[2].visibleIfNotEqual && rotation.controls[2].visibleIfValue == 4f,
+                "Halftone shows the shared layout rotation control only in automatic modes");
+            ShaderFXParameter cyanAngle = HalftoneParameter("_CyanAngle");
+            Check(cyanAngle.controls.Count == 3 && cyanAngle.controls[0].visibleIfValue == 1f &&
+                cyanAngle.controls[1].visibleIfValue == 2f && cyanAngle.controls[2].visibleIfValue == 3f,
+                "Halftone shows CMYK angle controls only for CMYK modes");
+            ShaderFXParameter redAngle = HalftoneParameter("_RedAngle");
+            Check(redAngle.controls.Count == 2 && redAngle.controls[0].visibleIfValue == 4f && redAngle.controls[1].visibleIfValue == 5f,
+                "Halftone shows RGB angle controls only for RGB modes");
+            ShaderFXParameter paperColor = HalftoneParameter("_PaperColor");
+            Check(paperColor.controls.Count == 4 && paperColor.controls[0].visibleIfValue == 0f &&
+                paperColor.controls[1].visibleIfValue == 1f && paperColor.controls[2].visibleIfValue == 2f && paperColor.controls[3].visibleIfValue == 3f,
+                "Halftone hides the paper tint from additive RGB output");
+            foreach (string angle in new[] { "_Angle", "_CyanAngle", "_MagentaAngle", "_YellowAngle", "_BlackAngle", "_RedAngle", "_GreenAngle", "_BlueAngle", "_PlateRotation" })
+                Check(HalftoneParameter(angle).floatValue == 0f, "Halftone defaults " + angle + " to zero rotation");
+            foreach (string plateOffset in new[] { "_CyanOffset", "_MagentaOffset", "_YellowOffset", "_BlackOffset" })
+                Check(HalftoneParameter(plateOffset).controls[0].visibleIfParameter == "_Mode" &&
+                    !HalftoneParameter(plateOffset).controls[0].visibleIfNotEqual && HalftoneParameter(plateOffset).controls[0].visibleIfValue == 1f,
+                    "Halftone shows " + plateOffset + " only in Manual mode");
+            foreach (string plateOffset in new[] { "_RedOffset", "_GreenOffset", "_BlueOffset" })
+                Check(HalftoneParameter(plateOffset).controls[0].visibleIfParameter == "_Mode" &&
+                    !HalftoneParameter(plateOffset).controls[0].visibleIfNotEqual && HalftoneParameter(plateOffset).controls[0].visibleIfValue == 5f,
+                    "Halftone shows " + plateOffset + " only in RGB Manual mode");
+
             return "PASS: " + checks + " parser validation, conditional UI, scalar-driver edits and preset roundtrip checks.";
         }
         catch (TargetInvocationException error) { throw error.InnerException ?? error; }

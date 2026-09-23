@@ -61,6 +61,7 @@ namespace DCFApixels.WhimTex
                 material.SetInt("_GradientIntervalCount", paletteIntervalCount);
                 material.SetVector("_GradientStart", paletteStart);
                 material.SetInt("_GradientType", (int)gradientType);
+                material.SetInt("_GradientWrapMode", (int)(gradient?.WrapMode ?? WhimTexGradientWrapMode.Clamp));
                 material.SetVector("_GradientOutputSize", new Vector4(context.width, context.height, 0f, 0f));
                 material.SetVector("_GradientShape", new Vector4(BaseCenter.x, BaseCenter.y, BaseRadius,
                     Mathf.Max(float.Epsilon, circularRepetitions)));
@@ -90,7 +91,7 @@ namespace DCFApixels.WhimTex
         private void UpdatePalette()
         {
             WhimTexGradient evaluated = gradient ?? GradientUtility.WhiteToBlack;
-            if (palette != null && paletteGradient != null && paletteGradient.Equals(evaluated)) return;
+            if (palette != null && paletteGradient != null && paletteGradient.EqualsRamp(evaluated)) return;
 
             // Each interval has its own row, so even very close keys retain the full ramp
             // resolution, including smooth interpolation between closely spaced keys.
@@ -113,16 +114,18 @@ namespace DCFApixels.WhimTex
                 };
             }
             var pixels = palette.GetRawTextureData<Color>();
-            bool fixedMode = evaluated.Mode == WhimTexGradientMode.Fixed;
-            paletteStart = evaluated.EvaluateEncoded(0f);
+            WhimTexGradient paletteSource = evaluated.Clone();
+            paletteSource.WrapMode = WhimTexGradientWrapMode.Clamp;
+            bool fixedMode = paletteSource.Mode == WhimTexGradientMode.Fixed;
+            paletteStart = paletteSource.EvaluateEncoded(0f);
             for (int row = 0; row < paletteIntervalCount; row++)
             {
                 float start = times[row], end = times[row + 1];
                 paletteIntervals[row] = new Vector4(start, end, 1f / (end - start), 0f);
-                Color fixedColor = fixedMode ? evaluated.EvaluateEncoded((start + end) * .5f) : default;
+                Color fixedColor = fixedMode ? paletteSource.EvaluateEncoded((start + end) * .5f) : default;
                 for (int x = 0; x < PaletteWidth; x++)
                     pixels[row * PaletteWidth + x] = fixedMode ? fixedColor :
-                        evaluated.EvaluateEncoded(Mathf.Lerp(start, end, x / (float)(PaletteWidth - 1)));
+                        paletteSource.EvaluateEncoded(Mathf.Lerp(start, end, x / (float)(PaletteWidth - 1)));
             }
             palette.Apply(false, false);
             CopyGradient(ref paletteGradient, evaluated);
@@ -137,7 +140,7 @@ namespace DCFApixels.WhimTex
                 case GradientType.Horizontal:
                     return u;
                 case GradientType.Radial:
-                    return NormalizeDistance(Vector2.Distance(new Vector2(u, v), BaseCenter));
+                    return DistanceToGradientTime(Vector2.Distance(new Vector2(u, v), BaseCenter));
                 case GradientType.Circular:
                 {
                     Vector2 direction = new Vector2(u - BaseCenter.x, v - BaseCenter.y);
@@ -149,9 +152,9 @@ namespace DCFApixels.WhimTex
                         : repeated - Mathf.Floor(repeated);
                 }
                 case GradientType.Diamond:
-                    return NormalizeDistance(Mathf.Abs(u - BaseCenter.x) + Mathf.Abs(v - BaseCenter.y));
+                    return DistanceToGradientTime(Mathf.Abs(u - BaseCenter.x) + Mathf.Abs(v - BaseCenter.y));
                 case GradientType.Square:
-                    return NormalizeDistance(Mathf.Max(Mathf.Abs(u - BaseCenter.x), Mathf.Abs(v - BaseCenter.y)));
+                    return DistanceToGradientTime(Mathf.Max(Mathf.Abs(u - BaseCenter.x), Mathf.Abs(v - BaseCenter.y)));
                 default:
                     return 0f;
             }
@@ -172,9 +175,9 @@ namespace DCFApixels.WhimTex
             return gradientType.ToString();
         }
 
-        private static float NormalizeDistance(float distance)
+        private static float DistanceToGradientTime(float distance)
         {
-            return Mathf.Clamp01(distance / BaseRadius);
+            return distance / BaseRadius;
         }
 
         private Texture2D GenerateGradientTexture(int width, int height)

@@ -17,7 +17,7 @@ Shader "Hidden/TextureCompositor/Gradient"
             float4 _GradientPalette_TexelSize;
             float4 _GradientIntervals[129], _GradientShape, _GradientStart;
             float2 _GradientOutputSize;
-            int _GradientType, _GradientPingPong, _GradientIntervalCount;
+            int _GradientType, _GradientPingPong, _GradientWrapMode, _GradientIntervalCount;
 
             float Coordinate(float2 uv)
             {
@@ -37,12 +37,19 @@ Shader "Hidden/TextureCompositor/Gradient"
                 }
                 float distance = _GradientType == 2 ? length(p) :
                     _GradientType == 4 ? abs(p.x) + abs(p.y) : max(abs(p.x), abs(p.y));
-                return _GradientShape.z <= 0 ? 0 : saturate(distance / _GradientShape.z);
+                return _GradientShape.z <= 0 ? 0 : distance / _GradientShape.z;
+            }
+
+            float WrapGradientTime(float t)
+            {
+                if (_GradientWrapMode == 1) return frac(t);
+                if (_GradientWrapMode == 2) return 1 - abs(frac(t * .5) * 2 - 1);
+                return saturate(t);
             }
 
             float4 frag(v2f_img input) : SV_Target
             {
-                float t = saturate(Coordinate(ProceduralSourceUv(input.uv)));
+                float t = WrapGradientTime(Coordinate(ProceduralSourceUv(input.uv)));
                 int row = 0;
                 // Fixed gradients select the right key within an interval, retaining the
                 // preceding interval at its exact endpoint (Unity Gradient semantics).

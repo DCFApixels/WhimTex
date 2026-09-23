@@ -321,6 +321,7 @@ in its editor and choose **Paste**. **Copy** produces this independent, reusable
   "version": 1,
   "gradient": {
     "mode": "Classic",
+    "wrapMode": "Clamp",
     "colorSpace": "Gamma",
     "smoothness": 1,
     "colors": [
@@ -338,6 +339,8 @@ in its editor and choose **Paste**. **Copy** produces this independent, reusable
 The gradient body alone or a bare color-stop array is also accepted, optionally within one
 JSON code fence. Each track requires 1..64 strictly increasing times in 0..1. Colors are
 RGBA arrays; standalone RGB supports finite HDR values from -65504 to 65504, alpha is 0..1.
+`wrapMode` is optional and defaults to `Clamp`; `Repeat` tiles values outside 0..1, while `Mirror`
+reflects each repeated interval.
 If `alphas` is omitted, color alpha components define the alpha track. Interpolation modes:
 `Classic`, `Linear`, `Perceptual`, `Fixed`; default `Classic`. `colorSpace`: `Gamma` (default)
 or `Linear`. `smoothness`: 0..1, default 1. `midpoint`: 0.01..0.99, default 0.5;

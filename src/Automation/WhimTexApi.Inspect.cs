@@ -283,6 +283,7 @@ namespace DCFApixels.WhimTex
             }
             return new JObject { ["colors"] = colors, ["alphas"] = alphas,
                 ["mode"] = (gradient?.Mode ?? WhimTexGradientMode.Classic).ToString(),
+                ["wrapMode"] = (gradient?.WrapMode ?? WhimTexGradientWrapMode.Clamp).ToString(),
                 ["smoothness"] = gradient?.Smoothness ?? 1f,
                 ["colorSpace"] = (gradient?.ColorSpace ?? ColorSpace.Gamma).ToString() };
         }

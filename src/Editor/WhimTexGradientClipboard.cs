@@ -29,6 +29,7 @@ namespace DCFApixels.WhimTex
             {
                 ["format"] = "whimtex.gradient", ["version"] = 1,
                 ["gradient"] = new JObject { ["mode"] = gradient.Mode.ToString(),
+                    ["wrapMode"] = gradient.WrapMode.ToString(),
                     ["colorSpace"] = gradient.ColorSpace.ToString(), ["smoothness"] = gradient.Smoothness,
                     ["colors"] = colors, ["alphas"] = alphas }
             }.ToString(Formatting.Indented);
@@ -67,7 +68,7 @@ namespace DCFApixels.WhimTex
                 keys.Count > 0 && keys[0]?["color"] is JObject)
             {
                 // Accept the serialized value previously produced by Copy, as well as plain JSON of that value.
-                Keys(serialized, "colors", "alphas", "mode", "colorSpace", "smoothness");
+                Keys(serialized, "colors", "alphas", "mode", "wrapMode", "colorSpace", "smoothness");
                 foreach (JToken token in keys)
                 {
                     var stop = Obj(token, "color stop");
@@ -77,6 +78,7 @@ namespace DCFApixels.WhimTex
                         Number(value["a"], "a", 0, 1));
                 }
                 ConvertEnum<WhimTexGradientMode>(serialized, "mode");
+                ConvertEnum<WhimTexGradientWrapMode>(serialized, "wrapMode");
                 ConvertEnum<ColorSpace>(serialized, "colorSpace");
             }
             return WhimTexApi.ReadGradient(data, WhimTexGradientMode.Classic, 65504f);

@@ -275,6 +275,14 @@
                 "Fixed"
               ]
             },
+            "wrapMode": {
+              "type": "string",
+              "enum": [
+                "Clamp",
+                "Repeat",
+                "Mirror"
+              ]
+            },
             "smoothness": {
               "type": "number",
               "minimum": 0,

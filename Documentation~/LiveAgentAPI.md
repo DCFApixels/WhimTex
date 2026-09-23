@@ -284,9 +284,10 @@ Remove accepts only op/index. Add/replace accept `code` and optional `parameters
   Snapshots return the same string. Code uses `// @param curve _Profile` and `_Profile_Sample(t)`;
   see the [curve contract](ShaderFX.md#curve-parameters). Values update without recompilation.
 - `Gradient` accepts the same gradient value (color-stop array or object with `colors`, `alphas`,
-  `mode`, `smoothness`, `colorSpace`) as layer gradients. Generates `<name>_Sample(t)` with clamped
-  0..1 input and straight linear RGBA output. Code declarations use `// @param gradient _Ramp`
-  without an initializer; omitted API overrides leave the opaque black-to-white default.
+  `mode`, `wrapMode`, `smoothness`, `colorSpace`) as layer gradients. Generates `<name>_Sample(t)`;
+  values outside 0..1 use the gradient's `Clamp`, `Repeat`, or `Mirror` wrap mode. Code declarations
+  use `// @param gradient _Ramp` without an initializer; omitted API overrides leave the opaque
+  black-to-white default.
 - Inline code may instead declare parameters using [HLSL metadata](ShaderFX.md#parameter-declarations).
   If JSON values are supplied as well, every entry must match a code declaration by name and type;
   those values override defaults. The first-line catalog marker is required only for catalog files.

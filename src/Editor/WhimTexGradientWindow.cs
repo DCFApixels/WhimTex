@@ -26,7 +26,7 @@ namespace DCFApixels.WhimTex
         private readonly Dictionary<float, float> intensityPreferences = new Dictionary<float, float>();
         private Slider alpha, smoothness;
         private FloatField location;
-        private EnumField mode;
+        private EnumField mode, wrapMode;
         private bool pendingRemoval;
         private bool writingOwner;
         private bool checkFocus;
@@ -127,6 +127,9 @@ namespace DCFApixels.WhimTex
                 Edit(() => gradient.Mode = next);
             });
             rootVisualElement.Add(mode);
+            wrapMode = new EnumField("Wrap", gradient.WrapMode) { tooltip = "How values outside 0..1 are sampled: clamp, repeat, or mirror." };
+            wrapMode.RegisterValueChangedCallback(e => Edit(() => gradient.WrapMode = (WhimTexGradientWrapMode)e.newValue));
+            rootVisualElement.Add(wrapMode);
             smoothness = new Slider("Smoothness", 0, 100) { showInputField = true };
             smoothness.RegisterValueChangedCallback(e => Edit(() => gradient.Smoothness = Mathf.Clamp01(e.newValue / 100)));
             rootVisualElement.Add(smoothness);
@@ -288,6 +291,7 @@ namespace DCFApixels.WhimTex
             selected = Mathf.Clamp(selected, 0, Count - 1);
             if (gradient.Mode == WhimTexGradientMode.Fixed || selected >= Count - 1) midpointSelected = false;
             mode.SetValueWithoutNotify(gradient.Mode);
+            wrapMode.SetValueWithoutNotify(gradient.WrapMode);
             smoothness.SetValueWithoutNotify(gradient.Smoothness * 100);
             smoothness.SetEnabled(gradient.Mode != WhimTexGradientMode.Fixed);
             colorControls.EnableInClassList("whimtex-gradient-hidden", alphaTrack);

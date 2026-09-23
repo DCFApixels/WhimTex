@@ -63,12 +63,13 @@ try
         new UnityEngine.GradientAlphaKey(.2f, .7f), new UnityEngine.GradientAlphaKey(1, 1) });
     foreach (var space in new[] { UnityEngine.ColorSpace.Gamma, UnityEngine.ColorSpace.Linear })
     foreach (DCFApixels.WhimTex.WhimTexGradientMode mode in System.Enum.GetValues(typeof(DCFApixels.WhimTex.WhimTexGradientMode)))
+    foreach (DCFApixels.WhimTex.WhimTexGradientWrapMode wrap in System.Enum.GetValues(typeof(DCFApixels.WhimTex.WhimTexGradientWrapMode)))
     {
-        layer.gradient.Mode = mode; layer.gradient.ColorSpace = space;
+        layer.gradient.Mode = mode; layer.gradient.WrapMode = wrap; layer.gradient.ColorSpace = space;
         var copy = DCFApixels.WhimTex.GradientUtility.Create(layer.gradient);
         Check(!object.ReferenceEquals(copy, layer.gradient) && copy.Equals(layer.gradient),
             "Settings callback copies keys, mode and color space: " + mode + "/" + space);
-        Check(copy.Mode == mode && copy.ColorSpace == space, "Copied interpolation metadata");
+        Check(copy.Mode == mode && copy.WrapMode == wrap && copy.ColorSpace == space, "Copied interpolation metadata");
         int originalHash = DCFApixels.WhimTex.GradientUtility.ComputeHash(copy);
         copy.Mode = mode == DCFApixels.WhimTex.WhimTexGradientMode.Classic ? DCFApixels.WhimTex.WhimTexGradientMode.Fixed : DCFApixels.WhimTex.WhimTexGradientMode.Classic;
         Check(originalHash != DCFApixels.WhimTex.GradientUtility.ComputeHash(copy), "Mode invalidates gradient hash");
@@ -83,7 +84,7 @@ try
             layer.circularRepetitions = 3.2f;
             // Native PerceptualBlend quantizes RGB; interpolating the palette can differ
             // by one encoded 8-bit step (up to .009 in linear light near white).
-            Compare(space + "/" + mode + "/" + kind, tolerance: mode == DCFApixels.WhimTex.WhimTexGradientMode.Perceptual ? .01f : .002f);
+            Compare(space + "/" + mode + "/" + wrap + "/" + kind, tolerance: mode == DCFApixels.WhimTex.WhimTexGradientMode.Perceptual ? .01f : .002f);
         }
     }
     layer.gradient.Mode = DCFApixels.WhimTex.WhimTexGradientMode.Classic;

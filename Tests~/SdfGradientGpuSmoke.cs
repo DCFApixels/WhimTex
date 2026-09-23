@@ -27,12 +27,14 @@ public static class SdfGradientGpuSmoke
         {
             var gradient = new SDFLayerBehaviour().gradient;
             foreach (WhimTexGradientMode mode in new[] { WhimTexGradientMode.Linear, WhimTexGradientMode.Classic, WhimTexGradientMode.Perceptual, WhimTexGradientMode.Fixed })
+            foreach (WhimTexGradientWrapMode wrap in new[] { WhimTexGradientWrapMode.Clamp, WhimTexGradientWrapMode.Repeat, WhimTexGradientWrapMode.Mirror })
             for (int position = 0; position < 4; position++)
             for (int inverted = 0; inverted < 2; inverted++)
             for (int variant = 0; variant < 2; variant++)
             {
-                gradient.Mode = mode;
+                gradient.Mode = mode; gradient.WrapMode = wrap;
                 material.SetTexture("_GradientLut", lut.GetTexture(gradient, ColorSpace.Gamma));
+                material.SetInt("_GradientWrapMode", (int)wrap);
                 material.SetFloat("_MaxDistance", 8);
                 float inside=variant==0?8:3, outside=variant==0?8:12, offset=variant==0?0:2;
                 material.SetFloat("_InsideDistance",inside);material.SetFloat("_OutsideDistance",outside);material.SetFloat("_ContourOffset",offset);
@@ -46,7 +48,7 @@ public static class SdfGradientGpuSmoke
                     Color expected=gradient.Evaluate(t).linear;
                     for(int c=0;c<4;c++)
                     {
-                        if(Mathf.Abs(pixels[i][c]-expected[c])>.004f) throw new Exception($"{mode} pos={position} inv={inverted} i={i} c={c} actual={pixels[i][c]} expected={expected[c]} samples={pixels[0]} {pixels[16]} {pixels[32]} {pixels[48]} {pixels[64]} lut={lut.GetTexture(gradient, ColorSpace.Gamma).GetPixel(0,0)} texel={material.GetVector("_GradientLut_TexelSize")}");
+                        if(Mathf.Abs(pixels[i][c]-expected[c])>.004f) throw new Exception($"{mode}/{wrap} pos={position} inv={inverted} i={i} c={c} actual={pixels[i][c]} expected={expected[c]} samples={pixels[0]} {pixels[16]} {pixels[32]} {pixels[48]} {pixels[64]} lut={lut.GetTexture(gradient, ColorSpace.Gamma).GetPixel(0,0)} texel={material.GetVector("_GradientLut_TexelSize")}");
                         checks++;
                     }
                 }

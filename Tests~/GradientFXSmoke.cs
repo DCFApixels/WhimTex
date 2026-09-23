@@ -20,6 +20,12 @@ public static class GradientFXSmoke
         var parsed = Parse(code);
         Check(parsed.Count == 1 && parsed[0].type == ShaderFXParameterType.Gradient, "Gradient parsing");
         Check(parsed[0].gradientValue.Evaluate(0) == Color.black && parsed[0].gradientValue.Evaluate(1) == Color.white, "Opaque black-white default");
+        var wrapped = new WhimTexGradient { Mode = WhimTexGradientMode.Linear };
+        Check(wrapped.WrapMode == WhimTexGradientWrapMode.Clamp && Mathf.Approximately(wrapped.Evaluate(1.25f).r, 1f), "Default gradient clamp");
+        wrapped.WrapMode = WhimTexGradientWrapMode.Repeat;
+        Check(Mathf.Approximately(wrapped.Evaluate(1.25f).r, .25f) && Mathf.Approximately(wrapped.Evaluate(-.25f).r, .75f), "Gradient repeat wrap");
+        wrapped.WrapMode = WhimTexGradientWrapMode.Mirror;
+        Check(Mathf.Approximately(wrapped.Evaluate(1.25f).r, .75f) && Mathf.Approximately(wrapped.Evaluate(-.25f).r, .25f), "Gradient mirror wrap");
         Check(Parse("// @param gradient _Ramp\n// @param gradient _Ramp")[0].controls.Count == 2, "Linked gradient controls");
         foreach (var bad in new[] { "// @param gradient _Ramp = 1", "// @param gradient _Ramp [0 .. 1]", "// @param gradient _Ramp\n// @param float _Ramp" })
         {
@@ -49,6 +55,7 @@ public static class GradientFXSmoke
             object binding = enumerator.Current;
             var lut = (WhimTexGradientTexture)binding.GetType().GetField("lut", flags).GetValue(binding);
             int property = (int)binding.GetType().GetField("propertyId", flags).GetValue(binding);
+            int wrapProperty = (int)binding.GetType().GetField("wrapModePropertyId", flags).GetValue(binding);
             var texture = (Texture2D)material.GetTexture(property);
             Check(texture.width == 512 && texture.height == 2 && texture.mipmapCount == 1 && texture.format == TextureFormat.RGBAHalf, "LUT format");
             for (int i = 0; i < 30; i++) Check(Get() == material, "Material cache");
@@ -74,6 +81,21 @@ public static class GradientFXSmoke
                 Color actual = readback.GetPixel(x, 0);
                 Check(Mathf.Abs(expected.r - actual.r) < .01f && Mathf.Abs(expected.b - actual.b) < .01f && Mathf.Abs(expected.a - actual.a) < .01f, "GPU sample/HDR/alpha/clamp at " + x + ": " + actual);
             }
+            gradient.WrapMode = WhimTexGradientWrapMode.Repeat;
+            Get();
+            Check(Mathf.Approximately(material.GetFloat(wrapProperty), 1f) && lut.BakeCount == 2, "Wrap mode updates without rebaking the gradient LUT");
+            Graphics.Blit(Texture2D.whiteTexture, target, material);
+            RenderTexture.active = target;
+            readback.ReadPixels(new Rect(0, 0, 8, 2), 0, 0); readback.Apply();
+            for (int x = 0; x < 8; x++)
+            {
+                Color expected = gradient.Evaluate((x + .5f) / 8 * 2 - .5f);
+                Color actual = readback.GetPixel(x, 0);
+                Check(Mathf.Abs(expected.r - actual.r) < .01f && Mathf.Abs(expected.b - actual.b) < .01f, "GPU repeat wrap at " + x + ": " + actual);
+            }
+            gradient.WrapMode = WhimTexGradientWrapMode.Mirror;
+            Get();
+            Check(Mathf.Approximately(material.GetFloat(wrapProperty), 2f) && lut.BakeCount == 2, "Mirror mode binding");
             gradient.Mode = WhimTexGradientMode.Fixed;
             Get();
             Check(texture.filterMode == FilterMode.Point && lut.BakeCount == 3, "Fixed filtering");
@@ -81,7 +103,7 @@ public static class GradientFXSmoke
             copy.gradientValue.Smoothness = .8f;
             Check(gradient.Smoothness == 0 && !ReferenceEquals(copy.gradientValue, gradient), "Independent copied gradient");
             var roundtrip = JsonUtility.FromJson<ShaderFXParameter>(JsonUtility.ToJson(values[0]));
-            Check(roundtrip.gradientValue.Equals(gradient), "Serialized gradient");
+            Check(roundtrip.gradientValue.Equals(gradient) && roundtrip.gradientValue.WrapMode == WhimTexGradientWrapMode.Mirror, "Serialized gradient wrap mode");
             var next = Parse(code);
             metadata.GetMethod("PreserveValues", flags).Invoke(null, new object[] { next, values });
             Check(next[0].gradientValue.Equals(gradient) && !ReferenceEquals(next[0].gradientValue, gradient), "Apply preserves independent keys");

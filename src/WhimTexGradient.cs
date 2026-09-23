@@ -8,6 +8,11 @@ namespace DCFApixels.WhimTex
         Classic = 3, Linear = 4, Perceptual = 5, Fixed = 2
     }
 
+    public enum WhimTexGradientWrapMode
+    {
+        Clamp, Repeat, Mirror
+    }
+
     [Serializable]
     public sealed class WhimTexGradient : ISerializationCallbackReceiver, IEquatable<WhimTexGradient>
     {
@@ -29,11 +34,13 @@ namespace DCFApixels.WhimTex
         [SerializeField] private AlphaStop[] alphas =
             { new AlphaStop(1, 0), new AlphaStop(1, 1) };
         [SerializeField] private WhimTexGradientMode mode = WhimTexGradientMode.Classic;
+        [SerializeField] private WhimTexGradientWrapMode wrapMode = WhimTexGradientWrapMode.Clamp;
         [SerializeField] private ColorSpace colorSpace = ColorSpace.Gamma;
         [SerializeField] private float smoothness = 1;
         [NonSerialized] private Curve[] curves;
-        [NonSerialized] private uint revision;
+        [NonSerialized] private uint revision, colorRevision;
         public uint Revision => revision;
+        internal uint ColorRevision => colorRevision;
         public WhimTexGradient Clone()
         {
             var copy = (WhimTexGradient)MemberwiseClone();
@@ -42,6 +49,11 @@ namespace DCFApixels.WhimTex
             return copy;
         }
         public bool Equals(WhimTexGradient other)
+        {
+            if (ReferenceEquals(this, other)) return true;
+            return other != null && wrapMode == other.wrapMode && EqualsRamp(other);
+        }
+        internal bool EqualsRamp(WhimTexGradient other)
         {
             if (ReferenceEquals(this, other)) return true;
             if (other == null || mode != other.mode || colorSpace != other.colorSpace || smoothness != other.smoothness ||
@@ -57,7 +69,7 @@ namespace DCFApixels.WhimTex
         {
             unchecked
             {
-                int hash = ((int)mode * 397 ^ (int)colorSpace) * 397 ^ smoothness.GetHashCode();
+                int hash = (((int)mode * 397 ^ (int)wrapMode) * 397 ^ (int)colorSpace) * 397 ^ smoothness.GetHashCode();
                 foreach (var key in colors) hash = hash * 397 ^ key.color.GetHashCode() ^ key.time.GetHashCode() ^ key.midpoint.GetHashCode();
                 foreach (var key in alphas) hash = hash * 397 ^ key.alpha.GetHashCode() ^ key.time.GetHashCode() ^ key.midpoint.GetHashCode();
                 return hash;
@@ -69,6 +81,17 @@ namespace DCFApixels.WhimTex
             get => mode;
             set { if (!Enum.IsDefined(typeof(WhimTexGradientMode), value)) throw new ArgumentOutOfRangeException(nameof(value)); mode = value; Invalidate(); }
         }
+        public WhimTexGradientWrapMode WrapMode
+        {
+            get => wrapMode;
+            set
+            {
+                if (!Enum.IsDefined(typeof(WhimTexGradientWrapMode), value)) throw new ArgumentOutOfRangeException(nameof(value));
+                if (wrapMode == value) return;
+                wrapMode = value;
+                InvalidateSampling();
+            }
+        }
         // Stored and returned RGB share this space. Alpha is always linear.
         public ColorSpace ColorSpace
         {
@@ -79,7 +102,7 @@ namespace DCFApixels.WhimTex
         public float Smoothness
         {
             get => smoothness;
-            set { if (!Finite(value) || value < 0 || value > 1) throw new ArgumentOutOfRangeException(nameof(value)); if (smoothness == value) return; smoothness = value; unchecked { revision++; } }
+            set { if (!Finite(value) || value < 0 || value > 1) throw new ArgumentOutOfRangeException(nameof(value)); if (smoothness == value) return; smoothness = value; unchecked { revision++; colorRevision++; } }
         }
         public GradientColorKey[] ColorKeys
         {
@@ -146,7 +169,7 @@ namespace DCFApixels.WhimTex
         {
             if (!Finite(time)) throw new ArgumentOutOfRangeException(nameof(time));
             Prepare();
-            time = Mathf.Clamp01(time);
+            time = WrapTime(time);
             if (mode == WhimTexGradientMode.Fixed)
             {
                 int ci = 0, ai = 0;
@@ -171,8 +194,24 @@ namespace DCFApixels.WhimTex
         }
 
         public void OnBeforeSerialize() { }
-        public void OnAfterDeserialize() => Invalidate();
-        private void Invalidate() { curves = null; unchecked { revision++; } }
+        public void OnAfterDeserialize() { curves = null; unchecked { revision++; colorRevision++; } }
+        private float WrapTime(float time)
+        {
+            switch (wrapMode)
+            {
+                case WhimTexGradientWrapMode.Repeat:
+                    return time - Mathf.Floor(time);
+                case WhimTexGradientWrapMode.Mirror:
+                {
+                    float mirrored = time - Mathf.Floor(time * .5f) * 2f;
+                    return mirrored <= 1f ? mirrored : 2f - mirrored;
+                }
+                default:
+                    return Mathf.Clamp01(time);
+            }
+        }
+        private void InvalidateSampling() { unchecked { revision++; } }
+        private void Invalidate() { curves = null; unchecked { revision++; colorRevision++; } }
         private static bool Finite(float x) => !float.IsNaN(x) && !float.IsInfinity(x);
 
         private static void Validate(GradientColorKey[] c, GradientAlphaKey[] a)
@@ -207,7 +246,7 @@ namespace DCFApixels.WhimTex
             var colorKeys = ColorKeys;
             var alphaKeys = AlphaKeys;
             Validate(colorKeys, alphaKeys);
-            if (!Enum.IsDefined(typeof(WhimTexGradientMode), mode) ||
+            if (!Enum.IsDefined(typeof(WhimTexGradientMode), mode) || !Enum.IsDefined(typeof(WhimTexGradientWrapMode), wrapMode) ||
                 (colorSpace != ColorSpace.Gamma && colorSpace != ColorSpace.Linear) ||
                 !Finite(smoothness) || smoothness < 0 || smoothness > 1)
                 throw new ArgumentException("Invalid serialized gradient settings.");

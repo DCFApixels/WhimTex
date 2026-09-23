@@ -86,6 +86,7 @@ namespace DCFApixels.WhimTex
                 gradientMaterial.SetTexture("_ProfileLut", profileLut.GetTexture(profile));
                 gradientMaterial.SetInt("_Position", (int)distancePosition);
                 gradientMaterial.SetInt("_Inverted", inverted ? 1 : 0);
+                gradientMaterial.SetInt("_GradientWrapMode", (int)gradient.WrapMode);
                 colored = RenderTexture.GetTemporary(context.width, context.height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
                 GL.sRGBWrite = false;
                 Graphics.Blit(resultTexture, colored, gradientMaterial);

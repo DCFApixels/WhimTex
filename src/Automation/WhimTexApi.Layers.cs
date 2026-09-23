@@ -234,9 +234,10 @@ namespace DCFApixels.WhimTex
         {
             if (token is JObject data)
             {
-                Keys(data, "colors", "alphas", "mode", "smoothness", "colorSpace");
+                Keys(data, "colors", "alphas", "mode", "wrapMode", "smoothness", "colorSpace");
                 var result = ReadGradient(data["colors"], defaultMode, maximumColor);
                 result.Mode = Enum(data, "mode", defaultMode);
+                result.WrapMode = Enum(data, "wrapMode", WhimTexGradientWrapMode.Clamp);
                 result.Smoothness = Number(data, "smoothness", 1f, 0f, 1f);
                 result.ColorSpace = Enum(data, "colorSpace", ColorSpace.Gamma);
                 if (data["alphas"] != null)
