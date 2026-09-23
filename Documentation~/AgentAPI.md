@@ -469,11 +469,14 @@ See [Gaussian Blur](GaussianBlur.md) for transparency, HDR and cache behavior.
 ### Sharpen settings
 
 Use `type:"sharpen"` and partial `settings.sharpen` updates. `algorithm` is `Gaussian`
-(smooth unsharp mask) or `Adaptive` (contrast-aware sharpening). `strength` is 0..4
+(smooth unsharp mask) or `Adaptive` (a local edge-coherence mask that favors coherent edges
+over weak, directionless detail). `strength` is 0..4
 (UI 0–400%); `radius` is 0..32 original canvas pixels. `threshold`, `noiseReduction` and
 `haloSuppression` are 0..1. `channelMode` is `RGB` or `Luminance`. `edges` selects
 `Transparent`, `Clamp`, `Repeat` or `Mirror` sampling outside the source. Zero strength or
-radius leaves the source unchanged. Sharpen preserves alpha and does not clamp HDR RGB values.
+radius leaves the source unchanged. `noiseReduction` further suppresses irregular detail in
+Adaptive mode and has no effect in Gaussian mode. It does not remove noise from the source.
+Sharpen preserves alpha and does not clamp HDR RGB values.
 
 ```json
 {"op":"add","type":"sharpen","as":"crisp","settings":{

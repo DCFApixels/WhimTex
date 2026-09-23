@@ -18,11 +18,15 @@ namespace DCFApixels.WhimTex
             Action<VisualElement, TargetedLayerBehaviour> addEffectTarget)
         {
             addEffectTarget(root, layer);
+            Slider noise = null;
             var algorithm = WhimTexUI.ConfigureField(new EnumField("Algorithm", layer.algorithm)
-                { tooltip = "Gaussian uses a smooth unsharp mask. Adaptive reduces halos and noise near strong edges." });
+                { tooltip = "Gaussian applies a conventional unsharp mask. Adaptive favors coherent edges over weak, irregular detail." });
             bindings.Track(algorithm, () => (Enum)layer.algorithm);
-            algorithm.RegisterValueChangedCallback(evt => applyChange("Change Sharpen Algorithm",
-                () => layer.algorithm = (SharpenLayerBehaviour.Algorithm)evt.newValue));
+            algorithm.RegisterValueChangedCallback(evt =>
+            {
+                applyChange("Change Sharpen Algorithm", () => layer.algorithm = (SharpenLayerBehaviour.Algorithm)evt.newValue);
+                noise?.SetEnabled(layer.algorithm == SharpenLayerBehaviour.Algorithm.Adaptive);
+            });
             root.Add(algorithm);
             var strength = WhimTexUI.ConfigureField(new Slider("Strength (%)", 0f, SharpenLayerBehaviour.MaximumStrength * 100f)
                 { showInputField = true, tooltip = "Enhances local contrast around edges. Zero leaves the source unchanged." });
@@ -48,10 +52,12 @@ namespace DCFApixels.WhimTex
                 () => layer.threshold = Mathf.Clamp01(evt.newValue)));
             root.Add(threshold);
 
-            var noise = WhimTexUI.ConfigureField(new Slider("Noise Reduction", 0f, 1f)
-                { showInputField = true, tooltip = "Suppresses small high-frequency differences." });
+            noise = WhimTexUI.ConfigureField(new Slider("Noise Reduction", 0f, 1f)
+                { showInputField = true, tooltip = "Adaptive only. Increases suppression of weak, directionless detail while retaining coherent edges." });
             noise.SetValueWithoutNotify(layer.noiseReduction);
+            noise.SetEnabled(layer.algorithm == SharpenLayerBehaviour.Algorithm.Adaptive);
             bindings.Track(noise, () => layer.noiseReduction);
+            bindings.Add(() => noise.SetEnabled(layer.algorithm == SharpenLayerBehaviour.Algorithm.Adaptive));
             noise.RegisterValueChangedCallback(evt => applyChange("Change Sharpen Noise Reduction",
                 () => layer.noiseReduction = Mathf.Clamp01(evt.newValue)));
             root.Add(noise);

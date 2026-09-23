@@ -92,10 +92,12 @@ Values above 100% do not change fully opaque areas.
 ## Sharpen
 
 Add **Sharpen** to restore local edge contrast without changing the source alpha.
-Choose **Gaussian** for smooth unsharp masking or **Adaptive** to reduce overshoot near strong
-edges. **Strength (%)** controls the amount (0–400%) and **Radius (px)** controls the comparison
-distance in canvas pixels. **Threshold**, **Noise Reduction** and **Halo Suppression** control
-small detail and edge artifacts. **Channels** can process RGB or luminance. **Edges** chooses
+Choose **Gaussian** for conventional unsharp masking or **Adaptive** to favor coherent edges
+over weak, directionless detail using a local edge-coherence mask. **Strength (%)** controls the
+amount (0–400%) and **Radius (px)** controls the comparison distance in canvas pixels.
+**Threshold** sets the minimum detail to sharpen. **Noise Reduction** further suppresses irregular
+detail in Adaptive mode only; it does not remove noise already in the source. **Halo Suppression**
+limits edge overshoot. **Channels** can process RGB or luminance. **Edges** chooses
 Transparent, Clamp, Repeat or Mirror sampling outside the source. The operation preserves HDR color values.
 During an active edit WhimTex uses a faster approximation; the wider Gaussian-weighted result
 is calculated when the interaction settles.

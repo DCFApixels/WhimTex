@@ -291,7 +291,9 @@ Use `properties.noise`:
 - **sharpen:** `properties.sharpen`: `algorithm` (`Gaussian`, `Adaptive`), `strength` 0..4
   (default 1), `radius` 0..32 canvas pixels (default 1), `threshold`, `noiseReduction` and
   `haloSuppression` 0..1, `channelMode` (`RGB`, `Luminance`), and `edges` (`Transparent`,
-  `Clamp`, `Repeat`, `Mirror`). Zero strength or radius is an identity; HDR RGB values are preserved.
+  `Clamp`, `Repeat`, `Mirror`). `noiseReduction` applies only to `Adaptive`, where it further
+  suppresses weak, directionless detail; it does not remove noise from the source. Zero strength
+  or radius is an identity; HDR RGB values are preserved.
 - **outline:** directly in `properties`: `color`, `outlineWidth`/`outlineSoftness` 0..16384 pixels,
   `outlineOffset` -16384..16384 pixels, `outlinePosition` (`Outside`, `Inside`, `Center`),
   `fillCenter` boolean, `fillColor`, `metric`.

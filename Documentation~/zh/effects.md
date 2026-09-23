@@ -97,9 +97,9 @@ Outline 的 **Width (px)** 支持小数。**Softness (px) = 0** 保持清晰而�
 ## Sharpen
 
 添加 **Sharpen** 可增强局部边缘对比度，同时保持源图层的 Alpha 不变。
-选择 **Gaussian** 可获得平滑锐化，选择 **Adaptive** 可减少强边缘附近的光晕。
+选择 **Gaussian** 可进行常规反锐化；**Adaptive** 使用局部边缘方向一致性遮罩，优先增强连贯边缘，减少对微弱、无方向细节的锐化。
 **Strength (%)** 控制强度（0–400%），**Radius (px)** 控制以画布像素为单位的比较距离。
-**Threshold**、**Noise Reduction** 和 **Halo Suppression** 控制细节与边缘伪影。
+**Threshold** 设置锐化细节的最低对比度。**Noise Reduction** 仅在 Adaptive 模式下进一步抑制不规则细节；它不会移除源图像中已有的噪声。**Halo Suppression** 限制边缘过冲。
 **Channels** 可处理 RGB 或亮度；**Edges** 决定源边界外的采样方式：Transparent、Clamp、Repeat 或 Mirror。
 该操作会保留 HDR 颜色值。
 编辑过程中 WhimTex 使用更快的近似计算；操作结束后会重新计算更高质量的 Gaussian 加权结果。
