@@ -1656,6 +1656,16 @@
     border-top-color: rgba(0, 0, 0, 0.3);
 }
 
+.whimtex-layer-fx-entry--shader {
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(0, 0, 0, 0.38);
+}
+
+.whimtex-layer-fx-entry--after-shader {
+    margin-top: 0;
+    border-top-width: 0;
+}
+
 .whimtex-layer-fx-header {
     flex-wrap: nowrap;
     min-height: 24px;

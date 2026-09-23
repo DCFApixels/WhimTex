@@ -55,6 +55,9 @@ namespace DCFApixels.WhimTex
             ShaderFX effect = modifier as ShaderFX;
             VisualElement card = new VisualElement();
             card.AddToClassList("whimtex-layer-fx-entry");
+            if (effect != null) card.AddToClassList("whimtex-layer-fx-entry--shader");
+            if (index > 0 && layer.modifiers[index - 1] is ShaderFX)
+                card.AddToClassList("whimtex-layer-fx-entry--after-shader");
             VisualElement toolbar = new VisualElement();
             toolbar.AddToClassList("whimtex-layer-fx-toolbar");
             bool embedded = effect != null && effect.EmbeddedOwner == owner;

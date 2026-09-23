@@ -1,4 +1,4 @@
-// @whimtex-effect Color/Threshold
+// @whimtex-effect Stylization/Threshold
 // @header(Threshold)
 // @param float _Threshold = 0.25 [0 .. ~1] // Threshold in the source channel.
 // @param float _Smooth = 0.0 [0 .. ~0.2] // Transition width; zero gives a hard threshold.

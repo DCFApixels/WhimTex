@@ -1792,7 +1792,7 @@ namespace DCFApixels.WhimTex
             if (previewTool == PreviewTool.BlurBrush)
                 blurSampleTexture = paintSettings.blurSampleMode switch
                 {
-                    BlurBrushSampleMode.BelowLayers => compositor.RenderLayersBelow(layer, compositor.width, compositor.height),
+                    BlurBrushSampleMode.BelowLayers => compositor.RenderLayerAndBelow(layer, compositor.width, compositor.height),
                     BlurBrushSampleMode.AllLayers => compositor.RenderAllLayers(compositor.width, compositor.height),
                     _ => layer.CaptureBlurSource(compositor.width, compositor.height)
                 };

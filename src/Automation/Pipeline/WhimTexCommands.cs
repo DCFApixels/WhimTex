@@ -76,6 +76,13 @@ namespace DCFApixels.WhimTex
             [CliArg("render", "Also render a preview when structural validation succeeds")] bool render = false)
             => JObject.Parse(WhimTexApi.Validate(assetPath, render));
 
+        [CliCommand("whimtex_fx_compile", "Compile a Shader FX preset or raw ApplyFX HLSL in Unity and return diagnostics without changing a document.", MainThreadRequired = true)]
+        public static JObject CompileFX(
+            [CliArg("presetPath", "Project-relative Assets/... or Packages/... .hlsl path, or absolute path inside the configured Shader FX preset folder")] string presetPath = null,
+            [CliArg("source", "Raw HLSL implementing float4 ApplyFX(float2 uv, float4 color)")] string source = null,
+            [CliArg("includeBasePath", "Optional project-relative or absolute Assets/Packages directory, configured user preset directory, or HLSL file; establishes the base for relative includes")] string includeBasePath = null)
+            => JObject.Parse(WhimTexApi.CompileFX(presetPath, source, includeBasePath));
+
         [CliCommand("whimtex_document_status", "Report document disk identity, import and editor session state.", MainThreadRequired = true)]
         public static JObject Status(
             [CliArg("assetPath", "Project-relative WhimTex .tiff path; existing legacy .asset is read-only", Required = true)] string assetPath)

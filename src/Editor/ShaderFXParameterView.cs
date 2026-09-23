@@ -48,6 +48,23 @@ namespace DCFApixels.WhimTex
             return null;
         }
 
+        private bool IsVisible(ShaderFXParameterControl condition)
+        {
+            ShaderFXParameter driver = null;
+            foreach (var parameter in effect.Parameters)
+                if (parameter != null && parameter.name == condition.visibleIfParameter)
+                {
+                    driver = parameter;
+                    break;
+                }
+            if (driver == null) return false;
+            bool floatDriver = false;
+            foreach (var control in driver.controls)
+                if (control.type == ShaderFXParameterType.Float) { floatDriver = true; break; }
+            bool equal = floatDriver ? Mathf.Approximately(driver.floatValue, condition.visibleIfValue) : driver.floatValue == condition.visibleIfValue;
+            return condition.visibleIfNotEqual ? !equal : equal;
+        }
+
         private void Change(string id, Action<ShaderFXParameter> update)
         {
             if (effect == null || WhimTexApi.IsShaderFXContentLocked(effect)) return;
@@ -62,14 +79,24 @@ namespace DCFApixels.WhimTex
 
         private void AddParameter(ShaderFXParameter declaration, ShaderFXParameterControl control = null)
         {
+            VisualElement rowRoot = this;
+            if (!string.IsNullOrEmpty(control?.visibleIfParameter))
+            {
+                rowRoot = new VisualElement();
+                rowRoot.AddToClassList("whimtex-fx-conditional-parameter");
+                Add(rowRoot);
+                ShaderFXParameterControl condition = control;
+                refresh.Add(() => rowRoot.style.display = IsVisible(condition) ? DisplayStyle.Flex : DisplayStyle.None);
+            }
+
             if (control?.headers != null)
                 foreach (string title in control.headers)
                 {
                     var heading = new Label(title);
                     heading.AddToClassList("whimtex-fx-parameter-header");
-                    Add(heading);
+                    rowRoot.Add(heading);
                 }
-            int firstChild = childCount;
+            int firstChild = rowRoot.childCount;
             if (control != null)
             {
                 declaration = declaration.Copy();
@@ -85,13 +112,13 @@ namespace DCFApixels.WhimTex
                 case ShaderFXParameterType.Curve:
                     var curve = new CurveField(label);
                     curve.RegisterValueChangedCallback(e => Change(id, p => p.curveValue = WhimTexCurveTexture.Copy(e.newValue)));
-                    Add(curve);
+                    rowRoot.Add(curve);
                     refresh.Add(() => curve.SetValueWithoutNotify(Find(id).curveValue ?? WhimTexCurveTexture.Default()));
                     break;
                 case ShaderFXParameterType.Gradient:
                     var gradient = new WhimTexGradientValueField(label);
                     gradient.RegisterValueChangedCallback(e => Change(id, p => p.gradientValue = e.newValue?.Clone() ?? new WhimTexGradient()));
-                    Add(gradient);
+                    rowRoot.Add(gradient);
                     refresh.Add(() => gradient.SetValueWithoutNotify(Find(id).gradientValue ??= new WhimTexGradient()));
                     break;
                 case ShaderFXParameterType.Enum:
@@ -111,7 +138,7 @@ namespace DCFApixels.WhimTex
                         int index = choices.IndexOf(e.newValue);
                         if (index >= 0) Change(id, p => p.floatValue = control.optionValues[index]);
                     });
-                    Add(dropdown);
+                    rowRoot.Add(dropdown);
                     refresh.Add(() =>
                     {
                         int index = Array.IndexOf(control.optionValues, Find(id).floatValue);
@@ -121,7 +148,7 @@ namespace DCFApixels.WhimTex
                 case ShaderFXParameterType.Bool:
                     var toggle = new Toggle(label);
                     toggle.RegisterValueChangedCallback(e => Change(id, p => p.floatValue = e.newValue ? 1f : 0f));
-                    Add(toggle);
+                    rowRoot.Add(toggle);
                     refresh.Add(() => toggle.SetValueWithoutNotify(Find(id).BoolValue));
                     break;
                 case ShaderFXParameterType.Float:
@@ -129,14 +156,14 @@ namespace DCFApixels.WhimTex
                     {
                         var soft = new WhimTexSoftRangeField(label, declaration.minimum, declaration.maximum, declaration.softMinimum, declaration.softMaximum);
                         soft.RegisterValueChangedCallback(e => Change(id, p => p.floatValue = e.newValue));
-                        Add(soft);
+                        rowRoot.Add(soft);
                         refresh.Add(() => soft.SetValueWithoutNotify(Find(id).floatValue));
                     }
                     else if (declaration.hasMinimum && declaration.hasMaximum && declaration.minimum < declaration.maximum)
                     {
                         var slider = new Slider(label, declaration.minimum, declaration.maximum) { showInputField = true };
                         slider.RegisterValueChangedCallback(e => Change(id, p => p.floatValue = declaration.Clamp(e.newValue)));
-                        Add(slider);
+                        rowRoot.Add(slider);
                         refresh.Add(() =>
                         {
                             float value = Find(id).floatValue;
@@ -148,27 +175,33 @@ namespace DCFApixels.WhimTex
                     {
                         var field = new FloatField(label);
                         field.RegisterValueChangedCallback(e => Change(id, p => p.floatValue = declaration.Clamp(e.newValue)));
-                        Add(field);
+                        rowRoot.Add(field);
                         refresh.Add(() => field.SetValueWithoutNotify(Find(id).floatValue));
                     }
                     break;
                 case ShaderFXParameterType.Vector2:
+                case ShaderFXParameterType.Point:
                     var vector2 = new Vector2Field(label);
-                    vector2.RegisterValueChangedCallback(e => Change(id, p => p.vectorValue = e.newValue));
-                    Add(vector2); refresh.Add(() => vector2.SetValueWithoutNotify(Find(id).vectorValue));
+                    if (declaration.type == ShaderFXParameterType.Point)
+                        vector2.tooltip = "Normalized canvas UV: bottom-left (0, 0), top-right (1, 1).";
+                    vector2.RegisterValueChangedCallback(e => Change(id, p => p.vectorValue = declaration.type == ShaderFXParameterType.Point
+                        ? new Vector2(Mathf.Clamp01(e.newValue.x), Mathf.Clamp01(e.newValue.y)) : e.newValue));
+                    rowRoot.Add(vector2); refresh.Add(() => vector2.SetValueWithoutNotify(Find(id).vectorValue));
+                    if (declaration.type == ShaderFXParameterType.Point)
+                        rowRoot.Add(new Button(() => TextureCompositorWindow.EditFXPoint(effect, id)) { text = "Edit on Canvas", tooltip = "Drag the point handle on the selected layer. Coordinates are normalized canvas UV from bottom-left (0, 0) to top-right (1, 1)." });
                     break;
                 case ShaderFXParameterType.Vector3:
                 case ShaderFXParameterType.Normal:
                     var vector3 = new Vector3Field(label);
                     bool normal = declaration.type == ShaderFXParameterType.Normal;
                     vector3.RegisterValueChangedCallback(e => Change(id, p => p.vectorValue = normal ? ShaderFXParameter.NormalizeNormal(e.newValue) : e.newValue));
-                    Add(vector3); refresh.Add(() => vector3.SetValueWithoutNotify(Find(id).vectorValue));
-                    if (normal) Add(new Button(() => TextureCompositorWindow.EditFXNormal(effect,id)) { text = "Edit on Canvas" });
+                    rowRoot.Add(vector3); refresh.Add(() => vector3.SetValueWithoutNotify(Find(id).vectorValue));
+                    if (normal) rowRoot.Add(new Button(() => TextureCompositorWindow.EditFXNormal(effect,id)) { text = "Edit on Canvas" });
                     break;
                 case ShaderFXParameterType.Vector:
                     var vector = new Vector4Field(label);
                     vector.RegisterValueChangedCallback(e => Change(id, p => p.vectorValue = e.newValue));
-                    Add(vector); refresh.Add(() => vector.SetValueWithoutNotify(Find(id).vectorValue));
+                    rowRoot.Add(vector); refresh.Add(() => vector.SetValueWithoutNotify(Find(id).vectorValue));
                     break;
                 case ShaderFXParameterType.Color:
                     // Use the shared picker binding for HDR/Standard display semantics.
@@ -177,16 +210,16 @@ namespace DCFApixels.WhimTex
                     for (; index < effect.Parameters.Count; index++) if (effect.Parameters[index].id == id) break;
                     var property = data.FindProperty("parameters").GetArrayElementAtIndex(index).FindPropertyRelative("colorValue");
                     var color = WhimTexColorInputs.Bind(new ColorField(label), property, effect.NotifyValuesChanged);
-                    Add(color);
+                    rowRoot.Add(color);
                     color.RegisterCallback<DetachFromPanelEvent>(_ => data.Dispose());
                     break;
                 case ShaderFXParameterType.Texture2D:
                     var texture = new ShaderFXTextureField(effect, id, label);
-                    Add(texture); refresh.Add(texture.Refresh);
+                    rowRoot.Add(texture); refresh.Add(texture.Refresh);
                     break;
                 case ShaderFXParameterType.Transform2D:
                     var foldout = new Foldout { text = label, value = true };
-                    Add(foldout);
+                    rowRoot.Add(foldout);
                     var position = new Vector2Field("Position");
                     var size = new Vector2Field("Size");
                     var rotation = new DoubleField("Rotation");
@@ -204,7 +237,7 @@ namespace DCFApixels.WhimTex
                     break;
             }
             if (!string.IsNullOrEmpty(control?.tooltip))
-                for (int i = firstChild; i < childCount; i++) this[i].tooltip = control.tooltip;
+                for (int i = firstChild; i < rowRoot.childCount; i++) rowRoot[i].tooltip = control.tooltip;
         }
     }
 }

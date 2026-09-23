@@ -16,14 +16,14 @@ namespace DCFApixels.WhimTex
         internal bool UsesCodeParameters => IsCatalogLinked || ShaderFXMetadata.HasDeclarations(code) || parameters.Exists(p => p != null && p.declaredInCode);
         internal string CatalogPath => IsCatalogLinked ? AssetDatabase.GUIDToAssetPath(catalogGuid) : null;
 
-        internal void OnCatalogFilesChanged(HashSet<string> paths)
+        private void SetCatalogDependencies(HashSet<string> dependencies)
         {
-            if (!IsCatalogLinked) return;
-            catalogDependencies ??= ShaderFXSourceBuilder.GetDependencies(code, catalogSourcePath);
-            if (!catalogDependencies.Overlaps(paths)) return;
-            catalogDependencies = null;
-            ReloadCatalogSource(true);
+            ShaderFXCatalog.RemoveShaderDependencies(this, catalogDependencies);
+            catalogDependencies = dependencies;
+            if (IsCatalogLinked) ShaderFXCatalog.SetShaderDependencies(this, catalogDependencies);
         }
+
+        internal void ReleaseCatalogDependencies() => SetCatalogDependencies(null);
 
         private void RetryCatalogAfterUnlock()
         {
@@ -32,8 +32,13 @@ namespace DCFApixels.WhimTex
 
         private string CatalogHash(string path)
         {
-            if (string.IsNullOrEmpty(path)) return "missing";
+            if (string.IsNullOrEmpty(path))
+            {
+                SetCatalogDependencies(null);
+                return "missing";
+            }
             var dependencies = ShaderFXSourceBuilder.GetDependencies(code, path);
+            SetCatalogDependencies(dependencies);
             var sorted = new List<string>(dependencies);
             sorted.Sort(StringComparer.Ordinal);
             var hashSource = new System.Text.StringBuilder();
@@ -98,6 +103,7 @@ namespace DCFApixels.WhimTex
         internal void DetachCatalog()
         {
             // Keep the source path as the include base when embedding a copy.
+            ReleaseCatalogDependencies();
             catalogGuid = null;
             catalogDependencyHash = null;
         }
@@ -117,7 +123,6 @@ namespace DCFApixels.WhimTex
                 ShaderFXMetadata.Parse(source, true, out string menuPath);
                 code = source;
                 catalogSourcePath = path;
-                catalogDependencies = null;
                 catalogDependencyHash = CatalogHash(path);
                 name = menuPath.Substring(menuPath.LastIndexOf('/') + 1);
                 Apply();

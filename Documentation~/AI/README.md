@@ -45,6 +45,7 @@ examples illustrate it, but do not define extra fields.
 4. Layer arrays are **top to bottom**, exactly like the Layers panel. FX arrays run **first to last**.
    Give referenced layers short, unique local IDs. These are not real document GUIDs.
 5. For reusable HLSL, declare controls with `// @param`. The default values become the initial UI values. Optional `// @header(Lighting)` adds a bold, non-collapsible UI heading before the next parameter; use a literal non-empty title without quotes. It does not declare a uniform. Headers without a following parameter are ignored.
+   FX controls may be conditionally shown with `// @if _Mode == 1` or `// @if _Mode != 1`, closed by `// @endif`. Only numeric comparisons are supported; the condition must reference an unconditional scalar `float`, `bool` or `enum` parameter. This only hides editor controls—hidden values remain serialized and active in the shader. Do not nest these blocks.
    Keep shader code self-contained; preserve alpha unless the requested effect changes coverage.
 6. Do not claim successful compilation or insertion without actually testing in Unity. The user can
    send an error back; return a corrected complete JSON object. Re-pasting creates new layers, not an update.
@@ -419,6 +420,7 @@ disables caching for that result. Use an explicit parameter instead.
 // @param float2 _Offset = (0, 0)
 // @param float3 _Direction = (1, 0, 0)
 // @param normal _Normal = (0, 0, 1)
+// @param point _Center = (0.5, 0.5)
 // @param float4 _Channels = (0, 0, 0.5, 1)
 // @param color _Tint = (1, 1, 1, 1)
 // @param texture2D _Input = self
@@ -455,7 +457,7 @@ All parameter types allow omitting `= value`. The last explicit default for a va
 exists, scalar/vector/color defaults are zero. Repeated `float`/`bool`/`enum` controls share one float
 uniform. Other repeated types must match exactly. Control ranges do not clamp values set through
 another control. Preset export saves the current value once. These dropdown/linked controls are FX-only.
-`float2`, `float3` and `float4` are raw vectors with two, three and four components. `normal` generates a normalized `float3`; its default and zero-vector fallback are `(0, 0, 1)`. It also offers an on-canvas direction handle; no range is accepted. Defaults are optional. Unknown parameter types are rejected.
+`float2`, `float3` and `float4` are raw vectors with two, three and four components. `point` is a `float2` position in normalized canvas UV, from bottom-left `(0, 0)` to top-right `(1, 1)`, and adds an **Edit on Canvas** handle that can be dragged across the canvas. Its default is `(0.5, 0.5)`; an explicit tuple is optional and ranges are not accepted. `normal` generates a normalized `float3`; its default and zero-vector fallback are `(0, 0, 1)`. It also offers an on-canvas direction handle; no range is accepted. Defaults are optional. Unknown parameter types are rejected.
 
 FX use ordinary input images and explicit parameters, not hidden layer-specific data. Lighting/Bevel Emboss reads a height texture (Self by default) and shares lighting with Normal Map/Lighting. Base Color alpha blends transparent lighting (0) into the shaded surface (1); Output selects Both/Highlight Only/Shadow Only for the transparent part. SDF inputs use their visible gradient, not raw distances. See [shader reference](../ShaderFX.md) for the complete contract.
 

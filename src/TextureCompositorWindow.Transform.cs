@@ -43,7 +43,7 @@ namespace DCFApixels.WhimTex
         {
             get
             {
-                if (previewTransformFX == null || compositor == null || GetSelectedLayer() is not Layer selected ||
+                if (PointParameter != null || previewTransformFX == null || compositor == null || GetSelectedLayer() is not Layer selected ||
                     !selected.modifiers.Contains(previewTransformFX) || WhimTexApi.IsLayerContentLocked(compositor, selected) ||
                     WhimTexApi.IsShaderFXContentLocked(previewTransformFX)) return null;
                 foreach (var p in previewTransformFX.Parameters)
@@ -90,13 +90,14 @@ namespace DCFApixels.WhimTex
             best.Focus();
         }
 
-        private bool IsPreviewTransformEnabled => NormalParameter == null && !IsGradientCanvasEnabled && previewTool == PreviewTool.Transform && TransformSelectionAvailable &&
+        private bool IsPreviewTransformEnabled => NormalParameter == null && PointParameter == null && !IsGradientCanvasEnabled && previewTool == PreviewTool.Transform && TransformSelectionAvailable &&
             GetSelectedLayer() is Layer layer && layer.Behaviour != null &&
             !WhimTexApi.IsLayerContentLocked(compositor, layer) && !WhimTexApi.ContainsReservation(layer);
 
         private void BuildPreviewTransformTool()
         {
             BuildNormalTool();
+            BuildPointTool();
             previewTransformOverlay = new VisualElement { pickingMode = PickingMode.Ignore };
             previewTransformOverlay.StretchToParentSize();
             toolkitPreviewCanvas.Add(previewTransformOverlay);
@@ -194,6 +195,8 @@ namespace DCFApixels.WhimTex
         private void SetPreviewTool(PreviewTool tool)
         {
             normalFX = null;
+            pointFX = null;
+            pointParameterId = null;
             areaSelectionManipulator?.Cancel();
             CancelPreviewEyedropper();
             bool changePixelPreview = (previewTool == PreviewTool.Pencil) != (tool == PreviewTool.Pencil);

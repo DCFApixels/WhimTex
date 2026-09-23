@@ -31,6 +31,8 @@ namespace DCFApixels.WhimTex
                     (best == null || w == focusedWindow || best != focusedWindow && w.AgentFocusOrder > best.AgentFocusOrder)) best = w;
             if (best == null) return;
             bool off = best.normalFX == effect && best.normalParameterId == id;
+            best.pointFX = null;
+            best.pointParameterId = null;
             best.SetPreviewTool(off ? best.previewTransformReturnTool : PreviewTool.Transform);
             best.FinishPreviewTransform();
             best.previewTransformFX = null;

@@ -29,6 +29,8 @@ namespace DCFApixels.WhimTex
         private static bool queued;
         private static readonly HashSet<string> changed = new HashSet<string>(StringComparer.Ordinal);
         private static readonly Dictionary<string, (long length, long modified)> userFiles = new Dictionary<string, (long, long)>(StringComparer.Ordinal);
+        private static readonly Dictionary<string, HashSet<ShaderFX>> shaderDependents =
+            new Dictionary<string, HashSet<ShaderFX>>(StringComparer.OrdinalIgnoreCase);
 
         static ShaderFXCatalog()
         {
@@ -170,8 +172,15 @@ namespace DCFApixels.WhimTex
 
         internal static void AssetsChanged(params string[][] batches)
         {
-            foreach (var batch in batches) foreach (string path in batch) changed.Add(path);
-            if (queued) return;
+            foreach (var batch in batches)
+            {
+                foreach (string path in batch)
+                {
+                    if (!string.IsNullOrEmpty(path) && (IsHlsl(path) || IsInclude(path) || IsAsset(path)))
+                        changed.Add(path);
+                }
+            }
+            if (changed.Count == 0 || queued) return;
             queued = true;
             EditorApplication.delayCall += FlushChanges;
         }
@@ -179,18 +188,73 @@ namespace DCFApixels.WhimTex
         private static void FlushChanges()
         {
             queued = false;
-            bool shaderChanged = false;
+            bool catalogChanged = false;
+            bool shaderSourceChanged = false;
             foreach (string path in changed)
             {
-                if (initialized) Inspect(path);
-                shaderChanged |= path.EndsWith(".hlsl", StringComparison.OrdinalIgnoreCase) || path.EndsWith(".cginc", StringComparison.OrdinalIgnoreCase);
+                if (initialized && (IsHlsl(path) || IsAsset(path)))
+                {
+                    entries.TryGetValue(path, out Entry previous);
+                    Inspect(path);
+                    entries.TryGetValue(path, out Entry current);
+                    catalogChanged |= !SameEntry(previous, current);
+                }
+                shaderSourceChanged |= IsHlsl(path) || IsInclude(path);
             }
-            if (shaderChanged)
-                foreach (var fx in Resources.FindObjectsOfTypeAll<ShaderFX>())
-                    if (fx != null && fx.IsCatalogLinked) fx.OnCatalogFilesChanged(changed);
+            if (shaderSourceChanged) ReloadShaderDependents(changed);
             changed.Clear();
-            if (initialized) SaveHeaders();
+            if (initialized && catalogChanged) SaveHeaders();
         }
+
+        internal static void SetShaderDependencies(ShaderFX effect, HashSet<string> dependencies)
+        {
+            if (effect == null || dependencies == null) return;
+            foreach (string path in dependencies)
+            {
+                string key = NormalizePath(path);
+                if (!shaderDependents.TryGetValue(key, out HashSet<ShaderFX> dependents))
+                    shaderDependents.Add(key, dependents = new HashSet<ShaderFX>());
+                dependents.Add(effect);
+            }
+        }
+
+        internal static void RemoveShaderDependencies(ShaderFX effect, HashSet<string> dependencies)
+        {
+            if (effect == null || dependencies == null) return;
+            foreach (string path in dependencies)
+            {
+                string key = NormalizePath(path);
+                if (!shaderDependents.TryGetValue(key, out HashSet<ShaderFX> dependents)) continue;
+                dependents.Remove(effect);
+                if (dependents.Count == 0) shaderDependents.Remove(key);
+            }
+        }
+
+        private static void ReloadShaderDependents(HashSet<string> paths)
+        {
+            var affected = new HashSet<ShaderFX>();
+            foreach (string path in paths)
+                if (shaderDependents.TryGetValue(NormalizePath(path), out HashSet<ShaderFX> dependents))
+                    affected.UnionWith(dependents);
+            foreach (ShaderFX effect in affected)
+                if (effect != null && effect.IsCatalogLinked) effect.ReloadCatalogSource(true);
+        }
+
+        private static bool SameEntry(Entry a, Entry b)
+        {
+            if (ReferenceEquals(a, b)) return true;
+            if (a == null || b == null) return false;
+            return string.Equals(a.guid, b.guid, StringComparison.Ordinal) &&
+                string.Equals(a.path, b.path, StringComparison.Ordinal) &&
+                string.Equals(a.menuPath, b.menuPath, StringComparison.Ordinal) &&
+                string.Equals(a.error, b.error, StringComparison.Ordinal) &&
+                a.user == b.user && a.assetPreset == b.assetPreset;
+        }
+
+        private static bool IsHlsl(string path) => path.EndsWith(".hlsl", StringComparison.OrdinalIgnoreCase);
+        private static bool IsInclude(string path) => path.EndsWith(".cginc", StringComparison.OrdinalIgnoreCase);
+        private static bool IsAsset(string path) => path.EndsWith(".asset", StringComparison.OrdinalIgnoreCase);
+        private static string NormalizePath(string path) => path.Replace('\\', '/');
     }
 
     internal sealed class ShaderFXCatalogPostprocessor : AssetPostprocessor

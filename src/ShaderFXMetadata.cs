@@ -11,7 +11,9 @@ namespace DCFApixels.WhimTex
     internal static class ShaderFXMetadata
     {
         private static readonly Regex Header = new Regex(@"^//\s*@whimtex-effect\s+([^\r\n]+?)\s*$");
-        private static readonly Regex Parameter = new Regex(@"^\s*//\s*@param\s+(float|bool|float2|float3|float4|normal|color|texture2D|transform2D|gradient|curve)\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*=\s*([^\[\];~]+?))?\s*(?:\[\s*(.*?)\s*\.\.\s*(.*?)\s*\])?\s*$");
+        private static readonly Regex Parameter = new Regex(@"^\s*//\s*@param\s+(float|bool|float2|float3|float4|normal|point|color|texture2D|transform2D|gradient|curve)\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*=\s*([^\[\];~]+?))?\s*(?:\[\s*(.*?)\s*\.\.\s*(.*?)\s*\])?\s*$");
+        private static readonly Regex If = new Regex(@"^\s*//\s*@if\s+([A-Za-z_][A-Za-z0-9_]*)\s*(==|!=)\s*([^\s]+)\s*$");
+        private static readonly Regex EndIf = new Regex(@"^\s*//\s*@endif\s*$");
 
         internal static bool TryHeader(string firstLine, out string menuPath)
         {
@@ -45,13 +47,42 @@ namespace DCFApixels.WhimTex
             int lineNumber = 0;
             int declarationCount = 0;
             bool blockComment = false;
+            string visibleIfParameter = null;
+            bool visibleIfNotEqual = false;
+            float visibleIfValue = 0f;
+            int ifLine = 0;
             var pendingHeaders = new List<string>();
             do
             {
                 lineNumber++;
                 bool declaration = !blockComment && line != null && Regex.IsMatch(line, @"^\s*//\s*@param\b");
                 bool sectionHeader = !blockComment && line != null && Regex.IsMatch(line, @"^\s*//\s*@\s*header\b");
+                bool ifDirective = !blockComment && line != null && Regex.IsMatch(line, @"^\s*//\s*@if\b");
+                bool endifDirective = !blockComment && line != null && Regex.IsMatch(line, @"^\s*//\s*@endif\b");
                 if (line != null) ShaderFXSourceBuilder.MaskComments(line, ref blockComment);
+                if (ifDirective)
+                {
+                    if (visibleIfParameter != null) throw new FormatException($"Line {lineNumber}: nested @if blocks are not supported.");
+                    Match condition = If.Match(line);
+                    if (!condition.Success || !float.TryParse(condition.Groups[3].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out visibleIfValue) ||
+                        float.IsNaN(visibleIfValue) || float.IsInfinity(visibleIfValue))
+                        throw new FormatException($"Line {lineNumber}: expected // @if _Parameter == number or // @if _Parameter != number.");
+                    visibleIfParameter = condition.Groups[1].Value;
+                    visibleIfNotEqual = condition.Groups[2].Value == "!=";
+                    ifLine = lineNumber;
+                    continue;
+                }
+                if (endifDirective)
+                {
+                    if (!EndIf.IsMatch(line)) throw new FormatException($"Line {lineNumber}: expected // @endif with no arguments.");
+                    if (visibleIfParameter == null) throw new FormatException($"Line {lineNumber}: @endif has no matching @if.");
+                    visibleIfParameter = null;
+                    visibleIfNotEqual = false;
+                    visibleIfValue = 0f;
+                    ifLine = 0;
+                    pendingHeaders.Clear();
+                    continue;
+                }
                 if (sectionHeader)
                 {
                     var heading = Regex.Match(line, @"^\s*//\s*@\s*header\s*\((.+)\)\s*$");
@@ -118,9 +149,10 @@ namespace DCFApixels.WhimTex
                         case "float2":
                         case "float3":
                         case "normal":
-                            int count = kind == "float2" ? 2 : 3;
-                            p.type = kind == "normal" ? ShaderFXParameterType.Normal : count == 2 ? ShaderFXParameterType.Vector2 : ShaderFXParameterType.Vector3;
-                            p.vectorValue = kind == "normal" ? new Vector4(0,0,1,0) : Vector4.zero;
+                        case "point":
+                            int count = kind == "float2" || kind == "point" ? 2 : 3;
+                            p.type = kind == "normal" ? ShaderFXParameterType.Normal : kind == "point" ? ShaderFXParameterType.Point : count == 2 ? ShaderFXParameterType.Vector2 : ShaderFXParameterType.Vector3;
+                            p.vectorValue = kind == "normal" ? new Vector4(0,0,1,0) : kind == "point" ? new Vector4(.5f,.5f,0,0) : Vector4.zero;
                             if (explicitDefault)
                             {
                                 if (!value.StartsWith("(") || !value.EndsWith(")")) throw new FormatException("Expected components in parentheses.");
@@ -128,6 +160,8 @@ namespace DCFApixels.WhimTex
                                 if (values.Length != count) throw new FormatException("Expected " + count + " components.");
                                 for (int i=0;i<count;i++) p.vectorValue[i] = Number(values[i]);
                             }
+                            if (kind == "point" && (p.vectorValue.x < 0 || p.vectorValue.x > 1 || p.vectorValue.y < 0 || p.vectorValue.y > 1))
+                                throw new FormatException("Point coordinates must be in the normalized canvas range 0..1.");
                             if (kind == "normal") p.vectorValue = ShaderFXParameter.NormalizeNormal(p.vectorValue);
                             break;
                         case "float4":
@@ -186,7 +220,8 @@ namespace DCFApixels.WhimTex
                     if (kind != "float" && bounded) throw new FormatException("Ranges apply only to float parameters.");
                     var control = new ShaderFXParameterControl { type = p.type, order = lineNumber, tooltip = tooltip,
                         headers = pendingHeaders.ToArray(),
-                        hasMinimum = p.hasMinimum, hasMaximum = p.hasMaximum, softMinimum = p.softMinimum, softMaximum = p.softMaximum, minimum = p.minimum, maximum = p.maximum };
+                        hasMinimum = p.hasMinimum, hasMaximum = p.hasMaximum, softMinimum = p.softMinimum, softMaximum = p.softMaximum, minimum = p.minimum, maximum = p.maximum,
+                        visibleIfParameter = visibleIfParameter, visibleIfNotEqual = visibleIfNotEqual, visibleIfValue = visibleIfValue };
                     pendingHeaders.Clear();
                     if (enumMatch.Success)
                     {
@@ -226,6 +261,19 @@ namespace DCFApixels.WhimTex
                 }
                 catch (FormatException error) { throw new FormatException($"Line {lineNumber}: {error.Message}"); }
             } while ((line = reader.ReadLine()) != null);
+            if (visibleIfParameter != null) throw new FormatException($"Line {ifLine}: @if has no matching @endif.");
+            foreach (var parameter in result)
+                foreach (var control in parameter.controls)
+                    if (!string.IsNullOrEmpty(control.visibleIfParameter))
+                    {
+                        ShaderFXParameter driver = result.Find(p => p.name == control.visibleIfParameter);
+                        if (driver == null)
+                            throw new FormatException($"Line {control.order}: @if references undeclared parameter {control.visibleIfParameter}.");
+                        if (!IsScalar(driver.type))
+                            throw new FormatException($"Line {control.order}: @if parameter {control.visibleIfParameter} must be float, bool or enum.");
+                        if (driver.controls.Exists(c => !string.IsNullOrEmpty(c.visibleIfParameter)))
+                            throw new FormatException($"Line {control.order}: @if parameter {control.visibleIfParameter} must be declared outside conditional blocks.");
+                    }
             return result;
         }
 
@@ -293,7 +341,8 @@ namespace DCFApixels.WhimTex
         }
 
         internal static bool IsScalar(ShaderFXParameterType type) => type == ShaderFXParameterType.Float || type == ShaderFXParameterType.Bool || type == ShaderFXParameterType.Enum;
-        internal static bool Compatible(ShaderFXParameterType a, ShaderFXParameterType b) => a == b || IsScalar(a) && IsScalar(b);
+        internal static bool Compatible(ShaderFXParameterType a, ShaderFXParameterType b) => a == b || IsScalar(a) && IsScalar(b) ||
+            a == ShaderFXParameterType.Vector2 && b == ShaderFXParameterType.Point || a == ShaderFXParameterType.Point && b == ShaderFXParameterType.Vector2;
         private static void CopyValue(ShaderFXParameter source, ShaderFXParameter target)
         {
             target.floatValue = source.floatValue; target.colorValue = source.colorValue;

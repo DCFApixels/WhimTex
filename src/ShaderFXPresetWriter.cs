@@ -30,10 +30,10 @@ namespace DCFApixels.WhimTex
             }
             else foreach (var parameter in effect.Parameters) if (parameter != null) values.Add(parameter.Copy());
             var result = new StringBuilder("// @whimtex-effect " + menuPath + "\n");
-            var rows = new System.Collections.Generic.List<(int order, string text)>();
+            var rows = new System.Collections.Generic.List<(int order, string text, ShaderFXParameterControl control)>();
             foreach (var p in values)
             {
-                if (p.controls.Count == 0) { rows.Add((0, Declaration(p))); continue; }
+                if (p.controls.Count == 0) { rows.Add((0, Declaration(p), null)); continue; }
                 int defaultIndex = p.controls.FindIndex(c => c.type != ShaderFXParameterType.Bool);
                 if (defaultIndex < 0) defaultIndex = 0;
                 for (int i = 0; i < p.controls.Count; i++)
@@ -55,11 +55,20 @@ namespace DCFApixels.WhimTex
                     if (!string.IsNullOrEmpty(control.tooltip)) declaration += " // " + control.tooltip;
                     if (control.headers != null && control.headers.Length > 0)
                         declaration = "// @header(" + string.Join(")\n// @header(", control.headers) + ")\n" + declaration;
-                    rows.Add((control.order, declaration));
+                    rows.Add((control.order, declaration, control));
                 }
             }
             rows.Sort((a, b) => a.order.CompareTo(b.order));
-            foreach (var row in rows) result.AppendLine(row.text);
+            foreach (var row in rows)
+            {
+                if (!string.IsNullOrEmpty(row.control?.visibleIfParameter))
+                {
+                    string op = row.control.visibleIfNotEqual ? "!=" : "==";
+                    result.AppendLine("// @if " + row.control.visibleIfParameter + " " + op + " " + Number(row.control.visibleIfValue));
+                }
+                result.AppendLine(row.text);
+                if (!string.IsNullOrEmpty(row.control?.visibleIfParameter)) result.AppendLine("// @endif");
+            }
             result.AppendLine();
             using var reader = new StringReader(effect.Code ?? "");
             bool block = false;
@@ -69,7 +78,7 @@ namespace DCFApixels.WhimTex
             while ((line = reader.ReadLine()) != null)
             {
                 lineNumber++;
-                bool metadata = !block && ((lineNumber == 1 && ShaderFXMetadata.TryHeader(line, out _)) || Regex.IsMatch(line, @"^\s*//\s*@(?:param\b|\s*header\b)"));
+                bool metadata = !block && ((lineNumber == 1 && ShaderFXMetadata.TryHeader(line, out _)) || Regex.IsMatch(line, @"^\s*//\s*@(?:param\b|\s*header\b|if\b|endif\b)"));
                 ShaderFXSourceBuilder.MaskComments(line, ref block);
                 if (!metadata) body.AppendLine(line);
             }
@@ -114,11 +123,12 @@ namespace DCFApixels.WhimTex
                     var c = p.colorValue;
                     return prefix + "color " + p.name + " = (" + Number(c.r) + ", " + Number(c.g) + ", " + Number(c.b) + ", " + Number(c.a) + ")";
                 case ShaderFXParameterType.Vector2:
+                case ShaderFXParameterType.Point:
                 case ShaderFXParameterType.Vector3:
                 case ShaderFXParameterType.Normal:
                     var n = p.type == ShaderFXParameterType.Normal ? (UnityEngine.Vector4)ShaderFXParameter.NormalizeNormal(p.vectorValue) : p.vectorValue;
-                    string kind = p.type == ShaderFXParameterType.Normal ? "normal" : p.type == ShaderFXParameterType.Vector2 ? "float2" : "float3";
-                    return prefix + kind + " " + p.name + " = (" + Number(n.x) + ", " + Number(n.y) + (p.type == ShaderFXParameterType.Vector2 ? "" : ", " + Number(n.z)) + ")";
+                    string kind = p.type == ShaderFXParameterType.Normal ? "normal" : p.type == ShaderFXParameterType.Point ? "point" : p.type == ShaderFXParameterType.Vector2 ? "float2" : "float3";
+                    return prefix + kind + " " + p.name + " = (" + Number(n.x) + ", " + Number(n.y) + (p.type == ShaderFXParameterType.Vector2 || p.type == ShaderFXParameterType.Point ? "" : ", " + Number(n.z)) + ")";
                 case ShaderFXParameterType.Vector:
                     var v = p.vectorValue;
                     return prefix + "float4 " + p.name + " = (" + Number(v.x) + ", " + Number(v.y) + ", " + Number(v.z) + ", " + Number(v.w) + ")";

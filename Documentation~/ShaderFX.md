@@ -111,6 +111,16 @@ Existing effects are not detached or switched to the saved file.
 
 ### Parameter declarations
 
+Use `// @if _Mode == 1` or `// @if _Mode != 1` before one or more `// @param` lines, then close the block with `// @endif`, to show controls conditionally. Conditions accept only numeric values and `==`/`!=`; the referenced parameter must be an unconditional `float`, `bool` or `enum`. Nested blocks are not supported. This changes the editor UI only: hidden values remain stored and continue to affect the shader. Preset export preserves the condition blocks.
+
+```hlsl
+// @param enum _Mode = 0 { Basic: 0, Advanced: 1 }
+// @if _Mode == 1
+// @param float _Detail = 0.5 [0 .. 1]
+// @param bool _UseExtra = false
+// @endif
+```
+
 Use `// @header(Lighting)` before a `// @param` declaration to add a bold, non-collapsible heading above that control. Titles are literal text, without quotes; `// @ header(Lighting)` also accepts whitespace after `@`. This is UI metadata, not a uniform. Multiple headers are displayed in order; a header without a following parameter is ignored. Headers survive preset saving and portable export, including repeated controls for one variable. HLSL brushes support the same decoration.
 
 ```hlsl
@@ -253,7 +263,7 @@ overwrite it. Ranges constrain edits through that control, not the shared value 
 Saving a preset writes the current value into one declaration and omits other initializers.
 Enum and linked controls are FX features; HLSL brushes currently use their existing parameter UI.
 
-`float2` and `float3` expose two and three raw components. `normal` generates a normalized `float3`, defaults to `(0, 0, 1)`, and uses that direction when given a zero vector. All three accept optional tuple defaults without ranges. Live API values are arrays with the corresponding component count.
+`float2` and `float3` expose two and three raw components. `point` is a `float2` in normalized canvas UV (bottom-left `(0, 0)` to top-right `(1, 1)`), defaults to `(0.5, 0.5)`, and provides a draggable **Edit on Canvas** handle. `normal` generates a normalized `float3`, defaults to `(0, 0, 1)`, and uses that direction when given a zero vector. These types accept optional tuple defaults without ranges. Live API values are arrays with the corresponding component count.
 
 For `normal`, **Edit on Canvas** shows a fixed-screen-radius handle at the canvas center. The center points toward the camera; the radius edge points along the canvas. Dragging outside the radius clamps the projected direction. Clicking the handle without dragging switches the Z hemisphere: **+** faces the camera, **−** faces away. X points right and Y up in canvas coordinates; rotating the preview rotates the handle without changing the value. Changing values does not recompile the shader.
 

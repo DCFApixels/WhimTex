@@ -105,6 +105,7 @@ Import/save commands do import the specific image or compositor asset they write
 | `whimtex_document_migrate` | `sourcePath`, `destinationPath`, optional `overwrite=false` | Copies legacy `.asset` to TIFF without mutating the source |
 | `whimtex_storage_inspect` | `assetPath` (`.tiff`) | Metadata-only block catalog, sizes and disk revision |
 | `whimtex_document_validate` | `assetPath`, optional `render=false` | Structure, limits, references and Shader FX validation; no save |
+| `whimtex_fx_compile` | Exactly one of `presetPath` or `source`; optional `includeBasePath` | Compile a preset or raw HLSL in Unity; return diagnostics without editing a document |
 | `whimtex_document_status` | `assetPath` | Disk revision, GUID, importer, dirty/live/lock and staged recovery state |
 | `whimtex_document_compare` | `leftPath`, `rightPath`, optional `render`, `maxSize` | Compare model, TIFF storage and optional rendered pixels |
 | `whimtex_document_recover` | `sourcePath`, `destinationPath` | Recover a staged TIFF into a new document |
@@ -117,6 +118,40 @@ An API validation error can arrive through a successful transport. `errorCode` a
 `failedOperation`, when present, is zero-based (`-1` means batch/save level).
 For `whimtex_document_validate`, a readable document may still return `success:true` with `valid:false` and
 an `errors` array; check both fields before using it as an input for another batch.
+
+### Compile an FX preset without applying it
+
+Use `whimtex_fx_compile` to check code through Unity's shader compiler before adding it to a
+document. Supply exactly one input:
+
+- `presetPath` for a `.hlsl` file inside `Assets`, `Packages` or the configured Shader FX user-preset
+  folder. Presets must start with a valid `// @whimtex-effect Category/Name` header.
+- `source` for a raw HLSL string implementing WhimTex's `float4 ApplyFX(float2 uv, float4 color)`
+  function. It may include `// @param` declarations and does not need the preset header. Raw source
+  with relative `#include` paths must also supply `includeBasePath`, pointing to a base directory in
+  `Assets` or `Packages`, or to an existing HLSL file whose directory is used as the base. Absolute
+  directories inside `Assets`, a package, or the configured user-preset folder are also accepted. If
+  the source has no relative includes, omit `includeBasePath`. Unity, `Assets/...` and `Packages/...`
+  includes need no base path.
+
+Compilation creates only a temporary shader and material; it does not create an asset, modify source,
+change a document or require the WhimTex window. Unity Editor must be connected to the agent command
+bridge.
+
+The API call's `success` means the diagnostic request completed. Check `compiled` separately:
+compiler warnings are returned in `warnings` and do not make `compiled` false; compilation and source
+validation failures return `compiled:false` with entries in `errors`. `diagnostics` contains all
+messages, with `file` and `line` when Unity provides a source location.
+
+```powershell
+unity command whimtex_fx_compile --presetPath 'Packages/com.dcfapixels.whimtex/src/FXPresets/Halftone.hlsl' --project-path 'D:/Projects/MyGame' --format json
+
+$fx = @'
+// @param color _Tint = (1, 1, 1, 1)
+float4 ApplyFX(float2 uv, float4 color) { return color * _Tint; }
+'@
+unity command whimtex_fx_compile --source $fx --project-path 'D:/Projects/MyGame' --format json
+```
 
 `whimtex_describe` also returns `agentModes` and `storagePolicy`. New documents are TIFF-only:
 `whimtex_batch_execute` creates and saves only `*.tiff`, while an existing legacy `.asset`

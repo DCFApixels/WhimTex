@@ -207,7 +207,7 @@ namespace DCFApixels.WhimTex
         internal RenderTexture RenderLayerPreview(Layer layer, int maxSize) =>
             RenderLayerPreviewCore(layer, maxSize, false, false);
 
-        internal RenderTexture RenderLayersBelow(Layer layer, int outputWidth, int outputHeight)
+        internal RenderTexture RenderLayerAndBelow(Layer layer, int outputWidth, int outputHeight)
         {
             if (layer == null || !TryFindLayer(layer, out List<Layer> container, out int index))
                 return null;
@@ -216,7 +216,7 @@ namespace DCFApixels.WhimTex
             try
             {
                 CompositeLayers(container, ref result, outputWidth, outputHeight, 1f,
-                    new HashSet<Layer>(), firstIndex: index + 1);
+                    new HashSet<Layer>(), firstIndex: index);
                 return result;
             }
             catch

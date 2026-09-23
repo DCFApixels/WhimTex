@@ -11,6 +11,16 @@ next_page: "en/preview.md"
 
 # Shader FX and Processor
 
+To show controls conditionally in the editor, put `// @param` declarations between `// @if _Mode == 1` (or `!=`) and `// @endif`. Only numeric `==` and `!=` comparisons are supported; the condition must reference an unconditional `float`, `bool` or `enum` parameter. Nested blocks are not supported. This only hides editor fields: values stay stored and continue to affect the shader. Preset export preserves the conditions.
+
+```hlsl
+// @param enum _Mode = 0 { Basic: 0, Advanced: 1 }
+// @if _Mode == 1
+// @param float _Detail = 0.5 [0 .. 1]
+// @param bool _UseExtra = false
+// @endif
+```
+
 In HLSL, `// @header(Lighting)` before a parameter adds a bold section heading, without a foldout. The title needs no quotes; the heading is preserved when saving presets.
 
 The `one` curve default is flat at 1, with keys at times 0 and 1.
@@ -23,7 +33,7 @@ Effect authors can choose `curve _Profile = linear` or `curve _Profile = easeInO
 
 Texture source **Self** reads the image before the current FX, including earlier effects. **None** returns transparent pixels. These modes need no assigned asset or layer; Self continues to work when copied to another layer.
 
-Vector parameters provide two, three or four numeric components. A normal parameter provides a unit direction and **Edit on Canvas**. Drag its endpoint: near the center it faces the camera; at the maximum radius it points along the canvas. Click the endpoint to switch between **+** (toward the camera) and **−** (away).
+Vector parameters provide two, three or four numeric components. A `point` parameter is a `float2` in normalized canvas UV (bottom-left `(0, 0)` to top-right `(1, 1)`), defaulting to `(0.5, 0.5)`; **Edit on Canvas** adds a draggable point handle. A normal parameter provides a unit direction and **Edit on Canvas**. Drag its endpoint: near the center it faces the camera; at the maximum radius it points along the canvas. Click the endpoint to switch between **+** (toward the camera) and **−** (away).
 
 A texture parameter can use **Texture** (an asset) or **Layer** (a layer in this document). Choose the source mode or drag a layer onto the parameter. Procedural and Drawing layers are supported, even when hidden. Groups provide their colored contents; hidden children remain hidden. Missing sources produce transparency, and circular references cannot be selected.
 

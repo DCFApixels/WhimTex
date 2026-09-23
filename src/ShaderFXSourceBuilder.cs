@@ -116,10 +116,11 @@ namespace DCFApixels.WhimTex
                         uniforms.AppendLine($"float4 {name};");
                         break;
                     case ShaderFXParameterType.Vector2:
+                    case ShaderFXParameterType.Point:
                     case ShaderFXParameterType.Vector3:
                     case ShaderFXParameterType.Normal:
                         properties.AppendLine($"{name} (\"{name}\", Vector) = (0,0,0,0)");
-                        uniforms.AppendLine($"float{(parameter.type == ShaderFXParameterType.Vector2 ? 2 : 3)} {name};");
+                        uniforms.AppendLine($"float{(parameter.type == ShaderFXParameterType.Vector2 || parameter.type == ShaderFXParameterType.Point ? 2 : 3)} {name};");
                         break;
                     case ShaderFXParameterType.Vector:
                         properties.AppendLine($"{name} (\"{name}\", Vector) = (0,0,0,0)");

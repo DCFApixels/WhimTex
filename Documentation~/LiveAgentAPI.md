@@ -270,6 +270,9 @@ Remove accepts only op/index. Add/replace accept `code` and optional `parameters
   (encoded RGB + alpha, converted to linear for the shader), `Vector` (four raw values), `Texture2D`
   (existing Assets/Packages texture path). Texture uniforms include `<name>_TexelSize`.
   Use valid unique HLSL identifiers; do not redeclare the generated uniforms in code.
+- `Point` accepts two numbers in `[0,1]`, normalized bottom-left-origin UV coordinates. Code declares it as
+  `// @param point _Center = (0.5, 0.5)`; its editor handle can be dragged across the selected layer's canvas.
+  Snapshot and update values use the two-number array form, the same JSON shape as `Vector2`.
 - `Transform2D` accepts `value: {"position":[0.5,0.5],"size":[1,1],"rotation":0}`; fields are optional. Alternatively use `value: {"matrix":[1,0.2,0,0,1,0,0.15,0,1]}` for skew/perspective: nine row-major doubles mapping local UV to input UV. Matrix and TRS fields cannot be combined. The matrix must be invertible with no horizon crossing the unit rectangle. Inspection returns either TRS fields or `matrix`.
   Position/size are normalized to the input image, rotation is in degrees. Size components must have
   magnitude at least `0.00001`. Generates `<name>_ToLocal(uv)` and `<name>_ToInput(uv)` helpers.

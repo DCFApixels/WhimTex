@@ -166,12 +166,16 @@ namespace DCFApixels.WhimTex
                     case ShaderFXParameterType.Float: value.floatValue = Number(spec["value"], "value", -1000000, 1000000); break;
                     case ShaderFXParameterType.Color: value.colorValue = AgentJson.Color(spec["value"]); break;
                     case ShaderFXParameterType.Vector2:
+                    case ShaderFXParameterType.Point:
                     case ShaderFXParameterType.Vector3:
                     case ShaderFXParameterType.Normal:
-                        int components = value.type == ShaderFXParameterType.Vector2 ? 2 : 3;
+                        int components = value.type == ShaderFXParameterType.Vector2 || value.type == ShaderFXParameterType.Point ? 2 : 3;
                         Require(spec["value"] is JArray values && values.Count == components, "Wrong vector component count.");
                         value.vectorValue = Vector4.zero;
                         for (int i=0;i<components;i++) value.vectorValue[i] = Number(spec["value"][i], "component", -1000000, 1000000);
+                        if (value.type == ShaderFXParameterType.Point)
+                            Require(value.vectorValue.x >= 0 && value.vectorValue.x <= 1 && value.vectorValue.y >= 0 && value.vectorValue.y <= 1,
+                                "Point coordinates must be in the normalized canvas range 0..1.");
                         if (value.type == ShaderFXParameterType.Normal) value.vectorValue = ShaderFXParameter.NormalizeNormal(value.vectorValue);
                         break;
                     case ShaderFXParameterType.Vector:
@@ -263,6 +267,7 @@ namespace DCFApixels.WhimTex
                             p.type == ShaderFXParameterType.Transform2D ? FxTransformSnapshot(p.transformValue) :
                             p.type == ShaderFXParameterType.Color ? (JToken)Json(p.colorValue) :
                             p.type == ShaderFXParameterType.Vector2 ? new JArray(p.vectorValue.x, p.vectorValue.y) :
+                            p.type == ShaderFXParameterType.Point ? new JArray(p.vectorValue.x, p.vectorValue.y) :
                             p.type == ShaderFXParameterType.Vector3 || p.type == ShaderFXParameterType.Normal ? new JArray(p.vectorValue.x, p.vectorValue.y, p.vectorValue.z) :
                             p.type == ShaderFXParameterType.Vector ? new JArray(p.vectorValue.x, p.vectorValue.y, p.vectorValue.z, p.vectorValue.w) :
                             p.type == ShaderFXParameterType.Texture2D ? (p.textureSource == ShaderFXTextureSource.Layer

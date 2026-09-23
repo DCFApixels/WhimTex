@@ -10,7 +10,7 @@ namespace DCFApixels.WhimTex
 {
     public enum ShaderFXTextureSource { Texture = 0, Layer = 1, None = 2, Self = 3 }
 
-    public enum ShaderFXParameterType { Float, Color, Vector, Texture2D, Transform2D, Bool, Enum, Gradient, Vector2, Vector3, Normal, Curve }
+    public enum ShaderFXParameterType { Float, Color, Vector, Texture2D, Transform2D, Bool, Enum, Gradient, Vector2, Vector3, Normal, Curve, Point }
 
     [Serializable]
     public sealed class ShaderFXParameterControl
@@ -24,6 +24,10 @@ namespace DCFApixels.WhimTex
         public float minimum, maximum;
         public string[] optionNames = Array.Empty<string>();
         public float[] optionValues = Array.Empty<float>();
+        // Editor-only visibility condition. Values remain serialized and applied to the shader.
+        public string visibleIfParameter;
+        public bool visibleIfNotEqual;
+        public float visibleIfValue;
     }
 
     [Serializable]
@@ -84,7 +88,8 @@ namespace DCFApixels.WhimTex
                 copy.controls.Add(new ShaderFXParameterControl { type = c.type, order = c.order, tooltip = c.tooltip,
                     headers = c.headers == null ? Array.Empty<string>() : (string[])c.headers.Clone(),
                     hasMinimum = c.hasMinimum, hasMaximum = c.hasMaximum, softMinimum = c.softMinimum, softMaximum = c.softMaximum, minimum = c.minimum, maximum = c.maximum,
-                    optionNames = (string[])c.optionNames.Clone(), optionValues = (float[])c.optionValues.Clone() });
+                    optionNames = (string[])c.optionNames.Clone(), optionValues = (float[])c.optionValues.Clone(),
+                    visibleIfParameter = c.visibleIfParameter, visibleIfNotEqual = c.visibleIfNotEqual, visibleIfValue = c.visibleIfValue });
             return copy;
         }
 
@@ -98,6 +103,7 @@ namespace DCFApixels.WhimTex
                 case ShaderFXParameterType.Bool: material.SetFloat(propertyName, BoolValue ? 1f : 0f); break;
                 case ShaderFXParameterType.Color: HdrUtility.SetShaderColor(material, propertyName, colorValue); break;
                 case ShaderFXParameterType.Vector2:
+                case ShaderFXParameterType.Point:
                 case ShaderFXParameterType.Vector3:
                 case ShaderFXParameterType.Vector: material.SetVector(propertyName, vectorValue); break;
                 case ShaderFXParameterType.Normal: material.SetVector(propertyName, NormalizeNormal(vectorValue)); break;
@@ -233,12 +239,18 @@ namespace DCFApixels.WhimTex
 
         internal static ShaderFX CreateAgentDraft(TextureCompositor owner, string source, List<ShaderFXParameter> values)
         {
+            return CreateAgentDraft(owner, source, values, null);
+        }
+
+        internal static ShaderFX CreateAgentDraft(TextureCompositor owner, string source, List<ShaderFXParameter> values, string sourcePath)
+        {
             var effect = CreateInstance<ShaderFX>();
             effect.name = "Shader FX";
             effect.embeddedOwner = owner;
             effect.hideFlags = HideFlags.HideAndDontSave;
             effect.code = source;
             effect.parameters = values;
+            effect.documentIncludeBasePath = sourcePath;
             return effect;
         }
 
@@ -265,14 +277,18 @@ namespace DCFApixels.WhimTex
                 string determinismWarning = ShaderFXSourceBuilder.GetDeterminismWarning(source);
                 if (!string.IsNullOrEmpty(determinismWarning)) messages.AppendLine(determinismWarning);
                 if (errors || !candidate.isSupported || test.passCount == 0)
-                    throw new InvalidOperationException(messages.Length > 0 ? messages.ToString() : "Shader is unsupported on this graphics device.");
+                {
+                    lastApplyFailed = true;
+                    diagnostics = messages.Length > 0 ? messages.ToString() : "Shader is unsupported on this graphics device.";
+                    throw new InvalidOperationException(diagnostics);
+                }
+                diagnostics = messages.Length > 0 ? messages.ToString() : "Applied successfully.";
                 compiledShader = candidate;
                 candidate = null;
                 appliedCode = code;
                 appliedSource = source;
                 appliedParameters = new List<ShaderFXParameter>();
                 foreach (var parameter in parameters) appliedParameters.Add(parameter.Copy());
-                diagnostics = messages.Length > 0 ? messages.ToString() : "Applied successfully.";
                 lastApplyFailed = false;
             }
             finally
@@ -416,6 +432,7 @@ namespace DCFApixels.WhimTex
             EditorApplication.quitting -= ReleaseMaterial;
             EditorApplication.delayCall -= SendNotification;
             notificationQueued = false;
+            ReleaseCatalogDependencies();
             ReleaseMaterial();
         }
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
@@ -12,6 +13,228 @@ namespace DCFApixels.WhimTex
 {
     public static partial class WhimTexApi
     {
+        private static readonly Regex ShaderDiagnosticLocation = new Regex(
+            "^(Warning|Error|Info):\\s*(.*):(\\d+):\\s*(.*)$", RegexOptions.CultureInvariant);
+
+        /// <summary>Compiles a marked HLSL Shader FX preset in a transient Unity shader and returns compiler diagnostics without changing a document.</summary>
+        public static string CompileFXPreset(string presetPath) => Respond(() => CompileFXPresetResult(presetPath));
+
+        /// <summary>Compiles raw WhimTex ApplyFX HLSL in a transient Unity shader without changing a document.</summary>
+        public static string CompileFXSource(string source, string includeBasePath = null) => Respond(() =>
+        {
+            Require(!string.IsNullOrWhiteSpace(source), "source is required.", "invalid_shader_source");
+            string sourcePath = string.IsNullOrWhiteSpace(includeBasePath)
+                ? "Assets/WhimTexAgentInput.hlsl"
+                : ResolveShaderFXIncludeBasePath(includeBasePath);
+            var result = CompileFXSourceResult(source, sourcePath, false);
+            result["sourcePath"] = string.IsNullOrWhiteSpace(includeBasePath) ? null : sourcePath;
+            return result;
+        });
+
+        /// <summary>Compiles exactly one of a marked preset path or raw WhimTex ApplyFX HLSL source.</summary>
+        public static string CompileFX(string presetPath = null, string source = null, string includeBasePath = null) => Respond(() =>
+        {
+            bool hasPath = !string.IsNullOrWhiteSpace(presetPath);
+            bool hasSource = !string.IsNullOrWhiteSpace(source);
+            Require(hasPath != hasSource, "Supply exactly one of presetPath or source.", "invalid_request");
+            if (hasPath) return CompileFXPresetResult(presetPath);
+            Require(includeBasePath == null || !string.IsNullOrWhiteSpace(includeBasePath), "includeBasePath cannot be empty.", "invalid_preset_path");
+            string sourcePath = string.IsNullOrWhiteSpace(includeBasePath)
+                ? "Assets/WhimTexAgentInput.hlsl"
+                : ResolveShaderFXIncludeBasePath(includeBasePath);
+            JObject result = CompileFXSourceResult(source, sourcePath, false);
+            result["sourcePath"] = string.IsNullOrWhiteSpace(includeBasePath) ? null : sourcePath;
+            return result;
+        });
+
+        private static JObject CompileFXPresetResult(string presetPath)
+        {
+            string sourcePath = ResolveShaderFXPresetPath(presetPath);
+            string source = File.ReadAllText(ShaderFXPresetPhysicalPath(sourcePath));
+            JObject result = CompileFXSourceResult(source, sourcePath, true);
+            result["presetPath"] = sourcePath;
+            return result;
+        }
+
+        private static JObject CompileFXSourceResult(string source, string sourcePath, bool requireHeader)
+        {
+            var result = Success();
+            var errors = new JArray();
+            var warnings = new JArray();
+            var diagnostics = new JArray();
+            ShaderFX effect = null;
+            string diagnosticText = null;
+            bool compiled = false;
+            try
+            {
+                if (string.IsNullOrWhiteSpace(source)) throw new FormatException("HLSL source is empty.");
+                if (source.Length > 2 * 1024 * 1024) throw new FormatException("HLSL source exceeds 2 MiB.");
+                if (!requireHeader && sourcePath == "Assets/WhimTexAgentInput.hlsl" && ShaderFXSourceBuilder.HasRelativeIncludes(source))
+                    throw new FormatException("Raw HLSL with relative #include directives requires includeBasePath. Project, package and Unity includes can be used without it.");
+                string menuPath;
+                List<ShaderFXParameter> parameters = ShaderFXMetadata.Parse(source, requireHeader, out menuPath);
+                effect = ShaderFX.CreateAgentDraft(null, source, parameters, sourcePath);
+                effect.name = string.IsNullOrEmpty(menuPath) ? "Shader FX" : menuPath.Substring(menuPath.LastIndexOf('/') + 1);
+                try
+                {
+                    effect.ApplyAgentDraft();
+                    compiled = effect.HasAppliedShader && !effect.LastApplyFailed;
+                }
+                catch (Exception error)
+                {
+                    diagnosticText = effect.Diagnostics;
+                    if (string.IsNullOrWhiteSpace(diagnosticText) || diagnosticText == "Not applied yet. Click Apply to compile this effect.")
+                        diagnosticText = error.Message;
+                }
+                if (compiled) diagnosticText = effect.Diagnostics;
+            }
+            catch (Exception error)
+            {
+                diagnosticText = error.Message;
+            }
+            finally
+            {
+                if (effect != null) UnityEngine.Object.DestroyImmediate(effect);
+            }
+
+            AppendShaderDiagnostics(diagnosticText, diagnostics, warnings, errors, compiled);
+            if (!compiled && errors.Count == 0)
+            {
+                var fallback = new JObject { ["severity"] = "Error", ["message"] = diagnosticText ?? "Shader compilation failed." };
+                diagnostics.Add(fallback.DeepClone());
+                errors.Add(fallback);
+            }
+            result["compiled"] = compiled;
+            result["diagnostics"] = diagnostics;
+            result["warnings"] = warnings;
+            result["errors"] = errors;
+            return result;
+        }
+
+        private static string ResolveShaderFXPresetPath(string requestedPath)
+        {
+            Require(!string.IsNullOrWhiteSpace(requestedPath), "presetPath is required.", "invalid_preset_path");
+            string request = requestedPath.Trim().Replace('\\', '/');
+            bool absolute = Path.IsPathRooted(requestedPath.Trim());
+            string requestedFullPath = absolute ? Path.GetFullPath(requestedPath.Trim()) : null;
+            var candidates = new HashSet<string>(StringComparer.Ordinal);
+            foreach (string path in PresetLibraryPaths.ProjectFiles("hlsl")) candidates.Add(path.Replace('\\', '/'));
+            foreach (string path in PresetLibraryPaths.UserFiles(ShaderFXCatalog.Folder, "hlsl")) candidates.Add(Path.GetFullPath(path));
+
+            foreach (string candidate in candidates)
+            {
+                if (absolute)
+                {
+                    string physical = candidate.StartsWith("Assets/", StringComparison.Ordinal)
+                        ? Path.Combine(Application.dataPath, candidate.Substring("Assets/".Length))
+                        : PresetLibraryPaths.PhysicalPath(candidate);
+                    if (PathsEqual(Path.GetFullPath(physical), requestedFullPath)) return candidate;
+                }
+                else if (string.Equals(candidate, request, StringComparison.Ordinal)) return candidate;
+            }
+            throw new WhimTexApiException("preset_not_found",
+                "The HLSL file was not found in the Unity project or the configured Shader FX preset folder: " + requestedPath);
+        }
+
+        private static string ResolveShaderFXIncludeBasePath(string requestedPath)
+        {
+            Require(!string.IsNullOrWhiteSpace(requestedPath), "includeBasePath cannot be empty.", "invalid_preset_path");
+            string request = requestedPath.Trim().Replace('\\', '/');
+            if (Path.GetExtension(request).Equals(".hlsl", StringComparison.OrdinalIgnoreCase))
+            {
+                string file = ResolveShaderFXPresetPath(requestedPath);
+                return Path.GetDirectoryName(file).Replace('\\', '/') + "/WhimTexAgentInput.hlsl";
+            }
+
+            bool absolute = Path.IsPathRooted(requestedPath.Trim());
+            if (absolute)
+            {
+                string fullPath = Path.GetFullPath(requestedPath.Trim());
+                bool inAssets = PathsEqual(fullPath, Application.dataPath) || PresetLibraryPaths.IsInside(fullPath, Application.dataPath);
+                bool inUserPresets = PathsEqual(fullPath, ShaderFXCatalog.Folder) || PresetLibraryPaths.IsInside(fullPath, ShaderFXCatalog.Folder);
+                string packageFolder = null;
+                if (!inAssets && !inUserPresets)
+                    foreach (string assetPath in AssetDatabase.GetAllAssetPaths())
+                    {
+                        if (!assetPath.StartsWith("Packages/", StringComparison.Ordinal)) continue;
+                        string packagePhysicalPath = Path.GetFullPath(PresetLibraryPaths.PhysicalPath(assetPath));
+                        if (Directory.Exists(packagePhysicalPath) && PathsEqual(packagePhysicalPath, fullPath))
+                        { packageFolder = assetPath; break; }
+                    }
+                Require((inAssets || inUserPresets || packageFolder != null) && Directory.Exists(fullPath),
+                    "includeBasePath must be an existing directory inside Assets, Packages or the configured Shader FX preset folder, or an existing HLSL file.",
+                    "invalid_include_base");
+                if (inAssets)
+                {
+                    string assetPath = PathsEqual(fullPath, Application.dataPath) ? "Assets" : PresetLibraryPaths.AssetPath(fullPath);
+                    Require(!string.IsNullOrEmpty(assetPath), "The absolute include base is outside Assets.", "invalid_include_base");
+                    return assetPath.TrimEnd('/') + "/WhimTexAgentInput.hlsl";
+                }
+                if (packageFolder != null) return packageFolder.TrimEnd('/') + "/WhimTexAgentInput.hlsl";
+                return Path.Combine(fullPath, "WhimTexAgentInput.hlsl").Replace('\\', '/');
+            }
+
+            Require(request == "Assets" || request.StartsWith("Assets/", StringComparison.Ordinal) ||
+                request.StartsWith("Packages/", StringComparison.Ordinal),
+                "A directory includeBasePath must be project-relative under Assets or Packages, absolute inside Assets or the configured user preset folder, or an existing HLSL file.",
+                "invalid_include_base");
+            foreach (string segment in request.Split('/'))
+                Require(segment != "." && segment != "..", "includeBasePath cannot contain . or .. path segments.", "invalid_include_base");
+            string physical = ShaderFXPresetPhysicalPath(request);
+            Require(Directory.Exists(physical), "includeBasePath directory was not found: " + requestedPath, "invalid_include_base");
+            if (request == "Assets" || request.StartsWith("Assets/", StringComparison.Ordinal))
+            {
+                string fullPath = Path.GetFullPath(physical);
+                Require(PathsEqual(fullPath, Application.dataPath) || PresetLibraryPaths.IsInside(fullPath, Application.dataPath),
+                    "The include base is outside Assets.", "invalid_include_base");
+            }
+            return request.TrimEnd('/') + "/WhimTexAgentInput.hlsl";
+        }
+
+        private static bool PathsEqual(string left, string right)
+        {
+            StringComparison comparison = Application.platform == RuntimePlatform.WindowsEditor
+                ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+            return string.Equals(left.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
+                right.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar), comparison);
+        }
+
+        private static string ShaderFXPresetPhysicalPath(string path) => path == "Assets"
+            ? Application.dataPath
+            : path.StartsWith("Assets/", StringComparison.Ordinal)
+                ? Path.Combine(Application.dataPath, path.Substring("Assets/".Length))
+            : PresetLibraryPaths.PhysicalPath(path);
+
+        private static void AppendShaderDiagnostics(string text, JArray all, JArray warnings, JArray errors, bool compiled)
+        {
+            if (string.IsNullOrWhiteSpace(text) || text == "Applied successfully.") return;
+            using var reader = new StringReader(text);
+            string line;
+            while ((line = reader.ReadLine()) != null)
+            {
+                if (string.IsNullOrWhiteSpace(line) || line == "Applied successfully.") continue;
+                Match match = ShaderDiagnosticLocation.Match(line);
+                var item = new JObject();
+                if (match.Success)
+                {
+                    item["severity"] = match.Groups[1].Value;
+                    item["file"] = match.Groups[2].Value;
+                    item["line"] = int.Parse(match.Groups[3].Value, System.Globalization.CultureInfo.InvariantCulture);
+                    item["message"] = match.Groups[4].Value;
+                }
+                else
+                {
+                    string severity = line.StartsWith("Warning:", StringComparison.Ordinal) ? "Warning" :
+                        line.StartsWith("Error:", StringComparison.Ordinal) ? "Error" : compiled ? "Info" : "Error";
+                    item["severity"] = severity;
+                    item["message"] = line;
+                }
+                all.Add(item);
+                if ((string)item["severity"] == "Warning") warnings.Add(item.DeepClone());
+                else if ((string)item["severity"] == "Error") errors.Add(item.DeepClone());
+            }
+        }
+
         /// <summary>Reads TIFF container metadata without creating a compositor or materializing Drawing pixels.</summary>
         public static string InspectStorage(string assetPath) => Respond(() =>
         {

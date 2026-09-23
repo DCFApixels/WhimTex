@@ -218,7 +218,7 @@ namespace DCFApixels.WhimTex
                 nameof(ShaderFXParameter.vectorValue), nameof(ShaderFXParameter.textureValue), nameof(ShaderFXParameter.transformValue),
                 nameof(ShaderFXParameter.floatValue), nameof(ShaderFXParameter.floatValue), nameof(ShaderFXParameter.gradientValue),
                 nameof(ShaderFXParameter.vectorValue), nameof(ShaderFXParameter.vectorValue), nameof(ShaderFXParameter.vectorValue),
-                nameof(ShaderFXParameter.curveValue)
+                nameof(ShaderFXParameter.curveValue), nameof(ShaderFXParameter.vectorValue)
             };
             VisualElement[] fields = new VisualElement[valueNames.Length];
             for (int i = 0; i < fields.Length; i++)
@@ -281,7 +281,7 @@ namespace DCFApixels.WhimTex
                     });
                     fields[i] = gradient;
                 }
-                else if (i == (int)ShaderFXParameterType.Vector2)
+                else if (i == (int)ShaderFXParameterType.Vector2 || i == (int)ShaderFXParameterType.Point)
                 {
                     var field = new Vector2Field("Value");
                     field.SetValueWithoutNotify(value.vector4Value);
@@ -320,11 +320,14 @@ namespace DCFApixels.WhimTex
             root.Add(editTransform);
             var editNormal = new Button(() => TextureCompositorWindow.EditFXNormal((ShaderFX)property.serializedObject.targetObject, property.FindPropertyRelative("id").stringValue)) { text = "Edit Normal on Canvas" };
             root.Add(editNormal);
+            var editPoint = new Button(() => TextureCompositorWindow.EditFXPoint((ShaderFX)property.serializedObject.targetObject, property.FindPropertyRelative("id").stringValue)) { text = "Edit Point on Canvas" };
+            root.Add(editPoint);
             void RefreshType(SerializedProperty current)
             {
                 for (int i = 0; i < fields.Length; i++)
                     fields[i].EnableInClassList("whimtex-shader-fx-hidden", i != current.enumValueIndex);
                 editNormal.EnableInClassList("whimtex-shader-fx-hidden", current.enumValueIndex != (int)ShaderFXParameterType.Normal);
+                editPoint.EnableInClassList("whimtex-shader-fx-hidden", current.enumValueIndex != (int)ShaderFXParameterType.Point);
                 editTransform.EnableInClassList("whimtex-shader-fx-hidden", current.enumValueIndex != (int)ShaderFXParameterType.Transform2D);
             }
             root.TrackPropertyValue(type, RefreshType);
