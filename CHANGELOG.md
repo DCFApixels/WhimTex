@@ -4,6 +4,11 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- FX stack context-menu actions to copy a block and paste it as an independent Shader FX or a reused Material reference.
+- Stepped parallax occlusion mode for Displacement Map, with configurable view direction and sampling quality.
+
 ## [0.11.2] - 2026-09-23
 
 ### Added

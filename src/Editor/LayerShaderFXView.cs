@@ -13,8 +13,10 @@ namespace DCFApixels.WhimTex
         private readonly TextureCompositor owner;
         private readonly Action<string, Action> applyChange;
         private readonly VisualElement entries = new VisualElement();
+        private readonly Button pasteButton;
         private readonly List<UnityEngine.Object> displayed = new List<UnityEngine.Object>();
         private readonly List<Action> refreshActivity = new List<Action>();
+        private VisualElement activeLayerDropMarker;
 
         internal LayerShaderFXView(Layer layer, TextureCompositor owner, Action<string, Action> applyChange)
         {
@@ -28,6 +30,11 @@ namespace DCFApixels.WhimTex
             toolbar.Add(new Button(() => Change("Add Shader FX", () => owner.AddEmbeddedShaderFX(layer))) { text = "+ Shader FX" });
             toolbar.Add(new Button(() => ShaderFXCatalog.ShowMenu(entry => Change("Add Catalog FX", () => owner.AddCatalogShaderFX(layer, entry)))) { text = "+ Preset ▾", tooltip = "Effects from the project and your user ShaderFX preset folder." });
             toolbar.Add(new Button(() => Change("Add FX Reference", () => layer.modifiers.Add(null))) { text = "+ Reference" });
+            pasteButton = new Button(PasteAtEnd) { text = "Paste FX", tooltip = "Paste a copied FX block at the end of this stack." };
+            toolbar.Add(pasteButton);
+            RefreshClipboardActionState();
+            RegisterCallback<AttachToPanelEvent>(_ => ShaderFXClipboard.Changed += RefreshClipboardActionState);
+            RegisterCallback<DetachFromPanelEvent>(_ => ShaderFXClipboard.Changed -= RefreshClipboardActionState);
             Add(toolbar);
             entries.AddToClassList("whimtex-layer-fx-entries");
             Add(entries);
@@ -111,10 +118,9 @@ namespace DCFApixels.WhimTex
                     active.SetEnabled(!WhimTexApi.IsShaderFXContentLocked(effect));
                 });
             }
-            var dragHandle = new Label("⠿") { tooltip = "Drag to reorder this FX" };
+            var dragHandle = new Label("⠿") { tooltip = "Drag the header to reorder this FX or move it to another layer" };
             dragHandle.AddToClassList("whimtex-fx-drag-handle");
             dragHandle.SetEnabled(owner != null && !WhimTexApi.IsLayerContentLocked(owner, layer));
-            dragHandle.AddManipulator(new ReorderManipulator(index, UpdateDropMarker, MoveTo));
             refreshActivity.Add(() => dragHandle.SetEnabled(owner != null && !WhimTexApi.IsLayerContentLocked(owner, layer)));
             toolbar.Add(dragHandle);
             if (embedded)
@@ -145,6 +151,15 @@ namespace DCFApixels.WhimTex
             var actions = new Button(() =>
             {
                 var menu = new GenericMenu();
+                if (effect != null || modifier is Material)
+                    menu.AddItem(new GUIContent("Copy FX"), false, () => ShaderFXClipboard.Copy(owner, modifier));
+                else
+                    menu.AddDisabledItem(new GUIContent("Copy FX"));
+                if (ShaderFXClipboard.Current != null)
+                    menu.AddItem(new GUIContent("Paste FX As New"), false, () => PasteAt(index + 1));
+                else
+                    menu.AddDisabledItem(new GUIContent("Paste FX As New"));
+                menu.AddSeparator(string.Empty);
                 if (index > 0) menu.AddItem(new GUIContent("Move Up"), false, () => Move(index, -1));
                 else menu.AddDisabledItem(new GUIContent("Move Up"));
                 if (index + 1 < layer.modifiers.Count) menu.AddItem(new GUIContent("Move Down"), false, () => Move(index, 1));
@@ -154,9 +169,41 @@ namespace DCFApixels.WhimTex
                 menu.AddSeparator(string.Empty);
                 menu.AddItem(new GUIContent("Remove"), false, () => Change("Remove FX", () => layer.modifiers.RemoveAt(index)));
                 menu.ShowAsContext();
-            }) { text = "⋮", tooltip = "Reorder, embed or remove this effect" };
-            actions.AddToClassList("whimtex-fx-menu-button");
+            }) { tooltip = "Copy, paste, reorder, embed or remove this effect" };
+            actions.AddToClassList("whimtex-layer-menu-button");
+            actions.EnableInClassList("whimtex-layer-menu-button--light", !EditorGUIUtility.isProSkin);
+            for (int i = 0; i < 3; i++)
+            {
+                VisualElement dot = new VisualElement { pickingMode = PickingMode.Ignore };
+                dot.AddToClassList("whimtex-layer-menu-dot");
+                actions.Add(dot);
+            }
             toolbar.Add(actions);
+            toolbar.AddManipulator(new ContextualMenuManipulator(evt =>
+            {
+                DropdownMenu menu = evt.menu;
+                bool canEdit = owner != null && !WhimTexApi.IsLayerContentLocked(owner, layer);
+                if (effect != null || modifier is Material)
+                    menu.AppendAction("Copy FX", _ => ShaderFXClipboard.Copy(owner, modifier));
+                else
+                    menu.AppendAction("Copy FX", _ => { }, DropdownMenuAction.Status.Disabled);
+                menu.AppendAction("Paste FX As New", _ => PasteAt(index + 1),
+                    ShaderFXClipboard.Current != null && canEdit ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+                menu.AppendSeparator();
+                menu.AppendAction("Move Up", _ => Move(index, -1),
+                    canEdit && index > 0 ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+                menu.AppendAction("Move Down", _ => Move(index, 1),
+                    canEdit && index + 1 < layer.modifiers.Count ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+                if (effect != null && !embedded)
+                    menu.AppendAction("Embed Copy", _ => Change("Embed Shader FX", () => owner.EmbedShaderFX(layer, index)),
+                        canEdit ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+                menu.AppendSeparator();
+                menu.AppendAction("Remove", _ => Change("Remove FX", () => layer.modifiers.RemoveAt(index)),
+                    canEdit ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+            }));
+            toolbar.AddManipulator(new ReorderManipulator(
+                index, dragHandle, UpdateDropMarker, MoveTo, CanReorderLayer,
+                FindLayerDropTarget, CanMoveToLayer, UpdateLayerDropMarker, MoveToLayer));
             card.Add(toolbar);
             VisualElement body = new VisualElement();
             if (effect != null)
@@ -180,6 +227,45 @@ namespace DCFApixels.WhimTex
         private void Move(int index, int delta)
         {
             MoveTo(index, index + delta);
+        }
+
+        private void PasteAtEnd() => PasteAt(layer.modifiers.Count);
+
+        private void PasteAt(int insertionIndex)
+        {
+            if (ShaderFXClipboard.Current == null)
+                return;
+
+            Undo.FlushUndoRecordObjects();
+            Undo.IncrementCurrentGroup();
+            int undoGroup = Undo.GetCurrentGroup();
+            Undo.SetCurrentGroupName("Paste FX");
+            try
+            {
+                Change("Paste FX", () =>
+                {
+                    UnityEngine.Object pasted = ShaderFXClipboard.CreatePasteValue(owner);
+                    if (pasted == null)
+                        return;
+                    int destinationIndex = Mathf.Clamp(insertionIndex, 0, layer.modifiers.Count);
+                    if (pasted is ShaderFX effect)
+                        owner.AdoptAgentShaderFX(effect, "Paste FX");
+                    layer.modifiers.Insert(destinationIndex, pasted);
+                });
+            }
+            finally
+            {
+                Undo.FlushUndoRecordObjects();
+                Undo.CollapseUndoOperations(undoGroup);
+                Undo.IncrementCurrentGroup();
+            }
+        }
+
+        private void RefreshClipboardActionState()
+        {
+            if (pasteButton != null)
+                pasteButton.SetEnabled(ShaderFXClipboard.Current != null &&
+                    owner != null && !WhimTexApi.IsLayerContentLocked(owner, layer));
         }
 
         private void MoveTo(int sourceIndex, int targetIndex)
@@ -220,77 +306,285 @@ namespace DCFApixels.WhimTex
                 entries[entries.childCount - 1].AddToClassList("whimtex-layer-fx-entry--drop-after");
         }
 
+        private LayerDropTarget FindLayerDropTarget(Vector2 panelPosition)
+        {
+            VisualElement element = panel?.Pick(panelPosition);
+            while (element != null && !element.ClassListContains("whimtex-layer-row"))
+                element = element.parent;
+            if (element == null)
+                return default;
+
+            Layer destination = element.userData is string id ? owner?.FindLayer(id) : null;
+            return new LayerDropTarget(destination, element, true);
+        }
+
+        private bool CanMoveToLayer(Layer destination)
+        {
+            return CanReorderLayer() && destination != null && !ReferenceEquals(destination, layer) &&
+                   owner.TryFindLayer(destination, out _, out _) &&
+                   !WhimTexApi.IsLayerContentLocked(owner, destination);
+        }
+
+        private bool CanReorderLayer()
+        {
+            return owner != null && owner.TryFindLayer(layer, out _, out _) &&
+                   !WhimTexApi.IsLayerContentLocked(owner, layer);
+        }
+
+        private void UpdateLayerDropMarker(VisualElement row)
+        {
+            if (activeLayerDropMarker == row)
+                return;
+            activeLayerDropMarker?.RemoveFromClassList("whimtex-layer-row--drop-fx");
+            activeLayerDropMarker = row;
+            activeLayerDropMarker?.AddToClassList("whimtex-layer-row--drop-fx");
+        }
+
+        private void MoveToLayer(int sourceIndex, Layer destination)
+        {
+            if (!CanMoveToLayer(destination) || sourceIndex < 0 || sourceIndex >= layer.modifiers.Count)
+                return;
+
+            UnityEngine.Object modifier = layer.modifiers[sourceIndex];
+            Change("Move FX to Layer", () =>
+            {
+                if (!CanMoveToLayer(destination) || sourceIndex >= layer.modifiers.Count ||
+                    !ReferenceEquals(layer.modifiers[sourceIndex], modifier))
+                    return;
+                layer.modifiers.RemoveAt(sourceIndex);
+                destination.modifiers ??= new List<UnityEngine.Object>();
+                destination.modifiers.Add(modifier);
+            });
+        }
+
+        internal readonly struct LayerDropTarget
+        {
+            internal readonly Layer Layer;
+            internal readonly VisualElement Row;
+            internal readonly bool IsLayerRow;
+
+            internal LayerDropTarget(Layer layer, VisualElement row, bool isLayerRow)
+            {
+                Layer = layer;
+                Row = row;
+                IsLayerRow = isLayerRow;
+            }
+        }
+
         private sealed class ReorderManipulator : PointerManipulator
         {
             private readonly int sourceIndex;
+            private readonly VisualElement dragHandle;
             private readonly Action<Vector2, bool> updateDropMarker;
             private readonly Action<int, int> move;
+            private readonly Func<bool> canReorder;
+            private readonly Func<Vector2, LayerDropTarget> findLayerDropTarget;
+            private readonly Func<Layer, bool> canMoveToLayer;
+            private readonly Action<VisualElement> updateLayerDropMarker;
+            private readonly Action<int, Layer> moveToLayer;
+            private VisualElement eventRoot;
+            private EditorWindow dragWindow;
             private Vector2 pointerDownPosition;
             private int pointerId = -1;
             private int targetIndex = -1;
+            private Layer destinationLayer;
+            private bool overLayerRow;
             private bool dragging;
             private Vector2 lastPointerPosition;
             private ScrollView scrollView;
             private IVisualElementScheduledItem autoScrollSchedule;
 
-            internal ReorderManipulator(int sourceIndex, Action<Vector2, bool> updateDropMarker, Action<int, int> move)
+            internal ReorderManipulator(
+                int sourceIndex,
+                VisualElement dragHandle,
+                Action<Vector2, bool> updateDropMarker,
+                Action<int, int> move,
+                Func<bool> canReorder,
+                Func<Vector2, LayerDropTarget> findLayerDropTarget,
+                Func<Layer, bool> canMoveToLayer,
+                Action<VisualElement> updateLayerDropMarker,
+                Action<int, Layer> moveToLayer)
             {
                 this.sourceIndex = sourceIndex;
+                this.dragHandle = dragHandle;
                 this.updateDropMarker = updateDropMarker;
                 this.move = move;
+                this.canReorder = canReorder;
+                this.findLayerDropTarget = findLayerDropTarget;
+                this.canMoveToLayer = canMoveToLayer;
+                this.updateLayerDropMarker = updateLayerDropMarker;
+                this.moveToLayer = moveToLayer;
             }
 
             protected override void RegisterCallbacksOnTarget()
             {
-                target.RegisterCallback<PointerDownEvent>(OnPointerDown);
-                target.RegisterCallback<PointerMoveEvent>(OnPointerMove);
-                target.RegisterCallback<PointerUpEvent>(OnPointerUp);
-                target.RegisterCallback<PointerCaptureOutEvent>(OnPointerCaptureOut);
+                target.RegisterCallback<PointerDownEvent>(OnPointerDown, TrickleDown.TrickleDown);
+                target.RegisterCallback<PointerMoveEvent>(OnPanelPointerMove);
+                target.RegisterCallback<PointerUpEvent>(OnPanelPointerUp);
+                target.RegisterCallback<PointerCancelEvent>(OnPanelPointerCancel);
+                target.RegisterCallback<PointerCaptureOutEvent>(OnPanelPointerCaptureOut);
+                target.RegisterCallback<DetachFromPanelEvent>(OnDetach);
             }
 
             protected override void UnregisterCallbacksFromTarget()
             {
-                target.UnregisterCallback<PointerDownEvent>(OnPointerDown);
-                target.UnregisterCallback<PointerMoveEvent>(OnPointerMove);
-                target.UnregisterCallback<PointerUpEvent>(OnPointerUp);
-                target.UnregisterCallback<PointerCaptureOutEvent>(OnPointerCaptureOut);
+                target.UnregisterCallback<PointerDownEvent>(OnPointerDown, TrickleDown.TrickleDown);
+                target.UnregisterCallback<PointerMoveEvent>(OnPanelPointerMove);
+                target.UnregisterCallback<PointerUpEvent>(OnPanelPointerUp);
+                target.UnregisterCallback<PointerCancelEvent>(OnPanelPointerCancel);
+                target.UnregisterCallback<PointerCaptureOutEvent>(OnPanelPointerCaptureOut);
+                target.UnregisterCallback<DetachFromPanelEvent>(OnDetach);
                 ClearDrag();
             }
 
             private void OnPointerDown(PointerDownEvent evt)
             {
-                if (evt.button != 0 || pointerId != -1)
+                if (evt.button != 0 || pointerId != -1 || !canReorder())
                     return;
+                for (VisualElement element = evt.target as VisualElement; element != null && element != target; element = element.parent)
+                    if (element is Button || element is Toggle || element is ObjectField)
+                        return;
                 pointerId = evt.pointerId;
                 pointerDownPosition = new Vector2(evt.position.x, evt.position.y);
                 targetIndex = sourceIndex;
+                eventRoot = target.panel?.visualTree;
+                if (eventRoot == null)
+                {
+                    pointerId = -1;
+                    return;
+                }
+                eventRoot.RegisterCallback<KeyDownEvent>(OnKeyDown, TrickleDown.TrickleDown);
+                eventRoot.RegisterCallback<MouseLeaveWindowEvent>(OnMouseLeaveWindow);
+                dragWindow = EditorWindow.focusedWindow;
+                EditorApplication.update += CheckWindowFocus;
                 target.CapturePointer(pointerId);
                 evt.StopPropagation();
             }
 
-            private void OnPointerMove(PointerMoveEvent evt)
+            private void OnPanelPointerMove(PointerMoveEvent evt)
             {
                 if (evt.pointerId != pointerId)
                     return;
+                if ((evt.pressedButtons & 1) == 0)
+                {
+                    ClearDrag();
+                    return;
+                }
                 Vector2 position = new Vector2(evt.position.x, evt.position.y);
                 if (!dragging && (position - pointerDownPosition).sqrMagnitude >= 16f)
                 {
+                    if (!canReorder())
+                    {
+                        ClearDrag();
+                        return;
+                    }
                     dragging = true;
-                    target.AddToClassList("whimtex-fx-drag-handle--dragging");
-                    scrollView = FindScrollView();
+                    dragHandle.AddToClassList("whimtex-fx-drag-handle--dragging");
+                    scrollView = FindScrollView(target);
                     autoScrollSchedule = target.schedule.Execute(AutoScrollTick).Every(16);
                 }
                 if (!dragging)
                     return;
                 lastPointerPosition = position;
-                targetIndex = FindTargetIndex(position);
-                updateDropMarker(position, true);
+                UpdateDragTarget(position);
                 evt.StopPropagation();
             }
 
-            private ScrollView FindScrollView()
+            private void OnPanelPointerUp(PointerUpEvent evt)
             {
-                for (VisualElement current = target; current != null; current = current.parent)
+                if (evt.pointerId != pointerId)
+                    return;
+                bool shouldMove = dragging;
+                int destination;
+                Layer destinationLayerAtRelease;
+                bool releasedOverLayerRow;
+                try
+                {
+                    if (dragging)
+                        UpdateDragTarget(new Vector2(evt.position.x, evt.position.y));
+                    destination = targetIndex;
+                    destinationLayerAtRelease = destinationLayer;
+                    releasedOverLayerRow = overLayerRow;
+                }
+                finally
+                {
+                    ClearDrag();
+                    evt.StopPropagation();
+                }
+                if (shouldMove)
+                {
+                    if (destinationLayerAtRelease != null)
+                        moveToLayer(sourceIndex, destinationLayerAtRelease);
+                    else if (!releasedOverLayerRow && destination >= 0 && destination != sourceIndex)
+                        move(sourceIndex, destination);
+                    evt.StopPropagation();
+                }
+            }
+
+            private void OnPanelPointerCancel(PointerCancelEvent evt)
+            {
+                if (evt.pointerId != pointerId)
+                    return;
+                bool wasDragging = dragging;
+                ClearDrag();
+                if (wasDragging)
+                    evt.StopPropagation();
+            }
+
+            private void OnPanelPointerCaptureOut(PointerCaptureOutEvent evt)
+            {
+                if (evt.pointerId == pointerId && evt.target == target)
+                    ClearDrag();
+            }
+
+            private void OnDetach(DetachFromPanelEvent evt) => ClearDrag();
+
+            private void OnKeyDown(KeyDownEvent evt)
+            {
+                if (evt.keyCode != KeyCode.Escape || pointerId < 0)
+                    return;
+                ClearDrag();
+                evt.StopPropagation();
+            }
+
+            private void OnMouseLeaveWindow(MouseLeaveWindowEvent evt) => ClearDrag();
+
+            private void CheckWindowFocus()
+            {
+                if (target.panel == null || EditorWindow.focusedWindow != dragWindow)
+                    ClearDrag();
+            }
+
+            private void UpdateDragTarget(Vector2 panelPosition)
+            {
+                LayerDropTarget candidate = findLayerDropTarget(panelPosition);
+                overLayerRow = candidate.IsLayerRow;
+                destinationLayer = overLayerRow && canMoveToLayer(candidate.Layer)
+                    ? candidate.Layer
+                    : null;
+
+                if (overLayerRow)
+                {
+                    targetIndex = -1;
+                    updateDropMarker(default, false);
+                    updateLayerDropMarker(destinationLayer != null ? candidate.Row : null);
+                    scrollView = FindScrollView(candidate.Row);
+                    return;
+                }
+
+                destinationLayer = null;
+                updateLayerDropMarker(null);
+                scrollView = FindScrollView(target);
+                bool overStack = scrollView != null && scrollView.contentViewport.worldBound.Contains(panelPosition);
+                targetIndex = overStack ? FindTargetIndex(panelPosition) : -1;
+                updateDropMarker(panelPosition, overStack);
+                if (!overStack)
+                    scrollView = null;
+            }
+
+            private static ScrollView FindScrollView(VisualElement from)
+            {
+                for (VisualElement current = from; current != null; current = current.parent)
                     if (current is ScrollView scroll)
                         return scroll;
                 return null;
@@ -302,6 +596,8 @@ namespace DCFApixels.WhimTex
                     return;
 
                 Rect viewport = scrollView.contentViewport.worldBound;
+                if (!viewport.Contains(lastPointerPosition))
+                    return;
                 const float edgeSize = 36f;
                 float direction = 0f;
                 float strength = 0f;
@@ -320,10 +616,11 @@ namespace DCFApixels.WhimTex
                     return;
 
                 Vector2 offset = scrollView.scrollOffset;
+                float previousY = offset.y;
                 offset.y += direction * Mathf.Lerp(4f, 18f, strength);
                 scrollView.scrollOffset = offset;
-                targetIndex = FindTargetIndex(lastPointerPosition);
-                updateDropMarker(lastPointerPosition, true);
+                if (scrollView.scrollOffset.y != previousY)
+                    UpdateDragTarget(lastPointerPosition);
             }
 
             private int FindTargetIndex(Vector2 panelPosition)
@@ -347,33 +644,30 @@ namespace DCFApixels.WhimTex
                 return Mathf.Clamp(result, 0, list.childCount - 1);
             }
 
-            private void OnPointerUp(PointerUpEvent evt)
-            {
-                if (evt.pointerId != pointerId)
-                    return;
-                bool shouldMove = dragging;
-                int destination = targetIndex;
-                if (target.HasPointerCapture(pointerId))
-                    target.ReleasePointer(pointerId);
-                ClearDrag();
-                if (shouldMove && destination >= 0 && destination != sourceIndex)
-                    move(sourceIndex, destination);
-                evt.StopPropagation();
-            }
-
-            private void OnPointerCaptureOut(PointerCaptureOutEvent evt) => ClearDrag();
-
             private void ClearDrag()
             {
-                if (target == null)
-                    return;
-                target.RemoveFromClassList("whimtex-fx-drag-handle--dragging");
+                int activePointerId = pointerId;
+                pointerId = -1;
+                EditorApplication.update -= CheckWindowFocus;
+                dragWindow = null;
                 autoScrollSchedule?.Pause();
                 autoScrollSchedule = null;
-                scrollView = null;
-                pointerId = -1;
-                targetIndex = -1;
                 dragging = false;
+                if (eventRoot != null)
+                {
+                    eventRoot.UnregisterCallback<KeyDownEvent>(OnKeyDown, TrickleDown.TrickleDown);
+                    eventRoot.UnregisterCallback<MouseLeaveWindowEvent>(OnMouseLeaveWindow);
+                    eventRoot = null;
+                }
+                if (activePointerId >= 0 && target != null && target.HasPointerCapture(activePointerId))
+                    target.ReleasePointer(activePointerId);
+                if (dragHandle != null)
+                    dragHandle.RemoveFromClassList("whimtex-fx-drag-handle--dragging");
+                scrollView = null;
+                targetIndex = -1;
+                destinationLayer = null;
+                overLayerRow = false;
+                updateLayerDropMarker(null);
                 updateDropMarker(default, false);
             }
         }

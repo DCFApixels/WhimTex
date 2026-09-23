@@ -88,6 +88,7 @@ Effects added to the project become available automatically; no preset folder se
 
 **+ Reference** selects a Shader FX asset whose settings are shared everywhere it is used.
 **⋮ → Embed Copy** in the effect header creates an independent copy in the document without changing the external asset. The same menu contains **Move Up**, **Move Down** and **Remove**.
+Use **⋮ → Copy FX**, then **Paste FX As New** on another row to insert an independent copy after it, or use the toolbar's **Paste FX** to append it. Shader FX code and parameters are copied; layer-texture links stay within the same document and are cleared when pasted into another document. Material rows copy the Material reference.
 Project HLSL effects receive code changes from their source `.hlsl` file.
 To edit the code independently in the document, click **Embed Copy** under **Code**. Parameters are visible directly below the header; **Code** contains the editor, **Apply**, **Save Preset…** and the nested **Shader inputs** reference. Diagnostics appear only when there is something to report.
 
@@ -193,7 +194,8 @@ Choose **FX → + Preset → Distortion → Spherize**, **Twirl**, **Radial Shea
 - **Twirl / Angle:** twists around the center; the sign reverses direction. The angle is measured in degrees at the frame's local radius 1 and grows with distance.
 - **Radial Shear:** twists sampling coordinates progressively farther from **Center**; **Strength** controls the direction and amount, while **Offset** adds a base shift.
 - **Area / Edit on Canvas:** move, resize or rotate the green coordinate frame. Stretch it to make the distortion elliptical.
-- **Displacement Map / Mode:** `VectorRG` reads R/G as a signed direction field; the `Neutral` value (0.5 by default) means no offset. Use a linear/data texture for vector maps. X/Y strengths are in canvas pixels. `Grayscale` reads a selected channel and moves pixels horizontally, vertically, radially, tangentially, or along an angle.
+- **Displacement Map / Mode:** `VectorRG` reads R/G as a signed direction field; the `Neutral` value (0.5 by default) means no offset. Use a linear/data texture for vector and height maps. X/Y strengths are in canvas pixels. `Grayscale` reads a selected channel and moves pixels horizontally, vertically, radially, tangentially, or along an angle. `ParallaxOcclusion` treats the selected map channel as height and shifts the sample along a virtual view ray.
+- **Parallax / Depth and View:** **Depth** sets the height range in canvas pixels; **View Angle** sets the ray direction, and a lower **View Elevation** increases the shift. **Invert Height** swaps raised and recessed areas. **Parallax Steps** selects the quality/cost tradeoff (4–32 height samples); the default is 8.
 - **Map / Transform and Wrap:** position the map independently. `Clamp`, `Repeat`, and `Mirror` control map coordinates; they do not affect the displaced image's edges.
 - **Strength Mask:** `Constant1` is the default, so one map is enough and no strength mask is required. `MapChannel` reuses a channel of that same map, `InputAlpha` follows the input image's alpha, and `SeparateTexture` adds an optional second mask texture. Invert the mask or remap it with **Mask Profile**.
 - **Output / Mix and Input Edge:** blend the displaced sample with the original, and choose how out-of-bounds image samples are handled: `Clamp`, `Repeat`, `Mirror`, or `Transparent`.

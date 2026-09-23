@@ -110,7 +110,7 @@ test('displacement map supports a single map with an optional strength mask', ()
     assert.equal(code.split(/\r?\n/)[0], '// @whimtex-effect Distortion/Displacement Map');
     assert.match(code, /@param texture2D _DisplacementMap = self/);
     assert.match(code, /@param transform2D _MapTransform/);
-    assert.match(code, /@param enum _Mode = VectorRG \{VectorRG: 0, Grayscale: 1\}/);
+    assert.match(code, /@param enum _Mode = VectorRG \{VectorRG: 0, Grayscale: 1, ParallaxOcclusion: 2\}/);
     assert.match(code, /@param enum _MaskSource = Constant1 \{Constant1: 0, MapChannel: 1, InputAlpha: 2, SeparateTexture: 3\}/);
     assert.match(code, /float strengthMask = 1\.0/);
     assert.match(code, /ReadStrengthChannel\(mapSample, _MapMaskChannel\)/);
@@ -122,6 +122,24 @@ test('displacement map supports a single map with an optional strength mask', ()
     assert.match(code, /float2 AddressMapUV\(/);
     assert.match(code, /float2 AddressInputUV\(/);
     assert.match(code, /float4 distorted = SampleInput\(inputUV\) \* inside/);
+    assert.match(code, /@param enum _ParallaxSteps = Balanced \{Fast: 4, Balanced: 8, High: 16, Ultra: 32\}/);
+    assert.match(code, /float2 TraceParallax\(float2 uv, float strengthMask, float2 mapDDX, float2 mapDDY, out float hitHeight\)/);
+    assert.match(code, /tex2Dgrad\(_DisplacementMap, mapUV, mapDDX, mapDDY\)/);
+    assert.match(code, /float2 mapDDX = ddx\(mapUV\)/);
+    assert.match(code, /for \(int i = 0; i < 32; i\+\+\)/);
+    assert.match(code, /^\/\/ \/\/ @param bool _SelfShadow = false/m, 'Self-shadow settings remain commented out');
+    assert.match(code, /^\/\/ float TraceParallaxSelfShadow\(/m, 'Self-shadow tracing remains commented out');
+    assert.match(code, /^    \/\/ if \(_Mode > 1\.5 && _SelfShadow > 0\.5\)/m, 'Self-shadow application remains disabled');
+    assert.doesNotMatch(code, /^\s*if \(_Mode > 1\.5 && _SelfShadow > 0\.5\)/m);
+    assert.equal((code.match(/^\/\/ @if\b/gm) ?? []).length, (code.match(/^\/\/ @endif\b/gm) ?? []).length,
+        'Conditional parameter blocks are balanced');
+    let directiveDepth = 0;
+    for (const line of code.split(/\r?\n/)) {
+        if (/^\/\/ @if\b/.test(line)) directiveDepth++;
+        if (/^\/\/ @param\b/.test(line)) assert.ok(directiveDepth <= 1, 'Parameter conditions are not nested');
+        if (/^\/\/ @endif\b/.test(line)) directiveDepth--;
+    }
+    assert.equal(directiveDepth, 0, 'All conditional parameter blocks are closed');
     const applyFX = code.slice(code.indexOf('float4 ApplyFX('));
     assert.equal((applyFX.match(/\breturn\b/g) ?? []).length, 1, 'ApplyFX has one initialized return path');
 

@@ -367,6 +367,15 @@ namespace DCFApixels.WhimTex
             }
         }
 
+        internal ShaderFX CloneForClipboard()
+        {
+            string includeBasePath = SourcePath;
+            ShaderFX copy = CloneForDocument(null);
+            copy.documentIncludeBasePath = includeBasePath;
+            copy.DetachCatalog();
+            return copy;
+        }
+
         internal void PersistEmbedded(TextureCompositor owner)
         {
             if (embeddedOwner != owner || !AssetDatabase.Contains(owner))

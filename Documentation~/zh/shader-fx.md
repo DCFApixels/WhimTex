@@ -87,6 +87,7 @@ HLSL 画笔预设和没有效果标记的文件不会被接受。
 
 **+ Reference** 用于选择 Shader FX 资源，所有使用它的位置共享设置。
 效果标题栏中的 **⋮ → Embed Copy** 会在文档内创建独立副本，不修改外部资源。同一菜单还包含 **Move Up**、**Move Down** 和 **Remove**。
+选择 **⋮ → Copy FX**，然后在另一行选择 **Paste FX As New**，即可在该行后插入独立副本；也可以点击工具栏的 **Paste FX** 将其添加到列表末尾。Shader FX 的代码和参数会一并复制；在同一文档内粘贴时保留图层纹理引用，粘贴到其他文档时会清除这些引用。Material 行复制的是同一个材质资源引用。
 项目 HLSL 效果的代码会随源 `.hlsl` 文件更新。要在文档内独立编辑代码，
 请点击 **Code** 中的 **Embed Copy**。参数直接显示在标题下方；**Code** 包含代码编辑器、**Apply**、**Save Preset…** 和嵌套的 **Shader inputs** 参考说明。只有存在消息时才显示诊断区域。
 
@@ -183,7 +184,8 @@ Ctrl/Cmd + Alt 会对称移动对角点。Position、Size 和 Rotation 保留已
 - **Twirl / Angle：** 围绕中心扭曲；符号会反转方向。角度以边框局部半径 1 处的度数计量，并随距离增长。
 - **Radial Shear：** 采样坐标会随离 **Center** 的距离增加而逐渐旋转；**Strength** 控制方向和强度，**Offset** 添加基础偏移。
 - **Area / Edit on Canvas：** 移动、缩放或旋转绿色坐标框。拉伸它可使扭曲变为椭圆形。
-- **Displacement Map / Mode：** `VectorRG` 将 R/G 作为有符号方向场；默认 `Neutral` 为 0.5，表示不偏移。此模式请将贴图设为线性数据。X/Y 强度以画布像素为单位。`Grayscale` 读取所选通道，并按水平、垂直、径向、切向或指定角度移动像素。
+- **Displacement Map / Mode：** `VectorRG` 将 R/G 作为有符号方向场；默认 `Neutral` 为 0.5，表示不偏移。矢量贴图和高度贴图应使用线性数据设置。X/Y 强度以画布像素为单位。`Grayscale` 读取所选通道，并按水平、垂直、径向、切向或指定角度移动像素。`ParallaxOcclusion` 将所选贴图通道作为高度，并沿虚拟视线移动采样位置。
+- **Parallax / Depth 与 View：** **Depth** 设置以画布像素为单位的高度范围；**View Angle** 设置射线方向，降低 **View Elevation** 会增大位移。**Invert Height** 可交换凸起与凹陷区域。**Parallax Steps** 用于调整质量与开销（4–32 次高度采样），默认值为 8。
 - **Map / Transform 与 Wrap：** 独立定位和缩放贴图。`Clamp`、`Repeat` 和 `Mirror` 只控制贴图坐标，不影响被扭曲图像的边缘。
 - **Strength Mask：** 默认 `Constant1`，因此只需一张贴图，也可以不设置强度遮罩。`MapChannel` 重用同一贴图的一个通道，`InputAlpha` 使用输入图像的透明度，`SeparateTexture` 则额外提供一张遮罩贴图。可反转遮罩或用 **Mask Profile** 曲线重新映射。
 - **Output / Mix 与 Input Edge：** 将扭曲采样与原图混合，并选择图像坐标超出边界时的处理方式：`Clamp`、`Repeat`、`Mirror` 或 `Transparent`。

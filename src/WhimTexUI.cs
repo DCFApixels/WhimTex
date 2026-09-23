@@ -315,6 +315,7 @@ namespace DCFApixels.WhimTex
 
             var fx = CreateInspectorSection("FX", "fxSection", LayerActionIcon.Kind.Effects,
                 fxExpanded, fxExpansionChanged);
+            fx.contentContainer.AddToClassList("whimtex-fx-section-content");
             root.Add(fx);
             var view = new LayerShaderFXView(layer, owner, apply);
             fx.Add(view);

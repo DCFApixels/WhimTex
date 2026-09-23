@@ -3,8 +3,13 @@
 // @param texture2D _DisplacementMap = self // Source field. Vector mode reads R/G; Grayscale mode reads the selected channel.
 // @param transform2D _MapTransform = (0.5, 0.5, 1, 1, 0) // Positions and scales the map independently from the image being distorted.
 // @param enum _MapWrap = Clamp {Clamp: 0, Repeat: 1, Mirror: 2} // Addressing for the map and an optional separate strength mask.
-// @param enum _Mode = VectorRG {VectorRG: 0, Grayscale: 1}
+// @param enum _Mode = VectorRG {VectorRG: 0, Grayscale: 1, ParallaxOcclusion: 2}
+// @if _Mode != 2
 // @param float _Neutral = 0.5 [0 .. 1] // Neutral value for vector channels and the grayscale displacement.
+// @endif
+// @if _Mode != 0
+// @param enum _MapChannel = Luminance {Luminance: 0, R: 1, G: 2, B: 3, Alpha: 4}
+// @endif
 // @if _Mode == 0
 // @header(Vector)
 // @param float _StrengthX = 0 [~-512 .. ~512] // Horizontal displacement in canvas pixels at a full channel value.
@@ -12,11 +17,26 @@
 // @endif
 // @if _Mode == 1
 // @header(Grayscale)
-// @param enum _MapChannel = Luminance {Luminance: 0, R: 1, G: 2, B: 3, Alpha: 4}
 // @param enum _Direction = Horizontal {Horizontal: 0, Vertical: 1, Radial: 2, Tangential: 3, Angle: 4}
 // @param float _Strength = 0 [~-512 .. ~512] // Displacement in canvas pixels. The sign reverses the selected direction.
 // @param point _Center = (0.5, 0.5) // Origin for Radial and Tangential directions.
 // @param float _Angle = 0 [~-180 .. ~180] // Direction angle in degrees when Direction is Angle.
+// @endif
+// @if _Mode == 2
+// @header(Parallax)
+// @param float _Depth = 8 [0 .. 128] // Height range in canvas pixels; lower view elevation creates a larger parallax shift.
+// @param float _ViewAngle = 0 [~-180 .. ~180] // Direction of the virtual view ray in the canvas plane.
+// @param float _ViewElevation = 60 [5 .. 85] // 90 degrees is head-on; lower values increase parallax.
+// @param enum _ParallaxSteps = Balanced {Fast: 4, Balanced: 8, High: 16, Ultra: 32}
+// @param bool _InvertHeight = false // Use black as the raised surface and white as the recessed surface.
+// Self-shadowing controls are temporarily disabled; keep their source here for later iteration.
+// // @header(Self-Shadowing)
+// // @param bool _SelfShadow = false // Trace the height field toward a virtual light and darken occluded areas.
+// // @param float _LightAngle = 45 [~-180 .. ~180] // Direction toward the virtual light in the canvas plane.
+// // @param float _LightElevation = 45 [5 .. 85]
+// // @param enum _ShadowSteps = Balanced {Low: 4, Balanced: 8, High: 16}
+// // @param float _ShadowStrength = 0.65 [0 .. 1]
+// // @param float _ShadowSoftness = 0.02 [0 .. 0.2]
 // @endif
 // @header(Strength Mask)
 // @param enum _MaskSource = Constant1 {Constant1: 0, MapChannel: 1, InputAlpha: 2, SeparateTexture: 3} // Constant1 needs no second texture; MapChannel reuses the displacement map.
@@ -80,6 +100,78 @@ float2 AddressInputUV(float2 uv, float mode, float2 texelSize, out float inside)
     return clamp(uv, texelSize * 0.5, 1.0 - texelSize * 0.5);
 }
 
+float ReadHeightAtUV(float2 uv, float2 mapDDX, float2 mapDDY)
+{
+    float2 mapUV = AddressMapUV(_MapTransform_ToLocal(uv), _MapWrap, _DisplacementMap_TexelSize.xy);
+    float height = saturate(ReadDisplacementChannel(tex2Dgrad(_DisplacementMap, mapUV, mapDDX, mapDDY), _MapChannel));
+    return _InvertHeight > 0.5 ? 1.0 - height : height;
+}
+
+float2 DirectionFromAngle(float angle)
+{
+    float sine, cosine;
+    sincos(radians(angle), sine, cosine);
+    return float2(cosine, sine);
+}
+
+float2 TraceParallax(float2 uv, float strengthMask, float2 mapDDX, float2 mapDDY, out float hitHeight)
+{
+    int steps = clamp((int)round(_ParallaxSteps), 4, 32);
+    float elevation = radians(clamp(_ViewElevation, 5.0, 85.0));
+    float lateralPixels = _Depth * strengthMask / max(tan(elevation), 1e-3);
+    float2 stepUV = DirectionFromAngle(_ViewAngle) * lateralPixels * _CanvasSize.zw / steps;
+    float layerStep = 1.0 / steps;
+    float rayDepth = 0.0;
+    float2 previousUV = uv;
+    float2 currentUV = uv;
+    hitHeight = 0.0;
+
+    [loop]
+    for (int i = 0; i < 32; i++)
+    {
+        if (i >= steps) break;
+        previousUV = currentUV;
+        currentUV -= stepUV;
+        rayDepth += layerStep;
+        hitHeight = ReadHeightAtUV(currentUV, mapDDX, mapDDY);
+        float surfaceDepth = 1.0 - hitHeight;
+        if (rayDepth >= surfaceDepth)
+        {
+            float previousDepth = rayDepth - layerStep;
+            float beforeHit = surfaceDepth - previousDepth;
+            float afterHit = rayDepth - surfaceDepth;
+            float blend = saturate(beforeHit / max(beforeHit + afterHit, 1e-6));
+            currentUV = lerp(previousUV, currentUV, blend);
+            hitHeight = ReadHeightAtUV(currentUV, mapDDX, mapDDY);
+            break;
+        }
+    }
+    return currentUV;
+}
+
+// Temporarily disabled self-shadow implementation:
+// float TraceParallaxSelfShadow(float2 hitUV, float surfaceHeight, float strengthMask, float2 mapDDX, float2 mapDDY)
+// {
+//     int steps = clamp((int)round(_ShadowSteps), 4, 16);
+//     float elevation = radians(clamp(_LightElevation, 5.0, 85.0));
+//     float lateralPixels = _Depth * strengthMask * (1.0 - surfaceHeight) / max(tan(elevation), 1e-3);
+//     float2 lightStepUV = DirectionFromAngle(_LightAngle) * lateralPixels * _CanvasSize.zw / steps;
+//     float softness = max(_ShadowSoftness, 1e-4);
+//     float visibility = 1.0;
+//
+//     [loop]
+//     for (int i = 0; i < 16; i++)
+//     {
+//         if (i >= steps) break;
+//         float progress = (i + 1.0) / steps;
+//         float sampleHeight = ReadHeightAtUV(hitUV + lightStepUV * (i + 1), mapDDX, mapDDY);
+//         float rayHeight = lerp(surfaceHeight, 1.0, progress);
+//         visibility = min(visibility, 1.0 - smoothstep(-softness, softness, sampleHeight - rayHeight));
+//         if (visibility <= 1e-3) break;
+//     }
+//     return visibility;
+// }
+
 float2 GrayscaleDirection(float2 uv)
 {
     float2 direction = float2(1.0, 0.0);
@@ -105,15 +197,19 @@ float2 GrayscaleDirection(float2 uv)
 float4 ApplyFX(float2 uv, float4 color)
 {
     float2 mapUV = _MapTransform_ToLocal(uv);
+    float2 mapDDX = ddx(mapUV);
+    float2 mapDDY = ddy(mapUV);
     mapUV = AddressMapUV(mapUV, _MapWrap, _DisplacementMap_TexelSize.xy);
     float4 mapSample = tex2D(_DisplacementMap, mapUV);
     float2 displacementPixels = float2(0.0, 0.0);
+    float2 parallaxUV = uv;
+    float parallaxHeight = 0.0;
 
     if (_Mode < 0.5)
     {
         displacementPixels = (mapSample.rg - float2(_Neutral, _Neutral)) * 2.0 * float2(_StrengthX, _StrengthY);
     }
-    else
+    else if (_Mode < 1.5)
     {
         float mapValue = ReadDisplacementChannel(mapSample, _MapChannel);
         float signedValue = (mapValue - _Neutral) * 2.0;
@@ -138,10 +234,18 @@ float4 ApplyFX(float2 uv, float4 color)
         strengthMask = saturate(_MaskProfile_Sample(saturate(maskValue)));
     }
 
-    float2 inputUV = uv + displacementPixels * strengthMask * _CanvasSize.zw;
+    if (_Mode > 1.5)
+        parallaxUV = TraceParallax(uv, strengthMask, mapDDX, mapDDY, parallaxHeight);
+
+    float2 inputUV = _Mode > 1.5 ? parallaxUV : uv + displacementPixels * strengthMask * _CanvasSize.zw;
     float inside;
     inputUV = AddressInputUV(inputUV, _InputEdge, _MainTex_TexelSize.xy, inside);
     float4 distorted = SampleInput(inputUV) * inside;
+    // if (_Mode > 1.5 && _SelfShadow > 0.5)
+    // {
+    //     float visibility = TraceParallaxSelfShadow(parallaxUV, parallaxHeight, strengthMask, mapDDX, mapDDY);
+    //     distorted.rgb *= lerp(1.0, visibility, saturate(_ShadowStrength));
+    // }
     float4 result = lerp(color, distorted, saturate(_Mix));
     return result;
 }

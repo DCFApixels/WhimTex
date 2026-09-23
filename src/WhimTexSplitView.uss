@@ -194,6 +194,12 @@
     border-bottom-width: 2px;
 }
 
+.whimtex-layer-row--drop-fx > .whimtex-layer-drop-marker {
+    display: flex;
+    border-width: 1px;
+    background-color: rgba(51, 158, 255, 0.15);
+}
+
 .whimtex-layer-menu-dot {
     width: 2px;
     height: 2px;
@@ -863,6 +869,11 @@
     margin: 0;
     padding: 5px 8px 7px;
     min-width: 0;
+}
+
+.whimtex-fx-section-content {
+    padding-left: 0;
+    padding-right: 0;
 }
 
 .whimtex-inspector-section-icon {
@@ -1748,13 +1759,6 @@
 .whimtex-layer-fx-entry--drop-after {
     border-bottom-width: 2px;
     border-bottom-color: #78aaff;
-}
-
-.whimtex-fx-menu-button {
-    width: 22px;
-    height: 20px;
-    flex-shrink: 0;
-    padding: 0;
 }
 
 .whimtex-fx-note {
