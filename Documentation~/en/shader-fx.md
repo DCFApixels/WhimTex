@@ -101,6 +101,11 @@ Effect order matters: the **↑** and **↓** arrows on each effect row apply it
 Alpha is preserved and HDR brightness is supported. HSV correction treats negative RGB channels as zero;
 neutral settings and Amount 0 leave the original unchanged.
 
+**Negative**
+
+**Color → Negative** blends the source RGB toward its inverse (`1 - RGB`) with **Amount**.
+Alpha is preserved by default; enable **Invert Alpha** to apply the same blend to it.
+
 **Gradient mapping**
 
 **Color → Gradient Map** recolors shadows, midtones and highlights using a gradient.
@@ -110,7 +115,7 @@ The original alpha is preserved; gradient alpha is ignored.
 
 **Pixelation and dithering**
 
-**Pixel Art → Pixelate** replaces every block of **Pixel Size** canvas pixels with a single value.
+**Stylization → Pixelate** replaces every block of **Pixel Size** canvas pixels with a single value.
 **Average** samples a 4×4 grid inside the block instead of its center, so thin details survive.
 **Levels** sets how many values each channel keeps and **Gamma** moves the tonal steps between
 shadows and highlights. **Dither** picks the pattern that spreads the error between levels:
@@ -119,7 +124,15 @@ noise, **Checker** is a two-tone grid, **Halftone** builds a clustered-dot scree
 stable noise without a visible grid. The pattern is evaluated per block, so it stays visible after
 pixelation. **Amount** weakens it down to plain rounding. **One Bit** reduces the result to
 **Low Color** and **High Color** by luminance instead of quantizing each channel. Alpha is preserved.
-The same pattern list works per pixel in **Color → Posterize**.
+The same pattern list works per pixel in **Stylization → Posterize**.
+
+**Other stylization effects**
+
+- **Step** thresholds each RGB channel separately. Choose **Hard** for a two-value result or **Smoothstep** to soften the transition with **Hardness**. **Threshold** instead tests luminance (or alpha) and maps the result between two colors, optionally with a soft boundary; it preserves source alpha.
+- **Halftone** turns the image into monochrome, CMYK or RGB dot screens. Set dot size and shape; CMYK/RGB modes also expose screen angles and manual or automatic plate registration.
+- **Chromatic Aberration** shifts red and blue in opposite directions, radially from a point or along an angle. **Amount** is in canvas pixels; green and alpha stay unchanged.
+- **CRT** combines curved edges, scanlines, RGB phosphor stripes, vignette, color fringing, grain and flicker. **VHS** adds line wobble, chroma bleed, noise and a moving tracking band. **Seed** changes the deterministic pattern; **Effect Time** selects another frame.
+- **Digital Glitch** combines line tears, independently segmented corruption blocks, channel shifts, color/noise/alpha artifacts and optional gradient tinting. **Seed**, **Effect Time** and **Frame Rate** control its repeatable animated variation; **Block Order** chooses independent row-first or column-first block layouts.
 
 **Lighting and embossing**
 
@@ -173,15 +186,21 @@ but **UV Transform** leaves pixels outside the frame transparent.
 
 ## Distortion presets
 
-Choose **FX → + Preset → Distortion → Spherize** or **Twirl**.
+Choose **FX → + Preset → Distortion → Spherize**, **Twirl**, **Radial Shear** or **Displacement Map**.
 
-- **Spherize / Strength:** positive values expand the center; negative values pinch it. Zero leaves the image unchanged.
+- **Spherize / Mode:** `Classic` keeps the existing unbounded radial distortion; `Sphere` projects the image onto a sphere and clips it to a circular silhouette. The edge is antialiased by about one pixel.
+- **Spherize / Strength:** positive values bulge the center; negative values pinch it. In `Classic`, zero leaves the image unchanged. In `Sphere`, zero keeps the circular shape but removes the texture distortion.
 - **Twirl / Angle:** twists around the center; the sign reverses direction. The angle is measured in degrees at the frame's local radius 1 and grows with distance.
+- **Radial Shear:** twists sampling coordinates progressively farther from **Center**; **Strength** controls the direction and amount, while **Offset** adds a base shift.
 - **Area / Edit on Canvas:** move, resize or rotate the green coordinate frame. Stretch it to make the distortion elliptical.
+- **Displacement Map / Mode:** `VectorRG` reads R/G as a signed direction field; the `Neutral` value (0.5 by default) means no offset. Use a linear/data texture for vector maps. X/Y strengths are in canvas pixels. `Grayscale` reads a selected channel and moves pixels horizontally, vertically, radially, tangentially, or along an angle.
+- **Map / Transform and Wrap:** position the map independently. `Clamp`, `Repeat`, and `Mirror` control map coordinates; they do not affect the displaced image's edges.
+- **Strength Mask:** `Constant1` is the default, so one map is enough and no strength mask is required. `MapChannel` reuses a channel of that same map, `InputAlpha` follows the input image's alpha, and `SeparateTexture` adds an optional second mask texture. Invert the mask or remap it with **Mask Profile**.
+- **Output / Mix and Input Edge:** blend the displaced sample with the original, and choose how out-of-bounds image samples are handled: `Clamp`, `Repeat`, `Mirror`, or `Transparent`.
 
-Distortion effects—Spherize, Twirl and Polar Coordinates—do not mask or fade at the frame's edge.
-Distortion continues outside it. Strong settings can reveal areas beyond the input image,
-where its edge pixels are extended. RGB and alpha are distorted together.
+`Classic` Spherize, Twirl and Polar Coordinates do not mask at the frame edge, so distortion continues outside it.
+`Sphere` is the exception: it creates a circular mask with a crisp, antialiased edge. Strong settings
+in unmasked modes can reveal areas beyond the input image, where its edge pixels are extended. RGB and alpha are distorted together.
 
 ### Polar coordinates
 

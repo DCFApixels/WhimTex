@@ -114,6 +114,11 @@ HLSL 画笔预设和没有效果标记的文件不会被接受。
 调整色相或饱和度不会给灰色像素着色。保留透明度，支持 HDR 明度。
 校正时将负 RGB 通道视为零；中性设置和 Amount 0 完全保留原图。
 
+**反相**
+
+**Color → Negative** 使用 **Amount** 将原始 RGB 与反相颜色（`1 - RGB`）混合。
+默认保留 Alpha；启用 **Invert Alpha** 后，Alpha 也会按相同强度反相。
+
 **渐变映射**
 
 **Color → Gradient Map** 使用渐变为阴影、中间调和高光重新着色。
@@ -122,14 +127,22 @@ HLSL 画笔预设和没有效果标记的文件不会被接受。
 
 **像素化与抖动**
 
-**Pixel Art → Pixelate** 把每个 **Pixel Size** 个画布像素的方块替换为一个值。
+**Stylization → Pixelate** 把每个 **Pixel Size** 个画布像素的方块替换为一个值。
 **Average** 改为在方块内按 4×4 网格取样，而不是只取中心，细小的细节因此不易丢失。
 **Levels** 决定每个通道保留多少个值，**Gamma** 调整各档在阴影与高光之间的分布。
 **Dither** 选择在它们之间分散误差的图案：**Bayer2**、**Bayer4** 和 **Bayer8** 产生经典的规则图案，
 **Interleaved** 是不规则噪声，**Checker** 是双色棋盘，**Halftone** 构成网点，**Hash** 是没有可见网格的稳定噪声。
 图案按方块计算，因此在像素化之后依然可见。**Amount** 会削弱图案，直到变为普通四舍五入。
 **One Bit** 按亮度把结果压缩为 **Low Color** 和 **High Color**，而不是逐通道量化。
-透明度保持不变。同一组图案也可在 **Color → Posterize** 中逐像素使用。
+透明度保持不变。同一组图案也可在 **Stylization → Posterize** 中逐像素使用。
+
+**其他风格化效果**
+
+- **Step** 分别对 RGB 通道进行阈值处理。选择 **Hard** 得到两级结果，或选择 **Smoothstep** 并用 **Hardness** 调整过渡柔和度。**Threshold** 则比较亮度（或 Alpha）与阈值，在两种颜色之间映射；可平滑边缘，并保留源 Alpha。
+- **Halftone** 将图像转换为单色、CMYK 或 RGB 网点屏幕。可设置网点大小与形状；CMYK/RGB 模式还提供屏幕角度以及手动或自动色版套准。
+- **Chromatic Aberration** 将红、蓝通道向相反方向偏移，可从某个点径向扩散或沿指定角度偏移。**Amount** 的单位是画布像素；绿色通道和 Alpha 保持不变。
+- **CRT** 组合边缘弯曲、扫描线、RGB 荧光条纹、暗角、色差、颗粒和闪烁。**VHS** 加入逐行抖动、色彩拖影、噪声和移动的跟踪带。**Seed** 改变确定性图案，**Effect Time** 选择其他帧。
+- **Digital Glitch** 组合行撕裂、按行或列独立分段的破损块、通道偏移、颜色/噪声/Alpha 瑕疵以及渐变着色。**Seed**、**Effect Time** 和 **Frame Rate** 控制可重复的动画变化；**Block Order** 选择先按行或先按列独立排布区块。
 
 ## 保存你自己的预设
 
@@ -163,14 +176,21 @@ Ctrl/Cmd + Alt 会对称移动对角点。Position、Size 和 Rotation 保留已
 
 ## 扭曲预设
 
-选择 **FX → + Preset → Distortion → Spherize** 或 **Twirl**。
+选择 **FX → + Preset → Distortion → Spherize**、**Twirl**、**Radial Shear** 或 **Displacement Map**。
 
-- **Spherize / Strength：** 正值会扩张中心；负值会收缩它。零则保持图像不变。
+- **Spherize / Mode：** `Classic` 保留当前不受边框限制的径向扭曲；`Sphere` 将图像投影到球面并裁切为圆形。边缘会以约一个像素进行抗锯齿。
+- **Spherize / Strength：** 正值会扩张中心；负值会收缩它。`Classic` 模式下零表示不改变图像；`Sphere` 模式下零仍保留圆形，但不扭曲纹理。
 - **Twirl / Angle：** 围绕中心扭曲；符号会反转方向。角度以边框局部半径 1 处的度数计量，并随距离增长。
+- **Radial Shear：** 采样坐标会随离 **Center** 的距离增加而逐渐旋转；**Strength** 控制方向和强度，**Offset** 添加基础偏移。
 - **Area / Edit on Canvas：** 移动、缩放或旋转绿色坐标框。拉伸它可使扭曲变为椭圆形。
+- **Displacement Map / Mode：** `VectorRG` 将 R/G 作为有符号方向场；默认 `Neutral` 为 0.5，表示不偏移。此模式请将贴图设为线性数据。X/Y 强度以画布像素为单位。`Grayscale` 读取所选通道，并按水平、垂直、径向、切向或指定角度移动像素。
+- **Map / Transform 与 Wrap：** 独立定位和缩放贴图。`Clamp`、`Repeat` 和 `Mirror` 只控制贴图坐标，不影响被扭曲图像的边缘。
+- **Strength Mask：** 默认 `Constant1`，因此只需一张贴图，也可以不设置强度遮罩。`MapChannel` 重用同一贴图的一个通道，`InputAlpha` 使用输入图像的透明度，`SeparateTexture` 则额外提供一张遮罩贴图。可反转遮罩或用 **Mask Profile** 曲线重新映射。
+- **Output / Mix 与 Input Edge：** 将扭曲采样与原图混合，并选择图像坐标超出边界时的处理方式：`Clamp`、`Repeat`、`Mirror` 或 `Transparent`。
 
-Spherize、Twirl 和 Polar Coordinates 不会在边框处遮罩或淡出，扭曲会继续延伸到框外。
-较强的设置可能显示输入图像外的区域，此时会延伸输入图像的边缘像素。RGB 和透明度一起扭曲。
+`Classic` Spherize、Twirl 和 Polar Coordinates 在边框处不会遮罩，扭曲会继续延伸到框外。
+`Sphere` 是例外：它会创建带清晰抗锯齿边缘的圆形遮罩。未遮罩模式下，较强设置可能显示输入图像外的区域，
+此时会延伸输入图像的边缘像素。RGB 和透明度一起扭曲。
 
 ### 极坐标
 

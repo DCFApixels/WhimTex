@@ -4,13 +4,19 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+## [0.11.2] - 2026-09-23
+
 ### Added
 
-- Sharpen effect layer with adjustable local-contrast strength, radius and edge sampling modes; available in the editor and portable agent JSON.
+- Sharpen layer and Blur brush, including tablet-pressure controls and sampling from the current layer, layers below or the full result.
+- Shader FX presets for Step, Halftone, CRT, VHS, Chromatic Aberration, Digital Glitch, displacement-map distortion and Negative, plus an additional Spherize mode.
+- Conditional FX parameters, canvas point controls, draggable/foldable effect stacks and an agent command for compiling FX and returning diagnostics.
+- Clamp, Repeat and Mirror gradient wrapping, with expanded CMYK/RGB plate controls for Halftone.
 
 ### Changed
 
-- File layers backed by PNG, JPG/JPEG, BMP, EXR or TGA now render from a cached decode of the original source bytes, preserving source resolution without repeated file decoding.
+- Deterministic settled FX and processor results are reused during interactive previews; Sharpen uses its fast approximation only when a valid high-quality cached result is unavailable.
+- Supported File-layer sources can reuse cached original-resolution pixel data instead of repeatedly decoding the source during rendering.
 
 ## [0.11.1] - 2026-09-22
 

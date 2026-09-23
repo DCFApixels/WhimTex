@@ -6,7 +6,10 @@ assert.match(file, /\[SerializeField\] private bool sourceAssigned;/);
 assert.match(file, /bool initializeCanvas = false/);
 assert.match(file, /sourceAssigned \|= sourceTexture != null \|\| texture != null;/);
 assert.ok(file.indexOf('owner.width =') < file.indexOf('TryGetOriginalAspectTransform'), 'Fit uses the initialized canvas dimensions');
-assert.match(file, /owner.width = Mathf.Max\(1, texture.width\);\s*owner.height = Mathf.Max\(1, texture.height\);/);
+assert.match(file, /owner.width = Mathf.Max\(1, sourceForSizing != null \? sourceForSizing.width : texture.width\);\s*owner.height = Mathf.Max\(1, sourceForSizing != null \? sourceForSizing.height : texture.height\);/,
+  'Canvas initialization prefers the decoded original source dimensions');
+assert.match(file, /sourceForSizing = owner.ResolveOriginalFileTexture\(texture\)/,
+  'Original source texture is resolved before assigning the canvas size');
 
 const condition = file.match(/if \((initializeCanvas .*CanInitializeCanvas\(owner\))\)/)[1];
 const canInitializeSource = file.split('private bool CanInitializeCanvas(TextureCompositor owner)')[1]

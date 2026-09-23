@@ -12,7 +12,8 @@ const expected = [
   'whimtex_assistant_begin', 'whimtex_assistant_lock', 'whimtex_assistant_sessions', 'whimtex_assistant_live',
   'whimtex_describe', 'whimtex_document_inspect', 'whimtex_batch_execute', 'whimtex_image_import',
   'whimtex_document_render', 'whimtex_document_migrate', 'whimtex_storage_inspect',
-  'whimtex_document_validate', 'whimtex_document_status', 'whimtex_document_compare',
+  'whimtex_document_validate',
+  'whimtex_fx_compile', 'whimtex_document_status', 'whimtex_document_compare',
   'whimtex_document_recover', 'whimtex_document_export', 'whimtex_headless_live'
 ];
 

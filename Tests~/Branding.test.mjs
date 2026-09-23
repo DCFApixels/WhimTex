@@ -15,15 +15,16 @@ assert.match(read('Documentation~/_config.yml'), /^repository: DCFApixels\/WhimT
 assert.equal(JSON.parse(read('src/DCFApixels.WhimTex.asmdef')).name, 'DCFApixels.WhimTex');
 const window = read('src/TextureCompositorWindow.cs');
 assert.ok(window.includes('[MenuItem("Window/WhimTex")]'));
-assert.match(window, /void OnEnable\(\)\s*\{\s*RefreshDocumentTitle\(true\)/,
-  'Restored windows update their persisted title without resetting their document');
+assert.match(window, /void OnEnable\(\)\s*\{\s*RestoreSourceImage\(\);\s*RefreshDocumentTitle\(true\)/,
+  'Restored windows recover their source image and persisted title without resetting their document');
 assert.match(read('src/TextureCompositorWindow.DocumentTitle.cs'), /WhimTexBranding.WindowTitle\(title\)/);
 const commands = read('src/Automation/Pipeline/WhimTexCommands.cs');
 const canonicalCommands = [
   'whimtex_assistant_begin', 'whimtex_assistant_lock', 'whimtex_assistant_sessions', 'whimtex_assistant_live',
   'whimtex_describe', 'whimtex_document_inspect', 'whimtex_batch_execute', 'whimtex_image_import',
   'whimtex_document_render', 'whimtex_document_migrate', 'whimtex_storage_inspect',
-  'whimtex_document_validate', 'whimtex_document_status', 'whimtex_document_compare',
+  'whimtex_document_validate',
+  'whimtex_fx_compile', 'whimtex_document_status', 'whimtex_document_compare',
   'whimtex_document_recover', 'whimtex_document_export', 'whimtex_headless_live'
 ];
 for (const id of canonicalCommands)
@@ -118,7 +119,7 @@ const toolbar = toolSource.split('private void RefreshPreviewToolToolbar()')[1].
 assert.match(toolbar, /PreviewTool displayedTool = previewTool;/);
 assert.match(toolbar, /Layer selected = hasLayers \? GetSelectedLayer\(\) : null;/);
 assert.ok(!/previewTool\s*=(?!=)|SetPreviewTool\(|SetEnabled\(/.test(toolbar), 'Empty styling preserves tool choice and configuration');
-assert.equal((toolbar.match(/--selected", displayedTool == PreviewTool\./g) || []).length, 9);
+assert.equal((toolbar.match(/--selected", displayedTool == PreviewTool\./g) || []).length, 10);
 for (const button of ['previewRectangleSelectButton', 'previewPolygonSelectButton', 'previewZoomButton'])
   assert.ok(toolbar.includes(`${button}?.EnableInClassList("whimtex-tool-button--unavailable", !hasLayers)`));
 assert.match(toolSource, /HandlePaintConversionPrompt\(PointerDownEvent evt\)\s*\{\s*if \(!HasPreviewLayers\)\s*\{\s*WhimTexUI.ConsumeEvent\(evt\);\s*return true;/);

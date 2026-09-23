@@ -2,7 +2,7 @@
 
 Run `node --test --experimental-test-isolation=none Tests~/*.test.mjs` without opening or compiling Unity.
 
-`UssCascadeBaseline.json` records per-property cascade fingerprints from commit `2e072b8`.
+`UssCascadeBaseline.json` records the reviewed current cascade for the WhimTex editor styling. Refresh it only when a deliberate UI style change is reviewed, so accidental selector or property drift remains detectable.
 `UssCascadeSnapshot.mjs` expands the new shared palette and groups consecutive identical values;
 grouping identical rules is allowed, but values, selectors and conflicting order are protected.
 The two direct Target classes are mapped back to their former ancestor selectors; source checks

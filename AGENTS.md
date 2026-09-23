@@ -15,7 +15,7 @@
 - Preserve existing `MovedFrom` rename markers. Past permission to break a specific format is not permission for future breaking changes.
 - Repository: `DCFApixels/WhimTex`; site: https://dcfapixels.github.io/WhimTex/.
 - Never increase version without an explicit request, including when committing/pushing.
-- Do not introduce product-analogue names into code, UI or documentation.
+- Never mention or use names of external graphics editors in code, identifiers, comments, UI, tests/examples, documentation, changelogs, commit messages, pull requests or release notes. Describe behavior generically; do not use editor names as shorthand or comparisons.
 
 ## Cross-platform code
 
