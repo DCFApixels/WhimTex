@@ -5,7 +5,7 @@
 // @header(Surface Profile)
 // @param float _Depth = 6 [~-64 .. ~64] // Positive raises the surface; negative engraves it.
 // @param curve _Profile // Map the selected channel from 0 to 1 into height. Linear preserves the input profile.
-// @param float _Smoothing = 2 [0 .. ~8] // Normal sampling radius in document pixels; reduces contour stair steps.
+// @param label(Normal Radius (px)) float _Smoothing = 2 [0 .. ~8] // Normal sampling radius in document pixels; reduces contour stair steps.
 // @header(Lighting)
 // @param enum _Output = Both {Both: 0, HighlightOnly: 1, ShadowOnly: 2} // Select the transparent lighting component. No effect when Base Color alpha is 1.
 // @param normal _LightDirection = (-0.5, 0.5, 1) // Direction from the surface toward the light.

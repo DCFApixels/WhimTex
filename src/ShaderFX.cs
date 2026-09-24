@@ -4,6 +4,7 @@ using System.Text;
 using UnityEditor;
 using UnityEditor.Rendering;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.Scripting.APIUpdating;
 
 namespace DCFApixels.WhimTex
@@ -16,7 +17,15 @@ namespace DCFApixels.WhimTex
     public sealed class ShaderFXParameterControl
     {
         public string tooltip;
+        public string label;
         public string[] headers = Array.Empty<string>();
+        public string[] helpBoxes = Array.Empty<string>();
+        public string[] formerlySerializedAs = Array.Empty<string>();
+        public bool hidden;
+        public bool inGroup;
+        public int groupId;
+        public string groupTitle;
+        [FormerlySerializedAs("groupToggleParameter")] public string groupHeaderParameter;
         public ShaderFXParameterType type;
         public int order;
         public bool hasMinimum, hasMaximum;
@@ -85,8 +94,12 @@ namespace DCFApixels.WhimTex
             copy.curveValue = curveValue == null ? null : WhimTexCurveTexture.Copy(curveValue);
             copy.controls = new List<ShaderFXParameterControl>(controls.Count);
             foreach (var c in controls)
-                copy.controls.Add(new ShaderFXParameterControl { type = c.type, order = c.order, tooltip = c.tooltip,
+                copy.controls.Add(new ShaderFXParameterControl { type = c.type, order = c.order, tooltip = c.tooltip, label = c.label,
                     headers = c.headers == null ? Array.Empty<string>() : (string[])c.headers.Clone(),
+                    helpBoxes = c.helpBoxes == null ? Array.Empty<string>() : (string[])c.helpBoxes.Clone(),
+                    formerlySerializedAs = c.formerlySerializedAs == null ? Array.Empty<string>() : (string[])c.formerlySerializedAs.Clone(),
+                    hidden = c.hidden, inGroup = c.inGroup, groupId = c.groupId,
+                    groupTitle = c.groupTitle, groupHeaderParameter = c.groupHeaderParameter,
                     hasMinimum = c.hasMinimum, hasMaximum = c.hasMaximum, softMinimum = c.softMinimum, softMaximum = c.softMaximum, minimum = c.minimum, maximum = c.maximum,
                     optionNames = (string[])c.optionNames.Clone(), optionValues = (float[])c.optionValues.Clone(),
                     visibleIfParameter = c.visibleIfParameter, visibleIfNotEqual = c.visibleIfNotEqual, visibleIfValue = c.visibleIfValue });

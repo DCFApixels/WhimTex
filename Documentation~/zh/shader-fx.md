@@ -21,7 +21,13 @@ next_page: "zh/preview.md"
 // @endif
 ```
 
-在 HLSL 参数声明前添加 `// @header(Lighting)` 可显示加粗的分节标题，不带折叠功能。标题无需引号，保存预设时会保留。
+在 HLSL 参数声明前添加 `// @header(Lighting)` 可显示加粗的分节标题，不带折叠功能。使用 `// @helpbox(提示文字。)` 可在下一个参数上方显示信息提示框。这些指令仅是 UI 元数据，不会声明 uniform，并会在保存预设和导出可移植代码时保留；后面没有参数的指令会被忽略。
+
+使用 `// @group(Tint; _Parameter)` 与 `// @endgroup` 可将多个控件放入带边框的分组，并将组内无条件声明的参数链接到标题。bool 会显示为标题左侧无标签的复选框，只修改该参数值；使用 `@if` 控制相关控件的显示与隐藏，并可在着色器中用 bool 启用或禁用效果。紧凑的 enum、float、color、float2、float3 和 float4 会作为普通带标签字段显示在标题右侧，并从组内容中移除。`hidden` 仅隐藏参数在组内容中的普通行；显式链接且受支持的标题控件仍会显示，未链接的隐藏参数保持不可见。不支持或多行的控件仍留在组内容中，标题保持普通样式。当组内所有内容行都被 `@if` 隐藏时，内容区域会收起，只留下标题。分组不能嵌套，但组内可以使用 `@if`。`// @group(Advanced)` 创建普通标题组，单独的 `// @group` 创建没有标题的边框组。
+
+可在参数声明中 inline 设置自定义 UI 标签，例如 `// @param label(Tint Strength) float _Strength = 1`。`hidden` 和 `label(...)` 可以任意顺序出现，例如 `// @param label(Optional Mode) hidden enum _Mode = Off {Off: 0, On: 1}`。若标签包含括号，请使用引号。标签只影响 UI，并会在预设导出时保留。
+
+将 `// @formerlyserializedas(_OldName)` 放在 `// @param` 紧前面，可在应用 FX 时从旧参数名迁移兼容的已保存值和参数标识。可重复该指令来列出多个旧名称。HLSL 中应改用新的 uniform 名称；保存或导出预设时会保留这些别名。
 
 `one` 默认值创建恒为 1 的水平曲线，关键点时间分别为 0 和 1。
 
@@ -89,7 +95,7 @@ HLSL 画笔预设和没有效果标记的文件不会被接受。
 效果标题栏中的 **⋮ → Embed Copy** 会在文档内创建独立副本，不修改外部资源。同一菜单还包含 **Move Up**、**Move Down** 和 **Remove**。
 选择 **⋮ → Copy FX**，然后在另一行选择 **Paste FX As New**，即可在该行后插入独立副本；也可以点击工具栏的 **Paste FX** 将其添加到列表末尾。Shader FX 的代码和参数会一并复制；在同一文档内粘贴时保留图层纹理引用，粘贴到其他文档时会清除这些引用。Material 行复制的是同一个材质资源引用。
 项目 HLSL 效果的代码会随源 `.hlsl` 文件更新。要在文档内独立编辑代码，
-请点击 **Code** 中的 **Embed Copy**。参数直接显示在标题下方；**Code** 包含代码编辑器、**Apply**、**Save Preset…** 和嵌套的 **Shader inputs** 参考说明。只有存在消息时才显示诊断区域。
+请点击 **Code** 中的 **Embed Copy**。**Open Code** 会在 Unity 当前选择的脚本编辑器中打开临时文件；保存后，修改会同步回文档草稿。若 Unity 检测到该程序，**Open in VS Code** 会显示，并在独立配置中自动安装 WhimTex 语法高亮和指令诊断。参数直接显示在标题下方；**Code** 包含代码编辑器、**Apply**、**Save Preset…** 和嵌套的 **Shader inputs** 参考说明。只有存在消息时才显示诊断区域。
 
 多个效果的顺序会影响结果：每行的 **↑** 和 **↓** 可将该效果提前或推后。
 

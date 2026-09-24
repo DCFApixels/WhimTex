@@ -20,11 +20,69 @@ public static class ShaderFXConditionalParametersSmoke
         int checks = 0;
         void Check(bool ok, string reason) { if (!ok) throw new Exception(reason); checks++; }
 
-        const string declarations = "// @param enum _Mode = 0 { Off: 0, On: 1 }\n// @if _Mode == 1\n// @header(Enabled only)\n// @param float _Amount = 0.5 [0 .. 1]\n// @endif\n// @if _Mode != 0\n// @param bool _Extra = true\n// @endif\n";
+        const string declarations = "// @param enum _Mode = 0 { Off: 0, On: 1 }\n// @if _Mode == 1\n// @header(Enabled only)\n// @helpbox(Only shown while this mode is active.)\n// @param float _Amount = 0.5 [0 .. 1]\n// @endif\n// @if _Mode != 0\n// @param bool _Extra = true\n// @endif\n";
         var values = Parse(declarations);
         Check(values.Count == 3 && values[1].controls[0].visibleIfParameter == "_Mode" && values[1].controls[0].visibleIfValue == 1, "Conditional metadata parse");
+        Check(values[1].controls[0].helpBoxes.Length == 1 && values[1].controls[0].helpBoxes[0] == "Only shown while this mode is active.", "Conditional helpbox metadata parse");
         Check(values[2].controls[0].visibleIfNotEqual && values[2].controls[0].visibleIfValue == 0, "Not-equal condition parse");
         Check(Parse("/*\n// @if _Mode == 1\n*/\n// @param float _Mode\n// @param float _Hidden")[1].controls[0].visibleIfParameter == null, "Block comments ignore directives");
+
+        var metadata = assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata");
+        var preserveValues = metadata.GetMethod("PreserveValues", F);
+        string ScalarDeclaration(ShaderFXParameterType type, string value) => type == ShaderFXParameterType.Enum
+            ? "// @param enum _Value = " + (value == "1" ? "On" : "Off") + " { Off: 0, On: 1 }\n"
+            : "// @param " + (type == ShaderFXParameterType.Bool ? "bool" : "float") + " _Value = " + value + "\n";
+        foreach (var transition in new[] {
+            (ShaderFXParameterType.Float, "1", ShaderFXParameterType.Bool),
+            (ShaderFXParameterType.Bool, "true", ShaderFXParameterType.Float),
+            (ShaderFXParameterType.Float, "1", ShaderFXParameterType.Enum),
+            (ShaderFXParameterType.Enum, "1", ShaderFXParameterType.Float),
+            (ShaderFXParameterType.Bool, "true", ShaderFXParameterType.Enum),
+            (ShaderFXParameterType.Enum, "1", ShaderFXParameterType.Bool)
+        })
+        {
+            var previous = Parse(ScalarDeclaration(transition.Item1, transition.Item2));
+            var next = Parse(ScalarDeclaration(transition.Item3, "1"));
+            preserveValues.Invoke(null, new object[] { next, previous });
+            Check(next[0].floatValue == 1f && next[0].id == previous[0].id,
+                "Scalar value and identity migrate from " + transition.Item1 + " to " + transition.Item3);
+        }
+
+        var fractionalScalar = Parse(ScalarDeclaration(ShaderFXParameterType.Float, "0.375"));
+        var fractionalBool = Parse(ScalarDeclaration(ShaderFXParameterType.Bool, "false"));
+        preserveValues.Invoke(null, new object[] { fractionalBool, fractionalScalar });
+        Check(Mathf.Approximately(fractionalBool[0].floatValue, .375f) && fractionalBool[0].id == fractionalScalar[0].id,
+            "Scalar migration preserves a fractional numeric value when the destination UI type is bool");
+
+        ShaderFX serializedSource = null, serializedCopy = null;
+        try
+        {
+            string boolSource = "// @param bool _Mode = true\nfloat4 ApplyFX(float2 uv, float4 color) { return color * _Mode; }\n";
+            string enumSource = "// @param enum _Mode = On { Off: 0, On: 1 }\nfloat4 ApplyFX(float2 uv, float4 color) { return color * _Mode; }\n";
+            serializedSource = (ShaderFX)createDraft.Invoke(null, new object[] { null, boolSource, Parse(boolSource) });
+            string serialized = UnityEditor.EditorJsonUtility.ToJson(serializedSource);
+            serializedCopy = (ShaderFX)createDraft.Invoke(null, new object[] { null, string.Empty, new List<ShaderFXParameter>() });
+            UnityEditor.EditorJsonUtility.FromJsonOverwrite(serialized, serializedCopy);
+            typeof(ShaderFX).GetField("code", F).SetValue(serializedCopy, enumSource);
+            typeof(ShaderFX).GetMethod("PrepareParameterDeclarations", F).Invoke(serializedCopy, null);
+            var migratedParameters = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(serializedCopy);
+            var serializedMode = migratedParameters.Find(p => p.name == "_Mode");
+            var originalParameters = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(serializedSource);
+            Check(serializedMode != null && serializedMode.floatValue == 1f && serializedMode.id == originalParameters[0].id &&
+                serializedMode.controls[0].type == ShaderFXParameterType.Enum,
+                "Serialized bool parameter reloads and migrates to enum while preserving its value and ID");
+            string presetRoundtrip = (string)assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetWriter")
+                .GetMethod("BuildSource", F).Invoke(null, new object[] { serializedCopy, "Test/ScalarMigration" });
+            var writtenMode = Parse(presetRoundtrip).Find(p => p.name == "_Mode");
+            Check(writtenMode != null && writtenMode.floatValue == 1f && writtenMode.controls[0].type == ShaderFXParameterType.Enum,
+                "Preset serialization and reparsing retain the migrated enum value");
+        }
+        finally
+        {
+            if (serializedCopy != null) UnityEngine.Object.DestroyImmediate(serializedCopy);
+            if (serializedSource != null) UnityEngine.Object.DestroyImmediate(serializedSource);
+        }
+
         foreach (string invalid in new[] {
             "// @if _Mode == 1\n// @param float _X",
             "// @endif",
@@ -53,6 +111,7 @@ public static class ShaderFXConditionalParametersSmoke
             var ui = (VisualElement)Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.ShaderFXParameterView"), F, null, new object[] { fx }, null);
             var conditionalRows = ui.Query<VisualElement>(className: "whimtex-fx-conditional-parameter").ToList();
             Check(conditionalRows.Count == 2 && conditionalRows[0].style.display == DisplayStyle.None, "Conditional UI initial visibility");
+            Check(conditionalRows[0].Q<HelpBox>()?.text == "Only shown while this mode is active.", "HelpBox belongs to its conditional row");
             ui.GetType().GetMethod("Change", F).Invoke(ui, new object[] { parameters[0].id, (Action<ShaderFXParameter>)(p => p.floatValue = 1f) });
             Check(parameters[0].floatValue == 1f && conditionalRows[0].style.display == DisplayStyle.Flex && conditionalRows[1].style.display == DisplayStyle.Flex,
                 "Conditional UI refresh on driver edit: mode=" + parameters[0].floatValue + ", rows=" + conditionalRows[0].style.display + "," + conditionalRows[1].style.display);
@@ -62,7 +121,7 @@ public static class ShaderFXConditionalParametersSmoke
                 "Hidden control value is retained when its condition becomes false");
             ui.GetType().GetMethod("Change", F).Invoke(ui, new object[] { parameters[0].id, (Action<ShaderFXParameter>)(p => p.floatValue = 1f) });
             string preset = (string)assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetWriter").GetMethod("BuildSource", F).Invoke(null, new object[] { fx, "Test/Conditional" });
-            Check(preset.Contains("// @if _Mode == 1") && preset.Contains("// @if _Mode != 0") && preset.Contains("// @endif"), "Preset writer preserves condition blocks");
+            Check(preset.Contains("// @if _Mode == 1") && preset.Contains("// @if _Mode != 0") && preset.Contains("// @helpbox(Only shown while this mode is active.)") && preset.Contains("// @endif"), "Preset writer preserves conditions and helpbox metadata");
             var restored = Parse(preset);
             Check(restored.Count == 3 && restored[1].controls[0].visibleIfParameter == "_Mode" && restored[2].controls[0].visibleIfNotEqual, "Preset conditional roundtrip");
 
@@ -76,12 +135,36 @@ public static class ShaderFXConditionalParametersSmoke
                     presetName + " shows dither strength only when dithering is enabled");
                 if (presetName == "Pixelate")
                 {
-                    Check(Control("_Levels").visibleIfParameter == "_OneBit" && Control("_Levels").visibleIfNotEqual &&
-                        Control("_Gamma").visibleIfParameter == "_OneBit" && Control("_Gamma").visibleIfNotEqual,
-                        "Pixelate hides channel quantization controls in one-bit mode");
+                    var colorMode = Control("_OneBit");
+                    Check(colorMode.type == ShaderFXParameterType.Enum && colorMode.hidden && colorMode.groupTitle == "Color" &&
+                        colorMode.groupHeaderParameter == "_OneBit" && colorMode.optionNames.Length == 2 &&
+                        colorMode.optionNames[0] == "Quantization" && colorMode.optionNames[1] == "OneBit" &&
+                        colorMode.visibleIfParameter == null,
+                        "Pixelate exposes the existing _OneBit parameter as a two-choice group-header selector");
+                    Check(Control("_Levels").visibleIfParameter == "_OneBit" && !Control("_Levels").visibleIfNotEqual &&
+                        Control("_Levels").visibleIfValue == 0 && Control("_Gamma").visibleIfParameter == "_OneBit" &&
+                        !Control("_Gamma").visibleIfNotEqual && Control("_Gamma").visibleIfValue == 0,
+                        "Pixelate shows color quantization controls only in Quantization mode");
                     Check(Control("_LowColor").visibleIfParameter == "_OneBit" && !Control("_LowColor").visibleIfNotEqual &&
-                        Control("_HighColor").visibleIfParameter == "_OneBit" && !Control("_HighColor").visibleIfNotEqual,
-                        "Pixelate shows one-bit colors only in one-bit mode");
+                        Control("_LowColor").visibleIfValue == 1 && Control("_HighColor").visibleIfParameter == "_OneBit" &&
+                        !Control("_HighColor").visibleIfNotEqual && Control("_HighColor").visibleIfValue == 1,
+                        "Pixelate shows two palette colors only in One Bit mode");
+                    Check(Parameter("_OneBit").type == ShaderFXParameterType.Float,
+                        "Pixelate keeps the existing numeric storage for _OneBit");
+                    foreach (string legacyValue in new[] { "false", "true" })
+                    {
+                        var previousOneBit = Parse("// @param bool _OneBit = " + legacyValue + "\n");
+                        var nextColorMode = Parse(presetCode);
+                        preserveValues.Invoke(null, new object[] { nextColorMode, previousOneBit });
+                        var migratedOneBit = nextColorMode.Find(p => p.name == "_OneBit");
+                        float expected = legacyValue == "true" ? 1f : 0f;
+                        Check(migratedOneBit.floatValue == expected && migratedOneBit.id == previousOneBit[0].id,
+                            "Existing _OneBit=" + legacyValue + " value and parameter identity survive conversion to the two-choice enum");
+                    }
+                    Check(Control("_AlphaClip").hidden && Control("_AlphaClip").groupHeaderParameter == "_AlphaClip" &&
+                        Control("_AlphaCutoff").inGroup && Control("_AlphaCutoff").visibleIfParameter == "_AlphaClip" &&
+                        !Control("_AlphaCutoff").visibleIfNotEqual,
+                        "Pixelate promotes the hidden alpha toggle into its header and gates cutoff with @if");
                 }
 
                 ShaderFX presetFX = null;
@@ -100,11 +183,16 @@ public static class ShaderFXConditionalParametersSmoke
                         var pixelRows = pixelateView.Query<VisualElement>(className: "whimtex-fx-conditional-parameter").ToList();
                         VisualElement Row(string label) => pixelRows.Find(row =>
                             row.Query<Label>().ToList().Exists(value => value.text == label));
-                        ShaderFXParameter oneBit = actualParameters.Find(p => p.name == "_OneBit");
-                        pixelateView.GetType().GetMethod("Change", F).Invoke(pixelateView, new object[] { oneBit.id, (Action<ShaderFXParameter>)(p => p.floatValue = 1f) });
-                        Check(Row("Levels")?.style.display == DisplayStyle.None &&
-                            Row("Gamma")?.style.display == DisplayStyle.None && Row("Low Color")?.style.display == DisplayStyle.Flex &&
-                            Row("High Color")?.style.display == DisplayStyle.Flex, "Pixelate toggles both colors together with the bool driver");
+                        ShaderFXParameter colorMode = actualParameters.Find(p => p.name == "_OneBit");
+                        Check(pixelateView.Query<DropdownField>().ToList().Exists(field =>
+                            string.IsNullOrEmpty(field.label) && field.choices.Count == 2),
+                            "Pixelate color mode appears as an unlabeled two-choice selector beside the Color title");
+                        Check(Row("Low Color")?.style.display == DisplayStyle.None && Row("High Color")?.style.display == DisplayStyle.None,
+                            "Pixelate hides one-bit colors while Color Quantization is selected");
+                        pixelateView.GetType().GetMethod("Change", F).Invoke(pixelateView, new object[] { colorMode.id, (Action<ShaderFXParameter>)(p => p.floatValue = 1f) });
+                        Check(Row("Levels")?.style.display == DisplayStyle.None && Row("Gamma")?.style.display == DisplayStyle.None &&
+                            Row("Low Color")?.style.display == DisplayStyle.Flex && Row("High Color")?.style.display == DisplayStyle.Flex,
+                            "Pixelate switches between quantization controls and the One Bit palette");
                         var lowColor = Row("Low Color").Q<ColorField>();
                         var highColor = Row("High Color").Q<ColorField>();
                         Check(lowColor != null && highColor != null && lowColor.label == "Low Color" && highColor.label == "High Color",

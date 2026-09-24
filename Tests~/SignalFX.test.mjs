@@ -12,14 +12,17 @@ test('CRT preset exposes screen controls and deterministic time/seed inputs', ()
     assert.match(code, /#include ".*Dither\.cginc"/);
     assert.match(code, /HashNoise\(pixel \+ float2\(_Seed/);
     assert.match(code, /floor\(max\(_EffectTime, 0\.0\) \* 24\.0\)/);
+    assert.match(code, /float3 stripeSelection = float3\([\s\S]*?step\(2\.0, stripe\)\)/);
+    assert.doesNotMatch(code, /if \(stripe </);
     assert.doesNotMatch(code, /\b_Time\b/, 'Never depend on Unity’s implicit time uniform');
 });
 
 test('VHS preset exposes seeded line noise and an explicit moving tracking band', () => {
     const code = source('VHS');
     assert.equal(code.split('\n')[0], '// @whimtex-effect Stylization/VHS');
-    for (const parameter of ['_ChromaBleed', '_LineJitter', '_ColorLoss', '_NoiseAmount', '_TrackingStrength', '_TrackingHeight', '_TrackingOffset', '_TrackingSpeed', '_Seed', '_EffectTime'])
+    for (const parameter of ['_ChromaBleed', '_LineJitter', '_ColorLoss', '_NoiseAmount', '_TrackingHeight', '_TrackingOffset', '_TrackingSpeed', '_Seed', '_EffectTime'])
         assert.match(code, new RegExp(`@param float ${parameter}\\b`));
+    assert.match(code, /@param hidden float _TrackingStrength\b/);
     assert.match(code, /HashNoise\(float2\(lineIndex \+ _Seed/);
     assert.match(code, /frac\(_EffectTime \* _TrackingSpeed \+ bandSeed\)/);
     assert.match(code, /SampleInput\(clamp\(safeUV \+ chromaOffset/);

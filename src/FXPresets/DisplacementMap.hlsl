@@ -1,9 +1,11 @@
 // @whimtex-effect Distortion/Displacement Map
-// @header(Map)
+// @group(Map Wrap; _MapWrap)
 // @param texture2D _DisplacementMap = self // Source field. Vector mode reads R/G; Grayscale mode reads the selected channel.
 // @param transform2D _MapTransform = (0.5, 0.5, 1, 1, 0) // Positions and scales the map independently from the image being distorted.
-// @param enum _MapWrap = Clamp {Clamp: 0, Repeat: 1, Mirror: 2} // Addressing for the map and an optional separate strength mask.
-// @param enum _Mode = VectorRG {VectorRG: 0, Grayscale: 1, ParallaxOcclusion: 2}
+// @param hidden enum _MapWrap = Clamp {Clamp: 0, Repeat: 1, Mirror: 2} // Addressing for the map and an optional separate strength mask.
+// @endgroup
+// @group(Displacement Mode; _Mode)
+// @param hidden enum _Mode = VectorRG {VectorRG: 0, Grayscale: 1, ParallaxOcclusion: 2}
 // @if _Mode != 2
 // @param float _Neutral = 0.5 [0 .. 1] // Neutral value for vector channels and the grayscale displacement.
 // @endif
@@ -38,8 +40,9 @@
 // // @param float _ShadowStrength = 0.65 [0 .. 1]
 // // @param float _ShadowSoftness = 0.02 [0 .. 0.2]
 // @endif
-// @header(Strength Mask)
-// @param enum _MaskSource = Constant1 {Constant1: 0, MapChannel: 1, InputAlpha: 2, SeparateTexture: 3} // Constant1 needs no second texture; MapChannel reuses the displacement map.
+// @endgroup
+// @group(Strength Mask Source; _MaskSource)
+// @param hidden enum _MaskSource = Constant1 {Constant1: 0, MapChannel: 1, InputAlpha: 2, SeparateTexture: 3} // Constant1 needs no second texture; MapChannel reuses the displacement map.
 // @if _MaskSource != 0
 // @param bool _InvertMask = false
 // @param curve _MaskProfile // Remaps mask values; the default linear curve preserves them.
@@ -51,9 +54,11 @@
 // @param texture2D _StrengthMask = none // Optional second texture. Leave Mask Source at Constant1 to work with only one map.
 // @param enum _SeparateMaskChannel = Alpha {Alpha: 0, Luminance: 1, R: 2, G: 3, B: 4}
 // @endif
-// @header(Output)
-// @param float _Mix = 1 [0 .. 1] // Blend the displaced sample with the original image.
+// @endgroup
+// @group(Output Mix; _Mix)
+// @param hidden float _Mix = 1 [0 .. 1] // Blend the displaced sample with the original image.
 // @param enum _InputEdge = Clamp {Clamp: 0, Repeat: 1, Mirror: 2, Transparent: 3} // Addressing for displaced image samples, independent of map wrapping.
+// @endgroup
 
 float ReadDisplacementChannel(float4 value, float channel)
 {
@@ -229,8 +234,7 @@ float4 ApplyFX(float2 uv, float4 color)
             float2 strengthMaskUV = AddressMapUV(_MapTransform_ToLocal(uv), _MapWrap, _StrengthMask_TexelSize.xy);
             maskValue = ReadStrengthChannel(tex2D(_StrengthMask, strengthMaskUV), _SeparateMaskChannel);
         }
-        if (_InvertMask > 0.5)
-            maskValue = 1.0 - maskValue;
+        maskValue = lerp(maskValue, 1.0 - maskValue, step(0.5001, _InvertMask));
         strengthMask = saturate(_MaskProfile_Sample(saturate(maskValue)));
     }
 

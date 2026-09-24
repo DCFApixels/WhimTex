@@ -25,7 +25,7 @@ namespace DCFApixels.WhimTex
             {
                 ShaderFXMetadata.PreserveValues(values, effect.Parameters);
                 foreach (var old in effect.Parameters)
-                    if (old != null && !old.declaredInCode && !values.Exists(p => p.name == old.name && ShaderFXMetadata.Compatible(p.type, old.type)))
+                    if (old != null && !old.declaredInCode && !values.Exists(p => ShaderFXMetadata.MatchesNameOrFormerName(p, old.name, old.type)))
                         throw new FormatException("Code declarations must include the existing parameter: " + old.name);
             }
             else foreach (var parameter in effect.Parameters) if (parameter != null) values.Add(parameter.Copy());
@@ -51,16 +51,49 @@ namespace DCFApixels.WhimTex
                         declaration = "// @param enum " + p.name + " = " + Number(p.floatValue) + " { " + string.Join(", ", options) + " }";
                     }
                     else declaration = Declaration(row);
+                    if (control.hidden || !string.IsNullOrWhiteSpace(control.label))
+                    {
+                        string modifiers = control.hidden ? "hidden " : string.Empty;
+                        if (!string.IsNullOrWhiteSpace(control.label))
+                            modifiers += "label(\"" + control.label.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\") ";
+                        declaration = declaration.Insert("// @param ".Length, modifiers);
+                    }
                     if (i != defaultIndex) declaration = Regex.Replace(declaration, @"\s*=\s*[^\[\{~]+?(?=\s*[\[\{~]|$)", "");
                     if (!string.IsNullOrEmpty(control.tooltip)) declaration += " // " + control.tooltip;
+                    string metadata = string.Empty;
                     if (control.headers != null && control.headers.Length > 0)
-                        declaration = "// @header(" + string.Join(")\n// @header(", control.headers) + ")\n" + declaration;
+                        metadata += "// @header(" + string.Join(")\n// @header(", control.headers) + ")\n";
+                    if (control.helpBoxes != null && control.helpBoxes.Length > 0)
+                        metadata += "// @helpbox(" + string.Join(")\n// @helpbox(", control.helpBoxes) + ")\n";
+                    if (control.formerlySerializedAs != null)
+                        foreach (string formerName in control.formerlySerializedAs)
+                        {
+                            if (!Regex.IsMatch(formerName ?? string.Empty, @"^[A-Za-z_][A-Za-z0-9_]*$"))
+                                throw new FormatException("Former parameter names must be HLSL identifiers.");
+                            metadata += "// @formerlyserializedas(" + formerName + ")\n";
+                        }
+                    declaration = metadata + declaration;
                     rows.Add((control.order, declaration, control));
                 }
             }
             rows.Sort((a, b) => a.order.CompareTo(b.order));
+            int activeGroupId = -1;
             foreach (var row in rows)
             {
+                int groupId = row.control?.inGroup == true ? row.control.groupId : -1;
+                if (groupId != activeGroupId)
+                {
+                    if (activeGroupId >= 0) result.AppendLine("// @endgroup");
+                    if (groupId >= 0)
+                    {
+                        var control = row.control;
+                        string arguments = control.groupTitle ?? string.Empty;
+                        if (!string.IsNullOrEmpty(control.groupHeaderParameter))
+                            arguments += "; " + control.groupHeaderParameter;
+                        result.AppendLine(string.IsNullOrEmpty(arguments) ? "// @group" : "// @group(" + arguments + ")");
+                    }
+                    activeGroupId = groupId;
+                }
                 if (!string.IsNullOrEmpty(row.control?.visibleIfParameter))
                 {
                     string op = row.control.visibleIfNotEqual ? "!=" : "==";
@@ -69,6 +102,7 @@ namespace DCFApixels.WhimTex
                 result.AppendLine(row.text);
                 if (!string.IsNullOrEmpty(row.control?.visibleIfParameter)) result.AppendLine("// @endif");
             }
+            if (activeGroupId >= 0) result.AppendLine("// @endgroup");
             result.AppendLine();
             using var reader = new StringReader(effect.Code ?? "");
             bool block = false;
@@ -78,7 +112,7 @@ namespace DCFApixels.WhimTex
             while ((line = reader.ReadLine()) != null)
             {
                 lineNumber++;
-                bool metadata = !block && ((lineNumber == 1 && ShaderFXMetadata.TryHeader(line, out _)) || Regex.IsMatch(line, @"^\s*//\s*@(?:param\b|\s*header\b|if\b|endif\b)"));
+                bool metadata = !block && ((lineNumber == 1 && ShaderFXMetadata.TryHeader(line, out _)) || Regex.IsMatch(line, @"^\s*//\s*@(?:param\b|\s*(?:header|helpbox|group|endgroup|formerlyserializedas)\b|if\b|endif\b)"));
                 ShaderFXSourceBuilder.MaskComments(line, ref block);
                 if (!metadata) body.AppendLine(line);
             }

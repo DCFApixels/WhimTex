@@ -38,7 +38,7 @@ test('classic distortions keep their existing unbounded Transform 2D mapping', (
     }
     const spherize = source('Spherize');
     assert.equal(spherize.split(/\r?\n/)[0], '// @whimtex-effect Distortion/Spherize');
-    assert.match(spherize, /@param enum _Mode = 0 \{Classic: 0, Sphere: 1\}/);
+    assert.match(spherize, /@param hidden enum _Mode = 0 \{Classic: 0, Sphere: 1\}/);
     assert.match(spherize, /if \(_Mode < 0\.5\)/);
     assert.match(spherize, /float4 result = color/);
     assert.match(spherize, /exp2\(_Strength\)/);
@@ -110,11 +110,12 @@ test('displacement map supports a single map with an optional strength mask', ()
     assert.equal(code.split(/\r?\n/)[0], '// @whimtex-effect Distortion/Displacement Map');
     assert.match(code, /@param texture2D _DisplacementMap = self/);
     assert.match(code, /@param transform2D _MapTransform/);
-    assert.match(code, /@param enum _Mode = VectorRG \{VectorRG: 0, Grayscale: 1, ParallaxOcclusion: 2\}/);
-    assert.match(code, /@param enum _MaskSource = Constant1 \{Constant1: 0, MapChannel: 1, InputAlpha: 2, SeparateTexture: 3\}/);
+    assert.match(code, /@param hidden enum _Mode = VectorRG \{VectorRG: 0, Grayscale: 1, ParallaxOcclusion: 2\}/);
+    assert.match(code, /@param hidden enum _MaskSource = Constant1 \{Constant1: 0, MapChannel: 1, InputAlpha: 2, SeparateTexture: 3\}/);
     assert.match(code, /float strengthMask = 1\.0/);
     assert.match(code, /ReadStrengthChannel\(mapSample, _MapMaskChannel\)/);
     assert.match(code, /maskValue = color\.a/);
+    assert.match(code, /maskValue = lerp\(maskValue, 1\.0 - maskValue, step\(0\.5001, _InvertMask\)\)/);
     assert.match(code, /texture2D _StrengthMask = none/);
     assert.match(code, /tex2D\(_StrengthMask, strengthMaskUV\)/);
     assert.match(code, /displacementPixels \* strengthMask \* _CanvasSize\.zw/);

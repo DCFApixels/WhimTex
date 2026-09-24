@@ -1,7 +1,9 @@
 // @whimtex-effect Distortion/Spherize
-// @param enum _Mode = 0 {Classic: 0, Sphere: 1} // Classic is the current unbounded radial distortion. Sphere wraps the image over a sphere and clips outside its circular edge.
+// @group(Spherize Mode; _Mode)
+// @param hidden enum _Mode = 0 {Classic: 0, Sphere: 1} // Classic is the current unbounded radial distortion. Sphere wraps the image over a sphere and clips outside its circular edge.
 // @param float _Strength = 0.5 [~-1 .. ~1]
 // @param transform2D _Area
+// @endgroup
 
 float4 ApplyFX(float2 uv, float4 color)
 {

@@ -40,10 +40,11 @@ float4 ApplyFX(float2 uv, float4 color)
     float scanline = 1.0 - _ScanlineStrength * (0.5 + 0.5 * cos(scanPhase));
 
     float stripe = fmod(floor(pixel.x), 3.0);
-    float3 phosphorMask = float3(0.72, 0.72, 0.72);
-    if (stripe < 1.0) phosphorMask.r = 1.0;
-    else if (stripe < 2.0) phosphorMask.g = 1.0;
-    else phosphorMask.b = 1.0;
+    float3 stripeSelection = float3(
+        1.0 - step(1.0, stripe),
+        step(1.0, stripe) * (1.0 - step(2.0, stripe)),
+        step(2.0, stripe));
+    float3 phosphorMask = float3(0.72, 0.72, 0.72) + stripeSelection * 0.28;
     phosphorMask = lerp(1.0, phosphorMask, _PhosphorStrength);
 
     float frame = floor(max(_EffectTime, 0.0) * 24.0);

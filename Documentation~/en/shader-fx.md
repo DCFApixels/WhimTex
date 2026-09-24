@@ -21,7 +21,13 @@ To show controls conditionally in the editor, put `// @param` declarations betwe
 // @endif
 ```
 
-In HLSL, `// @header(Lighting)` before a parameter adds a bold section heading, without a foldout. The title needs no quotes; the heading is preserved when saving presets.
+In HLSL, `// @header(Lighting)` before a parameter adds a bold section heading, without a foldout. Use `// @helpbox(Your hint text.)` to show an informational help box above the next parameter. These directives are UI-only metadata and are preserved when saving presets and portable code; directives without a following parameter are ignored.
+
+Use `// @group(Tint; _Parameter)` and `// @endgroup` to place controls in a bordered block and link a parameter declared unconditionally inside it to the header. A bool becomes an unlabeled checkbox to the left of the title; it only edits the value. Use `@if` to show or hide dependent controls, and use the bool in HLSL to enable or disable the effect itself. Compact enum, float, color, float2, float3, and float4 parameters appear as their normal labeled field on the right and are omitted from the body. `hidden` suppresses the normal body row but does not suppress an explicitly linked supported header control; unlinked hidden parameters remain invisible. Unsupported or multi-row controls stay in the body and leave the title plain. When all body rows are hidden by `@if`, the body collapses and only the header remains. Groups may contain `@if` blocks but cannot be nested. For a plain titled box use `// @group(Advanced)`; for a box without a title use `// @group`.
+
+Add a custom UI label inline with a declaration, for example `// @param label(Tint Strength) float _Strength = 1`. `hidden` and `label(...)` may appear in either order, such as `// @param label(Optional Mode) hidden enum _Mode = Off {Off: 0, On: 1}`. Quote the label when it contains parentheses. Labels only affect the UI and are preserved when exporting presets.
+
+Put `// @formerlyserializedas(_OldName)` immediately before a `// @param` declaration to migrate compatible values and parameter identity from a previous name when the FX is applied. Repeat the directive for multiple prior names. Update the HLSL to use the new uniform name; preset save/export preserves the aliases.
 
 The `one` curve default is flat at 1, with keys at times 0 and 1.
 
@@ -92,7 +98,7 @@ Effects added to the project become available automatically; no preset folder se
 **⋮ → Embed Copy** in the effect header creates an independent copy in the document without changing the external asset. The same menu contains **Move Up**, **Move Down** and **Remove**.
 Use **⋮ → Copy FX**, then **Paste FX As New** on another row to insert an independent copy after it, or use the toolbar's **Paste FX** to append it. Shader FX code and parameters are copied; layer-texture links stay within the same document and are cleared when pasted into another document. Material rows copy the Material reference.
 Project HLSL effects receive code changes from their source `.hlsl` file.
-To edit the code independently in the document, click **Embed Copy** under **Code**. Parameters are visible directly below the header; **Code** contains the editor, **Apply**, **Save Preset…** and the nested **Shader inputs** reference. Diagnostics appear only when there is something to report.
+To edit the code independently in the document, click **Embed Copy** under **Code**. **Open Code** opens a temporary working file with the script editor selected in Unity; saving it synchronizes the draft back into the document. **Open in VS Code** appears when Unity detects that installation and uses an isolated profile with WhimTex highlighting and directive diagnostics installed automatically. Parameters are visible directly below the header; **Code** contains the editor, **Apply**, **Save Preset…** and the nested **Shader inputs** reference. Diagnostics appear only when there is something to report.
 
 Effect order matters: the **↑** and **↓** arrows on each effect row apply it earlier or later in the sequence.
 

@@ -4,11 +4,14 @@
 // @param float _LineJitter = 1.5 [0 .. ~12] // Seeded horizontal wobble per scanline in canvas pixels.
 // @param float _ColorLoss = 0.12 [0 .. 1] // Reduce color saturation like an analog tape signal.
 // @param float _NoiseAmount = 0.025 [0 .. ~0.15] // Luma noise amplitude.
-// @header(Tracking)
-// @param float _TrackingStrength = 0.35 [0 .. 1] // Strength of the moving horizontal tracking tear.
+// @group(Tracking Strength; _TrackingStrength)
+// @param hidden float _TrackingStrength = 0.35 [0 .. 1] // Strength of the moving horizontal tracking tear.
+// @if _TrackingStrength != 0
 // @param float _TrackingHeight = 8 [1 .. ~64] // Height of the tracking band in canvas pixels.
 // @param float _TrackingOffset = 18 [0 .. ~128] // Maximum horizontal displacement in the tracking band.
 // @param float _TrackingSpeed = 0.35 [0 .. ~4] // Tracking-band travel speed per second.
+// @endif
+// @endgroup
 // @header(Playback)
 // @param float _Seed = 0 [0 .. ~10000] // Changes the deterministic line jitter and noise pattern.
 // @param float _EffectTime = 0 [0 .. ~3600] // Time in seconds; change it to inspect another animation frame.

@@ -6,7 +6,7 @@ float4 ApplyFX(float2 uv, float4 color)
 {
     float amount = saturate(_Amount);
     color.rgb = lerp(color.rgb, 1.0 - color.rgb, amount);
-    if (_InvertAlpha > 0.5)
-        color.a = lerp(color.a, 1.0 - color.a, amount);
+    float invertAlpha = step(0.5001, _InvertAlpha);
+    color.a = lerp(color.a, 1.0 - color.a, amount * invertAlpha);
     return color;
 }

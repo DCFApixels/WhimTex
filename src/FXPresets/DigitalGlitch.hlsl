@@ -1,5 +1,6 @@
 // @whimtex-effect Stylization/Digital Glitch
 // @param float _Blend = 1 [0 .. 1] // Blend the corrupted signal with the original image.
+// @group(Spatial Glitch)
 // @header(Line Tearing)
 // @param float _TearDensity = 0.035 [0 .. 1] // Fraction of scanline bands that receive a large displacement.
 // @if _TearDensity != 0
@@ -19,7 +20,8 @@
 // @param float _Dropout = 0 [0 .. 1] // Chance for a selected block to drop to black.
 // @param float _BlockVoidChance = 0 [0 .. 1] // Chance for a selected block to become transparent instead of black.
 // @endif
-// @header(Color Artifacts)
+// @endgroup
+// @group(Signal Artifacts)
 // @param float _ColorJitterDensity = 0.025 [0 .. 1] // Chance per block for random color jitter, independent of Block Density.
 // @if _ColorJitterDensity != 0
 // @param float _BlockColorJitter = 0.15 [0 .. 1] // Strength of the random color tint.
@@ -46,15 +48,20 @@
 // @if _NoiseAmount != 0
 // @param float _NoiseColor = 0.35 [0 .. 1] // Blend from monochrome grain to independent RGB noise.
 // @endif
-// @header(Alpha)
-// @param float _AlphaFollowChance = 0 [0 .. 1] // Per block, chance for alpha to follow the same displacement as the corrupted color.
+// @endgroup
+// @group(Alpha Follow Chance; _AlphaFollowChance)
+// @param hidden float _AlphaFollowChance = 0 [0 .. 1] // Per block, chance for alpha to follow the same displacement as the corrupted color.
+// @if _AlphaFollowChance != 0
 // @param float _AlphaJitter = 0 [0 .. ~32] // Maximum additional alpha-only offset in canvas pixels when alpha follows.
 // @param float _AlphaJitterFlip = 0.5 [0 .. 1] // Chance to reverse the alpha-only offset relative to the color displacement.
+// @endif
 // @param float _AlphaNoise = 0 [0 .. 1] // Random per-pixel opacity variation.
-// @header(Playback)
+// @endgroup
+// @group(Playback)
 // @param float _Seed = 0 [0 .. ~10000] // Changes the deterministic corruption pattern.
 // @param float _EffectTime = 0 [0 .. ~3600] // Time in seconds; change it to inspect another glitch frame.
 // @param float _FrameRate = 12 [1 .. ~60] // Rate at which randomized artifacts change over time.
+// @endgroup
 
 #include "Packages/com.dcfapixels.whimtex/src/Shaders/Dither.cginc"
 
@@ -240,7 +247,7 @@ float4 ApplyFX(float2 uv, float4 color)
                 ? colorOffset * rsqrt(colorOffsetLengthSq)
                 : float2(1.0, 0.0);
             float flipRoll = HashNoise(blockKey + float2(431.7, 353.9));
-            float jitterSign = step(flipRoll, _AlphaJitterFlip) > 0.0 ? -1.0 : 1.0;
+            float jitterSign = 1.0 - 2.0 * step(flipRoll, _AlphaJitterFlip);
             float2 alphaOnlyOffset = jitterDirection * alphaJitter * jitterSign;
             float2 alphaUV = clamp(uv + (colorOffset + alphaOnlyOffset) * texel,
                                    halfTexel, 1.0 - halfTexel);

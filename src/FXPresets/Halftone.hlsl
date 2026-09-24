@@ -1,5 +1,6 @@
 // @whimtex-effect Stylization/Halftone
-// @param enum _Mode = 1 {Monochrome: 0, CMYKTriangle: 2, CMYKSquare: 3, CMYKManual: 1, RGBTriangle: 4, RGBManual: 5}
+// @group(Screen Mode; _Mode)
+// @param hidden enum _Mode = 1 {Monochrome: 0, CMYKTriangle: 2, CMYKSquare: 3, CMYKManual: 1, RGBTriangle: 4, RGBManual: 5}
 // @param float _DotSize = 8 [1 .. ~64] // Screen-cell size in canvas pixels.
 // @param enum _DotShape = 0 {Round: 0, Square: 1, Line: 2} // Round and square dots, or a line screen.
 // @param float _InkDensity = 1 [0 .. ~2] // Overall ink amount; values above 1 deepen the darkest tones.
@@ -64,6 +65,7 @@
 // @param float2 _GreenOffset = (0, 0) // Shift the green plate in canvas pixels.
 // @param float2 _BlueOffset = (0, 0) // Shift the blue plate in canvas pixels.
 // @endif
+// @endgroup
 
 float HalftoneCircleCoverage(float radius)
 {
@@ -138,12 +140,11 @@ float4 ApplyFX(float2 uv, float4 color)
     if (_Mode < 0.5)
     {
         float luminance = saturate(dot(max(color.rgb, 0.0), float3(0.2126, 0.7152, 0.0722)));
-        bool invertPattern = _InvertPattern > 0.5;
-        float inkAmount = invertPattern ? luminance : 1.0 - luminance;
+        float invertPattern = step(0.5001, _InvertPattern);
+        float inkAmount = lerp(1.0 - luminance, luminance, invertPattern);
         float dots = HalftoneScreen(pixel, _Angle, inkAmount * density);
-        result.rgb = invertPattern
-            ? lerp(_InkColor.rgb, _PaperColor.rgb, dots)
-            : lerp(_PaperColor.rgb, _InkColor.rgb, dots);
+        float dotBlend = lerp(dots, 1.0 - dots, invertPattern);
+        result.rgb = lerp(_PaperColor.rgb, _InkColor.rgb, dotBlend);
     }
     else if (_Mode > 3.5)
     {

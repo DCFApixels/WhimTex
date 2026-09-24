@@ -45,6 +45,8 @@ namespace DCFApixels.WhimTex
             if(parameters.Count>32)throw new FormatException("A brush supports at most 32 parameters.");
             foreach(var p in parameters)
             {
+                if(p.controls.Exists(c => c.hidden || c.inGroup))
+                    throw new FormatException("Hidden parameters and @group blocks are supported by Shader FX, not brush HLSL.");
                 if(p.controls.Count > 1 || p.controls.Exists(c => c.type == ShaderFXParameterType.Enum || c.type == ShaderFXParameterType.Bool))
                     throw new FormatException("Enum, bool and linked parameter controls are supported by FX, not brush HLSL.");
                 if(p.type!=ShaderFXParameterType.Float && p.type!=ShaderFXParameterType.Color && p.type!=ShaderFXParameterType.Vector)
@@ -125,6 +127,11 @@ namespace DCFApixels.WhimTex
                 string declaration=ShaderFXPresetWriter.Declaration(p);
                 if(p.controls.Count>0 && p.controls[0].headers != null)
                     foreach(string title in p.controls[0].headers) result.AppendLine("// @header("+title+")");
+                if(p.controls.Count>0 && p.controls[0].helpBoxes != null)
+                    foreach(string message in p.controls[0].helpBoxes) result.AppendLine("// @helpbox("+message+")");
+                if(p.controls.Count>0 && p.controls[0].formerlySerializedAs != null)
+                    foreach(string formerName in p.controls[0].formerlySerializedAs)
+                        result.AppendLine("// @formerlyserializedas("+formerName+")");
                 if(p.controls.Count>0 && !string.IsNullOrEmpty(p.controls[0].tooltip))declaration+=" // "+p.controls[0].tooltip;
                 result.AppendLine(declaration);
             }
@@ -132,7 +139,7 @@ namespace DCFApixels.WhimTex
             string line; bool block=false;
             while((line=reader.ReadLine())!=null)
             {
-                bool declaration=!block && Regex.IsMatch(line,@"^\s*//\s*@(?:param\b|\s*header\b)");
+                bool declaration=!block && Regex.IsMatch(line,@"^\s*//\s*@(?:param\b|\s*(?:header|helpbox|formerlyserializedas)\b)");
                 ShaderFXSourceBuilder.MaskComments(line,ref block);
                 if(!declaration)result.AppendLine(line);
             }

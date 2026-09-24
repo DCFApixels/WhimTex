@@ -1,7 +1,7 @@
 // @whimtex-effect Stylization/Threshold
 // @header(Threshold)
 // @param float _Threshold = 0.25 [0 .. ~1] // Threshold in the source channel.
-// @param float _Smooth = 0.0 [0 .. ~0.2] // Transition width; zero gives a hard threshold.
+// @param label(Transition Width) float _Smooth = 0.0 [0 .. ~0.2] // Transition width; zero gives a hard threshold.
 // @param bool _UseAlpha = false // Test source alpha instead of luminance; output alpha is preserved.
 // @header(Output Colors)
 // @param color _LowColor = (0, 0, 0, 1) // RGB below the threshold; color alpha is ignored.

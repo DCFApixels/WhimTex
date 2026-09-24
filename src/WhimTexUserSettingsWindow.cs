@@ -22,6 +22,7 @@ namespace DCFApixels.WhimTex
         private ColorField guideAlignedColor;
         private ColorField guideAngledColor;
         private ColorField guideActiveColor;
+        private TextField vsCodeExecutable;
 
         internal static void Open()
         {
@@ -62,6 +63,34 @@ namespace DCFApixels.WhimTex
             imageLayer.AddToClassList("whimtex-user-settings-color");
             imageLayer.RegisterValueChangedCallback(evt => WhimTexUserSettings.ImageLayer = (ImageOpenLayer)evt.newValue);
             scroll.Add(imageLayer);
+            AddHeading(scroll, "External Code Editor");
+            var vsCodeRow = new VisualElement();
+            vsCodeRow.AddToClassList("whimtex-user-settings-folder-row");
+            vsCodeExecutable = new TextField("VS Code Command")
+            {
+                isDelayed = true,
+                tooltip = "Optional absolute path to the VS Code command or executable. WhimTex first checks Unity's registered editors and PATH, and uses this only as a fallback."
+            };
+            vsCodeExecutable.AddToClassList("whimtex-user-settings-folder");
+            vsCodeExecutable.RegisterValueChangedCallback(evt => SetVsCodeExecutable(evt.newValue));
+            vsCodeRow.Add(vsCodeExecutable);
+            var browseVsCode = new Button(() =>
+            {
+                string current = WhimTexUserSettings.VsCodeExecutable;
+                string directory = System.IO.File.Exists(current) ? System.IO.Path.GetDirectoryName(current) : string.Empty;
+                string selected = EditorUtility.OpenFilePanel("Choose VS Code Command", directory, string.Empty);
+                if (!string.IsNullOrEmpty(selected)) SetVsCodeExecutable(selected);
+            }) { text = "…", tooltip = "Choose the VS Code command or executable" };
+            browseVsCode.AddToClassList("whimtex-user-settings-folder-button");
+            vsCodeRow.Add(browseVsCode);
+            var resetVsCode = new Button(WhimTexUserSettings.ResetVsCodeExecutable)
+                { text = "↺", tooltip = "Clear the custom path and use automatic detection" };
+            resetVsCode.AddToClassList("whimtex-user-settings-folder-button");
+            vsCodeRow.Add(resetVsCode);
+            scroll.Add(vsCodeRow);
+            var vsCodeNote = new Label("Optional fallback for installations not found by Unity or PATH. On macOS, install the code shell command in PATH or select its executable here.");
+            vsCodeNote.AddToClassList("whimtex-user-settings-note");
+            scroll.Add(vsCodeNote);
             AddHeading(scroll, "Preview Background");
             cleanBackground = new Toggle("Clean Preview Background")
             {
@@ -186,6 +215,13 @@ namespace DCFApixels.WhimTex
             presetsFolder.SetValueWithoutNotify(WhimTexUserSettings.PresetsFolder);
         }
 
+        private void SetVsCodeExecutable(string path)
+        {
+            if (!WhimTexUserSettings.TrySetVsCodeExecutable(path, out string error))
+                EditorUtility.DisplayDialog("VS Code Command", error, "OK");
+            vsCodeExecutable.SetValueWithoutNotify(WhimTexUserSettings.VsCodeExecutable);
+        }
+
         private static void AddHeading(VisualElement parent, string text)
         {
             var label = new Label(text);
@@ -221,6 +257,7 @@ namespace DCFApixels.WhimTex
             postFxBackground?.SetEnabled(WhimTexUserSettings.PostFxBackgroundMode == PostFxBackground.SolidColor);
             checkerSize?.SetValueWithoutNotify(WhimTexUserSettings.CheckerSize);
             presetsFolder?.SetValueWithoutNotify(WhimTexUserSettings.PresetsFolder);
+            vsCodeExecutable?.SetValueWithoutNotify(WhimTexUserSettings.VsCodeExecutable);
         }
     }
 }

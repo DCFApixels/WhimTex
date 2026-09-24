@@ -10,6 +10,8 @@ public static class ColorPresetsSmoke
     public static string Main()
     {
         const BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
+        var createDraft = typeof(ShaderFX).GetMethod("CreateAgentDraft", flags, null,
+            new[] { typeof(TextureCompositor), typeof(string), typeof(List<ShaderFXParameter>) }, null);
         var doc = ScriptableObject.CreateInstance<TextureCompositor>();
         doc.width = doc.height = 8;
         var input = new Texture2D(8, 8, TextureFormat.RGBAFloat, false, true);
@@ -26,11 +28,12 @@ public static class ColorPresetsSmoke
                 try
                 {
                     string code = File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/" + name + ".hlsl");
-                    fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", flags).Invoke(null, new object[] { doc, code, new List<ShaderFXParameter>() });
+                    fx = (ShaderFX)createDraft.Invoke(null, new object[] { doc, code, new List<ShaderFXParameter>() });
                     typeof(ShaderFX).GetMethod("ApplyAgentDraft", flags).Invoke(fx, null);
                     var parameters = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", flags).GetValue(fx);
                     void Set(string key, float value) { var p = parameters.Find(x => x.name == key); if (p != null) p.floatValue = value; }
-                    var context = Activator.CreateInstance(typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.LayerRenderContext"), doc, null, 8, 8, 1f, true, true);
+                    var context = Activator.CreateInstance(typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.LayerRenderContext"),
+                        doc, null, 8, 8, 1f, true, true, null);
                     for (int scenario = 0; scenario < 3; scenario++)
                     {
                         if (scenario == 1)

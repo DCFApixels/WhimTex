@@ -1,11 +1,19 @@
 // @whimtex-effect Color/Color Balance
-// @header(Color Adjustments)
-// @param float3 _Shadows = (0, 0, 0) // Signed RGB offsets for shadows.
-// @param float3 _Midtones = (0, 0, 0) // Signed RGB offsets for midtones.
-// @param float3 _Highlights = (0, 0, 0) // Signed RGB offsets for highlights.
-// @header(Tonal Ranges)
+// @group(Shadow Range; _ShadowRange)
 // @param float _ShadowRange = 0.5 [0 .. 1] // Shadow influence range; zero disables it.
+// @if _ShadowRange != 0
+// @param float3 _Shadows = (0, 0, 0) // Signed RGB offsets for shadows.
+// @endif
+// @endgroup
+// @header(Midtones)
+// @param float3 _Midtones = (0, 0, 0) // Signed RGB offsets for midtones.
+// @group(Highlight Range; _HighlightRange)
 // @param float _HighlightRange = 0.5 [0 .. 1] // Highlight influence range; zero disables it.
+// @if _HighlightRange != 0
+// @param float3 _Highlights = (0, 0, 0) // Signed RGB offsets for highlights.
+// @endif
+// @endgroup
+// @header(Luminance)
 // @param bool _PreserveLuma = true // Preserve luminance without amplifying near-zero or negative colors.
 
 float4 ApplyFX(float2 uv, float4 color)

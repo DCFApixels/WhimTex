@@ -1,6 +1,7 @@
 // @whimtex-effect Stylization/Chromatic Aberration
-// @param enum _Mode = 0 {Radial: 0, Directional: 1}
-// @param float _Amount = 2 [0 .. ~16] // Red and blue channel offset from the original in canvas pixels.
+// @group(Separation Mode; _Mode)
+// @param hidden enum _Mode = 0 {Radial: 0, Directional: 1}
+// @param label(Channel Offset (px)) float _Amount = 2 [0 .. ~16] // Red and blue channel offset from the original in canvas pixels.
 // @param float _Blend = 1 [0 .. 1] // Blend the aberrated result with the original image.
 // @if _Mode == 0
 // @header(Radial)
@@ -11,6 +12,7 @@
 // @header(Directional)
 // @param float _Angle = 0 [~-180 .. ~180] // Direction of the red channel shift; blue shifts in the opposite direction.
 // @endif
+// @endgroup
 
 float4 ApplyFX(float2 uv, float4 color)
 {

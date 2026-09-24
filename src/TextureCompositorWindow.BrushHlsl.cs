@@ -56,6 +56,9 @@ namespace DCFApixels.WhimTex
                 foreach(var definition in definitions)
                 {
                     string name=definition.name;
+                    if(definition.controls.Count>0 && definition.controls[0].helpBoxes != null)
+                        foreach(string message in definition.controls[0].helpBoxes)
+                            parameters.Add(new HelpBox(message,HelpBoxMessageType.Info));
                     if(definition.controls.Count>0 && definition.controls[0].headers != null)
                         foreach(string title in definition.controls[0].headers)
                         {

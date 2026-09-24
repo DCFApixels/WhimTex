@@ -84,6 +84,26 @@ namespace DCFApixels.WhimTex
                 tooltip = "Edit HLSL and declarations here. Parameter values update live without recompiling." };
             codeFoldout.Add(code);
             root.Add(codeFoldout);
+            var externalCodeButtons = new VisualElement();
+            externalCodeButtons.AddToClassList("whimtex-layer-fx-toolbar");
+            var openCode = new Button(() => ShaderFXExternalCode.OpenInUnityEditor(effect))
+            {
+                text = "Open Code",
+                tooltip = "Open this document-local code file with the script editor selected in Unity Preferences. Saved external edits are synchronized into the FX draft."
+            };
+            var openInVsCode = new Button(() => ShaderFXExternalCode.OpenInVsCode(effect))
+            {
+                text = "Open in VS Code",
+                tooltip = "Open with WhimTex syntax highlighting and directive diagnostics in an isolated editor profile."
+            };
+            openInVsCode.EnableInClassList("whimtex-shader-fx-hidden", !ShaderFXExternalCode.HasVsCode);
+            System.Action refreshVsCodeAvailability = () =>
+                openInVsCode.EnableInClassList("whimtex-shader-fx-hidden", !ShaderFXExternalCode.HasVsCode);
+            root.RegisterCallback<AttachToPanelEvent>(_ => WhimTexUserSettings.Changed += refreshVsCodeAvailability);
+            root.RegisterCallback<DetachFromPanelEvent>(_ => WhimTexUserSettings.Changed -= refreshVsCodeAvailability);
+            externalCodeButtons.Add(openCode);
+            externalCodeButtons.Add(openInVsCode);
+            codeFoldout.Add(externalCodeButtons);
             var sourceButtons = new VisualElement();
             sourceButtons.AddToClassList("whimtex-layer-fx-toolbar");
             sourceButtons.Add(new Button(() => { string path = effect.CatalogPath; if (!string.IsNullOrEmpty(path)) AssetDatabase.OpenAsset(AssetDatabase.LoadMainAssetAtPath(path)); }) { text = "Open HLSL Source" });
@@ -168,6 +188,7 @@ namespace DCFApixels.WhimTex
                     return;
                 code.SyncFromModel();
                 code.SetEnabled(!effect.IsCatalogLinked);
+                externalCodeButtons.EnableInClassList("whimtex-shader-fx-hidden", effect.IsCatalogLinked);
                 sourceButtons.EnableInClassList("whimtex-shader-fx-hidden", !effect.IsCatalogLinked);
                 // Always use the declaration-driven view.  For an old FX without
                 // declarations it still exposes serialized values, while names,
@@ -188,11 +209,28 @@ namespace DCFApixels.WhimTex
                 apply.SetEnabled(effect != null);
             }
 
+            void ExternalCodeChanged(ShaderFX changed)
+            {
+                if (changed != effect) return;
+                code.SyncFromModel();
+                RefreshStatus();
+            }
             root.TrackSerializedObjectValue(serializedObject, _ => RefreshStatus());
             root.Bind(serializedObject);
             void RefreshLock() => root.SetEnabled(!WhimTexApi.IsShaderFXContentLocked(effect));
-            root.RegisterCallback<AttachToPanelEvent>(_ => { WhimTexApi.LiveEditLocksChanged -= RefreshLock; WhimTexApi.LiveEditLocksChanged += RefreshLock; RefreshLock(); });
-            root.RegisterCallback<DetachFromPanelEvent>(_ => WhimTexApi.LiveEditLocksChanged -= RefreshLock);
+            root.RegisterCallback<AttachToPanelEvent>(_ =>
+            {
+                WhimTexApi.LiveEditLocksChanged -= RefreshLock;
+                WhimTexApi.LiveEditLocksChanged += RefreshLock;
+                ShaderFXExternalCode.CodeChanged -= ExternalCodeChanged;
+                ShaderFXExternalCode.CodeChanged += ExternalCodeChanged;
+                RefreshLock();
+            });
+            root.RegisterCallback<DetachFromPanelEvent>(_ =>
+            {
+                WhimTexApi.LiveEditLocksChanged -= RefreshLock;
+                ShaderFXExternalCode.CodeChanged -= ExternalCodeChanged;
+            });
             RefreshLock();
             RefreshStatus();
             return root;

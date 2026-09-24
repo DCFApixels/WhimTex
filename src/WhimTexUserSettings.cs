@@ -12,6 +12,47 @@ namespace DCFApixels.WhimTex
     {
         private const string ImageOpenModeKey = "DCFApixels.WhimTex.ImageOpenMode";
         private const string ImageOpenLayerKey = "DCFApixels.WhimTex.ImageOpenLayer";
+        private const string VsCodeExecutableKey = "DCFApixels.WhimTex.VSCodeExecutable";
+        internal static string VsCodeExecutable => EditorPrefs.GetString(VsCodeExecutableKey, string.Empty);
+
+        internal static bool TrySetVsCodeExecutable(string value, out string error)
+        {
+            error = null;
+            value = (value ?? string.Empty).Trim();
+            if (value.Length == 0)
+            {
+                ResetVsCodeExecutable();
+                return true;
+            }
+
+            try
+            {
+                if (!Path.IsPathFullyQualified(value) || !File.Exists(value))
+                {
+                    error = "Choose an existing VS Code command or executable file.";
+                    return false;
+                }
+                value = Path.GetFullPath(value);
+                if (string.Equals(VsCodeExecutable, value, StringComparison.Ordinal)) return true;
+                EditorPrefs.SetString(VsCodeExecutableKey, value);
+                Changed?.Invoke();
+                return true;
+            }
+            catch (Exception exception) when (exception is ArgumentException || exception is IOException ||
+                exception is NotSupportedException || exception is System.Security.SecurityException || exception is UnauthorizedAccessException)
+            {
+                error = "Cannot use this executable path: " + exception.Message;
+                return false;
+            }
+        }
+
+        internal static void ResetVsCodeExecutable()
+        {
+            if (!EditorPrefs.HasKey(VsCodeExecutableKey)) return;
+            EditorPrefs.DeleteKey(VsCodeExecutableKey);
+            Changed?.Invoke();
+        }
+
         internal static ImageOpenMode ImageOpening
         {
             get => EditorPrefs.GetInt(ImageOpenModeKey, (int)ImageOpenMode.AllSupportedImages) == 1 ? ImageOpenMode.AllSupportedImages : ImageOpenMode.TiffDocumentsOnly;
@@ -251,6 +292,7 @@ namespace DCFApixels.WhimTex
         {
             EditorPrefs.DeleteKey(ImageOpenModeKey);
             EditorPrefs.DeleteKey(ImageOpenLayerKey);
+            EditorPrefs.DeleteKey(VsCodeExecutableKey);
             EditorPrefs.DeleteKey(PresetsFolderKey);
             ResetPreviewAppearance();
             LayerPickAlphaThreshold = DefaultLayerPickAlphaThreshold;

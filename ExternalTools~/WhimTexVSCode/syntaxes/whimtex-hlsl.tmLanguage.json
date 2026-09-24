@@ -1,0 +1,10 @@
+{
+  "scopeName": "whimtex.hlsl.injection",
+  "injectionSelector": "L:comment.line.double-slash.hlsl",
+  "patterns": [
+    {
+      "name": "keyword.control.directive.whimtex",
+      "match": "@(?:param|if|endif|group|endgroup|header|helpbox|formerlyserializedas)\\b"
+    }
+  ]
+}

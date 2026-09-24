@@ -1,12 +1,12 @@
 // @whimtex-effect Color/Levels
 // @header(Input Levels)
-// @param float _InBlack = 0 [0 .. ~1] // Input black point. At or above white, the mapping becomes a hard threshold.
-// @param float _InWhite = 1 [0 .. ~1] // Input white point.
+// @param label(Input Black) float _InBlack = 0 [0 .. ~1] // Input black point. At or above white, the mapping becomes a hard threshold.
+// @param label(Input White) float _InWhite = 1 [0 .. ~1] // Input white point.
 // @param float _Gamma = 1 [0.1 .. ~5] // Midtone brightness.
 // @param curve _Curve // Remap tones after input levels and Gamma, before output levels. Linear leaves the mapping unchanged.
 // @header(Output Levels)
-// @param float _OutBlack = 0 [0 .. ~1] // Output black point, including originally black pixels.
-// @param float _OutWhite = 1 [0 .. ~1] // Output white point; values below black invert the output.
+// @param label(Output Black) float _OutBlack = 0 [0 .. ~1] // Output black point, including originally black pixels.
+// @param label(Output White) float _OutWhite = 1 [0 .. ~1] // Output white point; values below black invert the output.
 // @param bool _PreserveColor = true // On adjusts luminance; off applies levels independently to RGB.
 
 float MapLevels(float value)

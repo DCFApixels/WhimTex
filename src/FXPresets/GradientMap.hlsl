@@ -1,8 +1,10 @@
 // @whimtex-effect Color/Gradient Map
+// @group(Map Amount; _Amount)
+// @param hidden float _Amount = 1 [0 .. 1] // Blend between the original colors and the gradient map.
 // @param gradient _Gradient // Colors from shadows to highlights.
 // @param curve _Mapping // Remap brightness before sampling the gradient; the default is unchanged.
-// @param float _Amount = 1 [0 .. 1] // Blend between the original colors and the gradient map.
 // @param bool _Reverse = false // Map highlights to the beginning of the gradient instead of shadows.
+// @endgroup
 
 #include "Packages/com.dcfapixels.whimtex/src/Shaders/HdrColor.cginc"
 

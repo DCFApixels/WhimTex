@@ -13,11 +13,19 @@ public static class EnumFXSmoke
         var assembly = typeof(ShaderFX).Assembly;
         var parse = assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata").GetMethod("Parse", flags);
         List<ShaderFXParameter> Parse(string source) => (List<ShaderFXParameter>)parse.Invoke(null, new object[] { source, false, null });
+        System.Reflection.MethodInfo Method(Type type, string name, int parameterCount)
+        {
+            foreach (var method in type.GetMethods(flags))
+                if (method.Name == name && method.GetParameters().Length == parameterCount) return method;
+            throw new MissingMethodException(type.FullName, name);
+        }
         void Check(bool condition, string reason) { if (!condition) throw new Exception(reason); }
         string declarations = "// @param float _Strength = 0.63 [0 .. 1] // Точная сила эффекта\n// @param enum _Strength { Low: 0.2, Medium: 0.5, High: 2 } // Quick values // keep this\n";
         declarations = "// @header(Strength settings)\n" + declarations.Replace("// @param enum", "// @ header(Quick choices)\n// @param enum");
+        declarations = declarations.Replace("// @param float _Strength", "// @helpbox(Adjust strength before choosing a preset.)\n// @param float _Strength");
         var p = Parse(declarations);
         Check(p[0].controls[0].headers[0] == "Strength settings" && p[0].controls[1].headers[0] == "Quick choices", "Headers on linked controls");
+        Check(p[0].controls[0].helpBoxes[0] == "Adjust strength before choosing a preset.", "HelpBox metadata parse");
         Check(Parse("/*\n// @header(Ignored)\n*/\n// @param float _X")[0].controls[0].headers.Length == 0, "Block-comment header");
         Check(Parse("// @header(One)\n// @header(Two)\n// @param float _X")[0].controls[0].headers.Length == 2, "Consecutive headers");
         foreach (var invalidHeader in new[] { "// @header()", "// @header(   )", "// @header Missing" })
@@ -25,6 +33,12 @@ public static class EnumFXSmoke
             bool rejected = false;
             try { Parse(invalidHeader); } catch (TargetInvocationException e) when (e.InnerException is FormatException) { rejected = true; }
             Check(rejected, "Invalid header accepted");
+        }
+        foreach (var invalidHelpBox in new[] { "// @helpbox()", "// @helpbox(   )", "// @helpbox Missing" })
+        {
+            bool rejected = false;
+            try { Parse(invalidHelpBox); } catch (TargetInvocationException e) when (e.InnerException is FormatException) { rejected = true; }
+            Check(rejected, "Invalid helpbox accepted");
         }
         Check(p.Count == 1 && p[0].controls.Count == 2 && p[0].floatValue == .63f, "Shared optional default");
         Check(p[0].controls[0].tooltip == "Точная сила эффекта" && p[0].controls[1].tooltip == "Quick values // keep this", "Per-control tooltip parsing");
@@ -45,13 +59,13 @@ public static class EnumFXSmoke
         ShaderFX fx = null;
         try
         {
-            fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", flags).Invoke(null, new object[] { document, declarations + "float4 ApplyFX(float2 uv, float4 color) { return _Strength; }", new List<ShaderFXParameter>() });
-            typeof(ShaderFX).GetMethod("ApplyAgentDraft", flags).Invoke(fx, null);
+            fx = (ShaderFX)Method(typeof(ShaderFX), "CreateAgentDraft", 3).Invoke(null, new object[] { document, declarations + "float4 ApplyFX(float2 uv, float4 color) { return _Strength; }", new List<ShaderFXParameter>() });
+            Method(typeof(ShaderFX), "ApplyAgentDraft", 0).Invoke(fx, null);
             var list = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", flags).GetValue(fx);
             var viewType = assembly.GetType("DCFApixels.WhimTex.ShaderFXParameterView");
             var view = (VisualElement)Activator.CreateInstance(viewType, flags, null, new object[] { fx }, null);
             var dropdown = view.Q<DropdownField>();
-            Check(view[0] is Label title && title.text == "Strength settings" && view[2] is Label second && second.text == "Quick choices", "UI header order");
+            Check(view[0] is Label title && title.text == "Strength settings" && view[1] is HelpBox note && note.text == "Adjust strength before choosing a preset." && view[3] is Label second && second.text == "Quick choices", "UI metadata order");
             Check(view.Q<Slider>() != null && dropdown != null && dropdown.value.StartsWith("Custom"), "Linked UI controls");
             Check(view.Q<Slider>().tooltip == "Точная сила эффекта" && dropdown.tooltip == "Quick values // keep this", "UI tooltip binding");
             var shader = typeof(ShaderFX).GetField("compiledShader", flags).GetValue(fx);
@@ -64,9 +78,10 @@ public static class EnumFXSmoke
             list[0].floatValue = .5f;
             string saved = (string)assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetWriter").GetMethod("BuildSource", flags).Invoke(null, new object[] { fx, "Test/Enum" });
             var roundtrip = Parse(saved);
-            Check(roundtrip[0].controls[0].headers[0] == "Strength settings" && roundtrip[0].controls[1].headers[0] == "Quick choices", "Header export roundtrip");
+            Check(roundtrip[0].controls[0].headers[0] == "Strength settings" && roundtrip[0].controls[0].helpBoxes[0] == "Adjust strength before choosing a preset." && roundtrip[0].controls[1].headers[0] == "Quick choices", "Header/helpbox export roundtrip");
             var copied = (ShaderFXParameter)typeof(ShaderFXParameter).GetMethod("Copy", flags).Invoke(list[0], null);
             Check(copied.controls[0].headers[0] == "Strength settings" && !ReferenceEquals(copied.controls[0].headers, list[0].controls[0].headers), "Independent header copy");
+            Check(copied.controls[0].helpBoxes[0] == "Adjust strength before choosing a preset." && !ReferenceEquals(copied.controls[0].helpBoxes, list[0].controls[0].helpBoxes), "Independent helpbox copy");
             Check(roundtrip.Count == 1 && roundtrip[0].floatValue == .5f && roundtrip[0].controls.Count == 2, "Preset roundtrip");
             Check(roundtrip[0].controls[0].tooltip == p[0].controls[0].tooltip && roundtrip[0].controls[1].tooltip == p[0].controls[1].tooltip, "Tooltip export roundtrip");
             Check(saved.Contains("enum _Strength {"), "Duplicate exported default");

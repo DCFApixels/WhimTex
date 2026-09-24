@@ -121,13 +121,29 @@ Use `// @if _Mode == 1` or `// @if _Mode != 1` before one or more `// @param` li
 // @endif
 ```
 
-Use `// @header(Lighting)` before a `// @param` declaration to add a bold, non-collapsible heading above that control. Titles are literal text, without quotes; `// @ header(Lighting)` also accepts whitespace after `@`. This is UI metadata, not a uniform. Multiple headers are displayed in order; a header without a following parameter is ignored. Headers survive preset saving and portable export, including repeated controls for one variable. HLSL brushes support the same decoration.
+Use `// @header(Lighting)` before a `// @param` declaration to add a bold, non-collapsible heading above that control. Use `// @helpbox(Your hint text.)` to show an informational help box above the parameter instead. `// @formerlyserializedas(_OldName)` declares an old parameter name for the next declaration; when the new name is applied, compatible saved values and parameter identity migrate from the old name. Repeat the directive to support multiple previous names. This is useful when renaming a uniform: update the HLSL code to use the new name and leave the old name as migration metadata. All three directives are UI/serialization metadata, not uniforms; they are preserved when saving or exporting presets. Directives without a following parameter are ignored. HLSL brushes support these decorations and rename aliases too.
 
 ```hlsl
 // @header(Lighting)
+// @helpbox(Keep this value subtle to preserve the input colors.)
+// @formerlyserializedas(_OldLightTint)
 // @param color _LightColor = (1, 1, 1, 1)
 // @param float _Intensity = 1 [0 .. ~4]
 ```
+
+Use `@group` and `@endgroup` to visually contain several controls in a bordered block. An optional title appears in its header. Add `; _Parameter` to link a parameter declared unconditionally inside that group to the header. A bool is drawn as an unlabeled checkbox to the left of the title; it only edits the bool value and does not itself show or hide the group body. Use `@if` to control dependent rows and use the bool uniform in HLSL to enable or disable the effect. Supported compact values (enum, float, color, float2, float3, and float4) are drawn as their usual labeled field on the right. The linked control is omitted from the group body even when declared `hidden`; `hidden` does not prevent an explicitly linked, supported control from appearing in the header. Unlinked hidden controls remain invisible, while unsupported or multi-row controls stay in the body and do not alter the header. If all body rows are hidden by `@if`, the body collapses and the group is displayed as a header only. Groups cannot be nested; `@if` blocks may be used inside a group.
+
+```hlsl
+// @group(Tint; _EnableTint)
+// @param bool _EnableTint = true
+// @param color _Tint = (1, 1, 1, 1)
+// @param float _TintStrength = 1 [0 .. 1]
+// @endgroup
+```
+
+For example, `// @group(Quality; _Quality)` with `// @param hidden enum _Quality = 1 {Low: 0, High: 1}` puts the labeled dropdown in the header without a duplicate row. Use `// @group(Advanced)` for a titled group without a linked field, or plain `// @group` for a box without a header.
+
+Use `label(...)` inline to override a parameter's generated UI label without changing its shader identifier: `// @param label(Tint Strength) float _Strength = 1`. The `hidden` and `label(...)` modifiers can appear in either order. Quote labels that contain parentheses; labels are preserved on preset export.
 
 ```hlsl
 // @param float _Strength = 0.02 [0 .. 0.1]

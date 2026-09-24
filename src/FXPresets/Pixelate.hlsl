@@ -16,10 +16,11 @@
 // @header(Dithering)
 // @param enum _Dither = None {None: 0, Bayer2: 1, Bayer4: 2, Bayer8: 3, Interleaved: 4, Checker: 5, Halftone: 6, Hash: 7} // Dither pattern, evaluated on the block grid so it stays visible after pixelation.
 // @if _Dither != 0
-// @param float _Amount = 1 [0 .. 1] // Dither strength; zero rounds each channel to the nearest level.
+// @param label(Dither Strength) float _Amount = 1 [0 .. 1] // Dither strength; zero rounds each channel to the nearest level.
 // @endif
-// @param bool _OneBit = false // Reduce to the two colors below instead of quantizing each channel.
-// @if _OneBit != 1
+// @group(Color; _OneBit)
+// @param hidden enum _OneBit = Quantization {Quantization: 0, OneBit: 1}
+// @if _OneBit == 0
 // @header(Color Quantization)
 // @param float _Levels = 8 [2 .. ~64] // Output levels per channel, rounded to an integer.
 // @param float _Gamma = 1 [0.1 .. ~5] // Distribution of the tonal steps.
@@ -29,11 +30,13 @@
 // @param color _LowColor = (0, 0, 0, 1) // Dark color in One-bit mode; color alpha is ignored.
 // @param color _HighColor = (1, 1, 1, 1) // Light color in One-bit mode; color alpha is ignored.
 // @endif
-// @header(Transparency)
-// @param bool _AlphaClip = false // Convert partially transparent pixels to a hard transparent/opaque edge.
+// @endgroup
+// @group(Alpha Clip; _AlphaClip)
+// @param hidden bool _AlphaClip = false // Convert partially transparent pixels to a hard transparent/opaque edge.
 // @if _AlphaClip == 1
 // @param float _AlphaCutoff = 0.5 [0 .. 1] // Alpha at or above this value becomes opaque; lower alpha becomes transparent.
 // @endif
+// @endgroup
 #include "Packages/com.dcfapixels.whimtex/src/Shaders/Dither.cginc"
 
 float4 SampleBlock(float2 blockUv, float2 blockSize, float size)
@@ -160,7 +163,7 @@ float4 ApplyFX(float2 uv, float4 color)
         source.rgb = pow(min(floor(toned * steps + threshold), steps) / steps, 1.0 / gamma);
     }
 
-    if (_AlphaClip > 0.5)
-        source.a = source.a >= _AlphaCutoff ? 1.0 : 0.0;
+    float alphaClip = step(0.5001, _AlphaClip);
+    source.a = lerp(source.a, step(_AlphaCutoff, source.a), alphaClip);
     return source;
 }

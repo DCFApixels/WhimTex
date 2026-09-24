@@ -1,0 +1,23 @@
+{
+  "name": "whimtex-fx-tools",
+  "displayName": "WhimTex FX Language Support",
+  "description": "Syntax highlighting and directive diagnostics for WhimTex shader FX source.",
+  "version": "0.1.3",
+  "publisher": "dcfapixels",
+  "engines": { "vscode": ">=1.80.0" },
+  "categories": ["Programming Languages"],
+  "activationEvents": ["onLanguage:hlsl"],
+  "main": "./extension.js",
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true
+    }
+  },
+  "contributes": {
+    "grammars": [{
+      "scopeName": "whimtex.hlsl.injection",
+      "injectTo": ["source.hlsl"],
+      "path": "./syntaxes/whimtex-hlsl.tmLanguage.json"
+    }]
+  }
+}

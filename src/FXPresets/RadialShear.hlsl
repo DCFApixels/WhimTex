@@ -1,7 +1,11 @@
 // @whimtex-effect Distortion/Radial Shear
+// @group(Shear Strength; _Strength)
+// @param hidden float _Strength = 1 [~-4 .. ~4]
+// @if _Strength != 0
 // @param point _Center = (0.5, 0.5)
-// @param float _Strength = 1 [~-4 .. ~4]
+// @endif
 // @param float2 _Offset = (0, 0)
+// @endgroup
 
 float4 ApplyFX(float2 uv, float4 color)
 {
