@@ -209,6 +209,7 @@ namespace DCFApixels.WhimTex
             left = default;
             right = default;
             if (gradient == null || gradient.Mode != WhimTexGradientMode.Classic || gradient.ColorSpace != ColorSpace.Gamma ||
+                gradient.WrapMode != WhimTexGradientWrapMode.Clamp || gradient.Smoothness != 1f ||
                 gradient.GetMidpoint(false, 0) != .5f || gradient.GetMidpoint(true, 0) != .5f)
                 return false;
 

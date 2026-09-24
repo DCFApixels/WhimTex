@@ -8,6 +8,13 @@ All notable changes to WhimTex are documented in this file.
 
 - FX stack context-menu actions to copy a block and paste it as an independent Shader FX or a reused Material reference.
 - Stepped parallax occlusion mode for Displacement Map, with configurable view direction and sampling quality.
+- Step FX can threshold each color channel independently.
+- Outline layers can detect their contour from Alpha, Red, Green, Blue or Luminance; Alpha remains the default.
+- Shader FX color defaults accept `#RRGGBB`/`#RRGGBBAA`, and gradient parameters can define two endpoint colors in HLSL.
+
+### Changed
+
+- Digital Glitch's gradient blend options use Overlay instead of Override.
 
 ## [0.11.2] - 2026-09-23
 

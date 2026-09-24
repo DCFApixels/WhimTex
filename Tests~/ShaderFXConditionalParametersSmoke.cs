@@ -13,6 +13,8 @@ public static class ShaderFXConditionalParametersSmoke
     {
         const BindingFlags F = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
         var assembly = typeof(ShaderFX).Assembly;
+        var createDraft = typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
+            new[] { typeof(TextureCompositor), typeof(string), typeof(List<ShaderFXParameter>) }, null);
         var parse = assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata").GetMethod("Parse", F);
         List<ShaderFXParameter> Parse(string source) => (List<ShaderFXParameter>)parse.Invoke(null, new object[] { source, false, null });
         int checks = 0;
@@ -45,7 +47,7 @@ public static class ShaderFXConditionalParametersSmoke
         try
         {
             string source = declarations + "float4 ApplyFX(float2 uv, float4 color) { return color * (_Mode == 1 ? _Amount : 1); }\n";
-            fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F).Invoke(null, new object[] { document, source, new List<ShaderFXParameter>() });
+            fx = (ShaderFX)createDraft.Invoke(null, new object[] { document, source, new List<ShaderFXParameter>() });
             typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(fx, null);
             var parameters = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
             var ui = (VisualElement)Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.ShaderFXParameterView"), F, null, new object[] { fx }, null);
@@ -85,7 +87,7 @@ public static class ShaderFXConditionalParametersSmoke
                 ShaderFX presetFX = null;
                 try
                 {
-                    presetFX = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F).Invoke(null, new object[] { document, presetCode, new List<ShaderFXParameter>() });
+                    presetFX = (ShaderFX)createDraft.Invoke(null, new object[] { document, presetCode, new List<ShaderFXParameter>() });
                     typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(presetFX, null);
                     Check(typeof(ShaderFX).GetField("compiledShader", F).GetValue(presetFX) != null, presetName + " preset compile");
                     if (presetName == "Pixelate")
@@ -96,13 +98,15 @@ public static class ShaderFXConditionalParametersSmoke
                         var actualParameters = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(presetFX);
                         var pixelateView = (VisualElement)Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.ShaderFXParameterView"), F, null, new object[] { presetFX }, null);
                         var pixelRows = pixelateView.Query<VisualElement>(className: "whimtex-fx-conditional-parameter").ToList();
+                        VisualElement Row(string label) => pixelRows.Find(row =>
+                            row.Query<Label>().ToList().Exists(value => value.text == label));
                         ShaderFXParameter oneBit = actualParameters.Find(p => p.name == "_OneBit");
                         pixelateView.GetType().GetMethod("Change", F).Invoke(pixelateView, new object[] { oneBit.id, (Action<ShaderFXParameter>)(p => p.floatValue = 1f) });
-                        Check(pixelRows.Count == 5 && pixelRows[1].style.display == DisplayStyle.None &&
-                            pixelRows[2].style.display == DisplayStyle.None && pixelRows[3].style.display == DisplayStyle.Flex &&
-                            pixelRows[4].style.display == DisplayStyle.Flex, "Pixelate toggles both colors together with the bool driver");
-                        var lowColor = pixelRows[3].Q<ColorField>();
-                        var highColor = pixelRows[4].Q<ColorField>();
+                        Check(Row("Levels")?.style.display == DisplayStyle.None &&
+                            Row("Gamma")?.style.display == DisplayStyle.None && Row("Low Color")?.style.display == DisplayStyle.Flex &&
+                            Row("High Color")?.style.display == DisplayStyle.Flex, "Pixelate toggles both colors together with the bool driver");
+                        var lowColor = Row("Low Color").Q<ColorField>();
+                        var highColor = Row("High Color").Q<ColorField>();
                         Check(lowColor != null && highColor != null && lowColor.label == "Low Color" && highColor.label == "High Color",
                             "Both conditional Pixelate rows contain separately labeled color controls");
                         Check(lowColor.value != highColor.value,

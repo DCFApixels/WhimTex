@@ -143,12 +143,12 @@ Use `// @header(Lighting)` before a `// @param` declaration to add a bold, non-c
 // @param texture2D _Input = self
 // @param texture2D _Optional = none
 // @param texture2D _Mask
-// @param gradient _Ramp
+// @param gradient _Ramp = #FF0000FF -> #0000FF
 // @param transform2D _Area
 // @param transform2D _PlacedArea = (0.5, 0.5, 0.75, 0.75, 30)
 ```
 
-No semicolons on metadata lines. Initializers are optional; `gradient` does not accept one. Without any explicit
+No semicolons on metadata lines. Initializers are optional. A `color` value can use four numeric components or `#RRGGBB` / `#RRGGBBAA` hex; six digits mean opaque (`A = 1`), and eight digits are RGBA. Without any explicit
 default, numeric/vector/color values start at zero. Texture defaults to white and Transform2D
 to the whole input. Transform2D accepts `(x, y, width, height, angleDegrees)` in normalized input units.
 Texture2D accepts `= "guid:<32-digit asset GUID>:<local file ID>"`; the exporter uses this form for
@@ -212,8 +212,10 @@ default wins. Curve parameters are FX-only, not HLSL brush parameters.
 ### Gradient parameters
 
 `gradient` creates an editable WhimTex gradient, initially opaque black to white (Classic mode).
-Declare `// @param gradient _Ramp`, without `=` or a range, and use `_Ramp_Sample(t)` to obtain
-straight linear RGBA. The helper clamps `t` to 0..1; use `frac(t)` yourself for repetition.
+Declare `// @param gradient _Ramp`, optionally with two endpoint colors such as
+`// @param gradient _Ramp = #FF0000FF -> #0000FF`. Each endpoint accepts `#RRGGBB` (opaque) or
+`#RRGGBBAA` (RGBA), or a numeric `(r, g, b, a)` tuple. The parameter remains editable after creation.
+Use `_Ramp_Sample(t)` to obtain straight linear RGBA. The helper clamps `t` to 0..1; use `frac(t)` yourself for repetition.
 Do not redeclare a sampler or reference internal `_WhimTex_` uniforms.
 Colors, HDR, alpha, interpolation, smoothness and midpoints are edited in the gradient field.
 Repeated declarations share a gradient value; copying an effect creates independent gradient data.
@@ -222,8 +224,10 @@ The effect lazily caches a 512×2 RGBAHalf LUT without mipmaps. Unchanged render
 edits upload new pixels without recompiling the shader. Fixed uses Point filtering, other modes
 use Bilinear. LUT sampling is an approximation: transitions finer than one LUT interval may be lost.
 GPU caches are released with the material and recreated after reload. Edited keys are serialized
-in the effect/document, but **Save HLSL Preset… exports only the declaration**, so a new instance
-of that HLSL preset starts black-to-white. Gradient parameters are FX-only, not HLSL brush parameters.
+in the effect/document. The code default initializes new instances; applying code preserves the current edited value.
+**Save HLSL Preset…** writes a compatible two-endpoint gradient as a default; gradients with extra stops or
+non-default interpolation, smoothness or wrapping must be simplified before export.
+Gradient parameters are FX-only, not HLSL brush parameters.
 
 ```hlsl
 // @param gradient _Ramp // Map input brightness to colors.

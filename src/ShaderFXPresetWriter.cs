@@ -104,6 +104,9 @@ namespace DCFApixels.WhimTex
             return value.ToString("R", CultureInfo.InvariantCulture);
         }
 
+        private static string ColorDefault(UnityEngine.Color color) => "(" + Number(color.r) + ", " + Number(color.g) + ", " +
+            Number(color.b) + ", " + Number(color.a) + ")";
+
         internal static string Declaration(ShaderFXParameter p)
         {
             string prefix = "// @param ";
@@ -112,7 +115,9 @@ namespace DCFApixels.WhimTex
                 case ShaderFXParameterType.Curve:
                     return prefix + "curve " + p.name + " = " + WhimTexCurveTexture.Format(p.curveValue);
                 case ShaderFXParameterType.Gradient:
-                    return prefix + "gradient " + p.name;
+                    if (!GradientUtility.IsTwoColorGradient(p.gradientValue, out var left, out var right))
+                        throw new FormatException("Gradient preset defaults currently support two endpoint colors only. Simplify the gradient before saving this preset.");
+                    return prefix + "gradient " + p.name + " = " + ColorDefault(left) + " -> " + ColorDefault(right);
                 case ShaderFXParameterType.Bool:
                     return prefix + "bool " + p.name + " = " + (p.BoolValue ? "true" : "false");
                 case ShaderFXParameterType.Float:

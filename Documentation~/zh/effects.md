@@ -43,6 +43,7 @@ next_page: "zh/blending.md"
 ## Outline 和 SDF
 
 使用 **Outline** 在形状周围添加边框。调整其宽度和柔和度，
+选择 **Source Channel**（默认 Alpha，也可选 Red、Green、Blue 或 Luminance），
 然后选择它位于边缘内侧、外侧还是跨越边缘。
 
 当你需要基于到形状距离的渐变过渡时，使用 **SDF**。
@@ -58,7 +59,7 @@ next_page: "zh/blending.md"
 距离算法会改变转角和对角线的特征：
 Euclidean 给出圆润的距离，而 Manhattan 和 Chebyshev 给出更棱角分明的结果。
 
-对于具有平滑、部分透明边缘的源，请在 SDF 或 Outline 中选择 **Distance Algorithm → Euclidean Antialiased**。Outline 会跟随 50% 透明通道边缘，即使跨越宽泛的柔和过渡也是如此；
+对于具有平滑、部分透明边缘的源，请在 SDF 或 Outline 中选择 **Distance Algorithm → Euclidean Antialiased**。Outline 会跟随所选 **Source Channel** 的 50% 阈值边缘，即使跨越宽泛的柔和过渡也是如此；
 SDF 则使用其 **Threshold** 设置。永远达不到该阈值的区域不会形成轮廓。
 对于硬阈值轮廓或像素遮罩，请保留 **Euclidean Exact**。
 

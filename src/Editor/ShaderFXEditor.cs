@@ -174,16 +174,17 @@ namespace DCFApixels.WhimTex
                 // types and controls remain owned by the HLSL source.
                 declaredParameters.EnableInClassList("whimtex-shader-fx-hidden", false);
                 declaredParameters.Refresh();
+                bool pendingChanges = effect.HasPendingChanges;
                 status.messageType = effect.LastApplyFailed ? HelpBoxMessageType.Error : HelpBoxMessageType.Info;
-                status.EnableInClassList("whimtex-shader-fx-hidden", !effect.LastApplyFailed && !effect.HasPendingChanges);
+                status.EnableInClassList("whimtex-shader-fx-hidden", !effect.LastApplyFailed && !pendingChanges);
                 status.text = effect.LastApplyFailed
                     ? (effect.HasAppliedShader ? "Apply failed. The last successfully applied effect is still in use." : "Apply failed. This FX is skipped until it compiles successfully.")
-                    : effect.HasPendingChanges ? "Unapplied code or parameter declarations. Click Apply when ready."
+                    : pendingChanges ? "Unapplied code or parameter declarations. Click Apply when ready."
                     : "Applied. Values update without recompiling. Click Apply again after editing an included library.";
                 diagnostics.SetValueWithoutNotify(effect.Diagnostics);
                 diagnostics.EnableInClassList("whimtex-shader-fx-hidden",
                     !effect.LastApplyFailed && (string.IsNullOrWhiteSpace(effect.Diagnostics) || effect.Diagnostics == "Applied successfully."));
-                codeFoldout.text = effect.HasPendingChanges ? "Code • unapplied" : "Code";
+                codeFoldout.text = pendingChanges ? "Code • unapplied" : "Code";
                 apply.SetEnabled(effect != null);
             }
 

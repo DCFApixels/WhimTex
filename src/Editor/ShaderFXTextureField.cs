@@ -75,11 +75,16 @@ namespace DCFApixels.WhimTex
             bool fromLayer = p.textureSource == ShaderFXTextureSource.Layer;
             texture.EnableInClassList("whimtex-shader-fx-hidden", p.textureSource != ShaderFXTextureSource.Texture);
             layer.EnableInClassList("whimtex-shader-fx-hidden", !fromLayer);
+            if (!fromLayer)
+            {
+                warning.EnableInClassList("whimtex-shader-fx-hidden", true);
+                return;
+            }
             if (document == null) document = TextureCompositorWindow.FindFXTransformDocument(effect);
             var selected = document != null ? document.FindLayer(p.textureLayerId) : null;
             if (selected != null && !layer.choices.Contains(selected)) layer.choices.Add(selected);
             layer.SetValueWithoutNotify(selected);
-            string message = !fromLayer ? "" : document == null ? "Select a layer using this FX in a WhimTex document."
+            string message = document == null ? "Select a layer using this FX in a WhimTex document."
                 : string.IsNullOrEmpty(p.textureLayerId) ? "Choose a source layer. An empty source samples transparent pixels."
                 : !document.IsUsableShaderTexture(effect, p.textureLayerId) ? "Source is missing or creates a cyclic dependency. It samples transparent pixels." : "";
             warning.text = message;

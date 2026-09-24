@@ -61,7 +61,18 @@ namespace DCFApixels.WhimTex
             var seed = WhimTexUI.ConfigureField(new IntegerField("Seed"));
             bindings.Track(seed, () => layer.seed);
             seed.RegisterValueChangedCallback(evt => applyChange("Change Noise Seed", () => layer.seed = evt.newValue));
-            root.Add(seed);
+            var seedRow = WhimTexUI.CreateRow();
+            seed.style.flexGrow = 1f;
+            seed.style.flexShrink = 1f;
+            seedRow.Add(seed);
+            seedRow.Add(WhimTexUI.CreateToolbarButton("Random", () =>
+            {
+                int randomSeed;
+                do { randomSeed = BitConverter.ToInt32(Guid.NewGuid().ToByteArray(), 0); }
+                while (randomSeed == layer.seed);
+                applyChange("Randomize Noise Seed", () => layer.seed = randomSeed);
+            }, 64f));
+            root.Add(seedRow);
             var scale = new VisualElement();
             Number(scale, "Scale", () => layer.scale, value => layer.scale = value, .01f, 1000f);
             root.Add(scale);

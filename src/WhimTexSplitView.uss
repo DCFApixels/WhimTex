@@ -1739,18 +1739,6 @@
     background-color: rgba(0, 0, 0, 0);
 }
 
-.whimtex-fx-drag-handle {
-    flex-shrink: 0;
-    padding-left: 3px;
-    padding-right: 3px;
-    opacity: 0.65;
-}
-
-.whimtex-fx-drag-handle:hover,
-.whimtex-fx-drag-handle--dragging {
-    opacity: 1;
-}
-
 .whimtex-layer-fx-entry--drop-before {
     border-top-width: 2px;
     border-top-color: #78aaff;

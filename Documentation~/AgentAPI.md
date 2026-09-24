@@ -148,7 +148,9 @@ unity command whimtex_fx_compile --presetPath 'Packages/com.dcfapixels.whimtex/s
 
 $fx = @'
 // @param color _Tint = (1, 1, 1, 1)
-float4 ApplyFX(float2 uv, float4 color) { return color * _Tint; }
+// @param color _Accent = #FF0000FF
+// @param gradient _Ramp = #FF0000FF -> #0000FF
+float4 ApplyFX(float2 uv, float4 color) { return color * _Tint * _Accent * _Ramp_Sample(uv.x); }
 '@
 unity command whimtex_fx_compile --source $fx --project-path 'D:/Projects/MyGame' --format json
 ```
@@ -307,7 +309,7 @@ Gradient inputs accept either an ordered stop array or the object form documente
 | File | `source` (already imported Texture2D path in Assets or Packages) |
 | Color | `color` (`[r,g,b,a]`, encoded RGB -107..107, alpha 0..1) |
 | Drawing | `brush` (partial brush settings below) |
-| Outline | `color`, `metric`, `outlineWidth`, `outlineSoftness` (0..16384), `outlinePosition` (`Outside`, `Inside`, `Center`), `outlineOffset` (-16384..16384), `fillCenter` (bool), `fillColor` (`[r,g,b,a]`) |
+| Outline | `color`, `metric`, `sourceChannel` (`Alpha` default, `Red`, `Green`, `Blue`, `Luminance`), `outlineWidth`, `outlineSoftness` (0..16384), `outlinePosition` (`Outside`, `Inside`, `Center`), `outlineOffset` (-16384..16384), `fillCenter` (bool), `fillColor` (`[r,g,b,a]`) |
 | SDF | `metric`, `sourceChannel` (`Alpha`, `Red`, `Green`, `Blue`, `Luminance`), `threshold` (integer 0..255), `distancePosition` (`Outside`, `Inside`, `Center`, `Signed`), `inverted` (bool), `maxDistance` (0..16384; zero = automatic), `sourceOffset` ([x,y], each -16384..16384 px), `sourceEdges` (`Transparent`, `Clamp`, `Repeat`, `Mirror`), `contourOffset` (-16384..16384 px; positive expands), `insideDistance`/`outsideDistance` (Signed only, 0..16384; 0 inherits maxDistance/auto), `profile` (FX curve string syntax, default `linear`) |
 | Normal Map | `normalMap`: partial settings object described below |
 | Noise | `noise`: partial procedural settings object described below |
@@ -321,7 +323,7 @@ SDF/Outline `metric` accepts `EuclideanExact` (default), `EuclideanApproximate`,
 `Chebyshev` and `EuclideanAntialiased`. The latter interpolates threshold crossings between horizontal/vertical
 neighboring samples and measures distance to the closest crossing point. It approximates the continuous contour
 between those points; it does not treat a wide translucent transition as subpixel coverage.
-`threshold` selects the SDF contour; Outline uses threshold 128. In this mode a uniform source with no crossing has no border.
+`threshold` selects the SDF contour; Outline uses the fixed midpoint threshold (128) on its selected `sourceChannel`. In this mode a uniform source with no crossing has no border.
 Existing metric numeric IDs 0–3 remain stable; `EuclideanAntialiased` is 4 and is reported by capabilities/inspect.
 Outline filters both band edges, including at zero softness, and supports fractional widths. `outlineOffset`
 translates the band in canvas pixels (negative inward, positive outward), without changing its width.

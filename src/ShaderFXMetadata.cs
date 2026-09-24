@@ -112,9 +112,8 @@ namespace DCFApixels.WhimTex
                             p.curveValue = explicitDefault ? WhimTexCurveTexture.Parse(value) : WhimTexCurveTexture.Default();
                             break;
                         case "gradient":
-                            if (explicitDefault) throw new FormatException("Gradient declarations do not accept a default value. Use @param gradient " + name + ".");
                             p.type = ShaderFXParameterType.Gradient;
-                            p.gradientValue = new WhimTexGradient();
+                            p.gradientValue = explicitDefault ? ParseGradientDefault(value) : new WhimTexGradient();
                             break;
                         case "bool":
                             p.type = ShaderFXParameterType.Bool;
@@ -167,12 +166,12 @@ namespace DCFApixels.WhimTex
                         case "float4":
                         case "color":
                             if (!explicitDefault) value = "(0, 0, 0, 0)";
-                            if (!value.StartsWith("(") || !value.EndsWith(")")) throw new FormatException("Expected four components in parentheses.");
-                            string[] parts = value.Substring(1, value.Length - 2).Split(',');
-                            if (parts.Length != 4) throw new FormatException("Expected four components.");
-                            p.vectorValue = new Vector4(Number(parts[0]), Number(parts[1]), Number(parts[2]), Number(parts[3]));
+                            Color parsedColor = kind == "color" && value.StartsWith("#", StringComparison.Ordinal)
+                                ? ParseHexColor(value)
+                                : ParseTupleColor(value);
+                            p.vectorValue = new Vector4(parsedColor.r, parsedColor.g, parsedColor.b, parsedColor.a);
                             p.type = kind == "color" ? ShaderFXParameterType.Color : ShaderFXParameterType.Vector;
-                            p.colorValue = new Color(p.vectorValue.x, p.vectorValue.y, p.vectorValue.z, p.vectorValue.w);
+                            p.colorValue = parsedColor;
                             break;
                         case "texture2D":
                             p.type = ShaderFXParameterType.Texture2D;
@@ -301,6 +300,44 @@ namespace DCFApixels.WhimTex
             if (!float.TryParse(value.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out float result) ||
                 float.IsNaN(result) || float.IsInfinity(result)) throw new FormatException("Expected a finite number: " + value);
             return result;
+        }
+
+        private static WhimTexGradient ParseGradientDefault(string value)
+        {
+            int separator = value.IndexOf("->", StringComparison.Ordinal);
+            if (separator < 0 || value.IndexOf("->", separator + 2, StringComparison.Ordinal) >= 0)
+                throw new FormatException("Expected two colors separated by ->, for example #FF0000 -> #0000FFFF.");
+            Color start = ParseDefaultColor(value.Substring(0, separator));
+            Color end = ParseDefaultColor(value.Substring(separator + 2));
+            return GradientUtility.Create(
+                new[] { new GradientColorKey(start, 0f), new GradientColorKey(end, 1f) },
+                new[] { new GradientAlphaKey(start.a, 0f), new GradientAlphaKey(end.a, 1f) });
+        }
+
+        private static Color ParseDefaultColor(string value) => value.TrimStart().StartsWith("#", StringComparison.Ordinal)
+            ? ParseHexColor(value.Trim())
+            : ParseTupleColor(value.Trim());
+
+        private static Color ParseTupleColor(string value)
+        {
+            if (!value.StartsWith("(", StringComparison.Ordinal) || !value.EndsWith(")", StringComparison.Ordinal))
+                throw new FormatException("Expected #RRGGBB, #RRGGBBAA or four components in parentheses.");
+            string[] parts = value.Substring(1, value.Length - 2).Split(',');
+            if (parts.Length != 4) throw new FormatException("Expected four color components.");
+            return new Color(Number(parts[0]), Number(parts[1]), Number(parts[2]), Number(parts[3]));
+        }
+
+        private static Color ParseHexColor(string value)
+        {
+            if ((value.Length != 7 && value.Length != 9) || value[0] != '#')
+                throw new FormatException("Hex colors must use #RRGGBB or #RRGGBBAA format.");
+            try
+            {
+                byte Component(int offset) => byte.Parse(value.Substring(offset, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+                float alpha = value.Length == 9 ? Component(7) / 255f : 1f;
+                return new Color(Component(1) / 255f, Component(3) / 255f, Component(5) / 255f, alpha);
+            }
+            catch (FormatException) { throw new FormatException("Hex colors must use #RRGGBB or #RRGGBBAA format."); }
         }
 
         internal static void PreserveValues(List<ShaderFXParameter> next, IReadOnlyList<ShaderFXParameter> previous)

@@ -73,7 +73,9 @@ with Unity's curve editor. It starts as a straight line from 0 to 1; values may 
 Saving an HLSL preset preserves the edited curve.
 
 Effects can also offer a gradient field. Click its strip to edit colors, transparency and interpolation,
-including HDR colors. New gradients start black-to-white; changes update the effect immediately.
+including HDR colors. New gradients start black-to-white unless the HLSL declaration supplies two endpoint colors,
+for example `// @param gradient _Ramp = #FF0000FF -> #0000FF`. Hex colors use RGBA order; six digits imply full opacity.
+Changes update the effect immediately.
 
 Alternatively, drag a WhimTex effect `.hlsl` from Project onto a row in **Layers**.
 Dropping it onto the preview or empty space in the list creates a **Shader Processor** at the top of the composition.
@@ -129,7 +131,7 @@ The same pattern list works per pixel in **Stylization → Posterize**.
 
 **Other stylization effects**
 
-- **Step** thresholds each RGB channel separately. Choose **Hard** for a two-value result or **Smoothstep** to soften the transition with **Hardness**. **Threshold** instead tests luminance (or alpha) and maps the result between two colors, optionally with a soft boundary; it preserves source alpha.
+- **Step** thresholds the enabled color channels separately. Red, Green and Blue start enabled; Alpha starts disabled. Choose **Hard** for a two-value result or **Smoothstep** to soften the transition with **Hardness**. **Threshold** instead tests luminance (or alpha) and maps the result between two colors, optionally with a soft boundary; it preserves source alpha.
 - **Halftone** turns the image into monochrome, CMYK or RGB dot screens. Set dot size and shape; CMYK/RGB modes also expose screen angles and manual or automatic plate registration.
 - **Chromatic Aberration** shifts red and blue in opposite directions, radially from a point or along an angle. **Amount** is in canvas pixels; green and alpha stay unchanged.
 - **CRT** combines curved edges, scanlines, RGB phosphor stripes, vignette, color fringing, grain and flicker. **VHS** adds line wobble, chroma bleed, noise and a moving tracking band. **Seed** changes the deterministic pattern; **Effect Time** selects another frame.

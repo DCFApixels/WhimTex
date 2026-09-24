@@ -26,9 +26,9 @@
 // @endif
 // @param float _GradientDensity = 0 [0 .. 1] // Chance per block for gradient tint, independent of Block Density and Color Jitter Density.
 // @if _GradientDensity != 0
-// @param enum _GradientBlendMode = Override {Add: 0, Multiply: 1, Override: 2, Overwrite: 3} // Add or multiply with the current color, tint while preserving image detail, or blend directly toward the gradient color.
+// @param enum _GradientBlendMode = Overlay {Add: 0, Multiply: 1, Overlay: 2, Overwrite: 3} // Add, multiply, overlay the gradient over the image, or blend directly toward the gradient color.
 // @param float _GradientOpacity = 1 [0 .. 1] // Strength of the selected gradient blend mode.
-// @param gradient _BlockTintGradient // Palette used to tint corrupted blocks.
+// @param gradient _BlockTintGradient = #7EF3FFFF -> #B270FFFF // Palette used to tint corrupted blocks.
 // @param enum _GradientMapping = RandomPerBlock {RandomPerBlock: 0, Vertical: 1, Horizontal: 2} // Sample a random palette position per block, or map it across the canvas.
 // @endif
 // @header(Color Channels)
@@ -190,13 +190,18 @@ float4 ApplyFX(float2 uv, float4 color)
     if (gradientMask > 0.0 && gradientOpacity > 0.0)
     {
         float3 gradientColor = gradientSample.rgb;
-        float3 tintedSource = shiftedVideo * gradientColor;
         if (_GradientBlendMode < 0.5) // Add
             video = jitteredVideo + gradientColor * gradientOpacity;
         else if (_GradientBlendMode < 1.5) // Multiply
             video = lerp(jitteredVideo, jitteredVideo * gradientColor, gradientOpacity);
-        else if (_GradientBlendMode < 2.5) // Override: replace random tint but retain the shifted image detail.
-            video = lerp(jitteredVideo, tintedSource, gradientOpacity);
+        else if (_GradientBlendMode < 2.5) // Overlay the gradient while retaining image contrast.
+        {
+            float3 overlay = lerp(
+                2.0 * jitteredVideo * gradientColor,
+                1.0 - 2.0 * (1.0 - jitteredVideo) * (1.0 - gradientColor),
+                step(0.5, jitteredVideo));
+            video = lerp(jitteredVideo, overlay, gradientOpacity);
+        }
         else // Overwrite: blend directly toward the gradient color.
             video = lerp(jitteredVideo, gradientColor, gradientOpacity);
     }

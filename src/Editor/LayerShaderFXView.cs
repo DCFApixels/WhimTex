@@ -13,10 +13,11 @@ namespace DCFApixels.WhimTex
         private readonly TextureCompositor owner;
         private readonly Action<string, Action> applyChange;
         private readonly VisualElement entries = new VisualElement();
-        private readonly Button pasteButton;
         private readonly List<UnityEngine.Object> displayed = new List<UnityEngine.Object>();
         private readonly List<Action> refreshActivity = new List<Action>();
         private VisualElement activeLayerDropMarker;
+        private VisualElement activeStackDropMarker;
+        private bool stackDropAfter;
 
         internal LayerShaderFXView(Layer layer, TextureCompositor owner, Action<string, Action> applyChange)
         {
@@ -30,11 +31,6 @@ namespace DCFApixels.WhimTex
             toolbar.Add(new Button(() => Change("Add Shader FX", () => owner.AddEmbeddedShaderFX(layer))) { text = "+ Shader FX" });
             toolbar.Add(new Button(() => ShaderFXCatalog.ShowMenu(entry => Change("Add Catalog FX", () => owner.AddCatalogShaderFX(layer, entry)))) { text = "+ Preset ▾", tooltip = "Effects from the project and your user ShaderFX preset folder." });
             toolbar.Add(new Button(() => Change("Add FX Reference", () => layer.modifiers.Add(null))) { text = "+ Reference" });
-            pasteButton = new Button(PasteAtEnd) { text = "Paste FX", tooltip = "Paste a copied FX block at the end of this stack." };
-            toolbar.Add(pasteButton);
-            RefreshClipboardActionState();
-            RegisterCallback<AttachToPanelEvent>(_ => ShaderFXClipboard.Changed += RefreshClipboardActionState);
-            RegisterCallback<DetachFromPanelEvent>(_ => ShaderFXClipboard.Changed -= RefreshClipboardActionState);
             Add(toolbar);
             entries.AddToClassList("whimtex-layer-fx-entries");
             Add(entries);
@@ -49,6 +45,7 @@ namespace DCFApixels.WhimTex
                 changed = displayed[i] != layer.modifiers[i];
             if (!changed)
                 return;
+            UpdateDropMarker(default, false);
             entries.Clear();
             refreshActivity.Clear();
             displayed.Clear();
@@ -118,11 +115,7 @@ namespace DCFApixels.WhimTex
                     active.SetEnabled(!WhimTexApi.IsShaderFXContentLocked(effect));
                 });
             }
-            var dragHandle = new Label("⠿") { tooltip = "Drag the header to reorder this FX or move it to another layer" };
-            dragHandle.AddToClassList("whimtex-fx-drag-handle");
-            dragHandle.SetEnabled(owner != null && !WhimTexApi.IsLayerContentLocked(owner, layer));
-            refreshActivity.Add(() => dragHandle.SetEnabled(owner != null && !WhimTexApi.IsLayerContentLocked(owner, layer)));
-            toolbar.Add(dragHandle);
+            toolbar.tooltip = "Drag the header to reorder this FX or move it to another layer";
             if (embedded)
             {
                 Label name = new Label($"{index + 1}. {effect.name}");
@@ -202,7 +195,7 @@ namespace DCFApixels.WhimTex
                     canEdit ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
             }));
             toolbar.AddManipulator(new ReorderManipulator(
-                index, dragHandle, UpdateDropMarker, MoveTo, CanReorderLayer,
+                index, UpdateDropMarker, MoveTo, CanReorderLayer,
                 FindLayerDropTarget, CanMoveToLayer, UpdateLayerDropMarker, MoveToLayer));
             card.Add(toolbar);
             VisualElement body = new VisualElement();
@@ -228,8 +221,6 @@ namespace DCFApixels.WhimTex
         {
             MoveTo(index, index + delta);
         }
-
-        private void PasteAtEnd() => PasteAt(layer.modifiers.Count);
 
         private void PasteAt(int insertionIndex)
         {
@@ -261,13 +252,6 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private void RefreshClipboardActionState()
-        {
-            if (pasteButton != null)
-                pasteButton.SetEnabled(ShaderFXClipboard.Current != null &&
-                    owner != null && !WhimTexApi.IsLayerContentLocked(owner, layer));
-        }
-
         private void MoveTo(int sourceIndex, int targetIndex)
         {
             if (sourceIndex < 0 || sourceIndex >= layer.modifiers.Count ||
@@ -283,13 +267,11 @@ namespace DCFApixels.WhimTex
 
         private void UpdateDropMarker(Vector2 panelPosition, bool active)
         {
-            foreach (VisualElement child in entries.Children())
-            {
-                child.RemoveFromClassList("whimtex-layer-fx-entry--drop-before");
-                child.RemoveFromClassList("whimtex-layer-fx-entry--drop-after");
-            }
             if (!active || entries.childCount == 0)
+            {
+                SetStackDropMarker(null, false);
                 return;
+            }
 
             int insertionSlot = entries.childCount;
             for (int i = 0; i < entries.childCount; i++)
@@ -301,9 +283,20 @@ namespace DCFApixels.WhimTex
                 }
             }
             if (insertionSlot < entries.childCount)
-                entries[insertionSlot].AddToClassList("whimtex-layer-fx-entry--drop-before");
+                SetStackDropMarker(entries[insertionSlot], false);
             else
-                entries[entries.childCount - 1].AddToClassList("whimtex-layer-fx-entry--drop-after");
+                SetStackDropMarker(entries[entries.childCount - 1], true);
+        }
+
+        private void SetStackDropMarker(VisualElement marker, bool after)
+        {
+            if (activeStackDropMarker == marker && stackDropAfter == after) return;
+            activeStackDropMarker?.RemoveFromClassList(stackDropAfter
+                ? "whimtex-layer-fx-entry--drop-after" : "whimtex-layer-fx-entry--drop-before");
+            activeStackDropMarker = marker;
+            stackDropAfter = after;
+            activeStackDropMarker?.AddToClassList(after
+                ? "whimtex-layer-fx-entry--drop-after" : "whimtex-layer-fx-entry--drop-before");
         }
 
         private LayerDropTarget FindLayerDropTarget(Vector2 panelPosition)
@@ -374,7 +367,6 @@ namespace DCFApixels.WhimTex
         private sealed class ReorderManipulator : PointerManipulator
         {
             private readonly int sourceIndex;
-            private readonly VisualElement dragHandle;
             private readonly Action<Vector2, bool> updateDropMarker;
             private readonly Action<int, int> move;
             private readonly Func<bool> canReorder;
@@ -396,7 +388,6 @@ namespace DCFApixels.WhimTex
 
             internal ReorderManipulator(
                 int sourceIndex,
-                VisualElement dragHandle,
                 Action<Vector2, bool> updateDropMarker,
                 Action<int, int> move,
                 Func<bool> canReorder,
@@ -406,7 +397,6 @@ namespace DCFApixels.WhimTex
                 Action<int, Layer> moveToLayer)
             {
                 this.sourceIndex = sourceIndex;
-                this.dragHandle = dragHandle;
                 this.updateDropMarker = updateDropMarker;
                 this.move = move;
                 this.canReorder = canReorder;
@@ -479,7 +469,6 @@ namespace DCFApixels.WhimTex
                         return;
                     }
                     dragging = true;
-                    dragHandle.AddToClassList("whimtex-fx-drag-handle--dragging");
                     scrollView = FindScrollView(target);
                     autoScrollSchedule = target.schedule.Execute(AutoScrollTick).Every(16);
                 }
@@ -661,8 +650,6 @@ namespace DCFApixels.WhimTex
                 }
                 if (activePointerId >= 0 && target != null && target.HasPointerCapture(activePointerId))
                     target.ReleasePointer(activePointerId);
-                if (dragHandle != null)
-                    dragHandle.RemoveFromClassList("whimtex-fx-drag-handle--dragging");
                 scrollView = null;
                 targetIndex = -1;
                 destinationLayer = null;

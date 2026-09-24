@@ -141,7 +141,7 @@ namespace DCFApixels.WhimTex
                     key == "makeSeamless" && layer?.Behaviour is MakeSeamlessLayerBehaviour ||
                     key == "noise" && layer?.Behaviour is NoiseLayerBehaviour ||
                     key == "shape" && layer?.Behaviour is ShapeLayerBehaviour ||
-                    (key == "outlineWidth" || key == "outlineSoftness" || key == "outlinePosition" ||
+                    (key == "sourceChannel" || key == "outlineWidth" || key == "outlineSoftness" || key == "outlinePosition" ||
                      key == "outlineOffset" || key == "fillCenter" || key == "fillColor") && layer?.Behaviour is OutlineLayerBehaviour ||
                     (key == "sourceChannel" || key == "threshold" || key == "distancePosition" || key == "inverted" || key == "maxDistance" || key == "sourceOffset" || key == "sourceEdges" || key == "contourOffset" || key == "insideDistance" || key == "outsideDistance" || key == "profile") && layer?.Behaviour is SDFLayerBehaviour ||
                     key == "gradient" && (layer?.Behaviour is GradientLayerBehaviour || layer?.Behaviour is SDFLayerBehaviour));
@@ -198,6 +198,7 @@ namespace DCFApixels.WhimTex
             if (layer?.Behaviour is OutlineLayerBehaviour outline)
             {
                 outline.metric = Enum(settings, "metric", outline.metric);
+                outline.sourceChannel = Enum(settings, "sourceChannel", outline.sourceChannel);
                 outline.outlineWidth = Number(settings, "outlineWidth", outline.outlineWidth, 0f, 16384f);
                 outline.outlineSoftness = Number(settings, "outlineSoftness", outline.outlineSoftness, 0f, 16384f);
                 outline.outlinePosition = Enum(settings, "outlinePosition", outline.outlinePosition);

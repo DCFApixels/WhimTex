@@ -35,6 +35,14 @@ namespace DCFApixels.WhimTex
                 () => layer.metric = (DistanceMetric)evt.newValue));
             root.Add(metric);
 
+            EnumField sourceChannel = WhimTexUI.ConfigureField(new EnumField("Source Channel", layer.sourceChannel));
+            sourceChannel.tooltip = "Selects the channel used to detect the outline. Alpha preserves the traditional silhouette behavior.";
+            bindings.Track(sourceChannel, () => (Enum)layer.sourceChannel);
+            sourceChannel.RegisterValueChangedCallback(evt => applyChange(
+                "Change Outline Source Channel",
+                () => layer.sourceChannel = (OutlineLayerBehaviour.SourceChannel)evt.newValue));
+            root.Add(sourceChannel);
+
             ColorField color = WhimTexUI.ConfigureField(WhimTexColorInputs.Bind(new ColorField("Color"), bindings, () => layer.outlineColor));
             color.RegisterValueChangedCallback(evt =>
                 applyChange("Change Outline Color", () => layer.outlineColor = evt.newValue));

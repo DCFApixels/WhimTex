@@ -43,6 +43,7 @@ not the children you want included. The effect uses only that group's contents, 
 ## Outline and SDF
 
 Use **Outline** for a border around a shape. Adjust its width and softness,
+choose **Source Channel** (Alpha by default, or Red, Green, Blue or Luminance),
 then choose whether it sits inside, outside or across the edge.
 
 Use **SDF** when you want a gradual transition based on distance from the shape.
@@ -60,7 +61,7 @@ The distance algorithm changes the character of corners and diagonals:
 Euclidean gives rounded distances, while Manhattan and Chebyshev give more angular results.
 
 For a source with smooth, partially transparent edges, choose **Distance Algorithm → Euclidean Antialiased**
-in either SDF or Outline. Outline follows the 50% alpha edge, even across a broad soft transition;
+in either SDF or Outline. Outline follows the 50% threshold of its selected **Source Channel**, even across a broad soft transition;
 SDF uses its **Threshold** setting. Areas that never reach that threshold do not form a silhouette.
 Keep **Euclidean Exact** for a hard-threshold silhouette or pixel masks.
 

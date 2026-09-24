@@ -234,6 +234,7 @@ namespace DCFApixels.WhimTex
                     {
                         settings["color"] = Json(outline.outlineColor);
                         settings["metric"] = outline.metric.ToString();
+                        settings["sourceChannel"] = outline.sourceChannel.ToString();
                         settings["outlineWidth"] = outline.outlineWidth;
                         settings["outlineSoftness"] = outline.outlineSoftness;
                         settings["outlinePosition"] = outline.outlinePosition.ToString();

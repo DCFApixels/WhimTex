@@ -10,7 +10,10 @@ namespace DCFApixels.WhimTex
     internal sealed class ShaderFXParameterView : VisualElement
     {
         private readonly ShaderFX effect;
-        private string layoutKey;
+        private readonly List<ShaderFXParameter> layout = new List<ShaderFXParameter>();
+        private readonly Dictionary<string, ShaderFXParameter> parametersById = new Dictionary<string, ShaderFXParameter>(StringComparer.Ordinal);
+        private readonly Dictionary<string, ShaderFXParameter> parametersByName = new Dictionary<string, ShaderFXParameter>(StringComparer.Ordinal);
+        private bool layoutBuilt;
         private readonly List<Action> refresh = new List<Action>();
 
         internal ShaderFXParameterView(ShaderFX effect) { this.effect = effect; Refresh(); }
@@ -18,16 +21,24 @@ namespace DCFApixels.WhimTex
         internal void Refresh()
         {
             if (effect == null) return;
-            string key = "";
-            foreach (var p in effect.Parameters)
+            parametersById.Clear();
+            parametersByName.Clear();
+            bool changed = !layoutBuilt || layout.Count != effect.Parameters.Count;
+            for (int i = 0; i < effect.Parameters.Count; i++)
+            {
+                var p = effect.Parameters[i];
                 if (p != null)
                 {
-                    key += $"{p.id}:{p.name}:{p.type}:{p.hasMinimum}:{p.minimum}:{p.hasMaximum}:{p.maximum}:{p.softMinimum}:{p.softMaximum}|";
-                    foreach (var control in p.controls) key += JsonUtility.ToJson(control);
+                    if (p.id != null && !parametersById.ContainsKey(p.id)) parametersById.Add(p.id, p);
+                    if (p.name != null && !parametersByName.ContainsKey(p.name)) parametersByName.Add(p.name, p);
                 }
-            if (layoutKey != key)
+                if (!changed && !SameLayout(layout[i], p)) changed = true;
+            }
+            if (changed)
             {
-                layoutKey = key;
+                layoutBuilt = true;
+                layout.Clear();
+                foreach (var p in effect.Parameters) layout.Add(CopyLayout(p));
                 Clear(); refresh.Clear();
                 var rows = new List<(ShaderFXParameter parameter, ShaderFXParameterControl control)>();
                 foreach (var p in effect.Parameters)
@@ -44,19 +55,61 @@ namespace DCFApixels.WhimTex
 
         private ShaderFXParameter Find(string id)
         {
-            foreach (var p in effect.Parameters) if (p != null && p.id == id) return p;
-            return null;
+            return id != null && parametersById.TryGetValue(id, out var parameter) ? parameter : null;
+        }
+
+        private static bool SameArray<T>(T[] a, T[] b)
+        {
+            if (ReferenceEquals(a, b)) return true;
+            if (a == null || b == null || a.Length != b.Length) return false;
+            for (int i = 0; i < a.Length; i++)
+                if (!EqualityComparer<T>.Default.Equals(a[i], b[i])) return false;
+            return true;
+        }
+
+        private static bool SameLayout(ShaderFXParameter a, ShaderFXParameter b)
+        {
+            if (a == null || b == null) return a == b;
+            if (a.id != b.id || a.name != b.name || a.type != b.type ||
+                a.hasMinimum != b.hasMinimum || a.hasMaximum != b.hasMaximum ||
+                a.softMinimum != b.softMinimum || a.softMaximum != b.softMaximum ||
+                !a.minimum.Equals(b.minimum) || !a.maximum.Equals(b.maximum) || a.controls.Count != b.controls.Count)
+                return false;
+            for (int i = 0; i < a.controls.Count; i++)
+            {
+                var x = a.controls[i]; var y = b.controls[i];
+                if (x.type != y.type || x.order != y.order || x.tooltip != y.tooltip ||
+                    x.hasMinimum != y.hasMinimum || x.hasMaximum != y.hasMaximum ||
+                    x.softMinimum != y.softMinimum || x.softMaximum != y.softMaximum ||
+                    !x.minimum.Equals(y.minimum) || !x.maximum.Equals(y.maximum) ||
+                    x.visibleIfParameter != y.visibleIfParameter || x.visibleIfNotEqual != y.visibleIfNotEqual ||
+                    !x.visibleIfValue.Equals(y.visibleIfValue) || !SameArray(x.headers, y.headers) ||
+                    !SameArray(x.optionNames, y.optionNames) || !SameArray(x.optionValues, y.optionValues))
+                    return false;
+            }
+            return true;
+        }
+
+        private static ShaderFXParameter CopyLayout(ShaderFXParameter p)
+        {
+            if (p == null) return null;
+            var copy = new ShaderFXParameter { id = p.id, name = p.name, type = p.type,
+                hasMinimum = p.hasMinimum, hasMaximum = p.hasMaximum,
+                softMinimum = p.softMinimum, softMaximum = p.softMaximum, minimum = p.minimum, maximum = p.maximum };
+            foreach (var c in p.controls)
+                copy.controls.Add(new ShaderFXParameterControl { type = c.type, order = c.order, tooltip = c.tooltip,
+                    headers = c.headers == null ? null : (string[])c.headers.Clone(),
+                    hasMinimum = c.hasMinimum, hasMaximum = c.hasMaximum,
+                    softMinimum = c.softMinimum, softMaximum = c.softMaximum, minimum = c.minimum, maximum = c.maximum,
+                    optionNames = c.optionNames == null ? null : (string[])c.optionNames.Clone(),
+                    optionValues = c.optionValues == null ? null : (float[])c.optionValues.Clone(),
+                    visibleIfParameter = c.visibleIfParameter, visibleIfNotEqual = c.visibleIfNotEqual, visibleIfValue = c.visibleIfValue });
+            return copy;
         }
 
         private bool IsVisible(ShaderFXParameterControl condition)
         {
-            ShaderFXParameter driver = null;
-            foreach (var parameter in effect.Parameters)
-                if (parameter != null && parameter.name == condition.visibleIfParameter)
-                {
-                    driver = parameter;
-                    break;
-                }
+            parametersByName.TryGetValue(condition.visibleIfParameter, out var driver);
             if (driver == null) return false;
             bool floatDriver = false;
             foreach (var control in driver.controls)
@@ -68,7 +121,9 @@ namespace DCFApixels.WhimTex
         private void Change(string id, Action<ShaderFXParameter> update)
         {
             if (effect == null || WhimTexApi.IsShaderFXContentLocked(effect)) return;
-            var value = Find(id);
+            // Resolve against the current model: Undo can replace parameter objects before the view refreshes.
+            ShaderFXParameter value = null;
+            foreach (var p in effect.Parameters) if (p != null && p.id == id) { value = p; break; }
             if (value == null) return;
             Undo.RecordObject(effect, "Change FX Parameter");
             update(value);
@@ -86,7 +141,11 @@ namespace DCFApixels.WhimTex
                 rowRoot.AddToClassList("whimtex-fx-conditional-parameter");
                 Add(rowRoot);
                 ShaderFXParameterControl condition = control;
-                refresh.Add(() => rowRoot.style.display = IsVisible(condition) ? DisplayStyle.Flex : DisplayStyle.None);
+                refresh.Add(() =>
+                {
+                    var display = IsVisible(condition) ? DisplayStyle.Flex : DisplayStyle.None;
+                    if (rowRoot.style.display.value != display) rowRoot.style.display = display;
+                });
             }
 
             if (control?.headers != null)
@@ -164,11 +223,19 @@ namespace DCFApixels.WhimTex
                         var slider = new Slider(label, declaration.minimum, declaration.maximum) { showInputField = true };
                         slider.RegisterValueChangedCallback(e => Change(id, p => p.floatValue = declaration.Clamp(e.newValue)));
                         rowRoot.Add(slider);
+                        var sliderInput = slider.Q<TextField>();
+                        float displayedValue = float.NaN;
+                        string displayedText = null;
                         refresh.Add(() =>
                         {
                             float value = Find(id).floatValue;
+                            if (displayedText == null || !value.Equals(displayedValue))
+                            {
+                                displayedValue = value;
+                                displayedText = value.ToString("G9", System.Globalization.CultureInfo.InvariantCulture);
+                            }
                             slider.SetValueWithoutNotify(value);
-                            slider.Q<TextField>()?.SetValueWithoutNotify(value.ToString("G9", System.Globalization.CultureInfo.InvariantCulture));
+                            sliderInput?.SetValueWithoutNotify(displayedText);
                         });
                     }
                     else

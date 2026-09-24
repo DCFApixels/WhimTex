@@ -483,14 +483,15 @@ Use strictly increasing finite times, finite values, weights 0..1 and mode 0/1/2
 `keys()` evaluates to zero. No range. See [curve reference](../ShaderFX.md#curve-parameters)
 for sampling precision and preset persistence. This is not a layer property or a brush parameter.
 
-FX-only `gradient` is declared as `// @param gradient _Ramp`, **without `= value` or a range**.
-It starts opaque black-to-white (Classic); the user can edit colors, HDR, alpha and interpolation
-in the gradient field. Call `_Ramp_Sample(t)` for straight linear RGBA; `t` is clamped to 0..1.
+FX-only `gradient` is declared as `// @param gradient _Ramp`, optionally with two endpoint colors:
+`// @param gradient _Ramp = #FF0000FF -> #0000FF`. Each endpoint may be `#RRGGBB` (opaque),
+`#RRGGBBAA` (RGBA), or a numeric `(r, g, b, a)` tuple. Without an initializer it starts opaque
+black-to-white (Classic). The user can edit colors, HDR, alpha and interpolation in the gradient field.
+The same hex forms are accepted for `color` defaults; color defaults also accept numeric RGBA tuples.
+Call `_Ramp_Sample(t)` for straight linear RGBA; `t` is clamped to 0..1.
 For example, `return _Ramp_Sample(uv.x);`. Do not declare a sampler yourself. A cached 512×2
 LUT supplies the samples; editing keys does not recompile the shader. HLSL brush parameters do not
-support this type. Edited keys persist in the document, but HLSL preset export saves only the declaration
-and fresh preset instances start black-to-white. Clipboard FX currently cannot specify custom gradient
-keys separately from the code.
+support this type. Edited values persist in the document and two-endpoint defaults are exported with HLSL presets.
 
 Transform2D uses `(centerX, centerY, width, height, angleDegrees)` in normalized input units.
 Omitted default means the full image. For skew/perspective, use `// @param transform2D _Area = matrix(1, 0.2, 0, 0, 1, 0, 0.15, 0, 1)`: nine row-major values mapping local UV to input UV. The matrix must be invertible with no horizon crossing the unit rectangle. Do not combine matrix and TRS defaults.

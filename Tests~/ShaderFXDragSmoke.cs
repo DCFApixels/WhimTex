@@ -42,35 +42,35 @@ public static class ShaderFXDragSmoke
             window.ShowUtility();
             window.Focus();
             var header = new VisualElement();
-            var grip = new Label("Grip");
+            var title = new Label("FX title");
             var button = new Button();
-            header.Add(grip);
+            header.Add(title);
             header.Add(button);
             window.rootVisualElement.Add(header);
 
             var viewType = typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.LayerShaderFXView", true);
             var type = viewType.GetNestedType("ReorderManipulator", BindingFlags.NonPublic);
             var ctor = type.GetConstructors(Private)[0];
-            var hitTestType = ctor.GetParameters()[5].ParameterType;
+            var hitTestType = ctor.GetParameters()[4].ParameterType;
             var resultType = hitTestType.GetGenericArguments()[1];
             var hitTest = Expression.Lambda(hitTestType, Expression.Default(resultType),
                 Expression.Parameter(typeof(Vector2))).Compile();
             int moves = 0;
             var manipulator = (IManipulator)ctor.Invoke(new object[] {
-                0, grip, (Action<Vector2, bool>)((p, active) => {}),
+                0, (Action<Vector2, bool>)((p, active) => {}),
                 (Action<int, int>)((a, b) => moves++), (Func<bool>)(() => true),
                 hitTest, (Func<Layer, bool>)(_ => false), (Action<VisualElement>)(_ => {}),
                 (Action<int, Layer>)((i, l) => moves++)
             });
             header.AddManipulator(manipulator);
-            Func<bool> dragging = () => grip.ClassListContains("whimtex-fx-drag-handle--dragging");
+            Func<bool> dragging = () => (bool)type.GetField("dragging", Private).GetValue(manipulator);
             Action checkIdle = () => {
                 Check(!header.HasPointerCapture(PointerId.mousePointerId), "Pointer capture leaked");
-                Check(!dragging(), "Dragging style leaked");
+                Check(!dragging(), "Dragging state leaked");
                 Check(type.GetField("autoScrollSchedule", Private).GetValue(manipulator) == null, "Autoscroll leaked");
             };
             Action begin = () => {
-                SendPointer(grip, EventType.MouseDown, new Vector2(20, 20));
+                SendPointer(title, EventType.MouseDown, new Vector2(20, 20));
                 Check(header.HasPointerCapture(PointerId.mousePointerId), "Header did not capture pointer");
                 SendPointer(window.rootVisualElement, EventType.MouseDrag, new Vector2(50, 50), false);
                 Check(dragging(), "Drag did not start");

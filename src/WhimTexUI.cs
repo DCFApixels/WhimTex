@@ -102,21 +102,28 @@ namespace DCFApixels.WhimTex
                 }
 
                 bool queued = false;
+                IVisualElementScheduledItem pendingRefresh = null;
                 void QueueRefresh()
                 {
                     if (queued || field.panel == null)
                         return;
                     queued = true;
-                    field.schedule.Execute(() =>
+                    pendingRefresh ??= field.schedule.Execute(() =>
                     {
                         queued = false;
                         Refresh(false);
                     });
+                    pendingRefresh.Resume();
                 }
 
                 field.RegisterCallback<FocusOutEvent>(_ => QueueRefresh(), TrickleDown.TrickleDown);
                 field.RegisterCallback<PointerUpEvent>(_ => QueueRefresh(), TrickleDown.TrickleDown);
                 field.RegisterCallback<PointerCaptureOutEvent>(_ => QueueRefresh(), TrickleDown.TrickleDown);
+                field.RegisterCallback<DetachFromPanelEvent>(_ =>
+                {
+                    pendingRefresh?.Pause();
+                    queued = false;
+                });
                 updates.Add(Refresh);
                 Refresh(true);
             }

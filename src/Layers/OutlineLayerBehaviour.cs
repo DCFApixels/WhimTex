@@ -14,6 +14,7 @@ namespace DCFApixels.WhimTex
     public sealed class OutlineLayerBehaviour : TargetedLayerBehaviour
     {
         public DistanceMetric metric = DistanceMetric.EuclideanExact;
+        public SourceChannel sourceChannel = SourceChannel.Alpha;
         public Color outlineColor = Color.white;
         public float outlineWidth = 4f;
         public float outlineSoftness = 1f;
@@ -21,6 +22,7 @@ namespace DCFApixels.WhimTex
         public bool fillCenter;
         public Color fillColor = Color.white;
         public OutlinePosition outlinePosition = OutlinePosition.Outside;
+        internal override bool RequiresColorInput => sourceChannel != SourceChannel.Alpha;
 
         internal override RenderTexture Render(in LayerRenderContext context)
         {
@@ -43,7 +45,7 @@ namespace DCFApixels.WhimTex
                     context.width,
                     context.height,
                     128,
-                    (int)SDFLayerBehaviour.SourceChannel.Alpha,
+                    (int)sourceChannel,
                     metric);
 
                 resultTexture = new Texture2D(context.width, context.height, TextureFormat.RGBAFloat, false, true)
@@ -94,6 +96,15 @@ namespace DCFApixels.WhimTex
             Outside,
             Inside,
             Center
+        }
+
+        public enum SourceChannel
+        {
+            Alpha,
+            Red,
+            Green,
+            Blue,
+            Luminance
         }
     }
 
