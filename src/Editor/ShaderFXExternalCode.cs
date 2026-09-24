@@ -16,6 +16,8 @@ namespace DCFApixels.WhimTex
     {
         private const string ExtensionId = "dcfapixels.whimtex-fx-tools";
         private const string ExtensionVersion = "0.1.3";
+        private const double SessionPollInterval = 0.35d;
+        private static readonly UTF8Encoding utf8WithoutBom = new UTF8Encoding(false);
         private static readonly List<Session> sessions = new List<Session>();
         private static Process installProcess;
         private static double nextSessionPoll;
@@ -61,10 +63,10 @@ namespace DCFApixels.WhimTex
                 return;
             }
 
-                string installedMarker = Path.Combine(extensionsPath, ExtensionId + ".installed");
-                string extensionPackage = Path.Combine(extensionsPath, ExtensionId + "-" + ExtensionVersion);
-                if (File.Exists(installedMarker) && File.ReadAllText(installedMarker).Trim() == ExtensionVersion &&
-                    File.Exists(Path.Combine(extensionPackage, "package.json")))
+            string installedMarker = Path.Combine(extensionsPath, ExtensionId + ".installed");
+            string extensionPackage = Path.Combine(extensionsPath, ExtensionId + "-" + ExtensionVersion);
+            if (File.Exists(installedMarker) && File.ReadAllText(installedMarker).Trim() == ExtensionVersion &&
+                File.Exists(Path.Combine(extensionPackage, "package.json")))
             {
                 LaunchVsCode(editorPath, profilePath, extensionsPath, codePath);
                 return;
@@ -131,53 +133,47 @@ namespace DCFApixels.WhimTex
 
         private static void ResolveInitialChanges(ShaderFX effect, string codePath, string baselinePath, string modelCode)
         {
-            string baseline = File.ReadAllText(baselinePath);
-            string external = File.ReadAllText(codePath);
-            bool modelChanged = !string.Equals(modelCode, baseline, StringComparison.Ordinal);
-            bool externalChanged = !string.Equals(external, baseline, StringComparison.Ordinal);
-            if (externalChanged && !modelChanged)
+            var state = new CodeState(modelCode, File.ReadAllText(baselinePath), File.ReadAllText(codePath));
+            if (state.ExternalChanged && !state.ModelChanged)
             {
-                if (ApplyExternalCode(effect, external))
-                    File.WriteAllText(baselinePath, external, new UTF8Encoding(false));
+                if (ApplyExternalCode(effect, state.External))
+                    File.WriteAllText(baselinePath, state.External, utf8WithoutBom);
             }
-            else if (modelChanged && !externalChanged)
-                WritePair(codePath, baselinePath, modelCode);
-            else if (modelChanged && externalChanged && !string.Equals(modelCode, external, StringComparison.Ordinal))
+            else if (state.ModelChanged && !state.ExternalChanged)
+                WritePair(codePath, baselinePath, state.Model);
+            else if (state.HasConflict)
             {
                 int choice = EditorUtility.DisplayDialogComplex("External FX Code Changed",
                     "Both the document and its external code file changed since the last synchronization.",
                     "Use Document", "Cancel", "Use External File");
-                if (choice == 0) WritePair(codePath, baselinePath, modelCode);
-                else if (choice == 2 && ApplyExternalCode(effect, external)) File.WriteAllText(baselinePath, external, new UTF8Encoding(false));
+                if (choice == 0) WritePair(codePath, baselinePath, state.Model);
+                else if (choice == 2 && ApplyExternalCode(effect, state.External))
+                    File.WriteAllText(baselinePath, state.External, utf8WithoutBom);
             }
-            else if (!string.Equals(external, baseline, StringComparison.Ordinal))
-                File.WriteAllText(baselinePath, external, new UTF8Encoding(false));
+            else if (state.ExternalChanged)
+                File.WriteAllText(baselinePath, state.External, utf8WithoutBom);
         }
 
         private static void SynchronizeBeforeOpen(Session session)
         {
             if (!session.TryGetEffect(out ShaderFX effect) || effect == null) return;
-            string modelCode = effect.Code ?? string.Empty;
-            string baseline = File.Exists(session.BaselinePath) ? File.ReadAllText(session.BaselinePath) : string.Empty;
-            string external = File.Exists(session.CodePath) ? File.ReadAllText(session.CodePath) : string.Empty;
-            bool modelChanged = !string.Equals(modelCode, baseline, StringComparison.Ordinal);
-            bool externalChanged = !string.Equals(external, baseline, StringComparison.Ordinal);
-            if (modelChanged && externalChanged && !string.Equals(modelCode, external, StringComparison.Ordinal))
+            CodeState state = session.ReadCodeState(effect);
+            if (state.HasConflict)
             {
-                ResolveInitialChanges(effect, session.CodePath, session.BaselinePath, modelCode);
+                ResolveInitialChanges(effect, session.CodePath, session.BaselinePath, state.Model);
                 session.ResetObservation();
             }
-            else if (modelChanged)
-                WritePair(session.CodePath, session.BaselinePath, modelCode);
-            else if (externalChanged)
-                ImportExternal(session, effect, external);
+            else if (state.ModelChanged)
+                WritePair(session.CodePath, session.BaselinePath, state.Model);
+            else if (state.ExternalChanged)
+                ImportExternal(session, effect, state.External);
         }
 
         private static void PollSessions()
         {
             double now = EditorApplication.timeSinceStartup;
             if (now < nextSessionPoll) return;
-            nextSessionPoll = now + 0.35d;
+            nextSessionPoll = now + SessionPollInterval;
             for (int i = sessions.Count - 1; i >= 0; i--)
             {
                 Session session = sessions[i];
@@ -186,80 +182,79 @@ namespace DCFApixels.WhimTex
                     sessions.RemoveAt(i);
                     continue;
                 }
-                try
-                {
-                    string modelCode = effect.Code ?? string.Empty;
-                    string baseline = File.Exists(session.BaselinePath) ? File.ReadAllText(session.BaselinePath) : string.Empty;
-                    string external = File.Exists(session.CodePath) ? File.ReadAllText(session.CodePath) : string.Empty;
-                    bool modelChanged = !string.Equals(modelCode, baseline, StringComparison.Ordinal);
-                    bool externalChanged = !string.Equals(external, baseline, StringComparison.Ordinal);
-
-                    if (File.Exists(session.ApplyRequestPath))
-                    {
-                        ProcessApplyRequest(session, effect, modelCode, external, modelChanged, externalChanged);
-                        continue;
-                    }
-
-                    if (externalChanged)
-                    {
-                        long ticks = File.GetLastWriteTimeUtc(session.CodePath).Ticks;
-                        if (ticks != session.PendingWriteTicks)
-                        {
-                            session.PendingWriteTicks = ticks;
-                            session.StableWriteCount = 0;
-                        }
-                        else if (++session.StableWriteCount >= 2 && ticks != session.LastConflictTicks)
-                        {
-                            if (modelChanged && !string.Equals(modelCode, external, StringComparison.Ordinal))
-                            {
-                                session.LastConflictTicks = ticks;
-                                int choice = EditorUtility.DisplayDialogComplex("External FX Code Changed",
-                                    "The document and external code file changed at the same time.",
-                                    "Use Document", "Later", "Use External File");
-                                if (choice == 0) WritePair(session.CodePath, session.BaselinePath, modelCode);
-                                else if (choice == 2) ImportExternal(session, effect, external);
-                            }
-                            else ImportExternal(session, effect, external);
-                        }
-                    }
-                    else if (modelChanged)
-                        WritePair(session.CodePath, session.BaselinePath, modelCode);
-                }
+                try { PollSession(session, effect); }
                 catch (IOException) { }
                 catch (UnauthorizedAccessException) { }
             }
             if (sessions.Count == 0) EditorApplication.update -= PollSessions;
         }
 
-        private static void ProcessApplyRequest(Session session, ShaderFX effect, string modelCode,
-            string external, bool modelChanged, bool externalChanged)
+        private static void PollSession(Session session, ShaderFX effect)
+        {
+            CodeState state = session.ReadCodeState(effect);
+            if (File.Exists(session.ApplyRequestPath))
+            {
+                ProcessApplyRequest(session, effect, state);
+                return;
+            }
+
+            if (!state.ExternalChanged)
+            {
+                if (state.ModelChanged) WritePair(session.CodePath, session.BaselinePath, state.Model);
+                return;
+            }
+
+            long ticks = File.GetLastWriteTimeUtc(session.CodePath).Ticks;
+            if (ticks != session.PendingWriteTicks)
+            {
+                session.PendingWriteTicks = ticks;
+                session.StableWriteCount = 0;
+                return;
+            }
+            if (++session.StableWriteCount < 2 || ticks == session.LastConflictTicks) return;
+
+            if (state.HasConflict)
+            {
+                int choice = ShowSessionConflict(session, ticks);
+                if (choice == 0) WritePair(session.CodePath, session.BaselinePath, state.Model);
+                else if (choice == 2) ImportExternal(session, effect, state.External);
+            }
+            else ImportExternal(session, effect, state.External);
+        }
+
+        private static int ShowSessionConflict(Session session, long writeTicks)
+        {
+            session.LastConflictTicks = writeTicks;
+            return EditorUtility.DisplayDialogComplex("External FX Code Changed",
+                "The document and external code file changed at the same time.",
+                "Use Document", "Later", "Use External File");
+        }
+
+        private static void ProcessApplyRequest(Session session, ShaderFX effect, CodeState state)
         {
             if (WhimTexApi.IsShaderFXContentLocked(effect)) return;
 
-            if (modelChanged && externalChanged && !string.Equals(modelCode, external, StringComparison.Ordinal))
+            if (state.HasConflict)
             {
                 long ticks = File.GetLastWriteTimeUtc(session.CodePath).Ticks;
                 if (ticks == session.LastConflictTicks) return;
-                session.LastConflictTicks = ticks;
-                int choice = EditorUtility.DisplayDialogComplex("External FX Code Changed",
-                    "The document and external code file changed at the same time.",
-                    "Use Document", "Later", "Use External File");
+                int choice = ShowSessionConflict(session, ticks);
                 if (choice == 0)
                 {
                     if (!TryDeleteApplyRequest(session)) return;
-                    WritePair(session.CodePath, session.BaselinePath, modelCode);
+                    WritePair(session.CodePath, session.BaselinePath, state.Model);
                     return;
                 }
                 if (choice != 2) return;
-                if (!ImportExternal(session, effect, external)) return;
+                if (!ImportExternal(session, effect, state.External)) return;
             }
-            else if (modelChanged && !externalChanged)
+            else if (state.ModelChanged && !state.ExternalChanged)
             {
                 if (!TryDeleteApplyRequest(session)) return;
-                WritePair(session.CodePath, session.BaselinePath, modelCode);
+                WritePair(session.CodePath, session.BaselinePath, state.Model);
                 return;
             }
-            else if (externalChanged && !ImportExternal(session, effect, external))
+            else if (state.ExternalChanged && !ImportExternal(session, effect, state.External))
                 return;
 
             if (!TryDeleteApplyRequest(session)) return;
@@ -271,7 +266,7 @@ namespace DCFApixels.WhimTex
         {
             if (!string.Equals(effect.Code, external, StringComparison.Ordinal) && !ApplyExternalCode(effect, external))
                 return false;
-            File.WriteAllText(session.BaselinePath, external, new UTF8Encoding(false));
+            File.WriteAllText(session.BaselinePath, external, utf8WithoutBom);
             session.ResetObservation();
             CodeChanged?.Invoke(effect);
             return true;
@@ -301,8 +296,8 @@ namespace DCFApixels.WhimTex
         private static void WritePair(string codePath, string baselinePath, string content)
         {
             content ??= string.Empty;
-            File.WriteAllText(codePath, content, new UTF8Encoding(false));
-            File.WriteAllText(baselinePath, content, new UTF8Encoding(false));
+            File.WriteAllText(codePath, content, utf8WithoutBom);
+            File.WriteAllText(baselinePath, content, utf8WithoutBom);
         }
 
         private static Session FindSession(ShaderFX effect)
@@ -323,7 +318,7 @@ namespace DCFApixels.WhimTex
             if (exitCode == 0)
             {
                 Directory.CreateDirectory(pendingExtensionsPath);
-                File.WriteAllText(Path.Combine(pendingExtensionsPath, ExtensionId + ".installed"), ExtensionVersion, new UTF8Encoding(false));
+                File.WriteAllText(Path.Combine(pendingExtensionsPath, ExtensionId + ".installed"), ExtensionVersion, utf8WithoutBom);
                 LaunchVsCode(pendingEditorPath, pendingProfilePath, pendingExtensionsPath, pendingCodePath);
             }
             else
@@ -465,12 +460,30 @@ namespace DCFApixels.WhimTex
             }
         }
 
+        private readonly struct CodeState
+        {
+            internal readonly string Model;
+            internal readonly string External;
+            internal readonly bool ModelChanged;
+            internal readonly bool ExternalChanged;
+            internal bool HasConflict => ModelChanged && ExternalChanged &&
+                !string.Equals(Model, External, StringComparison.Ordinal);
+
+            internal CodeState(string model, string baseline, string external)
+            {
+                Model = model;
+                External = external;
+                ModelChanged = !string.Equals(model, baseline, StringComparison.Ordinal);
+                ExternalChanged = !string.Equals(external, baseline, StringComparison.Ordinal);
+            }
+        }
+
         private sealed class Session
         {
             private readonly WeakReference<ShaderFX> effect;
             internal readonly string CodePath;
             internal readonly string BaselinePath;
-            internal string ApplyRequestPath => CodePath + ".apply";
+            internal readonly string ApplyRequestPath;
             internal long PendingWriteTicks;
             internal long LastConflictTicks;
             internal int StableWriteCount;
@@ -480,10 +493,15 @@ namespace DCFApixels.WhimTex
                 this.effect = new WeakReference<ShaderFX>(effect);
                 CodePath = codePath;
                 BaselinePath = baselinePath;
+                ApplyRequestPath = codePath + ".apply";
                 ResetObservation();
             }
 
             internal bool TryGetEffect(out ShaderFX value) => effect.TryGetTarget(out value);
+            internal CodeState ReadCodeState(ShaderFX value) => new CodeState(value.Code ?? string.Empty,
+                File.Exists(BaselinePath) ? File.ReadAllText(BaselinePath) : string.Empty,
+                File.Exists(CodePath) ? File.ReadAllText(CodePath) : string.Empty);
+
             internal void ResetObservation()
             {
                 PendingWriteTicks = File.Exists(CodePath) ? File.GetLastWriteTimeUtc(CodePath).Ticks : 0;
