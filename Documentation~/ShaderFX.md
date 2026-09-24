@@ -40,17 +40,19 @@ stack below a position, add a **Shader Processor** layer instead.
 
 ## Shader FX: a first snippet, parameters and reusable code
 
-Add a **Float** parameter named `_Amount`, then apply this example:
+Declare the parameter in the code, then click **Apply**:
 
 ```hlsl
+// @param float _Amount = 1 [0 .. 1]
+
 float4 ApplyFX(float2 uv, float4 color)
 {
     return float4(lerp(color.rgb, 1.0 - color.rgb, saturate(_Amount)), color.a);
 }
 ```
 
-Parameters support Float, Color, Vector, Texture2D and Transform2D. Their uniforms are generated automatically.
-Code and declarations stay drafts until Apply; a compile error keeps the last working effect.
+Parameter declarations generate uniforms and editor controls automatically; the supported types are described below.
+Code and declarations stay drafts until **Apply**, including an Apply request from saving the working file in the bundled VS Code integration. A compile error keeps the last working effect.
 
 `LayerToLocal(uv)` converts canvas UV to local layer UV, including parent transforms and perspective. Use it for procedural shapes that should follow the layer. It does not clamp or wrap UV; `SampleInput` still expects canvas UV.
 
@@ -69,6 +71,18 @@ after Save As to another folder, check relative paths. Libraries must suit the f
 **+ Reference** links an external FX shared by its users; **Embed** makes an independent document-owned
 copy. Save As and layer duplication copy embedded FX independently. FX run in order after Transform;
 changing parameter values does not regenerate shaders.
+
+## External code editors
+
+For document-owned code, **Open Code** opens a working `.hlsl` file through Unity's selected external script editor. Saving synchronizes the draft; **Apply** in WhimTex compiles it. **Open in VS Code** uses a project-local isolated profile and installs the bundled extension automatically. Detection checks Unity's registered editors, then PATH, then **User Settings → External Code Editor → VS Code Command**.
+
+The extension augments the existing **HLSL** language mode with directive highlighting, completions and structural diagnostics. It supports Restricted Mode without disabling Workspace Trust. It does not compile HLSL; Unity remains the authority for compilation and parameter validation.
+
+Working files and their last synchronized baselines live in `Library/WhimTex/ExternalCode`. The VS Code save handler writes a neighboring `.apply` request for these files. Unity polls active sessions every 0.35 seconds, imports the saved draft and calls Apply, including when the code is unchanged. Ordinary external writes synchronize after two stable observations and do not request Apply. FX locks defer synchronization; conflicting document/file changes ask which version to keep. A failed Apply retains the last working shader and reports diagnostics.
+
+Working copies are not standalone presets or the saved document. Applying code does **not** save the TIFF; save the document in WhimTex separately. Sessions are in-memory: after a script reload, reopen the code from WhimTex to reconnect. Keep unsaved code backed up before deleting the project's Library folder.
+
+Catalog-linked code uses **Open HLSL Source** to edit the shared source. Choose **Embed Copy** to edit an independent document-owned copy instead. Relative includes resolve from the document/source context, not the working-copy directory.
 
 ## HLSL catalog
 
@@ -103,7 +117,7 @@ sources. Custom includes are expanded when adding a user preset; Unity includes 
 Relative includes in a user preset must stay within the configured `ShaderFX` folder.
 Project/catalog discovery still uses AssetDatabase and import notifications.
 
-**Save HLSL Preset…** exports the current code with parameter declarations rewritten to current
+**Save Preset…** exports the current code with parameter declarations rewritten to current
 values, retaining float bounds and existing categories; the file name supplies the last category segment.
 Custom includes are expanded for portability (cyclic or oversized include trees are rejected).
 Engine includes remain external. Files can be saved under user `ShaderFX` or project `Assets`.
@@ -131,7 +145,7 @@ Use `// @header(Lighting)` before a `// @param` declaration to add a bold, non-c
 // @param float _Intensity = 1 [0 .. ~4]
 ```
 
-Use `@group` and `@endgroup` to visually contain several controls in a bordered block. An optional title appears in its header. Add `; _Parameter` to link a parameter declared unconditionally inside that group to the header. A bool is drawn as an unlabeled checkbox to the left of the title; it only edits the bool value and does not itself show or hide the group body. Use `@if` to control dependent rows and use the bool uniform in HLSL to enable or disable the effect. Supported compact values (enum, float, color, float2, float3, and float4) are drawn as their usual labeled field on the right. The linked control is omitted from the group body even when declared `hidden`; `hidden` does not prevent an explicitly linked, supported control from appearing in the header. Unlinked hidden controls remain invisible, while unsupported or multi-row controls stay in the body and do not alter the header. If all body rows are hidden by `@if`, the body collapses and the group is displayed as a header only. Groups cannot be nested; `@if` blocks may be used inside a group.
+Use `@group` and `@endgroup` to visually contain several controls in a bordered block. An optional title appears in its header. Add `; _Parameter` to link a parameter declared unconditionally inside that group to the header. A bool is drawn as an unlabeled checkbox to the left of the title; it only edits the bool value and does not itself show or hide the group body. Use `@if` to control dependent rows and use the bool uniform in HLSL to enable or disable the effect. Supported compact values (enum, float, color, float2, float3, and float4) are drawn on the right without a separate label: the group title labels the value. Dragging the title of a float field changes its value and respects its hard/soft bounds. The linked control is omitted from the group body even when declared `hidden`; `hidden` does not prevent an explicitly linked, supported control from appearing in the header. Unlinked hidden controls remain invisible, while unsupported or multi-row controls stay in the body and do not alter the header. If all body rows are hidden by `@if`, the body collapses and the group is displayed as a header only. Groups cannot be nested; `@if` blocks may be used inside a group.
 
 ```hlsl
 // @group(Tint; _EnableTint)
@@ -141,7 +155,7 @@ Use `@group` and `@endgroup` to visually contain several controls in a bordered 
 // @endgroup
 ```
 
-For example, `// @group(Quality; _Quality)` with `// @param hidden enum _Quality = 1 {Low: 0, High: 1}` puts the labeled dropdown in the header without a duplicate row. Use `// @group(Advanced)` for a titled group without a linked field, or plain `// @group` for a box without a header.
+For example, `// @group(Quality; _Quality)` with `// @param hidden enum _Quality = 1 {Low: 0, High: 1}` puts the dropdown next to the group title without a duplicate row. Use `// @group(Advanced)` for a titled group without a linked field, or plain `// @group` for a box without a header.
 
 Use `label(...)` inline to override a parameter's generated UI label without changing its shader identifier: `// @param label(Tint Strength) float _Strength = 1`. The `hidden` and `label(...)` modifiers can appear in either order. Quote labels that contain parentheses; labels are preserved on preset export.
 
@@ -208,7 +222,7 @@ A cached linear RFloat 512×2 LUT is rebuilt only when curve data changes, witho
 the shader. GPU sampling is bilinear: very narrow details and step transitions are approximate
 at this resolution. Copies own independent curves; documents preserve keys and tangents.
 
-Save HLSL Preset writes the current curve as an optional default:
+**Save Preset…** writes the current curve as an optional default:
 
 ```hlsl
 // @param curve _Profile = keys((0, 0, 1, 1, 0, 0, 0), (1, 1, 1, 1, 0, 0, 0))
@@ -231,7 +245,7 @@ default wins. Curve parameters are FX-only, not HLSL brush parameters.
 Declare `// @param gradient _Ramp`, optionally with two endpoint colors such as
 `// @param gradient _Ramp = #FF0000FF -> #0000FF`. Each endpoint accepts `#RRGGBB` (opaque) or
 `#RRGGBBAA` (RGBA), or a numeric `(r, g, b, a)` tuple. The parameter remains editable after creation.
-Use `_Ramp_Sample(t)` to obtain straight linear RGBA. The helper clamps `t` to 0..1; use `frac(t)` yourself for repetition.
+Use `_Ramp_Sample(t)` to obtain straight linear RGBA. The helper uses the gradient's **Wrap** setting: **Clamp** holds endpoint colors, **Repeat** repeats every unit, and **Mirror** alternates forward and backward every unit, including negative inputs.
 Do not redeclare a sampler or reference internal `_WhimTex_` uniforms.
 Colors, HDR, alpha, interpolation, smoothness and midpoints are edited in the gradient field.
 Repeated declarations share a gradient value; copying an effect creates independent gradient data.
@@ -241,7 +255,7 @@ edits upload new pixels without recompiling the shader. Fixed uses Point filteri
 use Bilinear. LUT sampling is an approximation: transitions finer than one LUT interval may be lost.
 GPU caches are released with the material and recreated after reload. Edited keys are serialized
 in the effect/document. The code default initializes new instances; applying code preserves the current edited value.
-**Save HLSL Preset…** writes a compatible two-endpoint gradient as a default; gradients with extra stops or
+**Save Preset…** writes a compatible two-endpoint gradient as a default; gradients with extra stops or
 non-default interpolation, smoothness or wrapping must be simplified before export.
 Gradient parameters are FX-only, not HLSL brush parameters.
 

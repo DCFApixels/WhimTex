@@ -23,7 +23,7 @@ To show controls conditionally in the editor, put `// @param` declarations betwe
 
 In HLSL, `// @header(Lighting)` before a parameter adds a bold section heading, without a foldout. Use `// @helpbox(Your hint text.)` to show an informational help box above the next parameter. These directives are UI-only metadata and are preserved when saving presets and portable code; directives without a following parameter are ignored.
 
-Use `// @group(Tint; _Parameter)` and `// @endgroup` to place controls in a bordered block and link a parameter declared unconditionally inside it to the header. A bool becomes an unlabeled checkbox to the left of the title; it only edits the value. Use `@if` to show or hide dependent controls, and use the bool in HLSL to enable or disable the effect itself. Compact enum, float, color, float2, float3, and float4 parameters appear as their normal labeled field on the right and are omitted from the body. `hidden` suppresses the normal body row but does not suppress an explicitly linked supported header control; unlinked hidden parameters remain invisible. Unsupported or multi-row controls stay in the body and leave the title plain. When all body rows are hidden by `@if`, the body collapses and only the header remains. Groups may contain `@if` blocks but cannot be nested. For a plain titled box use `// @group(Advanced)`; for a box without a title use `// @group`.
+Use `// @group(Tint; _Parameter)` and `// @endgroup` to place controls in a bordered block and link a parameter declared unconditionally inside it to the header. A bool becomes an unlabeled checkbox to the left of the title; it only edits the value. Use `@if` to show or hide dependent controls, and use the bool in HLSL to enable or disable the effect itself. Compact enum, float, color, float2, float3, and float4 parameters appear on the right without a second label; the group title labels the value, and dragging a float's title changes its value. These controls are omitted from the body. `hidden` suppresses the normal body row but does not suppress an explicitly linked supported header control; unlinked hidden parameters remain invisible. Unsupported or multi-row controls stay in the body and leave the title plain. When all body rows are hidden by `@if`, the body collapses and only the header remains. Groups may contain `@if` blocks but cannot be nested. For a plain titled box use `// @group(Advanced)`; for a box without a title use `// @group`.
 
 Add a custom UI label inline with a declaration, for example `// @param label(Tint Strength) float _Strength = 1`. `hidden` and `label(...)` may appear in either order, such as `// @param label(Optional Mode) hidden enum _Mode = Off {Off: 0, On: 1}`. Quote the label when it contains parentheses. Labels only affect the UI and are preserved when exporting presets.
 
@@ -83,6 +83,8 @@ including HDR colors. New gradients start black-to-white unless the HLSL declara
 for example `// @param gradient _Ramp = #FF0000FF -> #0000FF`. Hex colors use RGBA order; six digits imply full opacity.
 Changes update the effect immediately.
 
+In the gradient editor, **Wrap** chooses what happens outside 0–1: **Clamp** holds the endpoint colors, **Repeat** repeats the gradient, and **Mirror** alternates its direction. An effect that clamps its own input may never reach the repeated range.
+
 Alternatively, drag a WhimTex effect `.hlsl` from Project onto a row in **Layers**.
 Dropping it onto the preview or empty space in the list creates a **Shader Processor** at the top of the composition.
 HLSL brush presets and files without the effect marker are not accepted.
@@ -96,11 +98,18 @@ Effects added to the project become available automatically; no preset folder se
 
 **+ Reference** selects a Shader FX asset whose settings are shared everywhere it is used.
 **⋮ → Embed Copy** in the effect header creates an independent copy in the document without changing the external asset. The same menu contains **Move Up**, **Move Down** and **Remove**.
-Use **⋮ → Copy FX**, then **Paste FX As New** on another row to insert an independent copy after it, or use the toolbar's **Paste FX** to append it. Shader FX code and parameters are copied; layer-texture links stay within the same document and are cleared when pasted into another document. Material rows copy the Material reference.
+Use **⋮ → Copy FX**, then **Paste FX As New** on another row to insert an independent copy after it. Shader FX code and parameters are copied; layer-texture links stay within the same document and are cleared when pasted into another document. Material rows copy the Material reference.
 Project HLSL effects receive code changes from their source `.hlsl` file.
-To edit the code independently in the document, click **Embed Copy** under **Code**. **Open Code** opens a temporary working file with the script editor selected in Unity; saving it synchronizes the draft back into the document. **Open in VS Code** appears when Unity detects that installation and uses an isolated profile with WhimTex highlighting and directive diagnostics installed automatically. Parameters are visible directly below the header; **Code** contains the editor, **Apply**, **Save Preset…** and the nested **Shader inputs** reference. Diagnostics appear only when there is something to report.
+To edit the code independently in the document, click **Embed Copy** under **Code**. Parameters appear below the header; **Code** contains the editor, **Apply**, **Save Preset…** and **Shader inputs**. Diagnostics appear when there is something to report.
 
-Effect order matters: the **↑** and **↓** arrows on each effect row apply it earlier or later in the sequence.
+**Editing in an external editor**
+
+- **Open Code** opens a working file in Unity's selected script editor. Saving updates the draft in WhimTex; click **Apply** to compile it.
+- **Open in VS Code** also installs WhimTex directive highlighting, completions and checks automatically in an isolated profile. Saving this working file requests **Apply** in Unity, without returning to the WhimTex window. The language mode remains **HLSL**; the bundled extension supports Restricted Mode.
+- If the VS Code button is missing, set **User Settings → External Code Editor → VS Code Command**. WhimTex checks Unity's registered editors and PATH before this fallback.
+- An invalid shader leaves the last working result visible and reports diagnostics. Save the document in WhimTex to keep your changes in the TIFF; saving the code file alone does not save it. After a Unity script reload, reopen the code from WhimTex to reconnect.
+
+Effect order matters. Drag an FX header to reorder effects, or drop it onto another layer's row to move it there. **Move Up** and **Move Down** in the header context menu also change the order.
 
 **HSV correction**
 
@@ -114,6 +123,10 @@ neutral settings and Amount 0 leave the original unchanged.
 
 **Color → Negative** blends the source RGB toward its inverse (`1 - RGB`) with **Amount**.
 Alpha is preserved by default; enable **Invert Alpha** to apply the same blend to it.
+
+**Mask**
+
+**Color → Mask** reads a chosen channel from **Mask** (Self by default). **Transform** positions the mask, **Profile** remaps its values, and **Invert** reverses the result. **Apply To → Channels** selects which channels to multiply; only alpha is enabled initially. In **Color** mode, each color component controls how much of the original channel to preserve: 1 leaves it unchanged, 0 applies the full mask. This is not a tint. **Amount** scales the overall effect.
 
 **Gradient mapping**
 
@@ -131,13 +144,12 @@ shadows and highlights. **Dither** picks the pattern that spreads the error betw
 **Bayer2**, **Bayer4** and **Bayer8** give the classic ordered look, **Interleaved** is irregular
 noise, **Checker** is a two-tone grid, **Halftone** builds a clustered-dot screen and **Hash** is
 stable noise without a visible grid. The pattern is evaluated per block, so it stays visible after
-pixelation. **Amount** weakens it down to plain rounding. **One Bit** reduces the result to
-**Low Color** and **High Color** by luminance instead of quantizing each channel. Alpha is preserved.
+pixelation. **Dither Strength** weakens it down to plain rounding. **Color → Quantization** uses Levels and Gamma; **Color → One Bit** uses **Low Color** and **High Color** by luminance instead. **Offset** shifts the grid without moving the layer. Alpha is preserved unless **Alpha Clip** is enabled; **Alpha Cutoff** sets the transparent/opaque boundary.
 The same pattern list works per pixel in **Stylization → Posterize**.
 
 **Other stylization effects**
 
-- **Step** thresholds the enabled color channels separately. Red, Green and Blue start enabled; Alpha starts disabled. Choose **Hard** for a two-value result or **Smoothstep** to soften the transition with **Hardness**. **Threshold** instead tests luminance (or alpha) and maps the result between two colors, optionally with a soft boundary; it preserves source alpha.
+- **Step** thresholds the enabled color channels separately. Red, Green and Blue start enabled; Alpha starts disabled. Choose **Hard** for a two-value result or **Smoothstep** to soften the transition with **Hardness**. **Apply To → Color** uses RGBA as per-channel effect strengths: 0 preserves the original channel, 1 applies the full step. It does not replace the image with that color. **Threshold** instead tests luminance (or alpha) and maps the result between two colors, optionally with a soft boundary; it preserves source alpha.
 - **Halftone** turns the image into monochrome, CMYK or RGB dot screens. Set dot size and shape; CMYK/RGB modes also expose screen angles and manual or automatic plate registration.
 - **Chromatic Aberration** shifts red and blue in opposite directions, radially from a point or along an angle. **Amount** is in canvas pixels; green and alpha stay unchanged.
 - **CRT** combines curved edges, scanlines, RGB phosphor stripes, vignette, color fringing, grain and flicker. **VHS** adds line wobble, chroma bleed, noise and a moving tracking band. **Seed** changes the deterministic pattern; **Effect Time** selects another frame.
@@ -160,7 +172,7 @@ This toggle accounts for color encoding, but does not unpack platform-specific n
 
 ## Save your own preset
 
-In the effect's code editor, click **Save HLSL Preset…**. This creates an `.hlsl` file
+In the effect's code editor, click **Save Preset…**. This creates an `.hlsl` file
 with the current parameter values as defaults, including colors and Transform 2D.
 The file name becomes the preset name. You can save in the user library's **ShaderFX**
 subfolder or anywhere under the project's **Assets** folder. Overwriting keeps a `.bak` copy.
@@ -169,14 +181,13 @@ Set the shared library location in **User Settings → Presets → Presets Folde
 and **ShaderFX** subfolders hold the two kinds of presets. You can also place existing
 HLSL presets in ShaderFX or its subfolders; reopen **+ Preset** to see them under **User**.
 User presets are copied into the document; later changes to their files do not change
-effects you have already added. Presets saved under the project's **Assets** remain linked to their files:
-editing a file updates all effects using it.
+effects you have already added. Adding a preset from the project's **Assets** creates a linked instance:
+editing its file updates the effects linked to it. Saving a preset does not relink the effect you exported.
 
 Texture defaults are references, not embedded images. To use them in another project,
 also transfer the referenced texture assets with their `.meta` files, or assign replacements.
 
-Edited gradient keys are saved in the document, but not in an exported HLSL preset yet.
-A new instance of that preset starts with a black-to-white gradient.
+Edited gradients are saved in the document. A simple two-endpoint gradient can also be exported as an HLSL default. Extra stops or non-default interpolation, smoothness or wrapping must be simplified before HLSL export.
 
 ## Adjust an effect on the canvas
 
