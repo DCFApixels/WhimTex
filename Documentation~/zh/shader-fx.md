@@ -106,6 +106,12 @@ HLSL 画笔预设和没有效果标记的文件不会被接受。
 - 若没有 VS Code 按钮，可设置 **User Settings → External Code Editor → VS Code Command**。WhimTex 先检查 Unity 注册的编辑器和 PATH，再使用此备用路径。
 - 编译失败时保留最后可用的结果，并显示诊断。请在 WhimTex 中保存文档，将修改写入 TIFF；仅保存代码不会保存 TIFF。Unity 脚本重新加载后，请从 WhimTex 再次打开代码以重新连接。
 
+扩展不仅高亮指令名称，也区分类型、修饰符、参数名、数值和范围。它检查默认值、提示注释、关联控件、条件和分组；着色器编译错误仍由 Unity 检查。更新后通过 **Open in VS Code** 重新打开代码；已经运行的窗口可能需要执行 **Developer: Reload Window**。
+
+输入 `// @if` 或 `// @group` 后按 **Tab**，即可插入带结束指令的代码块。Tab 依次跳转到条件各部分或分组标题，最后进入块内。无空格的 `//@if` / `//@group` 也支持。如果 VS Code 设置禁用了 Tab 补全，可通过 **Ctrl+Space** 选择代码片段。
+
+外部编辑器的工作文件只是临时缓存，并非备份。超过 **24 小时**未使用且没有活动会话的副本会自动删除。请在 WhimTex 中保存 TIFF 以保留代码；仅在代码编辑器中保存不会保存文档。重启 Unity 或重新加载脚本后，请从 WhimTex 再次打开代码以恢复同步。
+
 效果顺序会影响结果。拖动 FX 标题可以调整顺序，也可将其拖到其他图层行上以移动到该图层。标题的右键菜单也提供 **Move Up** 和 **Move Down**。
 
 **光照与浮雕**
@@ -188,7 +194,7 @@ HLSL 预设放入 ShaderFX 或其子文件夹；重新打开 **+ Preset** 即可
 然后可以移动、缩放或旋转该边框。旋转围绕其中心进行；没有轴心控制。
 按住 Ctrl/Cmd 拖动角点可自由变形，拖动边缘可倾斜；Ctrl/Cmd + Alt + Shift 拖动角点可成对调整透视。
 Ctrl/Cmd + Alt 会对称移动对角点。Position、Size 和 Rotation 保留已有变形；**Reset Transform** 清除变形。
-再次点击该按钮或切换工具即可退出此模式。按 Escape 取消当前拖拽。
+**Edit on Canvas** 在上下文工具下方启用一个临时手形工具，Point 和 Normal 参数也使用此工具。按钮提示标明参数。点击工具按钮、再次点击 **Edit on Canvas** 或按 Escape 可返回之前的工具。拖动时第一次按 Escape 只取消拖动。编辑其他参数会替换临时工具，但不会改变返回目标。参见[上下文工具](preview.md#上下文工具)。
 
 <a href="{{ '/Images/shader-processor-transform.png' | relative_url }}"><img src="{{ '/Images/shader-processor-transform.png' | relative_url }}" alt="WhimTex Shader Processor using a Spherize preset with a green Transform 2D frame on the preview" width="720"></a>
 

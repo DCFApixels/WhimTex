@@ -33,7 +33,7 @@ namespace DCFApixels.WhimTex
 
         private void AddPreviewZoomSettings()
         {
-            VisualElement row = WhimTexUI.CreateToolbar();
+            VisualElement row = CreatePreviewSettingsRow();
             row.AddToClassList("whimtex-zoom-settings");
             BindPreviewSettingsRow(row, PreviewTool.Zoom);
             previewZoomPercent = new FloatField("Zoom %")

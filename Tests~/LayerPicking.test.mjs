@@ -43,6 +43,6 @@ assert.match(renderer, /collectingErrors = previousErrors/);
 assert.match(renderer, /effectCache = previousCache/);
 assert.match(renderer, /FindClippingBaseIndex/);
 assert.ok(!/MarkChanged\(|Undo\.|SetDirty\(/.test(renderer + window), 'Picking only changes window selection');
-assert.match(read('TextureCompositorWindow.Transform.cs'), /previewSettingsTool = tool;/);
+assert.match(ui, /BindPreviewSettingsRow\(pickRow, PreviewTool.None\)/);
 assert.match(read('TextureCompositorWindow.Tools.cs'), /Layer Select \(V\)/);
 console.log('Layer picking threshold and UI integration contracts passed; GPU coverage uses LayerPickingSmoke.cs.');

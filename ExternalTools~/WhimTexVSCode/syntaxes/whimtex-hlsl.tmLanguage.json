@@ -3,8 +3,126 @@
   "injectionSelector": "L:comment.line.double-slash.hlsl",
   "patterns": [
     {
-      "name": "keyword.control.directive.whimtex",
-      "match": "@(?:param|if|endif|group|endgroup|header|helpbox|formerlyserializedas)\\b"
+      "begin": "(?<=//)\\s*(@(?:whimtex-effect|param|if|endif|group|endgroup|header|helpbox|formerlyserializedas))\\b",
+      "beginCaptures": {
+        "1": {
+          "name": "keyword.control.directive.whimtex"
+        }
+      },
+      "end": "$",
+      "name": "meta.whimtex.directive",
+      "patterns": [
+        {
+          "include": "#tooltip"
+        },
+        {
+          "begin": "\\b(label)\\s*(\\()",
+          "beginCaptures": {
+            "1": {
+              "name": "storage.modifier.whimtex"
+            },
+            "2": {
+              "name": "punctuation.section.parens.begin.whimtex"
+            }
+          },
+          "end": "\\)|$",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.section.parens.end.whimtex"
+            }
+          },
+          "contentName": "string.unquoted.label.whimtex",
+          "patterns": [
+            {
+              "include": "#string"
+            },
+            {
+              "include": "#labelParens"
+            }
+          ]
+        },
+        {
+          "include": "#string"
+        },
+        {
+          "name": "storage.modifier.whimtex",
+          "match": "\\bhidden\\b"
+        },
+        {
+          "name": "storage.type.whimtex",
+          "match": "\\b(?:float[234]?|bool|enum|normal|point|color|texture2D|transform2D|gradient|curve)\\b"
+        },
+        {
+          "name": "constant.language.whimtex",
+          "match": "\\b(?:true|false|self|none|linear|one|easeIn|easeOut|easeInOut|inf)\\b"
+        },
+        {
+          "name": "support.function.whimtex",
+          "match": "\\b(?:keys|matrix)(?=\\s*\\()"
+        },
+        {
+          "name": "constant.other.color.whimtex",
+          "match": "#[0-9a-fA-F]{8}\\b|#[0-9a-fA-F]{6}\\b"
+        },
+        {
+          "name": "constant.numeric.whimtex",
+          "match": "(?<![\\w.])[+-]?(?:\\d+\\.\\d+|\\d+\\.(?!\\.)|\\.\\d+|\\d+)(?:[eE][+-]?\\d+)?"
+        },
+        {
+          "name": "variable.other.parameter.whimtex",
+          "match": "\\b_[A-Za-z0-9_]+\\b"
+        },
+        {
+          "name": "constant.other.enum.whimtex",
+          "match": "\\b[A-Za-z][A-Za-z0-9_]*(?=\\s*:)"
+        },
+        {
+          "name": "keyword.operator.whimtex",
+          "match": "==|!=|->|\\.\\.|[=~]"
+        },
+        {
+          "name": "punctuation.separator.whimtex",
+          "match": "[,;:]"
+        },
+        {
+          "name": "punctuation.section.whimtex",
+          "match": "[()\\[\\]{}]"
+        },
+        {
+          "name": "variable.other.whimtex",
+          "match": "\\b[A-Za-z][A-Za-z0-9_]*\\b"
+        }
+      ]
     }
-  ]
+  ],
+  "repository": {
+    "tooltip": {
+      "name": "comment.line.tooltip.whimtex",
+      "begin": "//",
+      "end": "$"
+    },
+    "string": {
+      "name": "string.quoted.double.whimtex",
+      "begin": "\"",
+      "end": "\"|$",
+      "patterns": [
+        {
+          "name": "constant.character.escape.whimtex",
+          "match": "\\\\."
+        }
+      ]
+    },
+    "labelParens": {
+      "begin": "\\(",
+      "end": "\\)|$",
+      "patterns": [
+        {
+          "include": "#string"
+        },
+        {
+          "include": "#labelParens"
+        }
+      ]
+    }
+  }
 }

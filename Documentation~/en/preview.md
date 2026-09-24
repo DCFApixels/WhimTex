@@ -18,6 +18,16 @@ The preview footer holds controls for quality, live texture updates, post-proces
 UV overlays, guides and channel viewing. It also contains **HDR**, the color-input mode,
 and hints for the active tool.
 
+## Context tools
+
+The tool settings bar always reserves one row, even for tools without settings. In a narrow pane, settings wrap onto additional rows over the preview without moving or resizing it. The guide creation strip stays below the settings and remains accessible.
+
+Tools below the toolbar separator appear when they are relevant. Selecting a Gradient layer automatically selects **Gradient Handles** (the hand icon). You can switch back to a basic tool; it stays selected until you activate another layer. With multiple layers selected, context tools use the active, last-selected layer.
+
+Enabling **UV** adds **UV Island Select** without switching tools. **Edit on Canvas** on an FX parameter adds one temporary hand tool at the bottom. Its tooltip and the preview footer identify the parameter; editing another parameter replaces this tool.
+
+Click the active context-tool button or press `Escape` to return to your last basic tool. Leaving a temporary FX tool returns to the tool used before it, including an available context tool. During a drag, `Escape` cancels only that drag; press it again to leave the tool. Changing inspector values, opening a color picker or switching applications does not leave the tool.
+
 ## Mesh UV overlay
 
 Enable **UV** in the footer and assign a **Mesh** to see its UV island outlines over the image. The UV panel lets you choose the channel, submesh, line color and opacity. The outlines follow zoom, pan and view rotation and never appear in exports. To paint a specific part of the model, use [UV Island selection](selection.md#select-uv-islands).

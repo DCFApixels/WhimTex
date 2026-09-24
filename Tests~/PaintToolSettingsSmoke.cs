@@ -49,12 +49,15 @@ Check(field.FieldType == type && System.Attribute.IsDefined(field, typeof(System
 var toolType = windowType.GetNestedType("PreviewTool", System.Reflection.BindingFlags.NonPublic);
 var parseTool = windowType.GetMethod("ParsePreviewTool", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
 foreach (string name in System.Enum.GetNames(toolType))
-    Check(parseTool.Invoke(null, new object[] { name }).ToString() == name,
-        "Tool preference round-trips: " + name);
+{
+    bool basic = (int)System.Enum.Parse(toolType, name) <= (int)System.Enum.Parse(toolType, "Shape");
+    Check(parseTool.Invoke(null, new object[] { name }).ToString() == (basic ? name : "None"),
+        "Only base tools survive preferences: " + name);
+}
 foreach (string invalid in new[] { null, "", "RemovedTool", "999", "-1" })
     Check(parseTool.Invoke(null, new object[] { invalid }).ToString() == "None",
         "Unknown tool preference falls back to None: " + invalid);
-foreach (string name in new[] { "previewTool", "previewSettingsTool", "previewTransformReturnTool" })
+foreach (string name in new[] { "previewTool", "previewTransformReturnTool", "lastBasePreviewTool", "temporaryReturnTool" })
     Check(System.Attribute.IsDefined(windowType.GetField(name,
             System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic),
         typeof(System.NonSerializedAttribute)), "Tool selection is excluded from Undo: " + name);

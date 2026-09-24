@@ -56,8 +56,8 @@ public static class GradientCanvasSmoke
             Check(typeof(GradientLayerBehaviour).GetField("center")==null && typeof(GradientLayerBehaviour).GetField("radius")==null,"No redundant geometry fields");
         }
         var window=ScriptableObject.CreateInstance<TextureCompositorWindow>();
-        var document=ScriptableObject.CreateInstance<TextureCompositor>();
         var instanceFlags=BindingFlags.Instance|BindingFlags.NonPublic;
+        var document=(TextureCompositor)typeof(TextureCompositorWindow).GetField("compositor",instanceFlags).GetValue(window);
         try
         {
             var g=new GradientLayerBehaviour();
@@ -71,7 +71,8 @@ public static class GradientCanvasSmoke
             foreach(var value in Enum.GetValues(tool.FieldType))
             {
                 tool.SetValue(window,value);
-                Check((bool)visible.GetValue(window),"Visible for selected gradient with "+value);
+                Check((bool)visible.GetValue(window) == (value.ToString() == "GradientHandles"),
+                    "Handles belong only to the gradient context tool: "+value);
             }
             selection.SetValue(window,null);
             Check(!(bool)visible.GetValue(window),"Hidden without selected layer");

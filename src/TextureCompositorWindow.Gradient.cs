@@ -11,10 +11,11 @@ namespace DCFApixels.WhimTex
         private GradientLayerBehaviour gradientCanvasLayer => GetSelectedLayer()?.Behaviour as GradientLayerBehaviour;
         private VisualElement gradientCanvasOverlay;
         private GradientCanvasManipulator gradientCanvasManipulator;
-        private bool IsGradientCanvasEnabled => !(HasMultipleTransformSelection && previewTool == PreviewTool.Transform) && compositor != null && gradientCanvasLayer != null && PreviewFXParameter == null &&
+        private bool IsGradientCanvasAvailable => compositor != null && gradientCanvasLayer != null &&
             gradientCanvasLayer.gradientType != GradientLayerBehaviour.GradientType.Circular &&
             !WhimTexApi.IsLayerContentLocked(compositor, gradientCanvasLayer.Owner) &&
             !WhimTexApi.ContainsReservation(gradientCanvasLayer.Owner);
+        private bool IsGradientCanvasEnabled => previewTool == PreviewTool.GradientHandles && IsGradientCanvasAvailable;
 
         private void BuildGradientCanvasTool()
         {

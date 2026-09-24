@@ -17,6 +17,10 @@ namespace DCFApixels.WhimTex
         private const string ExtensionId = "dcfapixels.whimtex-fx-tools";
         private const string ExtensionVersion = "0.1.3";
         private const double SessionPollInterval = 0.35d;
+        private const double CacheMaintenanceInterval = 3600d;
+        private static readonly TimeSpan CacheLifetime = TimeSpan.FromDays(1);
+        private static readonly string[] CacheSuffixes = { ".hlsl", ".baseline", ".hlsl.apply" };
+        private static double nextCacheMaintenance;
         private static readonly UTF8Encoding utf8WithoutBom = new UTF8Encoding(false);
         private static readonly List<Session> sessions = new List<Session>();
         private static Process installProcess;
@@ -25,10 +29,102 @@ namespace DCFApixels.WhimTex
         private static string pendingEditorPath;
         private static string pendingProfilePath;
         private static string pendingExtensionsPath;
+        private static string pendingExtensionStamp;
 
         internal static event Action<ShaderFX> CodeChanged;
 
         internal static bool HasVsCode => !string.IsNullOrEmpty(FindVsCodePath());
+
+        private static string CacheFolder => Path.Combine(Directory.GetParent(Application.dataPath).FullName,
+            "Library", "WhimTex", "ExternalCode");
+
+        [InitializeOnLoadMethod]
+        private static void InitializeCacheMaintenance()
+        {
+            EditorApplication.update -= MaintainCache;
+            EditorApplication.update += MaintainCache;
+            AssemblyReloadEvents.beforeAssemblyReload -= TouchActiveSessions;
+            AssemblyReloadEvents.beforeAssemblyReload += TouchActiveSessions;
+            EditorApplication.quitting -= TouchActiveSessions;
+            EditorApplication.quitting += TouchActiveSessions;
+        }
+
+        private static void TouchActiveSessions()
+        {
+            foreach (Session session in sessions)
+                if (session.TryGetEffect(out ShaderFX effect) && effect != null)
+                    TouchSession(session, DateTime.UtcNow);
+        }
+
+        private static void TouchSession(Session session, DateTime now)
+        {
+            // Baseline content stays unchanged. Do not touch HLSL's observed write time.
+            try
+            {
+                if (File.Exists(session.BaselinePath)) File.SetLastWriteTimeUtc(session.BaselinePath, now);
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+
+        private static void MaintainCache()
+        {
+            double now = EditorApplication.timeSinceStartup;
+            if (now < nextCacheMaintenance || EditorApplication.isCompiling || EditorApplication.isUpdating) return;
+            nextCacheMaintenance = now + CacheMaintenanceInterval;
+            var active = new HashSet<string>(StringComparer.Ordinal);
+            foreach (Session session in sessions)
+            {
+                if (!session.TryGetEffect(out ShaderFX effect) || effect == null) continue;
+                active.Add(Path.GetFileNameWithoutExtension(session.CodePath));
+                TouchSession(session, DateTime.UtcNow);
+            }
+            CleanupCacheDirectory(CacheFolder, DateTime.UtcNow, active);
+        }
+
+        internal static int CleanupCacheDirectory(string folder, DateTime utcNow, ISet<string> activeStems)
+        {
+            int deleted = 0;
+            try
+            {
+                if (!Directory.Exists(folder) || (File.GetAttributes(folder) & FileAttributes.ReparsePoint) != 0) return 0;
+                folder = Path.GetFullPath(folder);
+                var stems = new HashSet<string>(StringComparer.Ordinal);
+                foreach (string path in Directory.GetFiles(folder, "*", SearchOption.TopDirectoryOnly))
+                {
+                    string name = Path.GetFileName(path);
+                    if (name.Length <= 32 || !CacheSuffixes.Contains(name.Substring(32))) continue;
+                    string stem = name.Substring(0, 32);
+                    if (stem.All(c => (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'))) stems.Add(stem);
+                }
+                foreach (string stem in stems)
+                {
+                    if (activeStems != null && activeStems.Contains(stem)) continue;
+                    try
+                    {
+                        string[] paths = CacheSuffixes.Select(suffix => Path.Combine(folder, stem + suffix)).ToArray();
+                        bool expired = true;
+                        foreach (string path in paths)
+                        {
+                            if (Directory.Exists(path)) { expired = false; break; }
+                            if (!File.Exists(path)) continue;
+                            if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0 ||
+                                File.GetLastWriteTimeUtc(path) >= utcNow - CacheLifetime)
+                            { expired = false; break; }
+                        }
+                        if (!expired) continue;
+                        // Only owned, top-level files; no recursion and no profile cleanup.
+                        foreach (string path in paths)
+                            if (File.Exists(path)) { File.Delete(path); deleted++; }
+                    }
+                    catch (IOException) { }
+                    catch (UnauthorizedAccessException) { }
+                }
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+            return deleted;
+        }
 
         internal static void OpenInUnityEditor(ShaderFX effect)
         {
@@ -65,7 +161,11 @@ namespace DCFApixels.WhimTex
 
             string installedMarker = Path.Combine(extensionsPath, ExtensionId + ".installed");
             string extensionPackage = Path.Combine(extensionsPath, ExtensionId + "-" + ExtensionVersion);
-            if (File.Exists(installedMarker) && File.ReadAllText(installedMarker).Trim() == ExtensionVersion &&
+            string extensionStamp;
+            using (var archive = File.OpenRead(vsixPath))
+            using (var sha = SHA256.Create())
+                extensionStamp = ExtensionVersion + ":" + BitConverter.ToString(sha.ComputeHash(archive)).Replace("-", string.Empty);
+            if (File.Exists(installedMarker) && File.ReadAllText(installedMarker).Trim() == extensionStamp &&
                 File.Exists(Path.Combine(extensionPackage, "package.json")))
             {
                 LaunchVsCode(editorPath, profilePath, extensionsPath, codePath);
@@ -89,6 +189,7 @@ namespace DCFApixels.WhimTex
                 pendingCodePath = codePath;
                 pendingProfilePath = profilePath;
                 pendingExtensionsPath = extensionsPath;
+                pendingExtensionStamp = extensionStamp;
                 EditorApplication.update -= PollInstall;
                 EditorApplication.update += PollInstall;
             }
@@ -108,7 +209,7 @@ namespace DCFApixels.WhimTex
             {
                 string documentPath = WhimTexDocumentService.PathOf(TextureCompositorWindow.FindFXTransformDocument(effect));
                 string identity = (documentPath ?? effect.SourcePath ?? string.Empty) + "|" + effect.ShaderKey;
-                string folder = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "Library", "WhimTex", "ExternalCode");
+                string folder = CacheFolder;
                 string stem = Hash(identity);
                 string codePath = Path.Combine(folder, stem + ".hlsl");
                 string baselinePath = Path.Combine(folder, stem + ".baseline");
@@ -128,6 +229,7 @@ namespace DCFApixels.WhimTex
                 EditorApplication.update += PollSessions;
             }
             SynchronizeBeforeOpen(session);
+            TouchSession(session, DateTime.UtcNow);
             return session.CodePath;
         }
 
@@ -318,7 +420,7 @@ namespace DCFApixels.WhimTex
             if (exitCode == 0)
             {
                 Directory.CreateDirectory(pendingExtensionsPath);
-                File.WriteAllText(Path.Combine(pendingExtensionsPath, ExtensionId + ".installed"), ExtensionVersion, utf8WithoutBom);
+                File.WriteAllText(Path.Combine(pendingExtensionsPath, ExtensionId + ".installed"), pendingExtensionStamp, utf8WithoutBom);
                 LaunchVsCode(pendingEditorPath, pendingProfilePath, pendingExtensionsPath, pendingCodePath);
             }
             else

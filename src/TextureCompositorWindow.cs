@@ -160,7 +160,10 @@ namespace DCFApixels.WhimTex
             SelectOnlyLayer(null);
             groupExpansion?.Clear();
             previewTool = PreviewTool.None;
-            previewSettingsTool = PreviewTool.None;
+            lastBasePreviewTool = PreviewTool.None;
+            temporaryReturnTool = PreviewTool.None;
+            temporaryDocument = toolContextDocument = null;
+            temporaryLayerId = toolContextLayerId = null;
             previewTransformReturnTool = PreviewTool.None;
             paintSettings?.ReleasePresetTip();
             paintSettings = new PaintToolSettings();
@@ -399,6 +402,7 @@ namespace DCFApixels.WhimTex
 
         private void Update()
         {
+            if (ReconcilePreviewToolContext()) toolkitRefreshRequested = true;
             UpdatePostFx();
             RequestEffectRefinement();
             UpdateUnsavedChangesState();

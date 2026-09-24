@@ -18,6 +18,8 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private TextureCompositor previewGuidesDocument;
         private PreviewGuideManipulator previewGuideManipulator;
         private VisualElement previewGuideOverlay;
+        private VisualElement previewGuideTopRail;
+        private VisualElement previewGuideLeftRail;
 
         private bool CanMovePreviewGuides => previewTool == PreviewTool.None ||
             previewTool == PreviewTool.Transform || previewTool == PreviewTool.Zoom;
@@ -35,7 +37,17 @@ namespace DCFApixels.WhimTex
             toolkitPreviewCanvas.Add(previewGuideOverlay);
             AddGuideRail(true);
             AddGuideRail(false);
+            toolkitPreviewHeader.RegisterCallback<GeometryChangedEvent>(UpdatePreviewGuideRails);
+            toolkitPreviewCanvas.RegisterCallback<GeometryChangedEvent>(UpdatePreviewGuideRails);
             toolkitPreviewCanvas.ViewChanged += previewGuideOverlay.MarkDirtyRepaint;
+        }
+
+        private void UpdatePreviewGuideRails(GeometryChangedEvent evt)
+        {
+            float top = Mathf.Max(0f, toolkitPreviewHeader.worldBound.yMax - toolkitPreviewCanvas.worldBound.yMin);
+            if (float.IsNaN(top) || float.IsInfinity(top)) return;
+            previewGuideTopRail.style.top = top;
+            previewGuideLeftRail.style.top = top + previewGuideTopRail.resolvedStyle.height;
         }
 
         private void AddGuideRail(bool vertical)
@@ -51,6 +63,8 @@ namespace DCFApixels.WhimTex
             grip.AddToClassList("whimtex-guide-grip");
             rail.Add(grip);
             previewGuideOverlay.Add(rail);
+            if (vertical) previewGuideLeftRail = rail;
+            else previewGuideTopRail = rail;
         }
 
         private void ClearPreviewGuides()
@@ -67,7 +81,6 @@ namespace DCFApixels.WhimTex
 
         private sealed class PreviewGuideManipulator : PointerManipulator
         {
-            private const float RailSize = 8f;
             private const float GrabDistance = 4f;
             private readonly TextureCompositorWindow owner;
             private int pointer = -1, movingIndex = -1, hovered = -1;
@@ -124,8 +137,9 @@ namespace DCFApixels.WhimTex
             {
                 Rect rect = target.contentRect;
                 if (!rect.Contains(point)) return -1;
-                if (point.y < rect.yMin + RailSize) return 1;
-                if (point.x < rect.xMin + RailSize) return 0;
+                Vector2 worldPoint = target.LocalToWorld(point);
+                if (owner.previewGuideTopRail.worldBound.Contains(worldPoint)) return 1;
+                if (owner.previewGuideLeftRail.worldBound.Contains(worldPoint)) return 0;
                 return -1;
             }
 

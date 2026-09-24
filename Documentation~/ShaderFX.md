@@ -76,11 +76,17 @@ changing parameter values does not regenerate shaders.
 
 For document-owned code, **Open Code** opens a working `.hlsl` file through Unity's selected external script editor. Saving synchronizes the draft; **Apply** in WhimTex compiles it. **Open in VS Code** uses a project-local isolated profile and installs the bundled extension automatically. Detection checks Unity's registered editors, then PATH, then **User Settings → External Code Editor → VS Code Command**.
 
-The extension augments the existing **HLSL** language mode with directive highlighting, completions and structural diagnostics. It supports Restricted Mode without disabling Workspace Trust. It does not compile HLSL; Unity remains the authority for compilation and parameter validation.
+The extension augments the existing **HLSL** language mode with highlighting for directives, types, modifiers, parameter names, values, enum options and ranges. Validation checks declaration defaults, finite numbers, hard/soft bounds, tuples, hex colors, two-color gradients, curve keys, transform matrices, texture-reference syntax, compatible repeated controls, conditions, groups and former-name aliases; trailing tooltips and block-commented examples are handled separately. It supports Restricted Mode without disabling Workspace Trust. It does not resolve Unity assets/includes or compile HLSL; Unity remains the authority for generated shader identifiers and compilation.
+
+WhimTex checks the bundled VSIX content when opening code, so a changed bundle can be installed without changing the package version. After reinstalling into an already-running VS Code window, use **Developer: Reload Window** to activate the update.
+
+The bundled HLSL snippets expand `// @if` and `// @group` with **Tab**, adding `@endif` or `@endgroup`. The compact `//@if` / `//@group` spelling also works. Tab visits the parameter, comparison and value for a condition, or the title for a group, then the body. Group titles may include `; _Parameter` for a header control. The extension contributes the HLSL default `editor.tabCompletion: onlySnippets`; it does not write user settings. Explicit overrides can disable direct Tab expansion; the snippets remain available through **Ctrl+Space** or **Insert Snippet** after `// `.
 
 Working files and their last synchronized baselines live in `Library/WhimTex/ExternalCode`. The VS Code save handler writes a neighboring `.apply` request for these files. Unity polls active sessions every 0.35 seconds, imports the saved draft and calls Apply, including when the code is unchanged. Ordinary external writes synchronize after two stable observations and do not request Apply. FX locks defer synchronization; conflicting document/file changes ask which version to keep. A failed Apply retains the last working shader and reports diagnostics.
 
-Working copies are not standalone presets or the saved document. Applying code does **not** save the TIFF; save the document in WhimTex separately. Sessions are in-memory: after a script reload, reopen the code from WhimTex to reconnect. Keep unsaved code backed up before deleting the project's Library folder.
+Working copies are disposable cache, not backups, standalone presets or the saved document. Applying code does **not** save the TIFF; save the document in WhimTex separately. Sessions are in-memory: after a script reload, reopen the code from WhimTex to reconnect.
+
+At Editor startup/domain reload and then hourly, cleanup removes inactive working-file sets unused for more than **24 hours**, including their `.baseline` and `.hlsl.apply` companions. Reopening code refreshes its baseline timestamp without changing its content; a newer timestamp on any member preserves the whole set. Connected sessions are excluded and periodically refreshed, including before reload/quit. Only generated 32-character lowercase-hex names with the known suffixes are eligible; cleanup is non-recursive and skips linked files/directories. The VS Code profile/extensions and unrelated files are untouched. Saved-document state is deliberately not checked: code absent from the TIFF may be lost after expiry. A surviving working copy can still be reused when reconnecting, but recovery is not guaranteed.
 
 Catalog-linked code uses **Open HLSL Source** to edit the shared source. Choose **Embed Copy** to edit an independent document-owned copy instead. Relative includes resolve from the document/source context, not the working-copy directory.
 
@@ -351,6 +357,8 @@ float4 ApplyFX(float2 uv, float4 color)
     return SampleInput(p);
 }
 ```
+
+Canvas editing uses one window-local temporary tool slot for `transform2D`, `point` and `normal` parameters. Activating another parameter replaces the slot while preserving the original return tool. Leaving returns to the previous valid context tool or base tool; losing the target invalidates the slot. Escape cancels an active gesture first, then exits on a separate press. Tool selection is not serialized in TIFF or recorded in Undo; parameter edits still support Undo. Inspector/color-picker focus does not end the tool.
 
 ## Shader Processor: process the lower stack instead of one layer
 

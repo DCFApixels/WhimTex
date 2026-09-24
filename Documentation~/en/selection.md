@@ -41,7 +41,7 @@ Use a model's UV layout to paint individual parts of its texture:
 
 1. Enable **UV** in the preview footer and assign a mesh or model from Project to **Mesh**. Models automatically use the first mesh in their hierarchy, including inactive nodes. To choose another mesh, expand the model and assign that mesh directly.
 2. Choose **UV Channel** (usually **UV0**) and optionally a **Submesh** to show one material slot.
-3. Hold or drag **Area Select** (`M`) and release over **UV Island**, or click **Select UV Islands** in the UV panel.
+3. Select **UV Island Select** below the toolbar separator, or click **Select UV Islands** in the UV panel. Enabling UV makes the tool available without selecting it.
 4. Click anywhere inside an island. `Shift` adds islands, `Alt` subtracts, and `Shift+Alt` intersects.
 5. Switch to Brush, Pencil or Fill to work inside the selected area. Copy and cut work with the same selection; `Ctrl+D` clears it.
 

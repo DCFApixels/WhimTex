@@ -10,12 +10,13 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private ShaderFX pointFX;
         [NonSerialized] private string pointParameterId;
         private VisualElement pointOverlay;
+        private PointManipulator pointManipulator;
 
         private ShaderFXParameter PointParameter
         {
             get
             {
-                if (pointFX == null || compositor == null || GetSelectedLayer() is not Layer layer ||
+                if (previewTool != PreviewTool.FXPoint || pointFX == null || compositor == null || GetSelectedLayer() is not Layer layer ||
                     !layer.modifiers.Contains(pointFX) || WhimTexApi.IsLayerContentLocked(compositor, layer) ||
                     WhimTexApi.IsShaderFXContentLocked(pointFX)) return null;
                 foreach (var p in pointFX.Parameters)
@@ -37,17 +38,7 @@ namespace DCFApixels.WhimTex
                     !WhimTexApi.IsLayerContentLocked(w.compositor, layer) &&
                     (best == null || w == focusedWindow || best != focusedWindow && w.AgentFocusOrder > best.AgentFocusOrder)) best = w;
             if (best == null) return;
-            bool off = best.pointFX == effect && best.pointParameterId == id;
-            best.normalFX = null;
-            best.normalParameterId = null;
-            best.previewTransformFX = null;
-            best.previewTransformParameterId = null;
-            best.SetPreviewTool(off ? best.previewTransformReturnTool : PreviewTool.Transform);
-            best.pointFX = off ? null : effect;
-            best.pointParameterId = off ? null : id;
-            best.pointOverlay?.MarkDirtyRepaint();
-            best.RefreshToolkitInterface();
-            best.Focus();
+            best.ActivateTemporaryTool(PreviewTool.FXPoint, effect, id);
         }
 
         private void BuildPointTool()
@@ -55,7 +46,7 @@ namespace DCFApixels.WhimTex
             pointOverlay = new VisualElement { pickingMode = PickingMode.Ignore };
             pointOverlay.StretchToParentSize();
             toolkitPreviewCanvas.Add(pointOverlay);
-            var manipulator = new PointManipulator(this);
+            var manipulator = pointManipulator = new PointManipulator(this);
             toolkitPreviewCanvas.AddManipulator(manipulator);
             pointOverlay.generateVisualContent += manipulator.Draw;
             toolkitPreviewCanvas.RegisterCallback<GeometryChangedEvent>(_ => pointOverlay.MarkDirtyRepaint());
@@ -77,6 +68,8 @@ namespace DCFApixels.WhimTex
             private Vector2 offset, start;
             private int pointer = -1, undoGroup;
             private bool moved;
+            private Vector4 originalValue;
+            internal bool IsDragging => pointer >= 0;
 
             internal PointManipulator(TextureCompositorWindow owner) => this.owner = owner;
 
@@ -94,6 +87,8 @@ namespace DCFApixels.WhimTex
                 target.RegisterCallback<PointerMoveEvent>(Move, TrickleDown.TrickleDown);
                 target.RegisterCallback<PointerUpEvent>(Up, TrickleDown.TrickleDown);
                 target.RegisterCallback<PointerCaptureOutEvent>(Lost);
+                target.RegisterCallback<PointerCancelEvent>(Cancel);
+                target.RegisterCallback<DetachFromPanelEvent>(Detach);
             }
 
             protected override void UnregisterCallbacksFromTarget()
@@ -103,6 +98,8 @@ namespace DCFApixels.WhimTex
                 target.UnregisterCallback<PointerMoveEvent>(Move, TrickleDown.TrickleDown);
                 target.UnregisterCallback<PointerUpEvent>(Up, TrickleDown.TrickleDown);
                 target.UnregisterCallback<PointerCaptureOutEvent>(Lost);
+                target.UnregisterCallback<PointerCancelEvent>(Cancel);
+                target.UnregisterCallback<DetachFromPanelEvent>(Detach);
             }
 
             private void Down(PointerDownEvent e)
@@ -112,6 +109,7 @@ namespace DCFApixels.WhimTex
                     Vector2.Distance(e.localPosition, Handle(value)) > 11) return;
                 owner.Focus(); target.Focus();
                 parameter = value; effect = owner.pointFX; pointer = e.pointerId;
+                originalValue = value.vectorValue;
                 start = e.localPosition; offset = Handle(value) - start; moved = false;
                 Undo.IncrementCurrentGroup(); undoGroup = Undo.GetCurrentGroup();
                 Undo.SetCurrentGroupName("Move FX Point");
@@ -132,7 +130,7 @@ namespace DCFApixels.WhimTex
             {
                 if (e.pointerId != pointer || pointer < 0) return;
                 e.StopImmediatePropagation();
-                if (owner.PointParameter != parameter || effect == null) { Finish(); return; }
+                if (owner.PointParameter != parameter || effect == null || (e.pressedButtons & 1) == 0) { Finish(); return; }
                 moved |= Vector2.Distance(start, e.localPosition) > 3;
                 if (!moved) return;
                 Rect image = owner.toolkitPreviewCanvas.ImageRect;
@@ -150,11 +148,20 @@ namespace DCFApixels.WhimTex
             }
 
             private void Lost(PointerCaptureOutEvent e) { if (e.pointerId == pointer) Finish(); }
+            private void Cancel(PointerCancelEvent e) { if (e.pointerId == pointer) Finish(true); }
+            private void Detach(DetachFromPanelEvent e) => Finish();
 
-            private void Finish()
+            internal void Finish(bool cancel = false)
             {
                 if (pointer < 0) return;
                 int old = pointer; pointer = -1;
+                if (cancel && effect != null && parameter != null)
+                {
+                    parameter.vectorValue = originalValue;
+                    effect.NotifyValuesChanged();
+                    owner.pointOverlay?.MarkDirtyRepaint();
+                }
+                Undo.FlushUndoRecordObjects();
                 Undo.CollapseUndoOperations(undoGroup);
                 if (target.HasPointerCapture(old)) target.ReleasePointer(old);
                 effect = null; parameter = null;

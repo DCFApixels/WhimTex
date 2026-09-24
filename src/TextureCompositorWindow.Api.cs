@@ -71,6 +71,9 @@ namespace DCFApixels.WhimTex
             foreach (TextureCompositorWindow window in Resources.FindObjectsOfTypeAll<TextureCompositorWindow>())
                 if (window.compositor == document && (window.paintingLayer != null ||
                     window.shapeManipulator != null && window.shapeManipulator.IsDragging ||
+                    window.gradientCanvasManipulator?.IsDragging == true ||
+                    window.pointManipulator?.IsDragging == true ||
+                    window.normalManipulator?.IsDragging == true ||
                     window.previewTransformManipulator != null && window.previewTransformManipulator.IsDragging))
                     return true;
             return false;

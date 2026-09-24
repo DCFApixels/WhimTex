@@ -4,6 +4,21 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Contextual Gradient Handles and UV Island Select tools, plus a single temporary FX canvas-editing tool with return-to-previous-tool behavior and gesture-first Escape cancellation.
+- VS Code block snippets for `@if` and `@group`, with matching closing directives and Tab placeholders.
+
+### Changed
+
+- External FX working files are disposable cache: inactive copies expire after 24 hours without use; active sessions and the VS Code profile are preserved.
+- VS Code highlights FX parameter types, modifiers, names, values, ranges and enum options alongside directives, and validates defaults, linked controls, groups, conditions and rename aliases.
+
+### Fixed
+
+- The tool settings bar always reserves one row, including for tools without settings; additional rows wrap over the preview without shifting or resizing it. The guide creation strip follows the settings below the extra rows.
+- VS Code no longer reports valid tooltips, defaultless parameters, catalog markers or compatible repeated declarations as errors. Updated bundled extensions are detected by their content, not only their version.
+
 ## [0.11.3] - 2026-09-24
 
 ### Added

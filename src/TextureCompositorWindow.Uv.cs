@@ -24,7 +24,7 @@ namespace DCFApixels.WhimTex
         private Hash128 uvCachedHash;
         private string uvMessage;
         private bool uvDisplayedSelection, uvDisplayedLayers;
-        private bool IsUvSelectionTool => previewTool == PreviewTool.RectangleSelect && marqueeShape == MarqueeShape.UvIsland;
+        private bool IsUvSelectionTool => previewTool == PreviewTool.UvIslandSelect;
 
         private Button BuildUvButton()
         {
@@ -33,6 +33,7 @@ namespace DCFApixels.WhimTex
                 uvEnabled = !uvEnabled;
                 if (uvEnabled) OpenUvDrawer();
                 else { uvExpanded = false; uvMap = null; uvCachedChannel = -1; RefreshPostFxPanel(); uvOverlay?.MarkDirtyRepaint(); }
+                RefreshToolkitInterface();
             }) { text = "UV", tooltip = "Show mesh UV island outlines. Preview only; never included in the texture or export." };
             uvButton.AddToClassList("whimtex-channel-button");
             RefreshUvPanel();
@@ -97,9 +98,8 @@ namespace DCFApixels.WhimTex
             { uvLineOpacity = float.IsNaN(evt.newValue) ? .65f : Mathf.Clamp01(evt.newValue); opacity.SetValueWithoutNotify(uvLineOpacity); uvOverlay?.MarkDirtyRepaint(); }); fields.Add(opacity);
             fields.Add(new Button(() =>
             {
-                marqueeShape = MarqueeShape.UvIsland;
                 areaSelectionManipulator?.Cancel();
-                SetPreviewTool(PreviewTool.RectangleSelect);
+                SetPreviewTool(PreviewTool.UvIslandSelect);
             }) { text = "Select UV Islands", tooltip = "Click inside an island to select its pixels. Shift adds, Alt subtracts. Switch to a brush to paint inside the selection." });
             fields.Add(new Button(() => { uvCachedChannel = -1; RefreshUvReference(); }) { text = "Refresh UV" });
             uvStatus = new HelpBox("Assign a Mesh to show its UV islands.", HelpBoxMessageType.Info);

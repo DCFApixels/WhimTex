@@ -1,0 +1,20 @@
+{
+  "WhimTex conditional block": {
+    "prefix": "@if",
+    "body": [
+      "@if ${1:_Mode} ${2|==,!=|} ${3:1}",
+      "// $0",
+      "// @endif"
+    ],
+    "description": "After //: conditional parameters with a matching @endif."
+  },
+  "WhimTex parameter group": {
+    "prefix": "@group",
+    "body": [
+      "@group(${1:Title})",
+      "// $0",
+      "// @endgroup"
+    ],
+    "description": "After //: a parameter group with a matching @endgroup."
+  }
+}

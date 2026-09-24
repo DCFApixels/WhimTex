@@ -43,7 +43,7 @@ namespace DCFApixels.WhimTex
         {
             get
             {
-                if (PointParameter != null || previewTransformFX == null || compositor == null || GetSelectedLayer() is not Layer selected ||
+                if (previewTool != PreviewTool.FXTransform || previewTransformFX == null || compositor == null || GetSelectedLayer() is not Layer selected ||
                     !selected.modifiers.Contains(previewTransformFX) || WhimTexApi.IsLayerContentLocked(compositor, selected) ||
                     WhimTexApi.IsShaderFXContentLocked(previewTransformFX)) return null;
                 foreach (var p in previewTransformFX.Parameters)
@@ -78,19 +78,10 @@ namespace DCFApixels.WhimTex
                     !WhimTexApi.IsLayerContentLocked(window.compositor, selected) &&
                     (best == null || window == focusedWindow || best != focusedWindow && window.AgentFocusOrder > best.AgentFocusOrder)) best = window;
             if (best == null) { EditorUtility.DisplayDialog("FX Transform", "Select a layer using this FX in a WhimTex window first.", "OK"); return; }
-            best.normalFX = null;
-            bool toggleOff = best.previewTransformFX == effect && best.previewTransformParameterId == parameterId;
-            best.SetPreviewTool(toggleOff ? best.previewTransformReturnTool : PreviewTool.Transform);
-            if (!toggleOff)
-            {
-                best.previewTransformFX = effect;
-                best.previewTransformParameterId = parameterId;
-            }
-            best.RefreshToolkitInterface();
-            best.Focus();
+            best.ActivateTemporaryTool(PreviewTool.FXTransform, effect, parameterId);
         }
 
-        private bool IsPreviewTransformEnabled => NormalParameter == null && PointParameter == null && !IsGradientCanvasEnabled && previewTool == PreviewTool.Transform && TransformSelectionAvailable &&
+        private bool IsPreviewTransformEnabled => (previewTool == PreviewTool.Transform || previewTool == PreviewTool.FXTransform && PreviewFXParameter != null) && TransformSelectionAvailable &&
             GetSelectedLayer() is Layer layer && layer.Behaviour != null &&
             !WhimTexApi.IsLayerContentLocked(compositor, layer) && !WhimTexApi.ContainsReservation(layer);
 
@@ -109,7 +100,7 @@ namespace DCFApixels.WhimTex
 
         private void AddPreviewTransformSettings()
         {
-            VisualElement row = WhimTexUI.CreateToolbar();
+            VisualElement row = CreatePreviewSettingsRow();
             row.AddToClassList("whimtex-transform-settings");
             toolkitHeaderBindings.Add(() => row.SetEnabled(PreviewFXParameter == null && !HasMultipleTransformSelection));
             VisualElement tilingGroup = WhimTexUI.CreateRow();
@@ -194,28 +185,13 @@ namespace DCFApixels.WhimTex
 
         private void SetPreviewTool(PreviewTool tool)
         {
-            normalFX = null;
-            pointFX = null;
-            pointParameterId = null;
-            areaSelectionManipulator?.Cancel();
-            CancelPreviewEyedropper();
-            bool changePixelPreview = (previewTool == PreviewTool.Pencil) != (tool == PreviewTool.Pencil);
-            CancelPreviewZoomGesture();
-            FinishPreviewTransform();
-            FinishPaintingStroke();
-            previewTransformFX = null;
-            previewTransformParameterId = null;
-            if (tool == PreviewTool.Transform && previewTool != PreviewTool.Transform)
+            ReconcilePreviewToolContext();
+            if (!IsBasePreviewTool(tool))
             {
-                previewTransformReturnTool = previewTool;
-                EditorPrefs.SetString(PreviewTransformReturnToolPrefKey, previewTransformReturnTool.ToString());
+                if (!IsContextToolAvailable(tool)) return;
+                if (previewTool == tool) { ExitContextTool(); return; }
             }
-            previewTool = tool;
-            selectedPreviewGuide = -1;
-            EditorPrefs.SetString(PreviewToolPrefKey, tool.ToString());
-            previewSettingsTool = tool;
-            lineAnchorLayer = null;
-            if (changePixelPreview) RequestPreview(immediate: true);
+            ChangePreviewTool(tool);
             RefreshToolkitInterface();
             toolkitPreviewCanvas?.Focus();
         }
@@ -252,7 +228,9 @@ namespace DCFApixels.WhimTex
                     TogglePreviewTransform();
             }
             else if (IsPreviewTransformEnabled && (evt.keyCode == KeyCode.Return || evt.keyCode == KeyCode.KeypadEnter))
-                TogglePreviewTransform();
+            {
+                if (IsTemporaryPreviewTool(previewTool)) ExitContextTool(); else TogglePreviewTransform();
+            }
             else
                 return false;
             WhimTexUI.ConsumeEvent(evt);
@@ -263,6 +241,8 @@ namespace DCFApixels.WhimTex
         {
             gradientCanvasManipulator?.End(cancel);
             previewTransformManipulator?.End(cancel, true);
+            pointManipulator?.Finish(cancel);
+            normalManipulator?.Finish(cancel);
         }
 
         private void RefreshPreviewTransformTool()
@@ -843,7 +823,7 @@ namespace DCFApixels.WhimTex
                 gestureParameter = null;
                 undoGroup = -1;
                 owner.previewTransformOverlay?.MarkDirtyRepaint();
-                if (owner.previewTool == PreviewTool.Transform) owner.RefreshPreviewPointerCursor();
+                if (owner.IsPreviewTransformEnabled) owner.RefreshPreviewPointerCursor();
             }
 
             public void Draw(MeshGenerationContext context)

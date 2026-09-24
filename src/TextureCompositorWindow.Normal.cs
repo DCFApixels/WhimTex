@@ -10,37 +10,34 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private ShaderFX normalFX;
         [NonSerialized] private string normalParameterId;
         private VisualElement normalOverlay;
+        private NormalManipulator normalManipulator;
         private ShaderFXParameter NormalParameter
         {
             get
             {
-                if (normalFX == null || compositor == null || GetSelectedLayer() is not Layer layer ||
+                if (previewTool != PreviewTool.FXNormal || normalFX == null || compositor == null || GetSelectedLayer() is not Layer layer ||
                     !layer.modifiers.Contains(normalFX) || WhimTexApi.IsLayerContentLocked(compositor, layer) ||
                     WhimTexApi.IsShaderFXContentLocked(normalFX)) return null;
                 foreach (var p in normalFX.Parameters)
-                    if (p.id == normalParameterId && p.type == ShaderFXParameterType.Normal) return p;
+                    if (p != null && p.id == normalParameterId && p.type == ShaderFXParameterType.Normal) return p;
                 return null;
             }
         }
 
         internal static void EditFXNormal(ShaderFX effect, string id)
         {
+            if (effect == null || WhimTexApi.IsShaderFXContentLocked(effect)) return;
+            bool exists = false;
+            foreach (var parameter in effect.Parameters)
+                exists |= parameter != null && parameter.id == id && parameter.type == ShaderFXParameterType.Normal;
+            if (!exists) return;
             TextureCompositorWindow best = null;
             foreach (var w in Resources.FindObjectsOfTypeAll<TextureCompositorWindow>())
                 if (w.compositor != null && w.GetSelectedLayer() is Layer layer && layer.modifiers.Contains(effect) &&
+                    !WhimTexApi.IsLayerContentLocked(w.compositor, layer) &&
                     (best == null || w == focusedWindow || best != focusedWindow && w.AgentFocusOrder > best.AgentFocusOrder)) best = w;
             if (best == null) return;
-            bool off = best.normalFX == effect && best.normalParameterId == id;
-            best.pointFX = null;
-            best.pointParameterId = null;
-            best.SetPreviewTool(off ? best.previewTransformReturnTool : PreviewTool.Transform);
-            best.FinishPreviewTransform();
-            best.previewTransformFX = null;
-            best.normalFX = off ? null : effect;
-            best.normalParameterId = off ? null : id;
-            best.normalOverlay?.MarkDirtyRepaint();
-            best.RefreshToolkitInterface();
-            best.Focus();
+            best.ActivateTemporaryTool(PreviewTool.FXNormal, effect, id);
         }
 
         internal static Vector3 ProjectNormal(Vector2 xy, bool back)
@@ -55,7 +52,7 @@ namespace DCFApixels.WhimTex
             normalOverlay = new VisualElement { pickingMode = PickingMode.Ignore };
             normalOverlay.StretchToParentSize();
             toolkitPreviewCanvas.Add(normalOverlay);
-            var manipulator = new NormalManipulator(this);
+            var manipulator = normalManipulator = new NormalManipulator(this);
             toolkitPreviewCanvas.AddManipulator(manipulator);
             normalOverlay.generateVisualContent += manipulator.Draw;
             bool wasActive = false;
@@ -76,6 +73,8 @@ namespace DCFApixels.WhimTex
             private ShaderFX effect;
             private ShaderFXParameter parameter;
             private bool moved, back;
+            private Vector4 originalValue;
+            internal bool IsDragging => pointer >= 0;
             internal NormalManipulator(TextureCompositorWindow owner) { this.owner = owner; }
             private Vector2 Center => owner.toolkitPreviewCanvas.ToView(owner.toolkitPreviewCanvas.ImageRect.center);
             private Vector2 Tip(ShaderFXParameter p)
@@ -89,6 +88,8 @@ namespace DCFApixels.WhimTex
                 target.RegisterCallback<PointerMoveEvent>(Move, TrickleDown.TrickleDown);
                 target.RegisterCallback<PointerUpEvent>(Up, TrickleDown.TrickleDown);
                 target.RegisterCallback<PointerCaptureOutEvent>(Lost);
+                target.RegisterCallback<PointerCancelEvent>(Cancel);
+                target.RegisterCallback<DetachFromPanelEvent>(Detach);
             }
             protected override void UnregisterCallbacksFromTarget()
             {
@@ -97,6 +98,8 @@ namespace DCFApixels.WhimTex
                 target.UnregisterCallback<PointerMoveEvent>(Move, TrickleDown.TrickleDown);
                 target.UnregisterCallback<PointerUpEvent>(Up, TrickleDown.TrickleDown);
                 target.UnregisterCallback<PointerCaptureOutEvent>(Lost);
+                target.UnregisterCallback<PointerCancelEvent>(Cancel);
+                target.UnregisterCallback<DetachFromPanelEvent>(Detach);
             }
             private void Down(PointerDownEvent e)
             {
@@ -104,6 +107,8 @@ namespace DCFApixels.WhimTex
                 if (pointer >= 0 || p == null || e.button != 0 || e.altKey ||
                     Vector2.Distance(e.localPosition, Tip(p)) > 12) return;
                 parameter = p; effect = owner.normalFX; pointer = e.pointerId;
+                originalValue = p.vectorValue;
+                owner.Focus(); target.Focus();
                 start = e.localPosition; offset = Tip(p) - start;
                 back = p.vectorValue.z < 0 || p.vectorValue.z == 0 && BitConverter.SingleToInt32Bits(p.vectorValue.z) < 0;
                 moved = false;
@@ -124,7 +129,7 @@ namespace DCFApixels.WhimTex
             {
                 if (e.pointerId != pointer || pointer < 0) return;
                 e.StopImmediatePropagation();
-                if (owner.NormalParameter != parameter || effect == null) { Finish(); return; }
+                if (owner.NormalParameter != parameter || effect == null || (e.pressedButtons & 1) == 0) { Finish(); return; }
                 moved |= Vector2.Distance(start,e.localPosition) > 3;
                 if (!moved) return;
                 Vector2 xy = owner.previewViewport.ToCanvasDelta((Vector2)e.localPosition + offset - Center) / Radius;
@@ -142,10 +147,19 @@ namespace DCFApixels.WhimTex
                 Finish(); e.StopImmediatePropagation();
             }
             private void Lost(PointerCaptureOutEvent e) { if (e.pointerId == pointer) Finish(); }
-            private void Finish()
+            private void Cancel(PointerCancelEvent e) { if (e.pointerId == pointer) Finish(true); }
+            private void Detach(DetachFromPanelEvent e) => Finish();
+            internal void Finish(bool cancel = false)
             {
                 if (pointer < 0) return;
                 int old = pointer; pointer = -1;
+                if (cancel && effect != null && parameter != null)
+                {
+                    parameter.vectorValue = originalValue;
+                    effect.NotifyValuesChanged();
+                    owner.normalOverlay?.MarkDirtyRepaint();
+                }
+                Undo.FlushUndoRecordObjects();
                 Undo.CollapseUndoOperations(undoGroup);
                 if (target.HasPointerCapture(old)) target.ReleasePointer(old);
                 effect = null; parameter = null;

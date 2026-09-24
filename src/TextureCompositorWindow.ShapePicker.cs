@@ -110,7 +110,7 @@ namespace DCFApixels.WhimTex
                 this.owner = owner;
                 this.marquee = marquee;
                 Kinds = marquee
-                    ? new[] { ShapeLayerBehaviour.ShapeKind.Rectangle, ShapeLayerBehaviour.ShapeKind.Ellipse, ShapeLayerBehaviour.ShapeKind.Polygon }
+                    ? new[] { ShapeLayerBehaviour.ShapeKind.Rectangle, ShapeLayerBehaviour.ShapeKind.Ellipse }
                     : (ShapeLayerBehaviour.ShapeKind[])Enum.GetValues(typeof(ShapeLayerBehaviour.ShapeKind));
                 items = new VisualElement[Kinds.Length];
             }
@@ -157,11 +157,11 @@ namespace DCFApixels.WhimTex
                 menu.EnableInClassList("whimtex-shape-picker--light", !EditorGUIUtility.isProSkin);
                 for (int i = 0; i < Kinds.Length; i++)
                 {
-                    var item = new VisualElement { tooltip = marquee && i == 2 ? "UV Island" : Kinds[i].ToString(), pickingMode = PickingMode.Ignore };
+                    var item = new VisualElement { tooltip = Kinds[i].ToString(), pickingMode = PickingMode.Ignore };
                     item.AddToClassList("whimtex-shape-picker-item");
                     item.EnableInClassList("whimtex-shape-picker-item--selected", marquee
                         ? (int)owner.marqueeShape == i : owner.shapeToolSettings.kind == Kinds[i]);
-                    if (marquee) item.Add(new PreviewToolIcon(PreviewTool.RectangleSelect, i == 1, i == 2));
+                    if (marquee) item.Add(new PreviewToolIcon(PreviewTool.RectangleSelect, i == 1));
                     else item.Add(new ShapeToolIcon(Kinds[i]));
                     items[i] = item;
                     menu.Add(item);
@@ -215,10 +215,6 @@ namespace DCFApixels.WhimTex
                     {
                         owner.areaSelectionManipulator?.Cancel();
                         owner.marqueeShape = (MarqueeShape)selection;
-                        if (owner.marqueeShape == MarqueeShape.UvIsland)
-                        {
-                            if (!owner.uvEnabled || owner.compositor?.uvReferenceMesh == null) owner.OpenUvDrawer();
-                        }
                     }
                     else
                     {

@@ -25,7 +25,7 @@ namespace DCFApixels.WhimTex
             internal Vector2Int canvas;
             internal uint systemRevision;
         }
-        private bool IsAreaSelectionTool => previewTool == PreviewTool.RectangleSelect || previewTool == PreviewTool.PolygonSelect;
+        private bool IsAreaSelectionTool => previewTool == PreviewTool.RectangleSelect || previewTool == PreviewTool.PolygonSelect || IsUvSelectionTool;
 
         private CanvasSelection GetAreaSelection()
         {
@@ -125,7 +125,7 @@ namespace DCFApixels.WhimTex
         }
         private void AddAreaSelectionSettings(PreviewTool tool)
         {
-            var row = WhimTexUI.CreateToolbar();
+            var row = CreatePreviewSettingsRow();
             row.AddToClassList("whimtex-area-settings");
             BindPreviewSettingsRow(row, tool);
             var mode = new EnumField(areaSelectionMode);

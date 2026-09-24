@@ -138,8 +138,8 @@ assert.match(src, /if \(!CanContinueDrag \|\|/);
 assert.match(src, /if \(CanContinueDrag\)/);
 assert.match(src, /bounds, owner.CanMovePreviewGuides && !owner.previewGuidesLocked &&\s*\(i == hovered \|\| i == owner.selectedPreviewGuide\), false/);
 assert.ok(!src.match(/private bool Ready => ([\s\S]*?);/)[1].includes('CanMovePreviewGuides'), 'Guide visibility must not depend on the selected tool');
-const setTool = read('TextureCompositorWindow.Transform.cs').split('private void SetPreviewTool(PreviewTool tool)')[1].split('private bool HandlePreviewTransformKey')[0];
-assert.ok(setTool.indexOf('CancelPreviewZoomGesture();') < setTool.indexOf('previewTool = tool;'), 'Switching tools must cancel an uncommitted guide drag');
+const setTool = read('TextureCompositorWindow.ContextTools.cs').split('private void ChangePreviewTool(PreviewTool tool)')[1];
+assert.ok(setTool.indexOf('CancelPreviewZoomGesture();') >= 0 && setTool.indexOf('CancelPreviewZoomGesture();') < setTool.indexOf('previewTool = tool;'), 'Switching tools must cancel an uncommitted guide drag');
 assert.match(read('TextureCompositorWindow.Zoom.cs'), /CancelPreviewZoomGesture\(\)\s*\{\s*previewGuideManipulator\?\.Cancel\(\);/);
 assert.match(src, /owner.areaSelectionManipulator\?\.HasGesture/);
 for (const [event, callback] of [['PointerDown', 'Down'], ['PointerMove', 'Move'], ['PointerUp', 'Up'], ['Wheel', 'Wheel']])

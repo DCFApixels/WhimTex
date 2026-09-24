@@ -56,7 +56,7 @@ Use **Convert to 8-bit** only if you want to permanently reduce the stored color
 
 ## Edit a gradient
 
-Select a Gradient layer to show its controls on the canvas. Square handles change its geometry;
+Select a Gradient layer to activate **Gradient Handles**, the contextual hand tool. Square handles change its geometry;
 colored points move color keys. Click the line to add a key, or double-click a point to open Unity's
 Color Picker. Alpha keys remain in the gradient editor.
 Drag the small diamonds to move the midpoint between colors (except in Fixed mode).
@@ -64,7 +64,7 @@ Delete a selected color key with Delete while the preview has focus, or drag it 
 At least one color key remains.
 Position, size and rotation are controlled by the layer transform; there are no separate Center or Radius settings.
 Radial, diamond and square gradients share position, scale and rotation controls. Angular (Circular) gradients have no
-canvas controls yet. The controls disappear when another layer is selected; no extra mode is needed.
+canvas controls yet. Select a basic tool to hide the handles, or press Escape when not dragging to return to your last basic tool. The contextual hand button restores the handles. Selecting another Gradient layer activates them automatically.
 
 New Color Fill, Gradient and Noise layers use **Unbounded** tiling by default.
 

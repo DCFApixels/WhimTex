@@ -90,6 +90,7 @@ test('directive completion uses HLSL and replaces the typed @ prefix', () => {
     const param = items.find(item => item.label === '@param');
     assert.equal(param.insertText, '@param ');
     assert.deepEqual(param.range, new Range(4, 3, 4, 6));
+    assert.ok(items.every(item => !['@if', '@group()'].includes(item.label)), 'Block snippets must not have duplicate plain completions.');
 
     const requestApplyAfterSave = saveCallbacks[saveCallbacks.length - 1];
     const document = {
@@ -123,17 +124,17 @@ test('directive diagnostics accept valid parameter modifiers, conditions, and gr
     assert.deepEqual(diagnostics, []);
 });
 
-test('directive diagnostics report unknown directives, duplicates, and unmatched blocks', () => {
+test('directive diagnostics report unknown directives, incompatible storage, and unmatched blocks', () => {
     const diagnostics = validate([
         '// @unknown test',
         '// @If _Amount == 1',
         '// @param float _Amount = 1',
-        '// @param bool _Amount = false',
+        '// @param color _Amount = (1,1,1,1)',
         '// @if _Amount == 1',
         '// @endgroup'
     ].join('\n'));
     assert.equal(diagnostics.filter(item => item.severity === 0).length, 3);
     assert.equal(diagnostics.filter(item => item.severity === 1).length, 2);
-    assert.match(diagnostics.map(item => item.message).join('\n'), /more than once/);
+    assert.match(diagnostics.map(item => item.message).join('\n'), /Conflicting storage types/);
     assert.match(diagnostics.map(item => item.message).join('\n'), /no matching @endif/);
 });

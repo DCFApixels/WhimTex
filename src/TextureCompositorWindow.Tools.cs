@@ -7,10 +7,13 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
-        private enum PreviewTool { None, Brush, BlurBrush, Transform, Fill, Zoom, Pencil, RectangleSelect, PolygonSelect, Shape }
+        private enum PreviewTool
+        {
+            None, Brush, BlurBrush, Transform, Fill, Zoom, Pencil, RectangleSelect, PolygonSelect, Shape,
+            GradientHandles, UvIslandSelect, FXTransform, FXPoint, FXNormal
+        }
 
         [NonSerialized] private PreviewTool previewTool = PreviewTool.None;
-        [NonSerialized] private PreviewTool previewSettingsTool = PreviewTool.None;
         [NonSerialized] private PreviewTool previewTransformReturnTool = PreviewTool.None;
         [NonSerialized] private PaintToolSettings paintSettings = new PaintToolSettings();
         private const string PaintToolSettingsPrefKey = "DCFApixels.WhimTex.PaintToolSettings";
@@ -28,6 +31,7 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private Button previewZoomButton;
         [NonSerialized] private Button previewRectangleSelectButton;
         [NonSerialized] private Button previewPolygonSelectButton;
+        private ScrollView previewToolScroll;
 
         private bool IsPreviewPaintTool => previewTool == PreviewTool.Brush || previewTool == PreviewTool.BlurBrush || previewTool == PreviewTool.Pencil;
         private bool HasPreviewLayers
@@ -57,14 +61,14 @@ namespace DCFApixels.WhimTex
 
         private static PreviewTool ParsePreviewTool(string value)
         {
-            return Enum.TryParse(value, out PreviewTool tool) && Enum.IsDefined(typeof(PreviewTool), tool)
+            return Enum.TryParse(value, out PreviewTool tool) && Enum.IsDefined(typeof(PreviewTool), tool) && IsBasePreviewTool(tool)
                 ? tool : PreviewTool.None;
         }
 
         private void LoadPreviewToolSettings()
         {
             previewTool = ParsePreviewTool(EditorPrefs.GetString(PreviewToolPrefKey, string.Empty));
-            previewSettingsTool = previewTool;
+            lastBasePreviewTool = previewTool;
             previewTransformReturnTool = ParsePreviewTool(
                 EditorPrefs.GetString(PreviewTransformReturnToolPrefKey, string.Empty));
             if (previewTransformReturnTool == PreviewTool.Transform)
@@ -209,14 +213,21 @@ namespace DCFApixels.WhimTex
             }
         }
 
+        private static VisualElement CreatePreviewSettingsRow()
+        {
+            var row = new VisualElement();
+            row.AddToClassList("whimtex-tool-settings-row");
+            return row;
+        }
+
         private void BindPreviewSettingsRow(VisualElement row, PreviewTool tool)
         {
             toolkitHeaderBindings.Add(() =>
             {
-                bool empty = previewTool == PreviewTool.None;
-                bool visible = (empty ? previewSettingsTool : previewTool) == tool;
+                PreviewTool settings = previewTool;
+                if (settings == PreviewTool.UvIslandSelect) settings = PreviewTool.RectangleSelect;
+                bool visible = settings == tool;
                 row.EnableInClassList("whimtex-tool-options--hidden", !visible);
-                row.EnableInClassList("whimtex-tool-options--empty", empty);
             });
         }
 
@@ -243,7 +254,7 @@ namespace DCFApixels.WhimTex
             toolbar.Add(previewNoneButton);
             toolbar.Add(previewTransformButton);
             previewRectangleSelectButton = CreatePreviewToolButton("rectangleSelectTool", PreviewTool.RectangleSelect,
-                "Area Select (M). Hold or drag this button to choose Rectangle, Ellipse or UV Island. Shift adds; Alt subtracts; Ctrl+D deselects. Selection limits painting and filling.");
+                "Area Select (M). Hold or drag this button to choose Rectangle or Ellipse. Shift adds; Alt subtracts; Ctrl+D deselects. Selection limits painting and filling.");
             marqueePicker = new ShapePickerManipulator(this, true);
             previewRectangleSelectButton.AddManipulator(marqueePicker);
             previewPolygonSelectButton = CreatePreviewToolButton("polygonSelectTool", PreviewTool.PolygonSelect,
@@ -262,7 +273,29 @@ namespace DCFApixels.WhimTex
             previewZoomButton = CreatePreviewToolButton("zoomTool", PreviewTool.Zoom,
                 "Zoom (Z). Click to zoom in, drag a rectangle to frame an area, or Alt-click to zoom out. MMB-drag pans the preview.");
             toolbar.Add(previewZoomButton);
-            return toolbar;
+            BuildContextToolButtons(toolbar);
+            previewToolScroll = new ScrollView(ScrollViewMode.Vertical)
+            {
+                name = "previewToolScroll",
+                horizontalScrollerVisibility = ScrollerVisibility.Hidden,
+                verticalScrollerVisibility = ScrollerVisibility.Hidden
+            };
+            previewToolScroll.AddToClassList("whimtex-tools-scroll");
+            previewToolScroll.EnableInClassList("whimtex-tools-scroll--light", !EditorGUIUtility.isProSkin);
+            previewToolScroll.Add(toolbar);
+            previewToolScroll.RegisterCallback<GeometryChangedEvent>(_ => RevealActivePreviewTool());
+            return previewToolScroll;
+        }
+
+        private void RevealActivePreviewTool()
+        {
+            var scroll = previewToolScroll;
+            scroll?.schedule.Execute(() =>
+            {
+                var button = scroll.Q<Button>(className: "whimtex-tool-button--selected");
+                if (scroll.panel != null && button != null && button.resolvedStyle.display != DisplayStyle.None)
+                    scroll.ScrollTo(button);
+            });
         }
 
         private Button CreatePreviewToolButton(string name, PreviewTool tool, string tooltip)
@@ -272,7 +305,7 @@ namespace DCFApixels.WhimTex
             if (tool == PreviewTool.Shape)
                 button.Add(shapeToolIcon = new ShapeToolIcon(shapeToolSettings?.kind ?? ShapeLayerBehaviour.ShapeKind.Rectangle));
             else if (tool == PreviewTool.RectangleSelect)
-                button.Add(marqueeToolIcon = new PreviewToolIcon(tool, marqueeShape == MarqueeShape.Ellipse, marqueeShape == MarqueeShape.UvIsland));
+                button.Add(marqueeToolIcon = new PreviewToolIcon(tool, marqueeShape == MarqueeShape.Ellipse));
             else
                 button.Add(new PreviewToolIcon(tool));
             if (tool == PreviewTool.Shape || tool == PreviewTool.RectangleSelect)
@@ -283,12 +316,12 @@ namespace DCFApixels.WhimTex
         private void RefreshPreviewToolToolbar()
         {
             RefreshPostFxPanel();
+            RefreshContextToolButtons();
             bool hasLayers = HasPreviewLayers;
             PreviewTool displayedTool = previewTool;
             Layer selected = hasLayers ? GetSelectedLayer() : null;
             shapeToolIcon?.SetKind(shapeToolSettings?.kind ?? ShapeLayerBehaviour.ShapeKind.Rectangle);
             marqueeToolIcon?.SetEllipse(marqueeShape == MarqueeShape.Ellipse);
-            marqueeToolIcon?.SetUv(marqueeShape == MarqueeShape.UvIsland);
             if (!IsUvSelectionTool) SetUvHovered(-1);
             if (uvDisplayedSelection != IsUvSelectionTool || uvDisplayedLayers != hasLayers)
             {
@@ -311,7 +344,7 @@ namespace DCFApixels.WhimTex
             }
             if (previewBlurBrushButton != null)
             {
-                previewBlurBrushButton.EnableInClassList("whimtex-tool-button--unavailable", !hasLayers);
+                previewBlurBrushButton.EnableInClassList("whimtex-tool-button--unavailable", !(selected?.Behaviour is DrawingLayerBehaviour));
                 previewBlurBrushButton.EnableInClassList("whimtex-tool-button--selected", displayedTool == PreviewTool.BlurBrush);
             }
             if (previewPencilButton != null)
@@ -335,13 +368,11 @@ namespace DCFApixels.WhimTex
         {
             private readonly PreviewTool tool;
             private bool ellipse;
-            private bool uv;
 
-            internal PreviewToolIcon(PreviewTool tool, bool ellipse = false, bool uv = false)
+            internal PreviewToolIcon(PreviewTool tool, bool ellipse = false)
             {
                 this.tool = tool;
                 this.ellipse = ellipse;
-                this.uv = uv;
                 pickingMode = PickingMode.Ignore;
                 AddToClassList("whimtex-tool-icon");
                 generateVisualContent += Draw;
@@ -352,12 +383,6 @@ namespace DCFApixels.WhimTex
                 if (ellipse == value) return;
                 ellipse = value;
                 MarkDirtyRepaint();
-            }
-
-            internal void SetUv(bool value)
-            {
-                if (uv == value) return;
-                uv = value; MarkDirtyRepaint();
             }
 
             private void Draw(MeshGenerationContext context)
@@ -374,6 +399,10 @@ namespace DCFApixels.WhimTex
                     DrawPointer(painter);
                 else if (tool == PreviewTool.Transform)
                     DrawHand(painter);
+                else if (tool == PreviewTool.GradientHandles || IsTemporaryPreviewTool(tool))
+                    DrawHand(painter, withHandle: true);
+                else if (tool == PreviewTool.UvIslandSelect)
+                    DrawUvSelect(painter);
                 else if (tool == PreviewTool.Fill)
                     DrawBucket(painter);
                 else if (tool == PreviewTool.Zoom)
@@ -384,8 +413,7 @@ namespace DCFApixels.WhimTex
                     DrawBlurBrush(painter);
                 else if (tool == PreviewTool.RectangleSelect)
                 {
-                    if (uv) DrawUvSelect(painter);
-                    else if (ellipse) DrawEllipseSelect(painter);
+                    if (ellipse) DrawEllipseSelect(painter);
                     else DrawRectangleSelect(painter);
                 }
                 else if (tool == PreviewTool.PolygonSelect)
@@ -616,28 +644,35 @@ namespace DCFApixels.WhimTex
                 painter.Fill();
             }
 
-            private void DrawHand(Painter2D painter)
+            private void DrawHand(Painter2D painter, bool withHandle = false)
             {
+                if (withHandle)
+                {
+                    painter.BeginPath();
+                    painter.Arc(P(7f, 6.5f), 4.6f * contentRect.width / 24f, 120f, 325f);
+                    painter.Stroke();
+                }
+                Vector2 HandPoint(float x, float y) => withHandle ? P(x * .8f + 4.5f, y * .8f + 4f) : P(x, y);
                 painter.BeginPath();
-                painter.MoveTo(P(7f, 12.2f));
-                painter.LineTo(P(7f, 6f));
-                painter.BezierCurveTo(P(7f, 3.8f), P(10f, 3.8f), P(10f, 6f));
-                painter.LineTo(P(10f, 11f));
-                painter.LineTo(P(10f, 3.8f));
-                painter.BezierCurveTo(P(10f, 1.6f), P(13f, 1.6f), P(13f, 3.8f));
-                painter.LineTo(P(13f, 11f));
-                painter.LineTo(P(13f, 5f));
-                painter.BezierCurveTo(P(13f, 2.8f), P(16f, 2.8f), P(16f, 5f));
-                painter.LineTo(P(16f, 11.8f));
-                painter.LineTo(P(16f, 8f));
-                painter.BezierCurveTo(P(16f, 5.8f), P(19f, 5.8f), P(19f, 8f));
-                painter.LineTo(P(19f, 14f));
-                painter.BezierCurveTo(P(19f, 18f), P(17f, 18.5f), P(17f, 21f));
-                painter.LineTo(P(9f, 21f));
-                painter.BezierCurveTo(P(9f, 18.7f), P(7f, 18f), P(5.8f, 16f));
-                painter.LineTo(P(3.5f, 12.5f));
-                painter.BezierCurveTo(P(2f, 10f), P(4.3f, 9.2f), P(5.8f, 11f));
-                painter.LineTo(P(7f, 12.2f));
+                painter.MoveTo(HandPoint(7f, 12.2f));
+                painter.LineTo(HandPoint(7f, 6f));
+                painter.BezierCurveTo(HandPoint(7f, 3.8f), HandPoint(10f, 3.8f), HandPoint(10f, 6f));
+                painter.LineTo(HandPoint(10f, 11f));
+                painter.LineTo(HandPoint(10f, 3.8f));
+                painter.BezierCurveTo(HandPoint(10f, 1.6f), HandPoint(13f, 1.6f), HandPoint(13f, 3.8f));
+                painter.LineTo(HandPoint(13f, 11f));
+                painter.LineTo(HandPoint(13f, 5f));
+                painter.BezierCurveTo(HandPoint(13f, 2.8f), HandPoint(16f, 2.8f), HandPoint(16f, 5f));
+                painter.LineTo(HandPoint(16f, 11.8f));
+                painter.LineTo(HandPoint(16f, 8f));
+                painter.BezierCurveTo(HandPoint(16f, 5.8f), HandPoint(19f, 5.8f), HandPoint(19f, 8f));
+                painter.LineTo(HandPoint(19f, 14f));
+                painter.BezierCurveTo(HandPoint(19f, 18f), HandPoint(17f, 18.5f), HandPoint(17f, 21f));
+                painter.LineTo(HandPoint(9f, 21f));
+                painter.BezierCurveTo(HandPoint(9f, 18.7f), HandPoint(7f, 18f), HandPoint(5.8f, 16f));
+                painter.LineTo(HandPoint(3.5f, 12.5f));
+                painter.BezierCurveTo(HandPoint(2f, 10f), HandPoint(4.3f, 9.2f), HandPoint(5.8f, 11f));
+                painter.LineTo(HandPoint(7f, 12.2f));
                 painter.ClosePath();
                 painter.Stroke();
             }

@@ -240,15 +240,23 @@ namespace DCFApixels.WhimTex
             toolkitCanvasToolbar.AddToClassList("whimtex-canvas-toolbar");
             pane.Add(toolkitCanvasToolbar);
 
-            toolkitPreviewHeader = new VisualElement();
-            toolkitPreviewHeader.style.flexShrink = 0f;
-            pane.Add(toolkitPreviewHeader);
+            var previewBody = new VisualElement();
+            previewBody.style.flexGrow = 1f;
+            previewBody.style.minHeight = 0f;
+            pane.Add(previewBody);
+            var settingsSpace = new VisualElement { name = "previewToolSettingsSpace", pickingMode = PickingMode.Ignore };
+            settingsSpace.AddToClassList("whimtex-tool-settings-space");
+            previewBody.Add(settingsSpace);
+
+            toolkitPreviewHeader = new VisualElement { name = "previewToolSettings" };
+            toolkitPreviewHeader.AddToClassList("whimtex-tool-settings-panel");
+            toolkitPreviewHeader.EnableInClassList("whimtex-tool-settings-panel--light", !EditorGUIUtility.isProSkin);
 
             toolkitPreviewErrorRoot = new VisualElement();
             toolkitPreviewErrorRoot.style.flexShrink = 0f;
             toolkitPreviewErrorRoot.style.paddingLeft = PanePadding;
             toolkitPreviewErrorRoot.style.paddingRight = PanePadding;
-            pane.Add(toolkitPreviewErrorRoot);
+            previewBody.Add(toolkitPreviewErrorRoot);
             toolkitPreviewError = WhimTexUI.AddHelpBox(toolkitPreviewErrorRoot, string.Empty, HelpBoxMessageType.Error);
             toolkitPreviewError.style.display = DisplayStyle.None;
 
@@ -271,9 +279,11 @@ namespace DCFApixels.WhimTex
             toolkitPreviewCanvas.RegisterCallback<PointerEnterEvent>(OnPreviewPointerEnter);
             toolkitPreviewCanvas.RegisterCallback<PointerLeaveEvent>(OnPreviewPointerLeave);
             toolkitPreviewCanvas.RegisterCallback<PointerCaptureOutEvent>(OnPreviewPointerCaptureOut);
-            pane.Add(BuildPostFxPreview(toolkitPreviewCanvas));
+            previewBody.Add(BuildPostFxPreview(toolkitPreviewCanvas));
 
-            pane.Add(BuildPreviewFooter());
+            previewBody.Add(BuildPreviewFooter());
+            // Reserve one row in the layout; wrapped settings draw above the canvas.
+            previewBody.Add(toolkitPreviewHeader);
             return pane;
         }
 
@@ -287,6 +297,7 @@ namespace DCFApixels.WhimTex
             {
                 toolkitRefreshRequested = false;
                 NormalizeLayerSelection();
+                ReconcilePreviewToolContext();
                 if (toolkitBoundDocument != compositor)
                 {
                     toolkitBoundDocument = compositor;
@@ -1496,15 +1507,14 @@ namespace DCFApixels.WhimTex
             AddAreaSelectionSettings(PreviewTool.RectangleSelect);
             AddAreaSelectionSettings(PreviewTool.PolygonSelect);
 
-            VisualElement emptyRow = WhimTexUI.CreateToolbar();
-            AddLayerPickSettings(emptyRow);
-            toolkitHeaderBindings.Add(() => emptyRow.EnableInClassList("whimtex-tool-options--hidden",
-                previewTool != PreviewTool.None || previewSettingsTool != PreviewTool.None));
-            toolkitPreviewHeader.Add(emptyRow);
+            VisualElement pickRow = CreatePreviewSettingsRow();
+            AddLayerPickSettings(pickRow);
+            BindPreviewSettingsRow(pickRow, PreviewTool.None);
+            toolkitPreviewHeader.Add(pickRow);
 
             AddFillSettings();
             AddPencilSettings();
-            VisualElement brushRow = WhimTexUI.CreateToolbar();
+            VisualElement brushRow = CreatePreviewSettingsRow();
             BindPreviewSettingsRow(brushRow, PreviewTool.Brush);
             EnumField tool = CompactField(new EnumField(paintSettings.tool), 72f);
             toolkitHeaderBindings.Track(tool, () => (Enum)paintSettings.tool);
@@ -1542,7 +1552,7 @@ namespace DCFApixels.WhimTex
 
         private void AddBlurBrushSettings()
         {
-            VisualElement row = WhimTexUI.CreateToolbar();
+            VisualElement row = CreatePreviewSettingsRow();
             BindPreviewSettingsRow(row, PreviewTool.BlurBrush);
             FloatField size = CompactField(new FloatField("Size") { value = paintSettings.blurSize }, 88f);
             size.AddToClassList("whimtex-blur-size");
@@ -1579,7 +1589,7 @@ namespace DCFApixels.WhimTex
 
         private void AddPencilSettings()
         {
-            VisualElement row = WhimTexUI.CreateToolbar();
+            VisualElement row = CreatePreviewSettingsRow();
             BindPreviewSettingsRow(row, PreviewTool.Pencil);
             DropdownField mode = CompactField(new DropdownField(new List<string> { "Pencil", "Eraser" }, 0), 78f);
             toolkitHeaderBindings.Track(mode, () => paintSettings.tool == PaintToolMode.Eraser ? "Eraser" : "Pencil");
@@ -1672,7 +1682,15 @@ namespace DCFApixels.WhimTex
 
             if (toolkitPreviewFooter != null)
             {
-                if (transforming)
+                if (IsTemporaryPreviewTool(previewTool))
+                {
+                    toolkitPreviewFooter.text = TemporaryToolDescription + " • Esc return";
+                }
+                else if (IsGradientCanvasEnabled)
+                {
+                    toolkitPreviewFooter.text = "Drag gradient handles • Double-click key for color • Delete key • Esc return";
+                }
+                else if (transforming)
                 {
                     toolkitPreviewFooter.text = "Drag move • handles scale • circle rotate • gold cross pivot • Shift constrain • Esc cancel • T exit";
                 }
@@ -1972,7 +1990,7 @@ namespace DCFApixels.WhimTex
                 visible,
                 visible ? GetPreviewPaintPosition(localPosition, paintingShiftHeld, previewPointerControl, updateConstraint: false) : localPosition,
                 paintingLayer != null ? paintingErase : paintSettings.tool == PaintToolMode.Eraser);
-            MouseCursor transformCursor = !panning && previewPointerInside && previewTool == PreviewTool.Transform
+            MouseCursor transformCursor = !panning && previewPointerInside && IsPreviewTransformEnabled
                 ? previewTransformManipulator?.GetCursor(localPosition, alt) ?? MouseCursor.Pan
                 : MouseCursor.Pan;
             toolkitPreviewCanvas?.SetToolCursor(previewTool, visible, panning, transformCursor,
@@ -2033,8 +2051,15 @@ namespace DCFApixels.WhimTex
                 return;
             }
             if (gradientCanvasManipulator?.HandleDelete(evt) == true) return;
+            if (evt.keyCode == KeyCode.Escape && previewZoomManipulator?.IsDragging == true)
+            {
+                CancelPreviewZoomGesture();
+                WhimTexUI.ConsumeEvent(evt);
+                return;
+            }
             if (HandlePreviewGuideKey(evt)) return;
             if (HandleAreaSelectionKey(evt)) return;
+            if (HandleContextToolEscape(evt)) return;
             if (HandleLayerNudgeKey(evt)) return;
             if (HandleLayerNavigationKey(evt)) return;
 
@@ -2051,13 +2076,6 @@ namespace DCFApixels.WhimTex
             if (HandleOpacityKey(evt))
                 return;
             ResetOpacityEntry();
-
-            if (evt.keyCode == KeyCode.Escape && previewZoomManipulator != null && previewZoomManipulator.IsDragging)
-            {
-                CancelPreviewZoomGesture();
-                WhimTexUI.ConsumeEvent(evt);
-                return;
-            }
 
             if (HandlePreviewTransformKey(evt))
                 return;
@@ -2397,7 +2415,7 @@ namespace DCFApixels.WhimTex
 
             public void SetToolCursor(PreviewTool tool, bool hide, bool panning, MouseCursor transformCursor = MouseCursor.Pan, bool rotating = false)
             {
-                bool transforming = !panning && tool == PreviewTool.Transform;
+                bool transforming = !panning && (tool == PreviewTool.Transform || tool == PreviewTool.GradientHandles || IsTemporaryPreviewTool(tool));
                 EnableInClassList("whimtex-preview-cursor--pan", (panning && !rotating) || (transforming && transformCursor == MouseCursor.Pan));
                 EnableInClassList("whimtex-preview-cursor--zoom", !panning && tool == PreviewTool.Zoom);
                 EnableInClassList("whimtex-preview-cursor--scale", transforming && transformCursor == MouseCursor.ScaleArrow);

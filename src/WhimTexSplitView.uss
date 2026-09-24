@@ -244,14 +244,26 @@
     min-height: 0;
 }
 
-.whimtex-tools {
+.whimtex-tools-scroll {
     width: 36px;
+    min-height: 0;
+    flex-shrink: 0;
+    background-color: var(--whimtex-surface);
+    border-right-width: 1px;
+    border-right-color: #171717;
+}
+
+.whimtex-tools-scroll--light {
+    background-color: var(--whimtex-surface-light);
+    border-right-color: #858585;
+}
+
+.whimtex-tools {
+    width: 35px;
     flex-shrink: 0;
     align-items: center;
     padding-top: 4px;
     background-color: var(--whimtex-surface);
-    border-right-width: 1px;
-    border-right-color: #171717;
 }
 
 .whimtex-workspace-split {
@@ -261,7 +273,6 @@
 
 .whimtex-tools--light {
     background-color: var(--whimtex-surface-light);
-    border-right-color: #858585;
 }
 
 .unity-button.whimtex-tool-button {
@@ -333,8 +344,51 @@
     display: none;
 }
 
-.whimtex-tool-options--empty > * {
-    visibility: hidden;
+.whimtex-tool-settings-space {
+    height: 28px;
+    flex-shrink: 0;
+}
+
+.whimtex-tool-settings-panel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    min-height: 28px;
+    background-color: rgb(41, 41, 41);
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(0, 0, 0, 0.3);
+}
+
+.whimtex-tool-settings-panel--light {
+    background-color: rgb(199, 199, 199);
+}
+
+.whimtex-tool-settings-row {
+    min-height: 27px;
+    flex-shrink: 0;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
+.whimtex-context-tool--hidden {
+    display: none;
+}
+
+.whimtex-context-tool-separator {
+    width: 24px;
+    height: 1px;
+    flex-shrink: 0;
+    margin-top: 3px;
+    margin-bottom: 6px;
+    background-color: #171717;
+}
+
+.whimtex-tools--light > .whimtex-context-tool-separator {
+    background-color: #858585;
 }
 
 .whimtex-preview-canvas.whimtex-preview-cursor--pan {

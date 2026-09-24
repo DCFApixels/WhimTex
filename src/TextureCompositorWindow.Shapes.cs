@@ -22,7 +22,7 @@ namespace DCFApixels.WhimTex
         private void AddShapeSettings()
         {
             shapeToolSettings ??= new ShapeLayerBehaviour();
-            var row = WhimTexUI.CreateToolbar();
+            var row = CreatePreviewSettingsRow();
             row.AddToClassList("whimtex-fill-settings");
             BindPreviewSettingsRow(row, PreviewTool.Shape);
             var kind = new EnumField(shapeToolSettings.kind);

@@ -1,0 +1,597 @@
+[
+  {
+    "name": "defaultless float",
+    "source": "// @param float _Value // A hint with punctuation; [0 .. 1] and // more text.",
+    "valid": true
+  },
+  {
+    "name": "defaultless bool",
+    "source": "// @param bool _Value // A hint with punctuation; [0 .. 1] and // more text.",
+    "valid": true
+  },
+  {
+    "name": "defaultless float2",
+    "source": "// @param float2 _Value // A hint with punctuation; [0 .. 1] and // more text.",
+    "valid": true
+  },
+  {
+    "name": "defaultless float3",
+    "source": "// @param float3 _Value // A hint with punctuation; [0 .. 1] and // more text.",
+    "valid": true
+  },
+  {
+    "name": "defaultless float4",
+    "source": "// @param float4 _Value // A hint with punctuation; [0 .. 1] and // more text.",
+    "valid": true
+  },
+  {
+    "name": "defaultless normal",
+    "source": "// @param normal _Value // A hint with punctuation; [0 .. 1] and // more text.",
+    "valid": true
+  },
+  {
+    "name": "defaultless point",
+    "source": "// @param point _Value // A hint with punctuation; [0 .. 1] and // more text.",
+    "valid": true
+  },
+  {
+    "name": "defaultless color",
+    "source": "// @param color _Value // A hint with punctuation; [0 .. 1] and // more text.",
+    "valid": true
+  },
+  {
+    "name": "defaultless texture2D",
+    "source": "// @param texture2D _Value // A hint with punctuation; [0 .. 1] and // more text.",
+    "valid": true
+  },
+  {
+    "name": "defaultless transform2D",
+    "source": "// @param transform2D _Value // A hint with punctuation; [0 .. 1] and // more text.",
+    "valid": true
+  },
+  {
+    "name": "defaultless gradient",
+    "source": "// @param gradient _Value // A hint with punctuation; [0 .. 1] and // more text.",
+    "valid": true
+  },
+  {
+    "name": "defaultless curve",
+    "source": "// @param curve _Value // A hint with punctuation; [0 .. 1] and // more text.",
+    "valid": true
+  },
+  {
+    "name": "initialized float",
+    "source": "// @param label(\"Value (px)\") hidden float _Value = +1e-2 [~-1 .. ~2] // tooltip",
+    "valid": true
+  },
+  {
+    "name": "initialized bool",
+    "source": "// @param label(\"Value (px)\") hidden bool _Value = true // tooltip",
+    "valid": true
+  },
+  {
+    "name": "initialized float2",
+    "source": "// @param label(\"Value (px)\") hidden float2 _Value = (1, -2) // tooltip",
+    "valid": true
+  },
+  {
+    "name": "initialized float3",
+    "source": "// @param label(\"Value (px)\") hidden float3 _Value = (1, 2, 3) // tooltip",
+    "valid": true
+  },
+  {
+    "name": "initialized float4",
+    "source": "// @param label(\"Value (px)\") hidden float4 _Value = (1, 0, 0, 1) // tooltip",
+    "valid": true
+  },
+  {
+    "name": "initialized normal",
+    "source": "// @param label(\"Value (px)\") hidden normal _Value = (0,0,0) // tooltip",
+    "valid": true
+  },
+  {
+    "name": "initialized point",
+    "source": "// @param label(\"Value (px)\") hidden point _Value = (.5,1) // tooltip",
+    "valid": true
+  },
+  {
+    "name": "initialized color",
+    "source": "// @param label(\"Value (px)\") hidden color _Value = #7EF3FFFF // tooltip",
+    "valid": true
+  },
+  {
+    "name": "initialized texture2D",
+    "source": "// @param label(\"Value (px)\") hidden texture2D _Value = \"guid:0123456789abcdef0123456789abcdef:-9223372036854775808\" // tooltip",
+    "valid": true
+  },
+  {
+    "name": "initialized transform2D",
+    "source": "// @param label(\"Value (px)\") hidden transform2D _Value = matrix(1,0,0,0,1,0,0,0,1) // tooltip",
+    "valid": true
+  },
+  {
+    "name": "initialized gradient",
+    "source": "// @param label(\"Value (px)\") hidden gradient _Value = #7EF3FF -> (0.7,0.4,1,1) // tooltip",
+    "valid": true
+  },
+  {
+    "name": "initialized curve",
+    "source": "// @param label(\"Value (px)\") hidden curve _Value = keys((0,0,inf,-inf,0,0,0),(1,1,0,0,0.5,1,3)) // tooltip",
+    "valid": true
+  },
+  {
+    "name": "curve linear",
+    "source": "// @param curve _Value = linear",
+    "valid": true
+  },
+  {
+    "name": "curve one",
+    "source": "// @param curve _Value = one",
+    "valid": true
+  },
+  {
+    "name": "curve easeIn",
+    "source": "// @param curve _Value = easeIn",
+    "valid": true
+  },
+  {
+    "name": "curve easeOut",
+    "source": "// @param curve _Value = easeOut",
+    "valid": true
+  },
+  {
+    "name": "curve easeInOut",
+    "source": "// @param curve _Value = easeInOut",
+    "valid": true
+  },
+  {
+    "name": "curve keys()",
+    "source": "// @param curve _Value = keys()",
+    "valid": true
+  },
+  {
+    "name": "texture self",
+    "source": "// @param texture2D _Tex = self",
+    "valid": true
+  },
+  {
+    "name": "texture none",
+    "source": "// @param texture2D _Tex = none",
+    "valid": true
+  },
+  {
+    "name": "tooltip inside label",
+    "source": "// @param hidden label(\"Rate // detail (px)\") float _Rate = 2 [0 .. ~1] // true tooltip",
+    "valid": true
+  },
+  {
+    "name": "label reverse order",
+    "source": "// @param label (Rate (px)) hidden float _Rate",
+    "valid": true
+  },
+  {
+    "name": "color six digits",
+    "source": "// @param color _Tint = #FF0000",
+    "valid": true
+  },
+  {
+    "name": "gradient tuples",
+    "source": "// @param gradient _Ramp = (1,0,0,1) -> (0,0,1,0)",
+    "valid": true
+  },
+  {
+    "name": "scalar linked controls",
+    "source": "// @param float _Mode = .5\n// @param bool _Mode = true\n// @param enum _Mode = Custom {Off: 0, Custom: .5, On: 1}",
+    "valid": true
+  },
+  {
+    "name": "vector linked controls",
+    "source": "// @param float2 _Position\n// @param float2 _Position = (1,2)",
+    "valid": true
+  },
+  {
+    "name": "enum custom default",
+    "source": "// @param enum _Mode = -2 {One: 1, Two: 2}",
+    "valid": true
+  },
+  {
+    "name": "one sided range",
+    "source": "// @param float _Value [.. 2]",
+    "valid": true
+  },
+  {
+    "name": "equal range",
+    "source": "// @param float _Value = 2 [2 .. 2]",
+    "valid": true
+  },
+  {
+    "name": "implicit value outside range",
+    "source": "// @param float _Value [2 .. 3]",
+    "valid": true
+  },
+  {
+    "name": "matrix normalized",
+    "source": "// @param transform2D _Area = matrix(1e-20,0,0,0,1e-20,0,0,0,1e-20)",
+    "valid": true
+  },
+  {
+    "name": "transform double",
+    "source": "// @param transform2D _Area = (1e40,0,1,1,0)",
+    "valid": true
+  },
+  {
+    "name": "hidden header group",
+    "source": "// @group(Mask; _Channel)\n// @param hidden enum _Channel = R {R:0,A:1}\n// @param curve _Profile // hint\n// @endgroup",
+    "valid": true
+  },
+  {
+    "name": "forward if reference",
+    "source": "// @if _Mode != +1e-2\n// @param color _Color\n// @endif\n// @param float _Mode",
+    "valid": true
+  },
+  {
+    "name": "alias whitespace",
+    "source": "// @formerlyserializedas( _Old )\n// @helpbox(Helpful // hint)\n// @param float _New",
+    "valid": true
+  },
+  {
+    "name": "catalog BOM",
+    "source": "﻿// @whimtex-effect Color/Mask\n// @param float _Value",
+    "valid": true
+  },
+  {
+    "name": "block comments",
+    "source": "/*\n// @param invalid _Ignored\n*/\nfloat4 ApplyFX(float2 uv, float4 color) { return color; }",
+    "valid": true
+  },
+  {
+    "name": "ordinary comments",
+    "source": "// @paramish is not a parameter\n// not a directive: @param invalid _Ignored",
+    "valid": true
+  },
+  {
+    "name": "header whitespace",
+    "source": "// @ header(Heading)\n// @ helpbox(Helpful)\n// @param float _Value",
+    "valid": true
+  },
+  {
+    "name": "empty condition no dependency",
+    "source": "// @if _Missing == 1\n// @endif",
+    "valid": true
+  },
+  {
+    "name": "nonfinite float",
+    "source": "// @param float _Value = 1e50",
+    "valid": false
+  },
+  {
+    "name": "nan float",
+    "source": "// @param float _Value = NaN",
+    "valid": false
+  },
+  {
+    "name": "hex number",
+    "source": "// @param float _Value = 0x10",
+    "valid": false
+  },
+  {
+    "name": "semicolon",
+    "source": "// @param float _Value = 1;",
+    "valid": false
+  },
+  {
+    "name": "bad type",
+    "source": "// @param int _Value",
+    "valid": false
+  },
+  {
+    "name": "empty default",
+    "source": "// @param float _Value =",
+    "valid": false
+  },
+  {
+    "name": "bool value",
+    "source": "// @param bool _Value = .5",
+    "valid": false
+  },
+  {
+    "name": "bool range",
+    "source": "// @param bool _Value = true [0 .. 1]",
+    "valid": false
+  },
+  {
+    "name": "enum empty",
+    "source": "// @param enum _Value {}",
+    "valid": false
+  },
+  {
+    "name": "enum missing values",
+    "source": "// @param enum _Value {Off,On}",
+    "valid": false
+  },
+  {
+    "name": "enum duplicate name",
+    "source": "// @param enum _Value {A:0,A:1}",
+    "valid": false
+  },
+  {
+    "name": "enum duplicate number",
+    "source": "// @param enum _Value {A:1,B:1.0}",
+    "valid": false
+  },
+  {
+    "name": "enum unknown default",
+    "source": "// @param enum _Value = C {A:0,B:1}",
+    "valid": false
+  },
+  {
+    "name": "enum float precision duplicate",
+    "source": "// @param enum _Value {A:16777216,B:16777217}",
+    "valid": false
+  },
+  {
+    "name": "float tuple",
+    "source": "// @param float _Value = (1,2)",
+    "valid": false
+  },
+  {
+    "name": "vector arity",
+    "source": "// @param float2 _Value = (1,2,3)",
+    "valid": false
+  },
+  {
+    "name": "point bounds",
+    "source": "// @param point _Value = (-1,2)",
+    "valid": false
+  },
+  {
+    "name": "float4 hex",
+    "source": "// @param float4 _Value = #FF0000",
+    "valid": false
+  },
+  {
+    "name": "color bad hex",
+    "source": "// @param color _Value = #FF00",
+    "valid": false
+  },
+  {
+    "name": "gradient missing color",
+    "source": "// @param gradient _Value = #FF0000",
+    "valid": false
+  },
+  {
+    "name": "gradient third color",
+    "source": "// @param gradient _Value = #FF0000 -> #FFFFFF -> #000000",
+    "valid": false
+  },
+  {
+    "name": "texture path",
+    "source": "// @param texture2D _Value = \"Assets/test.png\"",
+    "valid": false
+  },
+  {
+    "name": "texture id overflow",
+    "source": "// @param texture2D _Value = \"guid:0123456789abcdef0123456789abcdef:9223372036854775808\"",
+    "valid": false
+  },
+  {
+    "name": "curve unknown",
+    "source": "// @param curve _Value = smooth",
+    "valid": false
+  },
+  {
+    "name": "curve bad arity",
+    "source": "// @param curve _Value = keys((0,1,2))",
+    "valid": false
+  },
+  {
+    "name": "curve unsorted",
+    "source": "// @param curve _Value = keys((1,0,0,0,0,0,0),(0,1,0,0,0,0,0))",
+    "valid": false
+  },
+  {
+    "name": "curve invalid weights",
+    "source": "// @param curve _Value = keys((0,0,0,0,2,0,0))",
+    "valid": false
+  },
+  {
+    "name": "curve invalid mode",
+    "source": "// @param curve _Value = keys((0,0,0,0,0,0,0.5))",
+    "valid": false
+  },
+  {
+    "name": "curve infinite value",
+    "source": "// @param curve _Value = keys((0,inf,0,0,0,0,0))",
+    "valid": false
+  },
+  {
+    "name": "range no bounds",
+    "source": "// @param float _Value [..]",
+    "valid": false
+  },
+  {
+    "name": "range reversed",
+    "source": "// @param float _Value [1 .. 0]",
+    "valid": false
+  },
+  {
+    "name": "range soft misplaced",
+    "source": "// @param float _Value [-~1 .. 2]",
+    "valid": false
+  },
+  {
+    "name": "range soft incomplete",
+    "source": "// @param float _Value [~0 ..]",
+    "valid": false
+  },
+  {
+    "name": "range soft equal",
+    "source": "// @param float _Value [0 .. ~0]",
+    "valid": false
+  },
+  {
+    "name": "range default hard",
+    "source": "// @param float _Value = 3 [0 .. 1]",
+    "valid": false
+  },
+  {
+    "name": "duplicate hidden",
+    "source": "// @param hidden hidden float _Value",
+    "valid": false
+  },
+  {
+    "name": "duplicate label",
+    "source": "// @param label(A) label(B) float _Value",
+    "valid": false
+  },
+  {
+    "name": "empty label",
+    "source": "// @param label(\"\") float _Value",
+    "valid": false
+  },
+  {
+    "name": "unclosed label",
+    "source": "// @param label(\"Bad) float _Value",
+    "valid": false
+  },
+  {
+    "name": "transform arity",
+    "source": "// @param transform2D _Value = (0,1)",
+    "valid": false
+  },
+  {
+    "name": "transform singular",
+    "source": "// @param transform2D _Value = matrix(0,0,0,0,1,0,0,0,1)",
+    "valid": false
+  },
+  {
+    "name": "transform horizon",
+    "source": "// @param transform2D _Value = matrix(1,0,0,0,1,0,-2,0,1)",
+    "valid": false
+  },
+  {
+    "name": "incompatible duplicate",
+    "source": "// @param float _Value\n// @param color _Value",
+    "valid": false
+  },
+  {
+    "name": "point shares float2 storage",
+    "source": "// @param point _Value\n// @param float2 _Value",
+    "valid": true
+  },
+  {
+    "name": "missing endif",
+    "source": "// @if _Mode == 1\n// @param float _Detail\n// @param float _Mode",
+    "valid": false
+  },
+  {
+    "name": "invalid if operator",
+    "source": "// @if _Mode >= 1\n// @endif",
+    "valid": false
+  },
+  {
+    "name": "nested if",
+    "source": "// @if _Mode == 1\n// @if _Mode == 2\n// @endif\n// @endif",
+    "valid": false
+  },
+  {
+    "name": "undeclared condition",
+    "source": "// @if _Mode == 1\n// @param float _Detail\n// @endif",
+    "valid": false
+  },
+  {
+    "name": "conditional driver",
+    "source": "// @param float _A\n// @if _A == 1\n// @param float _Mode\n// @endif\n// @if _Mode == 1\n// @param float _Detail\n// @endif",
+    "valid": false
+  },
+  {
+    "name": "vector condition",
+    "source": "// @param float2 _Mode\n// @if _Mode == 1\n// @param float _Detail\n// @endif",
+    "valid": false
+  },
+  {
+    "name": "missing group end",
+    "source": "// @group(Test)\n// @param float _Value",
+    "valid": false
+  },
+  {
+    "name": "empty group",
+    "source": "// @group(Test)\n// @endgroup",
+    "valid": false
+  },
+  {
+    "name": "hidden only group",
+    "source": "// @group(Test; _Value)\n// @param hidden float _Value\n// @endgroup",
+    "valid": false
+  },
+  {
+    "name": "group header missing",
+    "source": "// @group(Test; _Missing)\n// @param float _Value\n// @endgroup",
+    "valid": false
+  },
+  {
+    "name": "group header outside",
+    "source": "// @param float _Value\n// @group(Test; _Value)\n// @param float _Other\n// @endgroup",
+    "valid": false
+  },
+  {
+    "name": "group header duplicated",
+    "source": "// @group(Test; _Value)\n// @param float _Value\n// @param float _Value\n// @endgroup",
+    "valid": false
+  },
+  {
+    "name": "group header conditional",
+    "source": "// @param bool _Mode\n// @group(Test; _Value)\n// @if _Mode == 1\n// @param float _Value\n// @endif\n// @endgroup",
+    "valid": false
+  },
+  {
+    "name": "group ending inside if",
+    "source": "// @group(Test)\n// @if _Mode == 1\n// @param float _Value\n// @endgroup\n// @endif\n// @param float _Mode",
+    "valid": false
+  },
+  {
+    "name": "empty group title",
+    "source": "// @group()\n// @param float _Value\n// @endgroup",
+    "valid": false
+  },
+  {
+    "name": "alias current",
+    "source": "// @formerlyserializedas(_Value)\n// @param float _Value",
+    "valid": false
+  },
+  {
+    "name": "alias duplicate",
+    "source": "// @formerlyserializedas(_Old)\n// @formerlyserializedas(_Old)\n// @param float _Value",
+    "valid": false
+  },
+  {
+    "name": "alias claimed",
+    "source": "// @formerlyserializedas(_Old)\n// @param float _A\n// @formerlyserializedas(_Old)\n// @param float _B",
+    "valid": false
+  },
+  {
+    "name": "alias active",
+    "source": "// @param float _Old\n// @formerlyserializedas(_Old)\n// @param float _New",
+    "valid": false
+  },
+  {
+    "name": "alias orphan",
+    "source": "// @formerlyserializedas(_Old)",
+    "valid": false
+  },
+  {
+    "name": "empty help",
+    "source": "// @helpbox( )\n// @param float _Value",
+    "valid": false
+  },
+  {
+    "name": "empty catalog path",
+    "source": "// @whimtex-effect Color//Mask",
+    "valid": false
+  },
+  {
+    "name": "control limit",
+    "source": "// @param float _P0\n// @param float _P1\n// @param float _P2\n// @param float _P3\n// @param float _P4\n// @param float _P5\n// @param float _P6\n// @param float _P7\n// @param float _P8\n// @param float _P9\n// @param float _P10\n// @param float _P11\n// @param float _P12\n// @param float _P13\n// @param float _P14\n// @param float _P15\n// @param float _P16\n// @param float _P17\n// @param float _P18\n// @param float _P19\n// @param float _P20\n// @param float _P21\n// @param float _P22\n// @param float _P23\n// @param float _P24\n// @param float _P25\n// @param float _P26\n// @param float _P27\n// @param float _P28\n// @param float _P29\n// @param float _P30\n// @param float _P31\n// @param float _P32\n// @param float _P33\n// @param float _P34\n// @param float _P35\n// @param float _P36\n// @param float _P37\n// @param float _P38\n// @param float _P39\n// @param float _P40\n// @param float _P41\n// @param float _P42\n// @param float _P43\n// @param float _P44\n// @param float _P45\n// @param float _P46\n// @param float _P47\n// @param float _P48\n// @param float _P49\n// @param float _P50\n// @param float _P51\n// @param float _P52\n// @param float _P53\n// @param float _P54\n// @param float _P55\n// @param float _P56\n// @param float _P57\n// @param float _P58\n// @param float _P59\n// @param float _P60\n// @param float _P61\n// @param float _P62\n// @param float _P63\n// @param float _P64\n// @param float _P65\n// @param float _P66\n// @param float _P67\n// @param float _P68\n// @param float _P69\n// @param float _P70\n// @param float _P71\n// @param float _P72\n// @param float _P73\n// @param float _P74\n// @param float _P75\n// @param float _P76\n// @param float _P77\n// @param float _P78\n// @param float _P79\n// @param float _P80\n// @param float _P81\n// @param float _P82\n// @param float _P83\n// @param float _P84\n// @param float _P85\n// @param float _P86\n// @param float _P87\n// @param float _P88\n// @param float _P89\n// @param float _P90\n// @param float _P91\n// @param float _P92\n// @param float _P93\n// @param float _P94\n// @param float _P95\n// @param float _P96\n// @param float _P97\n// @param float _P98\n// @param float _P99\n// @param float _P100\n// @param float _P101\n// @param float _P102\n// @param float _P103\n// @param float _P104\n// @param float _P105\n// @param float _P106\n// @param float _P107\n// @param float _P108\n// @param float _P109\n// @param float _P110\n// @param float _P111\n// @param float _P112\n// @param float _P113\n// @param float _P114\n// @param float _P115\n// @param float _P116\n// @param float _P117\n// @param float _P118\n// @param float _P119\n// @param float _P120\n// @param float _P121\n// @param float _P122\n// @param float _P123\n// @param float _P124\n// @param float _P125\n// @param float _P126\n// @param float _P127\n// @param float _P128",
+    "valid": false
+  }
+]

@@ -28,7 +28,7 @@ namespace DCFApixels.WhimTex
 
         private void AddFillSettings()
         {
-            VisualElement row = WhimTexUI.CreateToolbar();
+            VisualElement row = CreatePreviewSettingsRow();
             row.AddToClassList("whimtex-fill-settings");
             BindPreviewSettingsRow(row, PreviewTool.Fill);
             AddPaintColorFields(row);

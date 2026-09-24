@@ -47,6 +47,7 @@ namespace DCFApixels.WhimTex
                 IsLayerNavigationInput(rootVisualElement.panel?.focusController?.focusedElement as VisualElement))
                 return false;
             WhimTexUI.ConsumeEvent(evt);
+            if (!IsBasePreviewTool(previewTool)) return true;
             if (keyboardTransform != null && nudgeKey == evt.keyCode) return true; // Ignore OS repeat.
             StopKeyboardNudge();
             if (activeLayerDrag != null || paintingLayer != null || PreviewFXParameter != null ||
