@@ -4,17 +4,41 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+## [0.11.3] - 2026-09-24
+
 ### Added
 
 - FX stack context-menu actions to copy a block and paste it as an independent Shader FX or a reused Material reference.
+- Drag FX by their full header to reorder them or move them onto another layer, with Undo/Redo support.
 - Stepped parallax occlusion mode for Displacement Map, with configurable view direction and sampling quality.
-- Step FX can threshold each color channel independently.
+- Color/Mask FX with selectable mask channels, a profile curve, inversion, positioning and channel or color-weighted application.
+- Step FX can threshold each color channel independently or use RGBA color components as per-channel effect strengths.
 - Outline layers can detect their contour from Alpha, Red, Green, Blue or Luminance; Alpha remains the default.
 - Shader FX color defaults accept `#RRGGBB`/`#RRGGBBAA`, and gradient parameters can define two endpoint colors in HLSL.
+- FX parameter help boxes, groups with optional header controls, hidden parameters and custom inline labels.
+- `@formerlyserializedas` parameter aliases preserve compatible values when shader uniforms are renamed; float, bool and enum values share scalar storage.
+- Open document-owned FX code in Unity's selected script editor or VS Code. The VS Code integration installs bundled directive highlighting, completion and validation in an isolated profile, supports Restricted Mode and requests Apply when the working file is saved.
+- A Random button beside the Noise layer's Seed field.
 
 ### Changed
 
 - Digital Glitch's gradient blend options use Overlay instead of Override.
+- Built-in FX controls use compact groups, conditional rows and shorter labels; Pixelate exposes Quantization and One Bit through its Color group.
+- Simplified arithmetic channel masks and toggle calculations in built-in FX without adding extra rendering passes.
+- Refined FX header menus, spacing and parameter refresh scheduling; refactored external-code synchronization without changing its workflow.
+- Updated EN/RU/ZH guides and authoring references for FX controls, external editing, gradient wrapping and preset export.
+
+### Fixed
+
+- FX dragging no longer remains attached to the cursor or keeps autoscrolling after release or cancellation.
+- Randomizing a Noise seed always produces a value different from the current seed.
+- Corrected the overloaded catalog-method lookup in the color-preset regression test.
+- Updated FX clipboard regression checks for context-menu pasting without the removed toolbar button.
+
+### Upgrade notes
+
+- Saving the external FX working file applies code but does not save the TIFF document. Save the document in WhimTex separately, and reopen its code after a Unity script reload to reconnect external editing.
+- To update an independent embedded preset to the new controls and shader code, add it again from the catalog. Project-linked HLSL presets update from their source files.
 
 ## [0.11.2] - 2026-09-23
 

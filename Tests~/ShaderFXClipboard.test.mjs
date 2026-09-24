@@ -18,8 +18,8 @@ test('FX stack copies blocks and pastes new Shader FX instances after the select
   assert.match(view, /actions\.AddToClassList\("whimtex-layer-menu-button"\)/);
   assert.match(view, /dot\.AddToClassList\("whimtex-layer-menu-dot"\)/);
   assert.doesNotMatch(view, /text = "⋮"/);
-  assert.match(view, /text = "Paste FX"/);
-  assert.match(view, /ShaderFXClipboard\.Changed \+= RefreshClipboardActionState/);
+  assert.doesNotMatch(view, /text = "Paste FX"/);
+  assert.doesNotMatch(view, /ShaderFXClipboard\.Changed \+= RefreshClipboardActionState/);
   assert.match(view, /ShaderFXClipboard\.Copy\(owner, modifier\)/);
   assert.match(view, /layer\.modifiers\.Insert\(destinationIndex, pasted\)/);
   assert.match(view, /owner\.AdoptAgentShaderFX\(effect, "Paste FX"\)/);
