@@ -4,6 +4,8 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-09-25
+
 ### Added
 
 - Shared agent operations for FX value edits, preset discovery/insertion, ordering, copying and cascade baking; layer duplication/deletion/merge/conversion; Blur and Healing strokes. Open-window batches use revision checks and Undo without autosaving. Diagnostic probes render FX input/output and individual channels for TIFF, headless sessions and open documents.
@@ -21,6 +23,7 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Two-choice dropdowns toggle on a quick click and open their menu on hold or downward drag, including FX parameter controls.
 - Combined the two polar-coordinate presets into Distortion/Polar Coordinates with To Polar and From Polar modes. No automatic migration of existing FX.
 - Healing Brush and Content-Aware Fill softly discourage overusing the same source region, preferring less-used samples only when their appearance match is close enough.
 - Healing Brush and Content-Aware Fill reuse target-patch calculations during source search without reducing quality or iteration counts.
@@ -33,10 +36,18 @@ All notable changes to WhimTex are documented in this file.
 
 ### Fixed
 
+- Blur Brush's gradient icon renders through Unity 6.0-compatible UI Toolkit APIs.
+- Corrected parameter migration directives in Color Filter and Negative presets.
+- Agent inspection reports bound TIFF paths, group transforms and original versus imported File dimensions. Failed batches release temporary documents, self-referencing TIFF inputs are rejected, and malformed headless operation lists no longer pass silently. Documentation now distinguishes saved files, headless candidates and unsaved Assistant edits, including save-failure recovery limits.
 - Healing strokes are no longer discarded by unrelated document notifications or released-button movement arriving before PointerUp.
 - Full-perimeter Tiled healing moves the working-region cut away from heavily painted seams, keeping opposing edges together during reconstruction.
 - The tool settings bar always reserves one row, including for tools without settings; additional rows wrap over the preview without shifting or resizing it. The guide creation strip follows the settings below the extra rows.
 - VS Code no longer reports valid tooltips, defaultless parameters, catalog markers or compatible repeated declarations as errors. Updated bundled extensions are detected by their content, not only their version.
+
+### Upgrade notes
+
+- Existing polar-coordinate FX are not automatically migrated to the combined preset. Add Distortion/Polar Coordinates from the catalog and select the matching mode to use the new controls.
+- External FX working files are temporary, not backups. Save code to apply it, then save the WhimTex document; inactive working files are removed after 24 hours.
 
 ## [0.11.3] - 2026-09-24
 
