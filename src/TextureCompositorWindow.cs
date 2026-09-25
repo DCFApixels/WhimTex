@@ -1245,9 +1245,9 @@ namespace DCFApixels.WhimTex
 
         private void OnCompositorChanged(TextureCompositor changedCompositor)
         {
-            if (healingJob != null || healingPointer >= 0) CancelHealing();
             if (changedCompositor != compositor)
                 return;
+            if (healingJob != null || healingPointer >= 0) CancelHealing();
 
             if (paintingLayer != null && (!ReferenceEquals(paintingLayer.Owner.Behaviour, paintingLayer) ||
                 !ReferenceEquals(compositor.FindLayer(paintingLayer.Id), paintingLayer.Owner)))

@@ -162,6 +162,15 @@ Choose the bandage icon, paint over a scratch, small hole or seam, then release 
 mouse button. The blue stroke marks the repair area; reconstruction runs after release.
 Cover the entire defect with a little surrounding texture. The result is one Undo step.
 
+The repair looks for similar colors and texture, preserving fine detail rather than
+blurring it away. It cannot recreate unique features missing from the surrounding image.
+Compatible smooth fragments are blended to soften patch seams; sharp details keep their original donor samples.
+Wide repairs in smooth noise can still lose contrast and leave a flatter-looking band.
+Overused source regions receive a soft penalty when similarly matching alternatives exist; this reduces repetition but does not prohibit it.
+**Hardness** controls the blend at the stroke edge, not the sharpness of the recovered detail.
+Reconstruction starts at the known edges and works inward before refining the whole repair;
+this helps continue lines through gaps, but ambiguous large shapes can still need touch-ups.
+
 - **Size** sets the stroke diameter in canvas pixels; `[` / `]` also change it.
 - **Hardness** sets the mask edge: low values blend the repair softly; high values give a firm edge.
 - **Search** sets how far around the stroke to look for replacement details.
@@ -180,6 +189,8 @@ the document, selection or tool cancels pending work; wait for completion before
 The blue preview shows the painted mask, including its soft edge and selection. Painting
 over it again does not increase coverage. In **Tiled** preview, draw on any copy: the mask
 wraps across edges and corners, and the repair searches across those seams too.
+For a stroke around all four sides, the search keeps opposing edges together. Some
+patch transitions can still remain in ambiguous textures.
 The round tip does not use brush presets, symmetry, pressure or Flow. Processing uses canvas
 resolution but retains the Drawing texture's native dimensions. A stroke plus its search
 area may cover at most 1 million pixels. Smaller strokes are more responsive; large

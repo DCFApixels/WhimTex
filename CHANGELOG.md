@@ -12,11 +12,19 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Healing Brush and Content-Aware Fill softly discourage overusing the same source region, preferring less-used samples only when their appearance match is close enough.
+- Healing Brush and Content-Aware Fill reuse target-patch calculations during source search without reducing quality or iteration counts.
+- Healing Brush and Content-Aware Fill match texture variation as well as color, and select a best-matching detail at the final step to reduce texture washout. Reconstruction takes more time and working memory.
+- Healing Brush and Content-Aware Fill initialize missing areas from the boundary inward before iterative refinement, improving continuation of thin structures in tested cases.
+- Healing Brush and Content-Aware Fill selectively blend compatible smooth details to reduce patch-like seams, while retaining best-donor reconstruction for sharp details and fine texture.
+- Healing Brush and Content-Aware Fill retain more contrast when refining across resolutions by taking fresh source detail instead of upscaling an averaged repair. Smooth-noise repairs can still lose contrast.
 - External FX working files are disposable cache: inactive copies expire after 24 hours without use; active sessions and the VS Code profile are preserved.
 - VS Code highlights FX parameter types, modifiers, names, values, ranges and enum options alongside directives, and validates defaults, linked controls, groups, conditions and rename aliases.
 
 ### Fixed
 
+- Healing strokes are no longer discarded by unrelated document notifications or released-button movement arriving before PointerUp.
+- Full-perimeter Tiled healing moves the working-region cut away from heavily painted seams, keeping opposing edges together during reconstruction.
 - The tool settings bar always reserves one row, including for tools without settings; additional rows wrap over the preview without shifting or resizing it. The guide creation strip follows the settings below the extra rows.
 - VS Code no longer reports valid tooltips, defaultless parameters, catalog markers or compatible repeated declarations as errors. Updated bundled extensions are detected by their content, not only their version.
 

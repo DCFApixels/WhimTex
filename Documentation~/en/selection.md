@@ -56,6 +56,11 @@ Only the **0–1 UV tile** on the main canvas is shown and selectable, including
 Select the area to rebuild, then click **Content-Aware Fill** above the canvas while a selection tool is active.
 It reuses details already in the image: useful for filling holes, extending texture patterns and touching up UV borders, not for inventing new objects.
 
+Matching considers texture variation as well as color to keep fine patterns from washing out.
+The initial fill progresses from known edges inward to help continue structures through gaps.
+Overused source regions receive a soft penalty when similarly matching alternatives exist; repetition remains possible when suitable source detail is limited.
+Missing details without a similar sample nearby, including unique lighting gradients, may still need manual correction.
+
 1. Choose **Source**: **Visible Composition**, or **Selected Layer** (the layer selected when the fill window opened).
 2. Set **Fill Area** to **Entire Selection**, or **Inner Border**. **Border Width (px)** fills a strip inward from the selection contour, leaving the center and everything outside untouched.
 3. Enable **Transparent Only** to keep visible pixels and fill only empty areas.

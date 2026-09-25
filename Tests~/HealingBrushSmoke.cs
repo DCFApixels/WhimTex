@@ -63,6 +63,24 @@ public static class HealingBrushSmoke
         try { Call(utility, "CheckWorkingSize", new RectInt(0, 0, 2048, 2048)); }
         catch (TargetInvocationException e) { oversized = e.InnerException is InvalidOperationException; }
         Check(oversized, "Oversized work rejected before mask allocation");
+        var perimeter = new byte[16 * 12];
+        for (int y = 0; y < 12; y++) for (int x = 0; x < 16; x++)
+            perimeter[y * 16 + x] = (byte)(x < 2 || x >= 14 || y < 2 || y >= 10 ? 255 : 0);
+        var originalPerimeter = (byte[])perimeter.Clone();
+        object[] cropArgs = { new RectInt(0, 0, 16, 12), perimeter, 16, 12 };
+        var movedBounds = (RectInt)utility.GetMethod("RecenterTiledRegion", Flags).Invoke(null, cropArgs);
+        perimeter = (byte[])cropArgs[1];
+        Check(movedBounds.x >= 6 && movedBounds.x <= 9 && movedBounds.y >= 4 && movedBounds.y <= 7,
+            "Full perimeter cuts through low-coverage interior");
+        for (int y = 0; y < 12; y++) for (int x = 0; x < 16; x++)
+            Check(perimeter[y * 16 + x] == originalPerimeter[((y + movedBounds.y) % 12) * 16 + (x + movedBounds.x) % 16],
+                "Recenter preserves exact coverage in canvas coordinates");
+        var stripe = new byte[8 * 12];
+        for (int y = 0; y < 12; y++) stripe[y * 8 + 4] = 128;
+        cropArgs = new object[] { new RectInt(12, 0, 8, 12), stripe, 16, 12 };
+        var unchangedBounds = (RectInt)utility.GetMethod("RecenterTiledRegion", Flags).Invoke(null, cropArgs);
+        Check(unchangedBounds == new RectInt(12, 0, 8, 12) && ReferenceEquals(stripe, cropArgs[1]),
+            "Uniform axis keeps compact single-seam crop without another buffer");
 
         var focused = EditorWindow.focusedWindow;
         const string pref = "DCFApixels.WhimTex.PreviewTool";
@@ -135,9 +153,27 @@ public static class HealingBrushSmoke
             Check(ReadMask(Get(window, "healingStroke"))[48 * 128 + 71].a > .99f, "Full hardness fills the same edge pixel");
             Set(settings, "healingHardness", .8f);
             Arm(drawing);
+            var unrelated = ScriptableObject.CreateInstance<TextureCompositor>();
+            try
+            {
+                Set(window, "healingPointer", 0);
+                var pending = Get(window, "healingStroke");
+                Call(window, "OnCompositorChanged", unrelated);
+                Check(ReferenceEquals(pending, Get(window, "healingStroke")), "Unrelated document change preserves active mask");
+                Set(window, "healingPointer", -1);
+            }
+            finally { UnityEngine.Object.DestroyImmediate(unrelated); }
             var watch = System.Diagnostics.Stopwatch.StartNew();
             Call(window, "StartHealing");
             Check(Get(window, "healingJob") != null, "Job starts");
+            unrelated = ScriptableObject.CreateInstance<TextureCompositor>();
+            try
+            {
+                var pending = Get(window, "healingJob");
+                Call(window, "OnCompositorChanged", unrelated);
+                Check(ReferenceEquals(pending, Get(window, "healingJob")), "Unrelated document change preserves pending computation");
+            }
+            finally { UnityEngine.Object.DestroyImmediate(unrelated); }
             Check(texture.GetPixel(128, 96).r > .9f, "No write before completion");
             await Complete(); watch.Stop();
             drawing = (DrawingLayerBehaviour)document.layers[0].Behaviour;
@@ -221,7 +257,15 @@ public static class HealingBrushSmoke
             using (var evt = KeyDownEvent.GetPooled(new Event { type = EventType.KeyDown, keyCode = KeyCode.Escape }))
                 canvas.SendEvent(evt);
             Check((int)Get(window, "healingPointer") < 0 && Get(window, "healingJob") == null, "Escape cancels actual gesture");
-            Down(); Up();
+            Down();
+            using (var released = PointerUpEvent.GetPooled(new Event { type = EventType.MouseUp, button = 0, mousePosition = world }))
+            using (var evt = PointerMoveEvent.GetPooled(new Event { type = EventType.MouseMove, button = 0, mousePosition = world }))
+            {
+                Check((evt.pressedButtons & 1) == 0, "Release-order regression uses an actually released pointer");
+                evt.target = canvas; canvas.SendEvent(evt);
+            }
+            Check(Get(window, "healingStroke") != null, "Released-button move cannot discard mask before PointerUp");
+            Up();
             Check((int)Get(window, "healingPointer") < 0, "Real pointer up releases capture");
             Check(Get(window, "healingJob") != null, "Real pointer up starts background healing");
             await Complete();
@@ -289,6 +333,21 @@ public static class HealingBrushSmoke
             Check(Pixels(tileLayer).GetPixel(0, 0).g > .55f && Pixels(tileLayer).GetPixel(127, 95).g > .55f &&
                 Pixels(tileLayer).GetPixel(0, 95).g > .55f && Pixels(tileLayer).GetPixel(127, 0).g > .55f,
                 "Corner repair commits all four wrapped quadrants");
+            for (int attempt = 0; attempt < 4; attempt++)
+            {
+                for (int y = 0; y < 96; y++) for (int x = 0; x < 128; x++)
+                    tilePixels[y * 128 + x] = x < 2 || x >= 126 || y < 2 || y >= 94
+                        ? Color.red : new Color(.2f, .6f, .1f, 1);
+                Pixels(tileLayer).SetPixels(tilePixels); Pixels(tileLayer).Apply(); Call(tileLayer, "InvalidatePaintSurface");
+                Arm(tileLayer); Call(window, "BeginHealingStroke", Vector2.zero);
+                foreach (var point in new[] { new Vector2(128, 0), new Vector2(128, 96), new Vector2(0, 96), Vector2.zero })
+                    Call(Get(window, "healingStroke"), "Add", point);
+                Call(window, "StartHealing");
+                Check(Get(window, "healingJob") != null, "Whole-perimeter stroke starts " + attempt);
+                await Complete();
+                foreach (var point in new[] { new Vector2Int(0, 48), new Vector2Int(127, 48), new Vector2Int(64, 0), new Vector2Int(64, 95) })
+                    Check(Pixels(tileLayer).GetPixel(point.x, point.y).g > .55f, "Whole-perimeter stroke commits every side " + attempt);
+            }
             var halfSelection = new byte[128 * 96]; Array.Fill(halfSelection, (byte)128);
             Call(selection, "Set", halfSelection, Enum.ToObject(assembly.GetType("DCFApixels.WhimTex.SelectionCombine"), 0));
             Arm(tileLayer); Call(window, "BeginHealingStroke", new Vector2(0, 48));

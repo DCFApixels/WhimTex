@@ -137,7 +137,7 @@ namespace DCFApixels.WhimTex
         private bool HandleHealingMove(PointerMoveEvent evt)
         {
             if (healingPointer != evt.pointerId) return false;
-            if ((evt.pressedButtons & 1) == 0) { CancelHealing(); return true; }
+            if ((evt.pressedButtons & 1) == 0) { WhimTexUI.ConsumeEvent(evt); return true; }
             AddHealingPoint(evt.localPosition);
             UpdatePreviewCursor(evt.localPosition, evt.altKey);
             WhimTexUI.ConsumeEvent(evt);
@@ -211,6 +211,7 @@ namespace DCFApixels.WhimTex
                     if (coverage[i] != 0) targets++;
                 }
                 if (targets == 0) throw new InvalidOperationException("The stroke does not cover editable pixels. Check the selection and layer frame.");
+                if (tiledPreview) bounds = HealingBrushUtility.RecenterTiledRegion(bounds, ref coverage, width, height);
                 rendered = paintSettings.healingSample == HealingSampleMode.CurrentLayer
                     ? healingLayer.Render(new LayerRenderContext(compositor, null, width, height, 1, applyModifiers: false))
                     : compositor.RenderLayerAndBelow(healingLayer, width, height);
