@@ -69,7 +69,7 @@ namespace DCFApixels.WhimTex
         internal static bool IsDocumentBusyForApi(TextureCompositor document)
         {
             foreach (TextureCompositorWindow window in Resources.FindObjectsOfTypeAll<TextureCompositorWindow>())
-                if (window.compositor == document && (window.paintingLayer != null ||
+                if (window.compositor == document && (window.paintingLayer != null || window.healingLayer != null ||
                     window.shapeManipulator != null && window.shapeManipulator.IsDragging ||
                     window.gradientCanvasManipulator?.IsDragging == true ||
                     window.pointManipulator?.IsDragging == true ||

@@ -201,6 +201,7 @@ namespace DCFApixels.WhimTex
         private static JObject PreviewTiffLive(JObject request, bool render)
         {
             Keys(request, "apiVersion", "op", "sessionId", "requestId", "operations", "outputPath", "overwrite", "maxSize");
+            ValidateTiffLiveOperations(request);
             TiffLiveSession session = GetTiffLiveSession(Text(request, "sessionId"));
             JObject replay = request["operations"] is JArray operations && operations.Count > 0
                 ? ReplayTiffLiveRequest(session, request, render)
@@ -218,6 +219,7 @@ namespace DCFApixels.WhimTex
         private static JObject CompleteTiffLive(JObject request)
         {
             Keys(request, "apiVersion", "op", "sessionId", "requestId", "operations");
+            ValidateTiffLiveOperations(request);
             if (TryReplayTiffLiveTerminal(request, "complete", out JObject replay)) return replay;
             TiffLiveSession session = GetTiffLiveSession(Text(request, "sessionId"));
             if (request["operations"] is JArray completeOperations && completeOperations.Count > 0)
@@ -265,6 +267,10 @@ namespace DCFApixels.WhimTex
             return result;
         }
 
+        private static void ValidateTiffLiveOperations(JObject request) =>
+            Require(request["operations"] == null || request["operations"] is JArray operations && operations.Count <= 256,
+                "operations must be an array of at most 256 items; omit it or use [] to keep the working model.");
+
         private static JObject ReplayTiffLiveRequest(TiffLiveSession session, JObject request, bool render)
         {
             string requestId = Text(request, "requestId");
@@ -288,6 +294,7 @@ namespace DCFApixels.WhimTex
                     applied.Add(new JObject { ["index"] = i, ["layerId"] = layer.Id, ["name"] = layer.layerName });
                 }
                 ValidateTargets(candidate.Document, session.path);
+                ValidateAgentBudget(candidate.Document);
                 candidate.Document.MarkChanged();
                 session.working?.Dispose();
                 session.working = candidate;

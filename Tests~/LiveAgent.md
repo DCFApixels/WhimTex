@@ -3,6 +3,19 @@
 Run `node Tests~/LiveAgent.test.mjs` for extracted scalar/control-flow and contract checks without
 Unity. This is not a substitute for compiling or exercising the Editor.
 
+`AgentEditingSmoke.cs` runs with `run_script`, entry `AgentEditingSmoke.Main`, in the explicitly
+selected connected project after compilation. It covers shared FX/structure/repair operations,
+all built-in preset metadata and dry-run insertion, diagnostic pixels, revision/lock conflicts,
+Undo/Redo, runtime-error rollback, headless replay and TIFF round-trip. It owns an unshown
+temporary window and a uniquely named `Assets/agent-edit-*` folder, removed in `finally`.
+Allow test asset creation before running it; diagnostic PNGs remain under `Temp/WhimTex/Agent`.
+It also checks bound TIFF paths in Assistant responses, group transforms, original/imported File
+dimensions, discarded `save:false` edits, cleanup after rejected revisions, malformed Headless
+requests and save-failure recovery guidance.
+
+Run `node Tests~/AgentDocumentation.test.mjs` for the documented command inventory, FX parameter
+limit/types and JSON example checks. These are static checks; they do not replace Unity smoke tests.
+
 After the user manually compiles, `LiveAgentSmoke.cs` is an opt-in main-thread C# eval script for the
 intended project. It creates a separate unsaved window and temporary PNG files only. It tests live
 discovery, fast begin, shared-context forks, begin/completion retries, user rename/visibility/reordering, trial isolation, completion

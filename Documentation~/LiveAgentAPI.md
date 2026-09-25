@@ -10,12 +10,22 @@ permalink: /reference/live-agent-api/
 
 # Live editing API
 
-Curve values also accept `"easeIn"` (quadratic slow start) and `"easeOut"` (quadratic slow finish).
-
 This extends [Agent API v1](AgentAPI.md) with reservations in **open documents**, including unsaved
 documents. The agent stays outside Unity. Image generation is performed by the agent's own tools;
 these commands neither call a model nor download images. All calls run on Unity's main thread in
-Edit Mode. They never trigger compilation, refresh the AssetDatabase, or save the document.
+Edit Mode. They never trigger C# recompilation, refresh the AssetDatabase, or save the document.
+FX delivery can compile transient GPU shaders; this is separate from script compilation.
+
+## Immediate editing batches
+
+For parameter-only FX edits, preset insertion, reordering/copying/baking FX, layer structure changes
+and blur/healing strokes, use `whimtex_assistant_execute`. It takes the same operations as the
+batch/headless backend, an explicit open `sessionId` and the document `expectedRevision` from
+`op:inspect`. It forms one Undo step, never saves, and requires all pending jobs to finish first.
+See [shared editing operations](AgentAPI.md#shared-editing-operations) for the complete contract.
+This is an immediate edit, not a replacement for reserving an output while doing lengthy generation.
+Use `whimtex_fx_catalog` to discover installed presets and `whimtex_render_probe` to inspect FX
+input/output or isolated channels without changing the document.
 
 ## Connect and discover
 
@@ -64,7 +74,9 @@ WhimTexApi.LiveJson(requestJson);
 
 Use the `DCFApixels.WhimTex` namespace. Check the returned JSON `success` as well as transport
 success. Read-only discovery returns `sessions`, each with `sessionId`, name, assetPath, dimensions
-and focused status, plus `focusOrder` (0 means no recorded focus). A blank assetPath is an unsaved document. If multiple documents are open, use
+and focused status, plus `focusOrder` (0 means no recorded focus). `assetPath` identifies the bound TIFF
+or legacy document, not its temporary in-memory compositor. A blank path means no saved document
+binding; a source image opened for editing is not necessarily a saved layered document. If multiple documents are open, use
 the user's requested document; ask when ambiguous. Do not guess from a layer name.
 
 ```json
@@ -227,7 +239,7 @@ start a new-layer job, or recapture after agreeing on a new edit.
 are the same as regular API `add`; discover defaults with `whimtex_describe` and consult the
 [API reference](AgentAPI.md). `settings.name` and `settings.enabled` are forbidden: those belong to
 the reservation and may already have been changed by the user. Groups start empty. Shader Processor
-uses the same inline `fx` contract as other nongroup layers.
+uses the same inline `fx` contract as other layers, including groups.
 
 Supply exactly one of `layer` or `imagePath`. Parameter completion requires `area:canvas` and
 `destination:newLayer`. For selection-masked or pixel-replacement jobs, complete with an image.
@@ -266,28 +278,38 @@ Remove accepts only op/index. Add/replace accept `code` and optional `parameters
   `_PreviewScale` is full-size pixels per preview pixel. `UnityCG.cginc` is already included.
 - `#include` works with existing Assets/Packages paths and paths relative to the document (Assets
   before its first save). Prefer explicit project paths. An FX does not require its own shader file.
-- Parameters: at most 32, each with `name`, `type` and `value`. Types: `Bool` (JSON `true`/`false`, sent to HLSL as float `0`/`1`), `Float` (number), `Color`
-  (encoded RGB + alpha, converted to linear for the shader), `Vector` (four raw values), `Texture2D`
-  (existing Assets/Packages texture path). Texture uniforms include `<name>_TexelSize`.
+- Parameters: at most 128, each with `name`, `type` and `value`. `Bool` takes JSON `true`/`false`
+  (sent to HLSL as float 0/1); `Float` and `Enum` take finite numbers in -1,000,000..1,000,000
+  (Enum uses the declared numeric option value, not its label). `Color` takes four components,
+  encoded RGB in -107..107 and alpha in 0..1, converted to linear RGB for the shader.
+  `Vector2`, `Vector3` and `Vector` take two, three and four raw components respectively,
+  each in -1,000,000..1,000,000. `Normal` takes three components and normalizes them.
+  The remaining types are documented below.
   Use valid unique HLSL identifiers; do not redeclare the generated uniforms in code.
+- `Texture2D` accepts an existing Assets/Packages texture path, `"self"` for the image before this
+  FX, `"none"` for no source, or `{"layer":"EXISTING-LAYER-ID"}`. Layer references use stable IDs,
+  not names or `@aliases`. Sampling the document's own saved output is rejected; use `self` instead.
+  Texture uniforms include `<name>_TexelSize`.
 - `Point` accepts two numbers in `[0,1]`, normalized bottom-left-origin UV coordinates. Code declares it as
   `// @param point _Center = (0.5, 0.5)`; its editor handle can be dragged across the selected layer's canvas.
   Snapshot and update values use the two-number array form, the same JSON shape as `Vector2`.
-- `Transform2D` accepts `value: {"position":[0.5,0.5],"size":[1,1],"rotation":0}`; fields are optional. Alternatively use `value: {"matrix":[1,0.2,0,0,1,0,0.15,0,1]}` for skew/perspective: nine row-major doubles mapping local UV to input UV. Matrix and TRS fields cannot be combined. The matrix must be invertible with no horizon crossing the unit rectangle. Inspection returns either TRS fields or `matrix`.
+- `Transform2D` accepts `value: {"position":[0.5,0.5],"size":[1,1],"rotation":0}`; omitted fields use these defaults, not the previous parameter value. Alternatively use `value: {"matrix":[1,0.2,0,0,1,0,0.15,0,1]}` for skew/perspective: nine row-major doubles mapping local UV to input UV. Matrix and TRS fields cannot be combined. The matrix must be invertible with no horizon crossing the unit rectangle. Inspection returns either TRS fields or `matrix`.
   Position/size are normalized to the input image, rotation is in degrees. Size components must have
   magnitude at least `0.00001`. Generates `<name>_ToLocal(uv)` and `<name>_ToInput(uv)` helpers.
 - `Curve` accepts a string containing `keys((time, value, inTangent, outTangent, inWeight, outWeight, weightedMode), ...)`.
 
   `"one"` is also accepted: two keys (0,1), (1,1), constant output 1.
-  The strings `"linear"` and `"easeInOut"` are also accepted as normalized 0→1 curve factories.
+  The strings `"linear"`, `"easeIn"` (quadratic slow start), `"easeOut"` (quadratic slow finish)
+  and `"easeInOut"` are also accepted as normalized 0→1 curve factories.
   For example `{"name":"_Profile","type":"Curve","value":"keys((0,0,1,1,0,0,0),(1,1,1,1,0,0,0))"}`.
   Snapshots return the same string. Code uses `// @param curve _Profile` and `_Profile_Sample(t)`;
   see the [curve contract](ShaderFX.md#curve-parameters). Values update without recompilation.
 - `Gradient` accepts the same gradient value (color-stop array or object with `colors`, `alphas`,
   `mode`, `wrapMode`, `smoothness`, `colorSpace`) as layer gradients. Generates `<name>_Sample(t)`;
   values outside 0..1 use the gradient's `Clamp`, `Repeat`, or `Mirror` wrap mode. Code declarations
-  use `// @param gradient _Ramp` without an initializer; omitted API overrides leave the opaque
-  black-to-white default.
+  may use `// @param gradient _Ramp` (opaque black-to-white default) or a two-color initializer,
+  for example `// @param gradient _Ramp = #7EF3FF -> #B270FF`; RGBA tuples are also supported.
+  Omitted API overrides retain the code-declared defaults; see the [gradient syntax](ShaderFX.md#gradient-parameters).
 - Inline code may instead declare parameters using [HLSL metadata](ShaderFX.md#parameter-declarations).
   If JSON values are supplied as well, every entry must match a code declaration by name and type;
   those values override defaults. The first-line catalog marker is required only for catalog files.

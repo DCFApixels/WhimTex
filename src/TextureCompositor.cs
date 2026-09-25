@@ -127,8 +127,11 @@ namespace DCFApixels.WhimTex
         internal void AdoptAgentShaderFX(ShaderFX effect, string undoName)
         {
             if (effect == null || effect.EmbeddedOwner != this || embeddedShaderFX.Contains(effect)) return;
-            effect.RegisterCreatedCopyUndo(undoName);
-            Undo.RegisterCompleteObjectUndo(this, undoName);
+            if (undoName != null)
+            {
+                effect.RegisterCreatedCopyUndo(undoName);
+                Undo.RegisterCompleteObjectUndo(this, undoName);
+            }
             embeddedShaderFX.Add(effect);
         }
 

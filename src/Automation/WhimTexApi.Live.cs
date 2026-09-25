@@ -74,7 +74,7 @@ namespace DCFApixels.WhimTex
                 var document = window.AgentDocument;
                 if (document == null) continue;
                 sessions.Add(new JObject { ["sessionId"] = window.AgentSessionId,
-                    ["name"] = document.name, ["assetPath"] = AssetDatabase.GetAssetPath(document),
+                    ["name"] = document.name, ["assetPath"] = DocumentAssetPath(document),
                     ["focused"] = EditorWindow.focusedWindow == window,
                     ["focusOrder"] = window.AgentFocusOrder,
                     ["width"] = document.width, ["height"] = document.height });
@@ -149,7 +149,7 @@ namespace DCFApixels.WhimTex
                 LiveReady(window.AgentDocument);
                 var result = Success();
                 result["sessionId"] = window.AgentSessionId;
-                result["document"] = Snapshot(window.AgentDocument, AssetDatabase.GetAssetPath(window.AgentDocument));
+                result["document"] = Snapshot(window.AgentDocument, DocumentAssetPath(window.AgentDocument));
                 result["activeLayerId"] = window.AgentSelectedLayer?.Id;
                 result["selectedLayerIds"] = new JArray(window.AgentSelectedIds);
                 var selection = window.AgentSelection;
@@ -250,7 +250,7 @@ namespace DCFApixels.WhimTex
             var job = new LiveJob { id = Guid.NewGuid().ToString("N"), requestId = requestId, request = canonical,
                 session = window.AgentSessionId, document = document, width = document.width, height = document.height,
                 targetId = targetId, targetRevision = target == null ? null : LiveLayerRevision(target) };
-            job.context = new JObject { ["name"] = document.name, ["assetPath"] = AssetDatabase.GetAssetPath(document),
+            job.context = new JObject { ["name"] = document.name, ["assetPath"] = DocumentAssetPath(document),
                 ["activeLayerId"] = window.AgentSelectedLayer?.Id,
                 ["selectedLayerIds"] = new JArray(window.AgentSelectedIds),
                 ["selectionActive"] = window.AgentSelection.Active,

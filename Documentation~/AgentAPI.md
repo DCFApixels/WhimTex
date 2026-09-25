@@ -43,10 +43,143 @@ not reachable from the window or agent API.
 TIFF batches use a transient `WhimTexDocumentBuild` and the common TIFF writer; they do not create
 or select a WhimTex window.
 
+| Editing mode | Working state | Persistence and Undo |
+| --- | --- | --- |
+| Batch | Independent copy for one request | `save:true` writes TIFF; `save:false` discards edits after returning. No user Undo of the file |
+| Headless Live | Independent candidate between requests | `complete` saves; `cancel`/reload discard. No user Undo |
+| Assistant | The user's open document | Undo in the window; no automatic save |
+
+Path-based inspection/rendering reads the disk document. To inspect unsaved window changes use
+Assistant; to inspect an unsaved Headless candidate use its session. These states are not interchangeable.
+
 The window's optional **Live Update** publishes preview pixels to the existing output texture on the GPU
-without changing its asset reference or CPU pixel data. It is not an API autosave mode: use `save` to persist
-changes, and `render` to obtain current pixels rather than reading `OutputTexture.GetPixels()` during live
+without changing its asset reference or CPU pixel data. It is not an API autosave mode: save the open
+document through its window, and use Assistant rendering to obtain current pixels rather than reading `OutputTexture.GetPixels()` during live
 preview. Disabling live output restores the saved image; preview EV, channel display and Post FX are excluded.
+
+## Shared editing operations
+
+The operations below work in `whimtex_batch_execute`, the `operations` array of
+`whimtex_headless_live` preview/render/complete requests, and `whimtex_assistant_execute`.
+Headless preview retains its existing **replay from baseline** semantics: send the complete
+candidate operation list, not an incremental patch to the previous preview.
+
+For the open window, inspect with `whimtex_assistant_live` (`op:inspect`) first, then call
+`whimtex_assistant_execute` with an absolute `requestPath` containing:
+
+```json
+{"apiVersion":1,"sessionId":"OPEN-SESSION","expectedRevision":"DOCUMENT-REVISION","dryRun":false,
+ "operations":[{"op":"fx","layer":"LAYER-ID","edits":[
+   {"op":"set","index":0,"parameters":{"_Opacity":0.5},"enabled":true}
+ ]}]}
+```
+
+This synchronous batch forms one Undo step and does not save. It requires an idle document
+without pending reservations/edit locks; it never cancels another job. After a timeout inspect
+before retrying: operations such as duplicate and paint are not idempotent. A stale revision
+is rejected. Use the reservation/lock workflow for longer generation tasks; its `changes.fx`
+schema remains separate from this batch's `edits` schema. `dryRun` validates on an independent
+copy; it does not compile new HLSL, render or calculate healing.
+
+### FX edits and presets
+
+`whimtex_fx_catalog` accepts an optional `query` category/name substring. It discovers presets
+in Assets, installed packages and the user preset library. Each result has `id`, `path`, `name`,
+`kind` and `error`. Pass an exact returned `presetId` to obtain `effect` with code and parameter
+types, current defaults, hard/soft bounds and enum options. Use IDs, not display names; invalid
+presets remain visible with an error. This command does not insert anything into a document.
+
+`{"op":"fx","layer":"ID-or-@alias","edits":[...]}` supports:
+
+| Edit | Fields and behavior |
+|---|---|
+| `add` | Exactly one of `code` or `presetId`; optional insertion `index` (default append), `parameters`, `enabled`. Raw code supports optional `includeBasePath`, required for relative includes |
+| `replace` | Existing `index`, otherwise the same fields as add |
+| `set` | Existing `index`, optional `parameters` and `enabled`; preserves code and does not recompile HLSL |
+| `remove` | Existing `index` |
+| `move` | Existing `index` and `toIndex`, the final index after removal |
+| `copy` | `sourceLayer` ID or alias, `sourceIndex`; optional destination insertion `index`, `parameters`, `enabled`. Independent copy in the destination layer |
+| `apply` | Existing `index`; bake that FX and all preceding entries, including disabled entries (removed without rendering). Later FX remain |
+| `applyAll` | Bake the complete nonempty stack |
+
+`parameters` is a **name/value object**, not a replacement list. Types are inferred from existing
+declarations; unknown names, invalid enum values and hard-range violations fail. Use numbers for
+enums, booleans for bools, RGBA arrays for colors, component arrays for vectors and the existing
+live FX value formats for textures, gradients, curves and Transform2D. Unmentioned values remain.
+Indices refer to the latest inspected stack and change after each edit. Limits: 32 edits per
+operation, 32 FX per layer, 128 parameters per effect, 65,536 characters of raw HLSL.
+
+Set/copy use independent document-owned values rather than modifying a shared external asset.
+Project/package HLSL presets retain their source link; user-library files are embedded. Shader FX
+supports all edits; Material entries support remove/move/baking, not parameter editing or copying.
+
+Applying to a non-Drawing layer requires `allowRasterize:true` **inside the apply edit**.
+This consents to rasterization, including flattening a group. Logical transforms remain editable.
+Shader Processor captures its backdrop and maps Normal to Overwrite with its original opacity
+blending; lower layers remain separate. See [baking details](ShaderFX.md#shader-fx-a-first-snippet-parameters-and-reusable-code).
+
+### Layer structure
+
+- `{"op":"delete","layer":"ID"}` removes a layer or group subtree, not its external source assets.
+- `{"op":"duplicate","layer":"ID","as":"copy"}` inserts an independent copy using normal layer duplication, including owned pixels/FX and internal reference remapping.
+- `{"op":"merge","layer":"ID","others":["OTHER-ID"],"keepSources":false,"as":"merged"}` uses normal merge rendering and returns the new Drawing layer. `keepSources:true` retains originals. Merge is explicitly rasterizing; its composite placement follows the normal merge operation.
+- `{"op":"convertToDrawing","layer":"ID","as":"drawing"}` uses Keep Transform conversion, preserving ordinary layer FX. Groups are flattened using the normal group conversion rules. Shader Processor must use FX apply/applyAll to capture its lower input instead.
+
+`as` is optional for duplicate/merge/conversion; subsequent operations may use `@alias`.
+Removed aliases cannot address detached layers. Existing dependency validation still applies:
+do not delete an input while leaving an invalid explicit target reference.
+
+### Blur and healing strokes
+
+Both require Drawing; convert explicitly when appropriate. Points are canvas pixels with a
+**top-left origin**. They do not implicitly use the window's area selection or brush settings.
+`tiled:true` wraps the canvas boundary; repeating layer transforms are not supported (Clip and
+Unbounded are accepted). Size is 1..512 px, hardness 0..1, up to 4096 points.
+
+```json
+{"op":"blurStroke","layer":"DRAWING-ID","points":[[10,20],[40,20]],
+ "size":24,"hardness":0.5,"strength":0.7,"flow":1,"source":"CurrentAndBelow","tiled":true}
+```
+
+Blur source is `CurrentLayer` (default), `CurrentAndBelow` (includes current), or `AllLayers`.
+It is frozen at stroke start. Strength and flow are each 0..1, default 1. Work is limited to
+67,108,864 canvas-pixel × input-point passes; simplify a path rather than repeating thousands of points.
+
+```json
+{"op":"healStroke","layer":"DRAWING-ID","points":[[10,20],[40,20]],
+ "size":24,"hardness":0.8,"source":"CurrentLayer","search":64,
+ "quality":"Balanced","seed":1,"transparentOnly":false,"tiled":true}
+```
+
+Healing sources are `CurrentLayer` (raw pixels before FX) and `CurrentAndBelow`. Search is 8..512
+canvas pixels; quality is Fast/Balanced/High. Instead of points, `maskPath` accepts an imported
+project/package texture mapped over the canvas: linear red is repair coverage (white repairs).
+Use linear-data import settings for an exact grayscale mask. Alpha is not used as coverage.
+The API uses the same buffered stroke mask, tiled recentering and fill algorithm as the tool.
+Healing currently limits the full canvas to 1,048,576 pixels and cancels computation after
+20 seconds; cancellation fails the operation without applying a patch. It is synchronous,
+not a background job. Both tools also limit total generated stroke stamps to 32,768.
+
+### Diagnostic rendering
+
+`whimtex_render_probe` takes an absolute `requestPath`. C# equivalents are
+`WhimTexApi.RenderProbeJson/File`, `AssistantExecuteJson/File` and `FxCatalog(query, presetId)`.
+
+```json
+{"apiVersion":1,"assistantSessionId":"OPEN-SESSION","layer":"LAYER-ID",
+ "stage":"afterFx","index":0,"channel":"a","maxSize":1024}
+```
+
+Choose exactly one source: TIFF `assetPath`, `assistantSessionId`, or `headlessSessionId`.
+Stages are `composite` (no layer/index), `layer` (all its FX), `beforeFx` and `afterFx` (layer + index).
+Layer/FX stages capture the canvas-sized input pipeline before outer opacity, blending, swizzle
+and clipping; a Shader Processor uses its actual stack-position backdrop. They are not a solo
+view of the final composited layer. Disabled FX have identical before/after images.
+Channels: `rgba` (default), `r`, `g`, `b`, `a` (opaque grayscale). `maxSize` is 1..4096, default 1024.
+Optional `outputPath` must be a new `Temp/WhimTex/*.png`; otherwise a unique path is generated.
+The response includes the PNG path, dimensions, full-resolution linear per-channel minima/maxima
+and nonfinite-component count. PNG is a display preview, not lossless HDR data. Rendering uses an
+independent document copy and never edits or saves the source.
 
 ## Layer identity and behaviour
 
@@ -98,6 +231,10 @@ Import/save commands do import the specific image or compositor asset they write
 | Command | Parameters | Result |
 |---|---|---|
 | `whimtex_describe` | none | Protocol, operations, enums, limits |
+| `whimtex_assistant_sessions` | none | Discover open document sessions and focus history |
+| `whimtex_assistant_begin` | `requestId`; optional capture/placement arguments | Reserve a new layer and capture context in an open document; [Assistant contract](LiveAgentAPI.md#connect-and-discover) |
+| `whimtex_assistant_lock` | `requestId`, `layerId`; optional `sessionId`, `expectedRevision` | Lock existing-layer content for generation; [edit contract](LiveAgentAPI.md#inline-shader-fx) |
+| `whimtex_assistant_live` | Absolute `requestPath` | Inspect, capture, preview, deliver, render or cancel an open-document job; [request schemas](LiveAgentAPI.md) |
 | `whimtex_document_inspect` | `assetPath` | Document revision, stable IDs, hierarchy and settings |
 | `whimtex_image_import` | `sourcePath`, `assetPath` | Imported texture path, GUID, dimensions |
 | `whimtex_batch_execute` | `requestPath` | Batch result, created IDs, updated document |
@@ -106,11 +243,14 @@ Import/save commands do import the specific image or compositor asset they write
 | `whimtex_storage_inspect` | `assetPath` (`.tiff`) | Metadata-only block catalog, sizes and disk revision |
 | `whimtex_document_validate` | `assetPath`, optional `render=false` | Structure, limits, references and Shader FX validation; no save |
 | `whimtex_fx_compile` | Exactly one of `presetPath` or `source`; optional `includeBasePath` | Compile a preset or raw HLSL in Unity; return diagnostics without editing a document |
+| `whimtex_fx_catalog` | Optional `query`, `presetId` | Discover installed presets; inspect defaults, bounds and enum choices |
+| `whimtex_assistant_execute` | Absolute `requestPath` | Revision-checked shared operations in an open window; one Undo step, no save |
+| `whimtex_render_probe` | Absolute `requestPath` | Render composite/layer/FX stages and channels; report linear ranges |
 | `whimtex_document_status` | `assetPath` | Disk revision, GUID, importer, dirty/live/lock and staged recovery state |
 | `whimtex_document_compare` | `leftPath`, `rightPath`, optional `render`, `maxSize` | Compare model, TIFF storage and optional rendered pixels |
 | `whimtex_document_recover` | `sourcePath`, `destinationPath` | Recover a staged TIFF into a new document |
 | `whimtex_document_export` | `assetPath`, `outputPath`, optional `maxSize`, `overwrite` | Export a flattened document to PNG/JPEG/TGA/EXR |
-| `whimtex_headless_live` | `requestPath` | Persistent TIFF preview/commit session without an open WhimTex window |
+| `whimtex_headless_live` | `requestPath` | In-memory TIFF preview/commit session without a window; active state does not survive reload |
 
 Pass `--project-path` and `--format json` on every command. The API object is nested inside the
 CLI/Pipeline response: check its `apiVersion` and `success` as well as transport success/exit code.
@@ -177,6 +317,9 @@ WhimTexApi.Compare("Assets/Art/Old.tiff", "Assets/Art/New.tiff", true, 1024);
 WhimTexApi.Recover("Assets/Art/Wall.tiff.whimtex-tmp", "Assets/Art/Wall-recovered.tiff");
 WhimTexApi.Export("Assets/Art/Icon.tiff", "Temp/WhimTex/icon.jpg", 0, true);
 WhimTexApi.TiffLiveFile(absoluteRequestPath);
+WhimTexApi.AssistantExecuteFile(absoluteRequestPath);
+WhimTexApi.FxCatalog("Color");
+WhimTexApi.RenderProbeFile(absoluteRequestPath);
 ```
 
 The full namespace is `DCFApixels.WhimTex`. With an existing C# eval bridge, call these methods
@@ -195,10 +338,36 @@ and `cancel`:
 {"apiVersion":1,"op":"complete","sessionId":"wall-live","operations":[]}
 ```
 
-Each `preview` is rebuilt from the snapshot captured at `begin`; it does not accumulate operations.
+Nonempty `operations` in `preview`, `render` or `complete` rebuild the candidate from the snapshot
+captured at `begin`; they do not accumulate edits from earlier previews. Send the full candidate list.
+Omitted operations or `operations:[]` keep the current working model; they do **not** reset it.
+`render` without operations is read-only, but with nonempty operations it also replaces the candidate.
 `complete` verifies the original disk revision before one atomic save. If another writer changed the
 TIFF, it returns `revision_conflict` and the session remains available for `status` or `cancel`.
 The existing `whimtex_assistant_live` remains the open-window API.
+
+### Headless session lifecycle and retries
+
+- Operations are `begin`, `list`, `status`, `preview`, `render`, `complete`, `cancel`.
+  `list` accepts an optional TIFF `assetPath` filter; other calls address an explicit `sessionId`.
+- `begin` requires a unique 1..128-character `sessionId`. At most eight sessions may be active;
+  a TIFF already open in a WhimTex window or another Headless session is rejected.
+  Existing documents require the document revision from `inspect`, not the disk SHA-256 from `status`.
+  For creation use `create:true`, optional width/height (default 512, each 1..16384,
+  at most 16,777,216 pixels), and omit `expectedRevision`. The destination must not exist.
+- `begin` is not idempotent: after a timeout, use `list`/`status`, not another blind `begin`.
+  Preview replay remembers only the last nonempty operation request with a `requestId`.
+  Repeating that ID requires identical arguments; changing them returns `request_conflict`.
+  Replayed additions may receive new IDs. Use `@aliases` inside the complete operation list,
+  not IDs of layers created by an earlier candidate.
+- Active models exist only in memory and are lost on domain reload or Editor exit. No user Undo
+  history is provided. Only the last 32 successful `complete`/`cancel` receipts are persisted for
+  identical terminal retries; these receipts do not restore an active session. Reusing an ID in a
+  new `begin` invalidates its old receipt. `status` addresses active sessions, not terminal receipts.
+- `complete` without new operations saves the current candidate and closes the session;
+  `cancel` discards it without saving. On failed completion inspect disk/status and the still-active
+  session before retrying: a post-commit import error is not proof that the TIFF was unchanged.
+  Headless sessions do not publish the window's GPU Live Update output.
 
 ## Generated image → compositor
 
@@ -245,6 +414,9 @@ unity command whimtex_document_render --assetPath 'Assets/Art/AgentIcon/Icon.tif
 The TIFF is imported by Unity as the composite texture/Sprite; this temporary PNG is only for inspection.
 
 An initially empty File layer automatically gets Original Aspect when assigned its first texture.
+Inspection reports the effective decoded `sourceSize` used for File rendering and, separately,
+`importedSourceSize` from Unity's imported texture. For supported original-file formats these may
+differ because of importer downscaling. Inspect may populate the original-file decode cache.
 Assigning a different HDR-format source sets both `colorRange` and `blendRange` to `HDR`.
 Explicit ranges in the same settings object override these defaults. Reassigning the same source,
 assigning a non-HDR source or subsequent refreshes do not reset the ranges.
@@ -259,13 +431,14 @@ stretches a non-square source to the full canvas; omit scale to preserve the ini
 | `assetPath` | Required project-relative `Assets/.../*.tiff` for new documents; legacy `.asset` is read/migrate-only |
 | `create` | Default false. True creates a new document |
 | `width`, `height` | Create only; integers, default 512 each, 1..16384 and at most 16,777,216 total pixels |
-| `expectedRevision` | Required for existing documents; copy the latest inspect/execute revision verbatim |
-| `save` | Default true. False keeps edits in the loaded existing document without rebaking output |
+| `expectedRevision` | Required for existing documents; copy the latest persisted document revision from inspect/successful save. Omit entirely on create; null is rejected. Do not use a discarded save:false candidate's revision |
+| `save` | Default true. False executes on a temporary copy and returns a snapshot, then discards it. It does not change an open window or retain a session. New documents require true unless dryRun |
 | `dryRun` | Default false. Validate the entire batch on a detached model, without strokes, rendering, saving or consuming real name counters |
 | `operations` | Required array, at most 256; use `[]` to save/rebake without additional edits |
 
 Unknown/duplicate fields, wrong JSON types, invalid enum names, non-finite numbers and out-of-range
-values fail validation. Omitted patch fields are preserved; JSON null is not a reset instruction.
+values fail validation. Omitted patch fields are preserved; JSON null is not a general reset
+instruction. Only explicitly documented fields such as brush `tip:null` accept it.
 Property and enum names are case-sensitive. Do not pass Unity instance IDs, YAML file IDs or display names.
 
 Each `add` can define `as:"image"`. Later operations refer to it as `layer:"@image"`, `parent:"@image"`
@@ -368,18 +541,20 @@ document, then add clipping layers above it. Clipped Overwrite replaces source-c
 without erasing base alpha; outside clipping it retains full RGBA overwrite behavior.
 
 Setting Drawing `colorRange:"HDR"` promotes storage. Standard does not downgrade it. The explicit operation
-`{"op":"compact","layer":"@drawing"}` clamps/quantizes to 8-bit and switches to Standard, with native Undo.
+`{"op":"compact","layer":"@drawing"}` clamps/quantizes to 8-bit and switches to Standard
+(undoable in Assistant, not a filesystem Undo for Batch/Headless).
 Only use compact when the user asks to discard HDR precision. Inspect reports `storageFormat`.
 Colors retain the encoded RGB convention; rendering and EXR/Texture2D output are linear HDR.
 The render command writes a clamped PNG copy. See [HDR behavior](HDR.md).
-Other settings of existing layers and all existing FX are preserved. The path-based batch API does not author Shader FX,
-delete layers, duplicate/rasterize layers, resize an existing canvas or change gradient geometry.
-These remain available in the window. Use `enabled:false` to hide an unwanted layer non-destructively.
+Unspecified settings and FX are preserved. The shared operations support Shader FX editing,
+layer deletion, duplication, merging and conversion to Drawing; see [shared editing operations](#shared-editing-operations).
+Resizing an existing canvas and changing gradient geometry are not exposed by these batch operations.
+Use `enabled:false` when hiding a layer is preferable to deleting it.
 
 `shaderProcessor` processes the already-composited lower stack, with HDR ranges by default.
 Normal + Opacity interpolates before/after without accumulating alpha twice. Pass Through includes
 the external backdrop; isolated groups limit its scope. Processor is a clipping-chain boundary.
-The batch API can create/reorder it and edit its common settings, transform and Swizzle.
+The batch API can create/reorder it, edit its settings and transform, and author its FX through `op:"fx"`.
 The [live editing API](LiveAgentAPI.md#inline-shader-fx) can author inline Shader FX code and parameters
 in open documents, including unsaved ones. No separate shader asset or special layer target is needed.
 All WhimTex HLSL effects and brushes automatically include [FastNoiseLite](AI/README.md#built-in-noise-library);
@@ -684,8 +859,8 @@ Color alpha zero leaves no mark, including for the eraser; eraser strength other
   transform to place ink under that canvas position. This mode requires Clip tiling.
 - `space:"layerUv"`: bottom-left origin in the untransformed source tile; `[0,0]` bottom-left,
   `[1,1]` top-right. Useful for repeating transforms, where multiple visible copies share one source.
-- Brush size is source-space diameter in canvas pixels, before layer transform. Nonuniform scale
-  stretches it, just as when painting the layer manually.
+- Brush size is a diameter in canvas pixels. The footprint is inverse-compensated when written
+  into a transformed Drawing source; a nonuniform layer scale does not stretch the visible brush.
 - `brush` is optional; supplied fields update the layer's saved brush settings. Missing fields retain
   their current values, including symmetry/repeat. Set `repeat:"None"`
   explicitly when a one-off unmirrored stroke is intended.
@@ -743,7 +918,7 @@ write it using the `tintGradient` stop array above.
 For example, `"brush":{"size":40,"spacing":0.8,"opacity":0.6,"flow":0.2,"scatter":0.5,"sizeJitter":0.3,"seed":123}`
 creates repeatable scattered stamps with a 60% stroke-opacity cap.
 Mirror axis choices are retained but ignored in other modes. `center` affects Mirror and Radial;
-`elements` and `boundary` apply only to Horizontal, Vertical, Grid and Radial.
+`elements` applies only to Horizontal, Vertical, Grid and Radial. `boundary` also applies to Mirror.
 For reflected radial sectors, use `repeat:"Radial", elements:"AlternateMirror"`.
 Legacy mirror-only settings migrate to Mirror; legacy Repeat+Mirror uses Repeat without extra mirrors.
 
@@ -798,23 +973,31 @@ staggered grids retain complete row pairs. Changing palette colors does not chan
 ## Validation, Undo and recovery
 
 
-- Every batch is preflighted on a detached model before the live document is touched. `dryRun`
-  does not prove GPU availability, successful image decoding or writable disk space.
-- Existing-document changes form one Undo step, including drawing pixels. Model/paint execution
-  errors before saving attempt to revert that step. Asset saves/imports and new file creation are
-  **not filesystem transactions**. Empty directories or copied files can remain after I/O failures.
-- Saving rebakes output. Undo restores editing state, but an already saved/baked output must be
-  saved again after Undo/Redo. Use a new revision and an empty operation list to save without dialogs.
-- `save:false` edits are in memory and visible to an open WhimTex; they are not a persisted output.
-- A revision includes serialized state, drawing pixels, modifier state and saved asset dependencies.
+- Every batch is preflighted on a detached model. `dryRun` does not prove GPU availability,
+  successful image decoding, successful new HLSL compilation or writable disk space.
+- **TIFF Batch:** opens an independent model, applies operations, optionally saves, then disposes
+  the model. `save:false` returns a snapshot but discards the edits. It cannot edit or save the
+  user's open document. Saving uses an atomic TIFF replacement, but import and other I/O are not
+  one filesystem transaction. An error can occur after the file has committed.
+- **Headless Live:** retains a candidate between requests until completion/cancellation or reload;
+  see [its lifecycle](#headless-session-lifecycle-and-retries). It does not provide user Undo.
+- **Assistant:** edits the open document with Undo, never autosaves. After Undo/Redo, save through
+  the window if persistence is wanted. An empty TIFF Batch does not save unsaved Assistant edits.
+- Internal rollback of a failed Batch is not a user Undo contract for the written TIFF.
+- A revision hashes serialized model state, materialized Drawing pixels and modifier state;
+  legacy asset-backed models also include their AssetDatabase dependency hash. It is not a complete
+  guarantee against changes to every external texture or include file.
   It is an opaque optimistic-concurrency token, not a portable version-control ID. Re-inspect after
   Undo, save, import or domain reload. Do not cache it across sessions.
 - On `revision_conflict`, inspect and reconsider the patch. On `already_exists`, inspect/reuse the
   asset or choose a new path; do not delete it to make the request succeed.
 - On a lost response/timeout, the command may already have executed. Inspect layer IDs/names and
   render before deciding what remains. Do not automatically retry additions/strokes.
-- On `saveMayBePartial:true`, editing has been applied but saving failed. Inspect first. If the asset
-  exists, issue a save-only batch with its current revision; don't replay the edits.
+- On `saveMayBePartial:true`, Batch reached the save stage, but its temporary model will be discarded.
+  Inspect the on-disk document, `status` and staged recovery files first. The old TIFF may still be
+  present, or the new TIFF may already have committed. An empty batch cannot recover discarded edits.
+  Reconstruct only changes confirmed missing, using a fresh revision; never blindly replay additions
+  or strokes. Recover a valid staged TIFF into a new destination when appropriate.
 - If an import fails after copying, the response reports `fileCreated:true` and the retained path.
 - If reverting a failed edit also fails, `rollbackFailed:true` reports that explicitly. Stop and inspect;
   neither the old state nor a fully applied batch can be assumed.
@@ -829,9 +1012,10 @@ appropriately and keep batches focused. The API executes on the main thread; it 
 
 [Tests~/AgentApiSmoke.cs](https://github.com/DCFApixels/WhimTex/blob/main/Tests~/AgentApiSmoke.cs) is an opt-in C# eval-file smoke test. After the
 user compiles the plugin, run it through an available `eval_file` bridge on the intended project.
-It uses a new uniquely named folder under Assets and retains its fixtures for inspection; it does
-not edit existing documents. It verifies create/inspect, aspect/transform, preflight rejection,
-revision conflict, painting, Undo/Redo, save and output subassets. See the test's result for its path.
+It uses a new uniquely named folder under Assets and cleans up its own fixtures and previews in
+`finally`; it does not edit existing documents. It verifies TIFF create/inspect, aspect/transform,
+preflight rejection, revision conflicts, painting, transient `save:false` isolation and save/reopen.
+`AgentEditingSmoke.cs` covers the shared editing operations and Assistant Undo separately.
 Do not run it when the project's rules prohibit creating test assets.
 
 [Tests~/DrawingPatternSmoke.cs](https://github.com/DCFApixels/WhimTex/blob/main/Tests~/DrawingPatternSmoke.cs) is a separate opt-in eval-file

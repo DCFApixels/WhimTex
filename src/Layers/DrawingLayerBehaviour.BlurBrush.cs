@@ -7,7 +7,7 @@ namespace DCFApixels.WhimTex
     public sealed partial class DrawingLayerBehaviour
     {
         internal void BlurSegment(Vector2 fromSourceUv, Vector2 toSourceUv, int outputWidth, int outputHeight,
-            float size, float hardness, float strength, RenderTexture sample)
+            float size, float hardness, float strength, RenderTexture sample, bool tiled = false)
         {
             if (!TiledCanvasUtility.IsInvertible(Owner.PixelCanvasTransform)) return;
             RenderTexture surface = EnsurePaintSurface(outputWidth, outputHeight);
@@ -41,7 +41,7 @@ namespace DCFApixels.WhimTex
                 mask.wrapMode = TextureWrapMode.Clamp;
                 Clear(mask);
                 PaintBrushRenderer.Draw(mask, segmentStamps, size, hardness, false, PencilShape.Circle, Color.white,
-                    false, outputWidth, outputHeight, patternCenter, false, Owner.PixelCanvasTransform,
+                    false, outputWidth, outputHeight, patternCenter, tiled, Owner.PixelCanvasTransform,
                     false, false, null, null, false, false, false);
 
                 source = RenderTexture.GetTemporary(surface.descriptor);
@@ -49,7 +49,7 @@ namespace DCFApixels.WhimTex
                 scratch = RenderTexture.GetTemporary(surface.descriptor);
                 blurred = RenderTexture.GetTemporary(surface.descriptor);
                 Material blur = WhimTexMaterials.GaussianBlur;
-                blur.SetInt("_Edges", 1);
+                blur.SetInt("_Edges", tiled ? 2 : 1);
                 blur.SetFloat("_Strength", 1f);
                 blur.SetTexture("_SourceTex", null);
                 float radius = Mathf.Max(1f, size * .5f);

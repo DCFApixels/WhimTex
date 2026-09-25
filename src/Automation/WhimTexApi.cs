@@ -16,6 +16,7 @@ namespace DCFApixels.WhimTex
         public const int ProtocolVersion = 1;
         private const string UndoName = "WhimTex API Batch";
         private const long MaxCanvasPixels = 16777216;
+        private const int MaxFxParameters = 128;
 
         public static string ExecuteFile(string requestPath)
         {
@@ -70,7 +71,7 @@ namespace DCFApixels.WhimTex
             Require(!tiff || !tiffLiveSessions.Values.Any(session => string.Equals(session.path, path, StringComparison.OrdinalIgnoreCase)),
                 "This TIFF has an active independent live session. Complete or cancel it first.", "live_session_active");
             Require(!liveJobs.Values.Any(j => j.editing && j.state == "pending" && j.document != null &&
-                string.Equals(AssetDatabase.GetAssetPath(j.document), path, StringComparison.OrdinalIgnoreCase)), "This document has a live edit lock. Use its live job or release the lock first.", "layer_locked");
+                string.Equals(DocumentAssetPath(j.document), path, StringComparison.OrdinalIgnoreCase)), "This document has a live edit lock. Use its live job or release the lock first.", "layer_locked");
             bool create = Bool(request, "create");
             bool dryRun = Bool(request, "dryRun");
             bool save = Bool(request, "save", true);
@@ -86,174 +87,184 @@ namespace DCFApixels.WhimTex
             Require(operations.Count <= 256, "A batch supports at most 256 operations.");
             TextureCompositor document = null;
             WhimTexDocumentBuild tiffBuild = null;
-            if (create)
-            {
-                Require(!File.Exists(FullPath(path)) && !File.Exists(FullPath(path) + ".meta") &&
-                    AssetDatabase.LoadMainAssetAtPath(path) == null, "The destination already exists; use create=false to edit it.", "already_exists");
-                Require(request["expectedRevision"] == null, "expectedRevision cannot be used with create.");
-            }
-            else
-            {
-                if (tiff)
-                {
-                    tiffBuild = WhimTexDocumentBuild.Open(path);
-                    document = tiffBuild.Document;
-                }
-                else document = Load(path);
-                Require(!TextureCompositorWindow.IsDocumentBusyForApi(document), "Finish the current paint/transform gesture first.", "document_busy");
-                string expected = Text(request, "expectedRevision");
-                Require(!string.IsNullOrEmpty(expected), "Inspect first and supply expectedRevision when editing an existing document.", "revision_required");
-                Require(expected == Revision(document), "The document changed. Inspect it again before retrying.", "revision_conflict");
-            }
-            Require((long)(document != null ? document.width : width) * (document != null ? document.height : height) <= MaxCanvasPixels,
-                "Automation supports at most 16,777,216 canvas pixels per document.", "resource_limit");
-
-            WhimTexDocumentBuild probeBuild = null;
-            TextureCompositor probe;
-            if (document == null)
-                probe = ScriptableObject.CreateInstance<TextureCompositor>();
-            else if (tiff)
-            {
-                // Object.Instantiate would leave a TIFF's non-serialized deferred descriptors behind
-                // and could share a materialized Drawing texture. Build.Copy owns an independent model.
-                probeBuild = WhimTexDocumentBuild.Copy(document);
-                probe = probeBuild.Document;
-            }
-            else probe = Object.Instantiate(document);
-            int operationIndex = -1;
             try
             {
-                if (create) { probe.width = width; probe.height = height; }
-                var aliases = new Dictionary<string, Layer>(StringComparer.Ordinal);
-                for (int i = 0; i < operations.Count; i++)
+                if (create)
                 {
-                    operationIndex = i;
-                    ApplyOperation(probe, Obj(operations[i], "operation"), aliases, false);
+                    Require(!File.Exists(FullPath(path)) && !File.Exists(FullPath(path) + ".meta") &&
+                        AssetDatabase.LoadMainAssetAtPath(path) == null, "The destination already exists; use create=false to edit it.", "already_exists");
+                    Require(request["expectedRevision"] == null, "expectedRevision cannot be used with create.");
                 }
-                ValidateTargets(probe, path);
-                long drawingPixels = 0;
-                int layerCount = 0;
-                foreach (Layer layer in Enumerate(probe.layers))
-                {
-                    layerCount++;
-                    if (layer?.Behaviour is DrawingLayerBehaviour drawing)
-                        drawingPixels += drawing.StoredTexture != null ? (long)drawing.StoredTexture.width * drawing.StoredTexture.height : (long)probe.width * probe.height;
-                }
-                Require(layerCount <= 1024 && drawingPixels <= 67108864,
-                    "Automation supports at most 1024 layers and 67,108,864 owned Drawing pixels per document.", "resource_limit");
-                if (dryRun)
-                {
-                    JObject result = Success();
-                    result["dryRun"] = true;
-                    result["applied"] = false;
-                    result["saved"] = false;
-                    result["operationCount"] = operations.Count;
-                    return result;
-                }
-            }
-            catch (Exception exception)
-            {
-                JObject result = Failure(exception);
-                result["failedOperation"] = operationIndex;
-                return result;
-            }
-            finally
-            {
-                if (probeBuild != null) probeBuild.Dispose();
                 else
                 {
-                    probe.layers.Clear();
-                    Object.DestroyImmediate(probe);
-                }
-            }
-
-            RequireGraphics();
-            if (create)
-            {
-                // Creation is deliberately TIFF-only. Legacy ScriptableObject documents are
-                // accepted for read/dry-run/migration, never as a writable API destination.
-                tiffBuild = WhimTexDocumentBuild.Create(width, height);
-                document = tiffBuild.Document;
-            }
-            Undo.IncrementCurrentGroup();
-            int undoGroup = Undo.GetCurrentGroup();
-            Undo.SetCurrentGroupName(UndoName);
-            bool applied = false;
-            bool saving = false;
-            var results = new JArray();
-            try
-            {
-                Undo.RegisterCompleteObjectUndo(document, UndoName);
-                var aliases = new Dictionary<string, Layer>(StringComparer.Ordinal);
-                for (int i = 0; i < operations.Count; i++)
-                {
-                    operationIndex = i;
-                    Layer layer = ApplyOperation(document, Obj(operations[i], "operation"), aliases, true);
-                    results.Add(new JObject { ["index"] = i, ["layerId"] = layer.Id, ["name"] = layer.layerName });
-                }
-                document.MarkChanged();
-                Undo.FlushUndoRecordObjects();
-                Undo.CollapseUndoOperations(undoGroup);
-                applied = true;
-                if (save)
-                {
-                    saving = true;
-                    EnsureAssetFolder(path);
                     if (tiff)
                     {
-                        tiffBuild.Save(path);
-                        tiffBuild.Dispose();
                         tiffBuild = WhimTexDocumentBuild.Open(path);
                         document = tiffBuild.Document;
                     }
-                    else throw new WhimTexApiException("TIFF is required for a writable agent batch.", "legacy_read_only");
+                    else document = Load(path);
+                    Require(!TextureCompositorWindow.IsDocumentBusyForApi(document), "Finish the current paint/transform gesture first.", "document_busy");
+                    string expected = Text(request, "expectedRevision");
+                    Require(!string.IsNullOrEmpty(expected), "Inspect first and supply expectedRevision when editing an existing document.", "revision_required");
+                    Require(expected == Revision(document), "The document changed. Inspect it again before retrying.", "revision_conflict");
                 }
-                JObject result = Success();
-                result["applied"] = true;
-                result["saved"] = save;
-                result["operations"] = results;
-                result["document"] = Snapshot(document, path);
-                return result;
-            }
-            catch (Exception exception)
-            {
-                string rollbackError = null;
-                if (!saving)
+                Require((long)(document != null ? document.width : width) * (document != null ? document.height : height) <= MaxCanvasPixels,
+                    "Automation supports at most 16,777,216 canvas pixels per document.", "resource_limit");
+
+                WhimTexDocumentBuild probeBuild = null;
+                TextureCompositor probe;
+                if (document == null)
                 {
-                    try
+                    probeBuild = WhimTexDocumentBuild.Create(width, height);
+                    probe = probeBuild.Document;
+                }
+                else if (tiff)
+                {
+                    // Object.Instantiate would leave a TIFF's non-serialized deferred descriptors behind
+                    // and could share a materialized Drawing texture. Build.Copy owns an independent model.
+                    probeBuild = WhimTexDocumentBuild.Copy(document);
+                    probe = probeBuild.Document;
+                }
+                else probe = Object.Instantiate(document);
+                int operationIndex = -1;
+                try
+                {
+                    if (create) { probe.width = width; probe.height = height; }
+                    var aliases = new Dictionary<string, Layer>(StringComparer.Ordinal);
+                    for (int i = 0; i < operations.Count; i++)
                     {
-                        if (document != null) document.InvalidateDrawingLayerSurfaces();
-                        Undo.RevertAllDownToGroup(undoGroup);
-                        if (document != null)
-                        {
-                            document.InvalidateDrawingLayerSurfaces();
-                            if (!create) document.MarkChanged();
-                        }
-                        applied = false;
+                        operationIndex = i;
+                        ApplyOperation(probe, Obj(operations[i], "operation"), aliases, false);
                     }
-                    catch (Exception rollbackException) { rollbackError = rollbackException.Message; applied = true; }
+                    ValidateTargets(probe, path);
+                    long drawingPixels = 0;
+                    int layerCount = 0;
+                    foreach (Layer layer in Enumerate(probe.layers))
+                    {
+                        layerCount++;
+                        if (layer?.Behaviour is DrawingLayerBehaviour drawing)
+                            drawingPixels += drawing.StoredTexture != null ? (long)drawing.StoredTexture.width * drawing.StoredTexture.height : (long)probe.width * probe.height;
+                    }
+                    Require(layerCount <= 1024 && drawingPixels <= 67108864,
+                        "Automation supports at most 1024 layers and 67,108,864 owned Drawing pixels per document.", "resource_limit");
+                    if (dryRun)
+                    {
+                        JObject result = Success();
+                        result["dryRun"] = true;
+                        result["applied"] = false;
+                        result["saved"] = false;
+                        result["operationCount"] = operations.Count;
+                        return result;
+                    }
                 }
-                JObject result = Failure(exception);
-                result["failedOperation"] = saving ? -1 : operationIndex;
-                result["applied"] = applied;
-                result["saveMayBePartial"] = saving;
-                result["operations"] = results;
-                result["recovery"] = saving ? "Do not replay additions or strokes. Inspect the document and save again; asset I/O is not transactional." : "The batch was reverted.";
-                if (rollbackError != null)
+                catch (Exception exception)
                 {
-                    result["rollbackFailed"] = true;
-                    result["rollbackError"] = rollbackError;
-                    result["recovery"] = "Rollback failed; document state may be partial. Inspect before making further changes.";
+                    JObject result = Failure(exception);
+                    result["failedOperation"] = operationIndex;
+                    return result;
                 }
-                return result;
-            }
-            finally
-            {
+                finally
+                {
+                    if (probeBuild != null) probeBuild.Dispose();
+                    else
+                    {
+                        probe.layers.Clear();
+                        Object.DestroyImmediate(probe);
+                    }
+                }
+
+                RequireGraphics();
+                if (create)
+                {
+                    // Creation is deliberately TIFF-only. Legacy ScriptableObject documents are
+                    // accepted for read/dry-run/migration, never as a writable API destination.
+                    tiffBuild = WhimTexDocumentBuild.Create(width, height);
+                    document = tiffBuild.Document;
+                }
                 Undo.IncrementCurrentGroup();
-                if (document != null) document.InvalidateDrawingLayerSurfaces();
-                if (tiffBuild != null) tiffBuild.Dispose();
-                else if (create && document != null && !AssetDatabase.Contains(document)) Object.DestroyImmediate(document);
+                int undoGroup = Undo.GetCurrentGroup();
+                Undo.SetCurrentGroupName(UndoName);
+                bool applied = false;
+                bool saving = false;
+                var results = new JArray();
+                try
+                {
+                    Undo.RegisterCompleteObjectUndo(document, UndoName);
+                    var aliases = new Dictionary<string, Layer>(StringComparer.Ordinal);
+                    for (int i = 0; i < operations.Count; i++)
+                    {
+                        operationIndex = i;
+                        Layer layer = ApplyOperation(document, Obj(operations[i], "operation"), aliases, true);
+                        results.Add(new JObject { ["index"] = i, ["layerId"] = layer.Id, ["name"] = layer.layerName });
+                    }
+                    ValidateTargets(document, path);
+                    ValidateAgentBudget(document);
+                    document.MarkChanged();
+                    Undo.FlushUndoRecordObjects();
+                    Undo.CollapseUndoOperations(undoGroup);
+                    applied = true;
+                    if (save)
+                    {
+                        saving = true;
+                        EnsureAssetFolder(path);
+                        if (tiff)
+                        {
+                            tiffBuild.Save(path);
+                            tiffBuild.Dispose();
+                            tiffBuild = WhimTexDocumentBuild.Open(path);
+                            document = tiffBuild.Document;
+                        }
+                        else throw new WhimTexApiException("TIFF is required for a writable agent batch.", "legacy_read_only");
+                    }
+                    JObject result = Success();
+                    result["applied"] = true;
+                    result["saved"] = save;
+                    result["operations"] = results;
+                    result["document"] = Snapshot(document, path);
+                    return result;
+                }
+                catch (Exception exception)
+                {
+                    string rollbackError = null;
+                    if (!saving)
+                    {
+                        try
+                        {
+                            if (document != null) document.InvalidateDrawingLayerSurfaces();
+                            Undo.RevertAllDownToGroup(undoGroup);
+                            if (document != null)
+                            {
+                                document.InvalidateDrawingLayerSurfaces();
+                                if (!create) document.MarkChanged();
+                            }
+                            applied = false;
+                        }
+                        catch (Exception rollbackException) { rollbackError = rollbackException.Message; applied = true; }
+                    }
+                    JObject result = Failure(exception);
+                    result["failedOperation"] = saving ? -1 : operationIndex;
+                    result["applied"] = applied;
+                    result["saveMayBePartial"] = saving;
+                    result["operations"] = results;
+                    result["recovery"] = saving
+                        ? "The transient batch model is discarded. Inspect disk state and staged recovery files before retrying: the TIFF may already have committed. An empty batch cannot recover lost edits; do not blindly replay additions or strokes."
+                        : "The transient batch was reverted and discarded; no save was attempted.";
+                    if (rollbackError != null)
+                    {
+                        result["rollbackFailed"] = true;
+                        result["rollbackError"] = rollbackError;
+                        result["recovery"] = "Rollback failed; document state may be partial. Inspect before making further changes.";
+                    }
+                    return result;
+                }
+                finally
+                {
+                    Undo.IncrementCurrentGroup();
+                    if (document != null) document.InvalidateDrawingLayerSurfaces();
+                    if (tiffBuild == null && create && document != null && !AssetDatabase.Contains(document)) Object.DestroyImmediate(document);
+                }
             }
+            finally { tiffBuild?.Dispose(); }
         }
 
         private static void RequireGraphics()
@@ -274,6 +285,14 @@ namespace DCFApixels.WhimTex
                 if (layer?.Behaviour is FileLayerBehaviour file && file.sourceTexture != null)
                     Require(!string.Equals(AssetDatabase.GetAssetPath(file.sourceTexture), path, StringComparison.OrdinalIgnoreCase),
                         "A document cannot sample its own saved output texture.", "invalid_target");
+                if (!string.IsNullOrEmpty(path) && layer.modifiers != null)
+                    foreach (var modifier in layer.modifiers)
+                        if (modifier is ShaderFX fx)
+                            foreach (var parameter in fx.Parameters)
+                                if (parameter != null && parameter.type == ShaderFXParameterType.Texture2D &&
+                                    parameter.textureSource == ShaderFXTextureSource.Texture && parameter.textureValue != null)
+                                    Require(!string.Equals(AssetDatabase.GetAssetPath(parameter.textureValue), path, StringComparison.OrdinalIgnoreCase),
+                                        "An FX cannot sample its own document output.", "invalid_target");
                 if (layer?.Behaviour is TargetedLayerBehaviour effect && effect.inputMode == EffectInputMode.Specific)
                     Require(document.IsUsableEffectTarget(effect, effect.TargetLayerId),
                         "Invalid or cyclic effect target for " + effect.layerName, "invalid_target");

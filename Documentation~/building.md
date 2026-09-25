@@ -24,6 +24,8 @@ bundle install
 node scripts/check-docs.mjs source
 node scripts/build-clipboard-schema.mjs --check
 node scripts/build-brush-schema.mjs --check
+node ../Tests~/AgentDocumentation.test.mjs
+node ../Tests~/AgentCommandInventory.test.mjs
 node ../Tests~/BrushClipboard.test.mjs
 bundle exec just-the-docs rake search:init
 bundle exec jekyll serve --baseurl /WhimTex --host 127.0.0.1
@@ -42,6 +44,9 @@ node scripts/check-docs.mjs site
 The checks cover local source links, language counterparts, navigation metadata, generated page and
 asset links, fragment targets and an indexed page from each language. Inspect the actual site at
 both desktop and mobile widths after layout changes; source validation alone cannot prove visual quality.
+Agent documentation checks additionally compare command discovery and FX parameter limits with source,
+and parse the JSON examples. Persistence, rendering and Undo semantics require Unity integration tests;
+syntactically valid examples are not proof of runtime behavior.
 
 The theme's SEO tag supplies titles, descriptions, canonical URLs and Open Graph metadata.
 `head_custom.html` adds reciprocal language links and application metadata on the landing page;

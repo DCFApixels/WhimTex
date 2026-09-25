@@ -1,7 +1,8 @@
 # Формат документа WhimTex
 
-Статус: экспериментальная ветка с сохранением, открытием, сериализацией модели и Live Update.
-Это контракт текущего кода, не утверждение о готовности релиза.
+Статус: TIFF — основной формат редактируемых документов WhimTex с версии 0.11.0.
+Этот файл описывает текущий контракт хранения. Legacy `.asset` поддерживается для чтения
+и явной миграции в TIFF; создание и сохранение документов в старом формате запрещены.
 
 ## Файл и импорт
 
@@ -20,7 +21,7 @@
   Чужой `userData` сохраняется; маркер WhimTex дописывается к нему.
 - Слоистые PNG/EXR удалены: ни чтения, ни записи, ни миграции. Обычный экспорт изображения остаётся.
 - TIFF нельзя пересохранять внешним графическим редактором: дополнительные данные документа могут исчезнуть.
-- Старый `.asset`-путь остаётся отдельным механизмом; настройки встроенного output не управляют TIFF-импортёром.
+- Старый `.asset`-путь остаётся только для чтения и миграции; настройки встроенного output не управляют TIFF-импортёром.
 - Output выбирает TIFF для штатного Inspector Unity. Отдельное окно настроек оставлено только legacy-ассетам.
 
 Реализация: `WhimTexTiffImage`, `WhimTexTiffCarrier`, `WhimTexDocumentFile`,
@@ -192,7 +193,7 @@ Unity Editor 6000.7, DX12. Запускать через подключённы�
 - `Tests~/DocumentPreparationSmoke.cs` — `run_script`, entry `DocumentPreparationSmoke.Run`: checksum,
   streaming, external-write conflict, Undo/disk revision, independent authoring, Drawing migration,
   external FX, pending code, relative includes, Live→Save→Live.
-- `Tests~/AgentApiSmoke.cs` — `eval_file`: старый API создания `.asset`, рисование, группы, рендер и Undo/Redo.
+- `Tests~/AgentApiSmoke.cs` — `eval_file`: TIFF batch API, рисование, группы, рендер и Undo/Redo.
   Использует уникальную папку, удаляет свои assets и временные PNG в finally.
 - `Tests~/TiffAgentApiSmoke.cs` — создание/inspect/render TIFF через path-based API, metadata-only
   storage inspection, validation/status, dry-run и явная миграция legacy `.asset` с проверкой
@@ -214,5 +215,5 @@ Unity Editor 6000.7, DX12. Запускать через подключённы�
 Новый Player build по-прежнему требует запроса пользователя.
 
 Независимая сборка и адаптер path-based агентских команд: [TIFF_AUTHORING.md](TIFF_AUTHORING.md)
-и [TIFF_AGENT_COMMANDS.md](TIFF_AGENT_COMMANDS.md). Старый `.asset` backend и его команды
-остаются совместимыми; новые batch-документы могут использовать `.tiff`.
+и [TIFF_AGENT_COMMANDS.md](TIFF_AGENT_COMMANDS.md). Новые batch-документы используют только `.tiff`;
+legacy `.asset` допускается для чтения, диагностики, миграции и batch-проверки `dryRun`, без записи.

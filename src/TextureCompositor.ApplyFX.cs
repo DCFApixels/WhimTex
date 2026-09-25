@@ -73,8 +73,9 @@ namespace DCFApixels.WhimTex
             finally { if (undoGroup >= 0) Undo.IncrementCurrentGroup(); }
         }
 
-        private Texture2D RasterizeFXPrefix(Layer layer, int count)
+        internal Texture2D RasterizeFXPrefix(Layer layer, int count)
         {
+            RefreshTransformHierarchy();
             TryFindLayer(layer, out var container, out int index);
             RenderTexture previous = RenderTexture.active;
             RenderTexture rendered = null;

@@ -100,7 +100,7 @@ namespace DCFApixels.WhimTex
             var job = new LiveJob { id = Guid.NewGuid().ToString("N"), requestId = requestId, request = canonical,
                 editing = true, document = document, session = window.AgentSessionId, layerId = layer.Id,
                 targetId = layer.Id, targetRevision = revision, width = document.width, height = document.height };
-            job.context = new JObject { ["layer"] = ((JArray)Snapshot(document, AssetDatabase.GetAssetPath(document))["layers"])
+            job.context = new JObject { ["layer"] = ((JArray)Snapshot(document, DocumentAssetPath(document))["layers"])
                 .First(entry => (string)entry["id"] == layer.Id).DeepClone() };
             liveJobs.Add(job.id, job);
             NotifyLiveLockChanged(document);
@@ -131,7 +131,7 @@ namespace DCFApixels.WhimTex
                 created.Add(fx);
                 try { fx.ApplyAgentDraft(); }
                 catch (Exception error) { throw new WhimTexApiException("shader_compile_failed", error.Message); }
-                Require(fx.Parameters.Count <= 32, "At most 32 FX parameters are supported by live authoring.", "resource_limit");
+                Require(fx.Parameters.Count <= MaxFxParameters, "At most 128 FX parameters are supported by live authoring.", "resource_limit");
                 if (op == "add") layer.modifiers.Insert(index, fx);
                 else layer.modifiers[index] = fx;
                 foreach (var parameter in fx.TextureLayerParameters())
@@ -144,7 +144,7 @@ namespace DCFApixels.WhimTex
         {
             var result = new List<ShaderFXParameter>();
             if (token == null) return result;
-            Require(token is JArray array && array.Count <= 32, "parameters must be an array of at most 32 entries.");
+            Require(token is JArray array && array.Count <= MaxFxParameters, "parameters must be an array of at most 128 entries.");
             foreach (var item in (JArray)token)
             {
                 JObject spec = Obj(item, "parameter");
@@ -204,7 +204,7 @@ namespace DCFApixels.WhimTex
                         ValidateSegments(path);
                         value.textureValue = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
                         Require(value.textureValue != null, "Texture parameter asset not found.");
-                        Require(!string.Equals(path, AssetDatabase.GetAssetPath(owner), StringComparison.OrdinalIgnoreCase), "An FX cannot sample its own document output.", "invalid_target");
+                        Require(!string.Equals(path, DocumentAssetPath(owner), StringComparison.OrdinalIgnoreCase), "An FX cannot sample its own document output.", "invalid_target");
                         break;
                     case ShaderFXParameterType.Transform2D:
                         JObject area = Obj(spec["value"], "Transform2D value");
@@ -254,6 +254,7 @@ namespace DCFApixels.WhimTex
                 if (modifier is ShaderFX fx)
                 {
                     entry["type"] = "shaderFX"; entry["embedded"] = fx.EmbeddedOwner == owner;
+                    entry["enabled"] = fx.Active;
                     entry["code"] = fx.Code; entry["diagnostics"] = fx.Diagnostics;
                     entry["pendingChanges"] = fx.HasPendingChanges;
                     entry["lastApplyFailed"] = fx.LastApplyFailed;
@@ -276,6 +277,8 @@ namespace DCFApixels.WhimTex
                                 : p.textureSource == ShaderFXTextureSource.None ? new JValue("none")
                                 : new JValue(p.textureValue == null ? "" : AssetDatabase.GetAssetPath(p.textureValue))) : new JValue(p.floatValue);
                         parameters.Add(new JObject { ["name"] = p.name, ["id"] = p.id, ["type"] = p.type.ToString(), ["value"] = value,
+                            ["softMinimum"] = p.softMinimum, ["softMaximum"] = p.softMaximum,
+                            ["options"] = p.type == ShaderFXParameterType.Enum ? new JArray(p.controls.SelectMany(c => c.optionNames.Zip(c.optionValues, (n, v) => new JObject { ["name"] = n, ["value"] = v }))) : null,
                             ["minimum"] = p.hasMinimum ? (JToken)new JValue(p.minimum) : JValue.CreateNull(),
                             ["maximum"] = p.hasMaximum ? (JToken)new JValue(p.maximum) : JValue.CreateNull() });
                     }
@@ -321,7 +324,7 @@ namespace DCFApixels.WhimTex
                 ApplyLiveEditSettings(probe, candidate, changes);
                 ApplyLiveFx(candidate, changes["fx"], job.document, created);
                 if (candidate?.Behaviour is FileLayerBehaviour file && file.sourceTexture != null)
-                    Require(!string.Equals(AssetDatabase.GetAssetPath(file.sourceTexture), AssetDatabase.GetAssetPath(job.document), StringComparison.OrdinalIgnoreCase),
+                    Require(!string.Equals(AssetDatabase.GetAssetPath(file.sourceTexture), DocumentAssetPath(job.document), StringComparison.OrdinalIgnoreCase),
                         "A document cannot sample its own output.", "invalid_target");
                 if (trial)
                 {

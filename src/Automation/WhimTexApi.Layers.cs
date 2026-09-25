@@ -50,6 +50,20 @@ namespace DCFApixels.WhimTex
             }
             switch (op)
             {
+                case "fx":
+                    Keys(operation, "op", "layer", "edits");
+                    ApplyFxOperations(document, layer, operation["edits"], execute, aliases);
+                    break;
+                case "delete":
+                case "duplicate":
+                case "merge":
+                case "convertToDrawing":
+                    layer = EditLayerStructure(document, layer, operation, aliases, execute);
+                    break;
+                case "blurStroke":
+                case "healStroke":
+                    PaintRepair(document, layer, operation, execute);
+                    break;
                 case "compact":
                     Keys(operation, "op", "layer");
                     Require(layer?.Behaviour is DrawingLayerBehaviour, "compact requires a Drawing layer.");
@@ -109,7 +123,7 @@ namespace DCFApixels.WhimTex
             Layer layer;
             if (reference.StartsWith("@")) aliases.TryGetValue(reference.Substring(1), out layer);
             else layer = document.FindLayer(reference);
-            Require(layer != null, "Layer not found: " + reference, "layer_not_found");
+            Require(layer != null && document.FindLayer(layer.Id) == layer, "Layer not found: " + reference, "layer_not_found");
             return layer;
         }
 

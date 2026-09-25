@@ -83,7 +83,7 @@ namespace DCFApixels.WhimTex
                 else Require(spec["input"] == null && spec["target"] == null, "input/target require an effect layer.");
                 if (candidate?.Behaviour is FileLayerBehaviour file && file.sourceTexture != null)
                 {
-                    string path = AssetDatabase.GetAssetPath(job.document);
+                    string path = DocumentAssetPath(job.document);
                     Require(string.IsNullOrEmpty(path) || !string.Equals(path, AssetDatabase.GetAssetPath(file.sourceTexture), StringComparison.OrdinalIgnoreCase),
                         "A document cannot sample its own saved output.", "invalid_target");
                 }

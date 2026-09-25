@@ -28,7 +28,12 @@ namespace DCFApixels.WhimTex
         public static string Describe() => Respond(() =>
         {
             JObject result = Success();
-            result["operations"] = new JArray("add", "set", "transform", "target", "move", "stroke", "compact");
+            result["operations"] = new JArray("add", "set", "transform", "target", "move", "stroke", "compact",
+                "fx", "delete", "duplicate", "merge", "convertToDrawing", "blurStroke", "healStroke");
+            result["fxOperations"] = new JArray("add", "replace", "set", "remove", "move", "copy", "apply", "applyAll");
+            result["fxCatalog"] = "whimtex_fx_catalog: query installed presets; pass presetId for parameter details. Use returned id in FX add/replace.";
+            result["assistantBatch"] = "whimtex_assistant_execute: sessionId + expectedRevision + operations, same operations as batch/headless; one Undo step, no save. Finish active jobs first.";
+            result["renderProbe"] = "whimtex_render_probe: exactly one assetPath/assistantSessionId/headlessSessionId; stage composite/layer/beforeFx/afterFx; channel rgba/r/g/b/a.";
             result["storageFormats"] = new JArray("asset", "tiff");
             result["backends"] = new JObject {
                 ["asset"] = "legacy Unity ScriptableObject compositor; readable for compatibility, not writable through path-based agent batches",
@@ -87,7 +92,8 @@ namespace DCFApixels.WhimTex
             result["pencilShapes"] = new JArray(System.Enum.GetNames(typeof(PencilShape)));
             result["coordinates"] = "Layer index 0 is topmost. Transform position uses canvas pixels, +X right, +Y up; rotation is counterclockwise degrees. Pivot is bottom-left UV. canvasPixels stroke points use top-left origin; layerUv uses bottom-left UV.";
             result["limits"] = new JObject { ["requestBytes"] = 4194304, ["operations"] = 256, ["canvasPixels"] = MaxCanvasPixels,
-                ["layers"] = 1024, ["drawingPixels"] = 67108864, ["strokePoints"] = 4096, ["strokeStamps"] = 100000, ["strokeCoveragePixels"] = 250000000 };
+                ["layers"] = 1024, ["drawingPixels"] = 67108864, ["strokePoints"] = 4096, ["strokeStamps"] = 100000, ["strokeCoveragePixels"] = 250000000,
+                ["fxParameters"] = MaxFxParameters, ["fxPerLayer"] = 32, ["headlessSessions"] = 8 };
             result["editing"] = "Inspect before editing; expectedRevision is mandatory on existing TIFF documents. Use @aliases within a batch. New documents require a TIFF assetPath and save=true. Legacy .asset batches are dryRun-only. Save failure may leave partial asset I/O: inspect before retrying.";
             result["storagePolicy"] = new JObject {
                 ["newDocuments"] = "TIFF only (*.tiff)",
@@ -98,6 +104,7 @@ namespace DCFApixels.WhimTex
                 ["batch"] = new JObject {
                     ["command"] = "whimtex_batch_execute",
                     ["windowRequired"] = false,
+                    ["persistence"] = "save=true writes TIFF; save=false discards the temporary model after returning. No user Undo of the file. Does not save unsaved Assistant changes.",
                     ["assetPath"] = "TIFF for create/edit/save; legacy .asset only supports dryRun validation"
                 },
                 ["headlessLive"] = new JObject {
@@ -107,7 +114,7 @@ namespace DCFApixels.WhimTex
                     ["operations"] = new JArray("begin", "list", "status", "preview", "render", "complete", "cancel")
                 },
                 ["assistant"] = new JObject {
-                    ["commands"] = new JArray("whimtex_assistant_begin", "whimtex_assistant_lock", "whimtex_assistant_sessions", "whimtex_assistant_live"),
+                    ["commands"] = new JArray("whimtex_assistant_begin", "whimtex_assistant_lock", "whimtex_assistant_sessions", "whimtex_assistant_live", "whimtex_assistant_execute"),
                     ["windowRequired"] = true,
                     ["assetPath"] = "Uses the currently open document; save legacy documents as TIFF via the UI"
                 }
@@ -126,7 +133,7 @@ namespace DCFApixels.WhimTex
                 ["command"] = "whimtex_headless_live / WhimTexApi.TiffLiveFile(requestPath)",
                 ["operations"] = new JArray("begin", "list", "status", "preview", "render", "complete", "cancel"),
                 ["windowRequired"] = false,
-                ["notes"] = "Persistent transient TIFF session. Preview replaces the working model from the begin snapshot; complete performs one atomic save after disk revision validation. Successful complete/cancel responses are replayable for bounded retry safety."
+                ["notes"] = "In-memory TIFF session, lost on domain reload. Nonempty operations replay from the begin snapshot; omitted/empty operations keep the current working model. Complete checks the disk revision before saving. Only the last 32 successful complete/cancel receipts survive reload for bounded retry safety."
             };
             return result;
         });
@@ -151,6 +158,9 @@ namespace DCFApixels.WhimTex
             return Convert.ToBase64String(hash.ComputeHash(Encoding.UTF8.GetBytes(text.ToString())));
         }
 
+        private static string DocumentAssetPath(TextureCompositor document) =>
+            WhimTexDocumentService.PathOf(document) ?? AssetDatabase.GetAssetPath(document);
+
         private static JObject Snapshot(TextureCompositor document, string path)
         {
             var layers = new JArray();
@@ -159,7 +169,7 @@ namespace DCFApixels.WhimTex
             {
                 ["assetPath"] = path, ["guid"] = string.IsNullOrEmpty(path) ? "" : AssetDatabase.AssetPathToGUID(path),
                 ["revision"] = Revision(document), ["width"] = document.width, ["height"] = document.height,
-                ["dirty"] = EditorUtility.IsDirty(document), ["hasOutputTexture"] = document.OutputTexture != null,
+                ["dirty"] = EditorUtility.IsDirty(document) || document.documentBinding?.dirty == true, ["hasOutputTexture"] = document.OutputTexture != null,
                 ["hasOutputSprite"] = document.OutputSprite != null, ["layers"] = layers
             };
 
@@ -195,34 +205,34 @@ namespace DCFApixels.WhimTex
                     if (layer?.AsGroup() is Layer folder) settings["compositing"] = folder.compositing.ToString();
                     if (layer?.Behaviour is DrawingLayerBehaviour stored) entry["storageFormat"] = stored.StoredTexture != null ? stored.StoredTexture.format.ToString() : "Unallocated";
                     if (!layer.IsGroup)
-                    {
-                        settings["opacity"] = layer.opacity;
-                        settings["blend"] = layer.blendMode.ToString();
                         settings["filter"] = layer.filterMode.ToString();
-                        entry["transform"] = new JObject
-                        {
-                            ["pivot"] = new JArray(layer.transform.pivot.x,layer.transform.pivot.y), ["tiling"] = layer.transform.tiling.ToString()
-                        };
-                        var transformJson=(JObject)entry["transform"];
-                        var t=layer.transform;
-                        if(t.storage==TransformStorage.Projective)
-                        {
-                            var m=t.matrix;
-                            transformJson["matrix"]=new JArray(m.m00,m.m01,m.m02,m.m10,m.m11,m.m12,m.m20,m.m21,m.m22);
-                        }
-                        else
-                        {
-                            transformJson["position"]=new JArray(t.position.x,t.position.y);
-                            transformJson["scale"]=new JArray(t.scale.x,t.scale.y);
-                            transformJson["rotation"]=t.rotation;
-                        }
-                        entry["modifierCount"] = layer.modifiers?.Count ?? 0;
+                    entry["transform"] = new JObject
+                    {
+                        ["pivot"] = new JArray(layer.transform.pivot.x, layer.transform.pivot.y), ["tiling"] = layer.transform.tiling.ToString()
+                    };
+                    var transformJson = (JObject)entry["transform"];
+                    var t = layer.transform;
+                    if (t.storage == TransformStorage.Projective)
+                    {
+                        var m = t.matrix;
+                        transformJson["matrix"] = new JArray(m.m00, m.m01, m.m02, m.m10, m.m11, m.m12, m.m20, m.m21, m.m22);
                     }
+                    else
+                    {
+                        transformJson["position"] = new JArray(t.position.x, t.position.y);
+                        transformJson["scale"] = new JArray(t.scale.x, t.scale.y);
+                        transformJson["rotation"] = t.rotation;
+                    }
+                    entry["modifierCount"] = layer.modifiers?.Count ?? 0;
                     if (layer?.Behaviour is FileLayerBehaviour file)
                     {
                         settings["source"] = file.sourceTexture != null ? AssetDatabase.GetAssetPath(file.sourceTexture) : "";
                         if (file.sourceTexture != null)
-                            entry["sourceSize"] = new JArray(file.sourceTexture.width, file.sourceTexture.height);
+                        {
+                            var renderedSource = document.ResolveOriginalFileTexture(file.sourceTexture) ?? file.sourceTexture;
+                            entry["sourceSize"] = new JArray(renderedSource.width, renderedSource.height);
+                            entry["importedSourceSize"] = new JArray(file.sourceTexture.width, file.sourceTexture.height);
+                        }
                     }
                     if (layer?.Behaviour is ColorFillLayerBehaviour fill)
                     {

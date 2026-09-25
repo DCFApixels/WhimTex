@@ -6,6 +6,8 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Shared agent operations for FX value edits, preset discovery/insertion, ordering, copying and cascade baking; layer duplication/deletion/merge/conversion; Blur and Healing strokes. Open-window batches use revision checks and Undo without autosaving. Diagnostic probes render FX input/output and individual channels for TIFF, headless sessions and open documents.
+
 - FX stack Apply All and per-effect Apply bake an inclusive prefix into Drawing pixels, with conversion confirmation, editable transforms and Undo/Redo. Shader Processor captures its current backdrop without merging lower layers; Normal becomes Overwrite while retaining its opacity blending.
 - `// @control(_Parameter)` exposes one existing FX parameter in the block header, with shared values, Undo/Redo, preset export and VS Code support; duplicate directives warn and the last wins.
 - Pattern cell coloring with seeded Random or regular Pattern layouts, a separate palette, variation and Multiply/Replace RGB blending; Seamless also fits color repeats.

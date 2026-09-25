@@ -7,7 +7,9 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositor
     {
-        internal DrawingLayerBehaviour MergeLayers(List<Layer> requested, bool keepSources)
+        internal DrawingLayerBehaviour MergeLayers(List<Layer> requested, bool keepSources) => MergeLayersForAgent(requested, keepSources, true);
+
+        internal DrawingLayerBehaviour MergeLayersForAgent(List<Layer> requested, bool keepSources, bool execute)
         {
             MergePlan plan = CreateMergePlan(requested);
             string undoName = keepSources ? "Merge Sprite Layers as Copy" : "Merge Sprite Layers";
@@ -16,8 +18,8 @@ namespace DCFApixels.WhimTex
             int undoGroup = -1;
             try
             {
-                VisitDrawingLayers(plan.roots, drawing => drawing.SyncSurfaceToTexture());
-                texture = RasterizeMerge(plan);
+                if (execute) VisitDrawingLayers(plan.roots, drawing => drawing.SyncSurfaceToTexture());
+                texture = execute ? RasterizeMerge(plan) : null;
                 merged = DrawingLayerBehaviour.FromMergedTexture(texture);
                 PlaceCanvasTransform(merged.Owner, plan.destination);
                 foreach (Layer layer in plan.included)
@@ -26,16 +28,19 @@ namespace DCFApixels.WhimTex
 
                 var inputs = new Dictionary<TargetedLayerBehaviour, Layer>();
                 CaptureInputs(layers, inputs);
-                Undo.IncrementCurrentGroup();
-                undoGroup = Undo.GetCurrentGroup();
-                Undo.SetCurrentGroupName(undoName);
-                merged.MakeTexturePersistent(this);
-                // Registering a new native object flushes pending object records in Unity.
-                // Register the document afterwards so Redo captures the actual merged tree.
-                Undo.RegisterCreatedObjectUndo(texture, undoName);
-                Undo.RegisterCompleteObjectUndo(this, undoName);
+                if (execute)
+                {
+                    Undo.IncrementCurrentGroup();
+                    undoGroup = Undo.GetCurrentGroup();
+                    Undo.SetCurrentGroupName(undoName);
+                    merged.MakeTexturePersistent(this);
+                    // Registering a new native object flushes pending object records in Unity.
+                    // Register the document afterwards so Redo captures the actual merged tree.
+                    Undo.RegisterCreatedObjectUndo(texture, undoName);
+                    Undo.RegisterCompleteObjectUndo(this, undoName);
+                }
                 merged.layerName = keepSources ? AllocateDuplicateName(plan.roots[0]) : plan.roots[0].layerName;
-                texture.name = merged.layerName;
+                if (texture != null) texture.name = merged.layerName;
 
                 // Insert first so removing selected siblings cannot shift the intended location.
                 plan.destination.Insert(plan.index, merged);
@@ -45,7 +50,7 @@ namespace DCFApixels.WhimTex
                         if (!TryFindLayer(layer, out List<Layer> container, out _))
                             throw new InvalidOperationException("The merge selection changed unexpectedly.");
                         container.Remove(layer);
-                        DestroyLayerAssets(layer);
+                        if (execute) DestroyLayerAssets(layer);
                     }
                 if (!keepSources) ReleaseLayerResources(plan.roots);
 
@@ -65,9 +70,12 @@ namespace DCFApixels.WhimTex
                     else if (target == merged.Owner)
                         effect.TargetLayerId = merged.Id;
                 }
-                MarkChanged();
-                Undo.FlushUndoRecordObjects();
-                Undo.CollapseUndoOperations(undoGroup);
+                if (execute)
+                {
+                    MarkChanged();
+                    Undo.FlushUndoRecordObjects();
+                    Undo.CollapseUndoOperations(undoGroup);
+                }
                 return merged;
             }
             catch

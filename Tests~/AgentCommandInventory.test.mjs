@@ -10,7 +10,8 @@ const source = readFileSync(path.join(root, 'src/Automation/Pipeline/WhimTexComm
 const registered = [...source.matchAll(/CliCommand\("([^"]+)"/g)].map(match => match[1]);
 const expected = [
   'whimtex_assistant_begin', 'whimtex_assistant_lock', 'whimtex_assistant_sessions', 'whimtex_assistant_live',
-  'whimtex_describe', 'whimtex_document_inspect', 'whimtex_batch_execute', 'whimtex_image_import',
+  'whimtex_describe', 'whimtex_assistant_execute', 'whimtex_fx_catalog', 'whimtex_render_probe',
+  'whimtex_document_inspect', 'whimtex_batch_execute', 'whimtex_image_import',
   'whimtex_document_render', 'whimtex_document_migrate', 'whimtex_storage_inspect',
   'whimtex_document_validate',
   'whimtex_fx_compile', 'whimtex_document_status', 'whimtex_document_compare',

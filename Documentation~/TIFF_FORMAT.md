@@ -11,6 +11,7 @@ permalink: /reference/tiff-format/
 # TIFF document format
 {: .no_toc }
 
+TIFF has been WhimTex's main editable document format since version 0.11.0.
 WhimTex stores a new editable document as one `*.tiff` file. The file is both a normal
 Unity-importable texture and a document container. The visible TIFF image is the last saved
 composite; the editable model and Drawing data are stored after the image data in a WhimTex
@@ -57,8 +58,8 @@ not a cryptographic signature and does not protect against deliberate replacemen
 ## Lazy Drawing loading
 
 Opening a TIFF reads the footer, directory and model first. Drawing pixel blocks remain as stream-backed
-metadata until a render, preview, edit or save actually needs them. Only the requested block is read and
-inflated, then its checksum is verified. Unity `Texture2D` objects are created on the main thread;
+metadata until a render, preview, edit or save actually needs them. Only the requested block is read;
+its stored-byte checksum is verified before decompression. Unity `Texture2D` objects are created on the main thread;
 container I/O and byte-level verification can run in the streaming operation scope.
 
 This keeps a large document from materializing every Drawing layer at once, but it does not make a

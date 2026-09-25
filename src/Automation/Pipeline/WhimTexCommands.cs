@@ -36,11 +36,24 @@ namespace DCFApixels.WhimTex
         [CliCommand("whimtex_describe", "Describe WhimTex's agent API, operations, enums and limits.", MainThreadRequired = true)]
         public static JObject Describe() => JObject.Parse(WhimTexApi.Describe());
 
+        [CliCommand("whimtex_assistant_execute", "Apply a revision-checked operation batch to an open document, with Undo and no automatic save.", MainThreadRequired = true)]
+        public static JObject AssistantExecute([CliArg("requestPath", "Absolute JSON request path", Required = true)] string requestPath)
+            => JObject.Parse(WhimTexApi.AssistantExecuteFile(requestPath));
+
+        [CliCommand("whimtex_fx_catalog", "Find installed FX presets in Assets, packages and the user library; inspect a preset's parameters by ID.", MainThreadRequired = true)]
+        public static JObject FxCatalog([CliArg("query", "Optional category/name substring")] string query = null,
+            [CliArg("presetId", "Optional exact ID returned by the catalog; includes parameter details")] string presetId = null)
+            => JObject.Parse(WhimTexApi.FxCatalog(query, presetId));
+
+        [CliCommand("whimtex_render_probe", "Render a document, layer or FX input/output, optionally isolate a channel and report linear pixel ranges. Does not edit the source.", MainThreadRequired = true)]
+        public static JObject RenderProbe([CliArg("requestPath", "Absolute JSON request path", Required = true)] string requestPath)
+            => JObject.Parse(WhimTexApi.RenderProbeFile(requestPath));
+
         [CliCommand("whimtex_document_inspect", "Read a WhimTex document's layer IDs, settings and revision before editing.", MainThreadRequired = true)]
         public static JObject Inspect([CliArg("assetPath", "Project-relative WhimTex .tiff path, or an existing legacy .asset for read-only inspection", Required = true)] string assetPath)
             => JObject.Parse(WhimTexApi.Inspect(assetPath));
 
-        [CliCommand("whimtex_batch_execute", "Validate and apply a WhimTex JSON batch file without opening the document window.", MainThreadRequired = true)]
+        [CliCommand("whimtex_batch_execute", "Apply a JSON batch to an independent TIFF model. save=true writes TIFF; save=false discards edits after returning. Does not edit an open window.", MainThreadRequired = true)]
         public static JObject Execute([CliArg("requestPath", "Absolute path to a JSON request file", Required = true)] string requestPath)
             => JObject.Parse(WhimTexApi.ExecuteFile(requestPath));
 
@@ -110,7 +123,7 @@ namespace DCFApixels.WhimTex
             [CliArg("overwrite", "Explicitly replace an existing output file")] bool overwrite = false)
             => JObject.Parse(WhimTexApi.Export(assetPath, outputPath, maxSize, overwrite));
 
-        [CliCommand("whimtex_headless_live", "Run a persistent TIFF live session without opening WhimTex (begin/list/status/preview/render/complete/cancel).", MainThreadRequired = true)]
+        [CliCommand("whimtex_headless_live", "Run an in-memory TIFF session without a window (begin/list/status/preview/render/complete/cancel). Complete saves; active sessions do not survive script reload.", MainThreadRequired = true)]
         public static JObject TiffLive(
             [CliArg("requestPath", "Absolute path to a TIFF live JSON request file", Required = true)] string requestPath)
             => JObject.Parse(WhimTexApi.TiffLiveFile(requestPath));

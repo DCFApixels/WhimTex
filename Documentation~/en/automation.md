@@ -81,6 +81,14 @@ Results are not saved automatically. Check the image and save when ready.
 Generated images on new Drawing layers keep their original resolution. Transform fits them to the
 canvas or selected region, so fitting a large image does not discard its detail.
 
+## Editing existing layers and effects
+
+Agents can also adjust existing FX parameters, find installed presets, reorder/copy effects and
+bake a stack into Drawing pixels. They can duplicate, delete, merge or convert layers, use Blur
+and Healing strokes, and inspect the image before and after an effect. Immediate edits in the
+open window form one Undo step and are not saved automatically. Rasterizing a procedural layer
+or group loses its procedural content; keep a duplicate when you may need to edit it later.
+
 ## From generation to painting on a model
 
 Select the mesh's [UV islands](selection.md#select-uv-islands) and ask the agent to create a texture inside them—for example, colored Rubik's cube tiles. The agent places them on a Drawing layer in the UV layout. Paint white lettering above them on a separate layer, and use [Live Update](saving.md) to see the result on the cube in Scene view.

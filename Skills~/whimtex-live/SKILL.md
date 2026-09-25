@@ -10,7 +10,8 @@ The skill ID remains `whimtex-live` so existing installations keep working.
 
 Use the installed `Packages/com.dcfapixels.whimtex` package. This skill contains the complete
 fast-start contract below. Read `Documentation~/LiveAgentAPI.md` for completion, previews, advanced
-begin options and recovery; read `Documentation~/AgentAPI.md` only when layer parameters are needed.
+begin options and recovery; read `Documentation~/AgentAPI.md` for layer parameters and shared
+editing operations. Batch, Headless Live and Assistant have different persistence/retry contracts.
 
 ## Reserve early
 
@@ -18,7 +19,7 @@ For a request to generate content in the open document, reserve before prompt po
 preparation, full layer inspection or reading unrelated API sections. Follow required project/tool
 instructions first. Do not reserve for questions, inspection-only requests or plugin source changes.
 
-For FX/settings edits to an existing layer, use `whimtex_assistant_lock` instead of inserting a placeholder
+For longer FX/settings edits to an existing layer, use `whimtex_assistant_lock` instead of inserting a placeholder
 (see Inline Shader FX below). Reserve only the layer actually being edited, not the whole document.
 
 Once the connected command is known to be available, use one call (no request file needed):
@@ -113,11 +114,20 @@ layers into the live document. Render and visually inspect the final result befo
 
 ## Inline Shader FX
 
+For immediate, fully specified edits, `whimtex_assistant_execute` accepts the common layer/FX
+operations with an explicit sessionId and freshly inspected document expectedRevision. It has
+one Undo step, no save, and refuses pending jobs/locks. Use this for parameter-only edits,
+catalog presets, reorder/copy/apply FX, duplicate/delete/merge/convert, blur and healing strokes.
+Read `Documentation~/AgentAPI.md#shared-editing-operations` first; its FX `parameters` is a
+name/value object, unlike the reservation workflow's array. `whimtex_fx_catalog` discovers
+installed presets; `whimtex_render_probe` inspects FX input/output and channels. Do not cancel
+another job to run a batch, bypass revision conflicts or replay a timed-out edit blindly.
+
 Use the existing inline editor mechanism, not a generated `.shader` file or separate ShaderFX asset.
 Read `Documentation~/LiveAgentAPI.md#inline-shader-fx` for the code/parameter and completion schema.
 For a new stack effect, begin a `source:none`, `area:canvas` reservation and complete with
 `layer.type:shaderProcessor` plus `layer.fx`. For a generated normal layer, include fx in its completion;
-it processes that layer only. Groups need a Shader Processor inside them rather than direct FX.
+it processes that layer only. Groups also support FX directly on their combined children.
 
 For an existing layer with a known GUID, acquire its content before writing code:
 
@@ -150,8 +160,13 @@ cancelled task or bypass revision_conflict. A lock on a group covers its own set
 - If the target's pixels/settings changed, do not bypass conflict protection. Offer the generated
   result as a new layer or recapture for a newly agreed edit.
 - Deleted/cancelled reservations must stay deleted. Do not recreate them automatically.
-- After timeout, check status or retry the exact idempotent request. Do not restart the whole workflow.
+- After timeout, check the job's status before retrying its documented idempotent request with the
+  exact same arguments. Immediate Assistant batches are not idempotent: inspect before replaying.
+  Do not restart the whole workflow.
 - Closing/switching the window or reloading scripts interrupts the job. Rediscover, inspect and explain
   the interrupted reservation; do not deliver into whichever document is now active.
 - Live completion does not save. Leave saving to the user unless explicitly requested, and never treat
   a rendered PNG or a live output update as proof that the compositor file has been saved.
+- A path-based TIFF batch is not a save command for an open window. Its `save:false` edits are
+  discarded after the request; use Assistant for the open document and Headless Live for a retained
+  window-independent candidate. Save an open document through its window.

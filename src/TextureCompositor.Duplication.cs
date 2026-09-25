@@ -7,8 +7,10 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositor
     {
-        internal Dictionary<Layer, Layer> DuplicateLayers(List<Layer> requested)
-            => CopyLayersFrom(this, requested, true, "Duplicate Sprite Layers");
+        internal Dictionary<Layer, Layer> DuplicateLayers(List<Layer> requested) => DuplicateLayersForAgent(requested, true);
+
+        internal Dictionary<Layer, Layer> DuplicateLayersForAgent(List<Layer> requested, bool recordUndo)
+            => CopyLayersFrom(this, requested, true, recordUndo ? "Duplicate Sprite Layers" : null);
 
         internal TextureCompositor CaptureLayerClipboard(List<Layer> requested)
         {
