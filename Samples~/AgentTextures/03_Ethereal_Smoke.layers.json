@@ -1,0 +1,375 @@
+{
+  "format": "whimtex.layers",
+  "version": 1,
+  "canvas": {
+    "width": 256,
+    "height": 256,
+    "filter": "Bilinear"
+  },
+  "layers": [
+    {
+      "id": "layer-01",
+      "type": "color",
+      "name": "Floating Motes",
+      "properties": {
+        "color": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "fillMode": "Color"
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Energy Motes",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Energy Motes\n// @control(_Amount)\n// @param hidden float _Amount = 0.23 [0 .. 1]\n// @param float _Seed = 903 [0 .. ~1000]\n// @param color _Tint = (0.42, 0.9, 0.78, 1)\n\nfloat HashM(float2 p){return frac(sin(dot(p,float2(127.1,311.7))+_Seed)*43758.5453);}\nfloat4 ApplyFX(float2 uv,float4 color){\n float2 q=uv*38;float2 id=floor(q);float2 local=frac(q);\n float h=HashM(id);float2 center=float2(HashM(id+2.7),HashM(id+15.4))*.7+.15;\n float d=length((local-center)*float2(1,1.7));float size=lerp(.025,.11,HashM(id+87));\n float spark=(1-smoothstep(size*.35,size,d))+exp(-d*18)*.18;\n float r=length(uv-.5);float region=smoothstep(.16,.22,r)*(1-smoothstep(.40,.48,r));\n return float4(_Tint.rgb,saturate(spark*step(.68,h)*region*_Amount));}\n"
+        }
+      ]
+    },
+    {
+      "id": "layer-02",
+      "type": "color",
+      "name": "Vapor Threads",
+      "properties": {
+        "color": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "fillMode": "Color"
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Spiral Filaments",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Spiral Filaments\n// @control(_Opacity)\n// @param hidden float _Opacity = 0.23 [0 .. 1]\n// @param float _Turns = 1.15 [0.1 .. 5]\n// @param float _Count = 7 [2 .. 32]\n// @param color _Tint = (0.25, 0.85, 0.72, 1)\n\nfloat4 ApplyFX(float2 uv,float4 color){\n float2 p=uv-.5;float r=length(p);float a=atan2(p.y,p.x+1e-7);\n float phase=a*_Count+r*_Turns*70+sin(a*3+r*25)*1.7;\n float thread=pow(saturate(cos(phase)),42);\n float fade=smoothstep(.12,.23,r)*(1-smoothstep(.32,.46,r));\n float gaps=smoothstep(-.2,.4,sin(a*7+r*35));\n return float4(_Tint.rgb,thread*fade*gaps*_Opacity);}\n"
+        }
+      ]
+    },
+    {
+      "id": "layer-03",
+      "type": "noise",
+      "name": "Smoke Folds",
+      "properties": {
+        "noise": {
+          "noiseType": "OpenSimplex2",
+          "seed": 121,
+          "whiteNoiseColor": "Monochrome",
+          "whiteNoiseSize": 1,
+          "dimensions": "TwoD",
+          "direction": 0,
+          "scale": 12,
+          "offset": [
+            0,
+            0
+          ],
+          "fractal": "Ridged",
+          "octaves": 5,
+          "lacunarity": 2,
+          "gain": 0.5,
+          "weightedStrength": 0,
+          "pingPongStrength": 2,
+          "cellularDistance": "EuclideanSquared",
+          "cellularReturn": "Distance",
+          "cellularJitter": 1,
+          "warp": "OpenSimplex2",
+          "warpStrength": 3.6,
+          "encoding": "LinearData",
+          "inverted": false
+        }
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Smoke Density",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Smoke Density\n// @control(_Density)\n// @param hidden float _Density = 0.72 [0 .. 3]\n// @param float _Radius = 0.38 [0.1 .. 0.5]\n// @param float _Erosion = 0.48 [0 .. 0.7]\n\nfloat4 ApplyFX(float2 uv,float4 color) {\n float n=saturate(color.r); float2 p=(uv-.5)*float2(1.05,.9);\n float edge=1-smoothstep(_Radius*.45,_Radius,length(p)+(n-.5)*.12);\n float density=pow(saturate((n-_Erosion)/max(1-_Erosion,.01)),1.2);\n return float4(color.rgb,saturate(density*edge*_Density));\n}\n"
+        },
+        {
+          "name": "Gradient Map",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Gradient Map\n// @control(_Opacity)\n// @group\n// @formerlyserializedas(_Amount)\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original colors and the gradient map.\n// @param gradient _Gradient = (0, 0, 0, 1) -> (1, 1, 1, 1) // Colors from shadows to highlights.\n// @param curve _Mapping = keys((0, 0, 0, 1, 0, 0, 0), (1, 1, 1, 0, 0, 0, 0)) // Remap brightness before sampling the gradient; the default is unchanged.\n// @param bool _Reverse = false // Map highlights to the beginning of the gradient instead of shadows.\n// @endgroup\n\n\n\n#ifndef WHIMTEX_HDR_COLOR_INCLUDED\n#define WHIMTEX_HDR_COLOR_INCLUDED\nfloat3 SpriteEncode(float3 color)\n{\n    float3 value = abs(color);\n    return sign(color) * lerp(value * 12.92, 1.055 * pow(value, 1.0 / 2.4) - .055, step(.0031308, value));\n}\nfloat3 SpriteDecode(float3 color)\n{\n    float3 value = abs(color);\n    return sign(color) * lerp(value / 12.92, pow((value + .055) / 1.055, 2.4), step(.04045, value));\n}\n#endif\n\n\nfloat4 ApplyFX(float2 uv, float4 color)\n{\n    float luminance = saturate(dot(max(color.rgb, 0.0), float3(0.2126, 0.7152, 0.0722)));\n    float brightness = SpriteEncode(float3(luminance, luminance, luminance)).r;\n    float t = _Reverse > 0.5 ? 1.0 - brightness : brightness;\n    float4 mapped = _Gradient_Sample(_Mapping_Sample(t));\n\treturn float4(lerp(color.rgb, mapped.rgb, saturate(_Opacity)), color.a);\n}\n",
+          "gradients": {
+            "_Gradient": {
+              "colors": [
+                {
+                  "time": 0,
+                  "color": [
+                    0.025,
+                    0.07,
+                    0.1,
+                    1
+                  ],
+                  "midpoint": 0.5
+                },
+                {
+                  "time": 0.6,
+                  "color": [
+                    0.11,
+                    0.36,
+                    0.4,
+                    1
+                  ],
+                  "midpoint": 0.5
+                },
+                {
+                  "time": 1,
+                  "color": [
+                    0.66,
+                    0.9,
+                    0.88,
+                    1
+                  ],
+                  "midpoint": 0.5
+                }
+              ],
+              "alphas": [
+                {
+                  "time": 0,
+                  "alpha": 1,
+                  "midpoint": 0.5
+                },
+                {
+                  "time": 0.6,
+                  "alpha": 1,
+                  "midpoint": 0.5
+                },
+                {
+                  "time": 1,
+                  "alpha": 1,
+                  "midpoint": 0.5
+                }
+              ],
+              "mode": "Classic",
+              "wrapMode": "Clamp",
+              "smoothness": 1,
+              "colorSpace": "Gamma"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "layer-04",
+      "type": "noise",
+      "name": "Smoke Body",
+      "properties": {
+        "noise": {
+          "noiseType": "OpenSimplex2",
+          "seed": 891,
+          "whiteNoiseColor": "Monochrome",
+          "whiteNoiseSize": 1,
+          "dimensions": "TwoD",
+          "direction": 0,
+          "scale": 5.5,
+          "offset": [
+            0,
+            0
+          ],
+          "fractal": "FBm",
+          "octaves": 5,
+          "lacunarity": 2,
+          "gain": 0.5,
+          "weightedStrength": 0,
+          "pingPongStrength": 2,
+          "cellularDistance": "EuclideanSquared",
+          "cellularReturn": "Distance",
+          "cellularJitter": 1,
+          "warp": "OpenSimplex2",
+          "warpStrength": 3.4,
+          "encoding": "LinearData",
+          "inverted": false
+        }
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Smoke Density",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Smoke Density\n// @control(_Density)\n// @param hidden float _Density = 1.4 [0 .. 3]\n// @param float _Radius = 0.43 [0.1 .. 0.5]\n// @param float _Erosion = 0.3 [0 .. 0.7]\n\nfloat4 ApplyFX(float2 uv,float4 color) {\n float n=saturate(color.r); float2 p=(uv-.5)*float2(1.05,.9);\n float edge=1-smoothstep(_Radius*.45,_Radius,length(p)+(n-.5)*.12);\n float density=pow(saturate((n-_Erosion)/max(1-_Erosion,.01)),1.2);\n return float4(color.rgb,saturate(density*edge*_Density));\n}\n"
+        },
+        {
+          "name": "Gradient Map",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Gradient Map\n// @control(_Opacity)\n// @group\n// @formerlyserializedas(_Amount)\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original colors and the gradient map.\n// @param gradient _Gradient = (0, 0, 0, 1) -> (1, 1, 1, 1) // Colors from shadows to highlights.\n// @param curve _Mapping = keys((0, 0, 0, 1, 0, 0, 0), (1, 1, 1, 0, 0, 0, 0)) // Remap brightness before sampling the gradient; the default is unchanged.\n// @param bool _Reverse = false // Map highlights to the beginning of the gradient instead of shadows.\n// @endgroup\n\n\n\n#ifndef WHIMTEX_HDR_COLOR_INCLUDED\n#define WHIMTEX_HDR_COLOR_INCLUDED\nfloat3 SpriteEncode(float3 color)\n{\n    float3 value = abs(color);\n    return sign(color) * lerp(value * 12.92, 1.055 * pow(value, 1.0 / 2.4) - .055, step(.0031308, value));\n}\nfloat3 SpriteDecode(float3 color)\n{\n    float3 value = abs(color);\n    return sign(color) * lerp(value / 12.92, pow((value + .055) / 1.055, 2.4), step(.04045, value));\n}\n#endif\n\n\nfloat4 ApplyFX(float2 uv, float4 color)\n{\n    float luminance = saturate(dot(max(color.rgb, 0.0), float3(0.2126, 0.7152, 0.0722)));\n    float brightness = SpriteEncode(float3(luminance, luminance, luminance)).r;\n    float t = _Reverse > 0.5 ? 1.0 - brightness : brightness;\n    float4 mapped = _Gradient_Sample(_Mapping_Sample(t));\n\treturn float4(lerp(color.rgb, mapped.rgb, saturate(_Opacity)), color.a);\n}\n",
+          "gradients": {
+            "_Gradient": {
+              "colors": [
+                {
+                  "time": 0,
+                  "color": [
+                    0.06,
+                    0.035,
+                    0.16,
+                    1
+                  ],
+                  "midpoint": 0.5
+                },
+                {
+                  "time": 0.35,
+                  "color": [
+                    0.23,
+                    0.19,
+                    0.4,
+                    1
+                  ],
+                  "midpoint": 0.5
+                },
+                {
+                  "time": 0.7,
+                  "color": [
+                    0.49,
+                    0.63,
+                    0.72,
+                    1
+                  ],
+                  "midpoint": 0.5
+                },
+                {
+                  "time": 1,
+                  "color": [
+                    0.86,
+                    0.95,
+                    1,
+                    1
+                  ],
+                  "midpoint": 0.5
+                }
+              ],
+              "alphas": [
+                {
+                  "time": 0,
+                  "alpha": 1,
+                  "midpoint": 0.5
+                },
+                {
+                  "time": 0.35,
+                  "alpha": 1,
+                  "midpoint": 0.5
+                },
+                {
+                  "time": 0.7,
+                  "alpha": 1,
+                  "midpoint": 0.5
+                },
+                {
+                  "time": 1,
+                  "alpha": 1,
+                  "midpoint": 0.5
+                }
+              ],
+              "mode": "Classic",
+              "wrapMode": "Clamp",
+              "smoothness": 1,
+              "colorSpace": "Gamma"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "layer-05",
+      "type": "blur",
+      "name": "Outer Mist",
+      "properties": {
+        "opacity": 0.22,
+        "blur": {
+          "mode": "Gaussian",
+          "strength": 1,
+          "radius": 3.5,
+          "distance": 4,
+          "angle": 0,
+          "arc": 15,
+          "center": [
+            0.5,
+            0.5
+          ],
+          "direction": "Centered",
+          "edges": "Transparent"
+        }
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Clip",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "target": "layer-04"
+    }
+  ]
+}

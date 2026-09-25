@@ -1,0 +1,130 @@
+{
+  "format": "whimtex.agent-samples",
+  "version": 1,
+  "canvas": {
+    "width": 256,
+    "height": 256
+  },
+  "samples": [
+    {
+      "id": "01",
+      "title": "Arcane Rift",
+      "document": "01_Arcane_Rift.tiff",
+      "recipe": "01_Arcane_Rift.layers.json",
+      "preview": "01_Arcane_Rift.png",
+      "category": "VFX",
+      "description": "Layered plasma portal with broken arcs, spiral threads and orbiting motes.",
+      "layers": 5
+    },
+    {
+      "id": "02",
+      "title": "Solar Impact",
+      "document": "02_Solar_Impact.tiff",
+      "recipe": "02_Solar_Impact.layers.json",
+      "preview": "02_Solar_Impact.png",
+      "category": "VFX",
+      "description": "Radial impact burst with sparks, rays and a turbulent shock front.",
+      "layers": 5
+    },
+    {
+      "id": "03",
+      "title": "Ethereal Smoke",
+      "document": "03_Ethereal_Smoke.tiff",
+      "recipe": "03_Ethereal_Smoke.layers.json",
+      "preview": "03_Ethereal_Smoke.png",
+      "category": "VFX",
+      "description": "Colored vapor with noise-shaped density, tendrils and floating motes.",
+      "layers": 5
+    },
+    {
+      "id": "04",
+      "title": "Terrazzo Triangles",
+      "document": "04_Terrazzo_Triangles.tiff",
+      "recipe": "04_Terrazzo_Triangles.layers.json",
+      "preview": "04_Terrazzo_Triangles.png",
+      "category": "Surface",
+      "description": "Rounded triangle SDF tiles with seeded palettes, chips and glaze.",
+      "layers": 5
+    },
+    {
+      "id": "05",
+      "title": "Hex Reactor Panels",
+      "document": "05_Hex_Reactor_Panels.tiff",
+      "recipe": "05_Hex_Reactor_Panels.layers.json",
+      "preview": "05_Hex_Reactor_Panels.png",
+      "category": "Surface",
+      "description": "Hexagon SDF panels, luminous seams, circuit markings and amber lamps.",
+      "layers": 5
+    },
+    {
+      "id": "06",
+      "title": "Surveyed Archipelago",
+      "document": "06_Surveyed_Archipelago.tiff",
+      "recipe": "06_Surveyed_Archipelago.layers.json",
+      "preview": "06_Surveyed_Archipelago.png",
+      "category": "Surface",
+      "description": "Domain-warped terrain with gradient colors, contour lines and survey markings.",
+      "layers": 5
+    },
+    {
+      "id": "07",
+      "title": "Bubble",
+      "document": "07_Bubble.tiff",
+      "recipe": "07_Bubble.layers.json",
+      "preview": "07_Bubble.png",
+      "category": "VFX",
+      "description": "Translucent bubble with separate rim, inner reflection and highlights.",
+      "layers": 4
+    },
+    {
+      "id": "08",
+      "title": "Smoke Billows",
+      "document": "08_Smoke_Billows.tiff",
+      "recipe": "08_Smoke_Billows.layers.json",
+      "preview": "08_Smoke_Billows.png",
+      "category": "VFX",
+      "description": "Tint-ready smoke particle: overlapping density lobes, white RGB and soft alpha, without baked lighting.",
+      "layers": 12
+    },
+    {
+      "id": "09",
+      "title": "Orange Sun",
+      "document": "09_Orange_Sun.tiff",
+      "recipe": "09_Orange_Sun.layers.json",
+      "preview": "09_Orange_Sun.png",
+      "category": "VFX",
+      "description": "Orange stellar sphere with granulation, a Fresnel-like rim and a broad corona.",
+      "layers": 7
+    },
+    {
+      "id": "10",
+      "title": "Lightning",
+      "document": "10_Lightning.tiff",
+      "recipe": "10_Lightning.layers.json",
+      "preview": "10_Lightning.png",
+      "category": "VFX",
+      "description": "Procedural lightning filament with independently tinted inner and outer glows.",
+      "layers": 4
+    },
+    {
+      "id": "11",
+      "title": "Shock Wave",
+      "document": "11_Shock_Wave.tiff",
+      "recipe": "11_Shock_Wave.layers.json",
+      "preview": "11_Shock_Wave.png",
+      "category": "VFX",
+      "description": "Frayed shock ring combining radial flares, a radial gradient and layer-sourced displacement.",
+      "layers": 7
+    },
+    {
+      "id": "12",
+      "title": "Star Glow",
+      "document": "12_Star_Glow.tiff",
+      "recipe": "12_Star_Glow.layers.json",
+      "preview": "12_Star_Glow.png",
+      "category": "VFX",
+      "description": "White flare with separate core, diffraction rays and halo.",
+      "layers": 5
+    }
+  ]
+}

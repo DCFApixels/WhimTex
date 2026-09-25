@@ -1,0 +1,173 @@
+{
+  "format": "whimtex.layers",
+  "version": 1,
+  "canvas": {
+    "width": 256,
+    "height": 256,
+    "filter": "Bilinear"
+  },
+  "layers": [
+    {
+      "id": "layer-01",
+      "type": "shaderProcessor",
+      "name": "Master Tint",
+      "properties": {
+        "colorRange": "HDR",
+        "blendRange": "HDR"
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Clip",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Master Tint",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Master Tint\n// @control(_Opacity)\n// @param hidden float _Opacity = 1 [0 .. 1]\n// @param color _Tint = (1, 1, 1, 1)\n\nfloat4 ApplyFX(float2 uv,float4 color){return float4(color.rgb*_Tint.rgb,color.a*_Opacity*_Tint.a);}\n"
+        }
+      ]
+    },
+    {
+      "id": "layer-02",
+      "type": "blur",
+      "name": "Inner Glow",
+      "properties": {
+        "opacity": 0.65,
+        "blend": "Add",
+        "blur": {
+          "mode": "Gaussian",
+          "strength": 1.16,
+          "radius": 7,
+          "distance": 4,
+          "angle": 0,
+          "arc": 15,
+          "center": [
+            0.5,
+            0.5
+          ],
+          "direction": "Centered",
+          "edges": "Transparent"
+        }
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Clip",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "target": "layer-03",
+      "fx": [
+        {
+          "name": "Gain",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Gain\n// @control(_Opacity)\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\n// @group\n// @param float _Gain = 1 [0 .. ~4]\n// @param color _Tint = (0, 0.9883721, 1, 1)\n// @endgroup\n\n\nfloat4 ApplyFX(float2 uv, float4 color)\n{\n    float4 correctedColor = float4(color.rgb * _Tint.rgb * _Gain, color.a * _Tint.a);\n\treturn lerp(color, correctedColor, _Opacity);\n}\n"
+        }
+      ]
+    },
+    {
+      "id": "layer-03",
+      "type": "color",
+      "name": "Lightning Filament",
+      "properties": {
+        "color": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "fillMode": "Color"
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Lightning Path",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Lightning Path\n// @control(_Opacity)\n// @param hidden float _Opacity = 1 [0 .. 1]\n// @param float _Width = 0.012 [0.0005 .. 0.012]\n// @param float _Bend = 0.143 [0 .. 0.3]\n// @param float _Seed = 22.7 [0 .. 100]\n// @param float _Glow = 0.53 [0 .. 1]\n// @param float _GlowWidth = 1.8 [1 .. 20]\n\nfloat PathX(float t){return .5+_Bend*(.68*sin(t*9+_Seed)+.28*sin(t*24+1.2)+.12*sin(t*63+2));}\nfloat4 ApplyFX(float2 uv,float4 color){\n    float d=1;float along=0;\n    for(int i=0;i<96;i++){\n        float t=i/96.0;float s=(i+1)/96.0;\n        float2 a=float2(PathX(t),.065+t*.87);float2 b=float2(PathX(s),.065+s*.87);\n        float2 ab=b-a;float h=saturate(dot(uv-a,ab)/dot(ab,ab));\n        float distance=length(uv-a-ab*h);\n        if(distance<d){d=distance;along=lerp(t,s,h);}\n    }\n    float width=_Width*(.8+.2*sin(along*57+_Seed));\n    float aa=max(fwidth(d),.0003);\n    float alpha=1-smoothstep(width*.4,width+aa,d);\n    alpha+=_Glow*exp(-d/max(width*_GlowWidth,.0001));\n    alpha*=smoothstep(.045,.085,uv.y)*(1-smoothstep(.915,.955,uv.y));\n    return float4(1,1,1,saturate(alpha)*_Opacity);\n}\n"
+        }
+      ]
+    },
+    {
+      "id": "layer-04",
+      "type": "blur",
+      "name": "Outer Glow",
+      "properties": {
+        "opacity": 0.9,
+        "blur": {
+          "mode": "Gaussian",
+          "strength": 2.22,
+          "radius": 30.5,
+          "distance": 4,
+          "angle": 0,
+          "arc": 15,
+          "center": [
+            0.5,
+            0.5
+          ],
+          "direction": "Centered",
+          "edges": "Transparent"
+        }
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Clip",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "target": "layer-03",
+      "fx": [
+        {
+          "name": "Gain",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Gain\n// @control(_Opacity)\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\n// @group\n// @param float _Gain = 1.24 [0 .. ~4]\n// @param color _Tint = (0, 0.712175369, 1, 1)\n// @endgroup\n\n\nfloat4 ApplyFX(float2 uv, float4 color)\n{\n    float4 correctedColor = float4(color.rgb * _Tint.rgb * _Gain, color.a * _Tint.a);\n\treturn lerp(color, correctedColor, _Opacity);\n}\n"
+        }
+      ]
+    }
+  ]
+}

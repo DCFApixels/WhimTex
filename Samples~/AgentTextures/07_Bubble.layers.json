@@ -1,0 +1,159 @@
+{
+  "format": "whimtex.layers",
+  "version": 1,
+  "canvas": {
+    "width": 256,
+    "height": 256,
+    "filter": "Bilinear"
+  },
+  "layers": [
+    {
+      "id": "layer-01",
+      "type": "color",
+      "name": "Small Highlight",
+      "properties": {
+        "color": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "fillMode": "Color"
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Bubble Highlight",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Bubble Highlight\n// @control(_Opacity)\n// @param hidden float _Opacity = 1 [0 .. 1]\n// @param point _Center = (0.292, 0.633)\n// @param float _Size = 0.029 [0.005 .. 0.15]\n// @param float _Halo = 0.25 [0 .. 1]\n\nfloat4 ApplyFX(float2 uv,float4 color){\n    float d=length(uv-_Center)/max(_Size,.001);\n    float core=exp(-pow(d,4)*1.5);\n    float halo=exp(-d*d*.32)*_Halo;\n    float clip=1-smoothstep(.382,.390,length(uv-.5));\n    return float4(1,1,1,saturate(core+halo)*_Opacity*clip);\n}\n"
+        }
+      ]
+    },
+    {
+      "id": "layer-02",
+      "type": "color",
+      "name": "Main Highlight",
+      "properties": {
+        "color": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "fillMode": "Color"
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Bubble Highlight",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Bubble Highlight\n// @control(_Opacity)\n// @param hidden float _Opacity = 1 [0 .. 1]\n// @param point _Center = (0.375, 0.715)\n// @param float _Size = 0.053 [0.005 .. 0.15]\n// @param float _Halo = 0.25 [0 .. 1]\n\nfloat4 ApplyFX(float2 uv,float4 color){\n    float d=length(uv-_Center)/max(_Size,.001);\n    float core=exp(-pow(d,4)*1.5);\n    float halo=exp(-d*d*.32)*_Halo;\n    float clip=1-smoothstep(.382,.390,length(uv-.5));\n    return float4(1,1,1,saturate(core+halo)*_Opacity*clip);\n}\n"
+        }
+      ]
+    },
+    {
+      "id": "layer-03",
+      "type": "color",
+      "name": "Bubble Rim",
+      "properties": {
+        "color": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "fillMode": "Color"
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Bubble Rim",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Bubble Rim\n// @control(_Opacity)\n// @param hidden float _Opacity = 1 [0 .. 1]\n// @param float _Radius = 0.39 [0.1 .. 0.45]\n// @param float _Width = 0.014 [0.002 .. 0.06]\n// @param float _Softness = 0.032 [0.005 .. 0.1]\n\nfloat4 ApplyFX(float2 uv,float4 color){\n    float2 p=uv-.5;\n    float r=length(p);\n    float inset=_Radius-r;\n    float outer=smoothstep(-.003,.003,inset);\n    float ring=exp(-pow((inset-.008)/_Width,2));\n    float soft=exp(-max(inset,0)/_Softness)*.60;\n    float angle=dot(p/max(r,.0001),normalize(float2(-.7,1)));\n    float alpha=outer*saturate(max(ring,soft)*(.82+.18*angle))*_Opacity;\n    return float4(1,1,1,alpha);\n}\n"
+        }
+      ]
+    },
+    {
+      "id": "layer-04",
+      "type": "color",
+      "name": "Inner Reflection",
+      "properties": {
+        "color": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "fillMode": "Color"
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Bubble Reflection",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Bubble Reflection\n// @control(_Opacity)\n// @param hidden float _Opacity = 0.5 [0 .. 1]\n// @param float _Radius = 0.39 [0.1 .. 0.45]\n// @param float _Depth = 0.085 [0.01 .. 0.2]\n\nfloat4 ApplyFX(float2 uv,float4 color){\n    float2 p=uv-.5;\n    float r=length(p);\n    float edge=1-smoothstep(_Radius-.007,_Radius,r);\n    float2 direction=p/max(r,.0001);\n    float lower=pow(saturate(dot(direction,normalize(float2(.50,-1)))*.5+.5),3);\n    float upper=pow(saturate(dot(direction,normalize(float2(-.6,1)))*.5+.5),5);\n    float depth=exp(-pow((r-(_Radius-.045))/_Depth,2));\n    float reflection=depth*(.75*lower+.30*upper);\n    return float4(1,1,1,saturate(reflection*_Opacity*edge));\n}\n"
+        }
+      ]
+    }
+  ]
+}

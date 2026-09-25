@@ -1,0 +1,325 @@
+{
+  "format": "whimtex.layers",
+  "version": 1,
+  "canvas": {
+    "width": 256,
+    "height": 256,
+    "filter": "Bilinear"
+  },
+  "layers": [
+    {
+      "id": "layer-01",
+      "type": "group",
+      "name": "Shock Wave",
+      "properties": {
+        "compositing": "PassThrough"
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Clip",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "children": [
+        {
+          "id": "layer-02",
+          "type": "color",
+          "name": "Radial Flares",
+          "properties": {
+            "blend": "Screen",
+            "color": [
+              1,
+              1,
+              1,
+              1
+            ],
+            "fillMode": "Color"
+          },
+          "transform": {
+            "pivot": [
+              0.5,
+              0.5
+            ],
+            "tiling": "Unbounded",
+            "position": [
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1
+            ],
+            "rotation": 0
+          },
+          "fx": [
+            {
+              "name": "Frayed Shock Wave",
+              "enabled": true,
+              "code": "// @whimtex-effect Samples/Frayed Shock Wave\n// @control(_Opacity)\n// @param hidden float _Opacity = 1 [0 .. 1]\n// @param float _Radius = 0.3568 [0.1 .. 0.4]\n// @param float _Width = 0.06 [0.003 .. 0.06]\n// @param float _Raggedness = 0.08 [0 .. 0.08]\n// @param float _Seed = 24.3 [0 .. 100]\n// @param float _Density = 0.458 [0 .. 1]\n// @param float _Count = 38 [12 .. 72]\n\nfloat TuftHash(float x){return frac(sin(x*127.1+_Seed*31.7)*43758.5453);}\nfloat4 ApplyFX(float2 uv,float4 color){\n    float2 p=uv-.5;float r=length(p);\n    float count=floor(_Count+.5);\n    float angle=atan2(p.y,p.x)/6.2831853+.5;\n    float cell=floor(angle*count);\n    float alpha=0;\n    for(int j=-1;j<=1;j++){\n        float id=fmod(cell+j+count,count);\n        float h=TuftHash(id);float k=TuftHash(id+73);\n        float theta=((id+.5+(h-.5)*.7)/count-.5)*6.2831853;\n        float2 axis=float2(cos(theta),sin(theta));\n        float radial=dot(p,axis)-_Radius-(h-.5)*_Raggedness;\n        radial+=(color.r-.5)*_Raggedness*.45;\n        float tangent=dot(p,float2(-axis.y,axis.x))+(SampleInput(saturate(uv+float2(.04,.07))).r-.5)*.015;\n        float radialSize=_Width*(.6+k*1.15);\n        float tangentSize=6.2831853*_Radius/count*(.34+.22*h);\n        float2 q=float2(radial/radialSize,tangent/tangentSize);\n        float tuft=exp(-dot(q,q)*1.8);\n        float present=smoothstep(1-_Density-.15,1-_Density+.15,TuftHash(id+141));\n        alpha+=tuft*(.55+.45*k)*present;\n    }\n    alpha+=.09*exp(-pow((r-_Radius)/(_Width*.7),2))*smoothstep(.25,.65,color.r);\n    alpha*=lerp(.55,1,smoothstep(.15,.7,color.r))*(1-smoothstep(.43,.48,r));\n    return float4(1,1,1,saturate(alpha*1.45)*_Opacity);\n}\n"
+            }
+          ]
+        },
+        {
+          "id": "layer-03",
+          "type": "noise",
+          "name": "Erosion Noise",
+          "properties": {
+            "blend": "LinearBurn",
+            "noise": {
+              "noiseType": "OpenSimplex2",
+              "seed": 1337,
+              "whiteNoiseColor": "Monochrome",
+              "whiteNoiseSize": 1,
+              "dimensions": "TwoD",
+              "direction": 0,
+              "scale": 9.36,
+              "offset": [
+                0,
+                0
+              ],
+              "fractal": "None",
+              "octaves": 3,
+              "lacunarity": 2,
+              "gain": 0.5,
+              "weightedStrength": 0,
+              "pingPongStrength": 2,
+              "cellularDistance": "EuclideanSquared",
+              "cellularReturn": "Distance",
+              "cellularJitter": 1,
+              "warp": "None",
+              "warpStrength": 1,
+              "encoding": "ColorValues",
+              "inverted": false
+            }
+          },
+          "transform": {
+            "pivot": [
+              0.5,
+              0.5
+            ],
+            "tiling": "Unbounded",
+            "position": [
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1
+            ],
+            "rotation": 0
+          },
+          "fx": [
+            {
+              "name": "Spherize",
+              "enabled": true,
+              "code": "// @whimtex-effect Samples/Spherize\n// @group(Spherize Mode; _Mode)\n// @param hidden enum _Mode = 0 { Classic: 0, Sphere: 1 } // Classic is the current unbounded radial distortion. Sphere wraps the image over a sphere and clips outside its circular edge.\n// @param float _Strength = -1.16 [~-1 .. ~1]\n// @param transform2D _Area = (0.5, 0.5, 1, 1, 0)\n// @endgroup\n\n\nfloat4 ApplyFX(float2 uv, float4 color)\n{\n    float2 p = (_Area_ToLocal(uv) - 0.5) * 2.0;\n    float4 result = color;\n\n    if (_Mode < 0.5)\n    {\n        if (_Strength != 0)\n        {\n            float exponent = exp2(_Strength);\n            // The epsilon only protects the center; the radius is not limited to the frame.\n            float scale = pow(max(dot(p, p), 1e-12), 0.5 * (exponent - 1.0));\n            result = SampleInput(_Area_ToInput(0.5 + p * scale * 0.5));\n        }\n    }\n    else\n    {\n        float radius = length(p);\n        float clampedRadius = saturate(radius);\n        // A sphere maps the disk to its angular surface coordinates. Positive values bulge;\n        // negative values use the inverse mapping and pinch toward the center.\n        float sphericalRadius = _Strength >= 0.0\n            ? asin(clampedRadius) * 0.6366197723675814\n            : sin(clampedRadius * 1.5707963267948966);\n        float strength = abs(_Strength);\n        float sampleRadius = lerp(radius, sphericalRadius, min(strength, 1.0));\n        float excessStrength = max(strength - 1.0, 0.0);\n        // Beyond one, continue strengthening smoothly without clamping the soft UI range.\n        if (_Strength >= 0.0)\n            sampleRadius *= exp2(-excessStrength * (1.0 - sampleRadius));\n        else\n            sampleRadius = 1.0 - (1.0 - sampleRadius) * exp2(-excessStrength * sampleRadius);\n        float radialScale = sampleRadius / max(radius, 1e-6);\n        result = SampleInput(_Area_ToInput(0.5 + p * radialScale * 0.5));\n\n        // Keep a crisp circular silhouette with a sub-pixel antialiased edge.\n        float edgeWidth = max(fwidth(radius), 1e-4);\n        result.a *= 1.0 - smoothstep(1.0 - edgeWidth, 1.0 + edgeWidth, radius);\n    }\n\n    return result;\n}\n"
+            }
+          ]
+        },
+        {
+          "id": "layer-04",
+          "type": "gradient",
+          "name": "Ring Mask",
+          "properties": {
+            "gradient": {
+              "colors": [
+                {
+                  "time": 0,
+                  "color": [
+                    1,
+                    1,
+                    1,
+                    1
+                  ],
+                  "midpoint": 0.5
+                }
+              ],
+              "alphas": [
+                {
+                  "time": 0.342412442,
+                  "alpha": 0,
+                  "midpoint": 0.603278637
+                },
+                {
+                  "time": 0.8715953,
+                  "alpha": 1,
+                  "midpoint": 0.6470588
+                },
+                {
+                  "time": 1,
+                  "alpha": 0,
+                  "midpoint": 0.5
+                }
+              ],
+              "mode": "Classic",
+              "wrapMode": "Clamp",
+              "smoothness": 1,
+              "colorSpace": "Gamma"
+            },
+            "gradientOptions": {
+              "type": "Radial",
+              "repetitions": 1,
+              "wrap": "Repeat"
+            }
+          },
+          "transform": {
+            "pivot": [
+              0.5,
+              0.5
+            ],
+            "tiling": "Unbounded",
+            "position": [
+              0,
+              0
+            ],
+            "scale": [
+              0.8037750206288012,
+              0.8037750206288012
+            ],
+            "rotation": 0.23067278414964676
+          },
+          "fx": [
+            {
+              "name": "Displacement Map",
+              "enabled": true,
+              "code": "// @whimtex-effect Samples/Displacement Map\n// @group(Map Wrap; _MapWrap)\n// @param texture2D _DisplacementMap // Source field. Vector mode reads R/G; Grayscale mode reads the selected channel.\n// @param transform2D _MapTransform = (0.5, 0.5, 1, 1, 0) // Positions and scales the map independently from the image being distorted.\n// @param hidden enum _MapWrap = 0 { Clamp: 0, Repeat: 1, Mirror: 2 } // Addressing for the map and an optional separate strength mask.\n// @endgroup\n// @group(Displacement Mode; _Mode)\n// @param hidden enum _Mode = 1 { VectorRG: 0, Grayscale: 1, ParallaxOcclusion: 2 }\n// @if _Mode != 2\n// @param float _Neutral = 0 [0 .. 1] // Neutral value for vector channels and the grayscale displacement.\n// @endif\n// @if _Mode != 0\n// @param enum _MapChannel = 0 { Luminance: 0, R: 1, G: 2, B: 3, Alpha: 4 }\n// @endif\n// @if _Mode == 0\n// @header(Vector)\n// @param float _StrengthX = 0 [~-512 .. ~512] // Horizontal displacement in canvas pixels at a full channel value.\n// @endif\n// @if _Mode == 0\n// @param float _StrengthY = 0 [~-512 .. ~512] // Vertical displacement in canvas pixels at a full channel value.\n// @endif\n// @if _Mode == 1\n// @header(Grayscale)\n// @param enum _Direction = 2 { Horizontal: 0, Vertical: 1, Radial: 2, Tangential: 3, Angle: 4 }\n// @endif\n// @if _Mode == 1\n// @param float _Strength = -2.75 [~-512 .. ~512] // Displacement in canvas pixels. The sign reverses the selected direction.\n// @endif\n// @if _Mode == 1\n// @param point _Center = (0.5, 0.5) // Origin for Radial and Tangential directions.\n// @endif\n// @if _Mode == 1\n// @param float _Angle = -9 [~-180 .. ~180] // Direction angle in degrees when Direction is Angle.\n// @endif\n// @if _Mode == 2\n// @header(Parallax)\n// @param float _Depth = 2 [0 .. 128] // Height range in canvas pixels; lower view elevation creates a larger parallax shift.\n// @endif\n// @if _Mode == 2\n// @param float _ViewAngle = 0 [~-180 .. ~180] // Direction of the virtual view ray in the canvas plane.\n// @endif\n// @if _Mode == 2\n// @param float _ViewElevation = 60 [5 .. 85] // 90 degrees is head-on; lower values increase parallax.\n// @endif\n// @if _Mode == 2\n// @param enum _ParallaxSteps = 8 { Fast: 4, Balanced: 8, High: 16, Ultra: 32 }\n// @endif\n// @if _Mode == 2\n// @param bool _InvertHeight = false // Use black as the raised surface and white as the recessed surface.\n// @endif\n// @endgroup\n// @group(Strength Mask Source; _MaskSource)\n// @param hidden enum _MaskSource = 0 { Constant1: 0, MapChannel: 1, InputAlpha: 2, SeparateTexture: 3 } // Constant1 needs no second texture; MapChannel reuses the displacement map.\n// @if _MaskSource != 0\n// @param bool _InvertMask = false\n// @endif\n// @if _MaskSource != 0\n// @param curve _MaskProfile = keys((0, 0, 0, 1, 0, 0, 0), (1, 1, 1, 0, 0, 0, 0)) // Remaps mask values; the default linear curve preserves them.\n// @endif\n// @if _MaskSource == 1\n// @param enum _MapMaskChannel = 0 { Alpha: 0, Luminance: 1, R: 2, G: 3, B: 4 }\n// @endif\n// @if _MaskSource == 3\n// @param texture2D _StrengthMask = none // Optional second texture. Leave Mask Source at Constant1 to work with only one map.\n// @endif\n// @if _MaskSource == 3\n// @param enum _SeparateMaskChannel = 0 { Alpha: 0, Luminance: 1, R: 2, G: 3, B: 4 }\n// @endif\n// @endgroup\n// @group(Output Mix; _Mix)\n// @param hidden float _Mix = 1 [0 .. 1] // Blend the displaced sample with the original image.\n// @param enum _InputEdge = 0 { Clamp: 0, Repeat: 1, Mirror: 2, Transparent: 3 } // Addressing for displaced image samples, independent of map wrapping.\n// @endgroup\n\n// Self-shadowing controls are temporarily disabled; keep their source here for later iteration.\n// // @header(Self-Shadowing)\n// // @param bool _SelfShadow = false // Trace the height field toward a virtual light and darken occluded areas.\n// // @param float _LightAngle = 45 [~-180 .. ~180] // Direction toward the virtual light in the canvas plane.\n// // @param float _LightElevation = 45 [5 .. 85]\n// // @param enum _ShadowSteps = Balanced {Low: 4, Balanced: 8, High: 16}\n// // @param float _ShadowStrength = 0.65 [0 .. 1]\n// // @param float _ShadowSoftness = 0.02 [0 .. 0.2]\n\nfloat ReadDisplacementChannel(float4 value, float channel)\n{\n    float result = dot(value.rgb, float3(0.2126, 0.7152, 0.0722));\n    if (channel > 0.5 && channel < 1.5) result = value.r;\n    else if (channel > 1.5 && channel < 2.5) result = value.g;\n    else if (channel > 2.5 && channel < 3.5) result = value.b;\n    else if (channel > 3.5) result = value.a;\n    return result;\n}\n\nfloat ReadStrengthChannel(float4 value, float channel)\n{\n    float result = value.a;\n    if (channel > 0.5 && channel < 1.5) result = dot(value.rgb, float3(0.2126, 0.7152, 0.0722));\n    else if (channel > 1.5 && channel < 2.5) result = value.r;\n    else if (channel > 2.5 && channel < 3.5) result = value.g;\n    else if (channel > 3.5) result = value.b;\n    return result;\n}\n\nfloat2 AddressMapUV(float2 uv, float mode, float2 texelSize)\n{\n    if (mode < 0.5)\n        return clamp(uv, texelSize * 0.5, 1.0 - texelSize * 0.5);\n    if (mode < 1.5)\n        uv = frac(uv);\n    else\n        uv = 1.0 - abs(frac(uv * 0.5) * 2.0 - 1.0);\n    return uv;\n}\n\nfloat2 AddressInputUV(float2 uv, float mode, float2 texelSize, out float inside)\n{\n    inside = 1.0;\n    if (mode < 0.5)\n        return clamp(uv, texelSize * 0.5, 1.0 - texelSize * 0.5);\n    if (mode < 1.5)\n        return frac(uv);\n    if (mode < 2.5)\n        return 1.0 - abs(frac(uv * 0.5) * 2.0 - 1.0);\n\n    inside = step(0.0, uv.x) * step(uv.x, 1.0) * step(0.0, uv.y) * step(uv.y, 1.0);\n    return clamp(uv, texelSize * 0.5, 1.0 - texelSize * 0.5);\n}\n\nfloat ReadHeightAtUV(float2 uv, float2 mapDDX, float2 mapDDY)\n{\n    float2 mapUV = AddressMapUV(_MapTransform_ToLocal(uv), _MapWrap, _DisplacementMap_TexelSize.xy);\n    float height = saturate(ReadDisplacementChannel(tex2Dgrad(_DisplacementMap, mapUV, mapDDX, mapDDY), _MapChannel));\n    return _InvertHeight > 0.5 ? 1.0 - height : height;\n}\n\nfloat2 DirectionFromAngle(float angle)\n{\n    float sine, cosine;\n    sincos(radians(angle), sine, cosine);\n    return float2(cosine, sine);\n}\n\nfloat2 TraceParallax(float2 uv, float strengthMask, float2 mapDDX, float2 mapDDY, out float hitHeight)\n{\n    int steps = clamp((int)round(_ParallaxSteps), 4, 32);\n    float elevation = radians(clamp(_ViewElevation, 5.0, 85.0));\n    float lateralPixels = _Depth * strengthMask / max(tan(elevation), 1e-3);\n    float2 stepUV = DirectionFromAngle(_ViewAngle) * lateralPixels * _CanvasSize.zw / steps;\n    float layerStep = 1.0 / steps;\n    float rayDepth = 0.0;\n    float2 previousUV = uv;\n    float2 currentUV = uv;\n    hitHeight = 0.0;\n\n    [loop]\n    for (int i = 0; i < 32; i++)\n    {\n        if (i >= steps) break;\n        previousUV = currentUV;\n        currentUV -= stepUV;\n        rayDepth += layerStep;\n        hitHeight = ReadHeightAtUV(currentUV, mapDDX, mapDDY);\n        float surfaceDepth = 1.0 - hitHeight;\n        if (rayDepth >= surfaceDepth)\n        {\n            float previousDepth = rayDepth - layerStep;\n            float beforeHit = surfaceDepth - previousDepth;\n            float afterHit = rayDepth - surfaceDepth;\n            float blend = saturate(beforeHit / max(beforeHit + afterHit, 1e-6));\n            currentUV = lerp(previousUV, currentUV, blend);\n            hitHeight = ReadHeightAtUV(currentUV, mapDDX, mapDDY);\n            break;\n        }\n    }\n    return currentUV;\n}\n\n// Temporarily disabled self-shadow implementation:\n// float TraceParallaxSelfShadow(float2 hitUV, float surfaceHeight, float strengthMask, float2 mapDDX, float2 mapDDY)\n// {\n//     int steps = clamp((int)round(_ShadowSteps), 4, 16);\n//     float elevation = radians(clamp(_LightElevation, 5.0, 85.0));\n//     float lateralPixels = _Depth * strengthMask * (1.0 - surfaceHeight) / max(tan(elevation), 1e-3);\n//     float2 lightStepUV = DirectionFromAngle(_LightAngle) * lateralPixels * _CanvasSize.zw / steps;\n//     float softness = max(_ShadowSoftness, 1e-4);\n//     float visibility = 1.0;\n//\n//     [loop]\n//     for (int i = 0; i < 16; i++)\n//     {\n//         if (i >= steps) break;\n//         float progress = (i + 1.0) / steps;\n//         float sampleHeight = ReadHeightAtUV(hitUV + lightStepUV * (i + 1), mapDDX, mapDDY);\n//         float rayHeight = lerp(surfaceHeight, 1.0, progress);\n//         visibility = min(visibility, 1.0 - smoothstep(-softness, softness, sampleHeight - rayHeight));\n//         if (visibility <= 1e-3) break;\n//     }\n//     return visibility;\n// }\n\nfloat2 GrayscaleDirection(float2 uv)\n{\n    float2 direction = float2(1.0, 0.0);\n    if (_Direction > 0.5 && _Direction < 1.5)\n        direction = float2(0.0, 1.0);\n    else if (_Direction > 1.5 && _Direction < 3.5)\n    {\n        float2 radial = (uv - _Center) * _CanvasSize.xy;\n        float radius = length(radial);\n        direction = radius > 1e-6 ? radial / radius : float2(0.0, 0.0);\n        if (_Direction > 2.5)\n            direction = float2(-direction.y, direction.x);\n    }\n    else if (_Direction > 3.5)\n    {\n        float sine, cosine;\n        sincos(radians(_Angle), sine, cosine);\n        direction = float2(cosine, sine);\n    }\n    return direction;\n}\n\nfloat4 ApplyFX(float2 uv, float4 color)\n{\n    float2 mapUV = _MapTransform_ToLocal(uv);\n    float2 mapDDX = ddx(mapUV);\n    float2 mapDDY = ddy(mapUV);\n    mapUV = AddressMapUV(mapUV, _MapWrap, _DisplacementMap_TexelSize.xy);\n    float4 mapSample = tex2D(_DisplacementMap, mapUV);\n    float2 displacementPixels = float2(0.0, 0.0);\n    float2 parallaxUV = uv;\n    float parallaxHeight = 0.0;\n\n    if (_Mode < 0.5)\n    {\n        displacementPixels = (mapSample.rg - float2(_Neutral, _Neutral)) * 2.0 * float2(_StrengthX, _StrengthY);\n    }\n    else if (_Mode < 1.5)\n    {\n        float mapValue = ReadDisplacementChannel(mapSample, _MapChannel);\n        float signedValue = (mapValue - _Neutral) * 2.0;\n        displacementPixels = GrayscaleDirection(uv) * signedValue * _Strength;\n    }\n\n    float strengthMask = 1.0;\n    if (_MaskSource > 0.5)\n    {\n        float maskValue = 1.0;\n        if (_MaskSource < 1.5)\n            maskValue = ReadStrengthChannel(mapSample, _MapMaskChannel);\n        else if (_MaskSource < 2.5)\n            maskValue = color.a;\n        else\n        {\n            float2 strengthMaskUV = AddressMapUV(_MapTransform_ToLocal(uv), _MapWrap, _StrengthMask_TexelSize.xy);\n            maskValue = ReadStrengthChannel(tex2D(_StrengthMask, strengthMaskUV), _SeparateMaskChannel);\n        }\n        maskValue = lerp(maskValue, 1.0 - maskValue, step(0.5001, _InvertMask));\n        strengthMask = saturate(_MaskProfile_Sample(saturate(maskValue)));\n    }\n\n    if (_Mode > 1.5)\n        parallaxUV = TraceParallax(uv, strengthMask, mapDDX, mapDDY, parallaxHeight);\n\n    float2 inputUV = _Mode > 1.5 ? parallaxUV : uv + displacementPixels * strengthMask * _CanvasSize.zw;\n    float inside;\n    inputUV = AddressInputUV(inputUV, _InputEdge, _MainTex_TexelSize.xy, inside);\n    float4 distorted = SampleInput(inputUV) * inside;\n    // if (_Mode > 1.5 && _SelfShadow > 0.5)\n    // {\n    //     float visibility = TraceParallaxSelfShadow(parallaxUV, parallaxHeight, strengthMask, mapDDX, mapDDY);\n    //     distorted.rgb *= lerp(1.0, visibility, saturate(_ShadowStrength));\n    // }\n    float4 result = lerp(color, distorted, saturate(_Mix));\n    return result;\n}\n",
+              "textures": {
+                "_DisplacementMap": {
+                  "layer": "layer-03"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "layer-05",
+          "type": "noise",
+          "name": "Noise Study",
+          "properties": {
+            "enabled": false,
+            "noise": {
+              "noiseType": "OpenSimplex2",
+              "seed": 1337,
+              "whiteNoiseColor": "Monochrome",
+              "whiteNoiseSize": 1,
+              "dimensions": "TwoD",
+              "direction": 0,
+              "scale": 8,
+              "offset": [
+                0,
+                0
+              ],
+              "fractal": "None",
+              "octaves": 3,
+              "lacunarity": 2,
+              "gain": 0.5,
+              "weightedStrength": 0,
+              "pingPongStrength": 2,
+              "cellularDistance": "EuclideanSquared",
+              "cellularReturn": "Distance",
+              "cellularJitter": 1,
+              "warp": "None",
+              "warpStrength": 1,
+              "encoding": "ColorValues",
+              "inverted": false
+            }
+          },
+          "transform": {
+            "pivot": [
+              0.5,
+              0.5
+            ],
+            "tiling": "Unbounded",
+            "position": [
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1
+            ],
+            "rotation": 0
+          }
+        },
+        {
+          "id": "layer-06",
+          "type": "color",
+          "name": "Black Mask Base",
+          "properties": {
+            "color": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "fillMode": "Color"
+          },
+          "transform": {
+            "pivot": [
+              0.5,
+              0.5
+            ],
+            "tiling": "Unbounded",
+            "position": [
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1
+            ],
+            "rotation": 0
+          }
+        }
+      ],
+      "fx": [
+        {
+          "name": "Shock Wave",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Shock Wave\n// @param color _Tint = (1, 1, 1, 1)\n\nfloat4 ApplyFX(float2 uv, float4 color)\n{\n    return float4(1, 1, 1, pow(color.r, 0.5)) * _Tint;\n}\n"
+        }
+      ]
+    },
+    {
+      "id": "layer-07",
+      "type": "color",
+      "name": "Preview Background",
+      "properties": {
+        "enabled": false,
+        "color": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "fillMode": "Color"
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      }
+    }
+  ]
+}

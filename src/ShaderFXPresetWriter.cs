@@ -35,7 +35,7 @@ namespace DCFApixels.WhimTex
             var rows = new System.Collections.Generic.List<(int order, string text, ShaderFXParameterControl control)>();
             foreach (var p in values)
             {
-                if (p.controls.Count == 0) { rows.Add((0, Declaration(p), null)); continue; }
+                if (p.controls.Count == 0) { rows.Add((0, ExportDeclaration(p, portable), null)); continue; }
                 int defaultIndex = p.controls.FindIndex(c => c.type != ShaderFXParameterType.Bool);
                 if (defaultIndex < 0) defaultIndex = 0;
                 for (int i = 0; i < p.controls.Count; i++)
@@ -52,7 +52,7 @@ namespace DCFApixels.WhimTex
                         for (int n = 0; n < control.optionNames.Length; n++) options.Add(control.optionNames[n] + ": " + Number(control.optionValues[n]));
                         declaration = "// @param enum " + p.name + " = " + Number(p.floatValue) + " { " + string.Join(", ", options) + " }";
                     }
-                    else declaration = Declaration(row);
+                    else declaration = ExportDeclaration(row, portable);
                     if (control.hidden || !string.IsNullOrWhiteSpace(control.label))
                     {
                         string modifiers = control.hidden ? "hidden " : string.Empty;
@@ -142,6 +142,10 @@ namespace DCFApixels.WhimTex
 
         private static string ColorDefault(UnityEngine.Color color) => "(" + Number(color.r) + ", " + Number(color.g) + ", " +
             Number(color.b) + ", " + Number(color.a) + ")";
+
+        // Portable JSON carries the complete gradient separately, including multi-stop ramps.
+        private static string ExportDeclaration(ShaderFXParameter p, bool portable) =>
+            portable && p.type == ShaderFXParameterType.Gradient ? "// @param gradient " + p.name : Declaration(p);
 
         internal static string Declaration(ShaderFXParameter p)
         {

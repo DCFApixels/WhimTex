@@ -1,0 +1,193 @@
+{
+  "format": "whimtex.layers",
+  "version": 1,
+  "canvas": {
+    "width": 256,
+    "height": 256,
+    "filter": "Bilinear"
+  },
+  "layers": [
+    {
+      "id": "layer-05",
+      "type": "shaderProcessor",
+      "name": "Master Tint",
+      "properties": {
+        "colorRange": "HDR",
+        "blendRange": "HDR"
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Clip",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Master Tint",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Master Tint\n// @control(_Opacity)\n// @param hidden float _Opacity = 1 [0 .. 1]\n// @param color _Tint = (1, 1, 1, 1)\n\nfloat4 ApplyFX(float2 uv,float4 color){return float4(color.rgb*_Tint.rgb,color.a*_Opacity*_Tint.a);}\n"
+        }
+      ]
+    },
+    {
+      "id": "layer-01",
+      "type": "color",
+      "name": "Light Core",
+      "properties": {
+        "color": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "fillMode": "Color"
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Star Glare",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Star Glare\n// @control(_Opacity)\n// @param hidden float _Opacity = 1 [0 .. 1]\n// @param enum _Part = 2 { Halo: 0, Rays: 1, Core: 2 }\n// @param float _Angle = 24 [-180 .. 180]\n// @param float _Size = 1 [0.2 .. 2]\n// @param float _RayWidth = 1 [0.3 .. 3]\n// @param float _RayLength = 1 [0.3 .. 1.5]\n\nfloat4 ApplyFX(float2 uv,float4 color){\n    float2 p=(uv-.5)/_Size;\n    float r=length(p);float a=radians(_Angle);\n    float2 q=float2(p.x*cos(a)-p.y*sin(a),p.x*sin(a)+p.y*cos(a));\n    float halo=exp(-r*10)*.65+exp(-r*r/.036)*.2;\n    float rays=exp(-abs(q.x)*180/_RayWidth-abs(q.y)*13/_RayLength)+exp(-abs(q.y)*230/_RayWidth-abs(q.x)*16/_RayLength);\n    float2 s=float2(q.x+q.y,q.y-q.x)*.7071;\n    rays+=.30*(exp(-abs(s.x)*300-abs(s.y)*22)+exp(-abs(s.y)*300-abs(s.x)*22));\n    float core=exp(-pow(r/.022,2.4))+.6*exp(-r*r/.0013);\n    float alpha=_Part<.5?halo:(_Part<1.5?rays:core);\n    alpha*=1-smoothstep(.42,.49,length(uv-.5));\n    return float4(1,1,1,saturate(alpha)*_Opacity);\n}\n"
+        }
+      ]
+    },
+    {
+      "id": "layer-02",
+      "type": "blur",
+      "name": "Core Bloom",
+      "properties": {
+        "opacity": 0.65,
+        "blur": {
+          "mode": "Gaussian",
+          "strength": 1,
+          "radius": 4,
+          "distance": 4,
+          "angle": 0,
+          "arc": 15,
+          "center": [
+            0.5,
+            0.5
+          ],
+          "direction": "Centered",
+          "edges": "Transparent"
+        }
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Clip",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "target": "layer-01"
+    },
+    {
+      "id": "layer-03",
+      "type": "color",
+      "name": "Star Rays",
+      "properties": {
+        "color": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "fillMode": "Color"
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Star Glare",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Star Glare\n// @control(_Opacity)\n// @param hidden float _Opacity = 1 [0 .. 1]\n// @param enum _Part = 1 { Halo: 0, Rays: 1, Core: 2 }\n// @param float _Angle = 24 [-180 .. 180]\n// @param float _Size = 1 [0.2 .. 2]\n// @param float _RayWidth = 1 [0.3 .. 3]\n// @param float _RayLength = 1 [0.3 .. 1.5]\n\nfloat4 ApplyFX(float2 uv,float4 color){\n    float2 p=(uv-.5)/_Size;\n    float r=length(p);float a=radians(_Angle);\n    float2 q=float2(p.x*cos(a)-p.y*sin(a),p.x*sin(a)+p.y*cos(a));\n    float halo=exp(-r*10)*.65+exp(-r*r/.036)*.2;\n    float rays=exp(-abs(q.x)*180/_RayWidth-abs(q.y)*13/_RayLength)+exp(-abs(q.y)*230/_RayWidth-abs(q.x)*16/_RayLength);\n    float2 s=float2(q.x+q.y,q.y-q.x)*.7071;\n    rays+=.30*(exp(-abs(s.x)*300-abs(s.y)*22)+exp(-abs(s.y)*300-abs(s.x)*22));\n    float core=exp(-pow(r/.022,2.4))+.6*exp(-r*r/.0013);\n    float alpha=_Part<.5?halo:(_Part<1.5?rays:core);\n    alpha*=1-smoothstep(.42,.49,length(uv-.5));\n    return float4(1,1,1,saturate(alpha)*_Opacity);\n}\n"
+        }
+      ]
+    },
+    {
+      "id": "layer-04",
+      "type": "color",
+      "name": "Halo",
+      "properties": {
+        "color": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "fillMode": "Color"
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Star Glare",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Star Glare\n// @control(_Opacity)\n// @param hidden float _Opacity = 0.9 [0 .. 1]\n// @param enum _Part = 0 { Halo: 0, Rays: 1, Core: 2 }\n// @param float _Angle = 24 [-180 .. 180]\n// @param float _Size = 1 [0.2 .. 2]\n// @param float _RayWidth = 1 [0.3 .. 3]\n// @param float _RayLength = 1 [0.3 .. 1.5]\n\nfloat4 ApplyFX(float2 uv,float4 color){\n    float2 p=(uv-.5)/_Size;\n    float r=length(p);float a=radians(_Angle);\n    float2 q=float2(p.x*cos(a)-p.y*sin(a),p.x*sin(a)+p.y*cos(a));\n    float halo=exp(-r*10)*.65+exp(-r*r/.036)*.2;\n    float rays=exp(-abs(q.x)*180/_RayWidth-abs(q.y)*13/_RayLength)+exp(-abs(q.y)*230/_RayWidth-abs(q.x)*16/_RayLength);\n    float2 s=float2(q.x+q.y,q.y-q.x)*.7071;\n    rays+=.30*(exp(-abs(s.x)*300-abs(s.y)*22)+exp(-abs(s.y)*300-abs(s.x)*22));\n    float core=exp(-pow(r/.022,2.4))+.6*exp(-r*r/.0013);\n    float alpha=_Part<.5?halo:(_Part<1.5?rays:core);\n    alpha*=1-smoothstep(.42,.49,length(uv-.5));\n    return float4(1,1,1,saturate(alpha)*_Opacity);\n}\n"
+        }
+      ]
+    }
+  ]
+}

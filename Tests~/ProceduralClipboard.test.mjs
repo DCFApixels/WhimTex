@@ -10,12 +10,14 @@ process.argv.pop();
 const schema = JSON.parse(read('Documentation~/AI/layers.schema.json'));
 // Deliberately only the schema vocabulary emitted by our generator, not a general JSON Schema implementation.
 function matches(rule, value) {
+  if (typeof rule === 'boolean') return rule;
   if (rule.$ref) return matches(schema.$defs[rule.$ref.split('/').pop()], value);
   if (rule.oneOf) return rule.oneOf.filter(s => matches(s, value)).length === 1;
   if ('const' in rule && value !== rule.const) return false;
   if (rule.enum && !rule.enum.includes(value)) return false;
   if (rule.type === 'object') return value !== null && !Array.isArray(value) && typeof value === 'object' &&
-    (rule.required ?? []).every(k => k in value) && Object.entries(value).every(([k, v]) => k in rule.properties && matches(rule.properties[k], v));
+    (rule.required ?? []).every(k => k in value) && Object.entries(value).every(([k, v]) =>
+      k in (rule.properties ?? {}) ? matches(rule.properties[k], v) : matches(rule.additionalProperties ?? true, v));
   if (rule.type === 'array') return Array.isArray(value) && value.length >= (rule.minItems ?? 0) && value.length <= (rule.maxItems ?? Infinity) &&
     value.every((v, i) => matches(rule.prefixItems?.[i] ?? rule.items, v));
   if (rule.type === 'string') return typeof value === 'string' && value.length >= (rule.minLength ?? 0) &&
@@ -28,6 +30,12 @@ function matches(rule, value) {
 const directory = path.join(root, 'Documentation~/Examples/Clipboard');
 for (const file of fs.readdirSync(directory).filter(f => f.endsWith('.json')))
   assert.ok(matches(schema, JSON.parse(fs.readFileSync(path.join(directory, file), 'utf8'))), file + ' does not match the schema');
+const samples = path.join(root, 'Samples~/AgentTextures');
+for (const file of fs.readdirSync(samples).filter(f => f.endsWith('.layers.json')))
+  assert.ok(matches(schema, JSON.parse(fs.readFileSync(path.join(samples, file), 'utf8'))), file + ' does not match the schema');
+assert.equal(matches(schema.$defs.fx, {code:'float4 ApplyFX(float2 uv, float4 color) { return color; }', textures:{_Map:{layer:'noise'}}}), true);
+assert.equal(matches(schema.$defs.fx, {code:'x', textures:{_Map:{asset:'external'}}}), false);
+assert.equal(matches(schema.$defs.fx, {code:'x', gradients:{_Tint:'invalid'}}), false);
 const guide = read('Documentation~/AI/README.md');
 for (const filter of ['Point', 'Bilinear', 'Trilinear']) {
   assert.ok(matches(schema, { format: 'whimtex.layers', version: 1,

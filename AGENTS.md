@@ -6,6 +6,7 @@
 - Browser AI / clipboard JSON / standalone HLSL: [AI_AUTHORING.md](AI_AUTHORING.md) → [contract](Documentation~/AI/README.md) → [examples](Documentation~/Examples/Clipboard/README.md).
 - Edit an open compositor: read [whimtex-live skill](Skills~/whimtex-live/SKILL.md) first, then [LiveAgentAPI](Documentation~/LiveAgentAPI.md) as needed.
 - Edit a compositor by path: [AgentAPI](Documentation~/AgentAPI.md).
+- Texture/VFX authoring references: [internal agent samples](Samples~/AgentTextures/README.md). Twelve numbered 256×256 editable TIFFs with matching portable JSON recipes and previews; read the manifest and only the relevant examples.
 - Do not load all references for an unrelated task. These files describe rules and decisions, not Git status or a task queue.
 
 ## Identity and compatibility

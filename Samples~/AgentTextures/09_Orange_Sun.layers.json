@@ -1,0 +1,361 @@
+{
+  "format": "whimtex.layers",
+  "version": 1,
+  "canvas": {
+    "width": 256,
+    "height": 256,
+    "filter": "Bilinear"
+  },
+  "layers": [
+    {
+      "id": "layer-01",
+      "type": "shaderProcessor",
+      "name": "Color Finish",
+      "properties": {
+        "opacity": 0.8,
+        "blend": "Overlay",
+        "colorRange": "HDR",
+        "blendRange": "HDR"
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Clip",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Gradient Map",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Gradient Map\n// @control(_Opacity)\n// @group\n// @formerlyserializedas(_Amount)\n// @param hidden float _Opacity = 0.33 [0 .. 1] // Blend between the original colors and the gradient map.\n// @param gradient _Gradient = (0, 0, 0, 1) -> (1, 1, 1, 1) // Colors from shadows to highlights.\n// @param curve _Mapping = keys((0, 0, -0.0391975343, -0.0391975343, 0, 0.0607424043, 0), (1, 1, 0.691987038, 0.691987038, 0.11698544, 0, 0)) // Remap brightness before sampling the gradient; the default is unchanged.\n// @param bool _Reverse = false // Map highlights to the beginning of the gradient instead of shadows.\n// @endgroup\n\n\n\n#ifndef WHIMTEX_HDR_COLOR_INCLUDED\n#define WHIMTEX_HDR_COLOR_INCLUDED\nfloat3 SpriteEncode(float3 color)\n{\n    float3 value = abs(color);\n    return sign(color) * lerp(value * 12.92, 1.055 * pow(value, 1.0 / 2.4) - .055, step(.0031308, value));\n}\nfloat3 SpriteDecode(float3 color)\n{\n    float3 value = abs(color);\n    return sign(color) * lerp(value / 12.92, pow((value + .055) / 1.055, 2.4), step(.04045, value));\n}\n#endif\n\n\nfloat4 ApplyFX(float2 uv, float4 color)\n{\n    float luminance = saturate(dot(max(color.rgb, 0.0), float3(0.2126, 0.7152, 0.0722)));\n    float brightness = SpriteEncode(float3(luminance, luminance, luminance)).r;\n    float t = _Reverse > 0.5 ? 1.0 - brightness : brightness;\n    float4 mapped = _Gradient_Sample(_Mapping_Sample(t));\n\treturn float4(lerp(color.rgb, mapped.rgb, saturate(_Opacity)), color.a);\n}\n",
+          "gradients": {
+            "_Gradient": {
+              "colors": [
+                {
+                  "time": 0.38132295,
+                  "color": [
+                    1,
+                    0.2573743,
+                    0,
+                    1
+                  ],
+                  "midpoint": 0.5
+                },
+                {
+                  "time": 0.71206224,
+                  "color": [
+                    1,
+                    0.7270336,
+                    0,
+                    1
+                  ],
+                  "midpoint": 0.5
+                },
+                {
+                  "time": 1,
+                  "color": [
+                    1,
+                    1,
+                    1,
+                    1
+                  ],
+                  "midpoint": 0.5
+                }
+              ],
+              "alphas": [
+                {
+                  "time": 0,
+                  "alpha": 1,
+                  "midpoint": 0.5
+                },
+                {
+                  "time": 1,
+                  "alpha": 1,
+                  "midpoint": 0.5
+                }
+              ],
+              "mode": "Classic",
+              "wrapMode": "Clamp",
+              "smoothness": 1,
+              "colorSpace": "Gamma"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "layer-02",
+      "type": "shaderProcessor",
+      "name": "Master Tint",
+      "properties": {
+        "colorRange": "HDR",
+        "blendRange": "HDR"
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Clip",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Master Tint",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Master Tint\n// @control(_Opacity)\n// @param hidden float _Opacity = 1 [0 .. 1]\n// @param color _Tint = (1, 1, 1, 1)\n\nfloat4 ApplyFX(float2 uv,float4 color){return float4(color.rgb*_Tint.rgb,color.a*_Opacity*_Tint.a);}\n"
+        }
+      ]
+    },
+    {
+      "id": "layer-03",
+      "type": "color",
+      "name": "Fresnel Rim",
+      "properties": {
+        "color": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "fillMode": "Color"
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Hot Solar Limb",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Hot Solar Limb\n// @control(_Opacity)\n// @param hidden float _Opacity = 1 [0 .. 1]\n// @param float _Radius = 0.32 [0.1 .. 0.38]\n// @param float _Width = 0.014 [0.002 .. 0.035]\n// @param float _RimPower = 1.5 [0.3 .. 6]\n// @param float _Fresnel = 0.7 [0 .. 1]\n\nfloat4 ApplyFX(float2 uv,float4 color){\n    float r=length(uv-.5);float d=abs(r-_Radius);\n    float z=sqrt(saturate(1-pow(r/_Radius,2)));\n    float f=pow(1-z,_RimPower)*(1-smoothstep(_Radius,_Radius+.003,r));\n    float a=max(exp(-pow(d/_Width,2)),f*_Fresnel);\n    return float4(1,.67,.18,a*_Opacity);\n}\n"
+        }
+      ]
+    },
+    {
+      "id": "layer-04",
+      "type": "blur",
+      "name": "Rim Glow",
+      "properties": {
+        "opacity": 0.9,
+        "blur": {
+          "mode": "Gaussian",
+          "strength": 1,
+          "radius": 5.5,
+          "distance": 4,
+          "angle": 0,
+          "arc": 15,
+          "center": [
+            0.5,
+            0.5
+          ],
+          "direction": "Centered",
+          "edges": "Transparent"
+        }
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Clip",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "target": "layer-03"
+    },
+    {
+      "id": "layer-05",
+      "type": "noise",
+      "name": "Solar Surface",
+      "properties": {
+        "noise": {
+          "noiseType": "OpenSimplex2S",
+          "seed": 319,
+          "whiteNoiseColor": "Monochrome",
+          "whiteNoiseSize": 1,
+          "dimensions": "TwoD",
+          "direction": 0,
+          "scale": 40.9,
+          "offset": [
+            0,
+            0
+          ],
+          "fractal": "FBm",
+          "octaves": 5,
+          "lacunarity": 2.14,
+          "gain": 0.783,
+          "weightedStrength": 0,
+          "pingPongStrength": 2,
+          "cellularDistance": "EuclideanSquared",
+          "cellularReturn": "Distance",
+          "cellularJitter": 1,
+          "warp": "OpenSimplex2",
+          "warpStrength": 1.18,
+          "encoding": "LinearData",
+          "inverted": false
+        }
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Spherize",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Spherize\n// @group(Spherize Mode; _Mode)\n// @param hidden enum _Mode = 1 { Classic: 0, Sphere: 1 } // Classic is the current unbounded radial distortion. Sphere wraps the image over a sphere and clips outside its circular edge.\n// @param float _Strength = 1 [~-1 .. ~1]\n// @param transform2D _Area = (0.5, 0.5, 0.64, 0.64, 0)\n// @endgroup\n\n\nfloat4 ApplyFX(float2 uv, float4 color)\n{\n    float2 p = (_Area_ToLocal(uv) - 0.5) * 2.0;\n    float4 result = color;\n\n    if (_Mode < 0.5)\n    {\n        if (_Strength != 0)\n        {\n            float exponent = exp2(_Strength);\n            // The epsilon only protects the center; the radius is not limited to the frame.\n            float scale = pow(max(dot(p, p), 1e-12), 0.5 * (exponent - 1.0));\n            result = SampleInput(_Area_ToInput(0.5 + p * scale * 0.5));\n        }\n    }\n    else\n    {\n        float radius = length(p);\n        float clampedRadius = saturate(radius);\n        // A sphere maps the disk to its angular surface coordinates. Positive values bulge;\n        // negative values use the inverse mapping and pinch toward the center.\n        float sphericalRadius = _Strength >= 0.0\n            ? asin(clampedRadius) * 0.6366197723675814\n            : sin(clampedRadius * 1.5707963267948966);\n        float strength = abs(_Strength);\n        float sampleRadius = lerp(radius, sphericalRadius, min(strength, 1.0));\n        float excessStrength = max(strength - 1.0, 0.0);\n        // Beyond one, continue strengthening smoothly without clamping the soft UI range.\n        if (_Strength >= 0.0)\n            sampleRadius *= exp2(-excessStrength * (1.0 - sampleRadius));\n        else\n            sampleRadius = 1.0 - (1.0 - sampleRadius) * exp2(-excessStrength * sampleRadius);\n        float radialScale = sampleRadius / max(radius, 1e-6);\n        result = SampleInput(_Area_ToInput(0.5 + p * radialScale * 0.5));\n\n        // Keep a crisp circular silhouette with a sub-pixel antialiased edge.\n        float edgeWidth = max(fwidth(radius), 1e-4);\n        result.a *= 1.0 - smoothstep(1.0 - edgeWidth, 1.0 + edgeWidth, radius);\n    }\n\n    return result;\n}\n"
+        },
+        {
+          "name": "Stellar Granulation",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Stellar Granulation\n// @control(_Opacity)\n// @param hidden float _Opacity = 1 [0 .. 1]\n// @param float _Radius = 0.32 [0.1 .. 0.38]\n// @param float _Contrast = 2 [0.5 .. 4]\n// @param float _Fresnel = 0.9 [0 .. 1]\n// @param float _RimPower = 1.4 [0.3 .. 6]\n\nfloat4 ApplyFX(float2 uv,float4 color){\n    float2 p=(uv-.5)/_Radius;float r=length(p);\n    float z=sqrt(saturate(1-dot(p,p)));\n    float n=saturate(color.r);\n    float macro=SampleInput(saturate(.5+(uv-.5)*.16)).r;\n    float heat=saturate((n-.5)*_Contrast+.5+(macro-.5)*.7);\n    float3 ember=float3(.22,.012,.0008);\n    float3 orange=float3(.92,.10,.002);\n    float3 hot=float3(1,.43,.035);\n    float3 col=lerp(ember,orange,smoothstep(.05,.6,heat));\n    col=lerp(col,hot,pow(heat,3));\n    col*=.52+.24*z;\n    float fresnel=pow(1-z,_RimPower)*_Fresnel;\n    col=lerp(col,float3(1,.58,.12),fresnel);\n    return float4(saturate(col),(1-smoothstep(.995,1.005,r))*_Opacity);\n}\n"
+        }
+      ]
+    },
+    {
+      "id": "layer-06",
+      "type": "noise",
+      "name": "Corona",
+      "properties": {
+        "noise": {
+          "noiseType": "OpenSimplex2S",
+          "seed": 1637,
+          "whiteNoiseColor": "Monochrome",
+          "whiteNoiseSize": 1,
+          "dimensions": "TwoD",
+          "direction": 0,
+          "scale": 25,
+          "offset": [
+            0,
+            0
+          ],
+          "fractal": "FBm",
+          "octaves": 4,
+          "lacunarity": 2,
+          "gain": 0.5,
+          "weightedStrength": 0,
+          "pingPongStrength": 2,
+          "cellularDistance": "EuclideanSquared",
+          "cellularReturn": "Distance",
+          "cellularJitter": 1,
+          "warp": "OpenSimplex2Reduced",
+          "warpStrength": 0.3,
+          "encoding": "LinearData",
+          "inverted": false
+        }
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Solar Corona",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Solar Corona\n// @control(_Opacity)\n// @param hidden float _Opacity = 1 [0 .. 1]\n// @param float _Radius = 0.3275 [0.1 .. 0.38]\n// @param float _Reach = 0.0677 [0.02 .. 0.16]\n// @param float _Turbulence = 0.148 [0 .. 1]\n\nfloat4 ApplyFX(float2 uv,float4 color){\n    float r=length(uv-.5);float a=atan2(uv.y-.5,uv.x-.5);\n    float n=color.r;\n    float spoke=.5+.25*sin(a*47+sin(a*13)*2)+.25*sin(a*91+1.3);\n    float reach=_Reach*lerp(1,.65+.35*spoke,_Turbulence);\n    float outside=max(r-_Radius,0);\n    float glow=exp(-pow(outside/max(reach*.48,.001),1.25));\n    float alpha=glow*lerp(1,.7+.3*n,_Turbulence)*(1-smoothstep(.445,.49,r));\n    float3 tint=lerp(float3(1,.49,.06),float3(1,.055,.001),saturate(outside/_Reach));\n    return float4(tint,alpha*_Opacity);\n}\n"
+        }
+      ]
+    },
+    {
+      "id": "layer-07",
+      "type": "blur",
+      "name": "Corona Glow",
+      "properties": {
+        "opacity": 0.95,
+        "blur": {
+          "mode": "Gaussian",
+          "strength": 1,
+          "radius": 7,
+          "distance": 4,
+          "angle": 0,
+          "arc": 15,
+          "center": [
+            0.5,
+            0.5
+          ],
+          "direction": "Centered",
+          "edges": "Transparent"
+        }
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Clip",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "target": "layer-06"
+    }
+  ]
+}

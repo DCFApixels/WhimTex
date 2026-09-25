@@ -247,6 +247,18 @@ empty unless they carry a `url`.
 
 **Copy as Portable** in the Layers context menu exports selected layers/groups to this same format, including canvas size/filter, current FX values and internal references. The receiving user pastes the JSON with Ctrl+V. Drawing with an unchanged URL source retains that URL; otherwise it becomes an empty Drawing layer with a warning. File retains its asset GUID and local ID, not its pixels: the recipient needs the same asset and `.meta` file. If unavailable, it remains an empty File layer with a warning; its asset identity survives another portable copy. File without an asset is copied empty. No raster bytes are embedded. Material FX remain unsupported. Custom HLSL includes are expanded into separate function definitions (calls are not inlined), with at most 8 nested files and 64 KiB of UTF-8 code per FX, including declarations. Oversized files, missing include files and cycles abort copying. Include referenced layers and clipping bases in the selection. Unsupported dependencies or format limits stop the copy without replacing the clipboard. A URL may change or expire: it is not an immutable copy of the image. Review links before sharing, especially private or signed URLs. Color Fill also accepts `properties.fillMode` (`Color` by default, `UV` or `Pattern`). Pattern settings live in `properties.fillPattern`; see [Color Fill patterns](../AgentAPI.md#color-fill-patterns) for fields, defaults and Seamless constraints.
 
+### Compact portable export
+
+Portable export omits properties/transform components equal to the layer factory defaults, empty
+settings objects, unused IDs and default FX visibility/name. Non-default settings are retained even
+when their controls are currently inactive. Referenced IDs and targets remain explicit. Canvas
+filter is also explicit because omission preserves the receiving canvas filter; a linked Drawing's
+identity scale is explicit to prevent automatic aspect fitting. Gradient objects retain their required
+color stops, but omit default metadata and alpha stops only when those alpha stops are reproduced
+exactly from the colors. FX ramps travel in `gradients` rather than being restricted to two-color
+code defaults; a ramp identical to its code default needs no override. JSON remains indented and
+uses the same version-1 clipboard format, without rounding numeric values.
+
 ### Shape, Color and Gradient
 
 - **color:** `properties.color` is RGBA.

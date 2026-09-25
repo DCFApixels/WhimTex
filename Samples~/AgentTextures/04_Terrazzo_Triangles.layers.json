@@ -1,0 +1,580 @@
+{
+  "format": "whimtex.layers",
+  "version": 1,
+  "canvas": {
+    "width": 256,
+    "height": 256,
+    "filter": "Bilinear"
+  },
+  "layers": [
+    {
+      "id": "layer-01",
+      "type": "noise",
+      "name": "Glaze Cracks",
+      "properties": {
+        "noise": {
+          "noiseType": "OpenSimplex2",
+          "seed": 631,
+          "whiteNoiseColor": "Monochrome",
+          "whiteNoiseSize": 1,
+          "dimensions": "TwoD",
+          "direction": 0,
+          "scale": 43,
+          "offset": [
+            0,
+            0
+          ],
+          "fractal": "None",
+          "octaves": 5,
+          "lacunarity": 2,
+          "gain": 0.5,
+          "weightedStrength": 0,
+          "pingPongStrength": 2,
+          "cellularDistance": "EuclideanSquared",
+          "cellularReturn": "Distance",
+          "cellularJitter": 1,
+          "warp": "OpenSimplex2",
+          "warpStrength": 0.4,
+          "encoding": "LinearData",
+          "inverted": false
+        }
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Glaze Crazing",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Glaze Crazing\n// @control(_Opacity)\n// @param hidden float _Opacity = 0.18 [0 .. 1]\n// @param float _Width = 0.004 [0.001 .. 0.03]\n\nfloat4 ApplyFX(float2 uv,float4 color){\n float d=abs(color.r-.5);float coverage=1-smoothstep(_Width,_Width+fwidth(color.r),d);\n return float4(.06,.11,.105,coverage*_Opacity);}\n"
+        }
+      ]
+    },
+    {
+      "id": "layer-02",
+      "type": "color",
+      "name": "Mineral Chips",
+      "properties": {
+        "opacity": 0.4,
+        "color": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "fillMode": "Pattern",
+        "fillPattern": {
+          "shape": "Triangles",
+          "circleLayout": "Dense",
+          "size": [
+            3.25,
+            3.25
+          ],
+          "linkSize": true,
+          "rotation": 0,
+          "offset": [
+            0,
+            0
+          ],
+          "seamless": true,
+          "gap": 0.74,
+          "roundness": 0.15,
+          "bulge": 0,
+          "distanceRange": 1,
+          "position": "Signed",
+          "inverted": false,
+          "profile": "keys((0, 0, 0, 1, 0, 0, 0), (1, 1, 1, 0, 0, 0, 0))",
+          "gradient": {
+            "colors": [
+              {
+                "time": 0,
+                "color": [
+                  1,
+                  1,
+                  1,
+                  0.65
+                ],
+                "midpoint": 0.5
+              },
+              {
+                "time": 0.47,
+                "color": [
+                  1,
+                  1,
+                  1,
+                  0.65
+                ],
+                "midpoint": 0.5
+              },
+              {
+                "time": 0.5,
+                "color": [
+                  1,
+                  1,
+                  1,
+                  0
+                ],
+                "midpoint": 0.5
+              },
+              {
+                "time": 1,
+                "color": [
+                  1,
+                  1,
+                  1,
+                  0
+                ],
+                "midpoint": 0.5
+              }
+            ],
+            "alphas": [
+              {
+                "time": 0,
+                "alpha": 0.65,
+                "midpoint": 0.5
+              },
+              {
+                "time": 0.47,
+                "alpha": 0.65,
+                "midpoint": 0.5
+              },
+              {
+                "time": 0.5,
+                "alpha": 0,
+                "midpoint": 0.5
+              },
+              {
+                "time": 1,
+                "alpha": 0,
+                "midpoint": 0.5
+              }
+            ],
+            "mode": "Linear",
+            "wrapMode": "Clamp",
+            "smoothness": 1,
+            "colorSpace": "Gamma"
+          },
+          "cellColor": "Random",
+          "colorBlend": "Multiply",
+          "seed": 317,
+          "variation": 1,
+          "palette": {
+            "colors": [
+              {
+                "time": 0,
+                "color": [
+                  0.035,
+                  0.09,
+                  0.1,
+                  1
+                ],
+                "midpoint": 0.5
+              },
+              {
+                "time": 0.48,
+                "color": [
+                  0.16,
+                  0.4,
+                  0.35,
+                  1
+                ],
+                "midpoint": 0.5
+              },
+              {
+                "time": 0.8,
+                "color": [
+                  1,
+                  0.86,
+                  0.64,
+                  1
+                ],
+                "midpoint": 0.5
+              },
+              {
+                "time": 1,
+                "color": [
+                  0.96,
+                  0.41,
+                  0.25,
+                  1
+                ],
+                "midpoint": 0.5
+              }
+            ],
+            "alphas": [
+              {
+                "time": 0,
+                "alpha": 1,
+                "midpoint": 0.5
+              },
+              {
+                "time": 0.48,
+                "alpha": 1,
+                "midpoint": 0.5
+              },
+              {
+                "time": 0.8,
+                "alpha": 1,
+                "midpoint": 0.5
+              },
+              {
+                "time": 1,
+                "alpha": 1,
+                "midpoint": 0.5
+              }
+            ],
+            "mode": "Linear",
+            "wrapMode": "Clamp",
+            "smoothness": 1,
+            "colorSpace": "Gamma"
+          }
+        }
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Mineral Chip Distribution",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Mineral Chip Distribution\n// @param float _Density = 0.23 [0 .. 1]\n\nfloat4 ApplyFX(float2 uv,float4 color){\n float2 cell=floor(uv*79);float h=frac(sin(dot(cell,float2(19.7,93.1)))*43758.5);\n color.a*=step(1-_Density,h);return color;}\n"
+        }
+      ]
+    },
+    {
+      "id": "layer-03",
+      "type": "shaderProcessor",
+      "name": "Color Finish",
+      "properties": {
+        "colorRange": "HDR",
+        "blendRange": "HDR"
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Clip",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Brightness Contrast",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Brightness Contrast\n// @control(_Opacity)\n// @group\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original colors and the adjusted result.\n// @param float _Brightness = 5 [~-100 .. ~100] // Adjust midtone brightness while retaining black and white. Soft bounds allow stronger values.\n// @param float _Contrast = 12 [~-100 .. ~100] // Positive increases tonal separation; negative brings tones toward middle gray. Soft bounds allow stronger values.\n// @endgroup\n\n\n// Rational tone curves avoid hard clipping and exponential overflow at extended settings.\n// Work in the incoming RGB space, retaining signed/HDR values outside the tonal interval.\nfloat AdjustTone(float value, float brightnessGain, float contrastGain)\n{\n    if (value <= 0.0 || value >= 1.0) return value;\n    float low = value;\n    float high = 1.0 - value;\n    if (_Brightness >= 0.0) high /= brightnessGain;\n    else low /= brightnessGain;\n    // Carry the unnormalized pair into contrast: normalizing brightness first loses\n    // the highlight distance to rounding, which extreme negative contrast amplifies.\n    float nearEdge = 2.0 * min(low, high);\n    float nearMiddle = abs(high - low);\n    if (_Contrast >= 0.0) nearEdge /= contrastGain;\n    else nearMiddle /= contrastGain;\n    float mapped = 0.5 * (nearEdge / (nearEdge + nearMiddle));\n    return low <= high ? mapped : 1.0 - mapped;\n}\n\nfloat4 ApplyFX(float2 uv, float4 color)\n{\n    if (_Brightness == 0.0 && _Contrast == 0.0) return color;\n    float brightnessGain = 1.0 + abs(_Brightness) / 50.0;\n    float contrastGain = 1.0 + abs(_Contrast) / 50.0;\n\tfloat4 result = color;\n\tresult.rgb = float3(AdjustTone(color.r, brightnessGain, contrastGain),\n        AdjustTone(color.g, brightnessGain, contrastGain),\n        AdjustTone(color.b, brightnessGain, contrastGain));\n\treturn lerp(color, result, _Opacity);\n}\n"
+        }
+      ]
+    },
+    {
+      "id": "layer-04",
+      "type": "noise",
+      "name": "Glaze Texture",
+      "properties": {
+        "opacity": 0.16,
+        "blend": "SoftLight",
+        "noise": {
+          "noiseType": "OpenSimplex2",
+          "seed": 329,
+          "whiteNoiseColor": "Monochrome",
+          "whiteNoiseSize": 1,
+          "dimensions": "TwoD",
+          "direction": 0,
+          "scale": 64,
+          "offset": [
+            0,
+            0
+          ],
+          "fractal": "FBm",
+          "octaves": 2,
+          "lacunarity": 2,
+          "gain": 0.5,
+          "weightedStrength": 0,
+          "pingPongStrength": 2,
+          "cellularDistance": "EuclideanSquared",
+          "cellularReturn": "Distance",
+          "cellularJitter": 1,
+          "warp": "None",
+          "warpStrength": 0,
+          "encoding": "LinearData",
+          "inverted": false
+        }
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      }
+    },
+    {
+      "id": "layer-05",
+      "type": "color",
+      "name": "Triangle Tiles",
+      "properties": {
+        "color": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "fillMode": "Pattern",
+        "fillPattern": {
+          "shape": "Triangles",
+          "circleLayout": "Dense",
+          "size": [
+            24,
+            24
+          ],
+          "linkSize": true,
+          "rotation": 0,
+          "offset": [
+            0,
+            0
+          ],
+          "seamless": true,
+          "gap": 0.055,
+          "roundness": 0.12,
+          "bulge": 0.28,
+          "distanceRange": 0.28,
+          "position": "Signed",
+          "inverted": false,
+          "profile": "keys((0, 0, 0, 1, 0, 0, 0), (1, 1, 1, 0, 0, 0, 0))",
+          "gradient": {
+            "colors": [
+              {
+                "time": 0,
+                "color": [
+                  1,
+                  1,
+                  1,
+                  1
+                ],
+                "midpoint": 0.5
+              },
+              {
+                "time": 0.35,
+                "color": [
+                  0.97,
+                  0.97,
+                  0.97,
+                  1
+                ],
+                "midpoint": 0.5
+              },
+              {
+                "time": 0.49,
+                "color": [
+                  0.65,
+                  0.65,
+                  0.65,
+                  1
+                ],
+                "midpoint": 0.5
+              },
+              {
+                "time": 0.53,
+                "color": [
+                  0.16,
+                  0.16,
+                  0.16,
+                  1
+                ],
+                "midpoint": 0.5
+              },
+              {
+                "time": 1,
+                "color": [
+                  0.12,
+                  0.12,
+                  0.12,
+                  1
+                ],
+                "midpoint": 0.5
+              }
+            ],
+            "alphas": [
+              {
+                "time": 0,
+                "alpha": 1,
+                "midpoint": 0.5
+              },
+              {
+                "time": 0.35,
+                "alpha": 1,
+                "midpoint": 0.5
+              },
+              {
+                "time": 0.49,
+                "alpha": 1,
+                "midpoint": 0.5
+              },
+              {
+                "time": 0.53,
+                "alpha": 1,
+                "midpoint": 0.5
+              },
+              {
+                "time": 1,
+                "alpha": 1,
+                "midpoint": 0.5
+              }
+            ],
+            "mode": "Linear",
+            "wrapMode": "Clamp",
+            "smoothness": 1,
+            "colorSpace": "Gamma"
+          },
+          "cellColor": "Random",
+          "colorBlend": "Multiply",
+          "seed": 127,
+          "variation": 1,
+          "palette": {
+            "colors": [
+              {
+                "time": 0,
+                "color": [
+                  0.1,
+                  0.3,
+                  0.32,
+                  1
+                ],
+                "midpoint": 0.5
+              },
+              {
+                "time": 0.3,
+                "color": [
+                  0.24,
+                  0.52,
+                  0.51,
+                  1
+                ],
+                "midpoint": 0.5
+              },
+              {
+                "time": 0.55,
+                "color": [
+                  0.89,
+                  0.8,
+                  0.59,
+                  1
+                ],
+                "midpoint": 0.5
+              },
+              {
+                "time": 0.75,
+                "color": [
+                  0.88,
+                  0.4,
+                  0.25,
+                  1
+                ],
+                "midpoint": 0.5
+              },
+              {
+                "time": 1,
+                "color": [
+                  0.34,
+                  0.12,
+                  0.13,
+                  1
+                ],
+                "midpoint": 0.5
+              }
+            ],
+            "alphas": [
+              {
+                "time": 0,
+                "alpha": 1,
+                "midpoint": 0.5
+              },
+              {
+                "time": 0.3,
+                "alpha": 1,
+                "midpoint": 0.5
+              },
+              {
+                "time": 0.55,
+                "alpha": 1,
+                "midpoint": 0.5
+              },
+              {
+                "time": 0.75,
+                "alpha": 1,
+                "midpoint": 0.5
+              },
+              {
+                "time": 1,
+                "alpha": 1,
+                "midpoint": 0.5
+              }
+            ],
+            "mode": "Linear",
+            "wrapMode": "Clamp",
+            "smoothness": 1,
+            "colorSpace": "Gamma"
+          }
+        }
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      }
+    }
+  ]
+}

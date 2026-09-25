@@ -1,0 +1,683 @@
+{
+  "format": "whimtex.layers",
+  "version": 1,
+  "canvas": {
+    "width": 256,
+    "height": 256,
+    "filter": "Bilinear"
+  },
+  "layers": [
+    {
+      "id": "layer-01",
+      "type": "noise",
+      "name": "Smoke Lobe 11",
+      "properties": {
+        "noise": {
+          "noiseType": "OpenSimplex2S",
+          "seed": 1880,
+          "whiteNoiseColor": "Monochrome",
+          "whiteNoiseSize": 1,
+          "dimensions": "TwoD",
+          "direction": 0,
+          "scale": 12,
+          "offset": [
+            0,
+            0
+          ],
+          "fractal": "FBm",
+          "octaves": 4,
+          "lacunarity": 2,
+          "gain": 0.5,
+          "weightedStrength": 0,
+          "pingPongStrength": 2,
+          "cellularDistance": "EuclideanSquared",
+          "cellularReturn": "Distance",
+          "cellularJitter": 1,
+          "warp": "OpenSimplex2Reduced",
+          "warpStrength": 0.3,
+          "encoding": "LinearData",
+          "inverted": false
+        }
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Unlit Smoke Density",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Unlit Smoke Density\n// @control(_Opacity)\n// @param hidden float _Opacity = 0.86 [0 .. 1]\n// @param point _Center = (0.38, 0.32)\n// @param float _Radius = 0.105 [0.02 .. 0.4]\n// @param float _Detail = 0.32 [0 .. 1]\n// @param float _Softness = 0.75 [0.1 .. 1]\n\nfloat4 ApplyFX(float2 uv,float4 color){\n    float n=saturate(color.r);\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\n    float2 p=(uv-_Center)/_Radius;\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\n    float r=length(q);\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\n    return float4(1,1,1,saturate(alpha));\n}\n"
+        }
+      ]
+    },
+    {
+      "id": "layer-02",
+      "type": "noise",
+      "name": "Smoke Lobe 10",
+      "properties": {
+        "noise": {
+          "noiseType": "OpenSimplex2S",
+          "seed": 1707,
+          "whiteNoiseColor": "Monochrome",
+          "whiteNoiseSize": 1,
+          "dimensions": "TwoD",
+          "direction": 0,
+          "scale": 12,
+          "offset": [
+            0,
+            0
+          ],
+          "fractal": "FBm",
+          "octaves": 4,
+          "lacunarity": 2,
+          "gain": 0.5,
+          "weightedStrength": 0,
+          "pingPongStrength": 2,
+          "cellularDistance": "EuclideanSquared",
+          "cellularReturn": "Distance",
+          "cellularJitter": 1,
+          "warp": "OpenSimplex2Reduced",
+          "warpStrength": 0.3,
+          "encoding": "LinearData",
+          "inverted": false
+        }
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Unlit Smoke Density",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Unlit Smoke Density\n// @control(_Opacity)\n// @param hidden float _Opacity = 0.86 [0 .. 1]\n// @param point _Center = (0.45, 0.64)\n// @param float _Radius = 0.08 [0.02 .. 0.4]\n// @param float _Detail = 0.32 [0 .. 1]\n// @param float _Softness = 0.75 [0.1 .. 1]\n\nfloat4 ApplyFX(float2 uv,float4 color){\n    float n=saturate(color.r);\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\n    float2 p=(uv-_Center)/_Radius;\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\n    float r=length(q);\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\n    return float4(1,1,1,saturate(alpha));\n}\n"
+        }
+      ]
+    },
+    {
+      "id": "layer-03",
+      "type": "noise",
+      "name": "Smoke Lobe 09",
+      "properties": {
+        "noise": {
+          "noiseType": "OpenSimplex2S",
+          "seed": 1534,
+          "whiteNoiseColor": "Monochrome",
+          "whiteNoiseSize": 1,
+          "dimensions": "TwoD",
+          "direction": 0,
+          "scale": 12,
+          "offset": [
+            0,
+            0
+          ],
+          "fractal": "FBm",
+          "octaves": 4,
+          "lacunarity": 2,
+          "gain": 0.5,
+          "weightedStrength": 0,
+          "pingPongStrength": 2,
+          "cellularDistance": "EuclideanSquared",
+          "cellularReturn": "Distance",
+          "cellularJitter": 1,
+          "warp": "OpenSimplex2Reduced",
+          "warpStrength": 0.3,
+          "encoding": "LinearData",
+          "inverted": false
+        }
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Unlit Smoke Density",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Unlit Smoke Density\n// @control(_Opacity)\n// @param hidden float _Opacity = 0.86 [0 .. 1]\n// @param point _Center = (0.62, 0.57)\n// @param float _Radius = 0.115 [0.02 .. 0.4]\n// @param float _Detail = 0.32 [0 .. 1]\n// @param float _Softness = 0.75 [0.1 .. 1]\n\nfloat4 ApplyFX(float2 uv,float4 color){\n    float n=saturate(color.r);\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\n    float2 p=(uv-_Center)/_Radius;\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\n    float r=length(q);\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\n    return float4(1,1,1,saturate(alpha));\n}\n"
+        }
+      ]
+    },
+    {
+      "id": "layer-04",
+      "type": "noise",
+      "name": "Smoke Lobe 08",
+      "properties": {
+        "noise": {
+          "noiseType": "OpenSimplex2S",
+          "seed": 1361,
+          "whiteNoiseColor": "Monochrome",
+          "whiteNoiseSize": 1,
+          "dimensions": "TwoD",
+          "direction": 0,
+          "scale": 12,
+          "offset": [
+            0,
+            0
+          ],
+          "fractal": "FBm",
+          "octaves": 4,
+          "lacunarity": 2,
+          "gain": 0.5,
+          "weightedStrength": 0,
+          "pingPongStrength": 2,
+          "cellularDistance": "EuclideanSquared",
+          "cellularReturn": "Distance",
+          "cellularJitter": 1,
+          "warp": "OpenSimplex2Reduced",
+          "warpStrength": 0.3,
+          "encoding": "LinearData",
+          "inverted": false
+        }
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Unlit Smoke Density",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Unlit Smoke Density\n// @control(_Opacity)\n// @param hidden float _Opacity = 0.86 [0 .. 1]\n// @param point _Center = (0.54, 0.3)\n// @param float _Radius = 0.1 [0.02 .. 0.4]\n// @param float _Detail = 0.32 [0 .. 1]\n// @param float _Softness = 0.75 [0.1 .. 1]\n\nfloat4 ApplyFX(float2 uv,float4 color){\n    float n=saturate(color.r);\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\n    float2 p=(uv-_Center)/_Radius;\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\n    float r=length(q);\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\n    return float4(1,1,1,saturate(alpha));\n}\n"
+        }
+      ]
+    },
+    {
+      "id": "layer-05",
+      "type": "noise",
+      "name": "Smoke Lobe 07",
+      "properties": {
+        "noise": {
+          "noiseType": "OpenSimplex2S",
+          "seed": 1188,
+          "whiteNoiseColor": "Monochrome",
+          "whiteNoiseSize": 1,
+          "dimensions": "TwoD",
+          "direction": 0,
+          "scale": 12,
+          "offset": [
+            0,
+            0
+          ],
+          "fractal": "FBm",
+          "octaves": 4,
+          "lacunarity": 2,
+          "gain": 0.5,
+          "weightedStrength": 0,
+          "pingPongStrength": 2,
+          "cellularDistance": "EuclideanSquared",
+          "cellularReturn": "Distance",
+          "cellularJitter": 1,
+          "warp": "OpenSimplex2Reduced",
+          "warpStrength": 0.3,
+          "encoding": "LinearData",
+          "inverted": false
+        }
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Unlit Smoke Density",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Unlit Smoke Density\n// @control(_Opacity)\n// @param hidden float _Opacity = 0.86 [0 .. 1]\n// @param point _Center = (0.29, 0.51)\n// @param float _Radius = 0.095 [0.02 .. 0.4]\n// @param float _Detail = 0.32 [0 .. 1]\n// @param float _Softness = 0.75 [0.1 .. 1]\n\nfloat4 ApplyFX(float2 uv,float4 color){\n    float n=saturate(color.r);\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\n    float2 p=(uv-_Center)/_Radius;\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\n    float r=length(q);\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\n    return float4(1,1,1,saturate(alpha));\n}\n"
+        }
+      ]
+    },
+    {
+      "id": "layer-06",
+      "type": "noise",
+      "name": "Smoke Lobe 06",
+      "properties": {
+        "noise": {
+          "noiseType": "OpenSimplex2S",
+          "seed": 1015,
+          "whiteNoiseColor": "Monochrome",
+          "whiteNoiseSize": 1,
+          "dimensions": "TwoD",
+          "direction": 0,
+          "scale": 12,
+          "offset": [
+            0,
+            0
+          ],
+          "fractal": "FBm",
+          "octaves": 4,
+          "lacunarity": 2,
+          "gain": 0.5,
+          "weightedStrength": 0,
+          "pingPongStrength": 2,
+          "cellularDistance": "EuclideanSquared",
+          "cellularReturn": "Distance",
+          "cellularJitter": 1,
+          "warp": "OpenSimplex2Reduced",
+          "warpStrength": 0.3,
+          "encoding": "LinearData",
+          "inverted": false
+        }
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Unlit Smoke Density",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Unlit Smoke Density\n// @control(_Opacity)\n// @param hidden float _Opacity = 0.86 [0 .. 1]\n// @param point _Center = (0.47, 0.51)\n// @param float _Radius = 0.14 [0.02 .. 0.4]\n// @param float _Detail = 0.32 [0 .. 1]\n// @param float _Softness = 0.75 [0.1 .. 1]\n\nfloat4 ApplyFX(float2 uv,float4 color){\n    float n=saturate(color.r);\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\n    float2 p=(uv-_Center)/_Radius;\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\n    float r=length(q);\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\n    return float4(1,1,1,saturate(alpha));\n}\n"
+        }
+      ]
+    },
+    {
+      "id": "layer-07",
+      "type": "noise",
+      "name": "Smoke Lobe 05",
+      "properties": {
+        "noise": {
+          "noiseType": "OpenSimplex2S",
+          "seed": 842,
+          "whiteNoiseColor": "Monochrome",
+          "whiteNoiseSize": 1,
+          "dimensions": "TwoD",
+          "direction": 0,
+          "scale": 12,
+          "offset": [
+            0,
+            0
+          ],
+          "fractal": "FBm",
+          "octaves": 4,
+          "lacunarity": 2,
+          "gain": 0.5,
+          "weightedStrength": 0,
+          "pingPongStrength": 2,
+          "cellularDistance": "EuclideanSquared",
+          "cellularReturn": "Distance",
+          "cellularJitter": 1,
+          "warp": "OpenSimplex2Reduced",
+          "warpStrength": 0.3,
+          "encoding": "LinearData",
+          "inverted": false
+        }
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Unlit Smoke Density",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Unlit Smoke Density\n// @control(_Opacity)\n// @param hidden float _Opacity = 0.86 [0 .. 1]\n// @param point _Center = (0.34, 0.64)\n// @param float _Radius = 0.14 [0.02 .. 0.4]\n// @param float _Detail = 0.32 [0 .. 1]\n// @param float _Softness = 0.75 [0.1 .. 1]\n\nfloat4 ApplyFX(float2 uv,float4 color){\n    float n=saturate(color.r);\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\n    float2 p=(uv-_Center)/_Radius;\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\n    float r=length(q);\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\n    return float4(1,1,1,saturate(alpha));\n}\n"
+        }
+      ]
+    },
+    {
+      "id": "layer-08",
+      "type": "noise",
+      "name": "Smoke Lobe 04",
+      "properties": {
+        "noise": {
+          "noiseType": "OpenSimplex2S",
+          "seed": 669,
+          "whiteNoiseColor": "Monochrome",
+          "whiteNoiseSize": 1,
+          "dimensions": "TwoD",
+          "direction": 0,
+          "scale": 12,
+          "offset": [
+            0,
+            0
+          ],
+          "fractal": "FBm",
+          "octaves": 4,
+          "lacunarity": 2,
+          "gain": 0.5,
+          "weightedStrength": 0,
+          "pingPongStrength": 2,
+          "cellularDistance": "EuclideanSquared",
+          "cellularReturn": "Distance",
+          "cellularJitter": 1,
+          "warp": "OpenSimplex2Reduced",
+          "warpStrength": 0.3,
+          "encoding": "LinearData",
+          "inverted": false
+        }
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Unlit Smoke Density",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Unlit Smoke Density\n// @control(_Opacity)\n// @param hidden float _Opacity = 0.86 [0 .. 1]\n// @param point _Center = (0.52, 0.72)\n// @param float _Radius = 0.135 [0.02 .. 0.4]\n// @param float _Detail = 0.32 [0 .. 1]\n// @param float _Softness = 0.75 [0.1 .. 1]\n\nfloat4 ApplyFX(float2 uv,float4 color){\n    float n=saturate(color.r);\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\n    float2 p=(uv-_Center)/_Radius;\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\n    float r=length(q);\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\n    return float4(1,1,1,saturate(alpha));\n}\n"
+        }
+      ]
+    },
+    {
+      "id": "layer-09",
+      "type": "noise",
+      "name": "Smoke Lobe 03",
+      "properties": {
+        "noise": {
+          "noiseType": "OpenSimplex2S",
+          "seed": 496,
+          "whiteNoiseColor": "Monochrome",
+          "whiteNoiseSize": 1,
+          "dimensions": "TwoD",
+          "direction": 0,
+          "scale": 12,
+          "offset": [
+            0,
+            0
+          ],
+          "fractal": "FBm",
+          "octaves": 4,
+          "lacunarity": 2,
+          "gain": 0.5,
+          "weightedStrength": 0,
+          "pingPongStrength": 2,
+          "cellularDistance": "EuclideanSquared",
+          "cellularReturn": "Distance",
+          "cellularJitter": 1,
+          "warp": "OpenSimplex2Reduced",
+          "warpStrength": 0.3,
+          "encoding": "LinearData",
+          "inverted": false
+        }
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Unlit Smoke Density",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Unlit Smoke Density\n// @control(_Opacity)\n// @param hidden float _Opacity = 0.86 [0 .. 1]\n// @param point _Center = (0.71, 0.55)\n// @param float _Radius = 0.125 [0.02 .. 0.4]\n// @param float _Detail = 0.32 [0 .. 1]\n// @param float _Softness = 0.75 [0.1 .. 1]\n\nfloat4 ApplyFX(float2 uv,float4 color){\n    float n=saturate(color.r);\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\n    float2 p=(uv-_Center)/_Radius;\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\n    float r=length(q);\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\n    return float4(1,1,1,saturate(alpha));\n}\n"
+        }
+      ]
+    },
+    {
+      "id": "layer-10",
+      "type": "noise",
+      "name": "Smoke Lobe 02",
+      "properties": {
+        "noise": {
+          "noiseType": "OpenSimplex2S",
+          "seed": 323,
+          "whiteNoiseColor": "Monochrome",
+          "whiteNoiseSize": 1,
+          "dimensions": "TwoD",
+          "direction": 0,
+          "scale": 12,
+          "offset": [
+            0,
+            0
+          ],
+          "fractal": "FBm",
+          "octaves": 4,
+          "lacunarity": 2,
+          "gain": 0.5,
+          "weightedStrength": 0,
+          "pingPongStrength": 2,
+          "cellularDistance": "EuclideanSquared",
+          "cellularReturn": "Distance",
+          "cellularJitter": 1,
+          "warp": "OpenSimplex2Reduced",
+          "warpStrength": 0.3,
+          "encoding": "LinearData",
+          "inverted": false
+        }
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Unlit Smoke Density",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Unlit Smoke Density\n// @control(_Opacity)\n// @param hidden float _Opacity = 0.86 [0 .. 1]\n// @param point _Center = (0.63, 0.39)\n// @param float _Radius = 0.145 [0.02 .. 0.4]\n// @param float _Detail = 0.32 [0 .. 1]\n// @param float _Softness = 0.75 [0.1 .. 1]\n\nfloat4 ApplyFX(float2 uv,float4 color){\n    float n=saturate(color.r);\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\n    float2 p=(uv-_Center)/_Radius;\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\n    float r=length(q);\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\n    return float4(1,1,1,saturate(alpha));\n}\n"
+        }
+      ]
+    },
+    {
+      "id": "layer-11",
+      "type": "noise",
+      "name": "Smoke Lobe 01",
+      "properties": {
+        "noise": {
+          "noiseType": "OpenSimplex2S",
+          "seed": 150,
+          "whiteNoiseColor": "Monochrome",
+          "whiteNoiseSize": 1,
+          "dimensions": "TwoD",
+          "direction": 0,
+          "scale": 12,
+          "offset": [
+            0,
+            0
+          ],
+          "fractal": "FBm",
+          "octaves": 4,
+          "lacunarity": 2,
+          "gain": 0.5,
+          "weightedStrength": 0,
+          "pingPongStrength": 2,
+          "cellularDistance": "EuclideanSquared",
+          "cellularReturn": "Distance",
+          "cellularJitter": 1,
+          "warp": "OpenSimplex2Reduced",
+          "warpStrength": 0.3,
+          "encoding": "LinearData",
+          "inverted": false
+        }
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Unlit Smoke Density",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Unlit Smoke Density\n// @control(_Opacity)\n// @param hidden float _Opacity = 0.86 [0 .. 1]\n// @param point _Center = (0.32, 0.42)\n// @param float _Radius = 0.135 [0.02 .. 0.4]\n// @param float _Detail = 0.32 [0 .. 1]\n// @param float _Softness = 0.75 [0.1 .. 1]\n\nfloat4 ApplyFX(float2 uv,float4 color){\n    float n=saturate(color.r);\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\n    float2 p=(uv-_Center)/_Radius;\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\n    float r=length(q);\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\n    return float4(1,1,1,saturate(alpha));\n}\n"
+        }
+      ]
+    },
+    {
+      "id": "layer-12",
+      "type": "noise",
+      "name": "Base Mist",
+      "properties": {
+        "noise": {
+          "noiseType": "OpenSimplex2S",
+          "seed": 467,
+          "whiteNoiseColor": "Monochrome",
+          "whiteNoiseSize": 1,
+          "dimensions": "TwoD",
+          "direction": 0,
+          "scale": 8,
+          "offset": [
+            0,
+            0
+          ],
+          "fractal": "FBm",
+          "octaves": 4,
+          "lacunarity": 2,
+          "gain": 0.5,
+          "weightedStrength": 0,
+          "pingPongStrength": 2,
+          "cellularDistance": "EuclideanSquared",
+          "cellularReturn": "Distance",
+          "cellularJitter": 1,
+          "warp": "OpenSimplex2Reduced",
+          "warpStrength": 0.3,
+          "encoding": "LinearData",
+          "inverted": false
+        }
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Unlit Smoke Density",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Unlit Smoke Density\n// @control(_Opacity)\n// @param hidden float _Opacity = 0.12 [0 .. 1]\n// @param point _Center = (0.5, 0.49)\n// @param float _Radius = 0.33 [0.02 .. 0.4]\n// @param float _Detail = 0.25 [0 .. 1]\n// @param float _Softness = 0.75 [0.1 .. 1]\n\nfloat4 ApplyFX(float2 uv,float4 color){\n    float n=saturate(color.r);\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\n    float2 p=(uv-_Center)/_Radius;\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\n    float r=length(q);\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\n    return float4(1,1,1,saturate(alpha));\n}\n"
+        }
+      ]
+    }
+  ]
+}

@@ -17,6 +17,11 @@ Read the [example index](Documentation~/Examples/Clipboard/README.md), then open
 for editable shapes, noise or VFX, choose a recipe from the index.
 Do not use the live-agent examples in the parent folder for Ctrl+V.
 
+For more involved VFX and surfaces, use the [internal texture samples](Samples~/AgentTextures/README.md).
+`Samples~/AgentTextures/manifest.json` indexes twelve 256×256 editable TIFFs, matching clipboard recipes
+and previews. Read only the examples relevant to the task. The folder is a package reference library,
+not an automatically imported editor preset collection.
+
 - [JSON Schema](Documentation~/AI/layers.schema.json)
 - [Complete JSON examples for AI authors](Documentation~/Examples/Clipboard/README.md): neon ring, car wheel, lightning, heart and more.
 - [Artist workflow: English](Documentation~/en/ai-authoring.md) · [Русский](Documentation~/ru/ai-authoring.md) · [简体中文](Documentation~/zh/ai-authoring.md)

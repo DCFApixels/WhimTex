@@ -162,6 +162,8 @@ when you want to paint on the combined result.
 
 Select layers and choose **Copy as Portable** from their context menu. Send the JSON as text or a `.json` file; the recipient copies its contents and presses **Ctrl+V** in WhimTex. Ordinary Ctrl+C is unchanged.
 
+The exported JSON omits settings that match a new layer's defaults, empty settings blocks and unused layer IDs. Names, custom values and required references remain; formatting stays readable. Gradient stops, transparency and non-default interpolation settings are preserved.
+
 Procedural layers, groups, transforms and self-contained HLSL FX keep their settings. Include source layers used by Target, FX textures and clipping masks. Raster pixels are not embedded. Drawing uses its original URL until its pixels are edited; otherwise it is copied as an empty layer with a warning. Transforms and FX keep the URL usable. File keeps its asset GUID and local ID: the same asset and `.meta` file must exist in the receiving project. If unavailable, it is pasted empty with a warning. Empty layers retain settings and references. Opening a saved document remains offline, but pasting linked Drawing JSON downloads the image again. Check links before sharing: they can expire, change, or contain private access tokens. Unsupported dependencies still stop copying with an explanation.
 
 Custom HLSL includes are expanded when copying; helper functions and their calls remain separate. Built-in UnityCG, WhimTex noise and dithering libraries remain references. The limit is 64 KiB per FX and 8 include levels; missing, cyclic or oversized dependencies stop copying.

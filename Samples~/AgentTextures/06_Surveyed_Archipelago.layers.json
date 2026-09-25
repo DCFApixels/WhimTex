@@ -1,0 +1,375 @@
+{
+  "format": "whimtex.layers",
+  "version": 1,
+  "canvas": {
+    "width": 256,
+    "height": 256,
+    "filter": "Bilinear"
+  },
+  "layers": [
+    {
+      "id": "layer-01",
+      "type": "color",
+      "name": "Survey Routes",
+      "properties": {
+        "color": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "fillMode": "Color"
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Survey Routes",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Survey Routes\n// @control(_Opacity)\n// @param hidden float _Opacity = 0.8 [0 .. 1]\n// @param color _Tint = (1, 0.9019608, 0.7058824, 1)\n\nfloat4 ApplyFX(float2 uv,float4 color){\n float path=.5+.17*sin(uv.x*8)+.055*sin(uv.x*23);\n float dash=step(.35,frac(uv.x*65));float route=exp(-abs(uv.y-path)*850)*dash;\n float marks=0;\n for(int i=0;i<4;i++){float x=.17+i*.21;float y=.5+.17*sin(x*8)+.055*sin(x*23);\n float2 p=uv-float2(x,y);float r=length(p);marks+=exp(-abs(r-.009)*1300)+exp(-r*900);\n marks+=(1-smoothstep(.0008,.002,abs(p.x)))*step(abs(p.y),.019)+(1-smoothstep(.0008,.002,abs(p.y)))*step(abs(p.x),.019);}\n return float4(_Tint.rgb,saturate(route+marks)*_Opacity);}\n"
+        }
+      ]
+    },
+    {
+      "id": "layer-02",
+      "type": "color",
+      "name": "Map Grid",
+      "properties": {
+        "color": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "fillMode": "Color"
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Survey Grid",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Survey Grid\n// @control(_Opacity)\n// @param hidden float _Opacity = 0.25 [0 .. 1]\n// @param float _Grid = 8 [2 .. 32]\n\nfloat4 ApplyFX(float2 uv,float4 color){\n float2 p=abs(frac(uv*_Grid+.5)-.5);float grid=1-smoothstep(.006,.015,min(p.x,p.y));\n float cross=(1-smoothstep(.01,.02,p.x))*step(p.y,.07)+(1-smoothstep(.01,.02,p.y))*step(p.x,.07);\n float frame=1-smoothstep(.0015,.003,min(abs(uv.x-.035),min(abs(uv.x-.965),min(abs(uv.y-.035),abs(uv.y-.965)))));\n return float4(.68,.83,.73,saturate(grid*.35+cross+frame*.6)*_Opacity);}\n"
+        }
+      ]
+    },
+    {
+      "id": "layer-03",
+      "type": "noise",
+      "name": "Paper Grain",
+      "properties": {
+        "opacity": 0.16,
+        "blend": "SoftLight",
+        "noise": {
+          "noiseType": "OpenSimplex2",
+          "seed": 31,
+          "whiteNoiseColor": "Monochrome",
+          "whiteNoiseSize": 1,
+          "dimensions": "TwoD",
+          "direction": 0,
+          "scale": 64,
+          "offset": [
+            0,
+            0
+          ],
+          "fractal": "FBm",
+          "octaves": 2,
+          "lacunarity": 2,
+          "gain": 0.5,
+          "weightedStrength": 0,
+          "pingPongStrength": 2,
+          "cellularDistance": "EuclideanSquared",
+          "cellularReturn": "Distance",
+          "cellularJitter": 1,
+          "warp": "None",
+          "warpStrength": 0,
+          "encoding": "LinearData",
+          "inverted": false
+        }
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      }
+    },
+    {
+      "id": "layer-04",
+      "type": "noise",
+      "name": "Contour Lines",
+      "properties": {
+        "noise": {
+          "noiseType": "OpenSimplex2",
+          "seed": 616,
+          "whiteNoiseColor": "Monochrome",
+          "whiteNoiseSize": 1,
+          "dimensions": "TwoD",
+          "direction": 0,
+          "scale": 2.5,
+          "offset": [
+            0,
+            0
+          ],
+          "fractal": "FBm",
+          "octaves": 3,
+          "lacunarity": 2,
+          "gain": 0.5,
+          "weightedStrength": 0,
+          "pingPongStrength": 2,
+          "cellularDistance": "EuclideanSquared",
+          "cellularReturn": "Distance",
+          "cellularJitter": 1,
+          "warp": "OpenSimplex2",
+          "warpStrength": 0.55,
+          "encoding": "LinearData",
+          "inverted": false
+        }
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Brightness Contrast",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Brightness Contrast\n// @control(_Opacity)\n// @group\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original colors and the adjusted result.\n// @param float _Brightness = 2 [~-100 .. ~100] // Adjust midtone brightness while retaining black and white. Soft bounds allow stronger values.\n// @param float _Contrast = 18 [~-100 .. ~100] // Positive increases tonal separation; negative brings tones toward middle gray. Soft bounds allow stronger values.\n// @endgroup\n\n\n// Rational tone curves avoid hard clipping and exponential overflow at extended settings.\n// Work in the incoming RGB space, retaining signed/HDR values outside the tonal interval.\nfloat AdjustTone(float value, float brightnessGain, float contrastGain)\n{\n    if (value <= 0.0 || value >= 1.0) return value;\n    float low = value;\n    float high = 1.0 - value;\n    if (_Brightness >= 0.0) high /= brightnessGain;\n    else low /= brightnessGain;\n    // Carry the unnormalized pair into contrast: normalizing brightness first loses\n    // the highlight distance to rounding, which extreme negative contrast amplifies.\n    float nearEdge = 2.0 * min(low, high);\n    float nearMiddle = abs(high - low);\n    if (_Contrast >= 0.0) nearEdge /= contrastGain;\n    else nearMiddle /= contrastGain;\n    float mapped = 0.5 * (nearEdge / (nearEdge + nearMiddle));\n    return low <= high ? mapped : 1.0 - mapped;\n}\n\nfloat4 ApplyFX(float2 uv, float4 color)\n{\n    if (_Brightness == 0.0 && _Contrast == 0.0) return color;\n    float brightnessGain = 1.0 + abs(_Brightness) / 50.0;\n    float contrastGain = 1.0 + abs(_Contrast) / 50.0;\n\tfloat4 result = color;\n\tresult.rgb = float3(AdjustTone(color.r, brightnessGain, contrastGain),\n        AdjustTone(color.g, brightnessGain, contrastGain),\n        AdjustTone(color.b, brightnessGain, contrastGain));\n\treturn lerp(color, result, _Opacity);\n}\n"
+        },
+        {
+          "name": "Topographic Lines",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Topographic Lines\n// @control(_Opacity)\n// @param hidden float _Opacity = 0.4 [0 .. 1]\n// @group(Contours)\n// @param float _Levels = 14 [2 .. 64]\n// @param float _Width = 0.025 [0.01 .. 0.3]\n// @param color _Ink = (1, 0.905882359, 0.7411765, 1)\n// @endgroup\n\nfloat4 ApplyFX(float2 uv,float4 color) {\n float value=color.r*_Levels;\n float dist=abs(frac(value+.5)-.5);\n float aa=max(fwidth(value),.002);\n float cover=1-smoothstep(_Width,_Width+aa,dist);\n return float4(_Ink.rgb,cover*_Opacity*_Ink.a);\n}\n"
+        }
+      ]
+    },
+    {
+      "id": "layer-05",
+      "type": "noise",
+      "name": "Terrain Colors",
+      "properties": {
+        "noise": {
+          "noiseType": "OpenSimplex2",
+          "seed": 616,
+          "whiteNoiseColor": "Monochrome",
+          "whiteNoiseSize": 1,
+          "dimensions": "TwoD",
+          "direction": 0,
+          "scale": 2.5,
+          "offset": [
+            0,
+            0
+          ],
+          "fractal": "FBm",
+          "octaves": 3,
+          "lacunarity": 2,
+          "gain": 0.5,
+          "weightedStrength": 0,
+          "pingPongStrength": 2,
+          "cellularDistance": "EuclideanSquared",
+          "cellularReturn": "Distance",
+          "cellularJitter": 1,
+          "warp": "OpenSimplex2",
+          "warpStrength": 0.55,
+          "encoding": "LinearData",
+          "inverted": false
+        }
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Brightness Contrast",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Brightness Contrast\n// @control(_Opacity)\n// @group\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original colors and the adjusted result.\n// @param float _Brightness = 2 [~-100 .. ~100] // Adjust midtone brightness while retaining black and white. Soft bounds allow stronger values.\n// @param float _Contrast = 18 [~-100 .. ~100] // Positive increases tonal separation; negative brings tones toward middle gray. Soft bounds allow stronger values.\n// @endgroup\n\n\n// Rational tone curves avoid hard clipping and exponential overflow at extended settings.\n// Work in the incoming RGB space, retaining signed/HDR values outside the tonal interval.\nfloat AdjustTone(float value, float brightnessGain, float contrastGain)\n{\n    if (value <= 0.0 || value >= 1.0) return value;\n    float low = value;\n    float high = 1.0 - value;\n    if (_Brightness >= 0.0) high /= brightnessGain;\n    else low /= brightnessGain;\n    // Carry the unnormalized pair into contrast: normalizing brightness first loses\n    // the highlight distance to rounding, which extreme negative contrast amplifies.\n    float nearEdge = 2.0 * min(low, high);\n    float nearMiddle = abs(high - low);\n    if (_Contrast >= 0.0) nearEdge /= contrastGain;\n    else nearMiddle /= contrastGain;\n    float mapped = 0.5 * (nearEdge / (nearEdge + nearMiddle));\n    return low <= high ? mapped : 1.0 - mapped;\n}\n\nfloat4 ApplyFX(float2 uv, float4 color)\n{\n    if (_Brightness == 0.0 && _Contrast == 0.0) return color;\n    float brightnessGain = 1.0 + abs(_Brightness) / 50.0;\n    float contrastGain = 1.0 + abs(_Contrast) / 50.0;\n\tfloat4 result = color;\n\tresult.rgb = float3(AdjustTone(color.r, brightnessGain, contrastGain),\n        AdjustTone(color.g, brightnessGain, contrastGain),\n        AdjustTone(color.b, brightnessGain, contrastGain));\n\treturn lerp(color, result, _Opacity);\n}\n"
+        },
+        {
+          "name": "Gradient Map",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Gradient Map\n// @control(_Opacity)\n// @group\n// @formerlyserializedas(_Amount)\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original colors and the gradient map.\n// @param gradient _Gradient = (0, 0, 0, 1) -> (1, 1, 1, 1) // Colors from shadows to highlights.\n// @param curve _Mapping = keys((0, 0, 0, 1, 0, 0, 0), (1, 1, 1, 0, 0, 0, 0)) // Remap brightness before sampling the gradient; the default is unchanged.\n// @param bool _Reverse = false // Map highlights to the beginning of the gradient instead of shadows.\n// @endgroup\n\n\n\n#ifndef WHIMTEX_HDR_COLOR_INCLUDED\n#define WHIMTEX_HDR_COLOR_INCLUDED\nfloat3 SpriteEncode(float3 color)\n{\n    float3 value = abs(color);\n    return sign(color) * lerp(value * 12.92, 1.055 * pow(value, 1.0 / 2.4) - .055, step(.0031308, value));\n}\nfloat3 SpriteDecode(float3 color)\n{\n    float3 value = abs(color);\n    return sign(color) * lerp(value / 12.92, pow((value + .055) / 1.055, 2.4), step(.04045, value));\n}\n#endif\n\n\nfloat4 ApplyFX(float2 uv, float4 color)\n{\n    float luminance = saturate(dot(max(color.rgb, 0.0), float3(0.2126, 0.7152, 0.0722)));\n    float brightness = SpriteEncode(float3(luminance, luminance, luminance)).r;\n    float t = _Reverse > 0.5 ? 1.0 - brightness : brightness;\n    float4 mapped = _Gradient_Sample(_Mapping_Sample(t));\n\treturn float4(lerp(color.rgb, mapped.rgb, saturate(_Opacity)), color.a);\n}\n",
+          "gradients": {
+            "_Gradient": {
+              "colors": [
+                {
+                  "time": 0,
+                  "color": [
+                    0.015,
+                    0.055,
+                    0.12,
+                    1
+                  ],
+                  "midpoint": 0.5
+                },
+                {
+                  "time": 0.34,
+                  "color": [
+                    0.035,
+                    0.25,
+                    0.32,
+                    1
+                  ],
+                  "midpoint": 0.5
+                },
+                {
+                  "time": 0.46,
+                  "color": [
+                    0.16,
+                    0.56,
+                    0.54,
+                    1
+                  ],
+                  "midpoint": 0.5
+                },
+                {
+                  "time": 0.51,
+                  "color": [
+                    0.84,
+                    0.78,
+                    0.5,
+                    1
+                  ],
+                  "midpoint": 0.5
+                },
+                {
+                  "time": 0.59,
+                  "color": [
+                    0.28,
+                    0.43,
+                    0.24,
+                    1
+                  ],
+                  "midpoint": 0.5
+                },
+                {
+                  "time": 0.76,
+                  "color": [
+                    0.44,
+                    0.28,
+                    0.2,
+                    1
+                  ],
+                  "midpoint": 0.5
+                },
+                {
+                  "time": 1,
+                  "color": [
+                    0.98,
+                    0.88,
+                    0.68,
+                    1
+                  ],
+                  "midpoint": 0.5
+                }
+              ],
+              "alphas": [
+                {
+                  "time": 0,
+                  "alpha": 1,
+                  "midpoint": 0.5
+                },
+                {
+                  "time": 0.34,
+                  "alpha": 1,
+                  "midpoint": 0.5
+                },
+                {
+                  "time": 0.46,
+                  "alpha": 1,
+                  "midpoint": 0.5
+                },
+                {
+                  "time": 0.51,
+                  "alpha": 1,
+                  "midpoint": 0.5
+                },
+                {
+                  "time": 0.59,
+                  "alpha": 1,
+                  "midpoint": 0.5
+                },
+                {
+                  "time": 0.76,
+                  "alpha": 1,
+                  "midpoint": 0.5
+                },
+                {
+                  "time": 1,
+                  "alpha": 1,
+                  "midpoint": 0.5
+                }
+              ],
+              "mode": "Classic",
+              "wrapMode": "Clamp",
+              "smoothness": 1,
+              "colorSpace": "Gamma"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

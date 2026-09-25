@@ -13,6 +13,12 @@ permalink: /reference/agentapi/
 For a browser AI without a Unity connection, use the separate [clipboard JSON/HLSL contract](AI/README.md).
 Clipboard paste does not execute the operations described on this page.
 
+The installed package also contains `Samples~/AgentTextures/manifest.json`: twelve numbered
+256×256 procedural reference textures with editable TIFFs, portable clipboard JSON and previews.
+Read that folder's README before reuse. Copy a TIFF into an authorized `Assets/` folder and import
+it before path-based editing; do not modify bundled references. The matching `.layers.json` files
+are clipboard envelopes, **not** requests for `ExecuteJson`.
+
 WhimTex is installed as `com.dcfapixels.whimtex`, its namespace is `DCFApixels.WhimTex` and its
 assemblies are `DCFApixels.WhimTex*` (previously `com.dcfa_pixels.sprite-editor` and
 `DCFApixels.SpriteEditor`). The 0.10.0 rename preserves documents from the preceding

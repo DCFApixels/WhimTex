@@ -320,9 +320,14 @@ namespace DCFApixels.WhimTex
             Collect(document.layers, false);
             var snapshots = new Dictionary<string, JObject>();
             foreach (JObject item in (JArray)Snapshot(document, "")["layers"]) snapshots[(string)item["id"]] = item;
+            // Use the same layer factory as paste, including per-type transforms and settings.
+            using var defaults = WhimTexDocumentBuild.Create(document.width, document.height);
+            var defaultLayers = new Dictionary<string, (JObject properties, JObject transform)>();
+            var referenced = new HashSet<string>();
             string Reference(string id, string label)
             {
                 Require(!string.IsNullOrEmpty(id) && included.Contains(id), label + ": include the referenced source layer in the selection.");
+                referenced.Add(id);
                 return id;
             }
             JObject Transform(TextureTransform t)
@@ -346,18 +351,36 @@ namespace DCFApixels.WhimTex
                 try
                 {
                     var snapshot = snapshots[layer.Id];
-                    var properties = (JObject)snapshot["settings"].DeepClone();
-                    properties.Remove("name"); properties.Remove("brush"); properties.Remove("source");
-                    if (layer.Behaviour is ColorFillLayerBehaviour fill) properties["fillMode"] = fill.mode.ToString();
-                    if (snapshot["gradientKeys"] != null) properties["gradient"] = snapshot["gradientKeys"].DeepClone();
-                    if (layer.Behaviour is GradientLayerBehaviour gradient)
-                        properties["gradientOptions"] = new JObject { ["type"] = gradient.gradientType.ToString(),
-                            ["repetitions"] = gradient.circularRepetitions, ["wrap"] = gradient.circularWrapMode.ToString() };
-                    var node = new JObject { ["id"] = layer.Id, ["type"] = TypeName(layer), ["name"] = layer.layerName,
-                        ["properties"] = properties, ["transform"] = Transform(root ? document.GetCanvasTransform(layer) : layer.transform) };
+                    string type = TypeName(layer);
+                    if (!defaultLayers.TryGetValue(type, out var baseline))
+                    {
+                        var fresh = LayerTypeRegistry.Find(type).CreateLayer();
+                        defaults.Document.layers.Clear(); defaults.Document.layers.Add(fresh);
+                        var freshSnapshot = (JObject)((JArray)Snapshot(defaults.Document, "")["layers"])[0];
+                        baseline = (PortableProperties(fresh, freshSnapshot), Transform(fresh.transform));
+                        defaultLayers.Add(type, baseline);
+                    }
+                    var properties = PortableProperties(layer, snapshot);
+                    RemovePortableDefaults(properties, baseline.properties,
+                        layer.Behaviour is SDFLayerBehaviour ? WhimTexGradientMode.Linear : WhimTexGradientMode.Classic);
+                    var transform = Transform(root ? document.GetCanvasTransform(layer) : layer.transform);
+                    RemovePortableDefaults(transform, baseline.transform);
+                    var node = new JObject { ["id"] = layer.Id, ["type"] = type, ["name"] = layer.layerName };
+                    if (properties.Count > 0) node["properties"] = properties;
+                    if (transform.Count > 0) node["transform"] = transform;
                     if (layer.Behaviour is DrawingLayerBehaviour drawing)
                     {
-                        if (!string.IsNullOrEmpty(drawing.PortableImageUrl)) node["url"] = drawing.PortableImageUrl;
+                        if (!string.IsNullOrEmpty(drawing.PortableImageUrl))
+                        {
+                            node["url"] = drawing.PortableImageUrl;
+                            // Missing scale/matrix means fit-to-source on URL paste, not identity.
+                            if (transform["matrix"] == null)
+                            {
+                                var t = root ? document.GetCanvasTransform(layer) : layer.transform;
+                                transform["scale"] = new JArray(t.scale.x, t.scale.y);
+                                node["transform"] = transform;
+                            }
+                        }
                         else
                         {
                             node["contentOmitted"] = true;
@@ -407,17 +430,26 @@ namespace DCFApixels.WhimTex
                         var fx = (ShaderFX)modifier;
                         Require(!fx.HasPendingChanges && !fx.LastApplyFailed, "Apply or fix pending shader changes before copying.");
                         var gradients = new JObject(); var textures = new JObject();
+                        string code = ShaderFXPresetWriter.BuildPortableSource(fx);
+                        var declarations = ShaderFXMetadata.Parse(code, false, out _);
                         foreach (var p in fx.Parameters)
                         {
-                            if (p.type == ShaderFXParameterType.Gradient) gradients[p.name] = GradientSnapshot(p.gradientValue);
+                            if (p.type == ShaderFXParameterType.Gradient)
+                            {
+                                var declaration = declarations.Find(value => value.name == p.name);
+                                var value = GradientSnapshot(p.gradientValue);
+                                if (!JToken.DeepEquals(value, GradientSnapshot(declaration?.gradientValue)))
+                                    gradients[p.name] = CompactPortableGradient(value, WhimTexGradientMode.Classic);
+                            }
                             if (p.type != ShaderFXParameterType.Texture2D) continue;
                             Require(p.textureSource != ShaderFXTextureSource.Texture || p.textureValue == null,
                                 "FX texture assets cannot be embedded; use a layer, Self or None.");
                             if (p.textureSource == ShaderFXTextureSource.Layer)
                                 textures[p.name] = new JObject { ["layer"] = Reference(p.textureLayerId, p.name) };
                         }
-                        var entry = new JObject { ["name"] = fx.name, ["enabled"] = fx.Active,
-                            ["code"] = ShaderFXPresetWriter.BuildPortableSource(fx) };
+                        var entry = new JObject { ["code"] = code };
+                        if (fx.name != layer.layerName + " FX") entry["name"] = fx.name;
+                        if (!fx.Active) entry["enabled"] = false;
                         if (gradients.Count > 0) entry["gradients"] = gradients;
                         if (textures.Count > 0) entry["textures"] = textures;
                         effects.Add(entry);
@@ -429,12 +461,70 @@ namespace DCFApixels.WhimTex
             }
             var layers = new JArray();
             foreach (var layer in roots) layers.Add(Write(layer, true));
+            void RemoveUnusedIds(JArray nodes)
+            {
+                foreach (JObject node in nodes)
+                {
+                    if (!referenced.Contains((string)node["id"])) node.Remove("id");
+                    if (node["children"] is JArray children) RemoveUnusedIds(children);
+                }
+            }
+            RemoveUnusedIds(layers);
             string text = new JObject { ["format"] = "whimtex.layers", ["version"] = 1,
                 ["canvas"] = new JObject { ["width"] = document.width, ["height"] = document.height, ["filter"] = document.outputFilter.ToString() },
                 ["layers"] = layers }.ToString();
             // Validate through the same parser as paste; never replace the clipboard with partial data.
             using (ReadProceduralClipboard(text, document.width, document.height)) { }
             return text;
+        }
+
+        private static JObject PortableProperties(Layer layer, JObject snapshot)
+        {
+            var properties = (JObject)snapshot["settings"].DeepClone();
+            properties.Remove("name"); properties.Remove("brush"); properties.Remove("source");
+            if (snapshot["gradientKeys"] != null) properties["gradient"] = snapshot["gradientKeys"].DeepClone();
+            if (layer.Behaviour is GradientLayerBehaviour gradient)
+                properties["gradientOptions"] = new JObject { ["type"] = gradient.gradientType.ToString(),
+                    ["repetitions"] = gradient.circularRepetitions, ["wrap"] = gradient.circularWrapMode.ToString() };
+            return properties;
+        }
+
+        // Settings objects merge into a fresh layer; arrays and gradients replace their entire value.
+        private static void RemovePortableDefaults(JObject value, JObject defaults,
+            WhimTexGradientMode gradientMode = WhimTexGradientMode.Classic)
+        {
+            foreach (var property in new List<JProperty>(value.Properties()))
+            {
+                var original = property.Value;
+                if (JToken.DeepEquals(original, defaults?[property.Name])) { property.Remove(); continue; }
+                if (!(original is JObject nested)) continue;
+                if (nested["colors"] != null)
+                    property.Value = CompactPortableGradient(nested, gradientMode);
+                else
+                {
+                    RemovePortableDefaults(nested, defaults?[property.Name] as JObject,
+                        property.Name == "fillPattern" ? WhimTexGradientMode.Linear : gradientMode);
+                    if (nested.Count == 0) property.Remove();
+                }
+            }
+        }
+
+        private static JToken CompactPortableGradient(JObject value, WhimTexGradientMode defaultMode)
+        {
+            var original = ReadGradient(value, defaultMode);
+            foreach (string key in new[] { "colors", "alphas" })
+                if (value[key] is JArray stops)
+                    foreach (JObject stop in stops)
+                        if ((float?)stop["midpoint"] == .5f) stop.Remove("midpoint");
+            if ((string)value["mode"] == defaultMode.ToString()) value.Remove("mode");
+            if ((string)value["wrapMode"] == "Clamp") value.Remove("wrapMode");
+            if ((string)value["colorSpace"] == "Gamma") value.Remove("colorSpace");
+            if ((float?)value["smoothness"] == 1f) value.Remove("smoothness");
+            // Without explicit alpha stops the reader derives them from the color stops.
+            var alphas = value["alphas"];
+            value.Remove("alphas");
+            if (!original.Equals(ReadGradient(value, defaultMode))) value["alphas"] = alphas;
+            return value.Count == 1 ? value["colors"].DeepClone() : value;
         }
 
         private static void SetClipboardGradient(Layer layer, JObject options)

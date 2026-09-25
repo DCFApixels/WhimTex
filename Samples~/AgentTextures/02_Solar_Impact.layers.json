@@ -1,0 +1,302 @@
+{
+  "format": "whimtex.layers",
+  "version": 1,
+  "canvas": {
+    "width": 256,
+    "height": 256,
+    "filter": "Bilinear"
+  },
+  "layers": [
+    {
+      "id": "layer-01",
+      "type": "color",
+      "name": "Fine Sparks",
+      "properties": {
+        "color": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "fillMode": "Color"
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Clip",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Fine Sparks",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Fine Sparks\n// @control(_Amount)\n// @param hidden float _Amount = 0.25 [0 .. 1]\n// @param float _Seed = 43 [0 .. ~1000]\n// @param color _Tint = (1, 0.72, 0.28, 1)\n\nfloat HashM(float2 p){return frac(sin(dot(p,float2(127.1,311.7))+_Seed)*43758.5453);}\nfloat4 ApplyFX(float2 uv,float4 color){\n float2 q=uv*38;float2 id=floor(q);float2 local=frac(q);\n float h=HashM(id);float2 center=float2(HashM(id+2.7),HashM(id+15.4))*.7+.15;\n float d=length((local-center)*float2(1,1.7));float size=lerp(.025,.11,HashM(id+87));\n float spark=(1-smoothstep(size*.35,size,d))+exp(-d*18)*.18;\n float r=length(uv-.5);float region=smoothstep(.16,.22,r)*(1-smoothstep(.40,.48,r));\n return float4(_Tint.rgb,saturate(spark*step(.68,h)*region*_Amount));}\n"
+        }
+      ]
+    },
+    {
+      "id": "layer-02",
+      "type": "color",
+      "name": "Spark Fragments",
+      "properties": {
+        "color": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "fillMode": "Color"
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Energy Motes",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Energy Motes\n// @control(_Amount)\n// @param hidden float _Amount = 0.8 [0 .. 1]\n// @param float _Seed = 371 [0 .. ~1000]\n// @param color _Tint = (1, 0.72, 0.28, 1)\n\nfloat HashM(float2 p){return frac(sin(dot(p,float2(127.1,311.7))+_Seed)*43758.5453);}\nfloat4 ApplyFX(float2 uv,float4 color){\n float2 q=uv*38;float2 id=floor(q);float2 local=frac(q);\n float h=HashM(id);float2 center=float2(HashM(id+2.7),HashM(id+15.4))*.7+.15;\n float d=length((local-center)*float2(1,1.7));float size=lerp(.025,.11,HashM(id+87));\n float spark=(1-smoothstep(size*.35,size,d))+exp(-d*18)*.18;\n float r=length(uv-.5);float region=smoothstep(.16,.22,r)*(1-smoothstep(.40,.48,r));\n return float4(_Tint.rgb,saturate(spark*step(.68,h)*region*_Amount));}\n"
+        }
+      ]
+    },
+    {
+      "id": "layer-03",
+      "type": "color",
+      "name": "Impact Rays",
+      "properties": {
+        "color": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "fillMode": "Color"
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Solar Impact",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Solar Impact\n// @control(_Opacity)\n// @param hidden float _Opacity = 1 [0 .. 1]\n// @group(Burst)\n// @param float _Rays = 43 [8 .. 96]\n// @param float _Seed = 17 [0 .. ~100]\n// @param float _Radius = 0.31 [0.1 .. 0.45]\n// @param float _Sharpness = 10 [1 .. 32]\n// @endgroup\n// @param gradient _Tint = (0, 0, 0, 1) -> (1, 1, 1, 1)\n\nfloat4 ApplyFX(float2 uv,float4 color) {\n float2 p=uv-.5; float r=length(p); float ang=atan2(p.y,p.x+1e-7);\n float sector=(ang+3.14159265)/6.2831853*_Rays;\n float cell=floor(sector); float rnd=frac(sin(cell*127.1+_Seed*32.7)*43758.5453);\n float ray=pow(saturate(1-abs(frac(sector)-.5)*2),_Sharpness);\n float extent=.18+rnd*.27;\n float streak=ray*(1-smoothstep(extent*.35,extent,r))*smoothstep(.025,.07,r);\n float shock=exp(-abs(r-_Radius)*240.0)*(.55+.45*sin(ang*9.0)*sin(ang*9.0));\n float core=exp(-r*r*900.0);\n float a=saturate(streak+shock+core)*_Opacity;\n return float4(_Tint_Sample(saturate(core+shock*.6+streak*.7)).rgb,a);\n}\n",
+          "gradients": {
+            "_Tint": {
+              "colors": [
+                {
+                  "time": 0,
+                  "color": [
+                    1,
+                    0.298039228,
+                    0.03137255,
+                    1
+                  ],
+                  "midpoint": 0.5
+                },
+                {
+                  "time": 1,
+                  "color": [
+                    1,
+                    0.956862748,
+                    0.796078444,
+                    1
+                  ],
+                  "midpoint": 0.5
+                }
+              ],
+              "alphas": [
+                {
+                  "time": 0,
+                  "alpha": 1,
+                  "midpoint": 0.5
+                },
+                {
+                  "time": 1,
+                  "alpha": 1,
+                  "midpoint": 0.5
+                }
+              ],
+              "mode": "Classic",
+              "wrapMode": "Clamp",
+              "smoothness": 1,
+              "colorSpace": "Gamma"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "layer-04",
+      "type": "blur",
+      "name": "Impact Glow",
+      "properties": {
+        "opacity": 0.6,
+        "blend": "Add",
+        "blur": {
+          "mode": "Gaussian",
+          "strength": 1,
+          "radius": 4,
+          "distance": 4,
+          "angle": 0,
+          "arc": 15,
+          "center": [
+            0.5,
+            0.5
+          ],
+          "direction": "Centered",
+          "edges": "Transparent"
+        }
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Clip",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "target": "layer-03"
+    },
+    {
+      "id": "layer-05",
+      "type": "noise",
+      "name": "Shock Front",
+      "properties": {
+        "noise": {
+          "noiseType": "OpenSimplex2",
+          "seed": 314,
+          "whiteNoiseColor": "Monochrome",
+          "whiteNoiseSize": 1,
+          "dimensions": "TwoD",
+          "direction": 0,
+          "scale": 11,
+          "offset": [
+            0,
+            0
+          ],
+          "fractal": "Ridged",
+          "octaves": 5,
+          "lacunarity": 2,
+          "gain": 0.5,
+          "weightedStrength": 0,
+          "pingPongStrength": 2,
+          "cellularDistance": "EuclideanSquared",
+          "cellularReturn": "Distance",
+          "cellularJitter": 1,
+          "warp": "OpenSimplex2",
+          "warpStrength": 2,
+          "encoding": "LinearData",
+          "inverted": false
+        }
+      },
+      "transform": {
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "tiling": "Unbounded",
+        "position": [
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "rotation": 0
+      },
+      "fx": [
+        {
+          "name": "Plasma Envelope",
+          "enabled": true,
+          "code": "// @whimtex-effect Samples/Plasma Envelope\n// @control(_Opacity)\n// @param hidden float _Opacity = 0.48 [0 .. 1]\n// @group(Ring)\n// @param float _Radius = 0.33 [0.1 .. 0.45]\n// @param float _Width = 0.075 [0.01 .. 0.15]\n// @param float _Roughness = 0.07 [0 .. 0.1]\n// @endgroup\n// @param gradient _Tint = (0, 0, 0, 1) -> (1, 1, 1, 1)\n\nfloat4 ApplyFX(float2 uv,float4 color) {\n float n=saturate(color.r); float d=length(uv-0.5);\n float ridge=abs(d-_Radius+(n-0.5)*_Roughness);\n float body=exp(-pow(ridge/_Width,2.0)*3.0);\n float filament=pow(saturate(n),2.2);\n float a=saturate(body*(0.12+1.7*filament))*_Opacity;\n a*=1-smoothstep(.43,.48,d); a*=smoothstep(.20,.24,d);\n float t=saturate(0.2+filament*1.5+exp(-ridge*220.0)*0.3);\n return float4(_Tint_Sample(t).rgb,a);\n}\n",
+          "gradients": {
+            "_Tint": {
+              "colors": [
+                {
+                  "time": 0,
+                  "color": [
+                    0.6,
+                    0.07,
+                    0.005,
+                    1
+                  ],
+                  "midpoint": 0.5
+                },
+                {
+                  "time": 1,
+                  "color": [
+                    1,
+                    0.6,
+                    0.15,
+                    1
+                  ],
+                  "midpoint": 0.5
+                }
+              ],
+              "alphas": [
+                {
+                  "time": 0,
+                  "alpha": 1,
+                  "midpoint": 0.5
+                },
+                {
+                  "time": 1,
+                  "alpha": 1,
+                  "midpoint": 0.5
+                }
+              ],
+              "mode": "Classic",
+              "wrapMode": "Clamp",
+              "smoothness": 1,
+              "colorSpace": "Gamma"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
