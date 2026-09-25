@@ -417,7 +417,7 @@ namespace DCFApixels.WhimTex
                 else if (tool == PreviewTool.Pencil)
                     DrawPencil(painter);
                 else if (tool == PreviewTool.BlurBrush)
-                    DrawBlurBrush(painter);
+                    DrawBlurBrush(context);
                 else if (tool == PreviewTool.HealingBrush)
                     DrawHealingBrush(painter);
                 else if (tool == PreviewTool.RectangleSelect)
@@ -594,17 +594,49 @@ namespace DCFApixels.WhimTex
                 painter.Fill(FillRule.OddEven);
             }
 
-            private void DrawBlurBrush(Painter2D painter)
+            private static readonly Vector2[] BlurBrushOutline = CreateBlurBrushOutline();
+
+            private static Vector2[] CreateBlurBrushOutline()
+            {
+                const int steps = 16;
+                var points = new Vector2[steps * 4];
+                void Curve(int segment, Vector2 a, Vector2 b, Vector2 c, Vector2 d)
+                {
+                    for (int i = 0; i < steps; i++)
+                    {
+                        float t = i / (float)steps;
+                        float u = 1f - t;
+                        points[segment * steps + i] = u * u * u * a + 3f * u * u * t * b
+                            + 3f * u * t * t * c + t * t * t * d;
+                    }
+                }
+                Curve(0, new Vector2(12f, 2.2f), new Vector2(10.2f, 5.1f), new Vector2(5.1f, 10.2f), new Vector2(5.1f, 14.1f));
+                Curve(1, new Vector2(5.1f, 14.1f), new Vector2(5.1f, 18.5f), new Vector2(8.1f, 21.6f), new Vector2(12f, 21.6f));
+                Curve(2, new Vector2(12f, 21.6f), new Vector2(15.9f, 21.6f), new Vector2(18.9f, 18.5f), new Vector2(18.9f, 14.1f));
+                Curve(3, new Vector2(18.9f, 14.1f), new Vector2(18.9f, 10.2f), new Vector2(13.8f, 5.1f), new Vector2(12f, 2.2f));
+                return points;
+            }
+
+            private void DrawBlurBrush(MeshGenerationContext context)
             {
                 Color ink = resolvedStyle.color;
-                Color top = new Color(ink.r, ink.g, ink.b, ink.a * 0.015f);
-                Color bottom = new Color(ink.r, ink.g, ink.b, ink.a * 0.55f);
-                var gradient = new Gradient();
-                gradient.SetKeys(
-                    new[] { new GradientColorKey(top, 0f), new GradientColorKey(bottom, 1f) },
-                    new[] { new GradientAlphaKey(top.a, 0f), new GradientAlphaKey(bottom.a, 1f) });
-                painter.fillGradient = FillGradient.MakeLinearGradient(
-                    gradient, P(0f, 2f), P(0f, 22f), AddressMode.Clamp);
+                var mesh = context.Allocate(BlurBrushOutline.Length + 1, BlurBrushOutline.Length * 3);
+                void AddVertex(Vector2 point)
+                {
+                    Vector2 position = P(point.x, point.y);
+                    Color tint = ink;
+                    tint.a *= Mathf.Lerp(0.015f, 0.55f, Mathf.InverseLerp(2f, 22f, point.y));
+                    mesh.SetNextVertex(new Vertex { position = new Vector3(position.x, position.y, Vertex.nearZ), tint = tint });
+                }
+                AddVertex(new Vector2(12f, 14.1f));
+                foreach (Vector2 point in BlurBrushOutline) AddVertex(point);
+                for (int i = 0; i < BlurBrushOutline.Length; i++)
+                {
+                    mesh.SetNextIndex(0);
+                    mesh.SetNextIndex((ushort)((i + 1) % BlurBrushOutline.Length + 1));
+                    mesh.SetNextIndex((ushort)(i + 1));
+                }
+                Painter2D painter = context.painter2D;
                 painter.strokeColor = ink;
                 painter.lineWidth = 1.35f;
                 painter.BeginPath();
@@ -614,7 +646,6 @@ namespace DCFApixels.WhimTex
                 painter.BezierCurveTo(P(15.9f, 21.6f), P(18.9f, 18.5f), P(18.9f, 14.1f));
                 painter.BezierCurveTo(P(18.9f, 10.2f), P(13.8f, 5.1f), P(12f, 2.2f));
                 painter.ClosePath();
-                painter.Fill();
                 painter.Stroke();
             }
 
