@@ -1,6 +1,6 @@
 // @whimtex-effect Color/Negative
 // @control(_Opacity)
-// @formerserializedas(_Amount)
+// @formerlyserializedas(_Amount)
 // @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.
 // @group
 // @param bool _InvertAlpha = false // Also invert alpha instead of preserving it.

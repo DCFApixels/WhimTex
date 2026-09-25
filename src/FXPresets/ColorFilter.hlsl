@@ -1,6 +1,6 @@
 // @whimtex-effect Color/Color Filter
 // @control(_Opacity)
-// @formerserializedas(_Density)
+// @formerlyserializedas(_Density)
 // @param hidden float _Opacity = 1 [0 .. 1] // Blend with the tinted result; zero leaves the input unchanged.
 // @group
 // @param color _FilterColor = (1.0, 0.6, 0.3, 0.3) // Multiplicative RGB tint; color alpha is ignored.
