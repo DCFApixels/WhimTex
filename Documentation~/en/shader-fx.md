@@ -37,6 +37,8 @@ Effect authors can choose `curve _Profile = linear` or `curve _Profile = easeInO
 
 **Color → Levels** offers a **Curve** after input black/white and Gamma, before output black/white. It starts linear. With **Preserve Color**, the curve remaps luminance; otherwise it remaps each RGB channel separately. Alpha is unchanged.
 
+**Color → Brightness Contrast** adjusts midtone brightness and tonal separation. Both controls start at **0** (unchanged). Positive Contrast separates dark and light tones; negative Contrast brings them toward middle gray. The slider tracks cover −100…100, but numeric input and label dragging can go beyond either end. The effect uses smooth tone curves, not a uniform RGB offset: black and white remain fixed, alpha is unchanged, and RGB values outside 0–1 pass through. It operates in the incoming RGB space; it is not exposure control or a pixel-exact match to another application. Extreme settings can collapse details through floating-point precision.
+
 Texture source **Self** reads the image before the current FX, including earlier effects. **None** returns transparent pixels. These modes need no assigned asset or layer; Self continues to work when copied to another layer.
 
 Vector parameters provide two, three or four numeric components. A `point` parameter is a `float2` in normalized canvas UV (bottom-left `(0, 0)` to top-right `(1, 1)`), defaulting to `(0.5, 0.5)`; **Edit on Canvas** adds a draggable point handle. A normal parameter provides a unit direction and **Edit on Canvas**. Drag its endpoint: near the center it faces the camera; at the maximum radius it points along the canvas. Click the endpoint to switch between **+** (toward the camera) and **−** (away).

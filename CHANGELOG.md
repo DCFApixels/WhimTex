@@ -6,6 +6,8 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Healing Brush stroke preview color and opacity in User Settings.
+- Color/Brightness Contrast FX with tonal brightness and contrast controls, neutral defaults and soft bounds on both sliders.
 - Healing Brush reconstructs small defects after each stroke, with a raster mask preview, adjustable hardness, seamless Tiled painting, current-layer or current-and-below sampling, transparent-only filling, background cancellation and Undo/Redo.
 - Contextual Gradient Handles and UV Island Select tools, plus a single temporary FX canvas-editing tool with return-to-previous-tool behavior and gesture-first Escape cancellation.
 - VS Code block snippets for `@if` and `@group`, with matching closing directives and Tab placeholders.

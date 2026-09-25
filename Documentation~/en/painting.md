@@ -159,7 +159,7 @@ Repeat to draw a chain of straight segments.
 ## Healing Brush
 
 Choose the bandage icon, paint over a scratch, small hole or seam, then release the
-mouse button. The blue stroke marks the repair area; reconstruction runs after release.
+mouse button. The colored stroke marks the repair area; reconstruction runs after release.
 Cover the entire defect with a little surrounding texture. The result is one Undo step.
 
 The repair looks for similar colors and texture, preserving fine detail rather than
@@ -186,7 +186,10 @@ The canvas selection limits the repair; the search can use pixels outside the se
 Press **Escape** or **Cancel** to discard the stroke or pending calculation. Changing
 the document, selection or tool cancels pending work; wait for completion before saving.
 
-The blue preview shows the painted mask, including its soft edge and selection. Painting
+Choose its color and opacity in **User Settings → Healing Brush → Stroke Color**.
+This changes only the overlay, not mask strength or the repaired image. **Reset Preview Appearance** restores the default blue at 40% opacity.
+
+The colored preview shows the painted mask, including its soft edge and selection. Painting
 over it again does not increase coverage. In **Tiled** preview, draw on any copy: the mask
 wraps across edges and corners, and the repair searches across those seams too.
 For a stroke around all four sides, the search keeps opposing edges together. Some

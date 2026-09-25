@@ -265,6 +265,7 @@ namespace DCFApixels.WhimTex
             toolkitPreviewCanvas?.RefreshBackdropVisibility();
             toolkitHeaderBindings.Refresh();
             previewGuideOverlay?.MarkDirtyRepaint();
+            healingOverlay?.MarkDirtyRepaint();
             postFxDirty = true;
             postFxBackgroundField?.SetValueWithoutNotify(WhimTexUserSettings.PostFxBackground);
             refreshPostFxFields?.Invoke();

@@ -76,6 +76,13 @@ namespace DCFApixels.WhimTex
         private const string GuideAlignedKey = "DCFApixels.WhimTex.Guides.AlignedColor";
         private const string GuideAngledKey = "DCFApixels.WhimTex.Guides.AngledColor";
         private const string GuideActiveKey = "DCFApixels.WhimTex.Guides.ActiveColor";
+        private const string HealingStrokeColorKey = "DCFApixels.WhimTex.Healing.StrokeColor";
+        private static Color? healingStrokeColor = Load(HealingStrokeColorKey, true);
+        internal static Color HealingStrokeColor
+        {
+            get => healingStrokeColor ?? new Color(.2f, .75f, 1f, .4f);
+            set => Save(HealingStrokeColorKey, ref healingStrokeColor, value, true);
+        }
         internal const float DefaultSnapRadius = 8f;
         internal const float MinimumSnapRadius = 1f;
         internal const float MaximumSnapRadius = 64f;
@@ -268,17 +275,17 @@ namespace DCFApixels.WhimTex
             set => Save(ErrorKey, ref invalidPixels, value);
         }
 
-        private static Color? Load(string key)
+        private static Color? Load(string key, bool includeAlpha = false)
         {
             if (!ColorUtility.TryParseHtmlString(EditorPrefs.GetString(key, string.Empty), out Color color)) return null;
-            color.a = 1f;
+            if (!includeAlpha) color.a = 1f;
             return color;
         }
 
-        private static void Save(string key, ref Color? stored, Color color)
+        private static void Save(string key, ref Color? stored, Color color, bool includeAlpha = false)
         {
-            color = new Color(Channel(color.r), Channel(color.g), Channel(color.b), 1f);
-            string html = "#" + ColorUtility.ToHtmlStringRGB(color);
+            color = new Color(Channel(color.r), Channel(color.g), Channel(color.b), includeAlpha ? Channel(color.a) : 1f);
+            string html = "#" + (includeAlpha ? ColorUtility.ToHtmlStringRGBA(color) : ColorUtility.ToHtmlStringRGB(color));
             ColorUtility.TryParseHtmlString(html, out color);
             if (stored.HasValue && stored.Value == color) return;
             stored = color;
@@ -302,6 +309,8 @@ namespace DCFApixels.WhimTex
 
         internal static void ResetPreviewAppearance()
         {
+            EditorPrefs.DeleteKey(HealingStrokeColorKey);
+            healingStrokeColor = null;
             EditorPrefs.DeleteKey(ShowMantaKey);
             showManta = true;
             EditorPrefs.DeleteKey(LightKey);

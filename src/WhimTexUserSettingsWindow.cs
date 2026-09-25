@@ -22,6 +22,7 @@ namespace DCFApixels.WhimTex
         private ColorField guideAlignedColor;
         private ColorField guideAngledColor;
         private ColorField guideActiveColor;
+        private ColorField healingStrokeColor;
         private TextField vsCodeExecutable;
 
         internal static void Open()
@@ -131,6 +132,11 @@ namespace DCFApixels.WhimTex
             scroll.Add(postFxBackgroundMode);
             postFxBackground = AddColor(scroll, "Background", value => WhimTexUserSettings.PostFxBackground = value);
             postFxBackground.tooltip = "Opaque fill behind the composition before Post FX. Shared with the Post FX panel. Original alpha is still used for depth; document pixels and exports are unchanged.";
+            AddHeading(scroll, "Healing Brush");
+            healingStrokeColor = AddColor(scroll, "Stroke Color", value => WhimTexUserSettings.HealingStrokeColor = value);
+            healingStrokeColor.name = "healingStrokeColor";
+            healingStrokeColor.showAlpha = true;
+            healingStrokeColor.tooltip = "Color and opacity of the temporary repair-area overlay. Does not change the repair mask or result.";
             var note = new Label("Saved for your user account. Applies to all WhimTex windows; documents and exports are unaffected.");
             note.AddToClassList("whimtex-user-settings-note");
             scroll.Add(note);
@@ -252,6 +258,7 @@ namespace DCFApixels.WhimTex
             guideAlignedColor?.SetValueWithoutNotify(WhimTexUserSettings.GuideAlignedColor);
             guideAngledColor?.SetValueWithoutNotify(WhimTexUserSettings.GuideAngledColor);
             guideActiveColor?.SetValueWithoutNotify(WhimTexUserSettings.GuideActiveColor);
+            healingStrokeColor?.SetValueWithoutNotify(WhimTexUserSettings.HealingStrokeColor);
             checkerLight?.SetValueWithoutNotify(WhimTexUserSettings.CheckerLight);
             checkerDark?.SetValueWithoutNotify(WhimTexUserSettings.CheckerDark);
             invalidPixels?.SetValueWithoutNotify(WhimTexUserSettings.InvalidPixels);

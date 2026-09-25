@@ -359,7 +359,7 @@ namespace DCFApixels.WhimTex
             var rect = healingStroke.tiled ? viewport : image;
             Vector2 origin = Uv(rect.min);
             Vector2 offset = healingStroke.tiled ? new Vector2(Mathf.Floor(origin.x), Mathf.Floor(origin.y)) : Vector2.zero;
-            var tint = new Color(.2f, .75f, 1f, .4f);
+            var tint = WhimTexUserSettings.HealingStrokeColor;
             context.AllocateTempMesh(4, 6, out var vertices, out var indices);
             vertices[0] = new Vertex { position = Position(rect.xMin, rect.yMin), tint = tint, uv = origin - offset };
             vertices[1] = new Vertex { position = Position(rect.xMax, rect.yMin), tint = tint, uv = Uv(new Vector2(rect.xMax, rect.yMin)) - offset };
