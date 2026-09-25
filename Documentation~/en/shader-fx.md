@@ -11,6 +11,22 @@ next_page: "en/preview.md"
 
 # Shader FX and Processor
 
+## Bake effects into a layer
+
+**Apply All** beside the add-FX buttons bakes the entire stack. **⋮ → Apply** (also in the header context menu) bakes the selected FX and every FX above it, in stack order; later effects remain editable. Disabled FX in that prefix are removed without contributing to the image. This is different from **Apply** inside **Code**, which compiles HLSL.
+
+A non-Drawing layer asks for confirmation before becoming Drawing. Transform stays editable and keeps its values; opacity, blending, swizzle and clipping remain separate. Baking captures the current canvas at full canvas resolution into floating-point pixels, not an infinite procedural source or off-canvas content. Undo restores the original layer and FX stack. Groups flatten their visible children and warn about lost child targets and possible pass-through changes.
+
+Shader Processor also supports Apply. It captures its current input, including the external backdrop in Pass Through groups, without merging or deleting lower layers. **Normal** becomes **Overwrite** with the Processor's opacity blending retained, including partially transparent pixels; other blend modes stay unchanged. Later edits below no longer recalculate the baked effects. Remaining FX still operate on the snapshot, and Transform stays editable.
+
+## Parameter controls
+
+For parameter names containing `Opacity` or `Alpha`, regardless of case, the header drag handle uses the Layers alpha icon instead of arrows.
+
+Numeric FX header fields have a **↔** handle: drag left or right to change the value. Shift gives finer adjustment; Ctrl makes it faster.
+
+Put `// @control(_Opacity)` immediately after `// @whimtex-effect Category/Name`, or on the first line without that marker, to expose an existing parameter in the FX header before **⋮**. Supported compact types are bool, enum, float, color and float2/3/4. `hidden` hides the body row but keeps this field; otherwise both edit the same value. Only one declaration is selected: duplicates give a warning and the last wins. Unsupported field types leave the header unchanged. This does not add automatic opacity blending; the shader defines what the parameter does. See the [control syntax reference](../ShaderFX.md#fx-block-control).
+
 To show controls conditionally in the editor, put `// @param` declarations between `// @if _Mode == 1` (or `!=`) and `// @endif`. Only numeric `==` and `!=` comparisons are supported; the condition must reference an unconditional `float`, `bool` or `enum` parameter. Nested blocks are not supported. This only hides editor fields: values stay stored and continue to affect the shader. Preset export preserves the conditions.
 
 ```hlsl
@@ -52,7 +68,9 @@ You can use an existing effect and adjust its parameters without writing code.
 
 **Profile** in Bevel Emboss maps the selected height channel to relief height. **Mapping** in Gradient Map redistributes brightness before choosing a gradient color. Both curves start linear.
 
-Color Balance uses three signed RGB components. Gain, Levels, Threshold, ambient lighting and distortion offsets offer soft limits where appropriate. Levels and Threshold can work above 1 for HDR; blend amounts remain limited to 0–1. Pixelate and Posterize allow more than 64 levels and Gamma above 5 through numeric input.
+Color Balance groups Shadows, Midtones and Highlights in one block. **RGB Offset** adjusts the three signed RGB components; **Range** controls shadow/highlight influence, and zero hides the corresponding offsets. **Preserve Luma** retains luminance. **Opacity** in the FX header blends the result with the original; alpha is unchanged.
+
+Gain, Levels, Threshold, ambient lighting and distortion offsets offer soft limits where appropriate. Levels and Threshold can work above 1 for HDR; blend amounts remain limited to 0–1. Pixelate and Posterize allow more than 64 levels and Gamma above 5 through numeric input.
 
 The unlabeled checkbox in each Shader FX header enables or bypasses that effect without removing its settings. External FX references share this state; use **Embed** for an independent copy.
 
@@ -233,7 +251,7 @@ in unmasked modes can reveal areas beyond the input image, where its edge pixels
 
 ### Polar coordinates
 
-**Distortion → Polar Coordinates** contains two effects:
+**Distortion → Polar Coordinates** is one effect with a **Mode** selector (To Polar by default):
 
 - **To Polar** wraps a strip into a circle: horizontal runs around the center, vertical runs outward.
 - **From Polar** unwraps a circle into a strip: left to right covers one full turn, bottom to top covers distance from the center.

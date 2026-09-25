@@ -179,9 +179,9 @@ public static class ShaderFXGroupSmoke
             foreach (string presetName in new[]
             {
                 "ChromaticAberration", "ColorBalance", "ColorFilter", "CRT", "DigitalGlitch", "DisplacementMap",
-                "FromPolar", "Gain", "GradientMap", "Halftone", "HSV", "Levels", "Mask", "Negative", "Normalize",
+                "Gain", "GradientMap", "Halftone", "HSV", "Levels", "Mask", "Negative", "Normalize",
                 "NormalLighting", "Pixelate", "Posterize", "RadialShear", "SdfBevel", "Spherize", "Step",
-                "Threshold", "ToPolar", "Twirl", "UVTransform", "VHS"
+                "Threshold", "PolarCoordinates", "Twirl", "UVTransform", "VHS"
             })
             {
                 string presetCode = File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/" + presetName + ".hlsl");

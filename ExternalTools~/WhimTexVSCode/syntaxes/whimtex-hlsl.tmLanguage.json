@@ -3,7 +3,7 @@
   "injectionSelector": "L:comment.line.double-slash.hlsl",
   "patterns": [
     {
-      "begin": "(?<=//)\\s*(@(?:whimtex-effect|param|if|endif|group|endgroup|header|helpbox|formerlyserializedas))\\b",
+      "begin": "(?<=//)\\s*(@(?:whimtex-effect|param|if|endif|group|endgroup|header|control|helpbox|formerlyserializedas))\\b",
       "beginCaptures": {
         "1": {
           "name": "keyword.control.directive.whimtex"

@@ -47,6 +47,43 @@ namespace DCFApixels.WhimTex
 
         internal static bool HasDeclarations(string source) => Regex.IsMatch(source ?? "", @"(?m)^\s*//\s*@param\b");
 
+        internal static string ReadControl(string source, out string warnings)
+        {
+            var messages = new StringBuilder();
+            string control = null;
+            bool block = false;
+            int count = 0, lineNumber = 0, expectedLine = 1;
+            using var reader = new StringReader(source ?? "");
+            string line;
+            while ((line = reader.ReadLine()) != null)
+            {
+                lineNumber++;
+                if (lineNumber == 1 && TryHeader(line, out _)) expectedLine = 2;
+                bool directive = !block && Regex.IsMatch(line.TrimStart('\uFEFF'), @"^\s*//\s*@control\b");
+                ShaderFXSourceBuilder.MaskComments(line, ref block);
+                if (!directive) continue;
+                count++;
+                var match = Regex.Match(line.TrimStart('\uFEFF'), @"^\s*//\s*@control\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)\s*$");
+                control = match.Success ? match.Groups[1].Value : null;
+                if (!match.Success) messages.AppendLine($"Warning: Line {lineNumber}: expected // @control(_Parameter).");
+                if (count > 1) messages.AppendLine($"Warning: Line {lineNumber}: multiple @control declarations; the last declaration wins.");
+                else if (lineNumber != expectedLine) messages.AppendLine($"Warning: Line {lineNumber}: place @control on line {expectedLine}, immediately after the effect marker or first when no marker exists.");
+            }
+            warnings = messages.ToString();
+            return control;
+        }
+
+        internal static string ControlWarnings(string source, IReadOnlyList<ShaderFXParameter> parameters)
+        {
+            string name = ReadControl(source, out string warnings);
+            if (name == null) return warnings;
+            foreach (var parameter in parameters)
+                if (parameter != null && parameter.name == name)
+                    return parameter.controls.Count == 1 ? warnings : warnings +
+                        $"Warning: @control parameter {name} must have one declaration to select an unambiguous field.\n";
+            return warnings + $"Warning: @control refers to undeclared parameter {name}.\n";
+        }
+
         internal static List<ShaderFXParameter> Parse(string source, bool requireHeader, out string menuPath)
         {
             var result = new List<ShaderFXParameter>();

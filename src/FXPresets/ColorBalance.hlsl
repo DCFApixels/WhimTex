@@ -1,23 +1,26 @@
 // @whimtex-effect Color/Color Balance
-// @group(Shadow Range; _ShadowRange)
-// @param float _ShadowRange = 0.5 [0 .. 1] // Shadow influence range; zero disables it.
+// @control(_Opacity)
+// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and balanced colors.
+// @group
+// @header(Shadows)
+// @param label(Range) float _ShadowRange = 0.5 [0 .. 1] // Extend the shadow correction into brighter tones; zero disables it.
 // @if _ShadowRange != 0
-// @param float3 _Shadows = (0, 0, 0) // Signed RGB offsets for shadows.
+// @param label(RGB Offset) float3 _Shadows = (0, 0, 0) // Add or subtract red, green and blue in shadows; zero leaves each channel unchanged.
 // @endif
-// @endgroup
 // @header(Midtones)
-// @param float3 _Midtones = (0, 0, 0) // Signed RGB offsets for midtones.
-// @group(Highlight Range; _HighlightRange)
-// @param float _HighlightRange = 0.5 [0 .. 1] // Highlight influence range; zero disables it.
+// @param label(RGB Offset) float3 _Midtones = (0, 0, 0) // Add or subtract red, green and blue between the shadow and highlight ranges.
+// @header(Highlights)
+// @param label(Range) float _HighlightRange = 0.5 [0 .. 1] // Extend the highlight correction into darker tones; zero disables it.
 // @if _HighlightRange != 0
-// @param float3 _Highlights = (0, 0, 0) // Signed RGB offsets for highlights.
+// @param label(RGB Offset) float3 _Highlights = (0, 0, 0) // Add or subtract red, green and blue in highlights; zero leaves each channel unchanged.
 // @endif
-// @endgroup
 // @header(Luminance)
-// @param bool _PreserveLuma = true // Preserve luminance without amplifying near-zero or negative colors.
+// @param label(Preserve Luma) bool _PreserveLuma = true // Keep the original luminance while adjusting color; alpha is always unchanged.
+// @endgroup
 
 float4 ApplyFX(float2 uv, float4 color)
 {
+    if (_Opacity == 0.0) return color;
     float3 weights = float3(0.2126, 0.7152, 0.0722);
     float3 original = max(color.rgb, 0.0);
     float luma = dot(original, weights);
@@ -35,6 +38,6 @@ float4 ApplyFX(float2 uv, float4 color)
         if (lowest < 0.0)
             result = lerp(luma.xxx, result, luma / max(luma - lowest, 0.000001));
     }
-    color.rgb = min(max(result, 0.0), 65504.0);
-    return color;
+    result = min(max(result, 0.0), 65504.0);
+    return float4(lerp(color.rgb, result, _Opacity), color.a);
 }

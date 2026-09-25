@@ -9,8 +9,9 @@ namespace DCFApixels.WhimTex
     [Serializable]
     public sealed class ColorFillLayerBehaviour : LayerBehaviour
     {
-        public enum FillMode { Color, UV }
+        public enum FillMode { Color, UV, Pattern }
         public FillMode mode = FillMode.Color;
+        public FillPatternSettings pattern = new FillPatternSettings();
         internal override void InitializeLayer(Layer layer) => layer.transform.tiling = TransformTilingMode.Unbounded;
         [SerializeField] private Color storedColor = Color.white;
 
@@ -28,6 +29,11 @@ namespace DCFApixels.WhimTex
 
         public override Texture2D GetPreviewTexture(int size)
         {
+            if (mode == FillMode.Pattern)
+            {
+                pattern ??= new FillPatternSettings();
+                return pattern.Preview(this, size);
+            }
             int previewSize = mode == FillMode.UV ? Mathf.Clamp(size, 2, 256) : 1;
             if (cachedPreview != null && cachedColor == color && cachedMode == mode && cachedPreview.width == previewSize)
                 return cachedPreview;
@@ -66,6 +72,17 @@ namespace DCFApixels.WhimTex
             bool srgb = GL.sRGBWrite;
             try
             {
+                if (mode == FillMode.Pattern)
+                {
+                    pattern ??= new FillPatternSettings();
+                    Material material = WhimTexMaterials.FillPattern;
+                    if (material == null || !material.shader.isSupported)
+                        throw new InvalidOperationException("Pattern fill shader is unavailable or unsupported.");
+                    var patternContext = pattern.Prepare(material, Owner, context);
+                    GL.sRGBWrite = false;
+                    Graphics.Blit(null, source, material, 0);
+                    return ApplyTransformAndModifiers(source, patternContext);
+                }
                 if (mode == FillMode.UV)
                 {
                     Material material = WhimTexMaterials.FillUv;
@@ -92,6 +109,7 @@ namespace DCFApixels.WhimTex
 
         internal override void ReleaseTransientResources()
         {
+            pattern?.Dispose();
             if (cachedPreview == null)
                 return;
             UnityEngine.Object.DestroyImmediate(cachedPreview);

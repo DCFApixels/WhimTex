@@ -11,6 +11,22 @@ next_page: "zh/preview.md"
 
 # Shader FX 与处理器
 
+## 将效果烘焙到图层
+
+添加 FX 按钮旁的 **Apply All** 会烘焙整个效果栈。**⋮ → Apply**（也可从标题栏右键菜单进入）按顺序烘焙所选 FX 及其上方的所有 FX，后续效果仍可编辑。该范围内禁用的 FX 会被移除，但不参与图像计算。这不同于 **Code** 中用于编译 HLSL 的 **Apply**。
+
+非 Drawing 图层会先请求确认转换。Transform 的数值不变且仍可编辑；透明度、混合、swizzle 和剪贴仍单独处理。烘焙以完整画布分辨率保存当前画布的浮点像素，不保留无限程序化源或画布外的内容。Undo 可恢复原图层和 FX 栈。组会合并可见子图层，并警告独立子图层目标丢失及 Pass Through 可能发生变化。
+
+Shader Processor 也支持 Apply。它捕获当前输入，包括 Pass Through 组的外部背景，不合并或删除下方图层。**Normal** 转为 **Overwrite**，同时保留 Processor 的 Opacity 混合方式，包括半透明像素；其他混合模式不变。之后编辑下方图层不会重新计算已烘焙的效果。剩余 FX 继续处理快照，Transform 仍可编辑。
+
+## 参数控件
+
+参数名包含 `Opacity` 或 `Alpha` 时（不区分大小写），拖动手柄使用图层标题栏的透明度图标代替箭头，拖动行为不变。
+
+FX 标题栏中的数值字段前有 **↔** 手柄：左右拖动可调整数值，按住 Shift 可精细调整，按住 Ctrl 可加快调整。
+
+在 `// @whimtex-effect Category/Name` 后紧接着添加 `// @control(_Opacity)`；没有目录标记时，将它放在第一行。它会在 FX 标题栏的 **⋮** 前显示一个已有参数。支持 bool、enum、float、color 和 float2/3/4。`hidden` 只隐藏正文中的字段，不隐藏标题栏控件；否则两个字段编辑同一个值。只能选择一个声明：重复声明会产生警告，以最后一个为准。不支持的字段类型不会改变标题栏。这不会自动添加透明度混合，参数的作用仍由着色器定义。详见[语法参考](../ShaderFX.md#fx-block-control)。
+
 若要在编辑器中按条件显示控件，请将 `// @param` 声明放在 `// @if _Mode == 1`（或 `!=`）与 `// @endif` 之间。仅支持数值 `==` 和 `!=` 比较；条件必须引用无条件声明的 `float`、`bool` 或 `enum` 参数。不支持嵌套块。此功能只隐藏编辑器控件：数值仍会保存并继续影响着色器。导出预设时会保留条件块。
 
 ```hlsl
@@ -52,7 +68,9 @@ next_page: "zh/preview.md"
 
 Bevel Emboss 的 **Profile** 将选定的高度通道映射为浮雕高度。Gradient Map 的 **Mapping** 在选择渐变颜色前重新分配亮度。两条曲线默认为线性。
 
-Color Balance 使用三个有符号 RGB 分量。Gain、Levels、Threshold、环境光及扭曲偏移在适当位置提供软边界。Levels 和 Threshold 支持大于 1 的 HDR 数值；混合比例仍限制在 0–1。Pixelate 和 Posterize 可手动输入超过 64 的级数和大于 5 的 Gamma。
+Color Balance 将 Shadows、Midtones 和 Highlights 放在同一块中。**RGB Offset** 调整三个有符号 RGB 偏移；**Range** 控制阴影和高光的影响范围，设为零会隐藏相应偏移。**Preserve Luma** 保持亮度。FX 标题栏中的 **Opacity** 将结果与原图混合，Alpha 保持不变。
+
+Gain、Levels、Threshold、环境光及扭曲偏移在适当位置提供软边界。Levels 和 Threshold 支持大于 1 的 HDR 数值；混合比例仍限制在 0–1。Pixelate 和 Posterize 可手动输入超过 64 的级数和大于 5 的 Gamma。
 
 Shader FX 标题栏中的无标签复选框可启用或跳过效果，并保留其设置。外部 FX 引用共享此状态；使用 **Embed** 创建独立副本。
 
@@ -225,7 +243,7 @@ Ctrl/Cmd + Alt 会对称移动对角点。Position、Size 和 Rotation 保留已
 
 ### 极坐标
 
-**Distortion → Polar Coordinates** 包含两个效果：
+**Distortion → Polar Coordinates** 是一个带有 **Mode** 切换的效果（默认为 To Polar）：
 
 - **To Polar** 将条带卷成圆形：水平方向绕中心环绕，垂直方向向外延伸。
 - **From Polar** 将圆形展开为条带：从左到右覆盖一整圈，从下到上覆盖距中心的距离。

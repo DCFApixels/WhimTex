@@ -28,6 +28,21 @@ test('catalog marker is recognized and reports misplaced markers as a warning', 
   assert.equal(validate('\n// @whimtex-effect Color/Mask')[0].warning, true);
 });
 
+test('effect control is optional, warning-only and last declaration wins', () => {
+  const param = '\n// @param hidden float _Opacity = 1 [0..1]';
+  assert.deepEqual(validate('// @control(_Opacity)' + param), []);
+  assert.deepEqual(validate('// @whimtex-effect Color/Test\n// @control(_Opacity)' + param), []);
+  const duplicate = validate('// @control(_Missing)\n// @control(_Opacity)' + param);
+  assert.equal(duplicate.length, 1);
+  assert.ok(duplicate[0].warning && /last declaration wins/.test(duplicate[0].message));
+  for (const source of ['// @control(_Missing)', '// @control()', '\n// @control(_Opacity)' + param]) {
+    const warnings = validate(source);
+    assert.ok(warnings.length && warnings.every(d => d.warning));
+  }
+  assert.deepEqual(validate('/*\n// @control(_Missing)\n*/'), []);
+  assert.equal(validate('// @control(_Opacity)\n// @control()' + param).length, 2);
+});
+
 test('installer checks VSIX content as well as its unchanged version', () => {
   const source = readFileSync(new URL('../src/Editor/ShaderFXExternalCode.cs', import.meta.url), 'utf8');
   assert.match(source, /sha\.ComputeHash\(archive\)/);

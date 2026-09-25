@@ -240,7 +240,7 @@ namespace DCFApixels.WhimTex
             {
                 using var source = HdrUtility.ReadPixels(image, Allocator.Temp);
                 Rect placement = LiveImagePlacement(job.region, image.width, image.height, fit);
-                var canvasTransform = target != null ? job.document.GetCanvasTransform(target) : TextureTransform.Default;
+                var canvasTransform = target != null ? job.document.GetPaintTransform(target) : TextureTransform.Default;
                 for (int y = 0, i = 0; y < height; y++)
                 for (int x = 0; x < width; x++, i++)
                 {

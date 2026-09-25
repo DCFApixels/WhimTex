@@ -23,6 +23,13 @@ function enumeration(file, name) {
 const noiseEnum = name => enumeration('Layers/NoiseLayerBehaviour.cs', name);
 const normalEnum = name => enumeration('Layers/NormalMapLayerBehaviour.cs', name);
 const defs = {
+  fillPattern: object({ shape: choice('Triangles Squares Hexagons Circles'), circleLayout: choice('Square Dense'),
+    size: { oneOf: [number(1,16384), { type: 'array', items: number(1,16384), minItems: 2, maxItems: 2 }] }, linkSize: bool,
+    rotation: number(-360000,360000), offset: vec, seamless: bool,
+    gap: number(0,.99), roundness: number(0,1), bulge: number(0,1), distanceRange: number(.001,16),
+    position: choice('Outside Inside Center Signed'), inverted: bool, profile: str(65536), gradient: { $ref: '#/$defs/gradient' },
+    cellColor: choice('Uniform Random Pattern'), colorBlend: choice('Multiply ReplaceRGB'), seed: integer(-2147483648,2147483647),
+    variation: number(0,1), palette: { $ref: '#/$defs/gradient' } }),
   color: rgba,
   gradientStops: { type: 'array', minItems: 1, maxItems: 64, items: object({ time: number(0, 1), color: rgba, midpoint: number(.01,.99), alphaMidpoint: number(.01,.99) }, ['time', 'color']), description: 'Stops must have strictly increasing times.' },
   gradient: { oneOf: [{ $ref: '#/$defs/gradientStops' }, object({ colors: { $ref: '#/$defs/gradientStops' }, alphas: {type:'array', minItems:1, maxItems:64, items:object({time:number(0,1),alpha:number(0,1),midpoint:number(.01,.99)},['time','alpha'])}, mode:choice('Classic Linear Perceptual Fixed'), wrapMode:choice('Clamp Repeat Mirror'), smoothness:number(0,1), colorSpace:choice('Gamma Linear') }, ['colors'])] },
@@ -53,7 +60,7 @@ const common = { enabled: bool, clippingMask: bool, opacity: number(0, 1), blend
   swizzle: tuple({ type: 'string', enum: ['R', 'G', 'B', 'A', '1-R', '1-G', '1-B', '1-A', '0', '1', 'R * A', 'G * A', 'B * A'] }, 4) };
 const metric = enumeration('Utils.cs', 'DistanceMetric');
 const extra = {
-  color: { color: rgba, fillMode: choice('Color UV') }, gradient: { gradient: ref('gradient'), gradientOptions: ref('gradientOptions') }, noise: { noise: ref('noise') }, shape: { shape: ref('shape') },
+  color: { color: rgba, fillMode: choice('Color UV Pattern'), fillPattern: ref('fillPattern') }, gradient: { gradient: ref('gradient'), gradientOptions: ref('gradientOptions') }, noise: { noise: ref('noise') }, shape: { shape: ref('shape') },
   blur: { blur: ref('blur') }, sharpen: { sharpen: ref('sharpen') }, makeSeamless: { makeSeamless: ref('makeSeamless') }, normalMap: { normalMap: ref('normalMap') },
   outline: { metric, color: rgba, outlineWidth: number(0, 16384), outlineSoftness: number(0, 16384), outlinePosition: enumeration('Layers/OutlineLayerBehaviour.cs', 'OutlinePosition'), outlineOffset: number(-16384, 16384), fillCenter: bool, fillColor: rgba },
   sdf: { metric, sourceChannel: enumeration('Layers/SDFLayerBehaviour.cs', 'SourceChannel'), threshold: integer(0, 255), distancePosition: enumeration('Layers/SDFLayerBehaviour.cs', 'DistancePosition'), inverted: bool, maxDistance: number(0, 16384), sourceOffset: tuple(number(-16384,16384),2), sourceEdges: choice('Transparent Clamp Repeat Mirror'), contourOffset: number(-16384,16384), insideDistance: number(0,16384), outsideDistance: number(0,16384), profile: str(65536), gradient: ref('gradient') },

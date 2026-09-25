@@ -18,26 +18,21 @@ function fromPolar(uv, angleOffset = 0, radialOffset = 0) {
     return [.5 + Math.cos(angle) * radius * .5, .5 + Math.sin(angle) * radius * .5];
 }
 
-test('polar presets are discoverable, use Transform 2D and sample complete RGBA without fade', () => {
-    for (const [file, title, mapping] of [
-        ['ToPolar', 'To Polar', '_Area_ToLocal(uv)'],
-        ['FromPolar', 'From Polar', '_Area_ToInput(localUV)'],
-    ]) {
-        const code = readFileSync(new URL(`../src/FXPresets/${file}.hlsl`, import.meta.url), 'utf8');
-        assert.equal(code.split(/\r?\n/)[0], `// @whimtex-effect Distortion/Polar Coordinates/${title}`);
-        for (const declaration of ['float _AngleOffset = 0', 'float _RadialOffset = 0', 'transform2D _Area'])
-            assert.ok(code.includes(`// @param ${declaration}`));
-        assert.ok(code.includes(mapping));
-        assert.match(code, /return SampleInput\(/);
-        assert.doesNotMatch(code, /\b(?:clamp|saturate|lerp|smoothstep|clip|discard)\s*\(/);
-        if (file === 'ToPolar') {
-            assert.match(code, /if \(radius > 0\.0\) angle = atan2\(p.y, p.x\)/);
-            assert.match(code, /frac\(angle - _AngleOffset \/ 360\.0\), radius - _RadialOffset/);
-        } else {
-            assert.match(code, /uv.x \+ _AngleOffset \/ 360\.0/);
-            assert.match(code, /uv.y \+ _RadialOffset/);
-        }
-    }
+test('one polar preset switches both mappings and samples complete RGBA without fade', () => {
+    const code = readFileSync(new URL('../src/FXPresets/PolarCoordinates.hlsl', import.meta.url), 'utf8');
+    assert.equal(code.split(/\r?\n/)[0], '// @whimtex-effect Distortion/Polar Coordinates');
+    assert.match(code, /@param enum _Mode = 0 \{ToPolar: 0, FromPolar: 1\}/);
+    assert.match(code, /if \(_Mode < 0\.5\)/);
+    for (const declaration of ['float _AngleOffset = 0', 'float _RadialOffset = 0', 'transform2D _Area'])
+        assert.ok(code.includes(`// @param ${declaration}`));
+    assert.ok(code.includes('_Area_ToLocal(uv)'));
+    assert.ok(code.includes('_Area_ToInput(localUV)'));
+    assert.match(code, /return SampleInput\(/);
+    assert.doesNotMatch(code, /\b(?:clamp|saturate|lerp|smoothstep|clip|discard)\s*\(/);
+    assert.match(code, /if \(radius > 0\.0\) angle = atan2\(p.y, p.x\)/);
+    assert.match(code, /frac\(angle - _AngleOffset \/ 360\.0\), radius - _RadialOffset/);
+    assert.match(code, /uv.x \+ _AngleOffset \/ 360\.0/);
+    assert.match(code, /uv.y \+ _RadialOffset/);
 });
 
 test('right/up/left/down cover one counterclockwise turn and center stays finite', () => {

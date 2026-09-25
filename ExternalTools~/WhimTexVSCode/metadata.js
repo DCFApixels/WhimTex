@@ -219,12 +219,21 @@ function directiveLines(source) {
 function validate(source) {
   const diagnostics = [], names = new Map(), declarations = [], groups = [], conditions = [];
   const directives = directiveLines(source);
-  let group = null, condition = null, aliases = [], headers = 0, helpBoxes = 0;
+  let group = null, condition = null, aliases = [], headers = 0, helpBoxes = 0, control = null, controlCount = 0;
   const report = (d, message, warning = false) => diagnostics.push({ line: d.line, start: d.start, end: d.length, message, warning });
   for (const d of directives) {
     const { name, body } = d;
     try {
       switch (name) {
+        case 'control': {
+          const match = body.match(/^\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)$/);
+          control = match ? { name: match[1], d } : null;
+          if (!match) report(d, 'Expected // @control(_Parameter).', true);
+          const expected = /^\uFEFF?\/\/\s*@whimtex-effect\s+/.test(source) ? 1 : 0;
+          if (++controlCount > 1) report(d, 'Multiple @control declarations; the last declaration wins.', true);
+          else if (d.line !== expected) report(d, `Place @control on line ${expected + 1}, immediately after the effect marker or first when no marker exists.`, true);
+          break;
+        }
         case 'whimtex-effect':
           if (d.line !== 0 || !/^\uFEFF?\/\/\s*@whimtex-effect\s+/.test(d.text))
             report(d, 'The catalog marker is recognized only on the first line, without indentation.', true);
@@ -317,6 +326,11 @@ function validate(source) {
     if (!controls) report(c.d, `@if refers to undeclared parameter ${c.name}.`);
     else if (!scalar(controls[0].type)) report(c.d, '@if can reference only float, bool or enum parameters.');
     else if (controls.some(p => p.condition)) report(c.d, '@if must reference an unconditional parameter.');
+  }
+  if (control) {
+    const fields = names.get(control.name);
+    if (!fields) report(control.d, `@control refers to undeclared parameter ${control.name}.`, true);
+    else if (fields.length !== 1) report(control.d, `@control parameter ${control.name} must have one declaration to select an unambiguous field.`, true);
   }
   return diagnostics;
 }

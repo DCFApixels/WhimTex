@@ -44,11 +44,15 @@ for (const match of guide.matchAll(/```json\s*\n([\s\S]*?)\n```/g)) {
   if (example.format === 'whimtex.gradient') continue; // Validated by GradientPresetsSmoke in Unity.
   assert.ok(matches(schema, example), 'Guide JSON does not match schema');
 }
-for (const [name, file] of Object.entries({ noise: 'Noise', shape: 'Shape', blur: 'Blur', normalMap: 'NormalMap', makeSeamless: 'MakeSeamless' })) {
+for (const [name, file] of Object.entries({ noise: 'Noise', shape: 'Shape', blur: 'Blur', normalMap: 'NormalMap', makeSeamless: 'MakeSeamless', fillPattern: 'FillPattern' })) {
   const source = read(`src/Automation/WhimTexApi.${file}.cs`);
   const declared = [...source.match(/Keys\(value,([\s\S]*?)\);/)[1].matchAll(/"([^"]+)"/g)].map(m => m[1]).sort();
   assert.deepEqual(Object.keys(schema.$defs[name].properties).sort(), declared, `${name} keys differ from implementation`);
 }
+for (const size of [64, [32, 64]])
+  assert.ok(matches(schema.$defs.fillPattern, { size, cellColor: 'Random', colorBlend: 'ReplaceRGB', seed: -2147483648, variation: .7 }));
+for (const bad of [{ size: [0, 32] }, { variation: 2 }, { cellColor: 'Unknown' }, { seed: 1.5 }])
+  assert.equal(matches(schema.$defs.fillPattern, bad), false);
 const paste = read('src/TextureCompositorWindow.AreaSelection.cs');
 assert.ok(paste.indexOf('IsProceduralClipboard(clipboardText)') < paste.indexOf('TextureCompositor copiedLayers = LayerClipboard.Current'));
 assert.match(paste, /IsTextInputTarget\(target\)/);

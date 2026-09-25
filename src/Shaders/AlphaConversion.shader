@@ -26,6 +26,8 @@ Shader "Hidden/TextureCompositor/AlphaConversion"
             sampler2D _MainTex;
             float _Mode;
             float _DecodeSource;
+            sampler2D _OriginalStraight;
+            float _StraightFallback;
             float safe(float v) { return (asuint(v) & 0x7fffffffu) >= 0x7f800000u ? 0.0 : clamp(v, -65504.0, 65504.0); }
 
             float4 frag(v2f_img input) : SV_Target
@@ -37,8 +39,14 @@ Shader "Hidden/TextureCompositor/AlphaConversion"
                 if (_Mode < 0.5)
                     return float4(color.rgb * color.a, color.a);
                 if (color.a <= 0.00001)
-                    return float4(0.0, 0.0, 0.0, 0.0);
-                color = float4(color.rgb / color.a, color.a);
+                {
+                    if (_StraightFallback < .5) return float4(0.0, 0.0, 0.0, 0.0);
+                    color = float4(tex2D(_OriginalStraight, input.uv).rgb, 0.0);
+                    #if defined(UNITY_COLORSPACE_GAMMA)
+                    if (_StraightFallback > 1.5) color.rgb = SpriteDecode(color.rgb);
+                    #endif
+                }
+                else color = float4(color.rgb / color.a, color.a);
                 // Half-precision premultiplied storage can round RGB and alpha differently.
                 // Bound finite unpremultiplied values before the half target; keep nonfinite
                 // render values observable by the compositor's existing diagnostics.

@@ -832,7 +832,7 @@ namespace DCFApixels.WhimTex
             int targetIndex = y <= 3f ? index - 1 : y >= row.layout.height - 3f ? index : -1;
             if (targetIndex < 0 || targetIndex + 1 >= container.Count) return false;
             Layer target = container[targetIndex];
-            if (target == null || WhimTexApi.IsLayerContentLocked(compositor, target) || target?.Behaviour is ShaderProcessorLayerBehaviour || container[targetIndex + 1]?.Behaviour is ShaderProcessorLayerBehaviour) return false;
+            if (target == null || WhimTexApi.IsLayerContentLocked(compositor, target) || target?.Behaviour is ShaderProcessorLayerBehaviour || container[targetIndex + 1]?.IsClippingBarrier == true) return false;
             ExecuteContextChange("Change Clipping Mask", () => target.clippingMask = !target.clippingMask);
             return true;
         }
@@ -2755,7 +2755,7 @@ namespace DCFApixels.WhimTex
             {
                 if (pencilCursorElement == null) return;
                 bool visible = pencilCursor && cursorVisible && brushSettings != null;
-                TextureTransform transform = drawingLayer != null ? drawingLayer.Owner.CanvasTransform : TextureTransform.Default;
+                TextureTransform transform = drawingLayer != null ? drawingLayer.Owner.PixelCanvasTransform : TextureTransform.Default;
                 Rect rect = new Rect(ImageRect.position - contentRect.position, ImageRect.size);
                 if (!visible || !TiledCanvasUtility.IsInvertible(transform) || rect.width <= 0f || rect.height <= 0f)
                 {

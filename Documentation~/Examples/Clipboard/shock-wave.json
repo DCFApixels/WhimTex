@@ -73,8 +73,8 @@
           },
           "fx": [
             {
-              "name": "To Polar",
-              "code": "// @whimtex-effect Distortion/Polar Coordinates/To Polar\n// @param float _AngleOffset = 0\n// @param float _RadialOffset = 0\n// @param transform2D _Area\n\nfloat4 ApplyFX(float2 uv, float4 color)\n{\n    float2 p = (_Area_ToLocal(uv) - 0.5) * 2.0;\n    float radius = length(p);\n    // The center has no unique angle. Choose zero without evaluating atan2(0, 0).\n    float angle = 0.0;\n    if (radius > 0.0) angle = atan2(p.y, p.x) / 6.28318530718;\n    // Only the angular coordinate wraps; radius continues beyond the frame.\n    float2 sampleUV = float2(frac(angle - _AngleOffset / 360.0), radius - _RadialOffset);\n    return SampleInput(sampleUV);\n}"
+              "name": "Polar Coordinates",
+              "code": "// @whimtex-effect Distortion/Polar Coordinates\n// @param enum _Mode = 0 {ToPolar: 0, FromPolar: 1} // Wrap a strip into a circle, or unwrap a circle into a strip.\n// @param float _AngleOffset = 0 [~-180 .. ~180] // Angular offset in degrees.\n// @param float _RadialOffset = 0 [~-1 .. ~1] // Radial offset in normalized coordinates.\n// @param transform2D _Area\n\nfloat4 ApplyFX(float2 uv, float4 color)\n{\n    float2 sampleUV = uv;\n    if (_Mode < 0.5)\n    {\n        float2 p = (_Area_ToLocal(uv) - 0.5) * 2.0;\n        float radius = length(p);\n        // The center has no unique angle. Choose zero without evaluating atan2(0, 0).\n        float angle = 0.0;\n        if (radius > 0.0) angle = atan2(p.y, p.x) / 6.28318530718;\n        // Only the angular coordinate wraps; radius continues beyond the frame.\n        sampleUV = float2(frac(angle - _AngleOffset / 360.0), radius - _RadialOffset);\n    }\n    else\n    {\n        float angle = (uv.x + _AngleOffset / 360.0) * 6.28318530718;\n        float radius = uv.y + _RadialOffset;\n        float sine, cosine;\n        sincos(angle, sine, cosine);\n        float2 localUV = 0.5 + float2(cosine, sine) * radius * 0.5;\n        sampleUV = _Area_ToInput(localUV);\n    }\n    return SampleInput(sampleUV);\n}"
             }
           ]
         }

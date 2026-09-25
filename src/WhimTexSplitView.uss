@@ -1888,6 +1888,32 @@
     flex-shrink: 1;
 }
 
+.whimtex-fx-effect-control {
+    flex-direction: row;
+    align-items: center;
+    width: 100px;
+    max-width: 45%;
+    flex-shrink: 1;
+    margin-right: 4px;
+}
+.whimtex-fx-effect-control--bool { width: 20px; }
+.whimtex-fx-effect-control--vector { width: 200px; }
+.whimtex-fx-effect-control > .whimtex-fx-group-header-field {
+    flex-grow: 1;
+    width: auto;
+    min-width: 0;
+    max-width: none;
+}
+
+.whimtex-fx-effect-control-handle {
+    opacity: 0.7;
+    width: 18px;
+    flex-shrink: 0;
+    margin: 0 2px 0 0;
+    padding: 0;
+    -unity-text-align: middle-center;
+}
+
 .whimtex-fx-group-header-field > .unity-base-field__label {
     display: none;
 }
@@ -2492,6 +2518,21 @@
     padding: 0;
     align-items: center;
     justify-content: center;
+}
+
+.whimtex-linked-vector > .unity-base-field__input > .whimtex-vector-link {
+    width: 22px;
+    height: 18px;
+    flex-shrink: 0;
+    margin: 0 3px 0 0;
+    padding: 0;
+    align-items: center;
+    justify-content: center;
+}
+
+.whimtex-vector-link > .whimtex-tool-icon {
+    width: 18px;
+    height: 18px;
 }
 
 .whimtex-shape-picker {

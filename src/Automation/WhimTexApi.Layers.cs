@@ -124,7 +124,7 @@ namespace DCFApixels.WhimTex
         private static void SetLayer(TextureCompositor document, Layer layer, JObject settings)
         {
             Keys(settings, "name", "enabled", "clippingMask", "opacity", "blend", "filter", "source", "colorRange", "blendRange", "swizzle", "compositing", "color", "brush",
-                "metric", "outlineWidth", "outlineSoftness", "outlinePosition", "outlineOffset", "fillCenter", "fillColor", "sourceChannel", "threshold",
+                "fillMode", "fillPattern", "metric", "outlineWidth", "outlineSoftness", "outlinePosition", "outlineOffset", "fillCenter", "fillColor", "sourceChannel", "threshold",
                 "distancePosition", "inverted", "maxDistance", "sourceOffset", "sourceEdges", "contourOffset", "insideDistance", "outsideDistance", "profile", "gradient", "normalMap", "blur", "sharpen", "makeSeamless", "noise", "shape");
             foreach (var property in settings.Properties())
             {
@@ -134,6 +134,7 @@ namespace DCFApixels.WhimTex
                     (key == "opacity" || key == "blend" || key == "filter" ||
                     key == "source" && layer?.Behaviour is FileLayerBehaviour || key == "brush" && layer?.Behaviour is DrawingLayerBehaviour ||
                     key == "color" && (layer?.Behaviour is ColorFillLayerBehaviour || layer?.Behaviour is OutlineLayerBehaviour) ||
+                    (key == "fillMode" || key == "fillPattern") && layer?.Behaviour is ColorFillLayerBehaviour ||
                     key == "metric" && (layer?.Behaviour is SDFLayerBehaviour || layer?.Behaviour is OutlineLayerBehaviour) ||
                     key == "normalMap" && layer?.Behaviour is NormalMapLayerBehaviour ||
                     key == "blur" && layer?.Behaviour is BlurLayerBehaviour ||
@@ -181,7 +182,13 @@ namespace DCFApixels.WhimTex
             }
             layer.colorRange = Enum(settings, "colorRange", layer.colorRange);
             layer.blendRange = Enum(settings, "blendRange", layer.blendRange);
-            if (layer?.Behaviour is ColorFillLayerBehaviour fill && settings["color"] != null) fill.color = Color(settings["color"]);
+            if (layer?.Behaviour is ColorFillLayerBehaviour fill)
+            {
+                if (settings["color"] != null) fill.color = Color(settings["color"]);
+                fill.mode = Enum(settings, "fillMode", fill.mode);
+                if (settings["fillPattern"] != null)
+                    SetFillPattern(fill.pattern ??= new FillPatternSettings(), Obj(settings["fillPattern"], "fillPattern"));
+            }
             if (layer?.Behaviour is NormalMapLayerBehaviour normal && settings["normalMap"] != null)
                 SetNormalMap(normal, Obj(settings["normalMap"], "normalMap"));
             if (layer?.Behaviour is BlurLayerBehaviour blur && settings["blur"] != null)

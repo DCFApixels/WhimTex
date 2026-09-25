@@ -54,6 +54,135 @@
     "layers"
   ],
   "$defs": {
+    "fillPattern": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "shape": {
+          "type": "string",
+          "enum": [
+            "Triangles",
+            "Squares",
+            "Hexagons",
+            "Circles"
+          ]
+        },
+        "circleLayout": {
+          "type": "string",
+          "enum": [
+            "Square",
+            "Dense"
+          ]
+        },
+        "size": {
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 16384
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 1,
+                "maximum": 16384
+              },
+              "minItems": 2,
+              "maxItems": 2
+            }
+          ]
+        },
+        "linkSize": {
+          "type": "boolean"
+        },
+        "rotation": {
+          "type": "number",
+          "minimum": -360000,
+          "maximum": 360000
+        },
+        "offset": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": -1000000,
+            "maximum": 1000000
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "seamless": {
+          "type": "boolean"
+        },
+        "gap": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.99
+        },
+        "roundness": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "bulge": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "distanceRange": {
+          "type": "number",
+          "minimum": 0.001,
+          "maximum": 16
+        },
+        "position": {
+          "type": "string",
+          "enum": [
+            "Outside",
+            "Inside",
+            "Center",
+            "Signed"
+          ]
+        },
+        "inverted": {
+          "type": "boolean"
+        },
+        "profile": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "gradient": {
+          "$ref": "#/$defs/gradient"
+        },
+        "cellColor": {
+          "type": "string",
+          "enum": [
+            "Uniform",
+            "Random",
+            "Pattern"
+          ]
+        },
+        "colorBlend": {
+          "type": "string",
+          "enum": [
+            "Multiply",
+            "ReplaceRGB"
+          ]
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "variation": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "palette": {
+          "$ref": "#/$defs/gradient"
+        }
+      }
+    },
     "color": {
       "type": "array",
       "prefixItems": [
@@ -1077,8 +1206,12 @@
                   "type": "string",
                   "enum": [
                     "Color",
-                    "UV"
+                    "UV",
+                    "Pattern"
                   ]
+                },
+                "fillPattern": {
+                  "$ref": "#/$defs/fillPattern"
                 },
                 "filter": {
                   "type": "string",

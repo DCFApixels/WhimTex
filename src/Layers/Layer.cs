@@ -74,13 +74,15 @@ namespace DCFApixels.WhimTex
         {
             get
             {
-                var value = CanvasTransform;
+                var value = PixelCanvasTransform;
                 if ((RequiresInput || Behaviour is ShaderProcessorLayerBehaviour) && transformCache?.parent != null)
                     value.matrix = transformCache.world * transformCache.parentInverse;
                 return value;
             }
         }
         public LayerFilterMode filterMode = LayerFilterMode.Source;
+        internal TextureTransform PixelCanvasTransform => Behaviour is DrawingLayerBehaviour drawing
+            ? drawing.GetPixelTransform(CanvasTransform) : CanvasTransform;
         [SerializeReference] private LayerBehaviour behaviour;
         [SerializeField] private string behaviourId;
         internal string BehaviourId => behaviourId;
@@ -167,6 +169,12 @@ namespace DCFApixels.WhimTex
         internal bool HasModifiers => modifiers != null && modifiers.Exists(value => value != null && (!(value is ShaderFX fx) || fx.Active));
         internal bool IsPassThrough => compositing == GroupCompositing.PassThrough && swizzle.IsIdentity && !HasModifiers;
         internal BlendMode EffectiveBlendMode => compositing == GroupCompositing.PassThrough ? BlendMode.Normal : blendMode;
+        internal BlendMode CompositeBlendMode => Behaviour is DrawingLayerBehaviour drawing && drawing.UsesPremultipliedOverwrite
+            ? (BlendMode)101 : blendMode;
+        // Keep existing orphan clipping layers from attaching themselves to a baked Processor.
+        // Explicitly enabling clipping on the Drawing opts into ordinary clipping semantics.
+        internal bool IsClippingBarrier => Behaviour is ShaderProcessorLayerBehaviour ||
+            !clippingMask && Behaviour is DrawingLayerBehaviour drawing && drawing.IsProcessorSnapshot;
         internal List<Layer> layers { get => children ??= new List<Layer>(); set => children = value; }
 
         internal void AssignNewId()
@@ -200,7 +208,8 @@ namespace DCFApixels.WhimTex
         {
             if (!context.applyTransform) { ProjectiveMatrix.Identity.SetShader(material, prefix); return; }
             var cache = transformCache;
-            if (cache != null && cache.document == context.compositor && cache.local.Equals(transform))
+            if (cache != null && cache.document == context.compositor && cache.local.Equals(transform) &&
+                !(Behaviour is DrawingLayerBehaviour drawing && drawing.HasBakedPixelFrame))
             {
                 if (RequiresInput || Behaviour is ShaderProcessorLayerBehaviour) cache.inputInverseGpu.Set(material, prefix);
                 else cache.inverseGpu.Set(material, prefix);
@@ -339,11 +348,12 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        internal void ApplyModifiers(ref RenderTexture current, in LayerRenderContext context, FilterMode filter = FilterMode.Bilinear)
+        internal void ApplyModifiers(ref RenderTexture current, in LayerRenderContext context, FilterMode filter = FilterMode.Bilinear,
+            int count = int.MaxValue)
         {
             if (!context.applyModifiers || modifiers == null || current == null)
                 return;
-            for (int i = 0; i < modifiers.Count; i++)
+            for (int i = 0; i < modifiers.Count && i < count; i++)
             {
                 if (modifiers[i] is ShaderFX inactive && !inactive.Active) continue;
                 using var textureInputs = modifiers[i] is ShaderFX textureFX
@@ -358,6 +368,8 @@ namespace DCFApixels.WhimTex
                 {
                     if (!context.transformFxCoordinates)
                         ProjectiveMatrix.Identity.SetShader(modifier, "_WhimTex_LayerToLocalRow");
+                    else if (Behaviour is DrawingLayerBehaviour drawing && drawing.HasBakedFxFrame)
+                        drawing.GetBakedFxInverse(context.compositor.width, context.compositor.height).SetShader(modifier, "_WhimTex_LayerToLocalRow");
                     else if (transformCache != null)
                         transformCache.inverseGpu.Set(modifier, "_WhimTex_LayerToLocalRow");
                     else

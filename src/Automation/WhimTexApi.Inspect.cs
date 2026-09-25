@@ -59,6 +59,8 @@ namespace DCFApixels.WhimTex
             result["sharpenChannels"] = new JArray(System.Enum.GetNames(typeof(SharpenLayerBehaviour.ChannelMode)));
             result["noiseDimensions"] = new JArray(System.Enum.GetNames(typeof(NoiseLayerBehaviour.NoiseDimensions)));
             result["noiseDefaults"] = NoiseSnapshot(new NoiseLayerBehaviour());
+            result["fillModes"] = new JArray(System.Enum.GetNames(typeof(ColorFillLayerBehaviour.FillMode)));
+            result["fillPatternDefaults"] = FillPatternSnapshot(new FillPatternSettings());
             result["shapeDefaults"] = ShapeSnapshot(new ShapeLayerBehaviour());
             result["shapeKinds"] = new JArray(System.Enum.GetNames(typeof(ShapeLayerBehaviour.ShapeKind)));
             result["noiseTypes"] = new JArray(System.Enum.GetNames(typeof(NoiseLayerBehaviour.NoiseType)));
@@ -222,7 +224,12 @@ namespace DCFApixels.WhimTex
                         if (file.sourceTexture != null)
                             entry["sourceSize"] = new JArray(file.sourceTexture.width, file.sourceTexture.height);
                     }
-                    if (layer?.Behaviour is ColorFillLayerBehaviour fill) settings["color"] = Json(fill.color);
+                    if (layer?.Behaviour is ColorFillLayerBehaviour fill)
+                    {
+                        settings["color"] = Json(fill.color);
+                        settings["fillMode"] = fill.mode.ToString();
+                        settings["fillPattern"] = FillPatternSnapshot(fill.pattern ?? new FillPatternSettings());
+                    }
                     if (layer?.Behaviour is DrawingLayerBehaviour drawing) settings["brush"] = BrushSnapshot(drawing);
                     if (layer?.Behaviour is TargetedLayerBehaviour targeted)
                     {

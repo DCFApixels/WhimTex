@@ -79,7 +79,7 @@ namespace DCFApixels.WhimTex
             Focus();
             toolkitPreviewCanvas.Focus();
             DrawingLayerBehaviour layer = (DrawingLayerBehaviour)GetSelectedLayer();
-            if (!TiledCanvasUtility.IsInvertible(compositor.GetCanvasTransform(layer)) ||
+            if (!TiledCanvasUtility.IsInvertible(compositor.GetPaintTransform(layer)) ||
                 !TryMapPreviewToLayerUv(evt.localPosition, toolkitPreviewCanvas.ImageRect, layer, out Vector2 uv))
             {
                 ShowNotification(new GUIContent("Fill inside the layer's source frame, or apply its transform first."));
@@ -87,7 +87,7 @@ namespace DCFApixels.WhimTex
             }
             if (tiledPreview)
             {
-                uv = TiledCanvasUtility.CanonicalSource(uv, compositor.GetCanvasTransform(layer), compositor.width, compositor.height);
+                uv = TiledCanvasUtility.CanonicalSource(uv, compositor.GetPaintTransform(layer), compositor.width, compositor.height);
                 if (uv.x < 0f || uv.x > 1f || uv.y < 0f || uv.y > 1f)
                 {
                     ShowNotification(new GUIContent("Fill inside a visible copy of the layer's source frame."));
@@ -124,7 +124,7 @@ namespace DCFApixels.WhimTex
                     {
                         composite = compositePixels, reference = reference, valid = valid,
                         width = width, height = height, compositeWidth = composite.width, compositeHeight = composite.height,
-                        sourceToCanvas = compositor.GetCanvasTransform(layer).ToMatrix(compositor.width, compositor.height)
+                        sourceToCanvas = compositor.GetPaintTransform(layer).ToMatrix(compositor.width, compositor.height)
                     }.Schedule(length, 256).Complete();
                 }
                 else

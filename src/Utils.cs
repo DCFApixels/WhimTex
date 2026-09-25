@@ -275,6 +275,7 @@ namespace DCFApixels.WhimTex
         private static Material noiseMaterial;
         private static Material gradientMaterial;
         private static Material fillUvMaterial;
+        private static Material fillPatternMaterial;
         private static Material shapeMaterial;
         private static Material effectCacheMaterial;
 
@@ -296,6 +297,7 @@ namespace DCFApixels.WhimTex
         public static Material Noise => GetOrCreate(ref noiseMaterial, "Hidden/TextureCompositor/Noise");
         public static Material Gradient => GetOrCreate(ref gradientMaterial, "Hidden/TextureCompositor/Gradient");
         public static Material FillUv => GetOrCreate(ref fillUvMaterial, "Hidden/TextureCompositor/FillUv");
+        public static Material FillPattern => GetOrCreate(ref fillPatternMaterial, "Hidden/TextureCompositor/FillPattern");
         public static Material Shape => GetOrCreate(ref shapeMaterial, "Hidden/TextureCompositor/Shape");
         public static Material EffectCache => GetOrCreate(ref effectCacheMaterial, "Hidden/TextureCompositor/EffectCache");
         public static Material Transform => GetOrCreate(ref transformMaterial, "Hidden/TextureCompositor/Transform");
@@ -330,6 +332,8 @@ namespace DCFApixels.WhimTex
             healingBrushMaterial = null;
             if (fillUvMaterial != null) UnityEngine.Object.DestroyImmediate(fillUvMaterial);
             fillUvMaterial = null;
+            if (fillPatternMaterial != null) UnityEngine.Object.DestroyImmediate(fillPatternMaterial);
+            fillPatternMaterial = null;
             if (gradientMaterial != null) UnityEngine.Object.DestroyImmediate(gradientMaterial);
             gradientMaterial = null;
             if (shapeMaterial != null) UnityEngine.Object.DestroyImmediate(shapeMaterial);

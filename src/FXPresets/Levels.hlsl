@@ -1,4 +1,7 @@
 // @whimtex-effect Color/Levels
+// @control(_Opacity)
+// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.
+// @group
 // @header(Input Levels)
 // @param label(Input Black) float _InBlack = 0 [0 .. ~1] // Input black point. At or above white, the mapping becomes a hard threshold.
 // @param label(Input White) float _InWhite = 1 [0 .. ~1] // Input white point.
@@ -8,6 +11,7 @@
 // @param label(Output Black) float _OutBlack = 0 [0 .. ~1] // Output black point, including originally black pixels.
 // @param label(Output White) float _OutWhite = 1 [0 .. ~1] // Output white point; values below black invert the output.
 // @param bool _PreserveColor = true // On adjusts luminance; off applies levels independently to RGB.
+// @endgroup
 
 float MapLevels(float value)
 {
@@ -21,13 +25,17 @@ float MapLevels(float value)
 
 float4 ApplyFX(float2 uv, float4 color)
 {
+	float4 result = color;
     float3 rgb = max(color.rgb, 0.0);
     if (_PreserveColor > 0.5)
     {
         float luma = dot(rgb, float3(0.2126, 0.7152, 0.0722));
         float mapped = MapLevels(luma);
-        color.rgb = luma > 0.000001 ? rgb * (mapped / max(luma, 0.000001)) : mapped.xxx;
-    }
-    else color.rgb = float3(MapLevels(rgb.r), MapLevels(rgb.g), MapLevels(rgb.b));
-    return color;
+		result.rgb = luma > 0.000001 ? rgb * (mapped / max(luma, 0.000001)) : mapped.xxx;
+	}
+	else
+	{
+		result.rgb = float3(MapLevels(rgb.r), MapLevels(rgb.g), MapLevels(rgb.b));
+	}
+	return lerp(color, result, _Opacity);
 }

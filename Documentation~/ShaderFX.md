@@ -40,6 +40,10 @@ stack below a position, add a **Shader Processor** layer instead.
 
 ## Shader FX: a first snippet, parameters and reusable code
 
+The stack's **Apply All** and **⋮ → Apply** bake rendered pixels; they are distinct from compiling code with **Code → Apply**. A per-FX bake consumes the inclusive prefix, preserving the remaining stack. The result is Drawing with unchanged logical Transform; serialized pixel-frame compensation prevents double-transforming the snapshot, and converted groups retain their FX coordinate frame. Painting uses the pixel frame, while Transform editing uses the logical frame. The snapshot is canvas-sized linear half-float, before layer opacity/blending/swizzle/clipping.
+
+Shader Processor baking reconstructs its stack-position backdrop, inheriting external input through Pass Through ancestors and starting transparent inside isolated/clipped groups. Its Normal becomes Overwrite; Drawing stores `processorSnapshot` and `processorNormalBlend` to retain premultiplied before/after opacity interpolation instead of ordinary straight-RGBA Overwrite. Other blend modes retain their ordinary behavior. Processor snapshots remain clipping boundaries so existing orphan clipping layers do not acquire a new base; explicitly enabling clipping on the Drawing opts into ordinary clipping semantics. The lower layers are unchanged, but their future edits no longer regenerate the snapshot. Flags survive repeated Apply, native clipboard, TIFF and Undo/Redo.
+
 Declare the parameter in the code, then click **Apply**:
 
 ```hlsl
@@ -128,6 +132,29 @@ values, retaining float bounds and existing categories; the file name supplies t
 Custom includes are expanded for portability (cyclic or oversized include trees are rejected).
 Engine includes remain external. Files can be saved under user `ShaderFX` or project `Assets`.
 Existing effects are not detached or switched to the saved file.
+
+### FX block control
+
+If the parameter name contains `Opacity` or `Alpha` (case-insensitive), the numeric drag handle uses the same alpha icon as the Layers header instead of arrows; dragging behaves identically.
+
+Float controls have a **↔** handle before the field: drag horizontally to adjust the value, hold Shift for finer changes or Ctrl for faster changes. The gesture respects hard/soft limits and forms one Undo step.
+
+Use `// @control(_Opacity)` immediately after the catalog marker, or on the first line when there is no marker, to expose one existing parameter in the FX block header before **⋮**:
+
+```hlsl
+// @whimtex-effect Color/My Effect
+// @control(_Opacity)
+// @param hidden float _Opacity = 1 [0 .. 1]
+
+float4 ApplyFX(float2 uv, float4 color)
+{
+    return float4(color.rgb, color.a * _Opacity);
+}
+```
+
+The compact, unlabeled field supports bool, enum, float, color, float2, float3 and float4. Its tooltip identifies the parameter. Unsupported types leave the header unchanged. The parameter must have a single declaration. `hidden` suppresses its normal body row, not this header field; omit `hidden` to display both controls editing the same value. This is UI metadata only: it neither declares a uniform nor adds automatic opacity blending. Use the parameter in your HLSL to define its behavior.
+
+Only one control is selected. Multiple directives produce soft warnings and the last declaration wins, even if invalid (there is no fallback to an earlier declaration). Malformed syntax, unknown/ambiguous parameter references and misplaced directives also produce warnings rather than shader errors. Documents, preset exports and portable code preserve the binding; exports write one canonical directive after the catalog marker.
 
 ### Parameter declarations
 

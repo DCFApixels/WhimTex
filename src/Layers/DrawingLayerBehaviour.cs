@@ -19,6 +19,48 @@ namespace DCFApixels.WhimTex
         internal const float MaximumBrushSpacing = 4f;
 
         [SerializeField] private Texture2D pixels;
+        [SerializeField, HideInInspector] private bool hasBakedPixelFrame;
+        [SerializeField, HideInInspector] private ProjectiveMatrix bakedCanvasToLayer;
+        [SerializeField, HideInInspector] private bool hasBakedFxFrame;
+        [SerializeField, HideInInspector] private ProjectiveMatrix bakedLayerToFx;
+        [SerializeField, HideInInspector] private bool processorSnapshot;
+        [SerializeField, HideInInspector] private bool processorNormalBlend;
+        internal bool IsProcessorSnapshot => processorSnapshot;
+        internal bool UsesPremultipliedOverwrite => processorSnapshot && processorNormalBlend && blendMode == BlendMode.Overwrite;
+        internal void SetProcessorSnapshot(bool normalBlend)
+        {
+            processorSnapshot = true;
+            processorNormalBlend = normalBlend;
+            if (normalBlend) blendMode = BlendMode.Overwrite;
+            // Processor does not participate in clipping chains, even if an old flag was set.
+            clippingMask = false;
+        }
+        internal bool HasBakedPixelFrame => hasBakedPixelFrame;
+        internal bool HasBakedFxFrame => hasBakedFxFrame;
+        internal ProjectiveMatrix GetBakedFxInverse(int width, int height)
+        {
+            Owner.CanvasTransform.ToMatrix(width, height).TryInverse(out var inverse);
+            return bakedLayerToFx * inverse;
+        }
+        internal void SetBakedFxFrame(ProjectiveMatrix layerToFx)
+        {
+            hasBakedFxFrame = true;
+            bakedLayerToFx = layerToFx;
+        }
+        internal TextureTransform GetPixelTransform(TextureTransform canvasTransform)
+        {
+            if (!hasBakedPixelFrame) return canvasTransform;
+            var document = Owner.transformCache?.document;
+            canvasTransform.matrix = canvasTransform.ToMatrix(document != null ? document.width : pixels != null ? pixels.width : 1,
+                document != null ? document.height : pixels != null ? pixels.height : 1) * bakedCanvasToLayer;
+            canvasTransform.storage = TransformStorage.Projective;
+            return canvasTransform;
+        }
+        internal void SetBakedPixelFrame(ProjectiveMatrix canvasToLayer)
+        {
+            hasBakedPixelFrame = true;
+            bakedCanvasToLayer = canvasToLayer;
+        }
         [SerializeField, HideInInspector] private int pixelsRevision;
         [SerializeField, HideInInspector] private string originalImageUrl;
         [SerializeField, HideInInspector] private int originalImageRevision;
@@ -93,6 +135,11 @@ namespace DCFApixels.WhimTex
                 : new DrawingLayerBehaviour();
             result.CopyRasterizedIdentityFrom(source);
             result.transform = applyTransform ? TextureTransform.Default : source.transform;
+            if (applyTransform || source.IsGroup)
+            {
+                result.hasBakedPixelFrame = false;
+                result.hasBakedFxFrame = false;
+            }
             if (source.IsGroup)
             {
                 result.transform = TextureTransform.Default;
@@ -150,16 +197,7 @@ namespace DCFApixels.WhimTex
 
             try
             {
-                Material conversion = WhimTexMaterials.AlphaConversion;
-                if (conversion == null)
-                {
-                    Graphics.Blit(surface, straight);
-                }
-                else
-                {
-                    conversion.SetFloat("_Mode", 1f);
-                    Graphics.Blit(surface, straight, conversion);
-                }
+                BlitStraightSurface(straight, 1f);
 
                 return ApplyTransformAndModifiers(straight, context);
             }
@@ -230,12 +268,12 @@ namespace DCFApixels.WhimTex
 
         internal void BeginTiledStroke(Vector2 sourceUv, int width, int height)
         {
-            BeginStroke(TiledCanvasUtility.CanonicalSource(sourceUv, Owner.CanvasTransform, width, height));
+            BeginStroke(TiledCanvasUtility.CanonicalSource(sourceUv, Owner.PixelCanvasTransform, width, height));
             strokeWrapCanvas = true;
         }
 
         private Vector2 StrokeShapePoint(Vector2 sourceUv, int width, int height) => strokeWrapCanvas
-            ? TiledCanvasUtility.CanonicalSource(sourceUv, Owner.CanvasTransform, width, height)
+            ? TiledCanvasUtility.CanonicalSource(sourceUv, Owner.PixelCanvasTransform, width, height)
             : sourceUv;
 
         internal void EndStroke()
@@ -341,10 +379,10 @@ namespace DCFApixels.WhimTex
                 return;
             color.a *= parameters.Pressure;
             if (color.a <= 0f) return;
-            if (!TiledCanvasUtility.IsInvertible(Owner.CanvasTransform)) return;
+            if (!TiledCanvasUtility.IsInvertible(Owner.PixelCanvasTransform)) return;
             var canvasSize = new Vector2(outputWidth, outputHeight);
-            fromSourceUv = Owner.CanvasTransform.Map(fromSourceUv, canvasSize);
-            toSourceUv = Owner.CanvasTransform.Map(toSourceUv, canvasSize);
+            fromSourceUv = Owner.PixelCanvasTransform.Map(fromSourceUv, canvasSize);
+            toSourceUv = Owner.PixelCanvasTransform.Map(toSourceUv, canvasSize);
             if (!ProjectiveMatrix.Finite(fromSourceUv.x) || !ProjectiveMatrix.Finite(fromSourceUv.y) ||
                 !ProjectiveMatrix.Finite(toSourceUv.x) || !ProjectiveMatrix.Finite(toSourceUv.y)) return;
             RenderTexture surface = EnsurePaintSurface(outputWidth, outputHeight);
@@ -404,7 +442,7 @@ namespace DCFApixels.WhimTex
                 outputHeight,
                 patternCenter,
                 parameters.WrapCanvas,
-                Owner.CanvasTransform,
+                Owner.PixelCanvasTransform,
                 colorRange == LayerColorRange.Standard,
                 !isolatedStroke && HdrUtility.IsHdr(pixels), parameters.SelectionMask, dynamics, parameters.StandardColorInputs,
                 stampBlend, blendRange == LayerBlendRange.HDR);
@@ -514,16 +552,7 @@ namespace DCFApixels.WhimTex
             RenderTexture previous = RenderTexture.active;
             try
             {
-                Material conversion = WhimTexMaterials.AlphaConversion;
-                if (conversion == null)
-                {
-                    Graphics.Blit(paintSurface, straight);
-                }
-                else
-                {
-                    conversion.SetFloat("_Mode", HdrUtility.IsHdr(pixels) ? 3f : 2f);
-                    Graphics.Blit(paintSurface, straight, conversion);
-                }
+                BlitStraightSurface(straight, HdrUtility.IsHdr(pixels) ? 3f : 2f);
 
                 RenderTexture.active = straight;
                 pixels.ReadPixels(new Rect(0f, 0f, straight.width, straight.height), 0, 0, false);
@@ -537,6 +566,21 @@ namespace DCFApixels.WhimTex
             {
                 RenderTexture.active = previous;
                 RenderTexture.ReleaseTemporary(straight);
+            }
+        }
+
+        private void BlitStraightSurface(RenderTexture target, float mode)
+        {
+            Material conversion = WhimTexMaterials.AlphaConversion;
+            if (conversion == null) { Graphics.Blit(paintSurface, target); return; }
+            conversion.SetFloat("_Mode", mode);
+            conversion.SetFloat("_StraightFallback", hasBakedPixelFrame && pixels != null ? HdrUtility.IsHdr(pixels) ? 1f : 2f : 0f);
+            conversion.SetTexture("_OriginalStraight", pixels);
+            try { Graphics.Blit(paintSurface, target, conversion); }
+            finally
+            {
+                conversion.SetFloat("_StraightFallback", 0f);
+                conversion.SetTexture("_OriginalStraight", null);
             }
         }
 
@@ -727,7 +771,7 @@ namespace DCFApixels.WhimTex
             if (UsesMirrorPattern && repeatBoundaryMode == PaintRepeatBoundaryMode.Clip &&
                 (mirrorAcrossVerticalAxis || mirrorAcrossHorizontalAxis))
             {
-                int region = GetMirrorRegion(clipStrokeToInitialShape ? Owner.CanvasTransform.Map(strokeRepeatShapeAnchor,new Vector2(outputWidth,outputHeight)) : sourceUv, outputWidth, outputHeight);
+                int region = GetMirrorRegion(clipStrokeToInitialShape ? Owner.PixelCanvasTransform.Map(strokeRepeatShapeAnchor,new Vector2(outputWidth,outputHeight)) : sourceUv, outputWidth, outputHeight);
                 AddMirrorClippedStamp(sourceUv, region);
                 if (mirrorAcrossVerticalAxis)
                     AddMirrorClippedStamp(ReflectPoint(sourceUv, true, outputWidth, outputHeight), region ^ 1);
@@ -930,8 +974,8 @@ namespace DCFApixels.WhimTex
             int outputWidth,
             int outputHeight)
         {
-            anchorUv=Owner.CanvasTransform.Map(anchorUv,new Vector2(outputWidth,outputHeight));
-            pointUv=Owner.CanvasTransform.Map(pointUv,new Vector2(outputWidth,outputHeight));
+            anchorUv=Owner.PixelCanvasTransform.Map(anchorUv,new Vector2(outputWidth,outputHeight));
+            pointUv=Owner.PixelCanvasTransform.Map(pointUv,new Vector2(outputWidth,outputHeight));
             int primaryCount = Mathf.Clamp(repeatCount, MinimumRepeatCount, MaximumRepeatCount);
             int secondaryCount = Mathf.Clamp(repeatSecondaryCount, MinimumRepeatCount, MaximumRepeatCount);
 

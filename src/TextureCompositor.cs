@@ -751,7 +751,8 @@ namespace DCFApixels.WhimTex
                 // still owns (and hides) its clipping layers. Orphans never render freely.
                 if (layer == null || layer.clippingMask) continue;
                 int top = i;
-                while (top > firstIndex && sourceLayers[top - 1] != null && !(sourceLayers[top - 1]?.Behaviour is ShaderProcessorLayerBehaviour) && sourceLayers[top - 1].clippingMask) top--;
+                while (!layer.IsClippingBarrier && top > firstIndex && sourceLayers[top - 1] != null &&
+                    !sourceLayers[top - 1].IsClippingBarrier && sourceLayers[top - 1].clippingMask) top--;
                 if (top < i)
                 {
                     CompositeClippingChain(sourceLayers, i, top, ref accumulator,
@@ -783,7 +784,7 @@ namespace DCFApixels.WhimTex
 
                 try
                 {
-                    BlendInto(ref accumulator, rendered, layer.blendMode, layer.opacity, layer.blendRange);
+                    BlendInto(ref accumulator, rendered, layer.CompositeBlendMode, layer.opacity, layer.blendRange);
                 }
                 finally
                 {
@@ -851,7 +852,8 @@ namespace DCFApixels.WhimTex
             bool applyTransform = true,
             bool applyModifiers = true,
             bool includeDisabled = false,
-            bool applyClipping = true)
+            bool applyClipping = true,
+            bool finishLayer = true)
         {
             if (container == null || index < 0 || index >= container.Count)
                 return null;
@@ -906,7 +908,8 @@ namespace DCFApixels.WhimTex
                 RenderTexture raw = layer.Render(context);
                 try
                 {
-                    raw = FinishStage(raw, layer.colorRange == LayerColorRange.Standard, applyModifiers ? layer.swizzle : default);
+                    if (finishLayer)
+                        raw = FinishStage(raw, layer.colorRange == LayerColorRange.Standard, applyModifiers ? layer.swizzle : default);
                     if (applyClipping && raw != null && layer.clippingMask)
                         ApplyClippingCoverage(ref raw, container, index, outputWidth, outputHeight, scaleMultiplier, renderStack);
                     return raw;

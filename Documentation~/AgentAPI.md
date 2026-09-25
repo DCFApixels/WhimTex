@@ -307,7 +307,7 @@ Gradient inputs accept either an ordered stop array or the object form documente
 | Non-group | `filter` (`Source`, `Point`, `Bilinear`, `Trilinear`) |
 | Group | `compositing` (`PassThrough`, `Isolated`); ranges are active only when isolated |
 | File | `source` (already imported Texture2D path in Assets or Packages) |
-| Color | `color` (`[r,g,b,a]`, encoded RGB -107..107, alpha 0..1) |
+| Color | `color` (`[r,g,b,a]`, encoded RGB -107..107, alpha 0..1), `fillMode` (`Color`, `UV`, `Pattern`), `fillPattern` (partial settings below) |
 | Drawing | `brush` (partial brush settings below) |
 | Outline | `color`, `metric`, `sourceChannel` (`Alpha` default, `Red`, `Green`, `Blue`, `Luminance`), `outlineWidth`, `outlineSoftness` (0..16384), `outlinePosition` (`Outside`, `Inside`, `Center`), `outlineOffset` (-16384..16384), `fillCenter` (bool), `fillColor` (`[r,g,b,a]`) |
 | SDF | `metric`, `sourceChannel` (`Alpha`, `Red`, `Green`, `Blue`, `Luminance`), `threshold` (integer 0..255), `distancePosition` (`Outside`, `Inside`, `Center`, `Signed`), `inverted` (bool), `maxDistance` (0..16384; zero = automatic), `sourceOffset` ([x,y], each -16384..16384 px), `sourceEdges` (`Transparent`, `Clamp`, `Repeat`, `Mirror`), `contourOffset` (-16384..16384 px; positive expands), `insideDistance`/`outsideDistance` (Signed only, 0..16384; 0 inherits maxDistance/auto), `profile` (FX curve string syntax, default `linear`) |
@@ -756,7 +756,47 @@ The validator caps estimated replicated stamps at 100,000 per stroke, covered br
 250,000,000 per stroke and source UV at -4..5. Documents support up to 1024 layers and
 67,108,864 total owned Drawing pixels through the API.
 
+### Color Fill patterns
+
+Use `settings.fillMode:"Pattern"` and partial `settings.fillPattern` updates.
+`describe` returns `fillModes` and `fillPatternDefaults`; `inspect` includes the full
+pattern. Portable clipboard uses the same keys in `properties`.
+
+| Field | Values |
+|---|---|
+| `shape` | Triangles, Squares, Hexagons (default), Circles |
+| `circleLayout` | Square, Dense (default) |
+| `size` | `[x,y]`, each 1..16384 px, default `[64,64]`; grid scale on each axis before transforms. A scalar sets both axes |
+| `linkSize` | Default `true`; inspector edits scale both axes proportionally. Explicit API sizes are applied as given |
+| `rotation`, `offset` | ±360000 degrees; [x,y] in pixels, each ±1000000 |
+| `seamless` | false by default; fit complete rectangular periods to canvas |
+| `gap`, `roundness`, `bulge` | 0..0.99, 0..1, 0..1; all default zero |
+| `distanceRange` | .001..16 in figure inradii, default 1 |
+| `position` | Outside, Inside, Center, Signed (default) |
+| `inverted` | Boolean, default false |
+| `profile` | FX curve string syntax, default linear |
+| `gradient` | Standard gradient stops/object; default white to black |
+| `cellColor` | Uniform (default), Random, Pattern |
+| `colorBlend` | Multiply (default), ReplaceRGB; both preserve SDF alpha |
+| `palette` | Standard gradient stops/object, default white to black; RGB only. Fixed mode provides discrete colors |
+| `seed` | Signed 32-bit integer, default 0; Random only |
+| `variation` | 0..1, default 1; Random palette sampling from midpoint (0) to full range (1) |
+
+Signed distance is negative inside and positive in gaps; zero maps to the middle
+of the gradient. Bulge remaps only the interior, so nonzero Bulge is not an exact distance.
+Seamless snaps combined layer/group rotation to quarter turns and fits each axis.
+Shear/perspective become an axis-aligned approximation at canvas center; layer tiling
+is bypassed. Stored settings stay unchanged. Polygons may stretch; circles remain circular
+with extra space on one axis. Later FX can break periodicity.
+
+Cell colors use the nearest contour, including gaps, and follow the procedural coordinates.
+Pattern uses palette positions 0/1 for checkerboards and triangle orientations, 0/.5/1 for
+hexagons and dense circles. Seamless also wraps Random cell IDs and fits Pattern color periods:
+even X/Y counts for square grids, X multiples of three for hexagons/dense circles;
+staggered grids retain complete row pairs. Changing palette colors does not change the geometry.
+
 ## Validation, Undo and recovery
+
 
 - Every batch is preflighted on a detached model before the live document is touched. `dryRun`
   does not prove GPU availability, successful image decoding or writable disk space.

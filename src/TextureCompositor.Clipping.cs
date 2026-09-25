@@ -10,11 +10,11 @@ namespace DCFApixels.WhimTex
         internal static int FindClippingBaseIndex(List<Layer> container, int index)
         {
             if (container == null || index < 0 || index >= container.Count ||
-                container[index] == null || container[index]?.Behaviour is ShaderProcessorLayerBehaviour || !container[index].clippingMask) return -1;
+                container[index] == null || container[index].IsClippingBarrier || !container[index].clippingMask) return -1;
             for (int i = index + 1; i < container.Count; i++)
             {
                 if (container[i]?.Behaviour is PendingLayerBehaviour) continue;
-                if (container[i] == null || container[i]?.Behaviour is ShaderProcessorLayerBehaviour) return -1;
+                if (container[i] == null || container[i].IsClippingBarrier) return -1;
                 if (!container[i].clippingMask) return i;
             }
             return -1;

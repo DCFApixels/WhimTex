@@ -293,6 +293,7 @@ namespace DCFApixels.WhimTex
                 }
                 string determinismWarning = ShaderFXSourceBuilder.GetDeterminismWarning(source);
                 if (!string.IsNullOrEmpty(determinismWarning)) messages.AppendLine(determinismWarning);
+                messages.Append(ShaderFXMetadata.ControlWarnings(code, parameters));
                 if (errors || !candidate.isSupported || test.passCount == 0)
                 {
                     lastApplyFailed = true;
@@ -583,6 +584,7 @@ namespace DCFApixels.WhimTex
                 }
                 string determinismWarning = ShaderFXSourceBuilder.GetDeterminismWarning(source);
                 if (!string.IsNullOrEmpty(determinismWarning)) messages.AppendLine(determinismWarning);
+                messages.Append(ShaderFXMetadata.ControlWarnings(code, parameters));
                 if (errors || !candidate.isSupported || candidateMaterial.passCount == 0)
                     throw new InvalidOperationException(messages.Length > 0 ? messages.ToString() : "The shader is not supported on this graphics device.");
 

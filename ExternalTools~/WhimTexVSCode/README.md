@@ -1,5 +1,7 @@
 # WhimTex FX Language Support
 
+`// @control(_Parameter)` links an existing parameter to the FX block header. Place it immediately after the catalog marker, or first without one. Completion, highlighting and soft validation cover this directive; duplicates warn and the last wins.
+
 WhimTex FX source uses HLSL with `// @param` metadata directives. This bundled extension adds directive highlighting, completions and validation to VS Code's HLSL language support. Types, modifiers, parameter names, numbers, colors, enum options, ranges and operators are highlighted too; tooltip comments retain comment styling. It does not register a separate language mode or replace the HLSL grammar.
 
 Diagnostics cover optional defaults and tooltips, color/gradient defaults, curves, transforms, texture-reference syntax, numeric bounds, enum options, compatible repeated controls, conditions, groups and former-name aliases. The catalog marker is recognized. Asset existence, generated shader identifiers, includes and shader compilation are still checked by Unity.

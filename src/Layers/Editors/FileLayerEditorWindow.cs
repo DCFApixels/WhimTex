@@ -39,6 +39,7 @@ namespace DCFApixels.WhimTex
     public sealed class ColorFillLayerEditorWindow : LayerEditorWindowBase
     {
         protected override Type EditedLayerType => typeof(ColorFillLayerBehaviour);
+        protected override bool ImmediatePreviewUpdates => true;
 
         public static void Open(ColorFillLayerBehaviour layer, TextureCompositor compositor)
         {
@@ -64,6 +65,16 @@ namespace DCFApixels.WhimTex
             color.RegisterValueChangedCallback(evt =>
                 applyChange("Change Fill Color", () => layer.color = evt.newValue));
             root.Add(color);
+            color.EnableInClassList("whimtex-hidden", layer.mode == ColorFillLayerBehaviour.FillMode.Pattern);
+            var pattern = new VisualElement();
+            FillPatternFields.Build(pattern, layer, applyChange, bindings);
+            root.Add(pattern);
+            bindings.Add(() =>
+            {
+                bool visible = layer.mode == ColorFillLayerBehaviour.FillMode.Pattern;
+                pattern.EnableInClassList("whimtex-hidden", !visible);
+                color.EnableInClassList("whimtex-hidden", visible);
+            });
         }
     }
 }

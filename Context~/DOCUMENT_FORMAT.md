@@ -60,6 +60,10 @@ Compression 0 = исходные байты, 1 = raw Deflate. TIFF-полосы 
 
 ## Модель
 
+Apply FX сохраняет в Drawing необязательные `hasBakedPixelFrame` / `bakedCanvasToLayer`, а для конвертированной группы также `hasBakedFxFrame` / `bakedLayerToFx`. Это привязка canvas-sized snapshot к неизменённому логическому Transform и пространству оставшихся FX. При отсутствии флагов поведение старых Drawing неизменно. Эти поля проходят обычную сериализацию модели, native clipboard и Undo; они не являются GPU-кешем. Старые версии пакета диагностируют неизвестные поля и блокируют сохранение, поэтому новые документы следует открывать совместимой версией.
+
+После Apply на Shader Processor Drawing также хранит `processorSnapshot` и `processorNormalBlend`: Normal отображается как Overwrite, но сохраняет premultiplied-смешивание по Opacity. Изначальный Overwrite и другие blend modes не меняют математику. Снимок сохраняет границу цепочек clipping; явное включение clipping на Drawing переводит его в обычную цепочку. Нижние слои не удаляются и не входят в сериализованную зависимость снимка.
+
 `WhimTexDocumentSerializer`: tagged binary, версия 1. Обход публичных,
 `[SerializeField]` и `[SerializeReference]` полей; static/readonly/NonSerialized исключены.
 Unity-типы обрабатываются явно. Типы хранятся по полному имени; наследование и ссылочная

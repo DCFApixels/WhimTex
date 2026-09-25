@@ -21,10 +21,14 @@ namespace DCFApixels.WhimTex
         private readonly Dictionary<string, ShaderFXParameter> parametersById = new Dictionary<string, ShaderFXParameter>(StringComparer.Ordinal);
         private readonly Dictionary<string, ShaderFXParameter> parametersByName = new Dictionary<string, ShaderFXParameter>(StringComparer.Ordinal);
         private bool layoutBuilt;
+        private readonly bool effectControl;
+        private string controlSource, controlName;
         private readonly List<Action> refresh = new List<Action>();
         private readonly List<Action> postRefresh = new List<Action>();
 
-        internal ShaderFXParameterView(ShaderFX effect) { this.effect = effect; Refresh(); }
+        internal ShaderFXParameterView(ShaderFX effect) : this(effect, false) { }
+        internal ShaderFXParameterView(ShaderFX effect, bool effectControl)
+        { this.effect = effect; this.effectControl = effectControl; Refresh(); }
 
         internal void Refresh()
         {
@@ -32,6 +36,13 @@ namespace DCFApixels.WhimTex
             parametersById.Clear();
             parametersByName.Clear();
             bool changed = !layoutBuilt || parameterLayout.Count != effect.Parameters.Count;
+            if (effectControl && controlSource != effect.Code)
+            {
+                controlSource = effect.Code;
+                string next = ShaderFXMetadata.ReadControl(controlSource, out _);
+                changed |= next != controlName;
+                controlName = next;
+            }
             for (int i = 0; i < effect.Parameters.Count; i++)
             {
                 var p = effect.Parameters[i];
@@ -48,29 +59,60 @@ namespace DCFApixels.WhimTex
                 parameterLayout.Clear();
                 foreach (var p in effect.Parameters) parameterLayout.Add(CopyLayout(p));
                 Clear(); refresh.Clear(); postRefresh.Clear();
-                var rows = new List<(ShaderFXParameter parameter, ShaderFXParameterControl control)>();
-                foreach (var p in effect.Parameters)
-                    if (p != null)
-                    {
-                        if (p.controls.Count == 0) rows.Add((p, null));
-                        else foreach (var control in p.controls) rows.Add((p, control));
-                    }
-                rows.Sort((a, b) => (a.control?.order ?? 0).CompareTo(b.control?.order ?? 0));
-                ParameterGroupView group = null;
-                foreach (var row in rows)
+                if (effectControl)
                 {
-                    if (row.control?.inGroup == true)
+                    if (controlName != null && parametersByName.TryGetValue(controlName, out var parameter) && parameter.controls.Count == 1)
                     {
-                        if (group == null || group.id != row.control.groupId) group = AddGroup(row.control);
-                        if (!row.control.hidden && row.parameter.id != group.headerParameterId)
-                            AddParameter(group.content, row.parameter, row.control);
-                    }
-                    else
-                    {
-                        group = null;
-                        if (row.control?.hidden != true) AddParameter(this, row.parameter, row.control);
+                        var control = parameter.controls[0];
+                        if (control.type == ShaderFXParameterType.Float)
+                        {
+                            bool alpha = parameter.name.IndexOf("Opacity", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                parameter.name.IndexOf("Alpha", StringComparison.OrdinalIgnoreCase) >= 0;
+                            VisualElement handle = alpha
+                                ? new LayerActionIcon(LayerActionIcon.Kind.Alpha) { pickingMode = PickingMode.Position }
+                                : new Label("↔");
+                            handle.AddToClassList("whimtex-fx-effect-control-handle");
+                            MakeGroupTitleDraggable(handle, parameter.id, control);
+                            Add(handle);
+                        }
+                        AddGroupHeaderParameter(this, parameter, control);
+                        EnableInClassList("whimtex-fx-effect-control--bool", control.type == ShaderFXParameterType.Bool);
+                        EnableInClassList("whimtex-fx-effect-control--vector", control.type == ShaderFXParameterType.Vector2 ||
+                            control.type == ShaderFXParameterType.Vector3 || control.type == ShaderFXParameterType.Vector);
+                        tooltip = string.IsNullOrEmpty(control.tooltip) ? control.label ?? ObjectNames.NicifyVariableName(parameter.name) : control.tooltip;
                     }
                 }
+                else
+                {
+                    var rows = new List<(ShaderFXParameter parameter, ShaderFXParameterControl control)>();
+                    foreach (var p in effect.Parameters)
+                        if (p != null)
+                        {
+                            if (p.controls.Count == 0) rows.Add((p, null));
+                            else foreach (var control in p.controls) rows.Add((p, control));
+                        }
+                    rows.Sort((a, b) => (a.control?.order ?? 0).CompareTo(b.control?.order ?? 0));
+                    ParameterGroupView group = null;
+                    foreach (var row in rows)
+                    {
+                        if (row.control?.inGroup == true)
+                        {
+                            if (group == null || group.id != row.control.groupId) group = AddGroup(row.control);
+                            if (!row.control.hidden && row.parameter.id != group.headerParameterId)
+                                AddParameter(group.content, row.parameter, row.control);
+                        }
+                        else
+                        {
+                            group = null;
+                            if (row.control?.hidden != true) AddParameter(this, row.parameter, row.control);
+                        }
+                    }
+                }
+            }
+            if (effectControl)
+            {
+                EnableInClassList("whimtex-hidden", childCount == 0);
+                SetEnabled(!WhimTexApi.IsShaderFXContentLocked(effect));
             }
             foreach (var update in refresh) update();
             foreach (var update in postRefresh) update();
@@ -232,7 +274,7 @@ namespace DCFApixels.WhimTex
             return new ParameterGroupView { id = definition.groupId, headerParameterId = headerParameterId, content = content };
         }
 
-        private void MakeGroupTitleDraggable(Label title, string id, ShaderFXParameterControl control)
+        private void MakeGroupTitleDraggable(VisualElement title, string id, ShaderFXParameterControl control)
         {
             title.AddToClassList("whimtex-fx-parameter-group-title--draggable");
             title.tooltip = string.IsNullOrEmpty(control.tooltip)
@@ -316,6 +358,12 @@ namespace DCFApixels.WhimTex
             VisualElement field;
             switch (control.type)
             {
+                case ShaderFXParameterType.Bool:
+                    var toggle = new Toggle();
+                    toggle.RegisterValueChangedCallback(e => Change(id, p => p.floatValue = e.newValue ? 1 : 0));
+                    refresh.Add(() => toggle.SetValueWithoutNotify(Find(id).BoolValue));
+                    field = toggle;
+                    break;
                 case ShaderFXParameterType.Enum:
                     var choices = new List<string>();
                     foreach (string option in control.optionNames) choices.Add(ObjectNames.NicifyVariableName(option));

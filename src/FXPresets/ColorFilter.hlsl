@@ -1,15 +1,15 @@
 // @whimtex-effect Color/Color Filter
-// @group(Filter Amount; _Density)
-// @param hidden float _Density = 0.3 [0 .. 1] // Blend with the tinted result; zero leaves the input unchanged.
-// @if _Density != 0
-// @param color _FilterColor = (1.0, 0.6, 0.3, 1.0) // Multiplicative RGB tint; color alpha is ignored.
+// @control(_Opacity)
+// @formerserializedas(_Density)
+// @param hidden float _Opacity = 1 [0 .. 1] // Blend with the tinted result; zero leaves the input unchanged.
+// @group
+// @param color _FilterColor = (1.0, 0.6, 0.3, 0.3) // Multiplicative RGB tint; color alpha is ignored.
 // @param bool _PreserveLuminosity = true // Preserve luminance; a black tint falls back to the source color.
-// @endif
 // @endgroup
 
 float4 ApplyFX(float2 uv, float4 color)
 {
-    float density = saturate(_Density);
+	float density = _Opacity * _FilterColor.a;
     if (density == 0.0) return color;
     float3 original = max(color.rgb, 0.0);
     float3 filtered = original * max(_FilterColor.rgb, 0.0);

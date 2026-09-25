@@ -30,6 +30,8 @@ namespace DCFApixels.WhimTex
             }
             else foreach (var parameter in effect.Parameters) if (parameter != null) values.Add(parameter.Copy());
             var result = new StringBuilder("// @whimtex-effect " + menuPath + "\n");
+            string mainControl = ShaderFXMetadata.ReadControl(effect.Code, out _);
+            if (mainControl != null) result.AppendLine("// @control(" + mainControl + ")");
             var rows = new System.Collections.Generic.List<(int order, string text, ShaderFXParameterControl control)>();
             foreach (var p in values)
             {
@@ -112,7 +114,7 @@ namespace DCFApixels.WhimTex
             while ((line = reader.ReadLine()) != null)
             {
                 lineNumber++;
-                bool metadata = !block && ((lineNumber == 1 && ShaderFXMetadata.TryHeader(line, out _)) || Regex.IsMatch(line, @"^\s*//\s*@(?:param\b|\s*(?:header|helpbox|group|endgroup|formerlyserializedas)\b|if\b|endif\b)"));
+                bool metadata = !block && ((lineNumber == 1 && ShaderFXMetadata.TryHeader(line, out _)) || Regex.IsMatch(line.TrimStart('\uFEFF'), @"^\s*//\s*@(?:control\b|param\b|\s*(?:header|helpbox|group|endgroup|formerlyserializedas)\b|if\b|endif\b)"));
                 ShaderFXSourceBuilder.MaskComments(line, ref block);
                 if (!metadata) body.AppendLine(line);
             }

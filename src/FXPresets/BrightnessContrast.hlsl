@@ -1,6 +1,10 @@
 // @whimtex-effect Color/Brightness Contrast
+// @control(_Opacity)
+// @group
+// @param hidden float _Opacity = 1[0..1] // Blend between the original colors and the adjusted result.
 // @param float _Brightness = 0 [~-100 .. ~100] // Adjust midtone brightness while retaining black and white. Soft bounds allow stronger values.
 // @param float _Contrast = 0 [~-100 .. ~100] // Positive increases tonal separation; negative brings tones toward middle gray. Soft bounds allow stronger values.
+// @endgroup
 
 // Rational tone curves avoid hard clipping and exponential overflow at extended settings.
 // Work in the incoming RGB space, retaining signed/HDR values outside the tonal interval.
@@ -26,8 +30,9 @@ float4 ApplyFX(float2 uv, float4 color)
     if (_Brightness == 0.0 && _Contrast == 0.0) return color;
     float brightnessGain = 1.0 + abs(_Brightness) / 50.0;
     float contrastGain = 1.0 + abs(_Contrast) / 50.0;
-    color.rgb = float3(AdjustTone(color.r, brightnessGain, contrastGain),
+	float4 result = color;
+	result.rgb = float3(AdjustTone(color.r, brightnessGain, contrastGain),
         AdjustTone(color.g, brightnessGain, contrastGain),
         AdjustTone(color.b, brightnessGain, contrastGain));
-    return color;
+	return lerp(color, result, _Opacity);
 }

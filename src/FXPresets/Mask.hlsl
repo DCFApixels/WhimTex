@@ -1,4 +1,7 @@
 // @whimtex-effect Color/Mask
+// @control(_Opacity)
+// @formerlyserializedas(_Amount)
+// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.
 // @group(Mask Channel; _MaskChannel)
 // @param hidden enum _MaskChannel = R {Alpha: 0, Luminance: 1, R: 2, G: 3, B: 4}
 // @param texture2D _Mask = self // Mask source. Self uses the image before this FX.
@@ -19,7 +22,6 @@
 // @if _ApplyMode == 1
 // @param label(Color) color _ApplyColor = (1, 1, 1, 0)
 // @endif
-// @param label(Amount) float _Amount = 1 [0 .. 1] // Blend the mask into selected channels or the color.
 // @endgroup
 
 float ReadMaskInput(float4 value)
@@ -33,15 +35,16 @@ float ReadMaskInput(float4 value)
 
 float4 ApplyFX(float2 uv, float4 color)
 {
+	float4 result = color;
     float2 maskUV = _Transform_ToLocal(uv);
     float2 halfTexel = 0.5 * _Mask_TexelSize.xy;
     maskUV = clamp(maskUV, halfTexel, 1.0 - halfTexel);
 
     float mask = saturate(_Profile_Sample(saturate(ReadMaskInput(tex2D(_Mask, maskUV)))));
     if (_Invert > 0.5) mask = 1.0 - mask;
-    float multiplier = lerp(1.0, mask, saturate(_Amount));
+	float multiplier = mask;
     float4 channelMask = float4(_ApplyRed, _ApplyGreen, _ApplyBlue, _ApplyAlpha);
     float4 applyWeights = lerp(channelMask, 1 - _ApplyColor, _ApplyMode);
-    color *= lerp(float4(1.0, 1.0, 1.0, 1.0), float4(multiplier, multiplier, multiplier, multiplier), applyWeights);
-    return color;
+	result *= lerp(float4(1.0, 1.0, 1.0, 1.0), float4(multiplier, multiplier, multiplier, multiplier), applyWeights);
+	return lerp(color, result, _Opacity);
 }

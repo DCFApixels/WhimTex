@@ -60,7 +60,7 @@ try
     var upper = Fill(UnityEngine.Color.blue, true);
     basis.opacity = .4f;
     Stack(upper, lower, basis);
-    Check(doc.GetClippingBase(upper) == basis && doc.GetClippingBase(lower) == basis, "A chain shares one base");
+    Check(doc.GetClippingBase(upper) == basis.Owner && doc.GetClippingBase(lower) == basis.Owner, "A chain shares one base");
     Check(doc.GetClippingBase(basis) == null, "A base has no clipping dependency");
     Same(Pixel(), new UnityEngine.Color(0, 0, 1, .1f), "Two opaque clips retain soft base alpha and base opacity once");
     lower.enabled = false;
@@ -122,6 +122,7 @@ try
     basis.swizzle[3] = DCFApixels.WhimTex.SwizzleChannel.Zero;
     Near(Pixel().a, 0, "Base Swizzle determines clipping coverage");
     basis.swizzle = default;
+    basis.transform.tiling = DCFApixels.WhimTex.TransformTilingMode.Clip;
     basis.transform.position = new UnityEngine.Vector2(100, 100);
     Near(Pixel().a, 0, "Base Transform determines clipping coverage");
     basis.transform = DCFApixels.WhimTex.TextureTransform.Default;
@@ -152,10 +153,12 @@ try
     // API validates and reports the setting for every layer type without asset I/O.
     var api = typeof(DCFApixels.WhimTex.WhimTexApi);
     var set = api.GetMethod("SetLayer", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+    // Use the API's JSON assembly, not another package's bundled Newtonsoft copy.
+    var parseJson = set.GetParameters()[2].ParameterType.GetMethod("Parse", new[] { typeof(string) });
     foreach (var layer in new DCFApixels.WhimTex.Layer[] { upper, group, new DCFApixels.WhimTex.DrawingLayerBehaviour(),
         new DCFApixels.WhimTex.FileLayerBehaviour(), new DCFApixels.WhimTex.GradientLayerBehaviour(), effect, new DCFApixels.WhimTex.SDFLayerBehaviour() })
     {
-        set.Invoke(null, new object[] { doc, layer, Newtonsoft.Json.Linq.JObject.Parse("{\"clippingMask\":true}") });
+        set.Invoke(null, new object[] { doc, layer, parseJson.Invoke(null, new object[] { "{\"clippingMask\":true}" }) });
         Check(layer.clippingMask, "Agent setting accepted for " + layer.GetType().Name);
     }
     Check(DCFApixels.WhimTex.WhimTexApi.Describe().Contains("clippingMask"), "Agent discovery documents clipping");

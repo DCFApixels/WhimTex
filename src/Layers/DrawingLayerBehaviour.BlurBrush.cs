@@ -9,7 +9,7 @@ namespace DCFApixels.WhimTex
         internal void BlurSegment(Vector2 fromSourceUv, Vector2 toSourceUv, int outputWidth, int outputHeight,
             float size, float hardness, float strength, RenderTexture sample)
         {
-            if (!TiledCanvasUtility.IsInvertible(Owner.CanvasTransform)) return;
+            if (!TiledCanvasUtility.IsInvertible(Owner.PixelCanvasTransform)) return;
             RenderTexture surface = EnsurePaintSurface(outputWidth, outputHeight);
             if (surface == null) return;
             size = Mathf.Clamp(size, 1f, Mathf.Max(outputWidth, outputHeight));
@@ -25,7 +25,7 @@ namespace DCFApixels.WhimTex
             for (int i = 0; i <= count; i++)
                 segmentStamps.Add(new PaintStamp
                 {
-                    center = Owner.CanvasTransform.Map(Vector2.Lerp(fromSourceUv, toSourceUv, i / (float)count),
+                    center = Owner.PixelCanvasTransform.Map(Vector2.Lerp(fromSourceUv, toSourceUv, i / (float)count),
                         new Vector2(outputWidth, outputHeight)),
                     size = size,
                     rotation = 0f,
@@ -41,7 +41,7 @@ namespace DCFApixels.WhimTex
                 mask.wrapMode = TextureWrapMode.Clamp;
                 Clear(mask);
                 PaintBrushRenderer.Draw(mask, segmentStamps, size, hardness, false, PencilShape.Circle, Color.white,
-                    false, outputWidth, outputHeight, patternCenter, false, Owner.CanvasTransform,
+                    false, outputWidth, outputHeight, patternCenter, false, Owner.PixelCanvasTransform,
                     false, false, null, null, false, false, false);
 
                 source = RenderTexture.GetTemporary(surface.descriptor);

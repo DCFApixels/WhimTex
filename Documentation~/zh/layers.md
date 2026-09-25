@@ -23,7 +23,7 @@ next_page: "zh/transform.md"
 | :--- | :--- |
 | File | Project 中已有的纹理。 |
 | Drawing Layer | 绘制、擦除和填充。 |
-| Color Fill | 单色的背景或形状。 |
+| Color Fill | 纯色、UV 坐标或几何距离场图案。 |
 | Gradient | 平滑的颜色过渡。 |
 | Noise | 生成的图案。参见 [Noise](noise.md)。 |
 | Shape | 可编辑的矩形、椭圆、多边形、星形或直线。 |
@@ -39,6 +39,28 @@ next_page: "zh/transform.md"
 双击文本或数字字段仍会编辑这些字段。
 
 效果图层也会显示结果缩略图，动画 Shader FX 使用静态图像。
+
+## 几何填充
+
+在 **Color Fill** 中选择 **Mode → Pattern**。**Shape** 提供 Triangles、Squares、
+Hexagons 和 Circles。圆形支持 **Square** 和 **Dense** 排列；Dense 将交替行偏移半个
+间距并缩小行距。距离直接从几何计算，包括图形间的空隙，无需额外 SDF 图层。
+
+- **Size (px)** 设置变换前的 X/Y 网格缩放。链条按钮按比例联动两个轴；断开后可独立修改。启用联动不会改变当前比例。**Offset (px)** 和 **Rotation** 控制偏移及旋转。
+- **Gap** 缩小图形（0–0.99）；**Roundness** 向内圆化多边形顶角。零值保留尖角；即使 Gap 为零，圆角也会在公共顶点处产生空隙。
+- **Bulge** 使内部距离轮廓呈圆顶形，不移动边界。零值保留几何距离，非零值是艺术化重映射。
+- **Distance** 支持 Signed、Inside、Outside 和 Center（绝对距离）。**Distance Range** 以内切圆半径为单位。Signed 将边界映射至渐变中点。
+- **Inverted**、**Profile** 和 **Gradient** 设置最终颜色和透明度。
+- **Cell Color** 为各图形着色：**Uniform** 保留距离渐变，**Random** 根据 **Seed** 从 **Palette** 取色，**Pattern** 为正方形/三角形交替使用两种颜色，为六边形使用三种颜色。圆形根据排列方式选择配色。
+- **Variation** 控制 Random 的取色范围：零使用渐变中点，一使用整个渐变。Fixed 模式可提供离散色板。**Color Blend → Multiply** 保留距离明暗，**Replace RGB** 提供平面色彩。两者保留距离渐变的透明度，忽略色板的透明度。空隙使用最近图形的颜色。
+- 颜色随图形一起移动和旋转。Seamless 使 Random 在画布边缘重复，并将 Pattern 的单元数量适配到配色周期：棋盘格采用偶数，六边形和密集圆形的水平数量为三的倍数。
+
+**Seamless** 将完整矩形周期适配到画布，包括成对的交错行。图层与组的组合旋转
+吸附到 90°，两个轴的缩放分别调整。斜切和透视被替换为在画布中心估算的轴对齐网格。
+原始设置保持不变；渲染后检查器显示实际网格。关闭 Seamless 后恢复自由变换。
+多边形可能略有拉伸；圆仍保持圆形，因此某个方向可能增加空隙。
+Seamless 优先于图层 Tiling，只保证生成图案的周期性；后续任意 FX 或其他图层
+仍可能产生接缝。
 
 ## 为 VFX 创建纹理
 

@@ -15,6 +15,7 @@ namespace DCFApixels.WhimTex
         private readonly VisualElement entries = new VisualElement();
         private readonly List<UnityEngine.Object> displayed = new List<UnityEngine.Object>();
         private readonly List<Action> refreshActivity = new List<Action>();
+        private readonly Button applyAll;
         private VisualElement activeLayerDropMarker;
         private VisualElement activeStackDropMarker;
         private bool stackDropAfter;
@@ -31,6 +32,8 @@ namespace DCFApixels.WhimTex
             toolbar.Add(new Button(() => Change("Add Shader FX", () => owner.AddEmbeddedShaderFX(layer))) { text = "+ Shader FX" });
             toolbar.Add(new Button(() => ShaderFXCatalog.ShowMenu(entry => Change("Add Catalog FX", () => owner.AddCatalogShaderFX(layer, entry)))) { text = "+ Preset ▾", tooltip = "Effects from the project and your user ShaderFX preset folder." });
             toolbar.Add(new Button(() => Change("Add FX Reference", () => layer.modifiers.Add(null))) { text = "+ Reference" });
+            applyAll = new Button(() => ApplyThrough(layer.modifiers.Count - 1)) { text = "Apply All" };
+            toolbar.Add(applyAll);
             Add(toolbar);
             entries.AddToClassList("whimtex-layer-fx-entries");
             Add(entries);
@@ -39,6 +42,9 @@ namespace DCFApixels.WhimTex
 
         internal void Refresh()
         {
+            string unavailable = owner.ApplyFXUnavailable(layer, layer.modifiers.Count - 1);
+            applyAll.SetEnabled(unavailable == null);
+            applyAll.tooltip = unavailable ?? "Bake the FX stack into Drawing pixels, keeping the layer transform editable.";
             foreach (var refresh in refreshActivity) refresh();
             bool changed = displayed.Count != layer.modifiers.Count;
             for (int i = 0; !changed && i < displayed.Count; i++)
@@ -141,6 +147,13 @@ namespace DCFApixels.WhimTex
                 });
                 toolbar.Add(reference);
             }
+            if (effect != null)
+            {
+                var control = new ShaderFXParameterView(effect, true);
+                control.AddToClassList("whimtex-fx-effect-control");
+                toolbar.Add(control);
+                refreshActivity.Add(control.Refresh);
+            }
             var actions = new Button(() =>
             {
                 var menu = new GenericMenu();
@@ -153,6 +166,10 @@ namespace DCFApixels.WhimTex
                 else
                     menu.AddDisabledItem(new GUIContent("Paste FX As New"));
                 menu.AddSeparator(string.Empty);
+                string unavailable = owner.ApplyFXUnavailable(layer, index);
+                if (unavailable == null) menu.AddItem(new GUIContent("Apply"), false, () => ApplyThrough(index));
+                else menu.AddDisabledItem(new GUIContent("Apply", unavailable));
+                menu.AddSeparator(string.Empty);
                 if (index > 0) menu.AddItem(new GUIContent("Move Up"), false, () => Move(index, -1));
                 else menu.AddDisabledItem(new GUIContent("Move Up"));
                 if (index + 1 < layer.modifiers.Count) menu.AddItem(new GUIContent("Move Down"), false, () => Move(index, 1));
@@ -162,7 +179,7 @@ namespace DCFApixels.WhimTex
                 menu.AddSeparator(string.Empty);
                 menu.AddItem(new GUIContent("Remove"), false, () => Change("Remove FX", () => layer.modifiers.RemoveAt(index)));
                 menu.ShowAsContext();
-            }) { tooltip = "Copy, paste, reorder, embed or remove this effect" };
+            }) { tooltip = "Copy, paste, apply, reorder, embed or remove this effect" };
             actions.AddToClassList("whimtex-layer-menu-button");
             actions.EnableInClassList("whimtex-layer-menu-button--light", !EditorGUIUtility.isProSkin);
             for (int i = 0; i < 3; i++)
@@ -182,6 +199,9 @@ namespace DCFApixels.WhimTex
                     menu.AppendAction("Copy FX", _ => { }, DropdownMenuAction.Status.Disabled);
                 menu.AppendAction("Paste FX As New", _ => PasteAt(index + 1),
                     ShaderFXClipboard.Current != null && canEdit ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+                menu.AppendSeparator();
+                menu.AppendAction("Apply", _ => ApplyThrough(index),
+                    owner.ApplyFXUnavailable(layer, index) == null ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
                 menu.AppendSeparator();
                 menu.AppendAction("Move Up", _ => Move(index, -1),
                     canEdit && index > 0 ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
@@ -215,6 +235,30 @@ namespace DCFApixels.WhimTex
                 card.Add(foldout);
             }
             entries.Add(card);
+        }
+
+        private void ApplyThrough(int index)
+        {
+            if (owner.ApplyFXUnavailable(layer, index) != null) return;
+            if (!(layer.Behaviour is DrawingLayerBehaviour))
+            {
+                string groupWarning = layer.IsGroup
+                    ? "\n\nThe group's visible children will become one image. References to individual children will lose their targets; pass-through blending may change."
+                    : string.Empty;
+                string processorWarning = layer.Behaviour is ShaderProcessorLayerBehaviour
+                    ? "\n\nThis captures the current lower composite. Later edits below will not update these baked pixels. Normal becomes Overwrite, preserving the Processor's opacity blending. Other blend modes stay unchanged."
+                    : string.Empty;
+                if (!EditorUtility.DisplayDialog("Convert to Drawing",
+                    $"Applying FX will convert '{layer.layerName}' to a Drawing layer and bake effects 1–{index + 1}. " +
+                    "The transform stays editable. Later FX remain in the stack. This operation can be undone." + groupWarning + processorWarning,
+                    "Convert and Apply", "Cancel")) return;
+            }
+            try { Change("Apply Layer FX", () => owner.ApplyLayerFX(layer, index)); }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception);
+                EditorUtility.DisplayDialog("Cannot Apply FX", exception.Message, "OK");
+            }
         }
 
         private void Move(int index, int delta)
@@ -432,7 +476,7 @@ namespace DCFApixels.WhimTex
                 if (evt.button != 0 || pointerId != -1 || !canReorder())
                     return;
                 for (VisualElement element = evt.target as VisualElement; element != null && element != target; element = element.parent)
-                    if (element is Button || element is Toggle || element is ObjectField)
+                    if (element is Button || element is Toggle || element is ObjectField || element.ClassListContains("whimtex-fx-effect-control"))
                         return;
                 pointerId = evt.pointerId;
                 pointerDownPosition = new Vector2(evt.position.x, evt.position.y);

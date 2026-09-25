@@ -6,6 +6,11 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- FX stack Apply All and per-effect Apply bake an inclusive prefix into Drawing pixels, with conversion confirmation, editable transforms and Undo/Redo. Shader Processor captures its current backdrop without merging lower layers; Normal becomes Overwrite while retaining its opacity blending.
+- `// @control(_Parameter)` exposes one existing FX parameter in the block header, with shared values, Undo/Redo, preset export and VS Code support; duplicate directives warn and the last wins.
+- Pattern cell coloring with seeded Random or regular Pattern layouts, a separate palette, variation and Multiply/Replace RGB blending; Seamless also fits color repeats.
+- Color Fill Pattern mode with analytic distance fields for triangles, squares, hexagons and circles (square/dense packing), independent X/Y sizes with proportional linking, rounded corners, gap, bulge, profile and gradient controls. Seamless fits the grid and combined transform to the canvas with quarter-turn rotations.
+
 - Healing Brush stroke preview color and opacity in User Settings.
 - Color/Brightness Contrast FX with tonal brightness and contrast controls, neutral defaults and soft bounds on both sliders.
 - Healing Brush reconstructs small defects after each stroke, with a raster mask preview, adjustable hardness, seamless Tiled painting, current-layer or current-and-below sampling, transparent-only filling, background cancellation and Undo/Redo.
@@ -14,6 +19,7 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Combined the two polar-coordinate presets into Distortion/Polar Coordinates with To Polar and From Polar modes. No automatic migration of existing FX.
 - Healing Brush and Content-Aware Fill softly discourage overusing the same source region, preferring less-used samples only when their appearance match is close enough.
 - Healing Brush and Content-Aware Fill reuse target-patch calculations during source search without reducing quality or iteration counts.
 - Healing Brush and Content-Aware Fill match texture variation as well as color, and select a best-matching detail at the final step to reduce texture washout. Reconstruction takes more time and working memory.

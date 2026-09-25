@@ -647,8 +647,8 @@ namespace DCFApixels.WhimTex
                 1f - (mousePosition.y - imageRect.y) / imageRect.height);
             if (tiledPreview)
             {
-                if (!TiledCanvasUtility.IsInvertible(compositor.GetCanvasTransform(layer))) return false;
-                sourceUv = TiledCanvasUtility.ToSource(documentUv, compositor.GetCanvasTransform(layer), compositor.width, compositor.height);
+                if (!TiledCanvasUtility.IsInvertible(compositor.GetPaintTransform(layer))) return false;
+                sourceUv = TiledCanvasUtility.ToSource(documentUv, compositor.GetPaintTransform(layer), compositor.width, compositor.height);
                 return !float.IsNaN(sourceUv.x) && !float.IsNaN(sourceUv.y) &&
                        !float.IsInfinity(sourceUv.x) && !float.IsInfinity(sourceUv.y);
             }
@@ -659,12 +659,12 @@ namespace DCFApixels.WhimTex
 
         private bool TryMapDocumentToLayerUv(Vector2 documentUv, DrawingLayerBehaviour layer, out Vector2 sourceUv)
         {
-            sourceUv = compositor.GetCanvasTransform(layer).Unmap(documentUv, new Vector2(compositor.width, compositor.height));
+            sourceUv = compositor.GetPaintTransform(layer).Unmap(documentUv, new Vector2(compositor.width, compositor.height));
             return sourceUv.x >= 0f && sourceUv.x <= 1f && sourceUv.y >= 0f && sourceUv.y <= 1f;
         }
 
         private Vector2 MapLayerToDocumentUv(Vector2 sourceUv, DrawingLayerBehaviour layer) =>
-            compositor.GetCanvasTransform(layer).Map(sourceUv, new Vector2(compositor.width, compositor.height));
+            compositor.GetPaintTransform(layer).Map(sourceUv, new Vector2(compositor.width, compositor.height));
 
         private void RememberPaintingPoint(Vector2 sourceUv)
         {

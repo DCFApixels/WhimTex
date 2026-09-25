@@ -23,7 +23,7 @@ Use **+** at the bottom of Layers to choose a type:
 | :--- | :--- |
 | File | An existing texture from Project. |
 | Drawing Layer | Painting, erasing and filling. |
-| Color Fill | A single-color background or shape. |
+| Color Fill | A solid color, UV coordinates or a geometric distance-field pattern. |
 | Gradient | A smooth color transition. |
 | Noise | A generated pattern. See [Noise](noise.md). |
 | Shape | An editable rectangle, ellipse, polygon, star or line. |
@@ -39,6 +39,31 @@ otherwise Unity attempts to add a WhimTex tab beside an existing WhimTex window,
 Double-clicking text or number fields still edits those fields.
 
 Effect layers also show thumbnails of their results. Animated Shader FX use still thumbnails.
+
+## Pattern fill
+
+In **Color Fill**, choose **Mode → Pattern**. **Shape** offers Triangles, Squares,
+Hexagons and Circles. Circles use **Square** or **Dense** packing; Dense offsets
+alternate rows and reduces their spacing. The field is calculated directly from
+the geometry, including distances in gaps, without a separate SDF layer.
+
+- **Size (px)** sets the X/Y grid scale before transforms. The chain button links proportional changes; unlink it to edit each axis independently. Linking preserves the current proportions. **Offset (px)** and **Rotation** move the pattern.
+- **Gap** shrinks each figure (0–0.99). **Roundness** rounds polygon corners inward; zero keeps sharp corners. Rounding opens gaps at shared vertices even when Gap is zero.
+- **Bulge** rounds the interior distance profile without moving the contour. At zero the field is a geometric distance; nonzero values are an artistic remapping.
+- **Distance** selects Signed, Inside, Outside or Center (absolute distance). **Distance Range** is measured in figure inradii. Signed maps the contour to the middle of the gradient.
+- **Inverted**, **Profile** and **Gradient** control the final colors and alpha.
+- **Cell Color** adds per-figure coloring: **Uniform** keeps the distance gradient, **Random** samples **Palette** using **Seed**, and **Pattern** alternates two colors for squares/triangles or three for hexagons. Circles follow their packing grid.
+- **Variation** controls Random's palette range: zero uses the midpoint, one uses the whole gradient. Use a Fixed palette for discrete colors. **Color Blend → Multiply** keeps the distance shading; **Replace RGB** gives flat cell colors. Both preserve the distance gradient's alpha and ignore palette alpha. Gaps use the nearest figure's color.
+- Colors follow the figures through offset and rotation. With Seamless, Random repeats across the canvas and Pattern fits cell counts to its color cycle (even counts for checkerboards, multiples of three horizontally for hexagons/dense circles).
+
+**Seamless** fits whole rectangular repeats to the canvas, including complete pairs of
+staggered rows. The combined layer/group rotation snaps to quarter turns; scale is fitted
+independently on each axis. Shear and perspective are replaced by an axis-aligned fit
+at the canvas center. The requested settings remain stored; the inspector shows the fitted
+grid after rendering. Switching Seamless off restores free transforms.
+Polygons can stretch slightly; circles stay circular and may leave extra space on one axis.
+Seamless takes precedence over layer tiling. It guarantees the generated pattern's periodicity,
+not arbitrary FX applied afterwards or other layers in the composite.
 
 ## Create textures for VFX
 

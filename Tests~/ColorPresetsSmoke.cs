@@ -65,6 +65,32 @@ public static class ColorPresetsSmoke
                             }
                         }
                     }
+                    if (name == "ColorBalance")
+                    {
+                        if (parameters.Find(p => p.name == "_Opacity")?.floatValue != 1)
+                            throw new Exception("Color Balance opacity must default to the original full effect");
+                        Set("_PreserveLuma", 0); Set("_ShadowRange", 0); Set("_HighlightRange", 0);
+                        parameters.Find(p => p.name == "_Midtones").vectorValue = new Vector4(.1f, -.2f, .3f, 0);
+                        Color source = new Color(-.2f, .4f, 1.5f, .37f);
+                        Color balanced = new Color(.1f, .2f, 1.8f, .37f);
+                        var pixels = new Color[64]; for (int i = 0; i < pixels.Length; i++) pixels[i] = source;
+                        input.SetPixels(pixels); input.Apply();
+                        foreach (float opacity in new[] { 0f, .5f, 1f })
+                        {
+                            Set("_Opacity", opacity);
+                            var material = (Material)typeof(ShaderFX).GetMethod("GetMaterial", flags).Invoke(fx, new[] { context });
+                            GL.sRGBWrite = false; Graphics.Blit(input, output, material);
+                            RenderTexture.active = output; read.ReadPixels(new Rect(0, 0, 8, 8), 0, 0); read.Apply();
+                            Color expected = Color.LerpUnclamped(source, balanced, opacity);
+                            foreach (Color c in read.GetPixels())
+                            {
+                                for (int channel = 0; channel < 4; channel++)
+                                    if (Mathf.Abs(c[channel] - expected[channel]) > .001f)
+                                        throw new Exception("Color Balance opacity blend mismatch: " + opacity);
+                                checks++;
+                            }
+                        }
+                    }
                     // Every dither mode must stay finite and within 0..1, including Halftone, whose threshold reaches exactly 1.0.
                     if (name == "Posterize" || name == "Pixelate")
                     {

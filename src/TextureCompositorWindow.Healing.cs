@@ -96,7 +96,7 @@ namespace DCFApixels.WhimTex
             var layer = GetSelectedLayer()?.Behaviour as DrawingLayerBehaviour;
             if (layer == null || compositor == null || WhimTexApi.IsLayerContentLocked(compositor, layer) ||
                 !PreviewContainsPaintPoint(evt.localPosition)) return true;
-            var transform = compositor.GetCanvasTransform(layer).ToMatrix(compositor.width, compositor.height);
+            var transform = compositor.GetPaintTransform(layer).ToMatrix(compositor.width, compositor.height);
             if (!transform.TryInverse(out _))
             { ShowNotification(new GUIContent("Healing needs an invertible layer transform.")); return true; }
             FinishPaintingStroke();
@@ -169,7 +169,7 @@ namespace DCFApixels.WhimTex
             compositor.width == healingCanvasSize.x && compositor.height == healingCanvasSize.y &&
             GetAreaSelection().Revision == healingSelectionRevision &&
             healingStroke != null && healingStroke.tiled == tiledPreview &&
-            compositor.GetCanvasTransform(healingLayer).ToMatrix(compositor.width, compositor.height).Equals(healingTransform) &&
+            compositor.GetPaintTransform(healingLayer).ToMatrix(compositor.width, compositor.height).Equals(healingTransform) &&
             !WhimTexApi.IsLayerContentLocked(compositor, healingLayer);
 
         private void StartHealing()
