@@ -24,6 +24,7 @@ namespace DCFApixels.WhimTex
             content.AddToClassList("whimtex-inspector-section-content");
             root.Add(content);
             var replacement = new DropdownField("Replace with", names, 0);
+            TwoChoiceDropdown.Attach(replacement);
             var transfer = new Toggle("Transfer saved settings") { value = record?.Data != null };
             transfer.SetEnabled(record?.Data != null);
             content.Add(replacement);

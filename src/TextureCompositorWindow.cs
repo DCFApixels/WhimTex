@@ -193,6 +193,7 @@ namespace DCFApixels.WhimTex
             LoadPaintToolSettings();
             EditorApplication.delayCall += RestoreBrushTipAfterReload;
             EditorApplication.projectChanged += RestoreBrushTipAfterReload;
+            EditorApplication.projectChanged += CancelHealing;
             minSize = new Vector2(640f, 420f);
             groupExpansion = new Dictionary<string, bool>();
             paintingPreviewScale = ClampPaintingPreviewScale(
@@ -227,6 +228,7 @@ namespace DCFApixels.WhimTex
             ReleaseBrushStrokePreview();
             EditorApplication.delayCall -= RestoreBrushTipAfterReload;
             EditorApplication.projectChanged -= RestoreBrushTipAfterReload;
+            EditorApplication.projectChanged -= CancelHealing;
             StopLiveOutput();
             CancelPreviewEyedropper();
             CancelPreviewZoomGesture();
@@ -316,6 +318,7 @@ namespace DCFApixels.WhimTex
 
         private void OnLostFocus()
         {
+            if (healingPointer >= 0) CancelHealing();
             StopKeyboardNudge();
             ClearLayerDragGhost();
             ClearPreviewPointerCursor();
@@ -402,6 +405,7 @@ namespace DCFApixels.WhimTex
 
         private void Update()
         {
+            UpdateHealing();
             if (ReconcilePreviewToolContext()) toolkitRefreshRequested = true;
             UpdatePostFx();
             RequestEffectRefinement();
@@ -577,6 +581,7 @@ namespace DCFApixels.WhimTex
 
         private void FinishPaintingStroke()
         {
+            CancelHealing();
             if (blurSampleTexture != null)
             {
                 RenderTexture.ReleaseTemporary(blurSampleTexture);
@@ -1240,6 +1245,7 @@ namespace DCFApixels.WhimTex
 
         private void OnCompositorChanged(TextureCompositor changedCompositor)
         {
+            if (healingJob != null || healingPointer >= 0) CancelHealing();
             if (changedCompositor != compositor)
                 return;
 
@@ -1270,6 +1276,7 @@ namespace DCFApixels.WhimTex
 
         private void OnUndoRedo()
         {
+            CancelHealing();
             ReleaseEffectCache();
             ResetOpacityEntry();
             previewTransformManipulator?.End(false, false);

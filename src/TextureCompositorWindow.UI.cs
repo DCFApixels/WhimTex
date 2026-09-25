@@ -273,6 +273,7 @@ namespace DCFApixels.WhimTex
             BuildUvOverlay();
             BuildAreaSelectionTools();
             BuildShapeTool();
+            BuildHealingOverlay();
             toolkitPreviewCanvas.RegisterCallback<PointerDownEvent>(OnPreviewPointerDown);
             toolkitPreviewCanvas.RegisterCallback<PointerMoveEvent>(OnPreviewPointerMove);
             toolkitPreviewCanvas.RegisterCallback<PointerUpEvent>(OnPreviewPointerUp);
@@ -467,12 +468,14 @@ namespace DCFApixels.WhimTex
                 var precision = new PopupField<string>("Precision", new List<string> { "Auto", "8-bit", "Float32" }, Mathf.Clamp((int)compositor.outputPrecision, 0, 2))
                     { name = "canvasOutputPrecision", tooltip = "TIFF source precision, independent of GPU compression. Auto uses 8-bit unless HDR is needed; 8-bit clamps to 0–1; Float32 preserves fine values even within 0–1. Working rendering remains half-float. Drawing storage limits: 256 MiB per texture, 1 GiB total; canvas up to 16384, decoded TIFF image below 2 GiB." };
                 precision.AddToClassList("whimtex-canvas-precision");
+                TwoChoiceDropdown.Attach(precision);
                 toolkitSettingsBindings.Track(precision, () => precision.choices[Mathf.Clamp((int)compositor.outputPrecision, 0, 2)]);
                 precision.RegisterValueChangedCallback(evt => ApplyToolkitChange("Change TIFF Precision",
                     () => compositor.outputPrecision = (WhimTexOutputPrecision)precision.choices.IndexOf(evt.newValue)));
                 toolkitCanvasToolbar.Add(precision);
             }
             var filter = new EnumField("Filter", compositor.outputFilter) { name = "canvasOutputFilter" };
+            TwoChoiceDropdown.Attach(filter);
             filter.AddToClassList("whimtex-canvas-filter");
             filter.tooltip = "Final image filtering, saved with the document. Point keeps pixels sharp; Bilinear smooths them. Trilinear blends mip levels when available (this does not generate mipmaps). Pencil temporarily uses Point in the preview only.";
             toolkitSettingsBindings.Track(filter, () => (Enum)compositor.outputFilter);
@@ -965,6 +968,7 @@ namespace DCFApixels.WhimTex
             row.Add(opacity);
 
             EnumField blend = new EnumField(layer.blendMode);
+            TwoChoiceDropdown.Attach(blend);
             blend.AddToClassList("whimtex-layer-multi-edit");
             toolkitLayerBindings.Track(blend, () => (Enum)layer.blendMode);
             blend.AddToClassList("whimtex-layer-blend");
@@ -1548,6 +1552,7 @@ namespace DCFApixels.WhimTex
             brushRow.Add(brushPressure);
             toolkitPreviewHeader.Add(brushRow);
             AddBlurBrushSettings();
+            AddHealingSettings();
         }
 
         private void AddBlurBrushSettings()
@@ -1614,6 +1619,7 @@ namespace DCFApixels.WhimTex
 
         private static T CompactField<T>(T field, float width) where T : VisualElement
         {
+            TwoChoiceDropdown.Attach(field);
             field.style.width = width;
             field.style.height = ToolkitPreviewHeaderRowHeight - 2f;
             field.style.marginLeft = 1f;
@@ -1672,7 +1678,9 @@ namespace DCFApixels.WhimTex
             toolkitPreviewCanvas.SetDocument(channelPreviewTexture != null ? (Texture)channelPreviewTexture : PreviewPresentationSource,
                 compositor.width, compositor.height,
                 IsPreviewBrushEnabled || IsPreviewBlurBrushEnabled ? drawing : null, transforming,
-                IsPreviewPaintTool ? paintSettings : null);
+                IsPreviewPaintTool || previewTool == PreviewTool.HealingBrush ? paintSettings : null);
+            toolkitPreviewCanvas.SetRoundCursorSize(previewTool == PreviewTool.HealingBrush ? paintSettings.healingSize :
+                previewTool == PreviewTool.BlurBrush ? paintSettings.blurSize : paintSettings.brushSize);
             RefreshPreviewPointerCursor();
             if (toolkitPreviewError != null)
             {
@@ -1713,6 +1721,10 @@ namespace DCFApixels.WhimTex
                         : previewTool == PreviewTool.RectangleSelect
                         ? "Drag select • Shift add • Alt subtract • Ctrl+C copy • Ctrl+V paste • Ctrl+D deselect"
                         : "Click vertices • Enter/double-click close • Backspace remove vertex • Esc cancel • Ctrl+D deselect";
+                }
+                else if (previewTool == PreviewTool.HealingBrush)
+                {
+                    toolkitPreviewFooter.text = "Paint over defect • Release to heal • Esc cancel • [ ] size • Click non-Drawing layer to convert";
                 }
                 else if (previewTool == PreviewTool.BlurBrush && IsPreviewToolAvailable(PreviewTool.BlurBrush))
                 {
@@ -1761,6 +1773,7 @@ namespace DCFApixels.WhimTex
             previewPointerControl = evt.ctrlKey;
             if (HandleLayerPickPointerDown(evt)) return;
             if (HandlePaintConversionPrompt(evt)) return;
+            if (HandleHealingDown(evt)) return;
             if (HandleFillPointerDown(evt)) return;
             DrawingLayerBehaviour layer = GetSelectedLayer()?.Behaviour as DrawingLayerBehaviour;
             if (!(IsPreviewBrushEnabled || IsPreviewBlurBrushEnabled) || paintingLayer != null || layer == null ||
@@ -1830,6 +1843,7 @@ namespace DCFApixels.WhimTex
 
         private void OnPreviewPointerMove(PointerMoveEvent evt)
         {
+            if (HandleHealingMove(evt)) return;
             previewPointerControl = evt.ctrlKey;
             if (paintingLayer == null || paintingPointerId != evt.pointerId)
             {
@@ -1942,6 +1956,7 @@ namespace DCFApixels.WhimTex
 
         private void OnPreviewPointerUp(PointerUpEvent evt)
         {
+            if (HandleHealingUp(evt)) return;
             previewPointerControl = evt.ctrlKey;
             if (paintingLayer == null ||
                 paintingPointerId != evt.pointerId ||
@@ -1965,6 +1980,7 @@ namespace DCFApixels.WhimTex
 
         private void OnPreviewPointerCaptureOut(PointerCaptureOutEvent evt)
         {
+            if (healingPointer == evt.pointerId) CancelHealing();
             if (paintingLayer == null || paintingPointerId != evt.pointerId)
                 return;
             paintingPointerId = -1;
@@ -1984,12 +2000,12 @@ namespace DCFApixels.WhimTex
                 toolkitPreviewCanvas.SetToolCursor(PreviewTool.Transform, false, false, MouseCursor.MoveArrow);
                 return;
             }
-            bool visible = IsPreviewPaintTool &&
+            bool visible = (IsPreviewPaintTool || previewTool == PreviewTool.HealingBrush) &&
                            !panning && !alt && previewPointerInside;
             toolkitPreviewCanvas?.SetCursor(
                 visible,
                 visible ? GetPreviewPaintPosition(localPosition, paintingShiftHeld, previewPointerControl, updateConstraint: false) : localPosition,
-                paintingLayer != null ? paintingErase : paintSettings.tool == PaintToolMode.Eraser);
+                previewTool != PreviewTool.HealingBrush && (paintingLayer != null ? paintingErase : paintSettings.tool == PaintToolMode.Eraser));
             MouseCursor transformCursor = !panning && previewPointerInside && IsPreviewTransformEnabled
                 ? previewTransformManipulator?.GetCursor(localPosition, alt) ?? MouseCursor.Pan
                 : MouseCursor.Pan;
@@ -2056,6 +2072,20 @@ namespace DCFApixels.WhimTex
                 CancelPreviewZoomGesture();
                 WhimTexUI.ConsumeEvent(evt);
                 return;
+            }
+
+            if (previewTool == PreviewTool.HealingBrush && !evt.ctrlKey && !evt.commandKey && !evt.altKey)
+            {
+                if (evt.keyCode == KeyCode.Escape && healingLayer != null)
+                { CancelHealing(); WhimTexUI.ConsumeEvent(evt); return; }
+                bool smaller = evt.keyCode == KeyCode.LeftBracket || evt.character == '[';
+                bool larger = evt.keyCode == KeyCode.RightBracket || evt.character == ']';
+                if (smaller || larger)
+                {
+                    ApplyPaintToolChange(() => paintSettings.healingSize = Mathf.Clamp(paintSettings.healingSize +
+                        (larger ? 1 : -1) * PaintToolSettings.GetSizeShortcutStep(paintSettings.healingSize), 1, 512));
+                    WhimTexUI.ConsumeEvent(evt); return;
+                }
             }
             if (HandlePreviewGuideKey(evt)) return;
             if (HandleAreaSelectionKey(evt)) return;
@@ -2671,6 +2701,9 @@ namespace DCFApixels.WhimTex
 #endif
             }
 
+            private float roundCursorSize = 32;
+            internal void SetRoundCursorSize(float size) { roundCursorSize = size; overlay.MarkDirtyRepaint(); }
+
             private void DrawOverlay(MeshGenerationContext context)
             {
                 if (brushSettings == null)
@@ -2691,7 +2724,7 @@ namespace DCFApixels.WhimTex
                 float pixelScale = PixelScale;
                 float radius = Mathf.Max(
                     2f,
-                    brushSettings.brushSize * pixelScale * 0.5f);
+                    roundCursorSize * pixelScale * 0.5f);
                 painter.lineWidth = 1f;
                 painter.strokeColor = new Color(0f, 0f, 0f, 0.95f);
                 StrokeCircle(painter, localCursor, radius + 1f);

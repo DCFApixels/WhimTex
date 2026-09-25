@@ -202,12 +202,14 @@ namespace DCFApixels.WhimTex
             previewTitle.Add(previewGrip);
             var channels = new PopupField<string>(new System.Collections.Generic.List<string> { "RGBA", "RGB", "Alpha" }, Mathf.Clamp(previewChannel, 0, 2));
             channels.AddToClassList("whimtex-output-preview-channel");
+            TwoChoiceDropdown.Attach(channels);
             channels.tooltip = "Preview channels only; does not change the saved texture.";
             channels.RegisterValueChangedCallback(_ => { previewChannel = channels.index; RefreshOutputInfo(); });
             previewTitle.Add(channels);
             mipField = new PopupField<int>(new System.Collections.Generic.List<int> { 0 }, 0,
                 value => "Mip " + value, value => "Mip " + value);
             mipField.AddToClassList("whimtex-output-preview-mip");
+            TwoChoiceDropdown.Attach(mipField);
             mipField.RegisterValueChangedCallback(evt => { previewMip = evt.newValue; RefreshOutputInfo(); });
             previewTitle.Add(mipField);
             previewPane.Add(previewTitle);

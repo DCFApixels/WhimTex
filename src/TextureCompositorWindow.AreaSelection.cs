@@ -129,6 +129,7 @@ namespace DCFApixels.WhimTex
             row.AddToClassList("whimtex-area-settings");
             BindPreviewSettingsRow(row, tool);
             var mode = new EnumField(areaSelectionMode);
+            TwoChoiceDropdown.Attach(mode);
             mode.AddToClassList("whimtex-area-mode");
             mode.tooltip = "Selection operation. Shift adds, Alt subtracts, Shift+Alt intersects.";
             toolkitHeaderBindings.Track(mode, () => (Enum)areaSelectionMode);

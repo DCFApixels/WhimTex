@@ -327,6 +327,7 @@ namespace DCFApixels.WhimTex
                                 choices[j] += " (" + control.optionNames[j] + ")";
                             }
                     var dropdown = new DropdownField(string.Empty, choices, 0);
+                    TwoChoiceDropdown.Attach(dropdown);
                     dropdown.RegisterValueChangedCallback(e =>
                     {
                         int index = choices.IndexOf(e.newValue);
@@ -449,6 +450,7 @@ namespace DCFApixels.WhimTex
                                 choices[j] += " (" + control.optionNames[j] + ")";
                             }
                     var dropdown = new DropdownField(label, choices, 0);
+                    TwoChoiceDropdown.Attach(dropdown);
                     dropdown.RegisterValueChangedCallback(e =>
                     {
                         int index = choices.IndexOf(e.newValue);

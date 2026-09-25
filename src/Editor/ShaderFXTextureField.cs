@@ -23,6 +23,7 @@ namespace DCFApixels.WhimTex
             this.effect = effect; this.id = id;
             document = TextureCompositorWindow.FindFXTransformDocument(effect);
             source = new EnumField(label + " Source", ShaderFXTextureSource.Texture);
+            TwoChoiceDropdown.Attach(source);
             source.tooltip = "None: transparent. Self: image immediately before this FX. Texture: asset (white if empty). Layer: another layer, including hidden sources.";
             texture = new ObjectField(label) { objectType = typeof(Texture2D), allowSceneObjects = false };
             layer = new PopupField<Layer>(label, choices, 0, Name, Name);
@@ -37,6 +38,7 @@ namespace DCFApixels.WhimTex
                     Change(p => { p.textureSource = ShaderFXTextureSource.Layer; p.textureLayerId = e.newValue?.Id; });
             });
             layer.RegisterCallback<PointerDownEvent>(_ => RefreshChoices(), TrickleDown.TrickleDown);
+            TwoChoiceDropdown.Attach(layer);
             this.AddManipulator(new Drop(this));
             schedule.Execute(Refresh).Every(250);
             Refresh();

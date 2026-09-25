@@ -14,6 +14,7 @@ namespace DCFApixels.WhimTex
             var choices = new List<string> { "Pass Through" };
             foreach (BlendMode mode in Enum.GetValues(typeof(BlendMode))) choices.Add(ObjectNames.NicifyVariableName(mode.ToString()));
             var field = new DropdownField(choices, 0);
+            TwoChoiceDropdown.Attach(field);
             bindings.Track(field, () => group.compositing == GroupCompositing.PassThrough
                 ? choices[0] : choices[(int)group.blendMode + 1]);
             field.RegisterValueChangedCallback(evt =>
@@ -31,6 +32,7 @@ namespace DCFApixels.WhimTex
                 LayerActionIcon.Kind.Alpha, expanded, expansionChanged);
             card.AddToClassList("whimtex-color-card");
             var preset = new DropdownField(new List<string> { "Standard", "HDR" }, 0);
+            TwoChoiceDropdown.Attach(preset);
             preset.AddToClassList("whimtex-color-preset");
             preset.tooltip = "Set both Color Range and Blend Range. An empty value means the ranges differ.";
             bindings.Track(preset, () => layer.colorRange == LayerColorRange.Standard && layer.blendRange == LayerBlendRange.Standard
@@ -133,6 +135,7 @@ namespace DCFApixels.WhimTex
                 int output = channel;
                 var choices = new List<string>(LayerSwizzle.Labels);
                 var field = new DropdownField(choices, (int)layer.swizzle[output]);
+                TwoChoiceDropdown.Attach(field);
                 field.AddToClassList("whimtex-swizzle-channel");
                 field.tooltip = "Output " + LayerSwizzle.Labels[output] + ": select a source channel, its inverse, or a constant. Applied after FX in linear space, before Color Range and blending.";
                 bindings.Track(field, () => LayerSwizzle.Labels[(int)layer.swizzle[output]]);

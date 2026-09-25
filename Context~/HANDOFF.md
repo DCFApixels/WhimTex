@@ -38,6 +38,7 @@
 | Проверка переезда на TIFF: build, сбои, большие Drawing | [TIFF_VALIDATION.md](TIFF_VALIDATION.md) |
 | Узкие места 4K Drawing Save: замеры и план оптимизации | [TIFF_SAVE_PERFORMANCE.md](TIFF_SAVE_PERFORMANCE.md) |
 | Рендер и зависимости | [TextureCompositor.cs](../src/TextureCompositor.cs), partial-файлы `.Clipping`, `.EffectCache`, `.Psd`, [EffectRenderCache.cs](../src/EffectRenderCache.cs) |
+| Будущая анимация, время, частицы и кэш (предварительный дизайн, отложено) | [ANIMATION_DESIGN.md](ANIMATION_DESIGN.md) |
 | Окно и инструменты | [TextureCompositorWindow.cs](../src/TextureCompositorWindow.cs), partial-файлы по функциям |
 | Общие настройки слоёв | [WhimTexUI.cs](../src/WhimTexUI.cs), [LayerColorSettingsView.cs](../src/LayerColorSettingsView.cs) |
 | FX и каталог | [ShaderFX.cs](../src/ShaderFX.cs), [ShaderFXMetadata.cs](../src/ShaderFXMetadata.cs), [ShaderFXCatalog.cs](../src/ShaderFXCatalog.cs), [ShaderFXPresetWriter.cs](../src/ShaderFXPresetWriter.cs) |

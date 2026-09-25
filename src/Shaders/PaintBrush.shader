@@ -6,6 +6,7 @@ Shader "Hidden/TextureCompositor/PaintBrush"
         _BrushTip ("Brush Tip", 2D) = "white" {}
         _SrcBlend ("Source Blend", Float) = 1
         _DstBlend ("Destination Blend", Float) = 10
+        _BlendOperation ("Blend Operation", Float) = 0
     }
 
     SubShader
@@ -15,6 +16,7 @@ Shader "Hidden/TextureCompositor/PaintBrush"
         ZWrite Off
         Cull Off
         Blend [_SrcBlend] [_DstBlend]
+        BlendOp [_BlendOperation]
 
         Pass
         {
@@ -77,6 +79,8 @@ Shader "Hidden/TextureCompositor/PaintBrush"
             float _BrushSize;
             float _CanvasWrap;
             float3 _PaintRow0, _PaintRow1, _PaintRow2;
+            float _CoverageMask;
+            float3 _MaskRow0, _MaskRow1, _MaskRow2;
 
             float4 SdfTipGradient(float value)
             {
@@ -113,6 +117,14 @@ Shader "Hidden/TextureCompositor/PaintBrush"
                 float w = dot(_PaintRow2, p);
                 if (abs(w) < 1e-8) discard;
                 float2 documentUv = float2(dot(_PaintRow0,p),dot(_PaintRow1,p))/w;
+                if (_CoverageMask > .5)
+                {
+                    float3 maskPoint = float3(documentUv, 1);
+                    float maskW = dot(_MaskRow2, maskPoint);
+                    if (abs(maskW) < 1e-8) discard;
+                    float2 sourceUv = float2(dot(_MaskRow0, maskPoint), dot(_MaskRow1, maskPoint)) / maskW;
+                    if (any(sourceUv < 0) || any(sourceUv >= 1)) discard;
+                }
                 bool tiled = _CanvasWrap > .5;
                 float2 delta = documentUv - input.tileData.xy;
                 if (tiled)
@@ -219,6 +231,7 @@ Shader "Hidden/TextureCompositor/PaintBrush"
                 }
                 float alpha = saturate(color.a * coverage);
                 if (alpha <= 0.0) discard;
+                if (_CoverageMask > .5) return float4(1, 1, 1, alpha);
                 if (_PrepareStandard > 0.5)
                 {
                     float4 before = tex2D(_Backdrop, input.canvasUv);

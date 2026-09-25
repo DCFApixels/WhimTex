@@ -121,6 +121,7 @@ namespace DCFApixels.WhimTex
             if (sheet != null) rootVisualElement.styleSheets.Add(sheet);
             rootVisualElement.AddToClassList("whimtex-gradient-editor");
             mode = new EnumField("Interpolation", gradient.Mode);
+            TwoChoiceDropdown.Attach(mode);
             mode.RegisterValueChangedCallback(e =>
             {
                 var next = (WhimTexGradientMode)e.newValue;
@@ -128,6 +129,7 @@ namespace DCFApixels.WhimTex
             });
             rootVisualElement.Add(mode);
             wrapMode = new EnumField("Wrap", gradient.WrapMode) { tooltip = "How values outside 0..1 are sampled: clamp, repeat, or mirror." };
+            TwoChoiceDropdown.Attach(wrapMode);
             wrapMode.RegisterValueChangedCallback(e => Edit(() => gradient.WrapMode = (WhimTexGradientWrapMode)e.newValue));
             rootVisualElement.Add(wrapMode);
             smoothness = new Slider("Smoothness", 0, 100) { showInputField = true };

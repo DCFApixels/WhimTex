@@ -253,6 +253,7 @@ namespace DCFApixels.WhimTex
         public static T ConfigureField<T>(T field, float labelWidth = StandardLabelWidth)
             where T : VisualElement
         {
+            TwoChoiceDropdown.Attach(field);
             field.style.flexShrink = 0f;
             field.style.marginTop = 1f;
             field.style.marginBottom = 1f;

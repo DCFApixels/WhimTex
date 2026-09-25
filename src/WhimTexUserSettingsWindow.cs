@@ -54,6 +54,7 @@ namespace DCFApixels.WhimTex
                 tooltip = "Open only layered WhimTex TIFF documents, or also PNG, JPEG, TGA, EXR, ordinary TIFF and Texture2D assets. PSD is excluded."
             };
             imageOpening.AddToClassList("whimtex-user-settings-color");
+            TwoChoiceDropdown.Attach(imageOpening);
             imageOpening.RegisterValueChangedCallback(evt => WhimTexUserSettings.ImageOpening = (ImageOpenMode)evt.newValue);
             scroll.Add(imageOpening);
             imageLayer = new EnumField("Open As", WhimTexUserSettings.ImageLayer)
@@ -61,6 +62,7 @@ namespace DCFApixels.WhimTex
                 tooltip = "Drawing copies the imported pixels for painting. File references the imported texture. Layered TIFF documents always retain their layers. Source files and import settings are not changed."
             };
             imageLayer.AddToClassList("whimtex-user-settings-color");
+            TwoChoiceDropdown.Attach(imageLayer);
             imageLayer.RegisterValueChangedCallback(evt => WhimTexUserSettings.ImageLayer = (ImageOpenLayer)evt.newValue);
             scroll.Add(imageLayer);
             AddHeading(scroll, "External Code Editor");
@@ -124,6 +126,7 @@ namespace DCFApixels.WhimTex
                 tooltip = "Solid Color or Checkerboard behind the composition before Post FX. Shared with the Post FX panel in every window."
             };
             postFxBackgroundMode.AddToClassList("whimtex-user-settings-color");
+            TwoChoiceDropdown.Attach(postFxBackgroundMode);
             postFxBackgroundMode.RegisterValueChangedCallback(evt => WhimTexUserSettings.PostFxBackgroundMode = (PostFxBackground)evt.newValue);
             scroll.Add(postFxBackgroundMode);
             postFxBackground = AddColor(scroll, "Background", value => WhimTexUserSettings.PostFxBackground = value);

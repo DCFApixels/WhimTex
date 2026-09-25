@@ -364,6 +364,26 @@
     background-color: rgb(199, 199, 199);
 }
 
+.whimtex-healing-overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    overflow: hidden;
+}
+
+.whimtex-healing-search > .unity-base-field__label {
+    min-width: 44px;
+    width: 44px;
+    flex-shrink: 0;
+}
+
+.whimtex-healing-search > .unity-base-field__input {
+    min-width: 40px;
+    flex-grow: 1;
+}
+
 .whimtex-tool-settings-row {
     min-height: 27px;
     flex-shrink: 0;

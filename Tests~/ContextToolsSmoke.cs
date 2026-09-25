@@ -139,7 +139,7 @@ public static class ContextToolsSmoke
                     Mathf.Abs(previewCanvas.worldBound.height - stableCanvas.height) < .1f,
                     name + " preserves preview position and height: " + previewCanvas.worldBound + " vs " + stableCanvas);
             }
-            foreach (string name in new[] { "None", "Pencil", "BlurBrush", "Fill", "Transform", "Zoom", "Shape", "RectangleSelect", "PolygonSelect", "Brush" })
+            foreach (string name in new[] { "None", "Pencil", "BlurBrush", "HealingBrush", "Fill", "Transform", "Zoom", "Shape", "RectangleSelect", "PolygonSelect", "Brush" })
             {
                 SetTool(name); await CheckCanvasLayout(name);
             }
@@ -267,7 +267,7 @@ public static class ContextToolsSmoke
                 SetTool("Brush"); await Task.Delay(100);
                 previewCanvas = (VisualElement)Read(window, "toolkitPreviewCanvas");
                 stableCanvas = previewCanvas.worldBound;
-                foreach (string name in new[] { "Fill", "Zoom", "Transform", "Pencil", "BlurBrush", "GradientHandles", "Brush" })
+                foreach (string name in new[] { "Fill", "Zoom", "Transform", "Pencil", "BlurBrush", "HealingBrush", "GradientHandles", "Brush" })
                 {
                     SetTool(name); await CheckCanvasLayout(name + " at " + width);
                 }

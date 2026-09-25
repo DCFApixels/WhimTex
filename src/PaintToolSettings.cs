@@ -85,6 +85,12 @@ namespace DCFApixels.WhimTex
         public float blurFlow = 1f;
         public bool blurPressure = true;
         public BlurBrushSampleMode blurSampleMode = BlurBrushSampleMode.CurrentLayer;
+        public float healingSize = 32f;
+        public float healingHardness = .8f;
+        public int healingSearch = 64;
+        public HealingSampleMode healingSample = HealingSampleMode.CurrentLayer;
+        public HealingQuality healingQuality = HealingQuality.Balanced;
+        public bool healingTransparentOnly;
 
         internal static float GetSizeShortcutStep(float size) => Mathf.Max(1f, Mathf.Floor(size * 0.1f));
 

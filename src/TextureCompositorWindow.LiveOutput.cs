@@ -13,6 +13,7 @@ namespace DCFApixels.WhimTex
 
         private void OnOutputTextureChanged(CompositorOutputChange change)
         {
+            if (healingLayer != null && change.ShouldRefresh(compositor)) CancelHealing();
             if (compositor == null || !change.ShouldRefresh(compositor)) return;
             outputDependencyDirty = true;
             RequestPreview();

@@ -11,6 +11,10 @@ next_page: "en/automation.md"
 
 # Keyboard shortcuts
 
+## Two-choice dropdowns
+
+In settings dropdowns with two choices, a short left-click switches to the other value. Hold for 300 ms or drag down by 4 UI pixels to open the menu and choose on release. This also works in Shader FX parameters and group headers. Lists with other choice counts, mixed values, and custom values outside the list keep normal menu behavior. Keyboard operation is unchanged.
+
 ## Document, layers and opacity
 
 | Shortcut | Action |

@@ -1088,7 +1088,8 @@ namespace DCFApixels.WhimTex
                 Vector2 patternCenter,
                 bool wrapCanvas,
                 TextureTransform transform, bool standard, bool hdrStorage, Texture selectionMask = null, BrushDynamics dynamics = null,
-                bool standardColorInputs = false, bool stampBlend = false, bool hdrBlend = false)
+                bool standardColorInputs = false, bool stampBlend = false, bool hdrBlend = false,
+                ProjectiveMatrix? maskCanvasToSource = null)
             {
                 if (target == null || stamps == null || stamps.Count == 0)
                     return;
@@ -1098,6 +1099,10 @@ namespace DCFApixels.WhimTex
                     return;
 
                 bool variation = dynamics != null && dynamics.PerStamp;
+                material.SetFloat("_CoverageMask", maskCanvasToSource.HasValue ? 1f : 0f);
+                material.SetFloat("_BlendOperation", maskCanvasToSource.HasValue
+                    ? (float)UnityEngine.Rendering.BlendOp.Max : (float)UnityEngine.Rendering.BlendOp.Add);
+                if (maskCanvasToSource.HasValue) maskCanvasToSource.Value.SetShader(material, "_MaskRow");
                 Texture2D tip = dynamics?.tip;
                 bool textured = tip != null;
                 if (variation && !textured) material.EnableKeyword("BRUSH_DYNAMICS");
@@ -1228,6 +1233,8 @@ namespace DCFApixels.WhimTex
                 {
                     RenderTexture.active = previous;
                     material.SetFloat("_PrepareStandard", 0f);
+                    material.SetFloat("_CoverageMask", 0f);
+                    material.SetFloat("_BlendOperation", (float)UnityEngine.Rendering.BlendOp.Add);
                     material.SetFloat("_StampBlendEnabled", 0f);
                     material.SetTexture("_Backdrop", null);
                     if (snapshot != null) RenderTexture.ReleaseTemporary(snapshot);

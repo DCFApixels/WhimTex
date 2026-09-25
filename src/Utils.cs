@@ -268,6 +268,7 @@ namespace DCFApixels.WhimTex
         private static Material normalMapMaterial;
         private static Material gaussianBlurMaterial;
         private static Material blurBrushMaterial;
+        private static Material healingBrushMaterial;
         private static Material sharpenMaterial;
         private static Material motionBlurMaterial;
         private static Material makeSeamlessMaterial;
@@ -288,6 +289,7 @@ namespace DCFApixels.WhimTex
         public static Material NormalMap => GetOrCreate(ref normalMapMaterial, "Hidden/TextureCompositor/NormalMap");
         public static Material GaussianBlur => GetOrCreate(ref gaussianBlurMaterial, "Hidden/TextureCompositor/GaussianBlur");
         public static Material BlurBrush => GetOrCreate(ref blurBrushMaterial, "Hidden/TextureCompositor/BlurBrush");
+        public static Material HealingBrush => GetOrCreate(ref healingBrushMaterial, "Hidden/TextureCompositor/HealingBrush");
         public static Material Sharpen => GetOrCreate(ref sharpenMaterial, "Hidden/TextureCompositor/Sharpen");
         public static Material MotionBlur => GetOrCreate(ref motionBlurMaterial, "Hidden/TextureCompositor/MotionBlur");
         public static Material MakeSeamless => GetOrCreate(ref makeSeamlessMaterial, "Hidden/TextureCompositor/MakeSeamless");
@@ -324,6 +326,8 @@ namespace DCFApixels.WhimTex
 
         private static void Dispose()
         {
+            if (healingBrushMaterial != null) UnityEngine.Object.DestroyImmediate(healingBrushMaterial);
+            healingBrushMaterial = null;
             if (fillUvMaterial != null) UnityEngine.Object.DestroyImmediate(fillUvMaterial);
             fillUvMaterial = null;
             if (gradientMaterial != null) UnityEngine.Object.DestroyImmediate(gradientMaterial);

@@ -26,6 +26,7 @@ namespace DCFApixels.WhimTex
             row.AddToClassList("whimtex-fill-settings");
             BindPreviewSettingsRow(row, PreviewTool.Shape);
             var kind = new EnumField(shapeToolSettings.kind);
+            TwoChoiceDropdown.Attach(kind);
             kind.AddToClassList("whimtex-shape-kind");
             kind.tooltip = "Drag to create a new Shape layer. Shift: equal proportions / 45-degree line. Ctrl: no guide snapping.";
             toolkitHeaderBindings.Track(kind, () => (Enum)shapeToolSettings.kind);

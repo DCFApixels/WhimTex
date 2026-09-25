@@ -10,7 +10,7 @@ namespace DCFApixels.WhimTex
         private enum PreviewTool
         {
             None, Brush, BlurBrush, Transform, Fill, Zoom, Pencil, RectangleSelect, PolygonSelect, Shape,
-            GradientHandles, UvIslandSelect, FXTransform, FXPoint, FXNormal
+            GradientHandles, UvIslandSelect, FXTransform, FXPoint, FXNormal, HealingBrush
         }
 
         [NonSerialized] private PreviewTool previewTool = PreviewTool.None;
@@ -151,7 +151,8 @@ namespace DCFApixels.WhimTex
                 WhimTexUI.ConsumeEvent(evt);
                 return true;
             }
-            bool painting = IsPreviewPaintTool && (evt.button == 0 || evt.button == 1);
+            bool painting = (IsPreviewPaintTool && (evt.button == 0 || evt.button == 1)) ||
+                previewTool == PreviewTool.HealingBrush && evt.button == 0;
             bool filling = previewTool == PreviewTool.Fill && evt.button == 0;
             if ((!painting && !filling) || evt.altKey || compositor == null ||
                 !PreviewContainsPaintPoint(evt.localPosition) || GetSelectedLayer()?.Behaviour is DrawingLayerBehaviour && !WhimTexApi.IsLayerContentLocked(compositor, GetSelectedLayer()))
@@ -204,6 +205,7 @@ namespace DCFApixels.WhimTex
                 case PreviewTool.Pencil:
                 case PreviewTool.Fill: return layer?.Behaviour is DrawingLayerBehaviour;
                 case PreviewTool.BlurBrush: return layer?.Behaviour != null;
+                case PreviewTool.HealingBrush: return layer?.Behaviour != null;
                 case PreviewTool.Transform: return layer?.Behaviour != null;
                 case PreviewTool.Zoom:
                 case PreviewTool.Shape:
@@ -268,6 +270,9 @@ namespace DCFApixels.WhimTex
             toolbar.Add(previewShapeButton);
             toolbar.Add(previewBrushButton);
             toolbar.Add(previewBlurBrushButton);
+            previewHealingButton = CreatePreviewToolButton("healingBrushTool", PreviewTool.HealingBrush,
+                "Healing Brush. Paint over a defect, then release to reconstruct it from nearby pixels. Esc cancels. Writes only the selected Drawing layer.");
+            toolbar.Add(previewHealingButton);
             toolbar.Add(previewPencilButton);
             toolbar.Add(previewFillButton);
             previewZoomButton = CreatePreviewToolButton("zoomTool", PreviewTool.Zoom,
@@ -352,6 +357,8 @@ namespace DCFApixels.WhimTex
                 previewPencilButton.EnableInClassList("whimtex-tool-button--unavailable", !(selected?.Behaviour is DrawingLayerBehaviour));
                 previewPencilButton.EnableInClassList("whimtex-tool-button--selected", displayedTool == PreviewTool.Pencil);
             }
+            previewHealingButton?.EnableInClassList("whimtex-tool-button--unavailable", !(selected?.Behaviour is DrawingLayerBehaviour));
+            previewHealingButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == PreviewTool.HealingBrush);
             if (previewTransformButton != null)
             {
                 previewTransformButton.EnableInClassList("whimtex-tool-button--unavailable", selected == null);
@@ -411,6 +418,8 @@ namespace DCFApixels.WhimTex
                     DrawPencil(painter);
                 else if (tool == PreviewTool.BlurBrush)
                     DrawBlurBrush(painter);
+                else if (tool == PreviewTool.HealingBrush)
+                    DrawHealingBrush(painter);
                 else if (tool == PreviewTool.RectangleSelect)
                 {
                     if (ellipse) DrawEllipseSelect(painter);
@@ -606,6 +615,20 @@ namespace DCFApixels.WhimTex
                 painter.BezierCurveTo(P(18.9f, 10.2f), P(13.8f, 5.1f), P(12f, 2.2f));
                 painter.ClosePath();
                 painter.Fill();
+                painter.Stroke();
+            }
+
+            private void DrawHealingBrush(Painter2D painter)
+            {
+                painter.BeginPath();
+                painter.MoveTo(P(4, 14)); painter.LineTo(P(14, 4));
+                painter.BezierCurveTo(P(18, 0), P(24, 6), P(20, 10));
+                painter.LineTo(P(10, 20));
+                painter.BezierCurveTo(P(6, 24), P(0, 18), P(4, 14));
+                painter.ClosePath(); painter.Stroke();
+                painter.BeginPath();
+                painter.MoveTo(P(8, 11)); painter.LineTo(P(13, 16));
+                painter.MoveTo(P(11, 8)); painter.LineTo(P(16, 13));
                 painter.Stroke();
             }
 

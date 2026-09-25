@@ -156,6 +156,35 @@ If the stroke starts snapped to a [guide](preview.md#guides), `Shift` follows th
 To connect points, click the first point, then hold `Shift` and click the next one.
 Repeat to draw a chain of straight segments.
 
+## Healing Brush
+
+Choose the bandage icon, paint over a scratch, small hole or seam, then release the
+mouse button. The blue stroke marks the repair area; reconstruction runs after release.
+Cover the entire defect with a little surrounding texture. The result is one Undo step.
+
+- **Size** sets the stroke diameter in canvas pixels; `[` / `]` also change it.
+- **Hardness** sets the mask edge: low values blend the repair softly; high values give a firm edge.
+- **Search** sets how far around the stroke to look for replacement details.
+- **Current Layer** samples raw Drawing pixels before its FX. **Current & Below**
+  samples the visible stack from the active layer down, within its group. This can
+  paint onto an empty Drawing layer above the source. Sampled FX are baked into the
+  repair, so an empty retouching layer is preferable to reapplying the same FX.
+- **Fast / Balanced / High** trade calculation time for more matching iterations.
+- **Transparent Only** fills empty pixels in the sampled image, leaving visible ones alone.
+
+Only the active Drawing layer is changed. Other layer types offer conversion on click.
+The canvas selection limits the repair; the search can use pixels outside the selection.
+Press **Escape** or **Cancel** to discard the stroke or pending calculation. Changing
+the document, selection or tool cancels pending work; wait for completion before saving.
+
+The blue preview shows the painted mask, including its soft edge and selection. Painting
+over it again does not increase coverage. In **Tiled** preview, draw on any copy: the mask
+wraps across edges and corners, and the repair searches across those seams too.
+The round tip does not use brush presets, symmetry, pressure or Flow. Processing uses canvas
+resolution but retains the Drawing texture's native dimensions. A stroke plus its search
+area may cover at most 1 million pixels. Smaller strokes are more responsive; large
+missing areas and unique details may need several attempts or manual touch-ups.
+
 ## Fill an area
 
 Choose **Fill** (`G`) and click the area you want to color.

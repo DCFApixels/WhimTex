@@ -166,6 +166,7 @@ namespace DCFApixels.WhimTex
             private void AddEnum<T>(string label, T value, Action<T> set) where T : Enum
             {
                 var field = new EnumField(label, value);
+                TwoChoiceDropdown.Attach(field);
                 field.RegisterValueChangedCallback(e => { set((T)e.newValue); ChangedSettings(); }); settings.Add(field);
             }
             private void ChangedSettings()

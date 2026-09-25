@@ -9,6 +9,7 @@ namespace DCFApixels.WhimTex
     {
         internal static VisualElement Add(VisualElement parent, string label, VisualElement control, string tooltip = null, string propertyName = null)
         {
+            TwoChoiceDropdown.Attach(control);
             var row = new VisualElement { name = "output-row-" + label, tooltip = tooltip, userData = propertyName };
             row.AddToClassList("whimtex-output-row");
             var caption = new Label(label) { tooltip = tooltip };
