@@ -1,0 +1,89 @@
+// Historical tests for retired transitions; not a current executable test suite.
+using System;
+using System.IO;
+using UnityEngine;
+using DCFApixels.WhimTex;
+
+public static class WhimTexGradientSoft2ReferenceSmoke
+{
+    // Rounded row averages of the supplied side-by-side raster's right half.
+    // This fixture measures an approximation, not an exact algorithm match.
+    static readonly int[,] Reference = {
+        {0,255,255,255}, {16,243,246,249}, {32,228,236,241}, {48,213,224,233},
+        {64,196,212,224}, {80,179,200,216}, {96,163,188,207}, {112,147,176,198},
+        {128,132,165,189}, {144,116,153,181}, {160,98,141,172}, {176,79,128,163},
+        {192,60,116,155}, {208,41,104,146}, {224,28,93,138}, {240,17,86,130},
+        {256,3,81,125}, {272,25,80,121}, {288,40,80,117}, {304,56,83,115},
+        {320,73,86,112}, {336,91,89,110}, {352,109,91,107}, {368,126,92,103},
+        {384,141,92,99}, {400,155,90,94}, {416,170,87,88}, {432,186,83,81},
+        {448,201,76,73}, {464,216,68,63}, {480,231,57,51}, {496,244,40,36}
+    };
+    static readonly int[,] LatestReference = {
+        {0,255,255,255}, {16,243,246,249}, {32,228,236,241}, {48,212,224,233},
+        {64,196,212,224}, {80,179,200,215}, {96,163,188,206}, {112,147,176,198},
+        {128,132,165,189}, {144,116,153,181}, {160,97,141,172}, {176,78,128,163},
+        {192,59,115,154}, {208,41,104,146}, {224,27,93,138}, {240,16,85,130},
+        {256,0,81,125}, {272,25,80,121}, {288,40,80,117}, {304,56,83,114},
+        {320,73,86,112}, {336,91,89,109}, {352,109,91,106}, {368,126,92,103},
+        {384,142,92,99}, {400,156,90,94}, {416,171,87,88}, {432,186,83,81},
+        {448,201,76,73}, {464,216,68,63}, {480,231,56,51}, {496,244,40,36}
+    };
+
+    public static string Main()
+    {
+        var g = new WhimTexGradient {Mode = WhimTexGradientMode.Perceptual, ColorSpace = ColorSpace.Gamma};
+        g.SetKeys(new[] {new GradientColorKey(Color.white, 0),
+            new GradientColorKey(new Color(0, 81/255f, 125/255f), .5f), new GradientColorKey(Color.red, 1)},
+            new[] {new GradientAlphaKey(1, 0), new GradientAlphaKey(1, 1)});
+        double Error(WhimTexGradientTransition transition, int[,] reference)
+        {
+            g.Transition = transition;
+            double sum = 0;
+            for (int i = 0; i < reference.GetLength(0); i++)
+            {
+                var color = g.Evaluate(reference[i,0]/512f);
+                for (int c = 0; c < 3; c++)
+                {
+                    double d = Mathf.Clamp01(color[c])*255-reference[i,c+1];
+                    sum += d*d;
+                }
+            }
+            return Math.Sqrt(sum/(reference.GetLength(0)*3));
+        }
+        double soft = Error(WhimTexGradientTransition.Soft, Reference);
+        double soft2 = Error(WhimTexGradientTransition.Soft2, Reference);
+        double soft3 = Error(WhimTexGradientTransition.Soft3, Reference);
+        double standard = Error(WhimTexGradientTransition.Standard, Reference);
+        if (soft2 >= 5.5 || soft2 >= soft*.5)
+            throw new Exception("Reference approximation regressed: Soft=" + soft + ", Soft2=" + soft2);
+        // Constant-continuation boundaries deliberately differ from the old nonzero-slope
+        // fit. Measure the chroma improvement against the same scalar basis (Standard).
+        if (soft3 >= 6 || soft3 >= standard*.7)
+            throw new Exception("Soft 3 reference approximation regressed: " + soft3);
+        double latest2 = Error(WhimTexGradientTransition.Soft2, LatestReference);
+        double latest3 = Error(WhimTexGradientTransition.Soft3, LatestReference);
+        double latestStandard = Error(WhimTexGradientTransition.Standard, LatestReference);
+        if (latest3 >= 6 || latest3 >= latestStandard*.7)
+            throw new Exception("Soft 3 latest reference approximation regressed: " + latest3);
+
+        // Procedural comparison render, outside Assets: Soft 2 left, Soft 3 right.
+        var image = new Texture2D(512, 512, TextureFormat.RGBA32, false, true);
+        try
+        {
+            var pixels = new Color32[512*512];
+            for (int row = 0; row < 512; row++)
+            {
+                g.Transition = WhimTexGradientTransition.Soft2; Color32 left = g.Evaluate(row/512f);
+                g.Transition = WhimTexGradientTransition.Soft3; Color32 right = g.Evaluate(row/512f);
+                for (int x = 0; x < 512; x++) pixels[(511-row)*512+x] = x < 256 ? left : right;
+            }
+            image.SetPixels32(pixels); image.Apply();
+            Directory.CreateDirectory("Temp/WhimTex");
+            File.WriteAllBytes("Temp/WhimTex/soft3-comparison.png", image.EncodeToPNG());
+        }
+        finally { UnityEngine.Object.DestroyImmediate(image); }
+        return "Reference RGB RMSE (0..255): Standard=" + standard.ToString("F3") + ", Soft=" + soft.ToString("F3") + ", Soft2=" + soft2.ToString("F3") +
+            ", Soft3=" + soft3.ToString("F3") + "; latest: Soft2=" + latest2.ToString("F3") + ", Soft3=" + latest3.ToString("F3") +
+            ". Procedural comparison: Temp/WhimTex/soft3-comparison.png";
+    }
+}

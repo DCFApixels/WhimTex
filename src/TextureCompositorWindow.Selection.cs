@@ -380,6 +380,10 @@ namespace DCFApixels.WhimTex
         }
 
         private void PasteCopiedLayers(TextureCompositor snapshot, bool resizeCanvas = false, FilterMode? canvasFilter = null)
+            => PasteCopiedLayersAt(snapshot, null, 0, null, resizeCanvas, canvasFilter);
+
+        private void PasteCopiedLayersAt(TextureCompositor snapshot, List<Layer> destination, int index,
+            Layer expand, bool resizeCanvas = false, FilterMode? canvasFilter = null)
         {
             applyingToolkitChange = true;
             Undo.IncrementCurrentGroup();
@@ -397,6 +401,19 @@ namespace DCFApixels.WhimTex
                 if (canvasFilter.HasValue)
                     compositor.outputFilter = canvasFilter.Value;
                 Dictionary<Layer, Layer> copies = compositor.PasteLayers(snapshot);
+                if (destination != null)
+                {
+                    Undo.RegisterCompleteObjectUndo(compositor, "Paste Layers");
+                    var roots = new List<Layer>();
+                    foreach (Layer source in snapshot.layers)
+                        if (copies.TryGetValue(source, out Layer copy)) roots.Add(copy);
+                    foreach (Layer copy in roots) compositor.PreserveTransformForMove(copy, destination);
+                    foreach (Layer copy in roots) compositor.layers.Remove(copy);
+                    destination.InsertRange(Mathf.Clamp(index, 0, destination.Count), roots);
+                    compositor.MarkChanged();
+                    if (expand != null) groupExpansion[expand.Id] = true;
+                }
+                Undo.FlushUndoRecordObjects();
                 Undo.CollapseUndoOperations(pasteUndo);
                 SelectOnlyLayer(null);
                 foreach (Layer source in snapshot.layers)

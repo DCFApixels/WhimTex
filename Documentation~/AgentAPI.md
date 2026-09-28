@@ -55,6 +55,18 @@ or select a WhimTex window.
 | Headless Live | Independent candidate between requests | `complete` saves; `cancel`/reload discard. No user Undo |
 | Assistant | The user's open document | Undo in the window; no automatic save |
 
+### Output encoding (C#)
+
+`WhimTexDocumentFile.GetOutputSrgb(document)` reads the pending output encoding;
+`SetOutputSrgb(document, bool)` changes it on the Editor main thread and marks the document changed.
+It does **not** write the TIFF or importer: call `Save` to apply it together with other pending edits.
+`TextureCompositor.outputSrgb` defaults to true and is initialized from the importer on open.
+The UI supplies Undo; C# callers manage their own Undo records.
+Inspector Apply instead queues a conversion of the **saved** model after import, without saving current
+layer edits, then synchronizes the open document's encoding. This external reimport stops Live Update.
+Float32 output always remains Linear; alpha is unchanged. This is not a working-space or source-pixel
+conversion. These are C# methods, **not** new JSON operations or clipboard fields.
+
 Path-based inspection/rendering reads the disk document. To inspect unsaved window changes use
 Assistant; to inspect an unsaved Headless candidate use its session. These states are not interchangeable.
 
@@ -118,6 +130,11 @@ operation, 32 FX per layer, 128 parameters per effect, 65,536 characters of raw 
 Set/copy use independent document-owned values rather than modifying a shared external asset.
 Project/package HLSL presets retain their source link; user-library files are embedded. Shader FX
 supports all edits; Material entries support remove/move/baking, not parameter editing or copying.
+
+Prefer `presetId` for existing built-in/project effects, with parameter overrides for the desired look.
+Do not copy their unchanged HLSL into `code`: that creates an independent inline effect and loses
+the catalog link. Use `set` for parameter-only changes. Raw `code` is for custom algorithms or
+intentionally independent variants, not the default way to reuse a preset.
 
 Applying to a non-Drawing layer requires `allowRasterize:true` **inside the apply edit**.
 This consents to rasterization, including flattening a group. Logical transforms remain editable.
@@ -453,7 +470,8 @@ Persistent layer IDs are returned per operation and in `document.layers`.
 
 `document.layers` is flat, with `parent` and sibling `index`. Index zero is visually topmost.
 `settings` contains editable values; hierarchy, target and transform have separate fields/operations.
-`gradientKeys` contains separate color/alpha keys, interpolation, smoothness and midpoints.
+`gradientKeys` contains separate color/alpha keys, interpolation, smoothness and midpoints. Rounded is built in; the retired transition field is ignored on input and omitted from output.
+`Rounded` prioritizes smooth constant-region joins at full smoothness; values at interior held-boundary stops may be approximate. See the [gradient contract](AI/README.md) for its independent RGB/alpha maps and limits.
 Gradient inputs accept either an ordered stop array or the object form documented in
 [the gradient contract](AI/README.md); SDF defaults to Linear, other gradients to Classic.
 

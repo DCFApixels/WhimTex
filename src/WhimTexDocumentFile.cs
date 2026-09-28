@@ -14,7 +14,7 @@ namespace DCFApixels.WhimTex
     /// user keeps compression, mipmaps, sprite slicing and platform overrides. The document model and the
     /// drawing layer pixels travel in container blocks inside the same file.
     /// </summary>
-    public static class WhimTexDocumentFile
+    public static partial class WhimTexDocumentFile
     {
         private const string ModelField = "outputTexture";
         private sealed class SaveSnapshot
@@ -22,6 +22,7 @@ namespace DCFApixels.WhimTex
             internal string path, signature, importer;
             internal long length;
             internal DateTime written;
+            internal bool srgb;
         }
         private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<TextureCompositor, SaveSnapshot> Saves =
             new System.Runtime.CompilerServices.ConditionalWeakTable<TextureCompositor, SaveSnapshot>();
@@ -86,7 +87,7 @@ namespace DCFApixels.WhimTex
             string importerState = existingImporter == null ? null : EditorJsonUtility.ToJson(existingImporter);
             var fileState = new FileInfo(path);
             if (signature != null && Saves.TryGetValue(document, out SaveSnapshot snapshot) && snapshot.path == path &&
-                snapshot.signature == signature && snapshot.importer == importerState && fileState.Exists &&
+                snapshot.signature == signature && snapshot.importer == importerState && snapshot.srgb == document.outputSrgb && fileState.Exists &&
                 snapshot.written == fileState.LastWriteTimeUtc && snapshot.length == fileState.Length &&
                 !ImportHasErrors(path) && AssetDatabase.LoadAssetAtPath<Texture2D>(path) != null)
             {
@@ -118,7 +119,7 @@ namespace DCFApixels.WhimTex
                 {
                     wrote = WhimTexDocumentContainer.WriteStaged(path, stream =>
                     {
-                        WhimTexTiffCarrier.WriteTo(stream, container, composite, importer == null ? null : (bool?)importer.sRGBTexture, document.outputPrecision);
+                        WhimTexTiffCarrier.WriteTo(stream, container, composite, document.outputSrgb, document.outputPrecision);
                         carrierMs = stopwatch.ElapsedMilliseconds - modelMs;
                         stream.Position = stream.Length - 16;
                         using var reader = new BinaryReader(stream, System.Text.Encoding.UTF8, true);
@@ -134,7 +135,7 @@ namespace DCFApixels.WhimTex
                 writeMs = stopwatch.ElapsedMilliseconds - modelMs - carrierMs;
                 // An identical staged file has not committed yet. Stop cancellation before any .meta write too.
                 WhimTexDocumentOperation.Commit();
-                // Float TIFF samples are linear. LDR encoding follows the existing importer;
+                // Float TIFF samples are linear. LDR encoding follows the pending document setting;
                 // first import gets its flag from the carrier, never from the temporary compose texture.
                 bool srgb = (container.Get(WhimTexTiffCarrier.FlagsBlock)[0] & 1) != 0;
                 if (importer != null && importer.sRGBTexture != srgb)
@@ -183,7 +184,7 @@ namespace DCFApixels.WhimTex
                 fileState.Refresh();
                 Saves.Remove(document);
                 Saves.Add(document, new SaveSnapshot { path = path, signature = signature, length = fileState.Length,
-                    written = fileState.LastWriteTimeUtc, importer = EditorJsonUtility.ToJson(AssetImporter.GetAtPath(path)) });
+                    written = fileState.LastWriteTimeUtc, importer = EditorJsonUtility.ToJson(AssetImporter.GetAtPath(path)), srgb = document.outputSrgb });
             }
             return path;
         }
@@ -237,6 +238,7 @@ namespace DCFApixels.WhimTex
                 copy.SpriteOutputSettings.linkedTextureGuid = null;
                 // Resolve relative includes against the source until the new document is saved.
                 BindImportedComposite(copy, AssetDatabase.GetAssetPath(source.OutputTexture));
+                copy.outputSrgb = GetOutputSrgb(source);
                 foreach (var effect in EnumerateEffects(copy))
                     if (!AssetDatabase.Contains(effect))
                     {
@@ -339,6 +341,12 @@ namespace DCFApixels.WhimTex
         /// <summary>The file image is the composite, so the loaded document points at it instead of at a sub-asset.</summary>
         private static void BindImportedComposite(TextureCompositor document, string path)
         {
+            // Unsaved document copies have no imported composite or TIFF carrier to inspect.
+            if (string.IsNullOrEmpty(path)) return;
+            if (AssetImporter.GetAtPath(path) is TextureImporter importer)
+                document.outputSrgb = importer.sRGBTexture;
+            else if (WhimTexTiffCarrier.TryReadCarrierFlags(path, out bool srgb, out bool isDocument, out _) && isDocument)
+                document.outputSrgb = srgb;
             var composite = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
             if (composite == null) return;
             FieldInfo field = typeof(TextureCompositor).GetField(ModelField,

@@ -14,9 +14,64 @@ namespace DCFApixels.WhimTex
         protected override void BuildSettings(VisualElement root, Layer source) =>
             BuildFields(root, (NoiseLayerBehaviour)source, Compositor, ApplyLayerChange, SettingsBindings);
 
+        private static int NewSeed(int previous)
+        {
+            int value;
+            do { value = BitConverter.ToInt32(Guid.NewGuid().ToByteArray(), 0); }
+            while (value == previous);
+            return value;
+        }
+
+        private static bool IsGrainNoise(NoiseLayerBehaviour.NoiseType type) =>
+            type == NoiseLayerBehaviour.NoiseType.WhiteNoise || type == NoiseLayerBehaviour.NoiseType.BlueNoise;
+
+        internal static void RandomizeParameters(NoiseLayerBehaviour layer)
+        {
+            int seed = NewSeed(layer.seed);
+            var random = new System.Random(seed);
+            float Range(float min, float max) => Mathf.Lerp(min, max, (float)random.NextDouble());
+            float LogRange(float min, float max) => Mathf.Exp(Range(Mathf.Log(min), Mathf.Log(max)));
+            T Pick<T>() where T : struct, Enum
+            {
+                var values = Enum.GetValues(typeof(T));
+                return (T)values.GetValue(random.Next(values.Length));
+            }
+
+            layer.seed = seed;
+            bool grain = IsGrainNoise(layer.noiseType);
+            var noiseTypes = (NoiseLayerBehaviour.NoiseType[])Enum.GetValues(typeof(NoiseLayerBehaviour.NoiseType));
+            int count = 0;
+            foreach (var type in noiseTypes)
+                if (IsGrainNoise(type) == grain) noiseTypes[count++] = type;
+            layer.noiseType = noiseTypes[random.Next(count)];
+            layer.whiteNoiseColor = Pick<NoiseLayerBehaviour.WhiteNoiseColor>();
+            layer.whiteNoiseSize = LogRange(1f, 32f);
+            layer.direction = Range(-180f, 180f);
+            layer.scale = LogRange(1f, 64f);
+            layer.offset = new Vector2(Range(-1000f, 1000f), Range(-1000f, 1000f));
+            layer.fractal = Pick<NoiseLayerBehaviour.FractalType>();
+            layer.octaves = random.Next(1, 9);
+            layer.lacunarity = Range(1f, 4f);
+            layer.gain = Range(.15f, .85f);
+            layer.weightedStrength = Range(0f, 1f);
+            layer.pingPongStrength = Range(.5f, 4f);
+            layer.cellularDistance = Pick<NoiseLayerBehaviour.CellularDistance>();
+            layer.cellularReturn = Pick<NoiseLayerBehaviour.CellularReturn>();
+            layer.cellularJitter = Range(0f, 1f);
+            layer.warp = Pick<NoiseLayerBehaviour.WarpType>();
+            layer.warpStrength = LogRange(.05f, 8f);
+            layer.encoding = Pick<NoiseLayerBehaviour.OutputEncoding>();
+            layer.inverted = random.Next(2) != 0;
+        }
+
         internal static void BuildFields(VisualElement root, NoiseLayerBehaviour layer, TextureCompositor compositor,
             Action<string, Action> applyChange, WhimTexUI.ValueBindings bindings)
         {
+            var randomAll = WhimTexUI.CreateToolbarButton("Random All", () =>
+                applyChange("Randomize Noise Parameters", () => RandomizeParameters(layer)));
+            randomAll.name = "whimtex-noise-random-all";
+            randomAll.tooltip = "Randomize within the current noise group: White/Blue or all other types. Includes inactive settings and Output. Keeps Dimensions (1D/2D), layer transforms, blending and FX. Undo restores the previous settings.";
+            root.Add(randomAll);
 
             EnumField Choice<T>(VisualElement parent, string label, Func<T> get, Action<T> set) where T : struct, Enum
             {
@@ -67,9 +122,7 @@ namespace DCFApixels.WhimTex
             seedRow.Add(seed);
             seedRow.Add(WhimTexUI.CreateToolbarButton("Random", () =>
             {
-                int randomSeed;
-                do { randomSeed = BitConverter.ToInt32(Guid.NewGuid().ToByteArray(), 0); }
-                while (randomSeed == layer.seed);
+                int randomSeed = NewSeed(layer.seed);
                 applyChange("Randomize Noise Seed", () => layer.seed = randomSeed);
             }, 64f));
             root.Add(seedRow);

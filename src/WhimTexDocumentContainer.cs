@@ -367,6 +367,20 @@ namespace DCFApixels.WhimTex
             }
         }
 
+        // Detach immutable stored blocks before atomically replacing their source file on disk.
+        internal WhimTexDocumentContainer CopyStored()
+        {
+            PrepareStoredBlocks();
+            var copy = new WhimTexDocumentContainer();
+            foreach (string name in _order)
+            {
+                if (name == IntegrityBlock) continue; // Verified above; WriteTo builds a fresh manifest.
+                copy._order.Add(name);
+                copy._reused.Add(name, _prepared[name]);
+            }
+            return copy;
+        }
+
         private static byte[] Digest(ReadOnlySpan<byte> data) => WhimTexSha256.Compute(data);
 
         private void VerifyStored(string name, ReadOnlySpan<byte> stored)

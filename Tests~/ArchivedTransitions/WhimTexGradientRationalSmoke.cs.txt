@@ -1,0 +1,165 @@
+// Historical tests for retired transitions; not a current executable test suite.
+using System;
+using System.Globalization;
+using System.IO;
+using System.Reflection;
+using System.Text;
+using UnityEngine;
+using DCFApixels.WhimTex;
+
+public static class WhimTexGradientRationalSmoke
+{
+    static int checks;
+    static void Check(bool condition, string message) { checks++; if (!condition) throw new Exception(message); }
+    static void Near(float actual, float expected, float tolerance = .00002f) =>
+        Check(Mathf.Abs(actual-expected) <= tolerance, actual + " != " + expected);
+    static double Edge(double u) => u*u*(23-22*u)/(1+21*u*(1-u));
+    public static string Main()
+    {
+        checks = 0;
+        Check((int)WhimTexGradientTransition.Rational == 4, "Appended serialized enum ID");
+        Check((int)WhimTexGradientTransition.Soft3 == 3, "Existing enum preserved");
+        var g = new WhimTexGradient {Transition = WhimTexGradientTransition.Rational};
+        for (int i = 0; i <= 10000; i++)
+        {
+            float t = i/10000f;
+            float expected = (float)(t <= .5f ? .5*Edge(2*t) : 1-.5*Edge(2*(1-t)));
+            Near(g.Evaluate(t).r, expected);
+        }
+        g.SetKeys(new[] {new GradientColorKey(Color.black, .1f),new GradientColorKey(Color.white, .9f)},
+            new[] {new GradientAlphaKey(0, .2f), new GradientAlphaKey(1, .8f)});
+        g.SetMidpoint(false, 0, .3f); g.SetMidpoint(true, 0, .7f);
+        Near(g.Evaluate(.34f).r, .5f); Near(g.Evaluate(.62f).a, .5f);
+        for (int i = 1; i < 1000; i++)
+        {
+            float t = i/1000f;
+            var changedAlpha = g.Clone();
+            changedAlpha.SetKeys(g.ColorKeys, new[] {new GradientAlphaKey(1,.4f)});
+            var a = g.Evaluate(t); var b = changedAlpha.Evaluate(t);
+            Near(a.r,b.r); Near(a.g,b.g); Near(a.b,b.b);
+        }
+        foreach (var mode in new[] {WhimTexGradientMode.Classic, WhimTexGradientMode.Linear, WhimTexGradientMode.Perceptual})
+        {
+            g.Mode=mode;
+            g.SetKeys(new[] {new GradientColorKey(Color.white,0),new GradientColorKey(Color.white,.4f),
+                new GradientColorKey(Color.black,.9f)},new[] {new GradientAlphaKey(1,0),new GradientAlphaKey(1,.3f),new GradientAlphaKey(0,1)});
+            Near(g.Evaluate(.4f).r,g.Evaluate(.400001f).r,.000002f);
+            Near(g.Evaluate(.3f).a,g.Evaluate(.300001f).a,.000002f);
+            var copy=g.Clone();copy.Transition=WhimTexGradientTransition.Standard;
+            g.Smoothness=copy.Smoothness=0;
+            for(int i=0;i<=1000;i++) Check(g.Evaluate(i/1000f).Equals(copy.Evaluate(i/1000f)),"Smoothness zero");
+            g.Smoothness=1;
+        }
+        // Switching away clears both cached maps, including after cloning/serialization.
+        g.Transition=WhimTexGradientTransition.Soft2;
+        var fresh=JsonUtility.FromJson<WhimTexGradient>(JsonUtility.ToJson(g));
+        for(int i=0;i<=1000;i++) Check(g.Evaluate(i/1000f).Equals(fresh.Evaluate(i/1000f)),"Stale boundary map");
+        return "Rational: "+checks+" checks passed (formula, independent tracks, held joins, zero smoothness, cache reset).";
+    }
+    public static string Capture()
+    {
+        var data=new StringBuilder("fixture,t,r,g,b,a\n");
+        var g=new WhimTexGradient {Mode=WhimTexGradientMode.Perceptual,Transition=WhimTexGradientTransition.Rational};
+        for(int fixture=0;fixture<3;fixture++)
+        {
+            var keys=fixture==2 ? new[] {new GradientColorKey(Color.white,0),new GradientColorKey(Color.white,.55f),new GradientColorKey(Color.black,1)} :
+                new[] {new GradientColorKey(Color.white,0),new GradientColorKey(new Color(fixture==0?0:16/255f,81/255f,125/255f),.5f),new GradientColorKey(Color.red,1)};
+            g.SetKeys(keys,new[] {new GradientAlphaKey(1,0),new GradientAlphaKey(1,1)});
+            for(int i=0;i<=4096;i++)
+            {
+                float t=i/4096f;var c=g.Evaluate(t);
+                data.Append(fixture).Append(',').Append(t.ToString("R",CultureInfo.InvariantCulture));
+                for(int j=0;j<4;j++)data.Append(',').Append(c[j].ToString("R",CultureInfo.InvariantCulture));
+                data.Append('\n');
+            }
+        }
+        Directory.CreateDirectory("Temp/WhimTex");
+        File.WriteAllText("Temp/WhimTex/rational-capture.csv",data.ToString());
+        var image=new Texture2D(512,512,TextureFormat.RGB24,false);
+        try
+        {
+            for(int y=0;y<512;y++)for(int x=0;x<512;x++)
+            {
+                float radius=new Vector2(x+.5f-256,y+.5f-256).magnitude/230;
+                image.SetPixel(x,y,g.Evaluate(radius));
+            }
+            image.Apply();File.WriteAllBytes("Temp/WhimTex/rational-radial.png",image.EncodeToPNG());
+        }
+        finally {UnityEngine.Object.DestroyImmediate(image);}
+        return "Captured 12291 samples and radial PNG to Temp/WhimTex.";
+    }
+    public static string Pipeline()
+        => RunPipeline(WhimTexGradientTransition.Rational);
+    public static string RoundedPipeline()
+        => RunPipeline(WhimTexGradientTransition.Rounded);
+    static string RunPipeline(WhimTexGradientTransition variant)
+    {
+        const BindingFlags flags=BindingFlags.Instance|BindingFlags.NonPublic|BindingFlags.Public;
+        var doc=ScriptableObject.CreateInstance<TextureCompositor>();
+        doc.hideFlags=HideFlags.HideAndDontSave;doc.width=doc.height=64;
+        var behavior=new GradientLayerBehaviour {gradientType=GradientLayerBehaviour.GradientType.Radial};
+        behavior.gradient.Mode=WhimTexGradientMode.Perceptual;
+        behavior.gradient.Transition=variant;
+        behavior.gradient.SetKeys(new[] {new GradientColorKey(Color.white,0),new GradientColorKey(new Color(0,81/255f,125/255f),.5f),new GradientColorKey(Color.red,1)},
+            new[] {new GradientAlphaKey(1,0),new GradientAlphaKey(1,1)});
+        Layer source=behavior,group=new GroupLayerBehaviour();
+        var effect=new BlurLayerBehaviour();
+        var previous=RenderTexture.active;bool srgb=GL.sRGBWrite;
+        int count=0;
+        Color[] Pixels(Texture2D texture)
+        {
+            try {return texture.GetPixels();}
+            finally {UnityEngine.Object.DestroyImmediate(texture);}
+        }
+        void Same(Color[] a,Color[] b,string label,bool encoded=false)
+        {
+            if(a.Length!=b.Length)throw new Exception(label+" dimensions");
+            for(int i=0;i<a.Length;i++)for(int c=0;c<4;c++)
+            {
+                count++;
+                var expected=encoded?a[i].gamma:a[i];
+                if(float.IsNaN(b[i][c])||Mathf.Abs(expected[c]-b[i][c])>.003f)
+                    throw new Exception(label+" mismatch "+i+"/"+c+": "+a[i]+" / "+b[i]);
+            }
+        }
+        Texture2D Export(Layer layer,bool input) => (Texture2D)typeof(TextureCompositor).GetMethod("RenderPsdPixels",flags).Invoke(doc,new object[]{layer,input});
+        try
+        {
+            doc.layers.Add(source);
+            var baseline=Pixels(doc.Compose());
+            Same(baseline,Pixels(Export(source,false)),"Standalone export",true);
+            group.children.Add(source);doc.layers.Clear();doc.layers.Add(group);
+            group.compositing=GroupCompositing.Isolated;
+            Same(baseline,Pixels(doc.Compose()),"Isolated group composite");
+            Same(baseline,Pixels((Texture2D)typeof(TextureCompositor).GetMethod("RenderPsdGroupContent",flags).Invoke(doc,new object[]{group})),"Layered group export",true);
+            group.compositing=GroupCompositing.PassThrough;
+            Same(baseline,Pixels(doc.Compose()),"Pass-through group composite");
+            foreach(var target in new[] {source,group})
+            {
+                doc.layers.Clear();doc.layers.Add(effect);doc.layers.Add(target);
+                typeof(TextureCompositor).GetMethod("NormalizeModel",flags).Invoke(doc,null);
+                effect.inputMode=EffectInputMode.Specific;effect.TargetLayerId=target.Id;
+                Same(baseline,Pixels(Export(effect,true)),"Specific Target input",true);
+            }
+            doc.layers.Clear();doc.layers.Add(source);
+            source.clippingMask=true;
+            doc.layers.Add(new ColorFillLayerBehaviour {color=new Color(0,0,0,.5f)});
+            foreach(var pixel in Pixels(doc.Compose()))
+            {
+                count++;if(Mathf.Abs(pixel.a-.5f)>.003f)throw new Exception("Clipping alpha");
+            }
+            source.clippingMask=false;
+            doc.layers.RemoveAt(1);
+            var thumb=behavior.GetPreviewTexture(32);
+            behavior.gradient.Transition=WhimTexGradientTransition.Soft2;
+            if(behavior.GetPreviewTexture(32)==thumb)throw new Exception("Thumbnail transition invalidation");
+            return variant+" composition/Target/clipping/export: "+count+" channel checks passed.";
+        }
+        finally
+        {
+            RenderTexture.active=previous;GL.sRGBWrite=srgb;
+            typeof(GradientLayerBehaviour).GetMethod("ReleaseTransientResources",flags).Invoke(behavior,null);
+            doc.layers.Clear();group.children.Clear();UnityEngine.Object.DestroyImmediate(doc);
+        }
+    }
+}

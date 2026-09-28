@@ -15,6 +15,13 @@ opaque grayscale and matching sample coordinates at different resolutions. White
 independent RGB channels, mean/correlation sanity checks, pixel grain size, pixel offsets, 1D bands,
 inversion, color encoding and bypassing fractal/warp. It does not save assets.
 
+`NoiseRandomizeSmoke.cs` runs with Pipeline `run_script`, entry `NoiseRandomizeSmoke.Run`.
+It tests 256 Random All combinations starting from all eight noise types, group-local type selection,
+preservation of both 1D/2D modes, other generator fields, enum coverage and legal ranges.
+It also checks 64 GPU renders, untouched layer settings and Unity random state. A temporary Properties window
+checks real button activation, field refresh, one-step Undo/Redo and the seed-only Random button.
+The window and document are destroyed afterwards; no project assets are saved.
+
 `BlueNoise.test.mjs` checks the baked 1D/2D tables: uniform per-channel histograms, low-frequency
 power for scalar values and several binary thresholds, independent RGB and deterministic rank generation.
 `BlueNoiseSmoke.cs` checks actual GPU sampling, Seed, RGB, inversion, grain/preview coordinates,

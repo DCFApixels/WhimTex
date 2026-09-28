@@ -73,7 +73,8 @@ namespace DCFApixels.WhimTex
             private void OnExited(DragExitedEvent evt) => owner.ClearLayerDragGhost();
             private void OnKey(KeyDownEvent evt)
             {
-                if (evt.keyCode == KeyCode.Escape) owner.ClearLayerDragGhost();
+                if (evt.keyCode == KeyCode.Escape)
+                { owner.ClearToolkitDropIndicator(); owner.ClearLayerDragData(); }
             }
             private void OnDetach(DetachFromPanelEvent evt)
             {

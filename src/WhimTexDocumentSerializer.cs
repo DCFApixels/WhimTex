@@ -64,7 +64,7 @@ namespace DCFApixels.WhimTex
         {
             "compiledShader", "appliedCode", "appliedSource", "appliedParameters", "diagnostics",
             "lastApplyFailed", "shaderCreationRecorded", "embeddedOwner", "transformCache",
-            "outputTexture", "outputSprite", "sliceOutputs", "documentLoadWarning", "documentBinding"
+            "outputTexture", "outputSprite", "sliceOutputs", "documentLoadWarning", "documentBinding", "outputSrgb"
         };
 
         private static readonly Dictionary<string, Type> KnownTypes = new Dictionary<string, Type>(StringComparer.Ordinal);
@@ -194,6 +194,7 @@ namespace DCFApixels.WhimTex
 
         private static void RecordSkippedField(Type type, string name)
         {
+            if (type == typeof(WhimTexGradient) && name == "transition") return;
             string label = type.Name + "." + name;
             if (_skippedFieldNames.Add(label)) _skippedFields.Add(label);
         }
@@ -835,7 +836,7 @@ namespace DCFApixels.WhimTex
                     case TagCurve: return ReadCurve();
                     case TagReference: return ReadReference();
                     case TagTexture: return ReadTexture();
-                    case TagEnum: return ReadEnum();
+                    case TagEnum: return ReadEnum(declared);
                     case TagList: return ReadList(declared);
                     case TagObject: return ReadObjectValue(declared);
                     case TagObjectRef:
@@ -863,11 +864,12 @@ namespace DCFApixels.WhimTex
                 return curve;
             }
 
-            private object ReadEnum()
+            private object ReadEnum(Type declared)
             {
                 string typeName = ReadText();
                 string name = ReadText();
                 long number = _reader.ReadInt64();
+                if (declared == null) return null;
                 Type type = ResolveType(typeName);
                 if (type == null) return null;
                 if (!type.IsEnum) throw new WhimTexDocumentException("Invalid enum type: " + typeName);

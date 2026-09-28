@@ -160,6 +160,8 @@ when you want to paint on the combined result.
 
 ## Share layers
 
+Drag one or more selected layers into another open WhimTex window to copy them. Drop outside the Layers list to insert at the top; inside the list, use the insertion indicator or drop onto a group to copy into it. Source layers and the clipboard stay unchanged. Groups and Drawing pixels are copied independently, and one Undo removes the transfer. Within the source window, dragging still moves layers.
+
 Select layers and choose **Copy as Portable** from their context menu. Send the JSON as text or a `.json` file; the recipient copies its contents and presses **Ctrl+V** in WhimTex. Ordinary Ctrl+C is unchanged.
 
 The exported JSON omits settings that match a new layer's defaults, empty settings blocks and unused layer IDs. Names, custom values and required references remain; formatting stays readable. Gradient stops, transparency and non-default interpolation settings are preserved.

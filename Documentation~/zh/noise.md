@@ -14,6 +14,11 @@ translations: "en/noise.md,ru/noise.md,zh/noise.md"
 使用噪声来制作云层、颗粒、类似石头的图案，或作为高度贴图的起点。
 通过 Layers 底部的 **+ → Noise** 添加噪声图层，边观察图像边调整设置。
 
+噪声设置顶部的 **Random All** 会随机组合生成器参数，包括当前未启用的选项、
+**Output** 和反相。**Dimensions (1D/2D)**、图层变换、混合和 FX 保持不变。
+一次撤销即可恢复上一个组合。**Seed** 旁的 **Random** 只改变种子。
+Noise Type 只会在当前组内切换：**White Noise / Blue Noise** 为一组，其余噪声类型为另一组。
+
 ## 从图案开始
 
 | 设置 | 可以尝试什么 |

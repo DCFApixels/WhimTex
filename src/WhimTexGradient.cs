@@ -38,6 +38,8 @@ namespace DCFApixels.WhimTex
         [SerializeField] private ColorSpace colorSpace = ColorSpace.Gamma;
         [SerializeField] private float smoothness = 1;
         [NonSerialized] private Curve[] curves;
+        [NonSerialized] private float[] chromaReduction;
+        [NonSerialized] private RoundedMap roundedColorMap, roundedAlphaMap;
         [NonSerialized] private uint revision, colorRevision;
         public uint Revision => revision;
         internal uint ColorRevision => colorRevision;
@@ -179,11 +181,27 @@ namespace DCFApixels.WhimTex
                 value.a = alphas[ai].alpha;
                 return value;
             }
-            Vector3 rgb = new Vector3(curves[0].Evaluate(time, smoothness),
-                curves[1].Evaluate(time, smoothness), curves[2].Evaluate(time, smoothness));
+            float colorTime = time, alphaTime = time;
+            if (roundedColorMap != null) colorTime = roundedColorMap.Evaluate(time, smoothness);
+            if (roundedAlphaMap != null) alphaTime = roundedAlphaMap.Evaluate(time, smoothness);
+            Vector3 rgb = new Vector3(EvaluateChannel(0, colorTime),
+                EvaluateChannel(1, colorTime), EvaluateChannel(2, colorTime));
+            if (chromaReduction != null && smoothness > 0 && colorTime > colors[0].time && colorTime < colors[colors.Length-1].time)
+            {
+                int lo = 0, hi = colors.Length-1;
+                while (hi-lo > 1) { int mid = (lo+hi)/2; if (colorTime < colors[mid].time) hi = mid; else lo = mid; }
+                float midpoint = MidpointTime(colors[lo].time, colors[hi].time, GetMidpoint(false, lo));
+                float u = colorTime <= midpoint ? .5f*(colorTime-colors[lo].time)/(midpoint-colors[lo].time) :
+                    .5f + .5f*(colorTime-midpoint)/(colors[hi].time-midpoint);
+                float envelope = 4*u*(1-u);
+                float scale = 1-smoothness*chromaReduction[lo]*envelope*envelope;
+                rgb.y *= scale; rgb.z *= scale;
+            }
             rgb = FromWorking(rgb);
-            return new Color(rgb.x, rgb.y, rgb.z, Mathf.Clamp01(curves[3].Evaluate(time, smoothness)));
+            return new Color(rgb.x, rgb.y, rgb.z, Mathf.Clamp01(EvaluateChannel(3, alphaTime)));
         }
+
+        private float EvaluateChannel(int channel, float time) => curves[channel].Evaluate(time, smoothness);
 
         // Caller owns the buffer. No texture creation or per-sample allocations.
         public void Bake(Color[] destination)
@@ -194,7 +212,11 @@ namespace DCFApixels.WhimTex
         }
 
         public void OnBeforeSerialize() { }
-        public void OnAfterDeserialize() { curves = null; unchecked { revision++; colorRevision++; } }
+        public void OnAfterDeserialize()
+        {
+            curves = null;
+            unchecked { revision++; colorRevision++; }
+        }
         private float WrapTime(float time)
         {
             switch (wrapMode)
@@ -254,6 +276,26 @@ namespace DCFApixels.WhimTex
             var values = new Vector3[colors.Length];
             for (int i = 0; i < colors.Length; i++)
                 values[i] = ToWorking(new Vector3(colors[i].color.r, colors[i].color.g, colors[i].color.b));
+            chromaReduction = null;
+            roundedColorMap = roundedAlphaMap = null;
+            var colorHeld = new bool[Math.Max(0, colors.Length-1)];
+            for (int i = 0; i < colorHeld.Length; i++)
+                colorHeld[i] = colors[i].color.r == colors[i+1].color.r &&
+                    colors[i].color.g == colors[i+1].color.g && colors[i].color.b == colors[i+1].color.b;
+            if (mode == WhimTexGradientMode.Perceptual && colors.Length > 1)
+            {
+                chromaReduction = new float[colors.Length-1];
+                for (int i = 0; i < chromaReduction.Length; i++)
+                {
+                    var a = new Vector2(values[i].y, values[i].z);
+                    var b = new Vector2(values[i+1].y, values[i+1].z);
+                    float ca = a.magnitude, cb = b.magnitude;
+                    // Reference-fitted perceptual variant: only opposing chroma bends
+                    // toward neutral. Neutral/same-hue ramps and the stops stay intact.
+                    if (ca > .00001f && cb > .00001f)
+                        chromaReduction[i] = .5f*Mathf.Clamp01(1-(a+b).magnitude/(ca+cb));
+                }
+            }
             for (int channel = 0; channel < 3; channel++)
             {
                 var x = new float[colors.Length * 2 - 1]; var y = new float[x.Length];
@@ -264,7 +306,7 @@ namespace DCFApixels.WhimTex
                     x[2*i+1] = MidpointTime(colors[i].time, colors[i+1].time, GetMidpoint(false, i));
                     y[2*i+1] = (values[i][channel] + values[i+1][channel]) * .5f;
                 }
-                built[channel] = new Curve(x, y);
+                built[channel] = new Curve(x, y, colorHeld);
             }
             var ax = new float[alphas.Length * 2 - 1]; var ay = new float[ax.Length];
             for (int i = 0; i < alphas.Length; i++)
@@ -274,9 +316,46 @@ namespace DCFApixels.WhimTex
                 ax[2*i+1] = MidpointTime(alphas[i].time, alphas[i+1].time, GetMidpoint(true, i));
                 ay[2*i+1] = (alphas[i].alpha + alphas[i+1].alpha) * .5f;
             }
-            built[3] = new Curve(ax, ay);
+
+            roundedColorMap = new RoundedMap(built[0].Times, colorHeld,
+                (key, end) => HasFlatColorJet(built, values, key, end));
+            var held = new bool[alphas.Length-1];
+            for (int i = 0; i < held.Length; i++) held[i] = alphas[i].alpha == alphas[i+1].alpha;
+            built[3] = new Curve(ax, ay, held);
+            roundedAlphaMap = new RoundedMap(ax, held, null);
             curves = built;
         }
+
+        private bool HasFlatColorJet(Curve[] built, Vector3[] values, int key, bool end)
+        {
+            int node = 2*key, segment = end ? node-1 : node;
+            double h = built[0].Times[segment+1]-built[0].Times[segment];
+            var first = new Vector3(); var second = new Vector3();
+            for (int c = 0; c < 3; c++)
+            {
+                built[c].Jet(segment, end, out double d1, out double d2);
+                first[c] = (float)(d1*h); second[c] = (float)(d2*h*h);
+            }
+            if (mode == WhimTexGradientMode.Perceptual)
+            {
+                float strength = chromaReduction[end ? key-1 : key];
+                second.y -= 8*strength*values[key].y;
+                second.z -= 8*strength*values[key].z;
+                Vector3 q = LabToLms(values[key]), q1 = LabToLms(first), q2 = LabToLms(second);
+                for (int c = 0; c < 3; c++)
+                {
+                    first[c] = 3*q[c]*q[c]*q1[c];
+                    second[c] = 6*q[c]*q1[c]*q1[c]+3*q[c]*q[c]*q2[c];
+                }
+            }
+            // The final linear transform is invertible; zero LMS jets are zero RGB jets.
+            return first.sqrMagnitude < 1e-24f && second.sqrMagnitude < 1e-24f;
+        }
+
+        private static Vector3 LabToLms(Vector3 v) => new Vector3(
+            v.x+.3963377774f*v.y+.2158037573f*v.z,
+            v.x-.1055613458f*v.y-.0638541728f*v.z,
+            v.x-.0894841775f*v.y-1.291485548f*v.z);
 
         private Vector3 ToWorking(Vector3 v)
         {
@@ -323,31 +402,104 @@ namespace DCFApixels.WhimTex
                 -.0041960863f*l - .7034186147f*m + 1.707614701f*s);
         }
 
+        private sealed class RoundedMap
+        {
+            private struct Patch
+            {
+                internal double key, width, left, right;
+                internal bool end;
+            }
+            private readonly Patch[] patches;
+            internal RoundedMap(float[] x, bool[] held, Func<int, bool, bool> flatJet)
+            {
+                var list = new System.Collections.Generic.List<Patch>();
+                int previousEnd = -1;
+                for (int i = 0; i < held.Length; i++)
+                {
+                    if (held[i]) continue;
+                    int start = i;
+                    while (i+1 < held.Length && !held[i+1]) i++;
+                    int end = i+1, next = end;
+                    while (next < held.Length && held[next]) next++;
+                    Add(start, false, previousEnd < 0 ? double.PositiveInfinity : (x[2*start]-x[2*previousEnd])*.5);
+                    Add(end, true, next == held.Length ? double.PositiveInfinity : (x[2*next]-x[2*end])*.5);
+                    previousEnd = end;
+                }
+                patches = list.ToArray();
+                void Add(int key, bool end, double limit)
+                {
+                    if (flatJet != null && flatJet(key, end)) return;
+                    double value = x[2*key];
+                    double half = end ? value-x[2*key-1] : x[2*key+1]-value;
+                    // Use the whole available span up to the midpoint, distributing
+                    // the speed surplus instead of returning abruptly to the base curve.
+                    double width = Math.Min(half, limit);
+                    if (width <= 0) return;
+                    if (end) value = 1-value;
+                    list.Add(new Patch { key=value, width=width, left=Math.Max(0,value-width), right=value+width, end=end });
+                }
+            }
+            internal float Evaluate(float time, float smooth)
+            {
+                if (smooth == 0) return time;
+                foreach (var patch in patches)
+                {
+                    double t = patch.end ? 1.0-time : time;
+                    if (t < patch.left || t > patch.right) continue;
+                    double h = patch.right-patch.left, u = (t-patch.left)/h, q = h/patch.width;
+                    // Integral of a smooth onset plus a broad positive speed surplus.
+                    // Both ends have zero second derivative; the final slope is q.
+                    // q=1 handles domain-clipped supports; q=2 is symmetric rounding.
+                    const double onsetWidth = .2;
+                    double v = Math.Min(u/onsetWidth, 1);
+                    double onset = u < onsetWidth ? onsetWidth*v*v*v*(1-.5*v) : u-onsetWidth*.5;
+                    double fast = onset+onsetWidth*.5*u*u*u*(10+u*(-15+6*u));
+                    double slow = u*u*u*(2-u);
+                    double w = (2-q)*fast+(q-1)*slow;
+                    double mapped = patch.key+patch.width*w;
+                    if (patch.end) mapped = 1-mapped;
+                    return Mathf.LerpUnclamped(time, (float)mapped, smooth);
+                }
+                return time;
+            }
+        }
+
         private sealed class Curve
         {
             private readonly float[] x, y, tangent;
-            internal Curve(float[] x, float[] y)
+            private readonly float[] incoming, outgoing;
+            internal float[] Times => x;
+            internal Curve(float[] x, float[] y, bool[] held)
             {
                 this.x = x; this.y = y; tangent = new float[x.Length];
                 if (x.Length == 1) return;
                 var h = new float[x.Length - 1]; var d = new float[h.Length];
                 for (int i = 0; i < h.Length; i++) { h[i] = x[i+1]-x[i]; d[i] = (y[i+1]-y[i])/h[i]; }
-                if (x.Length == 2) { tangent[0] = tangent[1] = d[0]; return; }
-                tangent[0] = Endpoint(h[0], h[1], d[0], d[1]);
-                int last = h.Length - 1;
-                tangent[x.Length-1] = Endpoint(h[last], h[last-1], d[last], d[last-1]);
                 for (int i = 1; i < x.Length-1; i++)
                 {
                     if (d[i-1] == 0 || d[i] == 0 || Math.Sign(d[i-1]) != Math.Sign(d[i])) continue;
                     double w1 = 2*h[i]+h[i-1], w2 = h[i]+2*h[i-1];
                     tangent[i] = (float)((w1+w2)/(w1/d[i-1]+w2/d[i]));
                 }
+                tangent[0] = d[0]; tangent[x.Length-1] = d[d.Length-1];
+                if (held != null)
+                {
+                    incoming = (float[])tangent.Clone(); outgoing = (float[])tangent.Clone();
+                    for (int i = 0; i < held.Length; i++)
+                    {
+                        if (held[i]) continue;
+                        if (i == 0 || held[i-1]) outgoing[2*i] = d[2*i];
+                        if (i == held.Length-1 || held[i+1]) incoming[2*i+2] = d[2*i+1];
+                    }
+                }
             }
-            private static float Endpoint(float h0, float h1, float d0, float d1)
+            internal void Jet(int segment, bool end, out double first, out double second)
             {
-                float m = ((2*h0+h1)*d0-h0*d1)/(h0+h1);
-                if (Math.Sign(m) != Math.Sign(d0)) return 0;
-                return Math.Sign(d0) != Math.Sign(d1) && Mathf.Abs(m) > 3*Mathf.Abs(d0) ? 3*d0 : m;
+                double h = x[segment+1]-x[segment], d = ((double)y[segment+1]-y[segment])/h;
+                double a = outgoing == null ? tangent[segment] : outgoing[segment];
+                double b = incoming == null ? tangent[segment+1] : incoming[segment+1];
+                first = end ? b : a;
+                second = end ? 2*(-3*d+a+2*b)/h : 2*(3*d-2*a-b)/h;
             }
             internal float Evaluate(float t, float smooth)
             {
@@ -355,8 +507,16 @@ namespace DCFApixels.WhimTex
                 if (t >= x[x.Length-1]) return y[y.Length-1];
                 int lo = 0, hi = x.Length-1;
                 while (hi-lo > 1) { int mid = (lo+hi)/2; if (t < x[mid]) hi = mid; else lo = mid; }
-                float h = x[hi]-x[lo], u = (t-x[lo])/h, u2 = u*u, u3 = u2*u;
+                float h = x[hi]-x[lo], u = (t-x[lo])/h;
                 float linear = Mathf.LerpUnclamped(y[lo], y[hi], u);
+                if (outgoing != null)
+                {
+                    double v = ((double)t-x[lo])/h, v2 = v*v, v3 = v2*v;
+                    double value = (2*v3-3*v2+1)*y[lo]+(v3-2*v2+v)*h*outgoing[lo]+
+                        (-2*v3+3*v2)*y[hi]+(v3-v2)*h*incoming[hi];
+                    return Mathf.LerpUnclamped(linear, Mathf.Clamp((float)value, Mathf.Min(y[lo],y[hi]), Mathf.Max(y[lo],y[hi])), smooth);
+                }
+                float u2 = u*u, u3 = u2*u;
                 float cubic = (2*u3-3*u2+1)*y[lo] + (u3-2*u2+u)*h*tangent[lo] +
                     (-2*u3+3*u2)*y[hi] + (u3-u2)*h*tangent[hi];
                 return Mathf.LerpUnclamped(linear, Mathf.Clamp(cubic, Mathf.Min(y[lo],y[hi]), Mathf.Max(y[lo],y[hi])), smooth);

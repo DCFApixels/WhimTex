@@ -7,7 +7,7 @@ namespace DCFApixels.WhimTex
     /// Applies the document's own texture settings during its first import, so saving needs one import
     /// instead of two. The sRGB flag decides how Unity reads the 8-bit samples of the carrier, and the
     /// marker in the .meta makes document detection free afterwards. Later imports leave the settings
-    /// alone, so a flag the user changed in the inspector is not overwritten.
+    /// alone; an Inspector encoding change queues a saved-composite rewrite after import.
     /// </summary>
     internal sealed class WhimTexDocumentPostprocessor : AssetPostprocessor
     {
@@ -15,6 +15,7 @@ namespace DCFApixels.WhimTex
             string[] movedAssets, string[] movedFromAssetPaths)
         {
             WhimTexDocumentSession.AfterImport(importedAssets);
+            WhimTexOutputEncoding.AfterImport(importedAssets);
         }
 
         private void OnPreprocessTexture()

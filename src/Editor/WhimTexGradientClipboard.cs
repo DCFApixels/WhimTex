@@ -68,7 +68,7 @@ namespace DCFApixels.WhimTex
                 keys.Count > 0 && keys[0]?["color"] is JObject)
             {
                 // Accept the serialized value previously produced by Copy, as well as plain JSON of that value.
-                Keys(serialized, "colors", "alphas", "mode", "wrapMode", "colorSpace", "smoothness");
+                Keys(serialized, "colors", "alphas", "mode", "wrapMode", "colorSpace", "smoothness", "transition");
                 foreach (JToken token in keys)
                 {
                     var stop = Obj(token, "color stop");

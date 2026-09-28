@@ -445,6 +445,7 @@ namespace DCFApixels.WhimTex
             DragAndDrop.SetGenericData(DraggedLayerIdKey, null);
             DragAndDrop.SetGenericData(DraggedLayersKey, null);
             DragAndDrop.SetGenericData(DraggedCompositorIdKey, null);
+            DragAndDrop.SetGenericData(DraggedWindowKey, null);
         }
 
         private bool CanDropLayer(Layer layer, List<Layer> destinationContainer, int destinationIndex)

@@ -1,6 +1,8 @@
 public static class GradientGpuRunSmoke
 {
-    public static string Main()
+    public static string Main() => Run();
+    public static string Rounded() => Run();
+    static string Run()
     {
 // Unity Pipeline eval_file. Transient objects only; no scene/asset writes or Undo.
 var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
@@ -19,7 +21,7 @@ void Check(bool value, string message) { if (!value) throw new System.Exception(
 UnityEngine.Texture2D Palette() => (UnityEngine.Texture2D)layerType.GetField("palette", flags).GetValue(layer);
 UnityEngine.RenderTexture Render(int w, int h)
 {
-    var context = System.Activator.CreateInstance(contextType, new object[] { document, null, w, h, 1f, false, false });
+    var context = System.Activator.CreateInstance(contextType, new object[] { document, null, w, h, 1f, false, false, null });
     return (UnityEngine.RenderTexture)layerType.GetMethod("Render", flags).Invoke(layer, new object[] { context });
 }
 void Compare(string label, int w = 65, int h = 33, float tolerance = .002f)
@@ -90,6 +92,24 @@ try
             Compare(space + "/" + mode + "/" + kind, tolerance: mode == DCFApixels.WhimTex.WhimTexGradientMode.Perceptual ? .01f : .002f);
         }
     }
+    // Shifted first/last stops must match the smoothed CPU ramp on the GPU too.
+    layer.gradient.SetKeys(new[] {
+        new UnityEngine.GradientColorKey(UnityEngine.Color.white, .45784524f),
+        new UnityEngine.GradientColorKey(UnityEngine.Color.black, .95f)
+    }, new[] {new UnityEngine.GradientAlphaKey(1, .2f), new UnityEngine.GradientAlphaKey(0, .85f)});
+    layer.gradient.SetMidpoint(false, 0, .62465125f);
+    layer.gradientType = DCFApixels.WhimTex.GradientLayerBehaviour.GradientType.Radial;
+    foreach (var smooth in new[] {0f, .5f, 1f})
+    {
+        layer.gradient.Smoothness = smooth;
+        foreach (var mode in new[] {DCFApixels.WhimTex.WhimTexGradientMode.Classic,
+            DCFApixels.WhimTex.WhimTexGradientMode.Linear, DCFApixels.WhimTex.WhimTexGradientMode.Perceptual})
+        {
+            layer.gradient.Mode = mode;
+            Compare("Radial endpoint joins " + mode + "/" + smooth, 257, 257, .002f);
+        }
+    }
+    layer.gradient.Smoothness = 1;
     layer.gradient.Mode = DCFApixels.WhimTex.WhimTexGradientMode.Classic;
     layer.gradientType = DCFApixels.WhimTex.GradientLayerBehaviour.GradientType.Circular;
     layer.circularWrapMode = DCFApixels.WhimTex.GradientLayerBehaviour.WrapMode.PingPong;
@@ -126,7 +146,9 @@ try
         alphas[i] = new UnityEngine.GradientAlphaKey(i / 7f, .04f + i * .131f);
     }
     layer.gradient.SetKeys(colors, alphas);
-    Compare("Maximum independent color/alpha keys, fixed");
+    // Avoid an exact radial Fixed discontinuity at t=.4: CPU/GPU radius rounding
+    // can choose opposite sides of that jump. Smooth-ramp joins are tested above.
+    Compare("Maximum independent color/alpha keys, fixed", 64, 34);
     Check(Palette().height == 17, "Maximum palette interval count");
     layer.gradient.Mode = DCFApixels.WhimTex.WhimTexGradientMode.Classic;
     Compare("Maximum independent color/alpha keys, blend");

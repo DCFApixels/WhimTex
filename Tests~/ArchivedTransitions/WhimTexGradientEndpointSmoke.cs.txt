@@ -1,0 +1,67 @@
+// Historical tests for retired transitions; not a current executable test suite.
+using System;
+using UnityEngine;
+using DCFApixels.WhimTex;
+
+// Pipeline run_script, entry WhimTexGradientEndpointSmoke.Main. No asset or window edits.
+public static class WhimTexGradientEndpointSmoke
+{
+    static int checks;
+    static void Check(bool value, string reason) { checks++; if (!value) throw new Exception(reason); }
+    static void Near(float a, float b, float tolerance, string reason) => Check(Mathf.Abs(a-b)<=tolerance, reason+": "+a+" / "+b);
+    public static string Main() => Run(WhimTexGradientTransition.Standard);
+    public static string Soft3() => Run(WhimTexGradientTransition.Soft3);
+    static string Run(WhimTexGradientTransition transition)
+    {
+        checks=0;
+        foreach(var mode in new[]{WhimTexGradientMode.Classic,WhimTexGradientMode.Linear,WhimTexGradientMode.Perceptual})
+        foreach(var space in new[]{ColorSpace.Gamma,ColorSpace.Linear})
+        foreach(var span in new[]{new Vector2(0,1),new Vector2(.45784524f,.9f)})
+        foreach(float midpoint in new[]{.25f,.5f,.62465125f,.75f})
+        {
+            var g=new WhimTexGradient{Mode=mode,ColorSpace=space,Transition=transition};
+            g.SetKeys(new[]{new GradientColorKey(Color.white,span.x),new GradientColorKey(Color.black,span.y)},
+                new[]{new GradientAlphaKey(1,span.x),new GradientAlphaKey(0,span.y)});
+            g.SetMidpoint(false,0,midpoint);g.SetMidpoint(true,0,midpoint);
+            string label=mode+"/"+space+"/"+span+"/"+midpoint;
+            float e=(span.y-span.x)*.0001f;
+            Color first=g.Evaluate(span.x),last=g.Evaluate(span.y);
+            for(int c=0;c<4;c++)
+            {
+                Near(g.Evaluate(span.x-e)[c],first[c],.000002f,"Constant left "+label);
+                Near(g.Evaluate(span.y+e)[c],last[c],.000002f,"Constant right "+label);
+                Near(g.Evaluate(span.x+e)[c],first[c],.000008f,"Flat left tangent "+label);
+                Near(g.Evaluate(span.y-e)[c],last[c],.000008f,"Flat right tangent "+label);
+            }
+            Color previous=first;
+            for(int i=0;i<=256;i++)
+            {
+                Color v=g.Evaluate(Mathf.Lerp(span.x,span.y,i/256f));
+                for(int c=0;c<4;c++) {
+                    Check(!float.IsNaN(v[c])&&!float.IsInfinity(v[c]),"Finite "+label);
+                    Check(v[c]>=-.000002f&&v[c]<=1.000002f,"Bounds "+label);
+                    Check(v[c]<=previous[c]+.000002f,"Monotone "+label);
+                }
+                previous=v;
+            }
+            // Intermediate Smoothness retains its blend between linear and smooth curves.
+            float t=Mathf.Lerp(span.x,span.y,.17f);
+            Color smooth=g.Evaluate(t);g.Smoothness=0;Color linear=g.Evaluate(t);
+            float expectedAlpha=1-(.17f<midpoint ? .5f*.17f/midpoint : .5f+.5f*(.17f-midpoint)/(1-midpoint));
+            Near(linear.a,expectedAlpha,.000002f,"Smoothness zero unchanged "+label);
+            g.Smoothness=.5f;Near(g.Evaluate(t).a,(smooth.a+linear.a)*.5f,.000002f,"Partial smoothing "+label);
+            g.Smoothness=1;
+            foreach(var wrap in new[]{WhimTexGradientWrapMode.Clamp,WhimTexGradientWrapMode.Repeat,WhimTexGradientWrapMode.Mirror}){
+                g.WrapMode=wrap;Near(g.Evaluate(t).a,smooth.a,.000002f,"Wrap preserves ramp "+label);
+            }
+        }
+        var single=new WhimTexGradient();
+        single.SetKeys(new[]{new GradientColorKey(Color.gray,.4f)},new[]{new GradientAlphaKey(.3f,.6f)});
+        for(int i=0;i<=20;i++){Near(single.Evaluate(i/20f).r,.5f,.000002f,"Single color");Near(single.Evaluate(i/20f).a,.3f,.000002f,"Single alpha");}
+        single.SetKeys(new[]{new GradientColorKey(Color.white,.4f),new GradientColorKey(Color.black,.8f)},
+            new[]{new GradientAlphaKey(1,.3f),new GradientAlphaKey(0,.9f)});
+        single.Mode=WhimTexGradientMode.Fixed;
+        foreach(float smooth in new[]{0f,.5f,1f}){single.Smoothness=smooth;Near(single.Evaluate(.6f).r,0,0,"Fixed unchanged");Near(single.Evaluate(.6f).a,0,0,"Fixed alpha unchanged");}
+        return transition+" gradient endpoints: "+checks+" checks passed; flat color/alpha joins, all smooth modes/spaces, shifted keys, midpoints, monotonicity, partial smoothing, wrap and Fixed.";
+    }
+}

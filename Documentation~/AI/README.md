@@ -270,7 +270,7 @@ uses the same version-1 clipboard format, without rounding numeric values.
   with strictly increasing times in 0..1. `properties.gradientOptions` optionally sets
   `type` (`Vertical`, `Horizontal`, `Radial`, `Circular`, `Diamond`, `Square`),
   `repetitions` (0.00001..1000), `wrap` (`Repeat`, `PingPong`),
-  `mode` (`Classic`, `Linear`, `Perceptual`, `Fixed`) and `smoothness` (0..1).
+  `mode` (`Classic`, `Linear`, `Perceptual`, `Fixed`) and `smoothness` (0..1). Rounded is always used.
   Geometry uses the layer's top-level `transform`: position, scale and rotation. There are no `center` or `radius` options.
   Radial, Diamond, Square and Circular are centered at local UV [0.5,0.5]; the first three reach the final stop at distance 0.5.
   Stops optionally include `midpoint` and `alphaMidpoint` (0.01..0.99, default 0.5).
@@ -358,7 +358,35 @@ reflects each repeated interval.
 If `alphas` is omitted, color alpha components define the alpha track. Interpolation modes:
 `Classic`, `Linear`, `Perceptual`, `Fixed`; default `Classic`. `colorSpace`: `Gamma` (default)
 or `Linear`. `smoothness`: 0..1, default 1. `midpoint`: 0.01..0.99, default 0.5;
-the last key's midpoint has no following segment. Fixed ignores smoothness and midpoints.
+the last key's midpoint has no following segment. Rounded is the built-in algorithm, not a serialized setting.
+The retired `transition` input field is ignored in old JSON/documents; it is not converted,
+validated as a mode, exposed in UI, or written to new output. Old documents render through
+Rounded directly without migration or resaving. Older artwork may therefore look different.
+Other unknown fields are still rejected.
+Rounded partitions the curve at complete equal-color intervals and uses monotone cubic
+interpolation with adjacent-secant boundary slopes on each nonconstant block. In Perceptual,
+opposing chroma is reduced by `0.5*(1-|a+b|/(|a|+|b|))`, where a/b are the neighboring
+OKLab chroma vectors; a neutral endpoint disables the correction. Its envelope is
+`[4u(1-u)]^2`, with u=0.5 at the midpoint, scaled by Smoothness. Lightness and alpha
+are unaffected by this chroma adjustment. A shared RGB time map rounds the boundaries on both sides. Its radius
+is the distance to the adjacent midpoint, limited to half the intervening constant
+gap; redundant keys in an outer constant run do not alter it. The domain clips the support
+to 0..1. With `u` normalized over that support and `q = supportLength / radius`,
+use `e=0.2`, `v=min(u/e,1)`, and the integrated onset
+`I(u)=e*(v^3-v^4/2)` for `u<e`, otherwise `I(u)=u-e/2`.
+Then `F(u)=I(u)+(e/2)*u^3*(10-15u+6u^2)`, `S(u)=u^3*(2-u)`,
+and `w=(2-q)*F(u)+(q-1)*S(u)`. The broad positive speed surplus in F reduces
+domain-edge catch-up from 1.512 to 1.1875 times identity speed. The mapped coordinate is
+`boundary + radius*w`, mirrored at the right edge. A color boundary already having zero
+first and second output-linear-RGB derivatives is not eased again. Alpha uses an independent
+scalar map. At full smoothness the constant joins and the time map are C2; the color curve
+still inherits the base cubic's interior/midpoint joins, which need not be C2.
+Partial smoothness retains a linear component. Stops at interior held boundaries
+may have approximate evaluated colors/alpha; domain-edge stops, ordinary interior stops and
+midpoint coordinates are preserved. This prioritizes smooth shoulders, not exact matching to
+the reference or a guarantee of no plateau/rim. At zero smoothness interpolation is linear
+in the selected working color space. Repeat does not make mismatched endpoints seamless.
+Fixed ignores smoothness and midpoints.
 The clipboard input is limited to 65536 characters. Unknown fields, duplicate fields and
 unsupported versions are rejected. These standalone HDR limits do not change layer/brush JSON limits.
 

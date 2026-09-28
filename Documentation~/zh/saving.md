@@ -43,6 +43,22 @@ Texture Importer。新文档需要先保存。
 点击 Inspector 中的 **Apply** 应用导入设置。这些设置影响 Unity 使用的纹理，
 不会改变可编辑图层或画布尺寸。HDR TIFF 使用线性数据；WhimTex 会为其关闭 sRGB。
 
+### 输出颜色编码
+
+**Precision** 旁的 **sRGB** 选择 TIFF 输出编码：开启为 sRGB，关闭为 Linear。
+新建的普通文档默认使用 sRGB。已有 TIFF 使用 Texture Importer 的设置；
+在 Inspector 中修改 **sRGB (Color Texture)** 并点击 **Apply** 也会更新输出。
+Float32 输出（包括 Auto 选择的 HDR）始终使用 Linear。
+
+切换会保持图像亮度和颜色，仅可能存在 8 位输出的舍入差异。
+图层颜色、画笔颜色、渐变和工作预览不变，alpha 也不变。
+这是编码转换，不是用另一种颜色空间重新解释相同的通道数值。
+
+在 WhimTex 中切换复选框会启用 **Save**，并支持 Undo/Redo。保存之前，TIFF 和导入设置不变；
+放弃保存也会放弃待保存的编码设置。反复切换不会逐步降低源图层质量。
+通过 Inspector 的 **Apply** 修改设置则更新**上次保存的图像**，不会保存当前图层编辑，
+并会同步复选框。这种外部重新导入会停止 Live Update，需要时请重新启用。其他源纹理不会改变。
+
 ### 精灵切片
 
 如果 Sprite Editor 不可用，请通过 Package Manager 安装 **2D Sprite**（`com.unity.2d.sprite`）。

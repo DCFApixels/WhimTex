@@ -84,6 +84,9 @@ namespace DCFApixels.WhimTex
             root.UnregisterCallback<KeyDownEvent>(OnToolkitKeyDown, TrickleDown.TrickleDown);
             root.UnregisterCallback<KeyUpEvent>(OnToolkitKeyUp, TrickleDown.TrickleDown);
             root.UnregisterCallback<DragExitedEvent>(OnToolkitDragExited);
+            root.UnregisterCallback<DragUpdatedEvent>(OnCrossWindowLayerDragUpdated, TrickleDown.TrickleDown);
+            root.UnregisterCallback<DragPerformEvent>(OnCrossWindowLayerDragPerform, TrickleDown.TrickleDown);
+            root.UnregisterCallback<DragLeaveEvent>(OnCrossWindowLayerDragLeave);
             root.UnregisterCallback<DragUpdatedEvent>(OnBrushPresetDragUpdated, TrickleDown.TrickleDown);
             root.UnregisterCallback<DragPerformEvent>(OnBrushPresetDragPerform, TrickleDown.TrickleDown);
             root.UnregisterCallback<PointerDownEvent>(OnOpacityPointerDown, TrickleDown.TrickleDown);
@@ -105,6 +108,9 @@ namespace DCFApixels.WhimTex
             RegisterAreaSelectionCommands(root);
             root.RegisterCallback<KeyUpEvent>(OnToolkitKeyUp, TrickleDown.TrickleDown);
             root.RegisterCallback<DragExitedEvent>(OnToolkitDragExited);
+            root.RegisterCallback<DragUpdatedEvent>(OnCrossWindowLayerDragUpdated, TrickleDown.TrickleDown);
+            root.RegisterCallback<DragPerformEvent>(OnCrossWindowLayerDragPerform, TrickleDown.TrickleDown);
+            root.RegisterCallback<DragLeaveEvent>(OnCrossWindowLayerDragLeave);
             root.RegisterCallback<DragUpdatedEvent>(OnBrushPresetDragUpdated, TrickleDown.TrickleDown);
             root.RegisterCallback<DragPerformEvent>(OnBrushPresetDragPerform, TrickleDown.TrickleDown);
             root.RegisterCallback<PointerDownEvent>(OnOpacityPointerDown, TrickleDown.TrickleDown);
@@ -227,7 +233,9 @@ namespace DCFApixels.WhimTex
         private void OnToolkitDragExited(DragExitedEvent evt)
         {
             ClearToolkitDropIndicator();
-            ClearLayerDragData();
+            ClearLayerDragGhost();
+            ClearFooterDropIndicator();
+            layerDragAutoScroll?.Stop();
         }
 
         private VisualElement BuildToolkitPreviewPane()
@@ -473,6 +481,14 @@ namespace DCFApixels.WhimTex
                 precision.RegisterValueChangedCallback(evt => ApplyToolkitChange("Change TIFF Precision",
                     () => compositor.outputPrecision = (WhimTexOutputPrecision)precision.choices.IndexOf(evt.newValue)));
                 toolkitCanvasToolbar.Add(precision);
+                var srgb = new Toggle("sRGB") { name = "canvasOutputSrgb",
+                    tooltip = "TIFF output encoding: on = sRGB, off = Linear. Applied when you Save; supports Undo. Layer colors and preview remain unchanged, apart from output quantization. Float32 / HDR output is always Linear." };
+                srgb.AddToClassList("whimtex-canvas-srgb");
+                toolkitSettingsBindings.Track(srgb, () => WhimTexDocumentFile.GetOutputSrgb(compositor));
+                toolkitSettingsBindings.Add(() => srgb.SetEnabled(compositor.outputPrecision != WhimTexOutputPrecision.Float32));
+                srgb.RegisterValueChangedCallback(evt => ApplyToolkitChange("Change Output Encoding",
+                    () => WhimTexDocumentFile.SetOutputSrgb(compositor, evt.newValue)));
+                toolkitCanvasToolbar.Add(srgb);
             }
             var filter = new EnumField("Filter", compositor.outputFilter) { name = "canvasOutputFilter" };
             TwoChoiceDropdown.Attach(filter);
@@ -1169,6 +1185,7 @@ namespace DCFApixels.WhimTex
                 bool selected = owner.IsLayerSelected(layer.Id);
                 DragAndDrop.SetGenericData(DraggedLayerIdKey, selected ? owner.selectedLayerId : layer.Id);
                 DragAndDrop.SetGenericData(DraggedCompositorIdKey, owner.compositor);
+                DragAndDrop.SetGenericData(DraggedWindowKey, owner);
                 DragAndDrop.SetGenericData(DraggedLayersKey, selected ? owner.GetSelectedRoots() : new List<Layer> { layer });
                 owner.toolkitSettingsBindings.Refresh(true);
                 DragAndDrop.StartDrag(string.IsNullOrEmpty(layer.layerName) ? "Layer" : layer.layerName);

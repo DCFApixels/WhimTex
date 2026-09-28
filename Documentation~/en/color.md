@@ -72,9 +72,20 @@ Click a gradient field to edit its colors and opacity. **Classic** gives familia
 **Linear** blends light, **Perceptual** keeps perceived color transitions more even,
 and **Fixed** makes hard bands. **Smoothness** softens transitions around keys;
 the small diamonds move the halfway point between neighboring keys. Fixed ignores both controls.
+**Rounded** is the built-in algorithm for both new and old gradients. There is no Transition setting; older artwork may look different without needing migration or resaving.
+**Rounded** prioritizes a smooth shoulder where the gradient meets a constant color.
+It spreads the compensating speed change up to the adjacent midpoint, reducing visible shoulders within the fade.
+Use **Perceptual** and **100% Smoothness** for the rounded color progression.
+The rounding extends to both sides of an interior held boundary: its key stays in place,
+but the evaluated color or opacity at that key may differ from its stored value.
+Keys at 0 and 1 and ordinary interior keys remain exact. Midpoint positions remain fixed.
+Some near-constant color remains; this is not a guarantee against every visible rim.
+At 0% Smoothness interpolation is linear in the selected working color space;
+Fixed uses hard bands. A narrow fade or a midpoint near an endpoint can still produce a visible rim.
 **Wrap** controls samples outside 0–1: **Clamp** holds the nearest endpoint, **Repeat** tiles the gradient,
 and **Mirror** reflects each repeated interval.
 
+Double-click a color-key marker in the gradient editor to open its color picker. A single click selects it; dragging moves it.
 Use **HDR** beside the selected color when extra brightness is needed. Drag a key vertically
 away from its track to delete it; each track keeps at least one key. Right-click a gradient field
 to **Copy** or **Paste** an independent copy. SDF layers start with **Linear** interpolation.

@@ -737,6 +737,18 @@ namespace DCFApixels.WhimTex
 
         internal bool HasDeferredTexture => deferredTexture.HasValue && pixels == null;
 
+        // Output-only rewrites preserve all Drawing blocks. Advance only a matching source revision;
+        // unrelated/external changes must still be rejected when the pixels are materialized.
+        internal void RebindDeferredTexture(string path, long oldLength, long oldTicks, long length, long ticks)
+        {
+            if (!HasDeferredTexture) return;
+            var info = deferredTexture.Value;
+            if (!string.Equals(info.sourcePath, path, StringComparison.Ordinal) ||
+                info.sourceLength != oldLength || info.sourceWriteTicksUtc != oldTicks) return;
+            deferredTexture = new WhimTexDocumentSerializer.DeferredTextureInfo(info.sourcePath, info.block,
+                info.width, info.height, info.format, info.mipCount, info.linear, length, ticks);
+        }
+
         internal void SetDeferredTexture(WhimTexDocumentSerializer.DeferredTextureInfo info)
         {
             if (pixels != null && !AssetDatabase.Contains(pixels))

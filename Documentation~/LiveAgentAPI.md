@@ -305,7 +305,7 @@ Remove accepts only op/index. Add/replace accept `code` and optional `parameters
   Snapshots return the same string. Code uses `// @param curve _Profile` and `_Profile_Sample(t)`;
   see the [curve contract](ShaderFX.md#curve-parameters). Values update without recompilation.
 - `Gradient` accepts the same gradient value (color-stop array or object with `colors`, `alphas`,
-  `mode`, `wrapMode`, `smoothness`, `colorSpace`) as layer gradients. Generates `<name>_Sample(t)`;
+  `mode`, `wrapMode`, `smoothness`, `colorSpace`) as layer gradients. The built-in Rounded algorithm rounds held boundaries at full smoothness and may approximate their interior stop values; see the [gradient contract](AI/README.md). Generates `<name>_Sample(t)`;
   values outside 0..1 use the gradient's `Clamp`, `Repeat`, or `Mirror` wrap mode. Code declarations
   may use `// @param gradient _Ramp` (opaque black-to-white default) or a two-color initializer,
   for example `// @param gradient _Ramp = #7EF3FF -> #B270FF`; RGBA tuples are also supported.
@@ -329,7 +329,11 @@ Groups support FX directly. FX process the combined children before group opacit
 
 ## Edit and lock an existing layer
 
-Do not create a replacement placeholder for an existing layer's FX. Reserve its own content instead:
+For custom FX code or layer-settings candidate edits, do not create a replacement placeholder:
+lock the existing layer's content instead. Linked preset insertion and parameter-only FX `set`
+use immediate editing batches **without a lock**. The lock's `changes.fx` schema does not accept
+`presetId` or `set`, and an active lock blocks immediate batches. A sequence of immediate `set`
+and render/probe calls edits the live document with Undo; it is not a detached candidate preview.
 
 ```powershell
 unity command whimtex_assistant_lock --requestId 'NEW-UUID' --layerId 'LAYER-GUID' --project-path 'D:/Projects/MyGame' --format json

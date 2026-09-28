@@ -67,6 +67,27 @@ distinguished from intentional colors. Restoring those strokes requires Undo or 
 CPU writes encode RGB only for sRGB destinations. Linear 8-bit textures remain linear; float textures
 retain signed HDR. Alpha is never gamma-converted.
 
+## TIFF output encoding
+
+The canvas **sRGB** toggle changes output encoding only, not working space, FX buffers, Drawing storage,
+picker conventions or layer parameters. For 8-bit TIFF, on encodes composed linear RGB to sRGB and sets
+`TextureImporter.sRGBTexture=true`; off writes linear RGB and sets the flag false. Alpha is unchanged.
+Float32 output is always linear. New ordinary documents default to sRGB; opening a TIFF initializes
+the pending setting from its importer. The canvas toggle participates in document Undo and enables Save;
+neither TIFF nor importer changes until Save. Save uses the pending setting even when only encoding changed.
+
+Changing encoding via Inspector Apply renders a detached copy of the saved model and atomically replaces
+only the TIFF composite and carrier flags. Editable model/pixel blocks are preserved, including unknown
+container blocks. The open document's unsaved edits and dirty state are retained and its disk revision is
+advanced. An incomplete model or invalid FX blocks conversion. Cancellation/failure restores the importer
+flag to the encoding actually on disk. No repeated conversion of an already quantized output is used.
+
+Inspector reimport detects a mismatch between importer and carrier flags and queues conversion after
+import completes; a guard prevents recursive reimports. This applies only to WhimTex TIFFs in Assets,
+not ordinary source images. Reimport stops Live Update. A changed external dependency can affect the newly
+rendered saved output, just as it can on Save. Inspector Apply is a disk/import operation, not layer Undo;
+it synchronizes the open document's pending encoding while retaining other unsaved edits.
+
 ## Drawing storage and editing
 
 The **HDR** button beside **EV** in the preview footer sets the color and gradient picker mode globally

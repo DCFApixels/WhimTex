@@ -16,6 +16,21 @@ requests and save-failure recovery guidance.
 Run `node Tests~/AgentDocumentation.test.mjs` for the documented command inventory, FX parameter
 limit/types and JSON example checks. These are static checks; they do not replace Unity smoke tests.
 
+`SkillWorkflowSmoke.cs`, entry `SkillWorkflowSmoke.Run`, tests the skill's supported and rejected
+routes through the public API in a separate unsaved window. It checks linked Levels add/set and
+rendered pixel changes, rejection of set under a lock, procedural reservation preview/completion
+followed by a linked Displacement Map, rejection of procedural selection completion in strict/guide
+mode, and live set/render iteration without detaching presets. It also covers unsaved-document
+batch preflight (no carrier path). It removes its returned temporary PNGs and creates no Assets.
+
+For a behavioral skill review, give a fresh reader only the skill, its referenced docs and these
+tasks: add built-in Levels without code changes; create procedural noise with linked Displacement
+Map and tune it; create procedural noise inside a selection without rasterization; tune existing
+linked Levels through previews. Ask for exact API traces, visible mutations, link preservation and
+unsupported steps. Compare those traces with the runtime test before revising instructions, then
+repeat with a fresh reader. A reading test is not a runtime test or proof that every future agent
+will follow the skill correctly.
+
 After the user manually compiles, `LiveAgentSmoke.cs` is an opt-in main-thread C# eval script for the
 intended project. It creates a separate unsaved window and temporary PNG files only. It tests live
 discovery, fast begin, shared-context forks, begin/completion retries, user rename/visibility/reordering, trial isolation, completion

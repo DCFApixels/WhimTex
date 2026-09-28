@@ -107,9 +107,12 @@ namespace DCFApixels.WhimTex
             }
 
             private void OnDragUpdated(DragUpdatedEvent evt)
+                => UpdatePointer(evt.mousePosition);
+
+            internal void UpdatePointer(Vector2 position)
             {
-                pointer = evt.mousePosition;
-                if (owner.GetDraggedLayer() == null || EdgeSpeed(scroll.contentViewport.worldBound, pointer) == 0f)
+                pointer = position;
+                if ((owner.GetDraggedLayer() == null && !owner.IsCrossWindowLayerDrag()) || EdgeSpeed(scroll.contentViewport.worldBound, pointer) == 0f)
                 {
                     Stop();
                     return;
@@ -152,7 +155,7 @@ namespace DCFApixels.WhimTex
 
             private void Tick()
             {
-                if (!running || target.panel == null || owner.GetDraggedLayer() == null)
+                if (!running || target.panel == null || (owner.GetDraggedLayer() == null && !owner.IsCrossWindowLayerDrag()))
                 {
                     Stop();
                     return;
@@ -171,6 +174,7 @@ namespace DCFApixels.WhimTex
 
             private void RefreshDropIndicator()
             {
+                if (owner.IsCrossWindowLayerDrag()) { owner.UpdateCrossWindowLayerDrop(pointer); return; }
                 if (owner.UpdateLayerListEndDrop(pointer)) return;
                 VisualElement picked = target.panel.Pick(pointer);
                 if (picked == null || !scroll.contentViewport.Contains(picked)) return;

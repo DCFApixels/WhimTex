@@ -20,6 +20,8 @@ namespace DCFApixels.WhimTex
         public int height = 512;
         public FilterMode outputFilter = FilterMode.Bilinear;
         public WhimTexOutputPrecision outputPrecision = WhimTexOutputPrecision.Auto;
+        // Pending output encoding, initialized from the TIFF importer when opened.
+        public bool outputSrgb = true;
         [SerializeField, HideInInspector] internal Mesh uvReferenceMesh;
         [SerializeField, HideInInspector] internal int uvReferenceChannel;
         [SerializeField, HideInInspector] internal int uvReferenceSubmesh = -1;

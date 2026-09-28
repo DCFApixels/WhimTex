@@ -43,6 +43,24 @@ Texture Importer. Save a new document first.
 Click **Apply** in the Inspector to apply import settings. They affect the texture used by Unity,
 not the document's editable layers or canvas size. For HDR TIFF, WhimTex uses linear data and disables sRGB.
 
+### Output color encoding
+
+**sRGB**, beside **Precision**, selects the TIFF output encoding: on for sRGB, off for Linear.
+New ordinary documents default to sRGB. Existing TIFFs use their Texture Importer's setting;
+changing **sRGB (Color Texture)** and clicking **Apply** in Inspector also updates the output.
+Float32 output, including HDR chosen by Auto, always stays Linear.
+
+Switching preserves the image's lightness and colors, apart from 8-bit rounding differences.
+It does not change layer colors, brush colors, gradients or the working preview. Alpha is unchanged.
+This is an encoding conversion, not a way to reinterpret the same channel numbers as a different color space.
+
+Changing the checkbox in WhimTex enables **Save** and supports Undo/Redo. The TIFF and its import
+settings remain unchanged until you save; discarding the document also discards the pending encoding.
+Repeated switching does not progressively degrade the source layers.
+Changing the setting through Inspector's **Apply** instead updates the **last saved image**, without
+saving pending layer edits, and synchronizes the checkbox. This external reimport stops Live Update;
+enable it again if needed. Other source textures are not changed.
+
 ### Sprite slicing
 
 Install **2D Sprite** (`com.unity.2d.sprite`) through Package Manager if Sprite Editor is unavailable.

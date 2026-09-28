@@ -530,7 +530,7 @@ namespace DCFApixels.WhimTex
         private static void SetClipboardGradient(Layer layer, JObject options)
         {
             Require(layer.Behaviour is GradientLayerBehaviour, "gradientOptions requires a Gradient layer.");
-            Keys(options, "type", "repetitions", "wrap", "mode", "smoothness");
+            Keys(options, "type", "repetitions", "wrap", "mode", "smoothness", "transition");
             var gradient = (GradientLayerBehaviour)layer.Behaviour;
             gradient.gradientType = Enum(options, "type", gradient.gradientType);
             gradient.circularRepetitions = Number(options, "repetitions", gradient.circularRepetitions, .00001f, 1000f);

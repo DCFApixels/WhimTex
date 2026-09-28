@@ -14,6 +14,11 @@ translations: "en/noise.md,ru/noise.md,zh/noise.md"
 Use Noise for clouds, grain, stone-like patterns or a starting point for a height map.
 Add **Noise** through **+ → Noise** at the bottom of Layers and adjust the settings while watching the image.
 
+**Random All** at the top of the noise settings explores a new combination of generator parameters,
+including inactive options, **Output** and inversion. **Dimensions (1D/2D)**, layer transforms, blending and FX
+stay unchanged. One Undo restores the previous combination. **Random** beside **Seed** changes only the seed.
+Noise Type stays within the selected group: **White Noise / Blue Noise**, or all other noise types.
+
 ## Start with the pattern
 
 | Setting | What to try |

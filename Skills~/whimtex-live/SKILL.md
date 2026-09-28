@@ -1,6 +1,6 @@
 ---
 name: whimtex-live
-description: Create generated images, parameter layers or inline Shader FX, and edit selected regions or lock existing layers for edits in an open WhimTex document. Use the live API while the user continues editing; not for modifying plugin source code.
+description: Create generated images or procedural layers, add linked FX presets, edit FX parameters or custom code, and repair selected regions in an open WhimTex document. Use the live API while the user continues editing; not for modifying plugin source code.
 ---
 
 # Live WhimTex editing
@@ -13,13 +13,28 @@ fast-start contract below. Read `Documentation~/LiveAgentAPI.md` for completion,
 begin options and recovery; read `Documentation~/AgentAPI.md` for layer parameters and shared
 editing operations. Batch, Headless Live and Assistant have different persistence/retry contracts.
 
-## Reserve early
+## Choose the workflow before reserving
 
-For a request to generate content in the open document, reserve before prompt polishing, image-tool
-preparation, full layer inspection or reading unrelated API sections. Follow required project/tool
-instructions first. Do not reserve for questions, inspection-only requests or plugin source changes.
+- Known layer settings, linked preset insertion and parameter-only FX changes: use the shared
+  `whimtex_assistant_execute` operations after inspection, without a reservation or edit lock.
+  This includes adding a procedural layer and its linked FX together in one batch.
+- Lengthy image/procedural generation or new custom shader code: reserve the output early as below.
+- Custom code or layer-settings edits requiring a detached candidate: lock the existing layer.
+  Lock completion does not support linked `presetId` insertion or parameter-only FX `set`.
 
-For longer FX/settings edits to an existing layer, use `whimtex_assistant_lock` instead of inserting a placeholder
+Parameter-layer completion requires `area:canvas` and `destination:newLayer`. Selection jobs,
+including `guide`, and pixel replacement require `imagePath`. If the user requires both procedural
+editability and an exact selection mask, do not silently rasterize or substitute the selection's
+bounding rectangle; explain this completion limitation and agree on a supported alternative first.
+
+## Reserve early for generation
+
+When the workflow above calls for generation with a reservation, reserve before prompt polishing,
+image-tool preparation, full layer inspection or reading unrelated API sections. Follow required
+project/tool instructions first. Known settings/preset batches use the immediate workflow above;
+do not reserve for questions, inspection-only requests or plugin source changes.
+
+For custom FX code or layer-settings edits requiring a detached candidate, use `whimtex_assistant_lock` instead of inserting a placeholder
 (see Inline Shader FX below). Reserve only the layer actually being edited, not the whole document.
 
 Once the connected command is known to be available, use one call (no request file needed):
@@ -109,8 +124,28 @@ Do not simulate complex image generation with thousands of brush commands. If im
 unavailable or fails, explain that and report `fail` or cancel; do not fabricate a finished layer.
 
 Complete with imagePath or layer settings. Never overwrite the reservation's name, visibility or
-placement: the user may have changed them. Trial previews are optional, and must not publish trial
-layers into the live document. Render and visually inspect the final result before declaring success.
+placement: the user may have changed them. Reservation/lock previews are detached: do not substitute
+temporary trial layers in the user's document. Render and visually inspect the final result before declaring success.
+
+## Prefer linked FX presets
+
+When an installed built-in or project FX already provides the requested effect, discover its exact ID
+with `whimtex_fx_catalog` and add it through the shared FX operations using `presetId` and parameter
+overrides. Preserve the source link; do not read a preset's HLSL and submit it as `code` just to reuse it.
+For parameter-only changes, use `set`, not an inline replacement. User-library presets are embedded
+by the API by design. Use raw `code` for new/custom algorithms or an intentionally independent,
+modified version; explain when doing so detaches an existing preset. The reservation `layer.fx` and
+`changes.fx` schemas are for inline code, not an alternative way to insert linked presets.
+
+For a reserved procedural layer that also needs a linked preset, preview/complete the procedural
+content first. Then inspect again and add the preset to the returned layerId via shared operations
+once the document has no pending jobs. Preserve any user edits between these two Undo steps; do not
+cancel someone else's jobs to proceed. The reservation preview alone has not tested the final FX result.
+
+To tune an existing linked FX, use fresh inspect → `set` → render/probe without locking it. Each `set`
+is a real live edit with Undo, not a private preview. If the user requires unpublished candidate trials,
+explain that this linked-FX workflow has no detached parameter preview; do not copy the preset's code
+into a lock replacement to simulate one. A render probe inspects current state, not proposed overrides.
 
 ## Inline Shader FX
 
@@ -123,7 +158,7 @@ name/value object, unlike the reservation workflow's array. `whimtex_fx_catalog`
 installed presets; `whimtex_render_probe` inspects FX input/output and channels. Do not cancel
 another job to run a batch, bypass revision conflicts or replay a timed-out edit blindly.
 
-Use the existing inline editor mechanism, not a generated `.shader` file or separate ShaderFX asset.
+For custom code, use the existing inline editor mechanism, not a generated `.shader` file or separate ShaderFX asset.
 Read `Documentation~/LiveAgentAPI.md#inline-shader-fx` for the code/parameter and completion schema.
 For a new stack effect, begin a `source:none`, `area:canvas` reservation and complete with
 `layer.type:shaderProcessor` plus `layer.fx`. For a generated normal layer, include fx in its completion;

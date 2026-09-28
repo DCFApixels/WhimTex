@@ -229,6 +229,18 @@ namespace DCFApixels.WhimTex
             Refresh();
         }
         private int Count => alphaTrack ? alphas.Length : colors.Length;
+        private void OpenKeyColor()
+        {
+            var expected = gradient;
+            int index = selected;
+            float time = colors[index].time;
+            if (!GradientKeyColorPicker.Show(color.value, color.hdr, value =>
+            {
+                if (this == null || gradient != expected || alphaTrack || midpointSelected ||
+                    selected != index || index >= colors.Length || colors[index].time != time) return;
+                color.value = value;
+            })) ShowNotification(new GUIContent("Unity Color Picker is unavailable in this Editor version."));
+        }
         private void ToggleHdr()
         {
             hdrPreferences[colors[selected].time] = !color.hdr;
@@ -508,6 +520,13 @@ namespace DCFApixels.WhimTex
                 owner.alphaTrack = pos.y < 22;
                 int hit = owner.Hit(pos.x);
                 int midpoint = hit < 0 ? owner.HitMidpoint(pos.x) : -1;
+                if (e.clickCount == 2 && hit >= 0 && !owner.alphaTrack)
+                {
+                    owner.selected = hit; owner.midpointSelected = false;
+                    owner.Refresh();
+                    owner.OpenKeyColor();
+                    e.StopPropagation(); return;
+                }
                 before = JsonUtility.ToJson(owner.gradient);
                 Undo.IncrementCurrentGroup(); group = Undo.GetCurrentGroup();
                 owner.RecordUndo("Edit Gradient Key");
