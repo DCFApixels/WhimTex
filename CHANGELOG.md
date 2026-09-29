@@ -4,6 +4,42 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Agent discovery includes Make Seamless's Quilting quality and channel-matching enums. The API reference and clipboard schema cover all four methods, defaults, units and independent edge passes, with a complete procedural recipe.
+- Layer Settings has a bottom-docked, draggable layer preview, initially collapsed. Properties uses the same resizable preview with RGBA/RGB/Alpha viewing and a checkerboard, without mip selection or image overlays. Drag down to collapse; collapsed previews do not render. The redundant Properties Close button is removed.
+- Mirror's Poisson Correction has Automatic Radius, enabled by default: one quarter of Blend Width, minimum 0.5%. Disabling it restores the stored manual radius.
+- Make Seamless offers Offset Blend, Mirror, Screened Poisson and Patch Quilting. All methods update from their source without baking and share R/G/B/A processing switches; unchecked channels retain the input before layer FX and blending.
+- Offset Blend mixes shifted copies; Mirror mixes reflections selected with the square edge control. Both expose Blend Width, Transition Start (-100–95%), optional Contrast Compensation and independent global Poisson Correction. Negative Transition Start broadens the fade but can expose a seam without correction.
+- Screened Poisson and every Poisson Correction pass support All Edges, Top & Bottom and Left & Right through paired square selectors. Both pairs can be cleared to bypass the corresponding pass. Correction is global, can alter the interior/unselected edges and can exceed the color range.
+- Patch Quilting searches boundary strips and joins them along low-error cuts. Controls include paired edges, Patch Width, Feather (%), Draft/Normal/High Search Quality, Seed/Random, Linked/Independent channel matching, optional Contrast Compensation and independent Poisson Correction.
+- Along-Seam Search (0–25%, default 0) optionally displaces donor strips along the seam, tapering to zero at their ends without wrapping. It can stretch details and costs more to evaluate; zero preserves the original search.
+
+### Changed
+
+- Mini Preview reuses valid main-preview effect-cache results or captures a layer before compositing, including uncached procedural layers. A reduced independent render remains the fallback; groups retain their own color. The resizable block is capped at 256 px including its divider and keeps its chosen height across layer/resolution changes, scaling images proportionally in either direction.
+- Make Seamless settings distinguish main-pass edges from Poisson Edges, group patch search before blending/correction, and use contextual Strength (%) and Radius (%) labels. Inactive-pass controls and zero-Feather compensation are disabled without clearing their settings; edge selectors remain interactive.
+- New Make Seamless layers default to Offset Blend. Offset Blend and Mirror start with 20% Blend Width, -25% Transition Start and Poisson Correction on All Edges. All Offset copy edges and both Mirror reflection axes start enabled. Switching methods retains their independent settings.
+- Seam processing reuses bounded native workspaces, histogram tables, FFT plans and cached pre-correction results. Patch Quilting batches donor searches with Burst/NativeArray, reuses duplicate calculations and commits slider drags on release.
+- Ordinary preview is limited to 512 pixels and may choose different Quilting patches than export. Full-resolution Tiled preview is available with Pencil selected. Save and export use full resolution.
+
+### Fixed
+
+- Make Seamless API validation accepts exact documented decimal endpoints, including Blend Width 0.001, Patch Width 0.45 and Transition Start 0.95, without float-boundary rounding rejecting valid requests.
+- Layer Settings and Properties use the full settings viewport down to the Preview divider, without the extra bottom inset.
+- Make Seamless aligns field labels, channel switches and edge headings on a common grid; compensation strength no longer shifts sideways.
+- Deferred layer-thumbnail refresh safely skips a closed window or released document.
+- Paired edge selectors remain interactive and correctly highlighted when one pair is disabled; all pairs can be cleared.
+- Patch Quilting's Seed input fills the available width beside its label and Random button. Redundant Mirror direction dropdowns are removed; directions remain available on the square.
+- Narrow Quilting analysis bands retain percentage Feather through centered cuts. A one-pixel output band still has no room for feathering.
+
+### Upgrade notes
+
+- Mirror layers without an Automatic Radius setting use automatic sizing; disable it to use their stored manual radius. No migration is performed.
+- No document migration or automatic rewrite is performed. Existing saved fields are retained; new-layer defaults do not reset existing layers.
+- Feather retains its stored field but now means 0–100% of each cut's available transition width, not pixels: an old value of 16 means 16%. Existing appearance can change.
+- The retired restricted Poisson edge solver/settings are not converted. Check previously authored Make Seamless layers, selected edge pairs and their exported results.
+
 ## [0.12.0] - 2026-09-25
 
 ### Added

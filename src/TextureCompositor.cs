@@ -70,6 +70,7 @@ namespace DCFApixels.WhimTex
 
         private void OnDisable()
         {
+            ForgetMiniPreviewCache();
             WhimTexDocumentSession.StopFor(this, "document disabled");
             ReleaseLayerThumbnails();
             StopLiveOutput();
@@ -549,7 +550,7 @@ namespace DCFApixels.WhimTex
             return container != null && NextContentLayer(container, index) < container.Count;
         }
 
-        private static int NextContentLayer(List<Layer> container, int index)
+        internal static int NextContentLayer(List<Layer> container, int index)
         {
             do { index++; } while (index < container.Count && (container[index]?.Behaviour == null || container[index].Behaviour is PendingLayerBehaviour));
             return index;
@@ -789,6 +790,7 @@ namespace DCFApixels.WhimTex
 
                 try
                 {
+                    PublishMiniPreview(layer, rendered);
                     BlendInto(ref accumulator, rendered, layer.CompositeBlendMode, layer.opacity, layer.blendRange);
                 }
                 finally
@@ -841,6 +843,7 @@ namespace DCFApixels.WhimTex
                         content = FinishStage(content, group.colorRange == LayerColorRange.Standard, group.swizzle);
                     }
                 }
+                if (!passThrough) PublishMiniPreview(group, content);
                 BlendInto(ref accumulator, content, passThrough ? (BlendMode)101 : group.EffectiveBlendMode,
                     group.opacity, group.blendRange);
             }

@@ -11,6 +11,7 @@ or a user-guide gallery. Read the [authoring contract](../../AI/README.md) befor
 | [Forked lightning](forked-lightning.json) | A procedural particle sprite with embedded HLSL, editable parameters, transparency and separate glow. |
 | [Heart](heart.json) | Parameterized heart silhouette, clipping Gradient, SDF rim light, Outline and two ellipse highlights feeding a Blur. |
 | [Mystic fog](mystic-fog.json) | Noise, a hidden source and a coloring gradient. |
+| [Seamless noise](seamless-noise.json) | Offset Blend with explicit source, negative Transition Start and independent Poisson edge selection; fractions versus Feather percentage units are explained in the contract. |
 | [Retro processor](retro-processor.json) | A standalone Processor acting on an existing lower stack. |
 | [Stone wall: posterize + dither](stone-wall-retro.json) | A Drawing layer downloaded from a direct image URL, with pixelation and Bayer dithering in a Processor above it. |
 | [Local distortion](local-distortion.json) | An editable Transform 2D shader parameter. |

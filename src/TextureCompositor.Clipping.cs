@@ -81,6 +81,7 @@ namespace DCFApixels.WhimTex
             {
                 basePixels = RenderClippingSource(container, baseIndex, w, h, scale, stack, includeBase ? included : null);
                 if (basePixels == null) return;
+                PublishMiniPreview(basis, basePixels);
                 if (includeBase) { chain = basePixels; basePixels = null; }
                 else chain = GetClearRenderTexture(w, h);
                 for (int i = baseIndex - 1; i >= topIndex; i--)

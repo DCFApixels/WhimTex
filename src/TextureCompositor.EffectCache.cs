@@ -10,18 +10,57 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private bool interactiveEffects;
         internal bool InteractiveEffects => interactiveEffects;
 
+        internal RenderTexture RenderQuilting(MakeSeamlessLayerBehaviour layer, in LayerRenderContext context,
+            float band, float feather, Vector4 channels)
+        {
+            ulong stamp=effectCache?.QuiltingStamp(layer,this) ?? 0;
+            string key=layer.Id+"/quilting";
+            var previous=RenderTexture.active;
+            bool srgb=GL.sRGBWrite;
+            try
+            {
+                GL.sRGBWrite=false;
+                if(stamp!=0 && effectCache.TryGet(key,stamp,context.width,context.height,context.scaleMultiplier,
+                    interactiveEffects,true,out var cached,out _,out _))
+                {
+                    var copy=RenderTexture.GetTemporary(context.width,context.height,0,RenderTextureFormat.ARGBFloat,RenderTextureReadWrite.Linear);
+                    copy.filterMode=FilterMode.Bilinear; copy.wrapMode=TextureWrapMode.Clamp;
+                    try { Graphics.Blit(cached,copy); return copy; }
+                    catch { RenderTexture.ReleaseTemporary(copy); throw; }
+                }
+                float contrast=layer.quiltingContrastCompensation && float.IsFinite(layer.quiltingContrast)
+                    ? Mathf.Clamp01(layer.quiltingContrast) : 0;
+                var result=PatchQuiltingSeamless.RenderShifted(context.input,context.width,context.height,
+                    layer.quiltingEdges,band,feather,layer.quiltingQuality,layer.quiltingSeed,layer.quiltingChannels,channels,contrast,layer.quiltingAlongSearch);
+                try
+                {
+                    if(stamp!=0) effectCache.StoreFullPrecision(key,stamp,context.scaleMultiplier,interactiveEffects,result);
+                    return result;
+                }
+                catch { RenderTexture.ReleaseTemporary(result); throw; }
+            }
+            finally { RenderTexture.active=previous; GL.sRGBWrite=srgb; }
+        }
+
         internal RenderTexture RenderCachedPreview(int maxSize, EffectRenderCache cache, bool interactive, DrawingLayerBehaviour painting)
         {
             var previous = effectCache;
             bool previousQuality = interactiveEffects;
+            bool previousPublishing = publishingMiniPreview;
             try
             {
                 effectCache = cache;
                 interactiveEffects = interactive;
+                publishingMiniPreview = true;
                 cache.BeginFrame(this, painting);
-                return RenderPreview(maxSize);
+                var result = RenderPreview(maxSize);
+                lastMiniPreviewCache = cache;
+                lastMiniPreviewSize = maxSize;
+                lastMiniPreviewInteractive = interactive;
+                lastMiniPreviewPainting = painting;
+                return result;
             }
-            finally { effectCache = previous; interactiveEffects = previousQuality; }
+            finally { effectCache = previous; interactiveEffects = previousQuality; publishingMiniPreview = previousPublishing; }
         }
 
         private RenderTexture CachedEffectRender(Layer layer, string kind, int w, int h, float scale,

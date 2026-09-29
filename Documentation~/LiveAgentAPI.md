@@ -27,6 +27,14 @@ This is an immediate edit, not a replacement for reserving an output while doing
 Use `whimtex_fx_catalog` to discover installed presets and `whimtex_render_probe` to inspect FX
 input/output or isolated channels without changing the document.
 
+Make Seamless is a targeted layer (`type:"makeSeamless"`), not an FX preset. Use shared `add`/`set`
+operations with `settings.makeSeamless` and a `target` operation for its source. All four methods,
+units, new-layer defaults and independent edge selectors are documented in
+[Make Seamless settings](AgentAPI.md#make-seamless-settings). Use `whimtex_describe` for defaults/enums
+and inspect the session before updating existing settings; changing the method retains its other parameters.
+For packed maps, `quiltingChannels:"Independent"` affects patch matching, while `processRed` /
+`processGreen` / `processBlue` / `processAlpha` control which channels receive the result in every method.
+
 ## Connect and discover
 
 For an authorized content-generation request, reserve and capture context in one call:

@@ -318,8 +318,130 @@ Use `properties.noise`:
   Also `sourceOffset: [x,y]` in document pixels (each -16384..16384), `sourceEdges: "Transparent"|"Clamp"|"Repeat"|"Mirror"` (default Transparent), and `contourOffset` -16384..16384 (positive expands). Signed mode accepts `insideDistance` and `outsideDistance` 0..16384; 0 inherits maxDistance/auto. The contour maps to 0.5, interior limit to 0, exterior limit to 1. Optional `profile` uses the curve string syntax (`"linear"`, `"easeInOut"`, `"easeIn"`, `"easeOut"`, `"one"`, or `"keys((...))"` with the same seven values per key as FX curves). Inversion precedes Profile, then gradient sampling; profile output clamps to 0..1. Source Offset shifts the available input image without cropping the shifted contour before distance computation; it does not recover content already clipped by the upstream layer. Repeat considers contours across tile seams, Mirror reflects the field. Extended distance domains are limited to 64 million pixels; excessive offsets/resolutions report an error rather than silently cropping.
 - **metric** for Outline/SDF: `EuclideanExact`, `EuclideanApproximate`, `EuclideanAntialiased`,
   `Manhattan`, `Chebyshev`.
-- **makeSeamless:** `properties.makeSeamless`: `horizontal` (`Off`, `LeftToRight`, `RightToLeft`),
+- **makeSeamless:** `properties.makeSeamless`: `mode` (`OffsetBlend`, default for new layers; `Mirror`; `ScreenedPoisson`; `PatchQuilting`).
+  See the [complete parameter tables and UI mapping](../AgentAPI.md#make-seamless-settings) and
+  [paste-ready noise recipe](../Examples/Clipboard/seamless-noise.json). Clipboard targets use a local
+  layer ID without `@`; live/batch operations instead use `settings.makeSeamless` and a separate `target` operation.
+  Percentage controls use fractions (`20%` = 0.2), except `quiltingFeather` (`50%` = 50).
+  New layers created through the registry/API use 0.2 for both blend widths, -0.25 for both transition starts,
+  and enable both Offset/Mirror Poisson corrections on AllEdges. All Offset copy edges and both Mirror
+  reflection axes (LeftToRight, BottomToTop) are enabled. UI order matches the mode order above.
+  UI labels distinguish Copy Edges, Mirror Direction, Patch Edges and Poisson Edges. Compensation
+  amounts are labeled Strength (%); all Poisson radii are labeled Radius (%). Empty pass selections
+  disable only dependent UI fields; zero Feather disables Quilting compensation controls without
+  resetting values. These UI states do not restrict API setters or change the stored field names.
+  Switching modes does not reset settings. Saved values are preserved; legacy document field initializers
+  remain unchanged for missing fields (Mirror transition 0, Offset transition 0.325, Mirror correction false).
+  Common RGBA mask: `processRed`, `processGreen`, `processBlue`, `processAlpha` booleans (all default true).
+  Disabled channels are restored from the effect input in straight linear RGBA after seamless
+  processing, including Mirror options, but before layer FX/transforms/swizzle/color range/blending.
+  A disabled processAlpha keeps input alpha without rescaling the selected straight RGB result.
+  The algorithms use input alpha for premultiplied calculations, except PatchQuilting Independent matching, which uses straight values. All four disabled bypasses
+  seam processing; all enabled uses the existing path without an extra channel-selection pass.
+  Mirror-only settings: `horizontal` (`Off`, `LeftToRight`, `RightToLeft`),
   `vertical` (`Off`, `BottomToTop`, `TopToBottom`), `blendWidth` 0.001..0.5, `falloff` 0.25..4.
+  Mirror options: `mirrorTransitionStart` -1..0.95 (new-layer default -0.25), fade start as a fraction of Blend Width,
+  independent of Offset Blend. Zero preserves the original Mirror fade; positive values delay/narrow it;
+  negative values extend it beyond the canvas and may expose a seam. Poisson Correction is independent:
+  enabled for new layers, but changing Transition Start does not toggle it. The same transition applies with or without contrast compensation.
+  `mirrorContrastCompensation` boolean (default false), `mirrorContrast` 0..1
+  (default 1), `mirrorSeamCorrection` boolean (new-layer default true), `mirrorCorrectionRadius` 0.005..0.25
+  (manual default 0.05), `mirrorAutoRadius` boolean (default true). Auto uses max(0.005, blendWidth/4),
+  with blendWidth clamped to its valid range, and leaves the manual radius stored for later reuse.
+  Compensation reuses histogram mixing with reflected donors, reflection-paired
+  stratified samples and reflection covariance, preserving Mirror's original width/falloff weights.
+  Strength is a premultiplied blend of ordinary and compensated results; disabled or zero strength
+  uses the original cheap shader without histogram analysis. Correction is independent and runs after
+  mixing: a global ScreenedPoisson solve with independent `mirrorPoissonEdges`. Both reflection axes Off
+  bypasses reflection, but enabled correction still runs. Compensation can change colors; correction can exceed output range. Neither removes
+  mirrored motifs or guarantees artifact-free results. No migration or automatic rewrite of saved settings occurs.
+  Offset-only copy settings: `leftEdge`, `rightEdge`, `bottomEdge`, `topEdge` booleans (all true by default).
+  All false bypasses copying, not enabled Poisson correction. Without correction, multiple bands
+  overlap in corners. `edgeWidth` 0.02..0.5 (default 0.2) controls each dimension's band width, minimum two pixels.
+  ScreenedPoisson uses `screeningRadius` 0.005..0.25 (default 0.05) relative to the smaller dimension, source-value
+  fidelity and discrete seam-slope constraints on selected pairs. `poissonEdges` (standalone),
+  `mirrorPoissonEdges` and `offsetPoissonEdges` (post-corrections) are independent enums:
+  `AllEdges` (default), `TopAndBottom` (vertical tiling), `LeftAndRight` (horizontal tiling), `None` (skip this pass).
+  Every paired-edge selector allows clearing both pairs. `None` bypasses only its own pass, independently of other enabled passes.
+  Selected axes wrap periodically; unselected axes use natural boundaries, not a second periodic seam.
+  All three use global correction and can change the interior and unselected edge values.
+  ScreenedPoisson ignores the four copy-edge flags and edgeWidth. It uses premultiplied linear RGBA:
+  alpha is bounded on output; RGB retains HDR until normal layer/output range handling.
+  Mirror settings are retained but ignored. Center preservation is approximate; highlights may clip.
+  It cannot guarantee visually continuous features or remove all folds. Check Tiled preview.
+  No document migration or automatic file rewrite occurs. Stored mode numbers remain unchanged:
+  zero is Mirror, 3 is OffsetBlend, 4 is PatchQuilting; other values render as ScreenedPoisson. API discovery/export exposes only the
+  four supported names; removed names are not accepted. For Mirror recipes specify
+  `"makeSeamless": { "mode": "Mirror" }`.
+  The restricted-band ScreenedPoisson path is removed without migration. Tiny sizes relax slope constraints.
+  OffsetBlend copies half-period-shifted patches in selected bands. `offsetContrastCompensation`
+  (default true) enables histogram compensation; `histogramContrast` 0..1 (default 1) sets its strength.
+  Disabled or zero skips histogram analysis and uses ordinary copy blending.
+  `offsetTransitionStart` -1..0.95 (new-layer default -0.25) is the start of the fade as a fraction of
+  `edgeWidth`, not the canvas. Before it, the strip is fully copied; after it, a smooth quintic
+  fade reaches the original at the end of the band. Zero starts fading at the edge. Only OffsetBlend uses it.
+  Negative values place the start outside the canvas, leaving some original pixels at the edge.
+  This can reintroduce a seam. Poisson Correction can join its selected edge pairs; it defaults on for new layers,
+  but changing Transition Start does not toggle it.
+  `offsetSeamCorrection` (default true, UI: Poisson Correction) adds global ScreenedPoisson with
+  `offsetPoissonEdges`, regardless of the copy-edge mask. Disabling it can expose the seam. `offsetAutoRadius` (default true)
+  uses max(0.005, edgeWidth/4). Otherwise `offsetCorrectionRadius` 0.005..0.25 (default 0.05)
+  sets the radius relative to the smaller dimension. Correction increases cost and may cause HDR overshoot.
+  Switching methods does not transfer their independent compensation/radius settings. No migration or old-name alias is provided.
+  It uses per-channel Gaussian histogram transforms and covariance-aware blending in premultiplied
+  linear RGBA; alpha is bounded and RGB is unpremultiplied on output. Pixels outside selected bands
+  are unchanged apart from normal floating-point premultiplication roundoff only when correction is off. Mirror controls do not apply.
+  Distribution/covariance tables are estimated from a stratified sample of at most 128x128 pixels,
+  with synchronous readback, parallel NativeArray/Burst preparation and full-resolution GPU blending.
+  One bounded idle workspace retains at most about 2.2 MiB of CPU pixel/table storage plus its textures,
+  expires after 30 seconds, and is disposed before reload/quit. Nested evaluations use isolated owners.
+  Quantile ranks are reused by sample count; a source change still rebuilds distributions/covariance.
+  Unchanged results use EffectRenderCache. No persistent baked data or migration.
+  Distribution preservation is approximate; colors, motifs and fine details can change.
+  Use `"makeSeamless": { "mode": "OffsetBlend" }`.
+  PatchQuilting uses translated boundary-strip donor search and dynamic-programming cuts, not whole-image resynthesis.
+  `quiltingEdges`: `AllEdges` (default), `TopAndBottom`, `LeftAndRight`, `None` (skip quilting; independent correction can still run);
+  `quiltingWidth` 0.02..0.45 (default 0.2), fraction of each corresponding dimension;
+  `quiltingFeather` 0..100 percent (default 50), fraction of the maximum safe centered transition width
+  calculated independently for each cut; 0 is hard, 100 uses all available width. Not a texture blur and
+  not a percentage of the canvas or Patch Width. No preview-scale conversion. Existing numeric values
+  are read as percentages without migration (old 16 means 16%); old appearance is not preserved;
+  `quiltingContrastCompensation` bool (default false), `quiltingContrast` 0..1 (default 1, UI 0..100%):
+  optional histogram-based contrast restoration within Feather transitions, using selected-donor covariance.
+  Uses existing analysis readback, persistent NativeArray/Burst scratch with cached quantile ranks within the workspace budget, and
+  one extra Gaussian GPU pass per processed axis. Disabled, zero strength and zero Feather skip the work.
+  Pure source/donor samples are preserved per pass; with both axes, the compensated first pass feeds the
+  second search and may change its donor. These settings invalidate the raw quilting cache. No migration;
+  `quiltingQuality`: `Draft`, `Normal` (default), `High`, with analysis limits 96/160/256 per axis and 8/24/48 candidates;
+  `quiltingAlongSearch`: 0..0.25 (default 0, UI 0..25%), maximum along-strip donor displacement
+  relative to usable strip length. Displacement tapers to zero at strip ends without wrapping;
+  this is a slight deformation, not a rigid cyclic translation. Nonzero splits the same candidate
+  budget between straight and shifted strips and costs more to evaluate. Zero preserves original search.
+  Matching derivatives and compensation covariance follow shifted samples; the setting invalidates the raw cache;
+  `quiltingSeed`: signed 32-bit integer (default 0), repeatable at the same source/resolution/settings;
+  `quiltingChannels`: `Linked` (default: common donor/cut in premultiplied linear RGBA) or `Independent`
+  (separate straight-value searches for checked channels, intended for packed data, not transparent color).
+  Search uses selected channels only. Linked premultiplication still depends on alpha.
+  `quiltingSeamCorrection` boolean (default false), `quiltingPoissonEdges` (`AllEdges`, default; `TopAndBottom`, `LeftAndRight`, `None`),
+  `quiltingCorrectionRadius` 0.005..0.25 (default 0.05, fraction of the smaller dimension).
+  Correction is global and independent of quiltingEdges; it may alter the center and overshoot RGB range.
+  Without correction, the center outside the bands is preserved up to premultiplication roundoff.
+  Search batches all selected channels and cut sides into parallel Burst jobs with precomputed
+  oriented values/derivatives. Duplicate rounded donors share calculations, but retain their original
+  multiplicity/order for seeded selection. One scratch workspace reuses NativeArray buffers and readback/path
+  textures across evaluations, with a 64 MiB retention cap and release after 30 seconds idle, domain reload or quit.
+  This scratch pool is separate from the result-cache budget. GPU readback and job completion remain synchronous.
+  EffectRenderCache also stores the pre-Poisson result in FP32 within its existing memory budget;
+  correction toggle/radius/direction changes reuse it. Source, size, scale, edge, width, Feather,
+  quality, seed, Along-Seam Search, compensation or selected-channel changes invalidate it.
+  The second-axis cut fixes a common endpoint/guard to preserve the first join; this is a constrained,
+  not globally optimal cyclic cut. Bands with fewer than four analysis samples use centered cuts and
+  still apply percentage Feather at full resolution. A one-pixel output band copies directly; very few
+  output samples can make different percentages look identical. Reduced previews may
+  choose different donors/cuts. Ordinary window preview is capped at 512 pixels, independently of Live Quality;
+  selecting Pencil without painting provides full-resolution preview. Verify Tiled output at that resolution
+  before export. Higher quality is slower but does not guarantee fewer visible artifacts.
+  No baking, migration or parameter transfer from other methods. Default method remains OffsetBlend.
 - **normalMap:** `properties.normalMap`: commonly `mode: "HeightMap"`, `strength` 0..128,
   `sourceChannel` (`Luminance`, `Red`, `Green`, `Blue`, `Alpha`, `Maximum`), `smoothing` 0..64,
   `flipX`/`flipY` booleans. All advanced options and exact ranges are in the [schema](layers.schema.json).

@@ -18,6 +18,14 @@ The preview footer holds controls for quality, live texture updates, post-proces
 UV overlays, guides and channel viewing. It also contains **HDR**, the color-input mode,
 and hints for the active tool.
 
+## Layer mini preview
+
+Drag the **Preview** strip at the bottom of **Layer Settings** upward to inspect the selected layer; drag it down to hide the image. The separate **Properties** window has the same mini preview and opens with it visible. The block stays below the scrolling settings and is at most 256 px high, including the strip, or less if space is limited. Its chosen height stays unchanged when switching layers or image resolutions. Small images enlarge proportionally to fit; large images shrink without cropping.
+
+The mini preview follows the layer result used by the main preview when available, before blending it with the other layers. This avoids differences caused by generating a separate lower-resolution image. If that result is unavailable, the mini preview renders independently; clipped layers and pass-through groups use this fallback. A group's mini preview shows its own colored content against transparency.
+
+Choose **RGBA**, **RGB** or **Alpha** to inspect transparency or color. Transparent areas use a checkerboard. These controls affect only the preview, not the layer or saved output.
+
 ## Context tools
 
 The tool settings bar always reserves one row, even for tools without settings. In a narrow pane, settings wrap onto additional rows over the preview without moving or resizing it. The guide creation strip stays below the settings and remains accessible.
@@ -103,6 +111,10 @@ Guides are not exported and are cleared when switching documents.
 **Live Quality** defaults to **100%**. Your manually chosen value is remembered.
 Lower it in the footer if painting on a large image feels slow.
 Save and export still use full resolution.
+
+Ordinary non-painting preview is limited to 512 pixels. **Live Quality 100%** does not remove that limit.
+Select **Pencil** without painting for full-resolution preview, and enable **Tiled** when checking seams.
+Patch Quilting can select different patches at reduced resolution; verify this full-resolution view before export.
 
 ## See your paint on a model
 

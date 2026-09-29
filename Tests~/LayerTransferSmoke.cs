@@ -29,6 +29,8 @@ public static class LayerTransferSmoke
     }
     public static string Setup()
     {
+        SessionState.SetInt("WhimTex.LayerTransferSmoke.Focus", EditorWindow.focusedWindow != null ? EditorWindow.focusedWindow.GetHashCode() : 0);
+        Undo.IncrementCurrentGroup();SessionState.SetInt("WhimTex.LayerTransferSmoke.Undo",Undo.GetCurrentGroup());
         var source = ScriptableObject.CreateInstance<TextureCompositorWindow>(); source.name = SourceName;
         var target = ScriptableObject.CreateInstance<TextureCompositorWindow>(); target.name = TargetName;
         var a = Document(source); var b = Document(target);
@@ -40,13 +42,17 @@ public static class LayerTransferSmoke
         Layer paint = drawing; paint.layerName = "Paint";
         var group = new Layer(new GroupLayerBehaviour()) { layerName = "Source Group" };
         group.children.Add(paint); group.transform.position = new Vector2(.1f, .2f);
-        a.layers.Add(Fill("Source A")); a.layers.Add(group);
+        var seamless=MakeSeamlessLayerBehaviour.CreateDefault();seamless.mode=MakeSeamlessLayerBehaviour.SeamlessMode.PatchQuilting;
+        seamless.quiltingAlongSearch=.175f;seamless.quiltingSeed=-184;seamless.TargetLayerId=group.Id;
+        Layer seamlessLayer=seamless;seamlessLayer.layerName="Source A";
+        a.layers.Add(seamlessLayer); a.layers.Add(group);
         b.layers.Add(Fill("Target A"));
         var targetGroup = new Layer(new GroupLayerBehaviour()) { layerName = "Target Group" };
         targetGroup.transform.position = new Vector2(.25f, .1f);
         targetGroup.children.Add(Fill("Target Child"));
         b.layers.Add(targetGroup); b.layers.Add(Fill("Target B"));
         Call(a, "NormalizeModel"); Call(b, "NormalizeModel");
+        seamless.TargetLayerId=group.Id;
         target.titleContent = new GUIContent(TargetName);
         target.position = new Rect(100, 100, 1100, 720); target.ShowUtility();
         return "Ready: run Drop with top, before, after, group, end, footer, then Cleanup.";
@@ -96,6 +102,8 @@ public static class LayerTransferSmoke
         Check(destination.Count == oldCount + 2, "Copies two roots, without duplicating selected descendant: " + mode);
         Check(destination[index].layerName == "Source A" && destination[index + 1].layerName == "Source Group", "Correct insertion order: " + mode);
         var copiedGroup = destination[index + 1];
+        var copiedEffect=(MakeSeamlessLayerBehaviour)destination[index].Behaviour;
+        Check(copiedEffect.quiltingAlongSearch==.175f&&copiedEffect.quiltingSeed==-184&&copiedEffect.TargetLayerId==copiedGroup.Id,$"Quilting settings and copied target preserved: along={copiedEffect.quiltingAlongSearch}, seed={copiedEffect.quiltingSeed}, target={copiedEffect.TargetLayerId}, group={copiedGroup.Id}, sourceTarget={((MakeSeamlessLayerBehaviour)a.layers[0].Behaviour).TargetLayerId}");
         Check(copiedGroup.Id != a.layers[1].Id && copiedGroup.children[0].Id != a.layers[1].children[0].Id, "Independent IDs");
         Check(Pixels(copiedGroup.children[0]) != Pixels(a.layers[1].children[0]), "Independent Drawing storage");
         Check(Pixels(copiedGroup.children[0]).GetPixel(0, 0) == Color.red, "Drawing pixels preserved");
@@ -167,8 +175,11 @@ public static class LayerTransferSmoke
         {
             Undo.ClearUndo(Document(window));
             typeof(EditorWindow).GetProperty("hasUnsavedChanges", Flags).SetValue(window, false);
-            UnityEngine.Object.DestroyImmediate(window);
+            if(window.rootVisualElement.panel!=null)window.Close();else UnityEngine.Object.DestroyImmediate(window);
         }
+        Undo.RevertAllDownToGroup(SessionState.GetInt("WhimTex.LayerTransferSmoke.Undo",Undo.GetCurrentGroup()));
+        var previous=Resources.FindObjectsOfTypeAll<EditorWindow>().FirstOrDefault(w=>w.GetHashCode()==SessionState.GetInt("WhimTex.LayerTransferSmoke.Focus",0));
+        if(previous!=null)previous.Focus();
         return "Temporary windows removed.";
     }
 }

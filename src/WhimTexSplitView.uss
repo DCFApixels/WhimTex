@@ -1031,16 +1031,24 @@
 }
 
 .whimtex-layer-inspector {
-    padding: 0 0 8px;
+    padding: 0;
+    flex-basis: 0;
 }
 
 .whimtex-properties-window {
-    padding: 0 0 8px;
+    padding: 0;
     background-color: var(--whimtex-surface);
 }
 
 .whimtex-properties-window--light {
     background-color: var(--whimtex-surface-light);
+}
+
+.whimtex-properties-scroll {
+    flex-grow: 1;
+    flex-basis: 0;
+    min-height: 0;
+    padding: 0;
 }
 
 .whimtex-transform-card .unity-vector2-field .unity-composite-field__field-spacer {
@@ -1233,6 +1241,30 @@
     overflow: hidden;
     margin: 0;
     padding: 0;
+}
+
+.whimtex-quilting-seed-row > .unity-base-field {
+    flex-grow: 1;
+    flex-basis: 0;
+    min-width: 0;
+}
+
+.whimtex-quilting-seed-row > .unity-button {
+    flex-shrink: 0;
+}
+
+.whimtex-seamless-section {
+    margin-top: 6px;
+    padding-top: 4px;
+    border-top-width: 1px;
+    border-top-color: var(--whimtex-hover-overlay);
+}
+
+.whimtex-seamless-heading {
+    margin: 1px 3px;
+    padding: 0 1px;
+    height: 18px;
+    -unity-text-align: middle-left;
 }
 
 .whimtex-seamless-edges {
@@ -2269,6 +2301,17 @@
 .unity-button.whimtex-hdr-button {
     width: 36px;
     margin-right: 6px;
+}
+
+.whimtex-seamless-channels {
+    flex-direction: row;
+    align-items: center;
+}
+
+.whimtex-seamless-channels > .unity-toggle {
+    margin-left: 0;
+    margin-right: 8px;
+    flex-shrink: 0;
 }
 
 .whimtex-swizzle-row,

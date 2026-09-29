@@ -10,6 +10,8 @@ namespace DCFApixels.WhimTex
         [SerializeField] private bool colorSettingsExpanded;
         [SerializeField] private bool layerPropertiesExpanded = true;
         [SerializeField] private bool layerFxExpanded;
+        [SerializeField] private LayerPreviewPanel.ViewState inspectorPreviewState = new LayerPreviewPanel.ViewState { collapsed = true };
+        [NonSerialized] private LayerPreviewPanel toolkitInspectorPreview;
         [NonSerialized] private ScrollView toolkitLayerSettingsScroll;
         [NonSerialized] private Label toolkitLayerSettingsTitle;
         [NonSerialized] private Button toolkitLayerGuidButton;
@@ -39,6 +41,7 @@ namespace DCFApixels.WhimTex
                 return;
 
             Layer selected = GetSelectedLayer();
+            toolkitInspectorPreview?.Bind(compositor, selected);
             bool locked = WhimTexApi.IsLayerContentLocked(compositor, selected);
             string title = selected == null ? "Layer Settings" : selected.layerName;
             if (toolkitLayerSettingsTitle != null && toolkitLayerSettingsTitle.text != title)

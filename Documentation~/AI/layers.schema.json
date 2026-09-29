@@ -773,13 +773,78 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "poissonEdges": {
+          "type": "string",
+          "enum": [
+            "AllEdges",
+            "TopAndBottom",
+            "LeftAndRight",
+            "None"
+          ],
+          "default": "AllEdges",
+          "description": "Paired edges: TopAndBottom for vertical tiling, LeftAndRight for horizontal tiling. None bypasses only this pass, independently of other passes."
+        },
+        "mirrorPoissonEdges": {
+          "type": "string",
+          "enum": [
+            "AllEdges",
+            "TopAndBottom",
+            "LeftAndRight",
+            "None"
+          ],
+          "default": "AllEdges",
+          "description": "Paired edges: TopAndBottom for vertical tiling, LeftAndRight for horizontal tiling. None bypasses only this pass, independently of other passes."
+        },
+        "offsetPoissonEdges": {
+          "type": "string",
+          "enum": [
+            "AllEdges",
+            "TopAndBottom",
+            "LeftAndRight",
+            "None"
+          ],
+          "default": "AllEdges",
+          "description": "Paired edges: TopAndBottom for vertical tiling, LeftAndRight for horizontal tiling. None bypasses only this pass, independently of other passes."
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "Mirror",
+            "ScreenedPoisson",
+            "OffsetBlend",
+            "PatchQuilting"
+          ],
+          "default": "OffsetBlend",
+          "description": "Method. Inactive method settings are retained, not transferred or reset."
+        },
+        "processRed": {
+          "type": "boolean",
+          "default": true,
+          "description": "Channels: false restores this input channel after seam processing, before normal layer modifiers/FX/compositing. All false bypasses seam processing."
+        },
+        "processGreen": {
+          "type": "boolean",
+          "default": true,
+          "description": "Channels: false restores this input channel after seam processing, before normal layer modifiers/FX/compositing. All false bypasses seam processing."
+        },
+        "processBlue": {
+          "type": "boolean",
+          "default": true,
+          "description": "Channels: false restores this input channel after seam processing, before normal layer modifiers/FX/compositing. All false bypasses seam processing."
+        },
+        "processAlpha": {
+          "type": "boolean",
+          "default": true,
+          "description": "Channels: false restores this input channel after seam processing, before normal layer modifiers/FX/compositing. All false bypasses seam processing."
+        },
         "horizontal": {
           "type": "string",
           "enum": [
             "Off",
             "LeftToRight",
             "RightToLeft"
-          ]
+          ],
+          "default": "LeftToRight"
         },
         "vertical": {
           "type": "string",
@@ -787,19 +852,208 @@
             "Off",
             "BottomToTop",
             "TopToBottom"
-          ]
+          ],
+          "default": "BottomToTop"
         },
         "blendWidth": {
           "type": "number",
           "minimum": 0.001,
-          "maximum": 0.5
+          "maximum": 0.5,
+          "default": 0.2,
+          "description": "Mirror Blend Width: fraction of each corresponding canvas dimension."
+        },
+        "mirrorTransitionStart": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 0.95,
+          "default": -0.25,
+          "description": "Mirror Transition Start: fraction of Blend Width, not the canvas. Negative values may reopen the seam; changing this does not toggle Poisson correction."
         },
         "falloff": {
           "type": "number",
           "minimum": 0.25,
-          "maximum": 4
+          "maximum": 4,
+          "default": 1
+        },
+        "mirrorContrastCompensation": {
+          "type": "boolean",
+          "default": false
+        },
+        "mirrorContrast": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 1
+        },
+        "mirrorSeamCorrection": {
+          "type": "boolean",
+          "default": true
+        },
+        "mirrorAutoRadius": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatic Radius uses max(0.005, blendWidth/4); the manual radius remains stored."
+        },
+        "mirrorCorrectionRadius": {
+          "type": "number",
+          "minimum": 0.005,
+          "maximum": 0.25,
+          "default": 0.05,
+          "description": "Poisson Radius: fraction of the smaller canvas dimension. Global correction, not a hard band. Manual correction radii are unused while their Automatic Radius is enabled."
+        },
+        "leftEdge": {
+          "type": "boolean",
+          "default": true
+        },
+        "rightEdge": {
+          "type": "boolean",
+          "default": true
+        },
+        "bottomEdge": {
+          "type": "boolean",
+          "default": true
+        },
+        "topEdge": {
+          "type": "boolean",
+          "default": true
+        },
+        "screeningRadius": {
+          "type": "number",
+          "minimum": 0.005,
+          "maximum": 0.25,
+          "default": 0.05,
+          "description": "Poisson Radius: fraction of the smaller canvas dimension. Global correction, not a hard band. Manual correction radii are unused while their Automatic Radius is enabled."
+        },
+        "edgeWidth": {
+          "type": "number",
+          "minimum": 0.02,
+          "maximum": 0.5,
+          "default": 0.2,
+          "description": "Offset Blend Width: fraction of each corresponding canvas dimension, at least two pixels."
+        },
+        "offsetTransitionStart": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 0.95,
+          "default": -0.25,
+          "description": "Offset Transition Start: fraction of Blend Width, not the canvas. Negative values may reopen the seam; changing this does not toggle Poisson correction."
+        },
+        "quiltingEdges": {
+          "type": "string",
+          "enum": [
+            "AllEdges",
+            "TopAndBottom",
+            "LeftAndRight",
+            "None"
+          ],
+          "default": "AllEdges",
+          "description": "Paired edges: TopAndBottom for vertical tiling, LeftAndRight for horizontal tiling. None bypasses only this pass, independently of other passes."
+        },
+        "quiltingWidth": {
+          "type": "number",
+          "minimum": 0.02,
+          "maximum": 0.45,
+          "default": 0.2,
+          "description": "Patch Width: fraction of each corresponding canvas dimension."
+        },
+        "quiltingAlongSearch": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.25,
+          "default": 0,
+          "description": "Along-Seam Search: fraction of usable strip length. Donor displacement tapers to zero at the ends, without wrapping."
+        },
+        "quiltingFeather": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 50,
+          "description": "Feather is 0..100 percent, not a 0..1 fraction or pixels. Share of each cut's available safe transition width; not a texture blur."
+        },
+        "quiltingContrastCompensation": {
+          "type": "boolean",
+          "default": false
+        },
+        "quiltingContrast": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 1
+        },
+        "quiltingQuality": {
+          "type": "string",
+          "enum": [
+            "Draft",
+            "Normal",
+            "High"
+          ],
+          "default": "Normal"
+        },
+        "quiltingSeed": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647,
+          "default": 0
+        },
+        "quiltingChannels": {
+          "type": "string",
+          "enum": [
+            "Linked",
+            "Independent"
+          ],
+          "default": "Linked",
+          "description": "Channel Matching: Linked uses one donor/cut for checked premultiplied channels; Independent searches each checked straight channel separately for packed maps."
+        },
+        "quiltingSeamCorrection": {
+          "type": "boolean",
+          "default": false
+        },
+        "quiltingPoissonEdges": {
+          "type": "string",
+          "enum": [
+            "AllEdges",
+            "TopAndBottom",
+            "LeftAndRight",
+            "None"
+          ],
+          "default": "AllEdges",
+          "description": "Paired edges: TopAndBottom for vertical tiling, LeftAndRight for horizontal tiling. None bypasses only this pass, independently of other passes."
+        },
+        "quiltingCorrectionRadius": {
+          "type": "number",
+          "minimum": 0.005,
+          "maximum": 0.25,
+          "default": 0.05,
+          "description": "Poisson Radius: fraction of the smaller canvas dimension. Global correction, not a hard band. Manual correction radii are unused while their Automatic Radius is enabled."
+        },
+        "histogramContrast": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 1
+        },
+        "offsetContrastCompensation": {
+          "type": "boolean",
+          "default": true
+        },
+        "offsetSeamCorrection": {
+          "type": "boolean",
+          "default": true
+        },
+        "offsetAutoRadius": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatic Radius uses max(0.005, edgeWidth/4); the manual radius remains stored."
+        },
+        "offsetCorrectionRadius": {
+          "type": "number",
+          "minimum": 0.005,
+          "maximum": 0.25,
+          "default": 0.05,
+          "description": "Poisson Radius: fraction of the smaller canvas dimension. Global correction, not a hard band. Manual correction radii are unused while their Automatic Radius is enabled."
         }
-      }
+      },
+      "description": "Targeted seam-processing layer. Defaults apply to new layers; omitted fields in updates retain their values. Main-pass edges and Poisson correction edges are independent. Percentage UI values use fractions except quiltingFeather."
     },
     "normalMap": {
       "type": "object",

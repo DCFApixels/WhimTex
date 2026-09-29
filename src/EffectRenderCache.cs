@@ -72,6 +72,8 @@ namespace DCFApixels.WhimTex
             if (layer?.Behaviour is TargetedLayerBehaviour effect)
             {
                 RequireEntry(layer, "effect");
+                if (effect is MakeSeamlessLayerBehaviour seamless && seamless.EffectiveMode == MakeSeamlessLayerBehaviour.SeamlessMode.PatchQuilting)
+                    RequireEntry(layer, "quilting");
                 Layer input = Input(effect);
                 if (input?.IsGroup == true) RequireEntry(input, "group");
                 if (effect.RequiresColorInput) colorSources.Add(input);
@@ -111,7 +113,9 @@ namespace DCFApixels.WhimTex
         private Layer Input(TargetedLayerBehaviour effect)
         {
             if (effect.inputMode == EffectInputMode.Specific) return document.FindLayer(effect.TargetLayerId);
-            return document.TryFindLayer(effect, out var list, out int index) && index + 1 < list.Count ? list[index + 1] : null;
+            if(!document.TryFindLayer(effect,out var list,out int index)) return null;
+            index=TextureCompositor.NextContentLayer(list,index);
+            return index<list.Count ? list[index] : null;
         }
 
         internal static bool CanCacheLayer(Layer layer)
@@ -226,6 +230,27 @@ namespace DCFApixels.WhimTex
             finally { visiting.Remove(layer); }
         }
 
+        // The raw quilting result does not depend on downstream Poisson, FX, transforms,
+        // opacity or swizzle. Input dependency stamps still cover all upstream changes.
+        internal ulong QuiltingStamp(MakeSeamlessLayerBehaviour layer, TextureCompositor owner)
+        {
+            // Direct thumbnail/export callers may not have begun a cache frame.
+            if(!ReferenceEquals(document,owner)) return 0;
+            ulong hash=Stamp(Input(layer));
+            if(hash==0) return 0;
+            hash=Mix(hash,(ulong)layer.quiltingEdges);
+            hash=Mix(hash,unchecked((uint)layer.quiltingWidth.GetHashCode()));
+            hash=Mix(hash,unchecked((uint)layer.quiltingAlongSearch.GetHashCode()));
+            hash=Mix(hash,unchecked((uint)layer.quiltingFeather.GetHashCode()));
+            hash=Mix(hash,layer.quiltingContrastCompensation?1UL:0UL);
+            hash=Mix(hash,unchecked((uint)layer.quiltingContrast.GetHashCode()));
+            hash=Mix(hash,(ulong)layer.quiltingQuality);
+            hash=Mix(hash,unchecked((uint)layer.quiltingSeed));
+            hash=Mix(hash,(ulong)layer.quiltingChannels);
+            hash=Mix(hash,(ulong)((layer.processRed?1:0)|(layer.processGreen?2:0)|(layer.processBlue?4:0)|(layer.processAlpha?8:0)));
+            return hash==0 ? 1 : hash;
+        }
+
         private static ulong Mix(ulong hash, ulong value) => unchecked((hash ^ value) * 1099511628211UL);
 
         private static ulong MixTexture(ulong hash, Texture texture)
@@ -260,15 +285,22 @@ namespace DCFApixels.WhimTex
 
         internal void Store(string key, ulong stamp, float scale, bool interactive, bool alphaOnly,
             RenderTexture pixels, RenderTexture errors)
+            => StoreCore(key,stamp,scale,interactive,alphaOnly,pixels,errors,false);
+
+        internal void StoreFullPrecision(string key, ulong stamp, float scale, bool interactive, RenderTexture pixels)
+            => StoreCore(key,stamp,scale,interactive,false,pixels,null,true);
+
+        private void StoreCore(string key, ulong stamp, float scale, bool interactive, bool alphaOnly,
+            RenderTexture pixels, RenderTexture errors, bool fullPrecision)
         {
             if (pixels == null || stamp == 0) return;
             if (entries.TryGetValue(key, out Entry old)) Remove(old);
-            RenderTextureFormat format = alphaOnly && SystemInfo.SupportsRenderTextureFormat(RenderTextureFormat.RFloat)
+            RenderTextureFormat format = fullPrecision ? RenderTextureFormat.ARGBFloat : alphaOnly && SystemInfo.SupportsRenderTextureFormat(RenderTextureFormat.RFloat)
                 ? RenderTextureFormat.RFloat : RenderTextureFormat.ARGBHalf;
             RenderTextureFormat errorFormat = SystemInfo.SupportsRenderTextureFormat(RenderTextureFormat.R8)
                 ? RenderTextureFormat.R8 : RenderTextureFormat.ARGB32;
             long area = (long)pixels.width * pixels.height;
-            long size = area * (format == RenderTextureFormat.RFloat ? 4 : 8) +
+            long size = area * (format == RenderTextureFormat.ARGBFloat ? 16 : format == RenderTextureFormat.RFloat ? 4 : 8) +
                 (errors == null ? 0 : area * (errorFormat == RenderTextureFormat.R8 ? 1 : 4));
             if (size > BudgetBytes) return;
             TrimToBudget(size);

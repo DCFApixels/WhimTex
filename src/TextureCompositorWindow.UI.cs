@@ -92,6 +92,8 @@ namespace DCFApixels.WhimTex
             root.UnregisterCallback<PointerDownEvent>(OnOpacityPointerDown, TrickleDown.TrickleDown);
             root.UnregisterCallback<PointerDownEvent>(OnSectionPointerDown, TrickleDown.TrickleDown);
             ResetOpacityEntry();
+            toolkitInspectorPreview?.Dispose();
+            toolkitInspectorPreview = null;
             root.Clear();
             WhimTexUI.ApplyWindowStyles(root);
             toolkitBoundDocument = null;
@@ -194,6 +196,9 @@ namespace DCFApixels.WhimTex
                     layerSettingsPaneHeight = evt.newRect.height;
             });
             layerSettingsPane.Add(toolkitLayerSettingsScroll);
+            inspectorPreviewState ??= new LayerPreviewPanel.ViewState { collapsed = true };
+            toolkitInspectorPreview = new LayerPreviewPanel(inspectorPreviewState);
+            layerSettingsPane.Add(toolkitInspectorPreview);
 
             VisualElement layersPane = new VisualElement();
             layersPane.AddToClassList("whimtex-layers-pane");
@@ -957,7 +962,11 @@ namespace DCFApixels.WhimTex
                 missing.AddToClassList("whimtex-missing-thumbnail");
                 nameCell.Add(missing);
             }
-            void RefreshThumbnail() => thumbnail.image = compositor.GetLayerThumbnail(layer, 18, EffectsAreInteractive);
+            void RefreshThumbnail()
+            {
+                if (this == null || compositor == null) return;
+                thumbnail.image = compositor.GetLayerThumbnail(layer, 18, EffectsAreInteractive);
+            }
             toolkitLayerBindings.Add(RefreshThumbnail);
             // Also finish deferred refreshes after the last input event. UI Toolkit pauses
             // this callback when the row is detached; only thumbnails are polled, not the inspector.

@@ -26,6 +26,8 @@ node scripts/build-clipboard-schema.mjs --check
 node scripts/build-brush-schema.mjs --check
 node ../Tests~/AgentDocumentation.test.mjs
 node ../Tests~/AgentCommandInventory.test.mjs
+node ../Tests~/MakeSeamlessContract.test.mjs
+node ../Tests~/ProceduralClipboard.test.mjs
 node ../Tests~/BrushClipboard.test.mjs
 bundle exec just-the-docs rake search:init
 bundle exec jekyll serve --baseurl /WhimTex --host 127.0.0.1
@@ -47,6 +49,12 @@ both desktop and mobile widths after layout changes; source validation alone can
 Agent documentation checks additionally compare command discovery and FX parameter limits with source,
 and parse the JSON examples. Persistence, rendering and Undo semantics require Unity integration tests;
 syntactically valid examples are not proof of runtime behavior.
+
+Make Seamless's contract check compares all fields, enums and numeric bounds with the parser,
+snapshot and generated clipboard schema. `Tests~/MakeSeamlessContractSmoke.cs` (Unity Pipeline
+`run_script`, entry `MakeSeamlessContractSmoke.Main`) also checks runtime defaults, exact endpoints,
+partial updates, invalid values, documented operations and the procedural clipboard recipe using
+temporary models only. See the [validation report](../Tests~/MakeSeamlessContract.md).
 
 The theme's SEO tag supplies titles, descriptions, canonical URLs and Open Graph metadata.
 `head_custom.html` adds reciprocal language links and application metadata on the landing page;

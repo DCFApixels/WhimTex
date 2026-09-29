@@ -272,6 +272,10 @@ namespace DCFApixels.WhimTex
         private static Material sharpenMaterial;
         private static Material motionBlurMaterial;
         private static Material makeSeamlessMaterial;
+        private static Material gpuFourierTransformMaterial;
+        private static Material screenedSeamlessMaterial;
+        private static Material histogramSeamlessMaterial;
+        private static Material patchQuiltingMaterial;
         private static Material noiseMaterial;
         private static Material gradientMaterial;
         private static Material fillUvMaterial;
@@ -294,6 +298,10 @@ namespace DCFApixels.WhimTex
         public static Material Sharpen => GetOrCreate(ref sharpenMaterial, "Hidden/TextureCompositor/Sharpen");
         public static Material MotionBlur => GetOrCreate(ref motionBlurMaterial, "Hidden/TextureCompositor/MotionBlur");
         public static Material MakeSeamless => GetOrCreate(ref makeSeamlessMaterial, "Hidden/TextureCompositor/MakeSeamless");
+        public static Material GpuFourierTransform => GetOrCreate(ref gpuFourierTransformMaterial, "Hidden/TextureCompositor/GpuFourierTransform");
+        public static Material ScreenedSeamless => GetOrCreate(ref screenedSeamlessMaterial, "Hidden/TextureCompositor/ScreenedSeamless");
+        public static Material HistogramSeamless => GetOrCreate(ref histogramSeamlessMaterial, "Hidden/TextureCompositor/HistogramSeamless");
+        public static Material PatchQuilting => GetOrCreate(ref patchQuiltingMaterial, "Hidden/TextureCompositor/PatchQuilting");
         public static Material Noise => GetOrCreate(ref noiseMaterial, "Hidden/TextureCompositor/Noise");
         public static Material Gradient => GetOrCreate(ref gradientMaterial, "Hidden/TextureCompositor/Gradient");
         public static Material FillUv => GetOrCreate(ref fillUvMaterial, "Hidden/TextureCompositor/FillUv");
@@ -348,6 +356,14 @@ namespace DCFApixels.WhimTex
             motionBlurMaterial = null;
             if (makeSeamlessMaterial != null) UnityEngine.Object.DestroyImmediate(makeSeamlessMaterial);
             makeSeamlessMaterial = null;
+            if (gpuFourierTransformMaterial != null) UnityEngine.Object.DestroyImmediate(gpuFourierTransformMaterial);
+            gpuFourierTransformMaterial = null;
+            if (screenedSeamlessMaterial != null) UnityEngine.Object.DestroyImmediate(screenedSeamlessMaterial);
+            screenedSeamlessMaterial = null;
+            if (histogramSeamlessMaterial != null) UnityEngine.Object.DestroyImmediate(histogramSeamlessMaterial);
+            histogramSeamlessMaterial = null;
+            if (patchQuiltingMaterial != null) UnityEngine.Object.DestroyImmediate(patchQuiltingMaterial);
+            patchQuiltingMaterial = null;
             if (effectCacheMaterial != null) UnityEngine.Object.DestroyImmediate(effectCacheMaterial);
             effectCacheMaterial = null;
             if (normalMapMaterial != null) UnityEngine.Object.DestroyImmediate(normalMapMaterial);
@@ -374,24 +390,18 @@ namespace DCFApixels.WhimTex
 
     public abstract class LayerEditorWindowBase : EditorWindow
     {
-        private const int PreviewMaxSize = 256;
-        private const double PreviewDelay = 0.12d;
-
         [SerializeField] private TextureCompositor compositor;
         [SerializeField] private string layerId;
         [SerializeField] private bool transformSettingsExpanded;
         [SerializeField] private bool colorSettingsExpanded;
         [SerializeField] private bool propertiesExpanded = true;
         [SerializeField] private bool fxExpanded;
+        [SerializeField] private LayerPreviewPanel.ViewState layerPreviewState = new LayerPreviewPanel.ViewState();
 
         [NonSerialized] private Layer currentLayer;
-        [NonSerialized] private RenderTexture previewTexture;
-        [NonSerialized] private bool previewRequested;
-        [NonSerialized] private double previewAt;
+        [NonSerialized] private LayerPreviewPanel layerPreview;
         [NonSerialized] private EffectTargetSettingsView effectTargetSettings;
         [NonSerialized] private LayerShaderFXView shaderFXView;
-        [NonSerialized] private Image previewImage;
-        [NonSerialized] private Label previewPlaceholder;
         [NonSerialized] private bool applyingChange;
         [NonSerialized] private bool interfaceBuilt;
         [NonSerialized] private bool interfaceRefreshRequested;
@@ -439,7 +449,8 @@ namespace DCFApixels.WhimTex
         {
             TextureCompositor.Changed -= OnCompositorChanged;
             WhimTexApi.LiveEditLocksChanged -= RefreshAgentLock;
-            ReleasePreview();
+            layerPreview?.Dispose();
+            layerPreview = null;
         }
 
         protected virtual void Update()
@@ -447,11 +458,6 @@ namespace DCFApixels.WhimTex
             RefreshAgentLock();
             if (interfaceRefreshRequested)
                 RefreshInterface();
-            if (!previewRequested || EditorApplication.timeSinceStartup < previewAt)
-                return;
-
-            previewRequested = false;
-            UpdatePreview();
         }
 
         public void CreateGUI()
@@ -499,9 +505,7 @@ namespace DCFApixels.WhimTex
 
         protected void RequestPreview(bool immediate = false)
         {
-            immediate |= ImmediatePreviewUpdates;
-            previewRequested = true;
-            previewAt = EditorApplication.timeSinceStartup + (immediate ? 0d : PreviewDelay);
+            layerPreview?.RequestPreview(immediate || ImmediatePreviewUpdates);
         }
 
         protected void RefreshInterface(bool forceValues = false)
@@ -527,8 +531,8 @@ namespace DCFApixels.WhimTex
             boundCompositor = compositor;
             SettingsBindings.Clear();
             shaderFXView = null;
-            previewImage = null;
-            previewPlaceholder = null;
+            layerPreview?.Dispose();
+            layerPreview = null;
             InvalidateEffectTargetOptions();
             VisualElement root = rootVisualElement;
             root.Clear();
@@ -542,12 +546,11 @@ namespace DCFApixels.WhimTex
                     root,
                     "The edited layer no longer exists in this compositor.",
                     HelpBoxMessageType.Info);
-                root.Add(WhimTexUI.CreateButton("Close", Close));
                 return;
             }
 
             ScrollView scroll = new ScrollView(ScrollViewMode.Vertical);
-            scroll.style.flexGrow = 1f;
+            scroll.AddToClassList("whimtex-properties-scroll");
             shaderFXView = WhimTexUI.BuildLayerInspectorSections(scroll, currentLayer, compositor,
                 ApplyLayerChange, SettingsBindings, properties => BuildSettings(properties, currentLayer),
                 colorSettingsExpanded, value => colorSettingsExpanded = value,
@@ -555,49 +558,11 @@ namespace DCFApixels.WhimTex
                 fxExpanded, value => fxExpanded = value,
                 transformSettingsExpanded, value => transformSettingsExpanded = value);
             SettingsBindings.Refresh(forceValues);
-            scroll.Add(WhimTexUI.CreateHeading(PreviewTitle));
-
-            VisualElement preview = new VisualElement();
-            preview.style.height = PreviewMaxSize;
-            preview.style.minHeight = 96f;
-            preview.style.backgroundColor = new Color(0.25f, 0.25f, 0.25f, 1f);
-            preview.style.borderTopWidth = 1f;
-            preview.style.borderRightWidth = 1f;
-            preview.style.borderBottomWidth = 1f;
-            preview.style.borderLeftWidth = 1f;
-            preview.style.borderTopColor = new Color(0f, 0f, 0f, 0.4f);
-            preview.style.borderRightColor = new Color(0f, 0f, 0f, 0.4f);
-            preview.style.borderBottomColor = new Color(0f, 0f, 0f, 0.4f);
-            preview.style.borderLeftColor = new Color(0f, 0f, 0f, 0.4f);
-
-            previewImage = new Image
-            {
-                image = previewTexture,
-                scaleMode = ScaleMode.ScaleToFit,
-                pickingMode = PickingMode.Ignore
-            };
-            previewImage.style.position = Position.Absolute;
-            previewImage.style.left = 0f;
-            previewImage.style.right = 0f;
-            previewImage.style.top = 0f;
-            previewImage.style.bottom = 0f;
-            preview.Add(previewImage);
-
-            previewPlaceholder = new Label(previewTexture == null ? "Rendering preview…" : string.Empty);
-            previewPlaceholder.style.unityTextAlign = TextAnchor.MiddleCenter;
-            previewPlaceholder.style.position = Position.Absolute;
-            previewPlaceholder.style.left = 0f;
-            previewPlaceholder.style.right = 0f;
-            previewPlaceholder.style.top = 0f;
-            previewPlaceholder.style.bottom = 0f;
-            previewPlaceholder.pickingMode = PickingMode.Ignore;
-            preview.Add(previewPlaceholder);
-            scroll.Add(preview);
-
-            Button close = WhimTexUI.CreateButton("Close", Close);
-            close.style.marginTop = 8f;
-            scroll.Add(close);
             root.Add(scroll);
+            layerPreviewState ??= new LayerPreviewPanel.ViewState();
+            layerPreview = new LayerPreviewPanel(layerPreviewState) { tooltip = PreviewTitle };
+            layerPreview.Bind(compositor, currentLayer);
+            root.Add(layerPreview);
         }
 
         private bool ResolveLayer()
@@ -636,28 +601,5 @@ namespace DCFApixels.WhimTex
             RequestPreview(true);
         }
 
-        private void UpdatePreview()
-        {
-            ReleasePreview();
-            if (!ResolveLayer())
-                return;
-
-            previewTexture = compositor.RenderLayerPreview(currentLayer, PreviewMaxSize);
-
-            if (previewImage != null)
-                previewImage.image = previewTexture;
-            if (previewPlaceholder != null)
-                previewPlaceholder.text = previewTexture == null ? "Preview unavailable" : string.Empty;
-        }
-
-        private void ReleasePreview()
-        {
-            if (previewImage != null)
-                previewImage.image = null;
-            if (previewTexture == null)
-                return;
-            RenderTexture.ReleaseTemporary(previewTexture);
-            previewTexture = null;
-        }
     }
 }

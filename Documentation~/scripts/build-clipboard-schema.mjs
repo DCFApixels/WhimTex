@@ -43,7 +43,7 @@ const defs = {
   sharpen: object({ algorithm: choice('Gaussian Adaptive'), strength: number(0, 4), radius: number(0, 32), threshold: number(0, 1), noiseReduction: number(0, 1), haloSuppression: number(0, 1), channelMode: choice('RGB Luminance'), edges: choice('Transparent Clamp Repeat Mirror') }),
   shape: object({ kind: choice('Rectangle Ellipse Polygon Star Line'), fill: bool, fillColor: rgba, stroke: bool, strokeColor: rgba, strokeWidth: number(0, 8192), roundness: number(0, 1),
     cornerRoundness: tuple(number(0, 1), 4), linkCorners: bool, sides: integer(3, 32), innerRadius: number(.01, 1) }),
-  makeSeamless: object({ horizontal: choice('Off LeftToRight RightToLeft'), vertical: choice('Off BottomToTop TopToBottom'), blendWidth: number(.001, .5), falloff: number(.25, 4) }),
+  makeSeamless: object({ poissonEdges: choice('AllEdges TopAndBottom LeftAndRight None'), mirrorPoissonEdges: choice('AllEdges TopAndBottom LeftAndRight None'), offsetPoissonEdges: choice('AllEdges TopAndBottom LeftAndRight None'), mode: choice('Mirror ScreenedPoisson OffsetBlend PatchQuilting'), processRed: bool, processGreen: bool, processBlue: bool, processAlpha: bool, horizontal: choice('Off LeftToRight RightToLeft'), vertical: choice('Off BottomToTop TopToBottom'), blendWidth: number(.001, .5), mirrorTransitionStart: number(-1, .95), falloff: number(.25, 4), mirrorContrastCompensation: bool, mirrorContrast: number(0, 1), mirrorSeamCorrection: bool, mirrorAutoRadius: bool, mirrorCorrectionRadius: number(.005, .25), leftEdge: bool, rightEdge: bool, bottomEdge: bool, topEdge: bool, screeningRadius: number(.005, .25), edgeWidth: number(.02, .5), offsetTransitionStart: number(-1, .95), quiltingEdges: choice('AllEdges TopAndBottom LeftAndRight None'), quiltingWidth: number(.02, .45), quiltingAlongSearch: number(0, .25), quiltingFeather: number(0, 100), quiltingContrastCompensation: bool, quiltingContrast: number(0, 1), quiltingQuality: choice('Draft Normal High'), quiltingSeed: { type: 'integer', minimum: -2147483648, maximum: 2147483647 }, quiltingChannels: choice('Linked Independent'), quiltingSeamCorrection: bool, quiltingPoissonEdges: choice('AllEdges TopAndBottom LeftAndRight None'), quiltingCorrectionRadius: number(.005, .25), histogramContrast: number(0, 1), offsetContrastCompensation: bool, offsetSeamCorrection: bool, offsetAutoRadius: bool, offsetCorrectionRadius: number(.005, .25) }),
   normalMap: object({ mode: normalEnum('GenerationMode'), sourceChannel: normalEnum('HeightChannel'), inputSpace: normalEnum('InputSpace'), edges: normalEnum('EdgeMode'),
     derivative: normalEnum('DerivativeFilter'), alphaMode: normalEnum('AlphaMode'), output: normalEnum('OutputMode'), encoding: normalEnum('OutputEncoding'),
     strength: number(0, 128), blackLevel: number(0, 1), whiteLevel: number(.0001, 16), gamma: number(.05, 8), smoothing: number(0, 64), mediumRadius: number(.5, 128), largeRadius: number(.5, 512),
@@ -54,6 +54,50 @@ const defs = {
     textures: { type: 'object', additionalProperties: object({ layer: str(64) }, ['layer']) },
     code: { type: 'string', minLength: 1, maxLength: 65536, description: 'Portable ApplyFX HLSL, at most 64 KiB UTF-8 and 32 parameters. Declare values with // @param. Conditional/define directives and explicitly allowlisted built-in includes are supported; other includes must be expanded by Copy as Portable. No asset GUIDs.' } }, ['code'])
 };
+const seamless = defs.makeSeamless.properties;
+for (const [field, type] of Object.entries({
+  mode: 'SeamlessMode', horizontal: 'HorizontalDirection', vertical: 'VerticalDirection',
+  poissonEdges: 'PoissonEdges', mirrorPoissonEdges: 'PoissonEdges', offsetPoissonEdges: 'PoissonEdges',
+  quiltingEdges: 'PoissonEdges', quiltingPoissonEdges: 'PoissonEdges',
+  quiltingQuality: 'QuiltingQuality', quiltingChannels: 'QuiltingChannels'
+})) seamless[field] = enumeration('Layers/MakeSeamlessLayerBehaviour.cs', type);
+// Defaults describe registry-created layers, not raw field initializers or partial updates.
+const seamlessDefaults = {
+  mode: 'OffsetBlend', horizontal: 'LeftToRight', vertical: 'BottomToTop',
+  processRed: true, processGreen: true, processBlue: true, processAlpha: true,
+  blendWidth: .2, falloff: 1, mirrorTransitionStart: -.25,
+  mirrorContrastCompensation: false, mirrorContrast: 1, mirrorSeamCorrection: true,
+  mirrorAutoRadius: true, mirrorCorrectionRadius: .05, mirrorPoissonEdges: 'AllEdges',
+  leftEdge: true, rightEdge: true, bottomEdge: true, topEdge: true,
+  edgeWidth: .2, offsetTransitionStart: -.25, offsetContrastCompensation: true, histogramContrast: 1,
+  offsetSeamCorrection: true, offsetAutoRadius: true, offsetCorrectionRadius: .05, offsetPoissonEdges: 'AllEdges',
+  screeningRadius: .05, poissonEdges: 'AllEdges',
+  quiltingEdges: 'AllEdges', quiltingWidth: .2, quiltingAlongSearch: 0, quiltingFeather: 50,
+  quiltingContrastCompensation: false, quiltingContrast: 1, quiltingQuality: 'Normal', quiltingSeed: 0,
+  quiltingChannels: 'Linked', quiltingSeamCorrection: false, quiltingPoissonEdges: 'AllEdges', quiltingCorrectionRadius: .05
+};
+for (const [field, value] of Object.entries(seamlessDefaults)) seamless[field] = { ...seamless[field], default: value };
+defs.makeSeamless.description = 'Targeted seam-processing layer. Defaults apply to new layers; omitted fields in updates retain their values. Main-pass edges and Poisson correction edges are independent. Percentage UI values use fractions except quiltingFeather.';
+const seamlessDescriptions = {
+  mode: 'Method. Inactive method settings are retained, not transferred or reset.',
+  blendWidth: 'Mirror Blend Width: fraction of each corresponding canvas dimension.',
+  edgeWidth: 'Offset Blend Width: fraction of each corresponding canvas dimension, at least two pixels.',
+  quiltingWidth: 'Patch Width: fraction of each corresponding canvas dimension.',
+  mirrorTransitionStart: 'Mirror Transition Start: fraction of Blend Width, not the canvas. Negative values may reopen the seam; changing this does not toggle Poisson correction.',
+  offsetTransitionStart: 'Offset Transition Start: fraction of Blend Width, not the canvas. Negative values may reopen the seam; changing this does not toggle Poisson correction.',
+  mirrorAutoRadius: 'Automatic Radius uses max(0.005, blendWidth/4); the manual radius remains stored.',
+  offsetAutoRadius: 'Automatic Radius uses max(0.005, edgeWidth/4); the manual radius remains stored.',
+  quiltingFeather: 'Feather is 0..100 percent, not a 0..1 fraction or pixels. Share of each cut\'s available safe transition width; not a texture blur.',
+  quiltingAlongSearch: 'Along-Seam Search: fraction of usable strip length. Donor displacement tapers to zero at the ends, without wrapping.',
+  quiltingChannels: 'Channel Matching: Linked uses one donor/cut for checked premultiplied channels; Independent searches each checked straight channel separately for packed maps.'
+};
+for (const field of ['poissonEdges', 'mirrorPoissonEdges', 'offsetPoissonEdges', 'quiltingEdges', 'quiltingPoissonEdges'])
+  seamlessDescriptions[field] = 'Paired edges: TopAndBottom for vertical tiling, LeftAndRight for horizontal tiling. None bypasses only this pass, independently of other passes.';
+for (const field of ['screeningRadius', 'mirrorCorrectionRadius', 'offsetCorrectionRadius', 'quiltingCorrectionRadius'])
+  seamlessDescriptions[field] = 'Poisson Radius: fraction of the smaller canvas dimension. Global correction, not a hard band. Manual correction radii are unused while their Automatic Radius is enabled.';
+for (const field of ['processRed', 'processGreen', 'processBlue', 'processAlpha'])
+  seamlessDescriptions[field] = 'Channels: false restores this input channel after seam processing, before normal layer modifiers/FX/compositing. All false bypasses seam processing.';
+for (const [field, description] of Object.entries(seamlessDescriptions)) seamless[field].description = description;
 defs.transform.allOf = [{ if: { required: ['matrix'] }, then: { not: { anyOf: ['position','scale','rotation'].map(key => ({required:[key]})) } } }];
 const ref = name => ({ $ref: '#/$defs/' + name });
 const common = { enabled: bool, clippingMask: bool, opacity: number(0, 1), blend: enumeration('Utils.cs', 'BlendMode'), colorRange: choice('Standard HDR'), blendRange: choice('Standard HDR'),

@@ -4,10 +4,10 @@ const read = p => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 const shader = read('src/Shaders/MakeSeamless.shader');
 const body = shader.match(/float Weight\(float position, float direction\)\s*\{([\s\S]*?)\}/)[1];
 // Execute the actual shader's scalar weighting formula, not a separately maintained approximation.
-const weight = new Function('position', 'direction', '_BlendWidth', '_Falloff', 'saturate',
+const weight = new Function('position', 'direction', '_BlendWidth', '_Falloff', 'saturate', '_TransitionStart',
     body.replaceAll('float ', 'let ').replaceAll('pow(', 'Math.pow('));
 const clamp = x => Math.max(0, Math.min(1, x));
-const w = (p, direction, width, falloff) => weight(p, direction, width, falloff, clamp);
+const w = (p, direction, width, falloff, start = 0) => weight(p, direction, width, falloff, clamp, start);
 const mix = (a, b, t) => a.map((v, c) => v * (1 - t) + b[c] * t);
 const premul = c => [c[0] * c[3], c[1] * c[3], c[2] * c[3], c[3]];
 const straight = c => c[3] > 0 ? [c[0]/c[3], c[1]/c[3], c[2]/c[3], c[3]] : [0,0,0,0];
@@ -52,11 +52,27 @@ assert.equal(w(0,1,.2,1), 0);
 assert.equal(w(0,2,.2,1), 1);
 assert.equal(w(1,2,.2,1), 0);
 assert.ok(w(.9,1,.2,4) < w(.9,1,.2,1));
+for (const start of [-1,-.25,0,.75,.95]) for (const falloff of [.25,1,4]) {
+    let previous = 1;
+    for (let i=0;i<=100;i++) {
+        const distance=i/100;
+        const t=clamp((distance/.2-start)/(1-start));
+        const expected=Math.pow(1-t*t*(3-2*t),falloff);
+        const actual=w(distance,2,.2,falloff,start);
+        assert.ok(Math.abs(actual-expected)<2e-7);
+        assert.ok(actual<=previous+1e-10); previous=actual;
+    }
+}
+assert.ok(w(1,1,.2,1,-.25)<1);
+assert.equal(w(.9,1,.2,1,.75),1);
 assert.match(shader, /float2 position = saturate\(\(uv - .5 \* texel\) \/ max\(1 - texel, .000001\)\)/);
 assert.match(shader, /float4 c = lerp\(lerp\(original, acrossX, x\), lerp\(acrossY, acrossBoth, x\), y\)/);
 assert.match(shader, /c\.rgb \* c\.a/);
 assert.match(shader, /c\.a > 0 \? c\.rgb \/ c\.a : 0/);
 const layer = read('src/Layers/MakeSeamlessLayerBehaviour.cs');
+assert.match(layer,/public float mirrorTransitionStart;/);
+assert.match(layer,/Limit\(mirrorTransitionStart,\s*-1,\s*\.95f,\s*0\)/);
+assert.ok(read('src/Automation/WhimTexApi.MakeSeamless.cs').includes('["mirrorTransitionStart"] = layer.mirrorTransitionStart'));
 assert.match(layer, /RequiresColorInput => true/);
 assert.match(layer, /RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear/);
 assert.match(layer, /RenderTexture.ReleaseTemporary\(result\)/);
@@ -66,17 +82,34 @@ assert.match(read('src/LayerTypeRegistry.cs'), /new Entry\("makeSeamless", "Make
 assert.match(read('src/Automation/WhimTexApi.Layers.cs'), /SetMakeSeamless\(seamless,/);
 assert.match(read('src/Automation/WhimTexApi.Inspect.cs'), /LayerTypeRegistry.Find\(layer\?\.Behaviour\?\.GetType\(\)\)\?\.ApiId/);
 assert.match(read('src/Automation/WhimTexApi.Inspect.cs'), /settings\["makeSeamless"\] = MakeSeamlessSnapshot/);
-for (const key of ['horizontal','vertical','blendWidth','falloff']) {
+for (const key of ['mode','horizontal','vertical','blendWidth','falloff','leftEdge','rightEdge','bottomEdge','topEdge','screeningRadius','edgeWidth','histogramContrast','mirrorContrastCompensation','mirrorContrast','mirrorSeamCorrection','mirrorAutoRadius','mirrorCorrectionRadius','processRed','processGreen','processBlue','processAlpha','offsetContrastCompensation','offsetSeamCorrection','offsetAutoRadius','offsetCorrectionRadius','poissonEdges','mirrorPoissonEdges','offsetPoissonEdges']) {
     const api = read('src/Automation/WhimTexApi.MakeSeamless.cs');
-    assert.ok(api.includes(`["${key}"] = layer.${key}`));
-    assert.ok(api.includes(`(value, "${key}", layer.${key}`));
+    assert.ok(api.includes(`["${key}"] = layer.${key === 'mode' ? 'EffectiveMode' : key}`));
+    assert.match(api, new RegExp(`\\(value,\\s*"${key}",\\s*layer\\.${key}`));
 }
 assert.match(read('src/Utils.cs'), /DestroyImmediate\(makeSeamlessMaterial\)/);
+assert.match(layer, /enum SeamlessMode \{ Mirror = 0, ScreenedPoisson = 2, OffsetBlend = 3, PatchQuilting = 4 \}/);
+for (const key of ['quiltingEdges','quiltingWidth','quiltingFeather','quiltingContrastCompensation','quiltingContrast','quiltingQuality','quiltingSeed','quiltingChannels','quiltingSeamCorrection','quiltingPoissonEdges','quiltingCorrectionRadius']) {
+    const api = read('src/Automation/WhimTexApi.MakeSeamless.cs');
+    assert.ok(api.includes(`["${key}"] = layer.${key}`));
+    assert.match(api, new RegExp(`\\(value,\\s*"${key}",\\s*layer\\.${key}`));
+    assert.ok(read('Documentation~/AI/README.md').includes('`'+key+'`'));
+}
+assert.match(layer, /Limit\(quiltingFeather,0,100,50\)/);
+assert.doesNotMatch(layer, /Limit\(quiltingFeather[^\n]+\/context.scaleMultiplier/);
+assert.match(read('src/Utils.cs'), /DestroyImmediate\(patchQuiltingMaterial\)/);
+assert.match(layer, /ScreenedSeamless.Render/);
+assert.match(read('src/Utils.cs'), /DestroyImmediate\(screenedSeamlessMaterial\)/);
+assert.match(layer, /CreateDefault\(\)[\s\S]*mode = SeamlessMode.OffsetBlend/);
+assert.match(read('src/LayerTypeRegistry.cs'), /MakeSeamlessLayerBehaviour.CreateDefault/);
+assert.match(read('src/Utils.cs'), /DestroyImmediate\(gpuFourierTransformMaterial\)/);
+assert.match(read('src/ScreenedSeamless.cs'), /RenderTextureFormat.ARGBFloat/);
 assert.match(read('src/TextureCompositorWindow.Inspector.cs'), /MakeSeamlessLayerEditorWindow.BuildFields/);
 console.log(`Make Seamless: ${checks} numerical checks plus integration contracts passed.`);
 
 const editor = read('src/Layers/Editors/MakeSeamlessLayerEditorWindow.cs');
-assert.ok(editor.indexOf('root.Add(BuildEdgeSelector') < editor.indexOf('new EnumField("Horizontal"'));
+assert.ok(editor.includes('LabeledEdges("Mirror Direction", BuildEdgeSelector'));
+assert.doesNotMatch(editor, /new EnumField\("(?:Horizontal|Vertical)"/);
 const modes = { Off: 0, LeftToRight: 1, RightToLeft: 2, BottomToTop: 1, TopToBottom: 2 };
 const mappings = { left: ['horizontal',2], right: ['horizontal',1], top: ['vertical',1], bottom: ['vertical',2] };
 for (const [edge, [axis, selected]] of Object.entries(mappings)) {
@@ -95,3 +128,5 @@ assert.match(editor, /bindings.Add\(Refresh\)/);
 assert.match(editor, /new Button\(\(\) => applyChange\("Change Seamless Direction", toggle\)\)/);
 assert.match(editor, /EnableInClassList\("whimtex-seamless-edge--selected", selected\(\)\)/);
 console.log('Seamless edge selector: extracted toggle logic, destination mapping and shared bindings passed.');
+assert.match(layer, /HistogramSeamless.Render/);
+assert.match(read("src/Utils.cs"), /DestroyImmediate\(histogramSeamlessMaterial\)/);

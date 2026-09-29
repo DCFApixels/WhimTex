@@ -50,6 +50,8 @@ jobs:
         run: |
           node ../Tests~/AgentDocumentation.test.mjs
           node ../Tests~/AgentCommandInventory.test.mjs
+          node ../Tests~/MakeSeamlessContract.test.mjs
+          node ../Tests~/ProceduralClipboard.test.mjs
       - name: Check brush schema and examples
         run: node ../Tests~/BrushClipboard.test.mjs
       - name: Initialize theme search

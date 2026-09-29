@@ -85,8 +85,9 @@ try
     try
     {
         normalCacheType.GetMethod("BeginFrame", flags).Invoke(normalCache, new object[] { document, null });
-        Check((ulong)normalCacheType.GetMethod("Stamp", flags).Invoke(normalCache, new object[] { processor.Owner }) == 0,
-            "Main preview keeps dynamic Shader Processor uncached");
+        // This processor has no FX/material; it is a deterministic input passthrough.
+        Check((ulong)normalCacheType.GetMethod("Stamp", flags).Invoke(normalCache, new object[] { processor.Owner }) != 0,
+            "Main preview can cache a deterministic Shader Processor");
     }
     finally { ((System.IDisposable)normalCache).Dispose(); }
     var priorSize = Get(blur); document.width = 5120; document.height = 2560; Invalidate();

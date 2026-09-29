@@ -76,9 +76,13 @@ namespace DCFApixels.WhimTex
             result["noiseWarps"] = new JArray(System.Enum.GetNames(typeof(NoiseLayerBehaviour.WarpType)));
             result["noiseEncodings"] = new JArray(System.Enum.GetNames(typeof(NoiseLayerBehaviour.OutputEncoding)));
             result["normalMapDefaults"] = NormalMapSnapshot(new NormalMapLayerBehaviour());
-            result["makeSeamlessDefaults"] = MakeSeamlessSnapshot(new MakeSeamlessLayerBehaviour());
+            result["makeSeamlessDefaults"] = MakeSeamlessSnapshot(MakeSeamlessLayerBehaviour.CreateDefault());
+            result["makeSeamlessModes"] = new JArray(System.Enum.GetNames(typeof(MakeSeamlessLayerBehaviour.SeamlessMode)));
+            result["makeSeamlessPoissonEdges"] = new JArray(System.Enum.GetNames(typeof(MakeSeamlessLayerBehaviour.PoissonEdges)));
             result["makeSeamlessHorizontal"] = new JArray(System.Enum.GetNames(typeof(MakeSeamlessLayerBehaviour.HorizontalDirection)));
             result["makeSeamlessVertical"] = new JArray(System.Enum.GetNames(typeof(MakeSeamlessLayerBehaviour.VerticalDirection)));
+            result["makeSeamlessQuiltingQuality"] = new JArray(System.Enum.GetNames(typeof(MakeSeamlessLayerBehaviour.QuiltingQuality)));
+            result["makeSeamlessQuiltingChannels"] = new JArray(System.Enum.GetNames(typeof(MakeSeamlessLayerBehaviour.QuiltingChannels)));
             result["blurDirections"] = new JArray(System.Enum.GetNames(typeof(BlurLayerBehaviour.MotionDirection)));
             result["blurEdges"] = new JArray(System.Enum.GetNames(typeof(BlurLayerBehaviour.EdgeMode)));
             result["sharpenEdges"] = new JArray(System.Enum.GetNames(typeof(SharpenLayerBehaviour.EdgeMode)));

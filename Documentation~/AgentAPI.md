@@ -513,7 +513,7 @@ Gradient inputs accept either an ordered stop array or the object form documente
 | Shape | `shape`: partial settings object described below |
 | Blur | `blur`: partial settings object; `mode`: Gaussian (default), Linear or Circular; [Gaussian](#gaussian-blur-settings), [motion](#motion-blur-settings) |
 | Sharpen | `sharpen`: algorithm (`Gaussian`/`Adaptive`), strength 0..4, radius 0..32 px, threshold/noiseReduction/haloSuppression 0..1, channelMode (`RGB`/`Luminance`), edges |
-| Make Seamless | `makeSeamless`: `{ "horizontal": "LeftToRight", "vertical": "BottomToTop", "blendWidth": 0.2, "falloff": 1 }`; [parameters](#make-seamless-settings) |
+| Make Seamless | `makeSeamless`: `{ "mode": "OffsetBlend", "edgeWidth": 0.2, "offsetTransitionStart": -0.25 }`; [all four methods and parameters](#make-seamless-settings) |
 | Gradient, SDF | `gradient`: 1..64 `{"time":0.0,"color":[1,1,1,1]}` stops in strictly increasing time order, time 0..1 |
 
 SDF/Outline `metric` accepts `EuclideanExact` (default), `EuclideanApproximate`, `Manhattan`,
@@ -758,24 +758,159 @@ See [Motion Blur](MotionBlur.md) for sampling, alpha, quality and memory details
 
 ### Make Seamless settings
 
-Use `type:"makeSeamless"` and partial `settings.makeSeamless` updates:
+Use `type:"makeSeamless"` and partial `settings.makeSeamless` updates in shared operations,
+including live batches. Clipboard JSON uses **`properties.makeSeamless`**, not `settings`;
+see the [clipboard contract](AI/README.md) and [complete recipe](Examples/Clipboard/seamless-noise.json).
+This is a targeted effect layer, not an FX preset or an input wrap mode.
+
+The following operations create a hidden source and an explicitly targeted effect. Place this array
+inside the `operations` of the chosen [batch workflow](#shared-editing-operations):
 
 ```json
-{"op":"add","type":"makeSeamless","as":"tile","settings":{
-  "makeSeamless":{"horizontal":"LeftToRight","vertical":"BottomToTop","blendWidth":0.2,"falloff":1}
-}}
+[
+  {"op":"add","type":"noise","as":"source","settings":{"enabled":false,"noise":{"seed":42,"scale":6}}},
+  {"op":"add","type":"makeSeamless","as":"tile","settings":{"makeSeamless":{
+    "mode":"OffsetBlend","edgeWidth":0.2,"offsetTransitionStart":-0.25,
+    "offsetSeamCorrection":true,"offsetPoissonEdges":"AllEdges"
+  }}},
+  {"op":"target","layer":"@tile","input":"Specific","target":"@source"}
+]
 ```
 
-`horizontal`: Off/LeftToRight/RightToLeft; `vertical`: Off/BottomToTop/TopToBottom.
-`blendWidth` is a fraction of each canvas dimension, 0.001–0.5 (default 0.2);
-`falloff` is 0.25–4 (default 1). Directions select the source edge and destination edge.
-Both Off bypass the operation. Other settings are the common targeted-effect settings:
-Previous/Specific input, transform, ranges, Swizzle and FX. Hidden sources and isolated group inputs work normally.
-The one-pass operation mixes mirrored RGBA samples in premultiplied space, preserving HDR RGB.
-The outermost pixel centers match on enabled axes; corners combine both axis weights.
-Subsequent transforms, modifiers and composition can alter this match. PSD export rasterizes the effect.
-`describe` exposes `makeSeamlessDefaults`, `makeSeamlessHorizontal`, `makeSeamlessVertical`;
-`inspect` includes all four parameters. Live add/complete/settings use the same type and settings.
+For an existing effect, use its inspected layer ID in `set`:
+
+```json
+{"op":"set","layer":"LAYER-ID","settings":{"makeSeamless":{
+  "mode":"PatchQuilting","quiltingEdges":"LeftAndRight","quiltingWidth":0.2,
+  "quiltingAlongSearch":0.15,"quiltingFeather":50,"quiltingQuality":"Normal",
+  "quiltingChannels":"Independent","processAlpha":false,
+  "quiltingSeamCorrection":true,"quiltingPoissonEdges":"LeftAndRight"
+}}}
+```
+
+This second example treats checked RGB channels as independent packed maps, preserves input alpha,
+and joins left/right edges for horizontal repetition. Prefer `Linked` for ordinary colored images.
+
+`whimtex_describe` / `WhimTexApi.Describe()` exposes `makeSeamlessDefaults`,
+`makeSeamlessModes`, `makeSeamlessPoissonEdges`, `makeSeamlessHorizontal`,
+`makeSeamlessVertical`, `makeSeamlessQuiltingQuality` and `makeSeamlessQuiltingChannels`.
+Inspection returns every field below under `settings.makeSeamless`, including inactive-mode settings.
+Omitted fields retain their values; switching mode neither resets nor transfers another mode's settings.
+Defaults below apply to **new layers created by the registry/API**, not raw C# field initializers or
+already saved layers. Use `MakeSeamlessLayerBehaviour.CreateDefault()` for equivalent C# defaults.
+Enum names are case-sensitive strings; unknown fields, removed mode names and out-of-range values are rejected.
+
+#### Shared controls and edge selection
+
+| API field | Allowed values / new-layer default | Meaning |
+| --- | --- | --- |
+| `mode` | `OffsetBlend` (default), `Mirror`, `ScreenedPoisson`, `PatchQuilting` | UI **Method**; choose the base algorithm explicitly in reusable recipes. |
+| `processRed`, `processGreen`, `processBlue`, `processAlpha` | Booleans, all `true` | UI **Channels**; unchecked channels are restored from the input after seam processing, before ordinary layer modifiers/FX/compositing. All false skips seam processing. |
+
+All paired-edge fields below accept `AllEdges` (default), `TopAndBottom`, `LeftAndRight`, `None`.
+`TopAndBottom` joins the top/bottom borders for vertical tiling; `LeftAndRight` joins left/right
+borders for horizontal tiling. `None` skips **only that pass**. The four copy-edge booleans and
+Mirror directions do not limit an enabled Poisson pass. Clearing main-pass edges is therefore
+not a full bypass unless correction is also disabled or its edges are `None`.
+
+Poisson correction is global: selected axes wrap, unselected axes use natural boundaries, but
+interior and unselected edge values can still change. A smaller radius localizes influence more,
+without making a hard protected center. Tiny images relax seam-slope constraints.
+
+#### Offset Blend
+
+Blends half-period-shifted copies in boundary bands; histogram compensation reduces contrast loss.
+
+| API field | Range / new-layer default | UI / behavior |
+| --- | --- | --- |
+| `leftEdge`, `rightEdge`, `bottomEdge`, `topEdge` | Booleans, all `true` | **Copy Edges**, independent destination bands. All false skips copying only. |
+| `edgeWidth` | 0.02–0.5 / 0.2 | **Blend Width (%)**: fraction of each corresponding dimension; bands have at least two pixels. |
+| `offsetTransitionStart` | -1–0.95 / -0.25 | **Transition Start (%)**, relative to Blend Width, not the canvas. |
+| `offsetContrastCompensation` | Boolean / `true` | **Contrast Compensation**. |
+| `histogramContrast` | 0–1 / 1 | **Strength (%)**; zero skips histogram analysis. |
+| `offsetSeamCorrection` | Boolean / `true` | **Poisson Correction**, after blending. |
+| `offsetPoissonEdges` | Paired-edge enum / `AllEdges` | **Poisson Edges**, independent of Copy Edges. |
+| `offsetAutoRadius` | Boolean / `true` | **Automatic Radius**: max(0.005, edgeWidth / 4). |
+| `offsetCorrectionRadius` | 0.005–0.25 / 0.05 | Manual **Radius (%)**, fraction of the smaller dimension; stored but unused while automatic. |
+
+#### Mirror
+
+Reflects the opposite edge into the selected destination and blends it back into the original.
+
+| API field | Range / new-layer default | UI / behavior |
+| --- | --- | --- |
+| `horizontal` | `Off`, `LeftToRight` (default), `RightToLeft` | **Mirror Direction**: left source → right destination, or the reverse. |
+| `vertical` | `Off`, `BottomToTop` (default), `TopToBottom` | **Mirror Direction**: bottom source → top destination, or the reverse. |
+| `blendWidth` | 0.001–0.5 / 0.2 | **Blend Width (%)**, fraction of each corresponding dimension. |
+| `mirrorTransitionStart` | -1–0.95 / -0.25 | **Transition Start (%)**, relative to Blend Width. |
+| `falloff` | 0.25–4 / 1 | **Falloff**; larger values concentrate reflection near the destination edge. |
+| `mirrorContrastCompensation` | Boolean / `false` | **Contrast Compensation**, histogram mixing with reflected donors. |
+| `mirrorContrast` | 0–1 / 1 | **Strength (%)**; zero uses ordinary Mirror. |
+| `mirrorSeamCorrection` | Boolean / `true` | **Poisson Correction**, also runs when both directions are Off. |
+| `mirrorPoissonEdges` | Paired-edge enum / `AllEdges` | **Poisson Edges**, independent of Mirror Direction. |
+| `mirrorAutoRadius` | Boolean / `true` | **Automatic Radius**: max(0.005, blendWidth / 4). |
+| `mirrorCorrectionRadius` | 0.005–0.25 / 0.05 | Manual **Radius (%)**, fraction of the smaller dimension; retained while automatic. |
+
+For both blend methods, zero Transition Start begins fading at the edge; positive values delay/narrow
+the fade, negative values start it outside the canvas, leaving some original at the border. This may
+reintroduce a seam. New layers already enable Poisson Correction, but **changing Transition Start does
+not toggle it**. Check the correction's enabled state and edge pairs explicitly. With correction off,
+pixels outside modified bands retain the input apart from floating-point/alpha roundoff.
+
+#### Screened Poisson
+
+| API field | Range / new-layer default | UI / behavior |
+| --- | --- | --- |
+| `poissonEdges` | Paired-edge enum / `AllEdges` | **Poisson Edges**, selecting the standalone solve. `None` skips it. |
+| `screeningRadius` | 0.005–0.25 / 0.05 | **Radius (%)**, fraction of the smaller dimension. |
+
+Uses source-value fidelity and discrete seam-slope constraints. Does not use copy bands, Mirror
+directions, contrast-compensation flags or the other modes' correction radii.
+
+#### Patch Quilting
+
+Searches source boundary-strip donors and joins them using low-error dynamic-programming cuts;
+not whole-image texture synthesis. Optional Along-Seam Search smoothly displaces donor samples
+along the strip, tapering to zero at its ends without wrapping; it is not a rigid translation.
+
+| API field | Range / new-layer default | UI / behavior |
+| --- | --- | --- |
+| `quiltingEdges` | Paired-edge enum / `AllEdges` | **Patch Edges**; `None` skips quilting, not independent correction. |
+| `quiltingWidth` | 0.02–0.45 / 0.2 | **Patch Width (%)**, fraction of each corresponding dimension. |
+| `quiltingAlongSearch` | 0–0.25 / 0 | **Along-Seam Search (%)**, relative to usable strip length. Nonzero divides the same candidate budget between straight and displaced strips. |
+| `quiltingQuality` | `Draft`, `Normal` (default), `High` | **Search Quality**; analysis limits 96/160/256 per axis and 8/24/48 candidates. |
+| `quiltingChannels` | `Linked` (default), `Independent` | **Channel Matching**; one donor/cut using checked premultiplied channels, or separate straight-value searches per checked channel for packed maps. |
+| `quiltingSeed` | Signed 32-bit integer / 0 | **Seed**; repeatable for the same input, resolution and settings. Different seeds can still select the same donor. |
+| `quiltingFeather` | 0–100 / 50 | **Feather (%)**, already in percentage units; share of the safe transition width of each cut, not pixels or a fraction of Patch Width. |
+| `quiltingContrastCompensation` | Boolean / `false` | **Contrast Compensation** within Feather transitions. |
+| `quiltingContrast` | 0–1 / 1 | **Strength (%)**; no extra compensation at zero strength or zero Feather. |
+| `quiltingSeamCorrection` | Boolean / `false` | Independent global **Poisson Correction**, after quilting. |
+| `quiltingPoissonEdges` | Paired-edge enum / `AllEdges` | **Poisson Edges**, independent of Patch Edges. |
+| `quiltingCorrectionRadius` | 0.005–0.25 / 0.05 | **Radius (%)**, fraction of the smaller dimension; no automatic radius. |
+
+Feather blends across each cut, not a blur of the texture. A one-pixel band cannot feather; on small
+images several percentages may look identical. Compensation in the first axis can affect donor
+selection in the second. Higher Search Quality costs more and does not guarantee a better visual match.
+
+#### Units, alpha and verification
+
+- UI percentages are API fractions (`20%` → `0.2`, `-25%` → `-0.25`, `5%` radius → `0.05`),
+  **except `quiltingFeather`**, where `50%` → `50`.
+- Disabled channels retain straight linear input values before subsequent layer processing.
+  Disabling A preserves input alpha, not RGB independence from alpha: premultiplied methods still
+  use input alpha. Independent quilting matching uses straight values; an enabled Poisson correction
+  remains premultiplied. Independent matching is not a color-preserving mode for transparent artwork.
+- Histogram compensation can alter colors; Poisson can affect contrast and overshoot RGB. Alpha is
+  bounded; HDR RGB remains available until normal layer/output range handling. No method guarantees
+  invisible joins for arbitrary structured images. Inspect both the tile join and the interior.
+- Previous input uses the next sibling below; Specific can target a hidden source or isolated group
+  color. Normal transforms, ranges, Swizzle, FX, clipping and composition still apply and can break
+  the final join. These methods remain editable; raster export evaluates the effect.
+- Reduced-size Quilting previews can choose different donors/cuts. Ordinary window preview is capped
+  at 512 px; Live Quality does not remove that limit. Use Pencil without painting plus Tiled for a
+  full-resolution UI check, or render/export at the actual intended resolution through the API.
+- Poisson-only changes can reuse the pre-correction quilting cache. Source/search settings and
+  resolution changes require a new search; synchronous readback/job completion can still block the editor.
 
 ### Normal Map settings
 

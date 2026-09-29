@@ -28,8 +28,11 @@ namespace DCFApixels.WhimTex
                     }
                 });
                 if (processed != null)
+                {
+                    PublishMiniPreview(layer.Owner, processed);
                     BlendInto(ref accumulator, processed, layer.blendMode == BlendMode.Normal ? (BlendMode)101 : layer.blendMode,
                         layer.opacity, layer.blendRange);
+                }
             }
             finally
             {

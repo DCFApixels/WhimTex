@@ -28,7 +28,7 @@ namespace DCFApixels.WhimTex
         private static readonly Color GroupDropHighlightColor = new Color(0.20f, 0.58f, 0.95f, 0.22f);
         private static readonly GUIContent LivePreviewQualityContent = new GUIContent(
             "Live Quality",
-            "Resolution used while painting. 100% disables downscaling; lower values make effect-heavy previews faster.");
+            "Resolution scale used while painting. Lower values make effect-heavy previews faster. Ordinary non-painting preview is limited to 512 pixels, even at 100%. Select Pencil for full-resolution preview; save and export always use full resolution.");
         private static readonly GUIContent PrimaryBrushColorContent = new GUIContent(
             string.Empty,
             "Foreground brush color. Press X to swap it with the background color.");
@@ -199,6 +199,7 @@ namespace DCFApixels.WhimTex
             paintingPreviewScale = ClampPaintingPreviewScale(
                 EditorPrefs.GetFloat(PaintingPreviewScalePrefKey, DefaultPaintingPreviewScale));
             TextureCompositor.Changed += OnCompositorChanged;
+            TextureCompositor.MiniPreviewRequested += OnMiniPreviewRequested;
             TextureCompositor.OutputTextureChanged += OnOutputTextureChanged;
             WhimTexUserSettings.Changed += OnPreviewAppearanceChanged;
             AssemblyReloadEvents.beforeAssemblyReload += StopLiveOutput;
@@ -220,6 +221,9 @@ namespace DCFApixels.WhimTex
 
         private void OnDisable()
         {
+            TextureCompositor.MiniPreviewRequested -= OnMiniPreviewRequested;
+            toolkitInspectorPreview?.Dispose();
+            toolkitInspectorPreview = null;
             WhimTexDocumentService.Detach(this);
             StopKeyboardNudge();
             CancelImageUrlPaste();
@@ -1075,6 +1079,11 @@ namespace DCFApixels.WhimTex
             if (!previewRequested || requestedAt < previewAt)
                 previewAt = requestedAt;
             previewRequested = true;
+        }
+
+        private void OnMiniPreviewRequested(TextureCompositor document)
+        {
+            if (document == compositor) RequestPreview(true);
         }
 
         private void UpdatePreview()
