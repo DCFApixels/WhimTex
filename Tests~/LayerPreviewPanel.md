@@ -48,3 +48,13 @@ Passed 2,752,550 assertions:
 - Cache display preserves `RenderTexture.active` and `GL.sRGBWrite`.
 
 The existing `EffectCacheSmoke.cs` regression passed 278,538 GPU assertions. Unity compilation completed without errors, and EN/RU/ZH documentation source checks passed.
+
+## Independent channel buttons — 2026-09-29
+
+The mini-preview dropdown is replaced by neutral R/G/B/A toggles in the shared panel. Live Editor smoke passed 3,145,941 assertions, covering all 16 masks against per-pixel channel expectations, button activation and highlights, 20×16-point bounds within the strip, neutral active colors, resize exclusion, independent owner/main-preview masks, and selection/collapse/rebuild persistence. The same channel-display shader as the main footer is used with an independently owned material.
+
+`MiniPreviewReuseSmoke` passed 2,752,550 assertions again. Unity compilation, documentation source validation and whitespace checks passed. The screen capture did not show the temporary test window, so this run verifies layout through live UI bounds/styles rather than claiming a visual screenshot review. Light-theme and high-DPI visual checks remain manual follow-ups.
+
+## Channel drag assignment — 2026-09-29
+
+Live Editor smoke passed 3,145,986 assertions after adding the shared channel-only pointer manipulator. Synthetic pointer events go through the actual UI Toolkit groups in both the main and mini preview: immediate first-button toggle, remembered on/off assignment for mixed masks, forward/reverse and fast segment sweeps, idempotent revisits, disabled buttons, right-button exclusion, outside release, Escape and missing-release recovery. Keyboard submission and independent masks remain covered, along with the existing 16-mask GPU checks and divider regression. The missing-release fixture explicitly supplies `pressedButtons=0` because pooled synthetic mouse events otherwise retain the test's preceding press state. Unity compilation and localized documentation source checks passed. Physical mouse testing across operating-system focus changes remains a manual follow-up.

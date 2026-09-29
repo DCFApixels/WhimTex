@@ -20,11 +20,13 @@ and hints for the active tool.
 
 ## Layer mini preview
 
+In both the main and mini previews, press and hold the left mouse button on **R / G / B / A**, then drag across the other channel buttons. The first button toggles immediately; every button crossed takes that same on/off state until release. Passing over a button again does not invert it. This gesture is limited to the channel group where it started and does not affect other controls.
+
 Drag the **Preview** strip at the bottom of **Layer Settings** upward to inspect the selected layer; drag it down to hide the image. The separate **Properties** window has the same mini preview and opens with it visible. The block stays below the scrolling settings and is at most 256 px high, including the strip, or less if space is limited. Its chosen height stays unchanged when switching layers or image resolutions. Small images enlarge proportionally to fit; large images shrink without cropping.
 
 The mini preview follows the layer result used by the main preview when available, before blending it with the other layers. This avoids differences caused by generating a separate lower-resolution image. If that result is unavailable, the mini preview renders independently; clipped layers and pass-through groups use this fallback. A group's mini preview shows its own colored content against transparency.
 
-Choose **RGBA**, **RGB** or **Alpha** to inspect transparency or color. Transparent areas use a checkerboard. These controls affect only the preview, not the layer or saved output.
+The compact, neutral **R / G / B / A** buttons toggle channels independently, like the main preview footer. One RGB channel is displayed in grayscale; **A** controls transparency. Enable only **A** to inspect alpha in grayscale, or turn all four off to show black. Transparent areas use a checkerboard. This selection belongs to the mini preview only: it does not change the main preview, painting, the layer or saved output.
 
 ## Context tools
 

@@ -60,6 +60,78 @@ public static class LayerPreviewPanelSmoke
             float gap = preview.worldBound.yMin - scroll.contentViewport.worldBound.yMax;
             Check(Math.Abs(gap) < .5f, "Settings clipping reaches Preview strip; gap=" + gap);
         }
+        void CheckChannelDrag(VisualElement group, Func<int> mask)
+        {
+            var buttons = group.Query<Button>().ToList();
+            void Down(int index, int mouseButton = 0)
+            {
+                using var evt = PointerDownEvent.GetPooled(new Event { type = EventType.MouseDown, button = mouseButton, mousePosition = buttons[index].worldBound.center });
+                evt.target = buttons[index]; buttons[index].SendEvent(evt);
+            }
+            void Move(Vector2 position, bool held = true)
+            {
+                using var evt = PointerMoveEvent.GetPooled(new Event { type = held ? EventType.MouseDrag : EventType.MouseMove, button = held ? 0 : -1, mousePosition = position });
+                typeof(PointerMoveEvent).GetProperty("pressedButtons", F).SetValue(evt, held ? 1 : 0);
+                evt.target = group; group.SendEvent(evt);
+            }
+            void Up(Vector2 position)
+            {
+                using var evt = PointerUpEvent.GetPooled(new Event { type = EventType.MouseUp, button = 0, mousePosition = position });
+                evt.target = group; group.SendEvent(evt);
+            }
+            void Key(int index)
+            {
+                using var evt = NavigationSubmitEvent.GetPooled();
+                evt.target = buttons[index]; buttons[index].SendEvent(evt);
+            }
+            Check(mask() == 15, "Drag fixture starts with all channels");
+            Down(0);
+            Check(mask() == 14, "First channel toggles on press, not release");
+            Check(group.HasPointerCapture(PointerId.mousePointerId), "Channel group captures drag");
+            Move(buttons[3].worldBound.center);
+            Check(mask() == 0, "Fast sweep includes skipped intermediate buttons");
+            Move(buttons[0].worldBound.center);
+            Check(mask() == 0, "Return sweep assigns remembered state without toggling again");
+            Up(buttons[0].worldBound.center);
+            Check(mask() == 0 && !group.HasPointerCapture(PointerId.mousePointerId), "Release does not double toggle and releases capture");
+            Move(buttons[3].worldBound.center, false);
+            Check(mask() == 0, "Hover after release does nothing");
+            Down(1); Move(buttons[3].worldBound.center); Up(buttons[3].worldBound.center);
+            Check(mask() == 14, "New drag remembers on state");
+            Key(0); Check(mask() == 15, "Keyboard activation retained");
+            Key(1); Key(3); Check(mask() == 5, "Mixed initial mask");
+            Down(0); Move(buttons[3].worldBound.center); Up(buttons[3].worldBound.center);
+            Check(mask() == 0, "Mixed buttons assigned off instead of individually inverted");
+            Down(3); Move(buttons[0].worldBound.center); Up(buttons[0].worldBound.center);
+            Check(mask() == 15, "Reverse sweep assigns on");
+            buttons[1].SetEnabled(false);
+            Down(0); Move(buttons[3].worldBound.center); Up(buttons[3].worldBound.center);
+            Check(mask() == 2, "Disabled buttons ignored");
+            buttons[1].SetEnabled(true);
+            Down(0); Move(buttons[3].worldBound.center); Up(buttons[3].worldBound.center);
+            Check(mask() == 15, "Reenabled group usable");
+            Down(0, 1);
+            Check(mask() == 15 && !group.HasPointerCapture(PointerId.mousePointerId), "Right click does not paint channels");
+            Down(0);
+            using (var evt = KeyDownEvent.GetPooled(new Event { type = EventType.KeyDown, keyCode = KeyCode.Escape }))
+            { evt.target = buttons[0]; buttons[0].SendEvent(evt); }
+            Check(!group.HasPointerCapture(PointerId.mousePointerId), "Escape releases capture");
+            Move(buttons[3].worldBound.center); Up(buttons[3].worldBound.center);
+            Check(mask() == 14, "Escape ends assignment without reverting applied change");
+            Key(0);
+            Down(0);
+            Move(buttons[0].worldBound.center, false);
+            Check(!group.HasPointerCapture(PointerId.mousePointerId), "Missing release recovered when mouse is no longer held");
+            Move(buttons[3].worldBound.center, false);
+            Check(mask() == 14, "Recovered release cannot change other channels");
+            Key(0);
+            Down(3);
+            Vector2 outside = group.worldBound.max + Vector2.one * 100;
+            Move(outside); Up(outside);
+            Check(mask() == 7 && !group.HasPointerCapture(PointerId.mousePointerId), "Release outside group ends gesture");
+            Key(3);
+            Check(mask() == 15, "Drag checks leave original state");
+        }
         AssetDatabase.ImportAsset("Packages/com.dcfapixels.whimtex/src/WhimTexSplitView.uss", ImportAssetOptions.ForceUpdate);
         var focus = EditorWindow.focusedWindow;
         var window = ScriptableObject.CreateInstance<TextureCompositorWindow>();
@@ -120,7 +192,17 @@ public static class LayerPreviewPanelSmoke
                         Check(!properties.rootVisualElement.Query<Button>().ToList().Any(x => x.text == "Close"), "No Close button");
                         foreach (var p in new[] { embedded, standalone })
                         {
-                            Check(p.Query<PopupField<string>>().ToList().Count == 1, "Channel dropdown only");
+                            Check(p.Query<PopupField<string>>().ToList().Count == 0, "No channel dropdown");
+                            var buttons = p.Q("layer-preview-channels").Query<Button>().ToList();
+                            Check(buttons.Count == 4 && string.Concat(buttons.Select(x => x.text)) == "RGBA", "Four channel buttons");
+                            foreach (var button in buttons)
+                            {
+                                var h = p.Q("layer-preview-resizer").worldBound;
+                                Check(button.worldBound.yMin >= h.yMin && button.worldBound.yMax <= h.yMax && button.worldBound.xMax <= h.xMax, "Compact buttons fit strip");
+                                Check(Math.Abs(button.resolvedStyle.height - 16) < .1f && Math.Abs(button.resolvedStyle.width - 20) < .1f, "Compact dimensions");
+                                var fill = button.resolvedStyle.backgroundColor;
+                                Check(Math.Abs(fill.r - fill.g) < .001f && Math.Abs(fill.g - fill.b) < .001f, "Neutral active channel color");
+                            }
                             Check(p.Query<PopupField<int>>().ToList().Count == 0, "No mip dropdown");
                             Check(p.Q("layer-preview-surface").Query<Label>().ToList().Count == 0, "No overlay text");
                         }
@@ -135,27 +217,55 @@ public static class LayerPreviewPanelSmoke
                         Compare(embedded, a);
                         var source = (RenderTexture)Get(embedded, "source");
                         var before = Read(source);
-                        var popup = embedded.Q<PopupField<string>>();
+                        var channelButtons = embedded.Q("layer-preview-channels").Query<Button>().ToList();
+                        int footerMask = (int)Get(window, "previewChannels");
+                        CheckChannelDrag(embedded.Q("layer-preview-channels"), () => (int)Get(state, "channelMask"));
+                        Check((int)Get(window, "previewChannels") == footerMask, "Mini drag leaves main mask unchanged");
+                        CheckChannelDrag(window.rootVisualElement.Q("previewFooterColor"), () => (int)Get(window, "previewChannels"));
+                        Check((int)Get(state, "channelMask") == 15 && (int)Get(Get(standalone, "state"), "channelMask") == 15, "Main drag leaves both mini masks unchanged");
+                        Check(!embedded.Q("layer-preview-resizer").HasPointerCapture(PointerId.mousePointerId), "Channel gesture does not start divider resize");
                         var savedActive = RenderTexture.active; bool savedSrgb = GL.sRGBWrite;
-                        foreach (string value in new[] { "RGB", "Alpha", "RGBA" })
+                        for (int mask = 0; mask < 16; mask++)
                         {
-                            popup.value = value;
+                            for (int bit = 0; bit < 4; bit++)
+                                if ((((int)Get(state, "channelMask") ^ mask) & (1 << bit)) != 0)
+                                {
+                                    using var evt = NavigationSubmitEvent.GetPooled();
+                                    evt.target = channelButtons[bit]; channelButtons[bit].SendEvent(evt);
+                                }
+                            Check((int)Get(state, "channelMask") == mask, "Channel button updates mask");
+                            for (int bit = 0; bit < 4; bit++)
+                                Check(channelButtons[bit].ClassListContains("whimtex-channel-button--enabled") == ((mask & (1 << bit)) != 0), "Button highlight");
                             Check(RenderTexture.active == savedActive && GL.sRGBWrite == savedSrgb, "Channel render state restored");
                             var after = Read((RenderTexture)embedded.Q<Image>().image);
                             for (int i = 0; i < after.Length; i++) for (int c = 0; c < 4; c++)
                             {
-                                float expected = value == "RGBA" ? before[i][c] : c == 3 ? 1 : value == "Alpha" ? before[i].a : before[i][c];
-                                Check(Math.Abs(after[i][c] - expected) < .003f, "Channel pixels " + value);
+                                int rgb = mask & 7;
+                                float expected;
+                                if (rgb == 0) expected = c == 3 ? 1 : (mask & 8) != 0 ? before[i].a : 0;
+                                else if (c == 3) expected = (mask & 8) != 0 ? before[i].a : 1;
+                                else
+                                {
+                                    int component = rgb == 1 ? 0 : rgb == 2 ? 1 : rgb == 4 ? 2 : c;
+                                    expected = (rgb & (1 << component)) != 0 ? Mathf.Clamp01(before[i][component]) : 0;
+                                    if (QualitySettings.activeColorSpace == ColorSpace.Gamma) expected = Mathf.LinearToGammaSpace(expected);
+                                }
+                                Check(Math.Abs(after[i][c] - expected) < .003f, "Channel pixels " + mask);
                             }
                             Check(ReferenceEquals(Get(embedded, "source"), source), "Channel switch does not rerender layer");
+                            Check((int)Get(window, "previewChannels") == footerMask && (int)Get(Get(standalone, "state"), "channelMask") == 15, "Mini masks independent of footer and Properties");
                         }
                         last = source;
                         Call(embedded, "Tick"); Check(ReferenceEquals(Get(embedded, "source"), last), "Clean preview reused");
-                        // Dropdown target must not start a resize, even when its event reaches the header.
                         var header = embedded.Q("layer-preview-resizer");
-                        using (var e = PointerDownEvent.GetPooled(new Event { type = EventType.MouseDown, button = 0, mousePosition = popup.worldBound.center }))
-                        { e.target = popup; Call(Get(embedded, "resize"), "Down", e); }
-                        Check(!header.HasPointerCapture(PointerId.mousePointerId), "Dropdown does not capture resize");
+                        foreach (var button in channelButtons)
+                        {
+                            using var e = PointerDownEvent.GetPooled(new Event { type = EventType.MouseDown, button = 0, mousePosition = button.worldBound.center });
+                            e.target = button; Call(Get(embedded, "resize"), "Down", e);
+                            Check(!header.HasPointerCapture(PointerId.mousePointerId), "Channel button does not capture resize");
+                        }
+                        Call(embedded, "ToggleChannel", 2);
+                        Call(embedded, "ToggleChannel", 8);
                         Drag(embedded, -1000); Later(); break;
                     case 2:
                         Check((bool)Get(state, "collapsed") && Get(embedded, "source") == null && embedded.Q<Image>().image == null, "Collapse releases images");
@@ -178,6 +288,7 @@ public static class LayerPreviewPanelSmoke
                         var savedState = Get(embedded, "state");
                         var restoredState = JsonUtility.FromJson(JsonUtility.ToJson(savedState), savedState.GetType());
                         Check((float)Get(restoredState, "height") == remembered && !(bool)Get(restoredState, "collapsed"), "Serializable window state");
+                        Check((int)Get(restoredState, "channelMask") == 5, "Channel combination survives layer switching, collapse and rebuild");
                         Compare(embedded, b);
                         var parent = embedded.parent;
                         embedded.RemoveFromHierarchy();

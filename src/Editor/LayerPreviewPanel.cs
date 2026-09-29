@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -15,6 +14,7 @@ namespace DCFApixels.WhimTex
             public float height = 220f;
             public bool collapsed;
             public int channel;
+            public int channelMask = -1;
         }
 
         private const float HeaderHeight = 20f;
@@ -23,7 +23,8 @@ namespace DCFApixels.WhimTex
         private readonly ViewState state;
         private readonly VisualElement header, surface;
         private readonly Image image;
-        private readonly PopupField<string> channels;
+        private readonly VisualElement channels;
+        private readonly Button[] channelButtons = new Button[4];
         private readonly ResizeManipulator resize;
         private TextureCompositor document;
         private Layer boundLayer;
@@ -47,12 +48,28 @@ namespace DCFApixels.WhimTex
             var grip = new VisualElement { pickingMode = PickingMode.Ignore };
             grip.AddToClassList("whimtex-output-preview-grip");
             header.Add(grip);
-            state.channel = Mathf.Clamp(state.channel, 0, 2);
-            channels = new PopupField<string>(new List<string> { "RGBA", "RGB", "Alpha" }, state.channel)
-            { name = "layer-preview-channel", tooltip = "Preview channels only. Does not change the layer or output." };
-            channels.AddToClassList("whimtex-output-preview-channel");
+            state.channelMask = state.channelMask < 0 ? (state.channel == 1 ? 7 : state.channel == 2 ? 8 : 15) : state.channelMask & 15;
+            channels = new VisualElement { name = "layer-preview-channels" };
+            channels.AddToClassList("whimtex-mini-preview-channels");
+            string[] labels = { "R", "G", "B", "A" };
+            for (int i = 0; i < labels.Length; i++)
+            {
+                int bit = 1 << i;
+                var button = new Button(() => ToggleChannel(bit))
+                {
+                    name = "layer-preview-channel-" + labels[i].ToLowerInvariant(), text = labels[i],
+                    tooltip = i == 3
+                        ? "Alpha: off ignores transparency; enable only A to view alpha in grayscale. Mini preview only; does not affect painting or output."
+                        : labels[i] + " channel: toggle in the mini preview. A single RGB channel is shown in grayscale; A controls transparency. Does not affect painting or output."
+                };
+                button.AddToClassList("whimtex-channel-button");
+                button.AddToClassList("whimtex-mini-preview-channel");
+                button.EnableInClassList("whimtex-channel-button--enabled", (state.channelMask & bit) != 0);
+                channelButtons[i] = button;
+                channels.Add(button);
+            }
+            channels.AddManipulator(new PreviewChannelDragManipulator(channelButtons, () => state.channelMask, ToggleChannel));
             channels.SetEnabled(false);
-            channels.RegisterValueChangedCallback(_ => { state.channel = channels.index; UpdateChannels(); });
             header.Add(channels);
             resize = new ResizeManipulator(this);
             header.AddManipulator(resize);
@@ -224,34 +241,43 @@ namespace DCFApixels.WhimTex
             if (wasCollapsed && !state.collapsed) RequestPreview(true);
         }
 
+        private void ToggleChannel(int bit)
+        {
+            state.channelMask = (state.channelMask ^ bit) & 15;
+            for (int i = 0; i < channelButtons.Length; i++)
+                channelButtons[i].EnableInClassList("whimtex-channel-button--enabled", (state.channelMask & (1 << i)) != 0);
+            UpdateChannels();
+        }
+
         private void UpdateChannels()
         {
             image.image = null;
             if (channelTexture != null) RenderTexture.ReleaseTemporary(channelTexture);
             channelTexture = null;
             if (source == null) return;
-            if (state.channel == 0) image.image = source;
-            else
+            if (channelMaterial == null)
             {
-                if (channelMaterial == null)
-                {
-                    var shader = AssetDatabase.LoadAssetAtPath<Shader>("Packages/com.dcfapixels.whimtex/src/Shaders/OutputPreview.shader");
-                    if (shader == null || !shader.isSupported) { image.image = source; return; }
-                    channelMaterial = new Material(shader) { hideFlags = HideFlags.HideAndDontSave };
-                }
-                channelTexture = RenderTexture.GetTemporary(source.descriptor);
-                RenderTexture previous = RenderTexture.active;
-                bool srgb = GL.sRGBWrite;
-                try
-                {
-                    channelMaterial.SetFloat("_Mip", 0);
-                    channelMaterial.SetFloat("_Channel", state.channel);
-                    GL.sRGBWrite = channelTexture.sRGB;
-                    Graphics.Blit(source, channelTexture, channelMaterial);
-                    image.image = channelTexture;
-                }
-                finally { RenderTexture.active = previous; GL.sRGBWrite = srgb; }
+                var shader = AssetDatabase.LoadAssetAtPath<Shader>("Packages/com.dcfapixels.whimtex/src/Shaders/PreviewChannels.shader");
+                if (shader == null || !shader.isSupported) { image.image = source; return; }
+                channelMaterial = new Material(shader) { hideFlags = HideFlags.HideAndDontSave };
             }
+            channelTexture = RenderTexture.GetTemporary(source.descriptor);
+            channelTexture.filterMode = source.filterMode;
+            channelTexture.wrapMode = TextureWrapMode.Clamp;
+            RenderTexture previous = RenderTexture.active;
+            bool srgb = GL.sRGBWrite;
+            try
+            {
+                channelMaterial.SetVector("_Channels", new Vector4(
+                    (state.channelMask & 1) != 0 ? 1 : 0, (state.channelMask & 2) != 0 ? 1 : 0,
+                    (state.channelMask & 4) != 0 ? 1 : 0, (state.channelMask & 8) != 0 ? 1 : 0));
+                channelMaterial.SetFloat("_Exposure", 1);
+                channelMaterial.SetFloat("_Debug", 0);
+                GL.sRGBWrite = channelTexture.sRGB;
+                Graphics.Blit(source, channelTexture, channelMaterial);
+                image.image = channelTexture;
+            }
+            finally { RenderTexture.active = previous; GL.sRGBWrite = srgb; }
             surface.MarkDirtyRepaint();
         }
 

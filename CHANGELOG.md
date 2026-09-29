@@ -6,6 +6,7 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Hold the left mouse button on a preview channel and drag across R/G/B/A to apply the first button's new state to the others. Available independently in the main and mini previews; other controls are unaffected.
 - Agent discovery includes Make Seamless's Quilting quality and channel-matching enums. The API reference and clipboard schema cover all four methods, defaults, units and independent edge passes, with a complete procedural recipe.
 - Layer Settings has a bottom-docked, draggable layer preview, initially collapsed. Properties uses the same resizable preview with RGBA/RGB/Alpha viewing and a checkerboard, without mip selection or image overlays. Drag down to collapse; collapsed previews do not render. The redundant Properties Close button is removed.
 - Mirror's Poisson Correction has Automatic Radius, enabled by default: one quarter of Blend Width, minimum 0.5%. Disabling it restores the stored manual radius.
@@ -17,6 +18,7 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Layer Settings and Properties mini previews use compact neutral R/G/B/A buttons instead of a channel dropdown, with independent combinations and the same channel display rules as the main preview. Mini-preview selection does not affect painting or the main preview.
 - Mini Preview reuses valid main-preview effect-cache results or captures a layer before compositing, including uncached procedural layers. A reduced independent render remains the fallback; groups retain their own color. The resizable block is capped at 256 px including its divider and keeps its chosen height across layer/resolution changes, scaling images proportionally in either direction.
 - Make Seamless settings distinguish main-pass edges from Poisson Edges, group patch search before blending/correction, and use contextual Strength (%) and Radius (%) labels. Inactive-pass controls and zero-Feather compensation are disabled without clearing their settings; edge selectors remain interactive.
 - New Make Seamless layers default to Offset Blend. Offset Blend and Mirror start with 20% Blend Width, -25% Transition Start and Poisson Correction on All Edges. All Offset copy edges and both Mirror reflection axes start enabled. Switching methods retains their independent settings.

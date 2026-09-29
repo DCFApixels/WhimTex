@@ -96,6 +96,7 @@ namespace DCFApixels.WhimTex
                 channelButtons[i] = button;
                 channels.Add(button);
             }
+            channels.AddManipulator(new PreviewChannelDragManipulator(channelButtons, () => previewChannels, TogglePreviewChannel));
             RefreshChannelButtons();
             return footer;
         }
