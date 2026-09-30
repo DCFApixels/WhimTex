@@ -26,6 +26,7 @@
 
 ## Execution and safety
 
+- Do not introduce or extend solutions that access Unity internal/non-public APIs through reflection without explicit user approval. This includes reflected delegates, compatibility wrappers, and test or diagnostic code. Prefer supported public APIs; if no suitable alternative exists, explain the limitation and request approval before implementation. Existing reflection-based integrations and general feature requests are not authorization for new internal-API dependencies.
 - Follow root project AGENTS.md. Compile only through the connected Unity Editor/Pipeline; no standalone MSBuild or dotnet build. One compilation at a time; check completion/errors. Player builds require a separate request.
 - Explicitly target the intended Unity project. Missing tools do not authorize installing packages, starting another Editor or changing unrelated projects/assets.
 - For compositor authoring use `WhimTexApi`, not generated YAML or simulated clicks. Source-code work does not require the authoring API.

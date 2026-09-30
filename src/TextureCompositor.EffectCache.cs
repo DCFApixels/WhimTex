@@ -141,7 +141,7 @@ namespace DCFApixels.WhimTex
 
         private RenderTexture RenderStandalone(List<Layer> container, int index, int outputWidth, int outputHeight,
             float scaleMultiplier, HashSet<Layer> renderStack, bool applyTransform = true, bool applyModifiers = true,
-            bool includeDisabled = false, bool applyClipping = true)
+            bool includeDisabled = false, bool applyClipping = true, RenderTexture accumulatedInput = null)
         {
             if (container == null || index < 0 || index >= container.Count) return null;
             Layer layer = container[index];
@@ -150,9 +150,9 @@ namespace DCFApixels.WhimTex
                 applyTransform && applyModifiers && applyClipping)
                 return CachedEffectRender(layer, "effect", outputWidth, outputHeight, scaleMultiplier, false,
                     () => RenderStandaloneUncached(container, index, outputWidth, outputHeight, scaleMultiplier,
-                        renderStack, applyTransform, applyModifiers, includeDisabled, applyClipping));
+                        renderStack, applyTransform, applyModifiers, includeDisabled, applyClipping, accumulatedInput: accumulatedInput));
             return RenderStandaloneUncached(container, index, outputWidth, outputHeight, scaleMultiplier,
-                renderStack, applyTransform, applyModifiers, includeDisabled, applyClipping);
+                renderStack, applyTransform, applyModifiers, includeDisabled, applyClipping, accumulatedInput: accumulatedInput);
         }
 
         private RenderTexture RenderGroupEffectInput(Layer group, int outputWidth, int outputHeight,

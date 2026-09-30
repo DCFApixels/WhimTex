@@ -80,6 +80,8 @@ namespace DCFApixels.WhimTex
                 SetCompositor(CreateTemporaryCompositor());
 
             VisualElement root = rootVisualElement;
+            WhimTexColorPicker.SetDocument(root, () => compositor);
+            WhimTexColorChannels.SetSource(root, () => this != null ? previewChannels : -1);
             InstallLayerDragGhost();
             root.UnregisterCallback<KeyDownEvent>(OnToolkitKeyDown, TrickleDown.TrickleDown);
             root.UnregisterCallback<KeyUpEvent>(OnToolkitKeyUp, TrickleDown.TrickleDown);
@@ -1020,6 +1022,7 @@ namespace DCFApixels.WhimTex
                 Label warning = new Label("!");
                 warning.tooltip = effect.inputMode == EffectInputMode.Specific
                     ? "Select an existing non-cyclic target layer or group in the effect settings."
+                    : effect.inputMode == EffectInputMode.AllBelow ? "The lower stack creates a cyclic effect dependency."
                     : "This effect needs a layer or group directly below it.";
                 warning.style.color = new Color(1f, 0.65f, 0.15f, 1f);
                 warning.style.unityFontStyleAndWeight = FontStyle.Bold;
@@ -1031,6 +1034,7 @@ namespace DCFApixels.WhimTex
                         ? DisplayStyle.None : DisplayStyle.Flex;
                     warning.tooltip = effect.inputMode == EffectInputMode.Specific
                         ? "Select an existing non-cyclic target layer or group in the effect settings."
+                        : effect.inputMode == EffectInputMode.AllBelow ? "The lower stack creates a cyclic effect dependency."
                         : "This effect needs a layer or group directly below it.";
                 });
             }
@@ -1545,6 +1549,7 @@ namespace DCFApixels.WhimTex
             AddFillSettings();
             AddPencilSettings();
             VisualElement brushRow = CreatePreviewSettingsRow();
+            brushRow.AddToClassList("whimtex-brush-header");
             BindPreviewSettingsRow(brushRow, PreviewTool.Brush);
             EnumField tool = CompactField(new EnumField(paintSettings.tool), 72f);
             toolkitHeaderBindings.Track(tool, () => (Enum)paintSettings.tool);

@@ -547,7 +547,17 @@ namespace DCFApixels.WhimTex
                 return false;
             if (effect.inputMode == EffectInputMode.Specific)
                 return IsUsableEffectTarget(effect, effect.TargetLayerId);
+            if (effect.inputMode == EffectInputMode.AllBelow)
+                return container != null && !HasCyclicAllBelowInput(effect, container, index);
             return container != null && NextContentLayer(container, index) < container.Count;
+        }
+
+        private bool HasCyclicAllBelowInput(TargetedLayerBehaviour effect, List<Layer> container, int index)
+        {
+            var visited = new HashSet<Layer>();
+            for (int i = index + 1; i < container.Count; i++)
+                if (container[i]?.enabled == true && LayerDependsOn(container[i], effect, visited)) return true;
+            return false;
         }
 
         internal static int NextContentLayer(List<Layer> container, int index)
@@ -724,7 +734,7 @@ namespace DCFApixels.WhimTex
             int outputHeight,
             float scaleMultiplier,
             HashSet<Layer> renderStack,
-            HashSet<Layer> included = null, int firstIndex = 0)
+            HashSet<Layer> included = null, int firstIndex = 0, bool localAccumulator = true)
         {
             if (sourceLayers == null)
                 return;
@@ -784,7 +794,9 @@ namespace DCFApixels.WhimTex
                     outputWidth,
                     outputHeight,
                     scaleMultiplier,
-                    renderStack);
+                    renderStack, accumulatedInput: localAccumulator && included == null &&
+                        layer.Behaviour is TargetedLayerBehaviour targetEffect && targetEffect.inputMode == EffectInputMode.AllBelow
+                        ? accumulator : null);
                 if (rendered == null)
                     continue;
 
@@ -807,7 +819,7 @@ namespace DCFApixels.WhimTex
             bool passThrough = group.IsPassThrough;
             if (passThrough && group.opacity >= 1f)
             {
-                CompositeLayers(group.layers, ref accumulator, w, h, scale, stack, included);
+                CompositeLayers(group.layers, ref accumulator, w, h, scale, stack, included, localAccumulator: false);
                 return;
             }
             RenderTexture content = null;
@@ -836,7 +848,7 @@ namespace DCFApixels.WhimTex
                 {
                     content = GetClearRenderTexture(w, h);
                     if (passThrough) Graphics.Blit(accumulator, content);
-                    CompositeLayers(group.layers, ref content, w, h, scale, stack, included);
+                    CompositeLayers(group.layers, ref content, w, h, scale, stack, included, localAccumulator: !passThrough);
                     if (!passThrough)
                     {
                         group.ApplyModifiers(ref content, new LayerRenderContext(this, null, w, h, scale, false, true));
@@ -861,7 +873,7 @@ namespace DCFApixels.WhimTex
             bool applyModifiers = true,
             bool includeDisabled = false,
             bool applyClipping = true,
-            bool finishLayer = true)
+            bool finishLayer = true, RenderTexture accumulatedInput = null)
         {
             if (container == null || index < 0 || index >= container.Count)
                 return null;
@@ -895,7 +907,8 @@ namespace DCFApixels.WhimTex
                 }
                 if (layer?.Behaviour is TargetedLayerBehaviour effect)
                 {
-                    input = RenderEffectInput(
+                    if (effect.inputMode == EffectInputMode.AllBelow && accumulatedInput != null && HasCyclicAllBelowInput(effect, container, index)) return null;
+                    input = effect.inputMode == EffectInputMode.AllBelow && accumulatedInput != null ? accumulatedInput : RenderEffectInput(
                         effect,
                         container,
                         index,
@@ -926,7 +939,7 @@ namespace DCFApixels.WhimTex
             }
             finally
             {
-                if (input != null)
+                if (input != null && input != accumulatedInput)
                     RenderTexture.ReleaseTemporary(input);
                 renderStack.Remove(layer);
             }
@@ -941,6 +954,17 @@ namespace DCFApixels.WhimTex
             float scaleMultiplier,
             HashSet<Layer> renderStack)
         {
+            if (effect.inputMode == EffectInputMode.AllBelow)
+            {
+                if (HasCyclicAllBelowInput(effect, container, index)) return null;
+                var combined = GetClearRenderTexture(outputWidth, outputHeight);
+                try
+                {
+                    CompositeLayers(container, ref combined, outputWidth, outputHeight, scaleMultiplier, renderStack, firstIndex: index + 1);
+                    return combined;
+                }
+                catch { RenderTexture.ReleaseTemporary(combined); throw; }
+            }
             if (effect.inputMode != EffectInputMode.Specific)
             {
                 return RenderPreviousEffectInput(
@@ -1211,6 +1235,14 @@ namespace DCFApixels.WhimTex
 
             if (!(candidate?.Behaviour is TargetedLayerBehaviour effect))
                 return false;
+
+            if (effect.inputMode == EffectInputMode.AllBelow)
+            {
+                if (TryFindLayer(candidate, out var siblings, out int effectIndex))
+                    for (int i = effectIndex + 1; i < siblings.Count; i++)
+                        if (siblings[i]?.enabled == true && LayerDependsOn(siblings[i], soughtLayer, visited)) return true;
+                return false;
+            }
 
             Layer input = null;
             if (effect.inputMode == EffectInputMode.Specific)

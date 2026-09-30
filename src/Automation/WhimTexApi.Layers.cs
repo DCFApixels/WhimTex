@@ -83,7 +83,7 @@ namespace DCFApixels.WhimTex
                     Require(layer?.Behaviour is TargetedLayerBehaviour, "target requires an effect layer.");
                     var effect = (TargetedLayerBehaviour)layer;
                     effect.inputMode = Enum(operation, "input", EffectInputMode.Specific);
-                    Require(effect.inputMode != EffectInputMode.Previous || operation["target"] == null, "Previous input does not take a target.");
+                    Require(effect.inputMode == EffectInputMode.Specific || operation["target"] == null, "Previous and AllBelow inputs do not take a target.");
                     effect.TargetLayerId = effect.inputMode == EffectInputMode.Specific
                         ? Resolve(document, Text(operation, "target"), aliases).Id : null;
                     break;
@@ -252,7 +252,7 @@ namespace DCFApixels.WhimTex
             if (layer?.Behaviour is GradientLayerBehaviour gradient && settings["gradient"] != null) gradient.gradient = ReadGradient(settings["gradient"]);
         }
 
-        internal static WhimTexGradient ReadGradient(JToken token, WhimTexGradientMode defaultMode = WhimTexGradientMode.Classic, float maximumColor = 107f)
+        internal static WhimTexGradient ReadGradient(JToken token, WhimTexGradientMode defaultMode = WhimTexGradientMode.Perceptual, float maximumColor = 107f)
         {
             if (token is JObject data)
             {

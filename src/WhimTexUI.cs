@@ -304,6 +304,7 @@ namespace DCFApixels.WhimTex
             bool transformExpanded, Action<bool> transformExpansionChanged)
         {
             bool group = layer?.IsGroup == true;
+            WhimTexColorPicker.SetDocument(root, () => owner);
             AddTextureTransform(root, layer, owner, apply, bindings, transformExpanded, transformExpansionChanged);
 
             LayerColorSettingsView.Build(root, layer, apply, bindings, colorExpanded, colorExpansionChanged, owner);

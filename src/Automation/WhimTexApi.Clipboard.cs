@@ -130,7 +130,7 @@ namespace DCFApixels.WhimTex
                         try
                         {
                             var node = Obj(item, item.Path);
-                            Keys(node, "id", "type", "name", "properties", "transform", "children", "target", "fx", "url", "asset", "contentOmitted");
+                            Keys(node, "id", "type", "name", "properties", "transform", "children", "input", "target", "fx", "url", "asset", "contentOmitted");
                             string type = Text(node, "type");
                             Require(type == "color" || type == "gradient" || type == "noise" || type == "shape" ||
                                 type == "outline" || type == "sdf" || type == "normalMap" || type == "blur" || type == "sharpen" ||
@@ -197,10 +197,12 @@ namespace DCFApixels.WhimTex
                             if (layer.Behaviour is TargetedLayerBehaviour effect)
                             {
                                 string target = Text(node, "target");
+                                effect.inputMode = Enum(node, "input", target != null ? EffectInputMode.Specific : EffectInputMode.Previous);
+                                Require(effect.inputMode == EffectInputMode.Specific || target == null, "Previous and AllBelow inputs do not take a target.");
+                                Require(effect.inputMode != EffectInputMode.Specific || target != null, "Specific input requires a target.");
                                 if (target != null) targets.Add((effect, target, item.Path));
-                                else effect.inputMode = EffectInputMode.Previous;
                             }
-                            else Require(node["target"] == null, "target is only supported on targeted effect layers.");
+                            else Require(node["target"] == null && node["input"] == null, "input/target are only supported on targeted effect layers.");
                             if (node["children"] != null)
                             {
                                 Require(layer.IsGroup, "Only groups have children.");
@@ -362,7 +364,7 @@ namespace DCFApixels.WhimTex
                     }
                     var properties = PortableProperties(layer, snapshot);
                     RemovePortableDefaults(properties, baseline.properties,
-                        layer.Behaviour is SDFLayerBehaviour ? WhimTexGradientMode.Linear : WhimTexGradientMode.Classic);
+                        layer.Behaviour is SDFLayerBehaviour ? WhimTexGradientMode.Linear : WhimTexGradientMode.Perceptual);
                     var transform = Transform(root ? document.GetCanvasTransform(layer) : layer.transform);
                     RemovePortableDefaults(transform, baseline.transform);
                     var node = new JObject { ["id"] = layer.Id, ["type"] = type, ["name"] = layer.layerName };
@@ -412,10 +414,14 @@ namespace DCFApixels.WhimTex
                     if (layer.clippingMask) Reference(document.GetClippingBase(layer)?.Id, "Clipping mask");
                     if (layer.Behaviour is TargetedLayerBehaviour targeted)
                     {
-                        string target = targeted.TargetLayerId;
-                        if (targeted.inputMode == EffectInputMode.Previous && document.TryFindLayer(layer, out var container, out int index))
-                            target = index + 1 < container.Count ? container[index + 1]?.Id : null;
-                        node["target"] = Reference(target, "Target");
+                        if (targeted.inputMode == EffectInputMode.AllBelow) node["input"] = "AllBelow";
+                        else
+                        {
+                            string target = targeted.TargetLayerId;
+                            if (targeted.inputMode == EffectInputMode.Previous && document.TryFindLayer(layer, out var container, out int index))
+                                target = index + 1 < container.Count ? container[index + 1]?.Id : null;
+                            node["target"] = Reference(target, "Target");
+                        }
                     }
                     if (layer.IsGroup && layer.layers.Count > 0)
                     {
@@ -439,7 +445,7 @@ namespace DCFApixels.WhimTex
                                 var declaration = declarations.Find(value => value.name == p.name);
                                 var value = GradientSnapshot(p.gradientValue);
                                 if (!JToken.DeepEquals(value, GradientSnapshot(declaration?.gradientValue)))
-                                    gradients[p.name] = CompactPortableGradient(value, WhimTexGradientMode.Classic);
+                                    gradients[p.name] = CompactPortableGradient(value, WhimTexGradientMode.Perceptual);
                             }
                             if (p.type != ShaderFXParameterType.Texture2D) continue;
                             Require(p.textureSource != ShaderFXTextureSource.Texture || p.textureValue == null,
@@ -491,7 +497,7 @@ namespace DCFApixels.WhimTex
 
         // Settings objects merge into a fresh layer; arrays and gradients replace their entire value.
         private static void RemovePortableDefaults(JObject value, JObject defaults,
-            WhimTexGradientMode gradientMode = WhimTexGradientMode.Classic)
+            WhimTexGradientMode gradientMode = WhimTexGradientMode.Perceptual)
         {
             foreach (var property in new List<JProperty>(value.Properties()))
             {

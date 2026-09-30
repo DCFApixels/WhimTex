@@ -2,6 +2,7 @@ using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
+using ColorField = DCFApixels.WhimTex.WhimTexColorField;
 
 namespace DCFApixels.WhimTex
 {
@@ -240,7 +241,7 @@ namespace DCFApixels.WhimTex
 
         private static ColorField AddColor(VisualElement parent, string label, System.Action<Color> write)
         {
-            var field = new ColorField(label) { hdr = false, showAlpha = false };
+            var field = new ColorField(label) { hdr = false, showAlpha = false, Range = WhimTexColorRange.StandardOnly };
             field.AddToClassList("whimtex-user-settings-color");
             field.RegisterValueChangedCallback(evt => write(evt.newValue));
             parent.Add(field);

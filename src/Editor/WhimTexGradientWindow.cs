@@ -4,6 +4,7 @@ using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
+using ColorField = DCFApixels.WhimTex.WhimTexColorField;
 
 namespace DCFApixels.WhimTex
 {
@@ -19,6 +20,7 @@ namespace DCFApixels.WhimTex
         private VisualElement strip;
         private Image image;
         private ColorField color;
+        private Func<int> channelSource;
         private VisualElement colorControls;
         private Button hdrToggle;
         private FloatField intensity;
@@ -30,6 +32,8 @@ namespace DCFApixels.WhimTex
         private bool pendingRemoval;
         private bool writingOwner;
         private bool checkFocus;
+        private WhimTexColorPicker keyColorPicker;
+        private bool waitingForColorPicker;
         private double focusCheckAfter;
         private Texture2D preview;
         private WhimTexGradient previewSource;
@@ -60,7 +64,9 @@ namespace DCFApixels.WhimTex
             }
             window.titleContent = new GUIContent("Gradient");
             window.gradient = value;
-            window.minSize = new Vector2(380, 350);
+            window.channelSource = owner is WhimTexGradientSession session ? session.channelSource :
+                WhimTexColorChannels.FindSource(null, WhimTexColorPicker.DocumentFor(owner));
+            window.minSize = new Vector2(380, 400);
             window.Refresh();
             window.ShowUtility();
             return window;
@@ -90,14 +96,23 @@ namespace DCFApixels.WhimTex
         }
         private void CheckFocus()
         {
+            if (waitingForColorPicker)
+            {
+                if (keyColorPicker != null) return;
+                waitingForColorPicker = false;
+                checkFocus = false;
+                if (!EditorApplication.isCompiling) Focus();
+                return;
+            }
             if (!checkFocus || EditorApplication.timeSinceStartup < focusCheckAfter || EditorApplication.isCompiling) return;
             var focused = focusedWindow;
             if (focused == this) { checkFocus = false; return; }
-            if (focused != null && focused.GetType().FullName == "UnityEditor.ColorPicker") return;
             Close();
         }
         private void OnDisable()
         {
+            if (historyCursor != null) DestroyImmediate(historyCursor);
+            historyCursor = null;
             ReleasePresetPreviews();
             EditorApplication.update -= CheckFocus;
             AssemblyReloadEvents.beforeAssemblyReload -= CloseSession;
@@ -167,7 +182,8 @@ namespace DCFApixels.WhimTex
                 }
             });
             rootVisualElement.Add(strip);
-            color = new ColorField("Color") { hdr = false, showAlpha = false };
+            color = new ColorField("Color") { hdr = false, showAlpha = false, UsePreviewChannels = true, ReadPreviewChannels = () => channelSource?.Invoke() ?? -1 };
+            color.OpenPickerOverride = OpenKeyColor;
             color.RegisterValueChangedCallback(e => Edit(() =>
             {
                 Color value = e.newValue;
@@ -215,6 +231,7 @@ namespace DCFApixels.WhimTex
             separator.AddToClassList("whimtex-gradient-key-separator");
             keyRow.Add(colorControls); keyRow.Add(alpha); keyRow.Add(separator); keyRow.Add(location);
             rootVisualElement.Add(keyRow);
+            BuildColorHistory();
             BuildPresets();
             var spacer = new VisualElement();
             spacer.AddToClassList("whimtex-gradient-debug-spacer");
@@ -234,12 +251,18 @@ namespace DCFApixels.WhimTex
             var expected = gradient;
             int index = selected;
             float time = colors[index].time;
-            if (!GradientKeyColorPicker.Show(color.value, color.hdr, value =>
+            var picker = WhimTexColorPicker.Open(DisplayColor(), color.hdr, false, WhimTexColorRange.Switchable,
+                WhimTexColorPicker.DocumentFor(owner), value =>
             {
                 if (this == null || gradient != expected || alphaTrack || midpointSelected ||
                     selected != index || index >= colors.Length || colors[index].time != time) return;
-                color.value = value;
-            })) ShowNotification(new GUIContent("Unity Color Picker is unavailable in this Editor version."));
+                Edit(() => { intensityPreferences.Remove(time); StoreDisplayColor(value); });
+                expected = gradient;
+            }, value => { hdrPreferences[time] = value; Refresh(); },
+                () => this != null && gradient == expected && !alphaTrack && !midpointSelected && selected == index && index < colors.Length && colors[index].time == time);
+            picker.SetChannelSource(channelSource);
+            keyColorPicker = picker;
+            waitingForColorPicker = true;
         }
         private void ToggleHdr()
         {
@@ -325,6 +348,7 @@ namespace DCFApixels.WhimTex
             }
             location.label = midpointSelected ? "Midpoint" : "Location";
             location.SetValueWithoutNotify((midpointSelected ? gradient.GetMidpoint(alphaTrack, selected) : Time) * 100);
+            RefreshColorHistory();
             strip.MarkDirtyRepaint();
             if (newPresetImage != null) newPresetImage.image = preview;
             if (preview != null && ReferenceEquals(previewSource, gradient) && previewRevision == gradient.Revision && previewExposure == exposure)

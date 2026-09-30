@@ -48,7 +48,8 @@ namespace DCFApixels.WhimTex
     public enum EffectInputMode
     {
         Previous = 0,
-        Specific = 1
+        Specific = 1,
+        [InspectorName("All Below")] AllBelow = 2
     }
 
     public enum PaintToolMode

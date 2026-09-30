@@ -50,7 +50,7 @@ namespace DCFApixels.WhimTex
             Require(d.blend!=BlendMode.None && d.blend!=BlendMode.Overwrite,"Use a color blend mode, not None or Overwrite.");
             d.blendApplication=Enum(settings,"blendApplication",BrushBlendApplication.Stroke);
             d.seed=Int(settings,"seed",1,1,int.MaxValue);
-            if(settings["tipGradient"]!=null)d.tipGradient=ReadGradient(settings["tipGradient"],WhimTexGradientMode.Linear);
+            if(settings["tipGradient"]!=null)d.tipGradient=ReadGradient(settings["tipGradient"]);
             if(settings["tintGradient"]!=null)d.tintGradient=ReadGradient(settings["tintGradient"]);
             if(d.source==BrushTipSource.Standard)
             {

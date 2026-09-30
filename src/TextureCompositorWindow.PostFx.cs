@@ -3,6 +3,7 @@ using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
+using ColorField = DCFApixels.WhimTex.WhimTexColorField;
 
 namespace DCFApixels.WhimTex
 {
@@ -120,6 +121,7 @@ namespace DCFApixels.WhimTex
             postFxBackgroundField = WhimTexUI.ConfigureField(new ColorField("Color")
             {
                 name = "postFxBackground",
+                Range = WhimTexColorRange.StandardOnly,
                 hdr = false,
                 showAlpha = false,
                 value = WhimTexUserSettings.PostFxBackground,

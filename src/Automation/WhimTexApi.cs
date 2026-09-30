@@ -296,6 +296,10 @@ namespace DCFApixels.WhimTex
                 if (layer?.Behaviour is TargetedLayerBehaviour effect && effect.inputMode == EffectInputMode.Specific)
                     Require(document.IsUsableEffectTarget(effect, effect.TargetLayerId),
                         "Invalid or cyclic effect target for " + effect.layerName, "invalid_target");
+                if (layer?.Behaviour is TargetedLayerBehaviour stackEffect && stackEffect.inputMode == EffectInputMode.AllBelow &&
+                    document.TryFindLayer(layer, out var siblings, out int index))
+                    Require(document.HasUsableEffectInput(stackEffect, siblings, index),
+                        "Cyclic lower-stack input for " + layer.layerName, "invalid_target");
             }
         }
 

@@ -612,6 +612,34 @@
     margin: 0 2px;
 }
 
+.whimtex-brush-header > .unity-base-field {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.whimtex-brush-header .unity-base-field__label {
+    margin-top: 0;
+    margin-bottom: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    -unity-text-align: middle-left;
+}
+
+.whimtex-brush-header > .whimtex-brush-edge,
+.whimtex-brush-header .whimtex-brush-edge-field {
+    height: 22px;
+    min-height: 0;
+    flex-grow: 0;
+    flex-shrink: 0;
+}
+
+.whimtex-brush-header .whimtex-gradient-test-field {
+    height: 22px;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+}
+
 .whimtex-brush-edge-field {
     flex-grow: 1;
     margin: 0;

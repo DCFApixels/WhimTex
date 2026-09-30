@@ -8,6 +8,18 @@ namespace DCFApixels.WhimTex
     public sealed partial class TextureCompositorWindow
     {
         private const int AllPreviewChannels = 15;
+        internal static Func<int> FindColorChannelSource(TextureCompositor document)
+        {
+            if (document == null) return null;
+            TextureCompositorWindow match = null;
+            foreach (var window in Resources.FindObjectsOfTypeAll<TextureCompositorWindow>())
+                if (window.compositor == document)
+                {
+                    if (match != null) return null;
+                    match = window;
+                }
+            return match == null ? null : () => match != null && match.compositor == document ? match.previewChannels : -1;
+        }
         [SerializeField] private int previewChannels = AllPreviewChannels;
         [NonSerialized] private RenderTexture channelPreviewTexture;
         [NonSerialized] private Button[] channelButtons;

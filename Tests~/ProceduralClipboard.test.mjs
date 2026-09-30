@@ -37,6 +37,14 @@ assert.equal(matches(schema.$defs.fx, {code:'float4 ApplyFX(float2 uv, float4 co
 assert.equal(matches(schema.$defs.fx, {code:'x', textures:{_Map:{asset:'external'}}}), false);
 assert.equal(matches(schema.$defs.fx, {code:'x', gradients:{_Tint:'invalid'}}), false);
 const guide = read('Documentation~/AI/README.md');
+for (const type of ['outline', 'sdf', 'normalMap', 'blur', 'sharpen', 'makeSeamless']) {
+  assert.equal(matches(schema.$defs.layer, { type, input: 'AllBelow' }), true);
+  assert.equal(matches(schema.$defs.layer, { type, input: 'Unknown' }), false);
+  const branch = schema.$defs.layer.oneOf.find(rule => rule.properties.type.const === type);
+  assert.deepEqual(branch.properties.input.enum, ['Previous', 'Specific', 'AllBelow']);
+  assert.equal(branch.allOf.length, 2, 'Target/input constraints are emitted');
+}
+assert.equal(matches(schema.$defs.layer, { type: 'noise', input: 'AllBelow' }), false);
 for (const filter of ['Point', 'Bilinear', 'Trilinear']) {
   assert.ok(matches(schema, { format: 'whimtex.layers', version: 1,
     canvas: { width: 64, height: 96, filter }, layers: [{ type: 'color' }] }));

@@ -45,6 +45,7 @@
 | UI параметров | [ShaderFXParameterView.cs](../src/Editor/ShaderFXParameterView.cs), [WhimTexSoftRangeField.cs](../src/Editor/WhimTexSoftRangeField.cs) |
 | Готовые эффекты | [FXPresets/](../src/FXPresets/) |
 | Градиенты | [WhimTexGradient.cs](../src/WhimTexGradient.cs), [WhimTexGradientTexture.cs](../src/WhimTexGradientTexture.cs), [WhimTexGradientWindow.cs](../src/Editor/WhimTexGradientWindow.cs), [canvas handles](../src/TextureCompositorWindow.Gradient.cs) |
+| Выбор цвета и история документа | [WhimTexColorPicker.cs](../src/Editor/WhimTexColorPicker.cs), [WhimTexColorField.cs](../src/Editor/WhimTexColorField.cs), [TextureCompositor.ColorHistory.cs](../src/TextureCompositor.ColorHistory.cs); [контракт HDR](../Documentation~/HDR.md#color-picker-and-history) |
 | Кисти и пресеты | [BrushPresetLibrary.cs](../src/BrushPresetLibrary.cs), [BrushPresetImporter.cs](../src/Editor/BrushPresetImporter.cs), [BrushHlslWindow.cs](../src/Editor/BrushHlslWindow.cs) |
 | Выделение, UV, направляющие | [CanvasSelection.cs](../src/CanvasSelection.cs), [UvIslandMap.cs](../src/UvIslandMap.cs), window partial-файлы `.AreaSelection`, `.Uv`, `.Guides`, `.GuideSnapping` |
 | Пипетка / пользовательские настройки | [Eyedropper](../src/TextureCompositorWindow.Eyedropper.cs), [WhimTexUserSettings.cs](../src/WhimTexUserSettings.cs) |

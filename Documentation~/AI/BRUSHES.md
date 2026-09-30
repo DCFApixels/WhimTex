@@ -81,6 +81,12 @@ Source-specific root fields:
 | blend | Color blend names from the schema, default Normal; None and Overwrite are not allowed |
 | blendApplication | Stroke / Stamp; Stroke |
 
+Both gradient fields accept a stop array or an object with `colors`, optional `alphas`, `mode`,
+`wrapMode`, `smoothness` and `colorSpace`. If `mode` is omitted, both `tipGradient` and
+`tintGradient` use **Perceptual**, also the default for new brushes; explicit modes are retained. Color-picker RGB/HSV, HDR input,
+Channels and Preview EV preferences do not transform pasted values, and pasting does not populate
+document History. RGB limits remain -107..107 and alpha 0..1, not the wider standalone gradient range.
+
 Standard texture tips and HLSL tips share all channel, SDF/Gradient, rotation, flip and painting behavior.
 HLSL only changes how the tip image is obtained. Changing its parameters does not reset
 these settings. Use opaque grayscale RGB plus Luminance for a distance field; with SDF enabled,

@@ -185,16 +185,18 @@ Every layer requires `type`. All other fields are optional; omitted settings use
 | `properties` | Common settings and the type-specific settings below |
 | `transform` | Non-group layer placement; see below |
 | `children` | Groups only; if present, a nonempty array in top-to-bottom order |
-| `target` | Local ID, without `@`, for Outline/SDF/Normal Map/Blur/Make Seamless |
+| `input` | Targeted effects only: `Previous`, `Specific`, `AllBelow`. Defaults to Specific when target is supplied, otherwise Previous. |
+| `target` | Local ID, without `@`, for Outline/SDF/Normal Map/Blur/Sharpen/Make Seamless; required for Specific, forbidden for Previous/AllBelow |
 | `fx` | Any layer, including groups: array of `{ "name": "Optional name", "code": "HLSL source" }`. Optional `enabled` (default true), `gradients` mapping declared parameter names to gradient values, and `textures` mapping texture parameter names to `{ "layer": "clipboard-id" }`. |
 | `url` | Drawing layers only: absolute `http`/`https` link to a PNG or JPEG, downloaded on paste |
 | `asset` | File only: `{ "guid": "32 hex characters", "localId": "2800000" }`. Restores an existing Texture2D; localId is an optional signed 64-bit decimal string identifying a subasset. Missing assets produce an empty layer and a warning. Never invent GUIDs. |
 | `contentOmitted` | Drawing/File only: `true` marks omitted image content and warns on paste. Cannot accompany `url` or `asset`. Layer settings and references remain intact. |
 
-Targets may refer forward or backward in the JSON. Hidden sources still work. With no `target`,
+Targets may refer forward or backward in the JSON. Hidden sources still work. With no `input` or `target`,
 a targeted effect uses the next sibling below it. Prefer explicit targets for predictable portable results.
 With no next sibling in the pasted tree it has no source; it does not attach to an existing document layer.
 No targets outside this pasted tree. No cycles, self-targeting or targets that make a group depend on itself.
+`"input":"AllBelow"` reads the composited visible lower siblings on transparency, including their opacity, blend modes and effects, within the current group (also for Pass Through). An empty lower stack is transparent. It remains stack-relative when copied or pasted, so lower layers at the destination can contribute. It does not replace the effect's usual output blending. A lower dependency that refers back to this effect is rejected as a cycle.
 Groups support `fx`: effects process the combined children before group opacity and blending. FX automatically isolate a Pass Through group using Normal blending, without affecting layers outside it. Removing all FX restores Pass Through unless clipping or Swizzle still requires isolation.
 
 ### Common properties
@@ -277,7 +279,7 @@ uses the same version-1 clipboard format, without rounding numeric values.
   For independent tracks, use an object instead of an array:
   `{ "colors": [...], "alphas": [{ "time": 0, "alpha": 1, "midpoint": 0.5 }], "mode": "Linear", "smoothness": 1 }`.
   Each track supports 1..64 keys; times must increase. `colorSpace` is optionally `Gamma` (default) or `Linear`.
-  SDF uses `Linear` interpolation by default; other gradients use `Classic`. `Fixed` ignores midpoint and smoothness.
+  SDF uses `Linear` interpolation by default; general-purpose gradients use `Perceptual`. Explicit modes are preserved. `Fixed` ignores midpoint and smoothness.
 
 ### Noise
 
@@ -478,7 +480,7 @@ RGBA arrays; standalone RGB supports finite HDR values from -65504 to 65504, alp
 `wrapMode` is optional and defaults to `Clamp`; `Repeat` tiles values outside 0..1, while `Mirror`
 reflects each repeated interval.
 If `alphas` is omitted, color alpha components define the alpha track. Interpolation modes:
-`Classic`, `Linear`, `Perceptual`, `Fixed`; default `Classic`. `colorSpace`: `Gamma` (default)
+`Classic`, `Linear`, `Perceptual`, `Fixed`; default `Perceptual`. `colorSpace`: `Gamma` (default)
 or `Linear`. `smoothness`: 0..1, default 1. `midpoint`: 0.01..0.99, default 0.5;
 the last key's midpoint has no following segment. Rounded is the built-in algorithm, not a serialized setting.
 The retired `transition` input field is ignored in old JSON/documents; it is not converted,
@@ -650,7 +652,7 @@ for sampling precision and preset persistence. This is not a layer property or a
 FX-only `gradient` is declared as `// @param gradient _Ramp`, optionally with two endpoint colors:
 `// @param gradient _Ramp = #FF0000FF -> #0000FF`. Each endpoint may be `#RRGGBB` (opaque),
 `#RRGGBBAA` (RGBA), or a numeric `(r, g, b, a)` tuple. Without an initializer it starts opaque
-black-to-white (Classic). The user can edit colors, HDR, alpha and interpolation in the gradient field.
+black-to-white (Perceptual). The user can edit colors, HDR, alpha and interpolation in the gradient field.
 The same hex forms are accepted for `color` defaults; color defaults also accept numeric RGBA tuples.
 Call `_Ramp_Sample(t)` for straight linear RGBA; `t` is clamped to 0..1.
 For example, `return _Ramp_Sample(uv.x);`. Do not declare a sampler yourself. A cached 512×2

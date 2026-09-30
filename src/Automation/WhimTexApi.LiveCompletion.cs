@@ -78,7 +78,7 @@ namespace DCFApixels.WhimTex
                 {
                     effect.inputMode = Enum(spec, "input", EffectInputMode.Specific);
                     effect.TargetLayerId = Text(spec, "target");
-                    Require(effect.inputMode != EffectInputMode.Previous || effect.TargetLayerId == null, "Previous input does not take a target.");
+                    Require(effect.inputMode == EffectInputMode.Specific || effect.TargetLayerId == null, "Previous and AllBelow inputs do not take a target.");
                 }
                 else Require(spec["input"] == null && spec["target"] == null, "input/target require an effect layer.");
                 if (candidate?.Behaviour is FileLayerBehaviour file && file.sourceTexture != null)

@@ -2003,10 +2003,59 @@
               "type": "string",
               "maxLength": 64,
               "minLength": 1
+            },
+            "input": {
+              "type": "string",
+              "enum": [
+                "Previous",
+                "Specific",
+                "AllBelow"
+              ]
             }
           },
           "required": [
             "type"
+          ],
+          "allOf": [
+            {
+              "if": {
+                "required": [
+                  "input"
+                ],
+                "properties": {
+                  "input": {
+                    "const": "Specific"
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "target"
+                ]
+              }
+            },
+            {
+              "if": {
+                "required": [
+                  "input"
+                ],
+                "properties": {
+                  "input": {
+                    "enum": [
+                      "Previous",
+                      "AllBelow"
+                    ]
+                  }
+                }
+              },
+              "then": {
+                "not": {
+                  "required": [
+                    "target"
+                  ]
+                }
+              }
+            }
           ]
         },
         {
@@ -2135,10 +2184,59 @@
               "type": "string",
               "maxLength": 64,
               "minLength": 1
+            },
+            "input": {
+              "type": "string",
+              "enum": [
+                "Previous",
+                "Specific",
+                "AllBelow"
+              ]
             }
           },
           "required": [
             "type"
+          ],
+          "allOf": [
+            {
+              "if": {
+                "required": [
+                  "input"
+                ],
+                "properties": {
+                  "input": {
+                    "const": "Specific"
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "target"
+                ]
+              }
+            },
+            {
+              "if": {
+                "required": [
+                  "input"
+                ],
+                "properties": {
+                  "input": {
+                    "enum": [
+                      "Previous",
+                      "AllBelow"
+                    ]
+                  }
+                }
+              },
+              "then": {
+                "not": {
+                  "required": [
+                    "target"
+                  ]
+                }
+              }
+            }
           ]
         },
         {
@@ -2267,10 +2365,59 @@
               "type": "string",
               "maxLength": 64,
               "minLength": 1
+            },
+            "input": {
+              "type": "string",
+              "enum": [
+                "Previous",
+                "Specific",
+                "AllBelow"
+              ]
             }
           },
           "required": [
             "type"
+          ],
+          "allOf": [
+            {
+              "if": {
+                "required": [
+                  "input"
+                ],
+                "properties": {
+                  "input": {
+                    "const": "Specific"
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "target"
+                ]
+              }
+            },
+            {
+              "if": {
+                "required": [
+                  "input"
+                ],
+                "properties": {
+                  "input": {
+                    "enum": [
+                      "Previous",
+                      "AllBelow"
+                    ]
+                  }
+                }
+              },
+              "then": {
+                "not": {
+                  "required": [
+                    "target"
+                  ]
+                }
+              }
+            }
           ]
         },
         {
@@ -2399,10 +2546,59 @@
               "type": "string",
               "maxLength": 64,
               "minLength": 1
+            },
+            "input": {
+              "type": "string",
+              "enum": [
+                "Previous",
+                "Specific",
+                "AllBelow"
+              ]
             }
           },
           "required": [
             "type"
+          ],
+          "allOf": [
+            {
+              "if": {
+                "required": [
+                  "input"
+                ],
+                "properties": {
+                  "input": {
+                    "const": "Specific"
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "target"
+                ]
+              }
+            },
+            {
+              "if": {
+                "required": [
+                  "input"
+                ],
+                "properties": {
+                  "input": {
+                    "enum": [
+                      "Previous",
+                      "AllBelow"
+                    ]
+                  }
+                }
+              },
+              "then": {
+                "not": {
+                  "required": [
+                    "target"
+                  ]
+                }
+              }
+            }
           ]
         },
         {
@@ -2620,10 +2816,59 @@
               "type": "string",
               "maxLength": 64,
               "minLength": 1
+            },
+            "input": {
+              "type": "string",
+              "enum": [
+                "Previous",
+                "Specific",
+                "AllBelow"
+              ]
             }
           },
           "required": [
             "type"
+          ],
+          "allOf": [
+            {
+              "if": {
+                "required": [
+                  "input"
+                ],
+                "properties": {
+                  "input": {
+                    "const": "Specific"
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "target"
+                ]
+              }
+            },
+            {
+              "if": {
+                "required": [
+                  "input"
+                ],
+                "properties": {
+                  "input": {
+                    "enum": [
+                      "Previous",
+                      "AllBelow"
+                    ]
+                  }
+                }
+              },
+              "then": {
+                "not": {
+                  "required": [
+                    "target"
+                  ]
+                }
+              }
+            }
           ]
         },
         {
@@ -2832,10 +3077,59 @@
               "type": "string",
               "maxLength": 64,
               "minLength": 1
+            },
+            "input": {
+              "type": "string",
+              "enum": [
+                "Previous",
+                "Specific",
+                "AllBelow"
+              ]
             }
           },
           "required": [
             "type"
+          ],
+          "allOf": [
+            {
+              "if": {
+                "required": [
+                  "input"
+                ],
+                "properties": {
+                  "input": {
+                    "const": "Specific"
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "target"
+                ]
+              }
+            },
+            {
+              "if": {
+                "required": [
+                  "input"
+                ],
+                "properties": {
+                  "input": {
+                    "enum": [
+                      "Previous",
+                      "AllBelow"
+                    ]
+                  }
+                }
+              },
+              "then": {
+                "not": {
+                  "required": [
+                    "target"
+                  ]
+                }
+              }
+            }
           ]
         },
         {

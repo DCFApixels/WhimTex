@@ -3,6 +3,7 @@ using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
+using ColorField = DCFApixels.WhimTex.WhimTexColorField;
 
 namespace DCFApixels.WhimTex
 {
@@ -46,6 +47,9 @@ namespace DCFApixels.WhimTex
 
         internal static ColorField Bind(ColorField field, WhimTexUI.ValueBindings bindings, Func<Color> read)
         {
+            field.UsePreviewChannels = true;
+            field.ReadPickerColor = read;
+            field.HdrChanged = value => Hdr = value;
             void Refresh()
             {
                 field.hdr = Hdr;
@@ -58,7 +62,11 @@ namespace DCFApixels.WhimTex
 
         internal static ColorField Bind(ColorField field, SerializedProperty property, Action edited)
         {
+            field.UsePreviewChannels = true;
             SerializedProperty source = property.Copy();
+            field.ReadPickerColor = () => source.colorValue;
+            field.Document = () => WhimTexColorPicker.DocumentFor(source.serializedObject.targetObject);
+            field.HdrChanged = value => Hdr = value;
             void Refresh()
             {
                 field.hdr = Hdr;

@@ -15,7 +15,41 @@ next_page: "en/post-fx.md"
 For ordinary painting, leave **HDR** off and all four **R / G / B / A** buttons on.
 Use the controls below when you need extra brightness, channel masks or texture data.
 
+## Choose and reuse colors
+
+With HDR off, **History** hides colors whose RGB components fall outside 0–1. They remain saved and reappear when HDR is enabled. In the gradient editor this follows the selected color key's HDR mode; opacity does not affect filtering.
+
+WhimTex color fields and gradient keys open the WhimTex Color Picker. Use the hue ring and its central saturation/value square,
+RGB or HSV channels, Hex, and A for transparency. HDR can be switched inside the picker; inputs that
+require Standard or HDR lock this switch. Exposure adjusts HDR intensity in stops.
+Changing the HDR switch alone preserves the stored color; editing in Standard replaces it with a bounded color.
+Changes preview immediately. Closing the picker confirms them; Escape restores the opening color. There are no confirmation buttons.
+The last selected **RGB 0–255**, **RGB 0–1** or **HSV** mode is remembered for all color pickers, including after restarting Unity. Switching modes does not change the color.
+The bottom **Preview EV** slider (−10 to +10), styled like the gradient editor's footer, adjusts display brightness only. Lower it to inspect bright HDR colors. It affects the saturation/value square, slider gradients and color/History swatches, but not the hue ring, screen eyedropper, checkerboards or alpha values. Numeric values and saved colors remain unchanged. Each new picker starts at 0; **Exposure** still edits the actual HDR color.
+Hexadecimal has a separate **#** prefix. Paste RGB or RGBA hex in either case, with or without `#` (`RRGGBB` / `RRGGBBAA`, or short `RGB` / `RGBA`). Confirm with Enter or leave the field. RGBA updates editable alpha; RGB preserves it. The field always displays six RGB digits, without alpha. HDR exposure affects RGB only.
+Alt sampling also updates the open primary brush color picker for that WhimTex window, including its channels, Hex and markers. Layer, gradient and secondary-color pickers are unaffected. Without a matching picker, Alt continues to change the primary brush color normally.
+
+The picker's eyedropper temporarily replaces the hue ring with a magnified pixel grid and a frame around the sampled pixel. Selecting a color or canceling sampling restores the ring. Escape during sampling cancels only the eyedropper, keeping the picker open and its current color unchanged. If the magnifier is unavailable in your Editor, ordinary eyedropper selection still works.
+
+Channel sliders show color gradients, with a checkerboard under alpha. Original and new colors appear at the top right.
+The hue ring and its selection marker have smoothed edges when the interface is scaled.
+Both selection markers use a white circle with a subtle, thin black outline on the outside.
+History is a collapsible, compact grid of the document's colors. New unique confirmed colors are inserted at the beginning, not every slider intermediate.
+The gray **+** square at the start adds the current color without closing the picker. This explicit addition remains even if you later cancel the color selection with Escape. Existing colors are not duplicated.
+Hover a color swatch to show the same eyedropper cursor as Alt sampling, with a thin dark outline for visibility on light colors. Click a swatch to reuse it and move it to the first color slot after **+**, or drag to reorder. Drag outside the history area until the swatch has a red outline,
+then release to remove it. Return inside or press Escape before releasing to cancel the removal.
+Right-click → Remove and Delete/Backspace also remove a swatch.
+Removing a swatch does not alter colors already used by layers. Inputs outside a document have no document history.
+Confirming a manually entered color that exactly matches an existing History color (including alpha and HDR intensity) moves it to the front without a duplicate. Intermediate manual edits and canceling them do not automatically record or promote a color. Explicit History actions—clicking a swatch, adding, reordering or removing—remain after canceling color selection with Escape.
+
+The gradient editor also shows **History** above **WhimTex Presets**, without the **+** button. Select a color key and click a swatch to apply its RGB and HDR intensity directly, without opening the color picker. Opacity keys and the selected key's position are preserved. The palette is disabled for opacity keys and midpoints; drag reordering and drag-out removal work as in the picker.
+
 ## Inspect a channel
+
+**Channels** in the color picker follows the main preview's R/G/B/A buttons for document colors (brushes, layers, gradient keys and FX). Turn it off for ordinary color display. The ring, square and slider gradients adapt; swatches compare the original color in the upper-left half with the channel view in the lower-right half. Their single alpha bar still shows actual transparency. RGB/HSV/HEX numbers and saved History colors remain original; editing is not restricted to visible channels.
+
+This choice is remembered across color pickers. Interface colors such as guides, UV overlays and checkerboards do not adapt. The eyedropper magnifier always shows the actual screen pixels. Mini-preview channel buttons are independent and do not affect the picker.
+HDR color fields keep their intensity gradients in both diagonal halves; the shared alpha bar still represents the stored alpha.
 
 The footer channel buttons let you see parts of the image separately:
 
@@ -29,8 +63,10 @@ if A is off, Brush, Pencil and Fill leave no mark. They do not change existing p
 
 ## Paint bright HDR colors
 
-Enable **HDR** beside EV to choose colors brighter than ordinary white.
+Enable **HDR** beside EV in the main preview footer to choose colors with RGB values above ordinary white (1).
 This is useful for luminous details you want to use with bloom.
+
+HDR values are real, but the current WhimTex editor previews are SDR, including the color picker and gradient editor. An HDR monitor alone does not make them display extra physical brightness. Lower **Preview EV** to inspect bright values without changing the color; intensity gradients in color fields are visual indicators, not HDR monitor output. The picker, gradient editor and main preview have independent exposure controls.
 
 In **Layer Settings → Color & Blending**, choose **HDR** in the header dropdown
 to let the layer retain that extra brightness. **Standard** is the usual choice for ordinary artwork.
@@ -38,6 +74,7 @@ to let the layer retain that extra brightness. **Standard** is the usual choice 
 The HDR button controls color picking; it does not convert your existing image.
 Turning it off lets you paint with the color without its extra intensity.
 Turning it back on restores that intensity unless you have edited the color in between.
+The gradient editor has its own HDR switch for the selected color key; it does not follow the main footer's shared HDR preference.
 
 ## Fine-tune a layer's color range
 
@@ -56,8 +93,10 @@ Use **Convert to 8-bit** only if you want to permanently reduce the stored color
 
 ## Edit a gradient
 
+New gradients, including brush-tip and brush-tint gradients, use **Perceptual** unless a control explicitly defines another mode, such as Linear for SDF and Pattern gradients. Existing gradients retain their selected interpolation.
+
 Select a Gradient layer to activate **Gradient Handles**, the contextual hand tool. Square handles change its geometry;
-colored points move color keys. Click the line to add a key, or double-click a point to open Unity's
+colored points move color keys. Click the line to add a key, or double-click a point to open WhimTex's
 Color Picker. Alpha keys remain in the gradient editor.
 Drag the small diamonds to move the midpoint between colors (except in Fixed mode).
 Delete a selected color key with Delete while the preview has focus, or drag it away from the line and release.
@@ -86,6 +125,7 @@ Fixed uses hard bands. A narrow fade or a midpoint near an endpoint can still pr
 and **Mirror** reflects each repeated interval.
 
 Double-click a color-key marker in the gradient editor to open its color picker. A single click selects it; dragging moves it.
+Closing the color picker or canceling it with Escape returns to the gradient editor without closing that editor.
 Use **HDR** beside the selected color when extra brightness is needed. Drag a key vertically
 away from its track to delete it; each track keeps at least one key. Right-click a gradient field
 to **Copy** or **Paste** an independent copy. SDF layers start with **Linear** interpolation.

@@ -11,8 +11,7 @@ public static class GradientKeyPickerSmoke
 {
     const BindingFlags Flags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
     const string WindowName = "Gradient key picker smoke";
-    static Type Picker => typeof(EditorWindow).Assembly.GetType("UnityEditor.ColorPicker");
-    static EditorWindow ActivePicker => Resources.FindObjectsOfTypeAll(Picker).Cast<EditorWindow>().FirstOrDefault();
+    static WhimTexColorPicker ActivePicker => Resources.FindObjectsOfTypeAll<WhimTexColorPicker>().FirstOrDefault();
     static object Get(object target, string name) => target.GetType().GetField(name, Flags).GetValue(target);
     static void Set(object target, string name, object value) => target.GetType().GetField(name, Flags).SetValue(target, value);
     static void Refresh(WhimTexGradientWindow window) => typeof(WhimTexGradientWindow).GetMethod("Refresh", Flags).Invoke(window, null);
@@ -39,6 +38,50 @@ public static class GradientKeyPickerSmoke
         window.ShowUtility();
         return "Temporary test window opened. Run Verify after layout.";
     }
+    public static string FocusLifecycle()
+    {
+        if (ActivePicker != null || Resources.FindObjectsOfTypeAll<WhimTexGradientWindow>().Length != 0)
+            return "BLOCKED: close user gradient/color picker windows before running this test.";
+        var previousFocus = EditorWindow.focusedWindow;
+        var window = ScriptableObject.CreateInstance<WhimTexGradientWindow>();
+        WhimTexColorPicker picker = null;
+        void Call(string method) => typeof(WhimTexGradientWindow).GetMethod(method, Flags).Invoke(window, null);
+        void PendingFocusCheck() { Set(window, "checkFocus", true); Set(window, "focusCheckAfter", 0d); }
+        try
+        {
+            window.name = "Gradient picker focus test"; window.ShowUtility();
+            foreach (bool cancel in new[] { false, true, false })
+            {
+                Call("OpenKeyColor"); picker = ActivePicker;
+                Check(picker != null && ReferenceEquals(Get(window, "keyColorPicker"), picker), "Gradient owns its key picker");
+                PendingFocusCheck(); Call("CheckFocus");
+                Check(window != null, "Parent survives expired focus check while child is open");
+                if (cancel)
+                {
+                    using (var e = KeyDownEvent.GetPooled(new Event { type = EventType.KeyDown, keyCode = KeyCode.Escape }))
+                    { e.target = picker.rootVisualElement; picker.rootVisualElement.SendEvent(e); }
+                }
+                else picker.Close();
+                Check(picker == null, "Child closed"); picker = null;
+                PendingFocusCheck(); Call("CheckFocus");
+                Check(window != null && !(bool)Get(window, "checkFocus") && !(bool)Get(window, "waitingForColorPicker"),
+                    "Closing/canceling child clears pending parent dismissal");
+                Check(EditorWindow.focusedWindow == window, "Parent regains focus");
+                Call("CheckFocus"); Check(window != null, "Parent survives subsequent update");
+            }
+            picker = (WhimTexColorPicker)typeof(WhimTexColorPicker).GetMethod("Open", Flags).Invoke(null,
+                new object[] { Color.red, false, true, WhimTexColorRange.Switchable, null, (Action<Color>)(_ => { }), null, null });
+            picker.Focus(); PendingFocusCheck(); Call("CheckFocus");
+            Check(window == null, "Unrelated picker does not suppress ordinary parent dismissal");
+            return "PASS: close/Escape/reopen, expired focus checks, parent focus restoration and unrelated-picker isolation.";
+        }
+        finally
+        {
+            if (picker != null) picker.Close();
+            if (window != null) { Undo.ClearUndo(window); window.Close(); }
+            if (previousFocus != null) previousFocus.Focus();
+        }
+    }
     public static string Verify()
     {
         var window = Resources.FindObjectsOfTypeAll<WhimTexGradientWindow>().Single(w => w.name == WindowName);
@@ -64,14 +107,14 @@ public static class GradientKeyPickerSmoke
                 string before = JsonUtility.ToJson(gradient);
                 Pointer(strip, bottom, EventType.MouseDown, 2);
                 var picker = ActivePicker;
-                Check(picker != null, "Double click must open native picker");
+                Check(picker != null, "Double click must open WhimTex picker");
                 Check((int)Get(window, "selected") == 0, "Clicked key selected before opening");
                 Check(before == JsonUtility.ToJson(gradient), "Opening must not modify gradient");
                 Check(!strip.HasPointerCapture(PointerId.mousePointerId), "Double click must not start dragging");
-                Check((bool)Get(picker, "m_HDR") == hdr, "Picker respects HDR mode");
-                var callback = (Action<Color>)Get(picker, "m_ColorChangedCallback");
+                Check((bool)Get(picker, "hdr") == hdr, "Picker respects HDR mode");
+                void Change(Color c) => typeof(WhimTexColorPicker).GetMethod("SetColor", Flags).Invoke(picker, new object[] { c, true });
                 var value = new Color(.2f, .4f, .6f, 1) * (hdr ? 4 : 1);
-                callback(value);
+                Change(value);
                 var expected = space == ColorSpace.Linear ? value.linear : value;
                 var actual = gradient.ColorKeys[0].color;
                 Check(Mathf.Abs(actual.r - expected.r) < .0001f && Mathf.Abs(actual.g - expected.g) < .0001f &&
@@ -79,7 +122,7 @@ public static class GradientKeyPickerSmoke
                 Check(actual.a == (space == ColorSpace.Linear ? initial.linear : initial).a, "Color picker preserves key alpha");
                 Set(window, "selected", 1); Refresh(window);
                 string unchanged = JsonUtility.ToJson(gradient);
-                callback(Color.magenta);
+                Change(Color.magenta);
                 Check(unchanged == JsonUtility.ToJson(gradient), "Stale callback cannot change another key");
                 picker.Close(); window.Focus();
             }
@@ -90,7 +133,7 @@ public static class GradientKeyPickerSmoke
             Pointer(strip, midpoint, EventType.MouseDown, 2);
             Check(ActivePicker == null && (bool)Get(window, "midpointSelected"), "Midpoint must not open color picker");
             Pointer(strip, midpoint, EventType.MouseUp, 2);
-            return "PASS: native picker, selection, no mutation/capture on opening, Gamma/Linear, SDR/HDR, alpha preservation, stale callbacks, alpha and midpoint exclusions.";
+            return "PASS: WhimTex picker, selection, no mutation/capture on opening, Gamma/Linear, SDR/HDR, alpha preservation, stale callbacks, alpha and midpoint exclusions.";
         }
         finally
         {

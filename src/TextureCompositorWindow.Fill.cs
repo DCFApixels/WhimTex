@@ -5,6 +5,7 @@ using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
+using ColorField = DCFApixels.WhimTex.WhimTexColorField;
 
 namespace DCFApixels.WhimTex
 {
@@ -16,6 +17,7 @@ namespace DCFApixels.WhimTex
         {
             ColorField primary = CompactField(WhimTexColorInputs.Bind(new ColorField(), toolkitHeaderBindings, () => paintSettings.brushColor), 54f);
             primary.tooltip = PrimaryBrushColorContent.tooltip;
+            primary.PickerContext = this;
             primary.RegisterValueChangedCallback(evt => ApplyPaintToolChange(
                 () => paintSettings.brushColor = evt.newValue));
             row.Add(primary);

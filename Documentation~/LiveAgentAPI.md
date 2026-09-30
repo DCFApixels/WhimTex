@@ -243,7 +243,7 @@ start a new-layer job, or recapture after agreeing on a new edit.
 }
 ```
 
-`layer` accepts `type`, `settings`, `transform`, `fx`, and effect-only `input`/`target`. Types and settings
+`layer` accepts `type`, `settings`, `transform`, `fx`, and effect-only `input`/`target`. `input` accepts `Previous`, `Specific` (default), or `AllBelow`; only Specific accepts a target. AllBelow reads visible lower siblings composited on transparency within the current group, not an external backdrop, and remains stack-relative after placement changes. Types and settings
 are the same as regular API `add`; discover defaults with `whimtex_describe` and consult the
 [API reference](AgentAPI.md). `settings.name` and `settings.enabled` are forbidden: those belong to
 the reservation and may already have been changed by the user. Groups start empty. Shader Processor
@@ -318,6 +318,10 @@ Remove accepts only op/index. Add/replace accept `code` and optional `parameters
   may use `// @param gradient _Ramp` (opaque black-to-white default) or a two-color initializer,
   for example `// @param gradient _Ramp = #7EF3FF -> #B270FF`; RGBA tuples are also supported.
   Omitted API overrides retain the code-declared defaults; see the [gradient syntax](ShaderFX.md#gradient-parameters).
+  A supplied gradient without `mode` uses Perceptual; explicit modes are retained. JSON RGB is
+  limited to -107..107 and alpha to 0..1, not the wider standalone gradient clipboard range.
+  Picker Preview EV, Channels and RGB/HSV preferences do not transform API values or populate History;
+  see the [API color contract](AgentAPI.md#color-and-gradient-input) and [HDR behavior](HDR.md).
 - Inline code may instead declare parameters using [HLSL metadata](ShaderFX.md#parameter-declarations).
   If JSON values are supplied as well, every entry must match a code declaration by name and type;
   those values override defaults. The first-line catalog marker is required only for catalog files.

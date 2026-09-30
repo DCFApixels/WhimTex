@@ -28,6 +28,7 @@ namespace DCFApixels.WhimTex
         internal void Build(VisualElement root, TargetedLayerBehaviour effect)
         {
             EnumField input = WhimTexUI.ConfigureField(new EnumField("Input", effect.inputMode));
+            input.tooltip = "Previous: the next item below. Specific: a chosen layer or group. All Below: the visible stack below in this group, composited on transparency.";
             bindings.Track(input, () => (Enum)effect.inputMode);
             input.RegisterValueChangedCallback(evt =>
             {
@@ -85,6 +86,7 @@ namespace DCFApixels.WhimTex
             Layer RefreshThumbnail()
             {
                 if (compositor == null) return null;
+                if (effect.inputMode == EffectInputMode.AllBelow) { preview.image = null; return null; }
                 Layer source = string.IsNullOrEmpty(effect.TargetLayerId) ? null : compositor.FindLayer(effect.TargetLayerId);
                 Texture2D thumbnail = compositor.GetLayerThumbnail(source, 18);
                 if (preview.image != thumbnail) preview.image = thumbnail;
@@ -96,6 +98,7 @@ namespace DCFApixels.WhimTex
             target.schedule.Execute(() => RefreshThumbnail()).Every(200);
             void Refresh()
             {
+                target.EnableInClassList("whimtex-hidden", effect.inputMode == EffectInputMode.AllBelow);
                 EnsureEffectTargetOptions(effect);
                 Layer source = RefreshThumbnail();
                 bool choicesChanged = target.choices.Count != effectTargetLabels.Length;
@@ -107,6 +110,15 @@ namespace DCFApixels.WhimTex
                 HelpBoxMessageType messageType = HelpBoxMessageType.Info;
                 if (effect.inputMode == EffectInputMode.Previous)
                     message = "Uses the item directly below this effect. A group is read as the combined alpha of all visible descendants.";
+                else if (effect.inputMode == EffectInputMode.AllBelow)
+                {
+                    message = "Uses the combined visible layers below in this group, including their opacity, blending and effects. An empty stack is transparent.";
+                    if (compositor.TryFindLayer(effect, out var siblings, out int index) && !compositor.HasUsableEffectInput(effect, siblings, index))
+                    {
+                        message = "The lower stack creates a cyclic effect dependency.";
+                        messageType = HelpBoxMessageType.Error;
+                    }
+                }
                 else if (string.IsNullOrEmpty(effect.TargetLayerId))
                 {
                     message = "Select a source layer or group for this effect.";

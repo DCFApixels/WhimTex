@@ -81,7 +81,7 @@ namespace DCFApixels.WhimTex
                 ConvertEnum<WhimTexGradientWrapMode>(serialized, "wrapMode");
                 ConvertEnum<ColorSpace>(serialized, "colorSpace");
             }
-            return WhimTexApi.ReadGradient(data, WhimTexGradientMode.Classic, 65504f);
+            return WhimTexApi.ReadGradient(data, WhimTexGradientMode.Perceptual, 65504f);
         }
 
         private static void ConvertEnum<T>(JObject data, string key) where T : struct

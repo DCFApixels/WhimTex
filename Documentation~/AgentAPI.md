@@ -472,8 +472,17 @@ Persistent layer IDs are returned per operation and in `document.layers`.
 `settings` contains editable values; hierarchy, target and transform have separate fields/operations.
 `gradientKeys` contains separate color/alpha keys, interpolation, smoothness and midpoints. Rounded is built in; the retired transition field is ignored on input and omitted from output.
 `Rounded` prioritizes smooth constant-region joins at full smoothness; values at interior held-boundary stops may be approximate. See the [gradient contract](AI/README.md) for its independent RGB/alpha maps and limits.
+### Color and gradient input
+
 Gradient inputs accept either an ordered stop array or the object form documented in
-[the gradient contract](AI/README.md); SDF defaults to Linear, other gradients to Classic.
+[the gradient contract](AI/README.md); SDF defaults to Linear, general-purpose gradients to Perceptual. Explicit modes are preserved.
+
+Color-picker preferences are not API input transforms: RGB/HSV entry mode, HDR input toggles,
+Channels and Preview EV do not modify supplied RGBA or gradient values. API/clipboard writes do not
+add or promote colors in document History. Color and gradient JSON still use numeric RGBA, not the
+picker's HEX text syntax. Layer/brush/FX JSON RGB limits remain -107..107 with alpha 0..1;
+the standalone gradient clipboard's -65504..65504 range does not extend these API limits.
+HDR texture data is distinct from physical HDR monitor output; rendered PNG previews are SDR.
 
 ### Operations
 
@@ -492,7 +501,7 @@ Gradient inputs accept either an ordered stop array or the object form documente
 - `transform`: requires `layer` and `transform`.
 - `move`: `index` is the insertion index **after removal** from the old container; omitted parent
   or `parent:""` moves to root. A group cannot move into itself or its descendants.
-- `target`: effect layers (SDF/Outline/Normal Map/Blur/Sharpen/Make Seamless); default input Specific. Previous means the next sibling below the effect.
+- `target`: effect layers (SDF/Outline/Normal Map/Blur/Sharpen/Make Seamless); default input Specific. Previous means the next sibling below the effect. AllBelow means the composited visible lower siblings in the same group, starting on transparency, including opacity/blending/FX; even Pass Through does not include the external backdrop. Previous and AllBelow forbid a target; Specific requires one. Example: `{"op":"target","layer":"@effect","input":"AllBelow"}`. The discovery field `effectInputModes` lists all three modes. Empty AllBelow is transparent; cycles are rejected.
   Specific targets can be groups, but cannot create a dependency cycle.
 - `stroke`: Drawing only, detailed below.
 
@@ -1071,8 +1080,13 @@ Texture tips preserve their aspect ratio; size is the longest side. Hardness con
 SDF uses its gradient. SDF fields use the normalized 0–1 range. Luminance is measured
 in source-encoded RGB for sRGB textures, preserving the threshold between Gamma and Linear projects.
 Pencil ignores all advanced dynamics and texture-tip settings.
-Inspect returns the brush's gradient as `tintGradientKeys.colors` / `tintGradientKeys.alphas`;
-write it using the `tintGradient` stop array above.
+Both `tipGradient` and `tintGradient` accept a stop array or the shared gradient object with `colors`,
+optional `alphas`, `mode`, `wrapMode`, `smoothness` and `colorSpace`. Supplying either field replaces
+that entire gradient; omitting it preserves the existing gradient. For supplied gradients without
+`mode`, both `tipGradient` and `tintGradient` default to **Perceptual**, matching brush
+clipboard import. Explicit modes are preserved. This applies to `settings.brush` and stroke `brush`.
+Inspect returns `tipGradientKeys` / `tintGradientKeys`, including separate color/alpha tracks and
+interpolation settings; write their gradient bodies using `tipGradient` / `tintGradient` respectively.
 
 For example, `"brush":{"size":40,"spacing":0.8,"opacity":0.6,"flow":0.2,"scatter":0.5,"sizeJitter":0.3,"seed":123}`
 creates repeatable scattered stamps with a 60% stroke-opacity cap.

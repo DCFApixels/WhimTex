@@ -5,6 +5,7 @@ using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
+using ColorField = DCFApixels.WhimTex.WhimTexColorField;
 
 namespace DCFApixels.WhimTex
 {
@@ -104,7 +105,7 @@ namespace DCFApixels.WhimTex
                     }
                     else if(definition.type==ShaderFXParameterType.Color)
                     {
-                        var field=new ColorField(label){value=definition.colorValue,hdr=true};
+                        var field=new ColorField(label){value=definition.colorValue,hdr=true,Range=WhimTexColorRange.HdrOnly,UsePreviewChannels=true};
                         field.RegisterValueChangedCallback(e=>Change(p=>p.colorValue=e.newValue));parameters.Add(field);
                         refresh.Add(()=>field.SetValueWithoutNotify(Current().colorValue));
                     }

@@ -37,7 +37,9 @@ Choose **Specific** to use another layer or group. Click **Target** to choose fr
 or drag a layer into the field. **None (Layer)** means no source is selected.
 When dragging several selected layers, the active one becomes the target.
 
-You can hide the source and still see the effect. For a group, hide the group itself,
+**All Below** uses the combined visible layers below the effect, with their opacity, blending and effects. It stays within the current group, even for Pass Through; at the root it uses the lower document stack. An empty stack is transparent. Target selection is hidden in this mode. An opaque background makes the combined alpha opaque, so Outline/SDF using Alpha cannot detect the separate silhouettes above that background. Choose Specific or place the sources in a separate group when you need those silhouettes.
+
+With Previous or Specific, you can hide the source and still see the effect. For a group, hide the group itself,
 not the children you want included. The effect uses only that group's contents, not the background behind it.
 
 ## Outline and SDF

@@ -115,7 +115,10 @@ defs.layer = { oneOf: Object.entries(extra).map(([type, properties]) => {
   if (type === 'group') fields.children = { type: 'array', minItems: 1, maxItems: 128, items: ref('layer') };
   fields.transform = ref('transform');
   fields.fx = { type: 'array', maxItems: 16, items: ref('fx') };
-  if (['outline', 'sdf', 'blur', 'sharpen', 'normalMap', 'makeSeamless'].includes(type)) fields.target = { ...str(64), minLength: 1 };
+  if (['outline', 'sdf', 'blur', 'sharpen', 'normalMap', 'makeSeamless'].includes(type)) {
+    fields.target = { ...str(64), minLength: 1 };
+    fields.input = enumeration('Utils.cs', 'EffectInputMode');
+  }
   if (type === 'drawing') fields.url = { type: 'string', maxLength: 2048, pattern: '^https?://',
     description: 'Absolute http(s) link to a PNG or JPEG. Downloaded on paste after confirmation, keeping source resolution. If neither scale nor matrix is specified, fit to the canvas; otherwise preserve the explicit transform.' };
   if (type === 'shaderProcessor') fields.properties.properties.clippingMask = { const: false };
@@ -125,6 +128,10 @@ defs.layer = { oneOf: Object.entries(extra).map(([type, properties]) => {
     localId: { type: 'string', pattern: '^[+-]?[0-9]+$', maxLength: 20 }
   }, ['guid']);
   const result = object(fields, ['type']);
+  if (fields.input) result.allOf = [
+    { if: { required: ['input'], properties: { input: { const: 'Specific' } } }, then: { required: ['target'] } },
+    { if: { required: ['input'], properties: { input: { enum: ['Previous', 'AllBelow'] } } }, then: { not: { required: ['target'] } } }
+  ];
   if (type === 'drawing' || type === 'file') result.allOf = [{
     if: { required: ['contentOmitted'], properties: { contentOmitted: { const: true } } },
     then: { not: { anyOf: [{ required: ['url'] }, { required: ['asset'] }] } }

@@ -90,12 +90,52 @@ it synchronizes the open document's pending encoding while retaining other unsav
 
 ## Drawing storage and editing
 
-The **HDR** button beside **EV** in the preview footer sets the color and gradient picker mode globally
-for WhimTex, including brush/fill colors, layer properties and Shader FX color parameters.
+### Color picker and history
+
+HDR describes the stored floating-point color range, not physical HDR monitor output. The current editor UI presents SDR previews: the picker clamps display RGB to [0,1] after exposure, and the gradient editor bakes its exposed strip into RGBA32. Native color-field intensity gradients are visual indicators, not HDR display output. An HDR-capable monitor alone does not change this behavior. Preview EV helps inspect values above display white without changing them; it does not enable an HDR swap chain or display transfer function.
+
+History filtering uses the input's active HDR mode, not Preview EV or channel masks. Standard mode shows only entries with every raw RGB component in [0,1]; HDR mode shows all entries. Alpha is not part of this test. Gradient History follows the selected key's `color.hdr`, rebuilding when that mode changes while retaining a full unfiltered snapshot. Hidden entries stay in document history. Tiles retain their original document indices for selection, drag/reorder and deletion; stale selection callbacks cannot apply a now-hidden HDR value. Gradient History shows an empty-state label if all entries are filtered out.
+
+The picker's window-local `Preview EV` footer uses the gradient editor's −10..10 range and linear-light display calculation: decode RGB to linear, multiply by `2^EV`, encode, then clamp for display. Swatches use raw stored HDR before clipping, and HSV controls include the current HDR intensity. Alpha, numeric fields, callbacks and History data are unchanged. Channel adaptation follows the display transform, so alpha-only remains independent of EV. Hue ring, native eyedropper, checkerboard, alpha bars and the add tile are unchanged. A new picker starts at EV 0; UI rebuilding preserves its local value. No render texture or internal API access is added.
+
+Numeric entry mode (RGB 0–255, RGB 0–1 or HSV) is stored immediately in the user-wide `WhimTex.ColorPicker.ColorMode` EditorPrefs key and restored when building the picker UI. Missing or invalid values fall back to HSV. Closing or canceling does not revert this preference; switching modes only refreshes controls and does not modify RGBA, HDR state, callbacks or document history.
+
+The gradient editor's document-local History is a shared swatch/drag implementation without the add tile. Applying a swatch uses StoreDisplayColor through the normal gradient Edit/Commit path: encoded RGB converts to the gradient's working color space, stored HDR is retained, per-key intensity/HDR overrides are reset and the independent alpha track/key position are unchanged. Alpha-key and midpoint selections disable the palette. History/owner changes and channel-mask changes refresh the palette while attached. RememberColor promotes an existing exact RGBA entry instead of duplicating it; ordinary picker edits call it only on confirmation (the explicit add button remains immediate).
+
+`WhimTexColorField.UsePreviewChannels` explicitly opts document-color inputs into channel display; service colors remain ordinary. `WhimTexColorInputs.Bind` opts in layer/brush/FX bindings. An ancestor channel provider identifies the originating compositor window; detached Properties/gradient inputs fall back only to a unique open window for that document. Ambiguous or unavailable ownership uses ordinary display, never the focused unrelated document. Gradient sessions carry the originating provider into their detached editor and key picker. Mini-preview masks are not sources.
+
+The persistent `Channels` preference changes rendering only. Two/three active RGB channels zero excluded components; one RGB component is grayscale; alpha-only is opaque grayscale alpha; no channels is black. Numeric RGB/HSV/HEX, HDR intensity, callbacks, History and serialization remain unmasked. Existing painting-channel semantics are unchanged. `Channels` is hidden for inputs without a channel source. Source changes refresh visible controls without changing their values.
+
+The native `ColorField` remains the value/event/binding/focus container. A non-pickable Painter2D overlay in its public USS color container draws original upper-left / adapted lower-right RGB, below the native HDR/mixed labels and single actual-alpha ProgressBar. No new internal reflection is used. The custom overlay is absent for ordinary inputs and bypassed for mixed values, disabled channel adaptation or full RGBA. If the expected public visual structure is unavailable, native rendering remains. Picker swatches use the same diagonal comparison with one actual-alpha bar; ring/plane/ramps adapt their color visuals. The native screen magnifier remains an accurate, unmasked screen capture.
+
+`WhimTexColorField` opens the UI Toolkit `WhimTexColorPicker`; gradient keys use the same window.
+The gradient editor tracks its own key picker, suspends focus-loss dismissal while that picker is open, and clears the pending dismissal and restores focus when it closes (accept or Escape). Unrelated pickers do not hold the gradient editor open.
+For HDR fields the native upper-left rendering is left intact. The lower-right triangle reuses the native field's resolved color/gradient geometry, colors and alpha-ramp textures through public visual-tree/style and MeshGenerationContext APIs, masking RGB without normalizing away HDR intensity. Alpha-only remains a constant alpha sample. The borrowed native textures are neither modified nor destroyed; no render texture or new internal reflection is involved. Changing HDR mode invalidates the overlay even when the channel mask is unchanged.
+Its range policy is `Switchable`, `StandardOnly` or `HdrOnly`. HDR toggling changes the entry mode,
+not the stored RGBA. Explicit edits use nonnegative RGB up to 65504 in HDR or 1 in Standard;
+hidden alpha is preserved. Closing the picker confirms the color; Escape restores the opening value, including its original HDR intensity. There are no OK/Cancel buttons.
+Hex entry accepts case-insensitive RGB/RGBA hexadecimal with an optional leading `#`, in 3/4-digit shorthand or 6/8-digit form. A separate right-aligned `#` label precedes the input; normalized display is uppercase six-digit RGB. RGB input preserves current alpha; RGBA applies parsed alpha when editable, retaining the fixed original alpha otherwise. Current HDR exposure multiplies RGB only, never alpha. Invalid input restores the current display without changing the color. Native TextField clipboard paste and delayed commit (Enter/focus loss) are preserved.
+The eyedropper uses Unity's public ColorField control. Picker opening no longer reflects into Unity internals.
+The optional pixel magnifier has a specifically authorized, isolated reflection adapter to `UnityEditor.EyeDropper.IsOpened`, `DrawPreview(Rect)` and `End()` only. Delegates are bound once per domain; no reflected start, capture or selected-color access is used. A public ColorField still launches sampling and delivers the result. The magnifier uses an IMGUIContainer in the fixed wheel area and requests repaints at most 30 times per second while this picker owns sampling. Local ownership is established only after an idle eyedropper button click; unrelated active sampling is not adopted or canceled. Selection/cancellation restores the wheel; Escape cancels sampling first, and window close/reload cancels owned sampling. Missing members or drawing failure disable the magnifier, not ordinary color selection. This narrow exception does not authorize other internal Unity reflection.
+Alt screen sampling routes through the open primary brush color picker's ordinary edit callback when its source context matches the originating WhimTex window and its field remains valid. Other pickers (including secondary brush color, layer and gradient inputs) are not synchronized. The sampler retains brush alpha; picker channel/Hex/marker state is decoded from the sample. Closing confirms it, Escape restores the opening color, and intermediates are not recorded in history. Without a matching valid picker the existing direct brush-color path is unchanged.
+
+Confirmed colors are prepended uniquely to the owning document's serialized `colorHistory` list.
+The leading gray plus button explicitly remembers the current RGBA without closing the picker; it is not a draggable swatch or a reorder target. It is disabled for non-document inputs.
+Slider intermediates and canceled edits are not automatically recorded. Explicit additions remain after Escape, like history reordering/removal. Selecting a history swatch applies it and moves that exact stored RGBA entry to index zero, preserving the order of all other entries. This explicit reorder also remains after Escape. Confirming a manually entered exact existing RGBA color also promotes it, without duplication; alpha and HDR intensity participate in equality. History edits use document Undo and
+dirty tracking, with no changes to layer colors. History stores encoded RGBA with HDR intensity;
+it uses the existing tagged model serializer, not a new TIFF block or sidecar file. Non-document
+inputs have no history. API/clipboard color writes do not populate history and their contract is unchanged.
+
+### Input mode
+
+The **HDR** button beside **EV** in the main preview footer sets the shared input preference
+for bound WhimTex color fields, including brush/fill colors, layer properties and Shader FX color parameters.
 It defaults to off (Standard) and persists between sessions. Standard shows a bounded color representation and
 uses that same representation for new brush/fill operations. RGB above 1 is divided by its largest
 component, preserving encoded RGB proportions; negative components are displayed as zero. Alpha is
-unchanged within 0–1. Gradient keys use the same display conversion.
+unchanged within 0–1. Gradient editing does not inherit this shared preference: its HDR switch controls
+the selected color key, initially inferred from that key's intensity or negative RGB unless overridden
+in the current gradient session. The key's picker and History filter follow that per-key mode.
 
 Switching modes never rewrites stored colors: returning to HDR restores their full intensity.
 Explicitly editing a color or gradient in Standard replaces that value with the edited bounded value.
@@ -177,8 +217,9 @@ Do not reinterpret its raw bytes as Color32. Use `GetPixelData<Unity.Mathematics
 access, or the format-independent pixel APIs. The caller must destroy the returned temporary texture.
 The JSON agent API retains its existing PNG render output and adds explicit range/group settings.
 
-The main HDR output is a linear texture, including in projects configured for gamma rendering.
+The composite HDR texture output is linear, including in projects configured for gamma rendering.
 Materials using it must treat it as linear data; the editor preview handles display conversion itself.
+This texture output is distinct from HDR monitor output.
 
 ## Verification
 

@@ -77,7 +77,7 @@ namespace DCFApixels.WhimTex
         private static float Unit(float value, float fallback) => Mathf.Clamp01(Finite(value, fallback));
         internal static WhimTexGradient DefaultTipGradient()
         {
-            var result = new WhimTexGradient { Mode = WhimTexGradientMode.Linear };
+            var result = new WhimTexGradient { Mode = WhimTexGradientMode.Perceptual };
             result.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
                 new[] { new GradientAlphaKey(1f, .4f), new GradientAlphaKey(0f, .6f) });
             return result;

@@ -20,6 +20,8 @@
 .whimtex-gradient-location { flex-grow: 1; flex-shrink: 1; flex-basis: 0; min-width: 0; }
 .whimtex-gradient-key-row .unity-base-field__label { min-width: 0; width: auto; margin-right: 6px; }
 .whimtex-gradient-hidden { display: none; }
+.whimtex-gradient-history { margin-top: 6px; flex-shrink: 0; }
+.whimtex-gradient-history .whimtex-picker-history-scroll { max-height: 56px; }
 
 .whimtex-gradient-presets-header { flex-direction: row; align-items: center; margin-top: 8px; padding: 2px; background-color: rgba(0, 0, 0, 0.12); flex-shrink: 0; }
 .whimtex-gradient-presets-header > Label { flex-grow: 1; }

@@ -6,6 +6,14 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Color picker Preview EV footer, matching the gradient editor: −10..10 display-only exposure for inspecting HDR values in the SDR preview, without changing color values or History.
+- The gradient editor has a History palette above gradient presets, without an add button. Choose a color key and apply a document-history color directly, including HDR; opacity keys remain unchanged. The palette shares swatches, channel display, reordering and drag-out removal with the color picker.
+
+- Color-picker Channels mode follows the originating main preview's RGBA mask for document colors. Color fields and swatches compare original and channel-adapted colors diagonally with one actual-alpha bar; ring, square and slider gradients adapt without changing numeric values or stored colors. Interface colors and the screen eyedropper magnifier remain unchanged.
+
+- The color picker's eyedropper displays a magnified pixel grid in place of the hue ring while sampling. Selection or cancellation restores the ring; ordinary sampling remains available when magnification is unsupported.
+- WhimTex Color Picker provides a hue ring with a central saturation/value square, gradient channel sliders, RGB/HSV, Hex, alpha, HDR switching and exposure. Original/new samples sit at the upper right; the compact History grid stores confirmed document colors with drag reordering and drag-out removal with a red warning outline. Range-restricted inputs lock HDR. Gradient keys no longer open Unity's internal picker through reflection.
+- Targeted effects (Outline, SDF, Normal Map, Blur, Sharpen and Make Seamless) offer All Below alongside Previous and Specific. It processes the visible lower stack in the current group, including opacity, blending and effects, with stack-aware caching and matching standalone previews. Existing defaults remain unchanged.
 - Hold the left mouse button on a preview channel and drag across R/G/B/A to apply the first button's new state to the others. Available independently in the main and mini previews; other controls are unaffected.
 - Agent discovery includes Make Seamless's Quilting quality and channel-matching enums. The API reference and clipboard schema cover all four methods, defaults, units and independent edge passes, with a complete procedural recipe.
 - Layer Settings has a bottom-docked, draggable layer preview, initially collapsed. Properties uses the same resizable preview with RGBA/RGB/Alpha viewing and a checkerboard, without mip selection or image overlays. Drag down to collapse; collapsed previews do not render. The redundant Properties Close button is removed.
@@ -18,6 +26,19 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- New brush-tip gradients now default to Perceptual, matching brush tint, agent settings/strokes and brush clipboard import without an explicit mode. Existing gradients and explicit modes are preserved; SDF and Pattern defaults remain Linear.
+
+- History hides HDR colors while HDR is disabled in the color picker or selected gradient key, without removing saved colors. Re-enabling HDR restores them.
+- New general-purpose gradients default to Perceptual, including FX, API input and clipboard gradients without an explicit mode. Saved and explicitly assigned modes remain unchanged; SDF and Pattern Linear defaults are preserved.
+- The color picker remembers the last RGB 0–255, RGB 0–1 or HSV entry mode across openings and Unity restarts, without modifying the selected color.
+- Confirming a color already in History moves that exact RGBA color to the front without duplicating it, even when it was entered manually in the picker. Intermediate edits and canceled selections do not reorder history.
+
+- Hexadecimal has a separate right-aligned # prefix and accepts pasted RGB/RGBA in either case, with or without #. RGBA applies editable alpha while the field displays RGB only; RGB input preserves alpha.
+- Alt sampling synchronizes the open primary brush color picker in the same WhimTex window, including channels, Hex and markers. Other color pickers are unaffected; Escape and close-to-confirm retain their usual behavior.
+- Alt sampling and History share the eyedropper cursor, with a thin dark outline for visibility on light backgrounds and a preserved sampling hotspot.
+- History inserts new colors at the beginning and has a leading gray plus swatch to remember the current color without closing the picker. Selecting a stored color moves it to the first slot after the plus. Color swatches show an eyedropper cursor on hover; the plus keeps the arrow. Duplicate suppression and drag reordering/removal are preserved.
+- The color picker confirms the selection on closing, without OK/Cancel buttons. Escape still restores the opening color.
+- The color picker's hue ring and selection marker use direct shader rendering with antialiased edges, without an intermediate render texture.
 - Layer Settings and Properties mini previews use compact neutral R/G/B/A buttons instead of a channel dropdown, with independent combinations and the same channel display rules as the main preview. Mini-preview selection does not affect painting or the main preview.
 - Mini Preview reuses valid main-preview effect-cache results or captures a layer before compositing, including uncached procedural layers. A reduced independent render remains the fallback; groups retain their own color. The resizable block is capped at 256 px including its divider and keeps its chosen height across layer/resolution changes, scaling images proportionally in either direction.
 - Make Seamless settings distinguish main-pass edges from Poisson Edges, group patch search before blending/correction, and use contextual Strength (%) and Radius (%) labels. Inactive-pass controls and zero-Feather compensation are disabled without clearing their settings; edge selectors remain interactive.
@@ -26,6 +47,12 @@ All notable changes to WhimTex are documented in this file.
 - Ordinary preview is limited to 512 pixels and may choose different Quilting patches than export. Full-resolution Tiled preview is available with Pencil selected. Save and export use full resolution.
 
 ### Fixed
+
+- Brush preview-header labels align vertically across ordinary fields, edge mode and Pressure; the gradient swatch matches the ordinary field height without overflowing the toolbar. Other gradient fields retain their existing sizing.
+
+- Channel-aware HDR color fields retain their intensity gradients in both diagonal halves instead of showing only a flat swatch and HDR label.
+
+- Closing or canceling a gradient key's color picker returns focus to the gradient editor instead of dismissing both windows.
 
 - Make Seamless API validation accepts exact documented decimal endpoints, including Blend Width 0.001, Patch Width 0.45 and Transition Start 0.95, without float-boundary rounding rejecting valid requests.
 - Layer Settings and Properties use the full settings viewport down to the Preview divider, without the extra bottom inset.

@@ -74,10 +74,19 @@ namespace DCFApixels.WhimTex
                 RequireEntry(layer, "effect");
                 if (effect is MakeSeamlessLayerBehaviour seamless && seamless.EffectiveMode == MakeSeamlessLayerBehaviour.SeamlessMode.PatchQuilting)
                     RequireEntry(layer, "quilting");
-                Layer input = Input(effect);
-                if (input?.IsGroup == true) RequireEntry(input, "group");
-                if (effect.RequiresColorInput) colorSources.Add(input);
-                VisitRequired(input);
+                if (effect.inputMode == EffectInputMode.AllBelow)
+                {
+                    if (document.TryFindLayer(layer, out var below, out int effectIndex))
+                        for (int i = effectIndex + 1; i < below.Count; i++)
+                            if (below[i]?.enabled == true) VisitRequired(below[i]);
+                }
+                else
+                {
+                    Layer input = Input(effect);
+                    if (input?.IsGroup == true) RequireEntry(input, "group");
+                    if (effect.RequiresColorInput) colorSources.Add(input);
+                    VisitRequired(input);
+                }
             }
             else if (layer?.Behaviour is ShaderProcessorLayerBehaviour &&
                 document.TryFindLayer(layer, out var processorContainer, out int processorIndex))
@@ -112,6 +121,7 @@ namespace DCFApixels.WhimTex
 
         private Layer Input(TargetedLayerBehaviour effect)
         {
+            if (effect.inputMode == EffectInputMode.AllBelow) return null;
             if (effect.inputMode == EffectInputMode.Specific) return document.FindLayer(effect.TargetLayerId);
             if(!document.TryFindLayer(effect,out var list,out int index)) return null;
             index=TextureCompositor.NextContentLayer(list,index);
@@ -131,6 +141,21 @@ namespace DCFApixels.WhimTex
                 if (fx.UsesUnsupportedTimeInputs) return false;
             }
             return found;
+        }
+
+        private ulong InputStamp(TargetedLayerBehaviour effect)
+        {
+            if (effect.inputMode != EffectInputMode.AllBelow) return Stamp(Input(effect));
+            ulong hash = 14695981039346656037UL;
+            if (!document.TryFindLayer(effect, out var below, out int index)) return 0;
+            for (int i = index + 1; i < below.Count; i++)
+            {
+                if (below[i]?.enabled != true || below[i].Behaviour is PendingLayerBehaviour) continue;
+                ulong dependency = Stamp(below[i]);
+                if (dependency == 0) return 0;
+                hash = Mix(hash, dependency);
+            }
+            return hash == 0 ? 1 : hash;
         }
 
         private static bool CanCacheModifier(UnityEngine.Object modifier)
@@ -207,7 +232,7 @@ namespace DCFApixels.WhimTex
                     }
                 if (layer?.Behaviour is TargetedLayerBehaviour effect)
                 {
-                    ulong dependency = Stamp(Input(effect));
+                    ulong dependency = InputStamp(effect);
                     if (dependency == 0) return stamps[layer] = 0;
                     hash = Mix(hash, dependency);
                 }
@@ -236,7 +261,7 @@ namespace DCFApixels.WhimTex
         {
             // Direct thumbnail/export callers may not have begun a cache frame.
             if(!ReferenceEquals(document,owner)) return 0;
-            ulong hash=Stamp(Input(layer));
+            ulong hash=InputStamp(layer);
             if(hash==0) return 0;
             hash=Mix(hash,(ulong)layer.quiltingEdges);
             hash=Mix(hash,unchecked((uint)layer.quiltingWidth.GetHashCode()));

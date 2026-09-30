@@ -4,6 +4,7 @@ using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
+using ColorField = DCFApixels.WhimTex.WhimTexColorField;
 
 namespace DCFApixels.WhimTex
 {
@@ -91,7 +92,7 @@ namespace DCFApixels.WhimTex
             { tooltip = "Limit the overlay to one material slot, or show all submeshes." });
             uvSubmeshField.RegisterValueChangedCallback(evt => ChangeUvReference(() => compositor.uvReferenceSubmesh = uvSubmeshField.index - 1));
             fields.Add(uvSubmeshField);
-            var color = WhimTexUI.ConfigureField(new ColorField("Line Color") { value = uvLineColor, hdr = false, showAlpha = false });
+            var color = WhimTexUI.ConfigureField(new ColorField("Line Color") { value = uvLineColor, hdr = false, showAlpha = false, Range = WhimTexColorRange.StandardOnly });
             color.RegisterValueChangedCallback(evt => { uvLineColor = evt.newValue; uvOverlay?.MarkDirtyRepaint(); }); fields.Add(color);
             var opacity = WhimTexUI.ConfigureField(new Slider("Opacity", 0f, 1f) { value = uvLineOpacity, showInputField = true });
             opacity.RegisterValueChangedCallback(evt =>

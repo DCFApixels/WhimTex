@@ -26,10 +26,12 @@ foreach (bool readable in new[] { true, false })
         Check(copy != null && copy != source, "Cursor owns a separate copy");
         Check(copy.format == UnityEngine.TextureFormat.RGBA32, "Cursor is RGBA32");
         Check(copy.isReadable && copy.mipmapCount == 1 && copy.alphaIsTransparency, "All native cursor requirements hold");
-        Check(copy.width == source.width && copy.height == source.height, "Icon dimensions are retained");
-        var pixel = copy.GetPixels32()[36];
+        Check(copy.width == source.width + 2 && copy.height == source.height + 2, "One-pixel outline padding surrounds unchanged icon dimensions");
+        var pixel = copy.GetPixels32()[5 * copy.width + 5];
         Check(System.Math.Abs(pixel.r - 90) <= 2 && System.Math.Abs(pixel.g - 170) <= 2 &&
             System.Math.Abs(pixel.b - 230) <= 2 && System.Math.Abs(pixel.a - 128) <= 2, "RGBA survives copying");
+        var outline = copy.GetPixels32()[5 * copy.width];
+        Check(outline.r == 0 && outline.g == 0 && outline.b == 0 && outline.a > 0, "Dark outline extends into transparent padding");
         Check(source.format == UnityEngine.TextureFormat.ARGB32 && source.mipmapCount > 1 &&
             source.isReadable == readable && !source.alphaIsTransparency, "Source icon stays unchanged");
         Check(UnityEngine.RenderTexture.active == previous && UnityEngine.GL.sRGBWrite == previousSrgb, "Graphics state is restored");

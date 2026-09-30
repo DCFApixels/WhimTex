@@ -1,5 +1,4 @@
 using System;
-using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -296,7 +295,7 @@ namespace DCFApixels.WhimTex
                 bool linear=expected.ColorSpace==ColorSpace.Linear;
                 Color display=linear?HdrUtility.Encode(initial):initial;
                 bool hdr=display.r>1 || display.g>1 || display.b>1 || display.r<0 || display.g<0 || display.b<0;
-                if (!GradientKeyColorPicker.Show(display,hdr,value=>
+                var picker = WhimTexColorPicker.Open(display,hdr,false,WhimTexColorRange.Switchable,document,value=>
                 {
                     if(owner==null || owner.compositor!=document || owner.GetSelectedLayer()?.Behaviour!=edited ||
                         edited.gradient!=expected || WhimTexApi.IsLayerContentLocked(document,edited.Owner))return;
@@ -311,7 +310,9 @@ namespace DCFApixels.WhimTex
                     owner.applyingToolkitChange=true;
                     try{owner.CommitModelChange();}finally{owner.applyingToolkitChange=false;}
                     owner.RequestPreview(true); owner.toolkitRefreshRequested=true;
-                })) owner.ShowNotification(new GUIContent("Unity Color Picker is unavailable in this Editor version."));
+                }, valid: () => owner != null && owner.compositor == document && owner.GetSelectedLayer()?.Behaviour == edited &&
+                    edited.gradient == expected && !WhimTexApi.IsLayerContentLocked(document, edited.Owner));
+                picker.SetChannelSource(() => owner != null && owner.compositor == document ? owner.previewChannels : -1);
             }
             public void Draw(MeshGenerationContext context)
             {
@@ -441,16 +442,4 @@ namespace DCFApixels.WhimTex
         }
     }
 
-    internal static class GradientKeyColorPicker
-    {
-        private static readonly MethodInfo show = typeof(EditorWindow).Assembly.GetType("UnityEditor.ColorPicker")?.GetMethod(
-            "Show", BindingFlags.Static|BindingFlags.Public|BindingFlags.NonPublic, null,
-            new[]{typeof(Action<Color>),typeof(Color),typeof(bool),typeof(bool),typeof(bool)},null);
-        internal static bool Show(Color color,bool hdr,Action<Color> changed)
-        {
-            if(show==null)return false;
-            try { show.Invoke(null,new object[]{changed,color,false,hdr,false}); return true; }
-            catch (TargetInvocationException e) { Debug.LogException(e.InnerException ?? e); return false; }
-        }
-    }
 }

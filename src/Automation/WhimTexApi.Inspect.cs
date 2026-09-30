@@ -90,6 +90,7 @@ namespace DCFApixels.WhimTex
             result["tilingModes"] = new JArray(System.Enum.GetNames(typeof(TransformTilingMode)));
             result["filterModes"] = new JArray(System.Enum.GetNames(typeof(LayerFilterMode)));
             result["distanceMetrics"] = new JArray(System.Enum.GetNames(typeof(DistanceMetric)));
+            result["effectInputModes"] = new JArray(System.Enum.GetNames(typeof(EffectInputMode)));
             result["repeatModes"] = new JArray(System.Enum.GetNames(typeof(PaintRepeatMode)));
             result["repeatElements"] = new JArray(System.Enum.GetNames(typeof(PaintRepeatElementMode)));
             result["repeatBoundaries"] = new JArray(System.Enum.GetNames(typeof(PaintRepeatBoundaryMode)));
@@ -304,7 +305,7 @@ namespace DCFApixels.WhimTex
                 for (int i = 0; i < alphaKeys.Length; i++) alphas.Add(new JObject { ["time"] = alphaKeys[i].time, ["alpha"] = alphaKeys[i].alpha, ["midpoint"] = i + 1 < alphaKeys.Length ? gradient.GetMidpoint(true, i) : .5f });
             }
             return new JObject { ["colors"] = colors, ["alphas"] = alphas,
-                ["mode"] = (gradient?.Mode ?? WhimTexGradientMode.Classic).ToString(),
+                ["mode"] = (gradient?.Mode ?? WhimTexGradientMode.Perceptual).ToString(),
                 ["wrapMode"] = (gradient?.WrapMode ?? WhimTexGradientWrapMode.Clamp).ToString(),
                 ["smoothness"] = gradient?.Smoothness ?? 1f,
                 ["colorSpace"] = (gradient?.ColorSpace ?? ColorSpace.Gamma).ToString() };

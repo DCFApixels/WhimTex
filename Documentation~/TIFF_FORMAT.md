@@ -46,7 +46,7 @@ platform overrides belong to Unity's normal Texture Importer and are not part of
 ## Blocks and model
 
 The first logical block is `document`. It contains the tagged WhimTex model (version 1): layers,
-groups, transforms, settings, gradients, FX source and references. Drawing layers use separate named
+groups, transforms, settings, gradients, document color history, FX source and references. Drawing layers use separate named
 pixel blocks. Other embedded textures may use their own blocks. Block names and lengths are recorded
 in the directory before the block payloads, so the reader can validate bounds before allocating data.
 

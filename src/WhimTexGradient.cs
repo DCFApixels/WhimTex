@@ -33,7 +33,7 @@ namespace DCFApixels.WhimTex
             { new ColorStop(Color.black, 0), new ColorStop(Color.white, 1) };
         [SerializeField] private AlphaStop[] alphas =
             { new AlphaStop(1, 0), new AlphaStop(1, 1) };
-        [SerializeField] private WhimTexGradientMode mode = WhimTexGradientMode.Classic;
+        [SerializeField] private WhimTexGradientMode mode = WhimTexGradientMode.Perceptual;
         [SerializeField] private WhimTexGradientWrapMode wrapMode = WhimTexGradientWrapMode.Clamp;
         [SerializeField] private ColorSpace colorSpace = ColorSpace.Gamma;
         [SerializeField] private float smoothness = 1;

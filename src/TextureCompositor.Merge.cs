@@ -178,7 +178,7 @@ namespace DCFApixels.WhimTex
             for (int i = 0; i < source.Count; i++)
             {
                 Layer layer = source[i];
-                if (layer?.Behaviour is TargetedLayerBehaviour effect)
+                if (layer?.Behaviour is TargetedLayerBehaviour effect && effect.inputMode != EffectInputMode.AllBelow)
                     inputs[effect] = effect.inputMode == EffectInputMode.Specific
                         ? FindLayer(effect.TargetLayerId) : i + 1 < source.Count ? source[i + 1] : null;
                 if (layer?.AsGroup() is Layer group) CaptureInputs(group.layers, inputs);

@@ -9,6 +9,8 @@ namespace DCFApixels.WhimTex
     {
         public WhimTexGradient gradient = new WhimTexGradient();
         [NonSerialized] public Action<WhimTexGradient> changed;
+        [NonSerialized] internal TextureCompositor document;
+        [NonSerialized] internal Func<int> channelSource;
     }
 
     public sealed class WhimTexGradientValueField : BaseField<WhimTexGradient>
@@ -65,6 +67,8 @@ namespace DCFApixels.WhimTex
             session = ScriptableObject.CreateInstance<WhimTexGradientSession>();
             session.hideFlags = HideFlags.HideAndDontSave;
             session.gradient = GradientUtility.Create(value);
+            session.document = WhimTexColorPicker.FindDocument(this);
+            session.channelSource = WhimTexColorChannels.FindSource(this, session.document);
             session.changed = next => this.value = GradientUtility.Create(next);
             WhimTexGradientWindow.Open(session, "gradient");
         }
