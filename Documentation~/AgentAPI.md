@@ -475,7 +475,7 @@ Persistent layer IDs are returned per operation and in `document.layers`.
 ### Color and gradient input
 
 Gradient inputs accept either an ordered stop array or the object form documented in
-[the gradient contract](AI/README.md); SDF defaults to Linear, general-purpose gradients to Perceptual. Explicit modes are preserved.
+[the gradient contract](AI/README.md); SDF, Noise and general-purpose gradients default to Perceptual. Explicit modes are preserved.
 
 Color-picker preferences are not API input transforms: RGB/HSV entry mode, HDR input toggles,
 Channels and Preview EV do not modify supplied RGBA or gradient values. API/clipboard writes do not
@@ -516,7 +516,7 @@ HDR texture data is distinct from physical HDR monitor output; rendered PNG prev
 | Color | `color` (`[r,g,b,a]`, encoded RGB -107..107, alpha 0..1), `fillMode` (`Color`, `UV`, `Pattern`), `fillPattern` (partial settings below) |
 | Drawing | `brush` (partial brush settings below) |
 | Outline | `color`, `metric`, `sourceChannel` (`Alpha` default, `Red`, `Green`, `Blue`, `Luminance`), `outlineWidth`, `outlineSoftness` (0..16384), `outlinePosition` (`Outside`, `Inside`, `Center`), `outlineOffset` (-16384..16384), `fillCenter` (bool), `fillColor` (`[r,g,b,a]`) |
-| SDF | `metric`, `sourceChannel` (`Alpha`, `Red`, `Green`, `Blue`, `Luminance`), `threshold` (integer 0..255), `distancePosition` (`Outside`, `Inside`, `Center`, `Signed`), `inverted` (bool), `maxDistance` (0..16384; zero = automatic), `sourceOffset` ([x,y], each -16384..16384 px), `sourceEdges` (`Transparent`, `Clamp`, `Repeat`, `Mirror`), `contourOffset` (-16384..16384 px; positive expands), `insideDistance`/`outsideDistance` (Signed only, 0..16384; 0 inherits maxDistance/auto), `profile` (FX curve string syntax, default `linear`) |
+| SDF | `metric`, `sourceChannel` (`Alpha`, `Red`, `Green`, `Blue`, `Luminance`), `threshold` (integer 0..255), `distancePosition` (`Outside`, `Inside`, `Center`, `Signed`), `encoding` (`Gradient` default or `LinearData`), `inverted` (bool, both output modes), `maxDistance` (0..16384; zero = automatic), `sourceOffset` ([x,y], each -16384..16384 px), `sourceEdges` (`Transparent`, `Clamp`, `Repeat`, `Mirror`), `contourOffset` (-16384..16384 px; positive expands), `insideDistance`/`outsideDistance` (Signed only, 0..16384; 0 inherits maxDistance/auto), `profile` (FX curve string syntax, default `linear`) |
 | Normal Map | `normalMap`: partial settings object described below |
 | Noise | `noise`: partial procedural settings object described below |
 | Shape | `shape`: partial settings object described below |
@@ -524,6 +524,8 @@ HDR texture data is distinct from physical HDR monitor output; rendered PNG prev
 | Sharpen | `sharpen`: algorithm (`Gaussian`/`Adaptive`), strength 0..4, radius 0..32 px, threshold/noiseReduction/haloSuppression 0..1, channelMode (`RGB`/`Luminance`), edges |
 | Make Seamless | `makeSeamless`: `{ "mode": "OffsetBlend", "edgeWidth": 0.2, "offsetTransitionStart": -0.25 }`; [all four methods and parameters](#make-seamless-settings) |
 | Gradient, SDF | `gradient`: 1..64 `{"time":0.0,"color":[1,1,1,1]}` stops in strictly increasing time order, time 0..1 |
+
+SDF also accepts `encoding` directly in settings: `Gradient` (default) or `LinearData`, reported by `sdfEncodings` in capabilities. Its default palette matches Noise: black at 0, white at 1, with Perceptual interpolation. Inverted remains available in both modes and reverses normalized distance before Profile and gradient sampling. LinearData outputs normalized distance after Inverted/Profile as raw linear RGB 0–1 with alpha 1, without gamma decoding or palette sampling. In Signed mode low values are inside and high values outside. Profile applies in both modes. Switching output preserves the palette and inversion setting; existing explicit gradient modes are retained. SDF has no `useGradient` field or ColorValues output. Document export encoding still applies normally; choose linear output when exporting numeric maps.
 
 SDF/Outline `metric` accepts `EuclideanExact` (default), `EuclideanApproximate`, `Manhattan`,
 `Chebyshev` and `EuclideanAntialiased`. The latter interpolates threshold crossings between horizontal/vertical
@@ -633,7 +635,7 @@ Inactive type-specific settings are retained when `kind` changes. SVG import/exp
 
 Use `type:"noise"` with partial `settings.noise` updates. `describe` exposes `noiseDefaults`,
 `noiseTypes`, `noiseFractals`, `noiseCellularDistances`, `noiseCellularReturns`, `noiseWarps`
-and `noiseEncodings`, `noiseDimensions`, `noiseWhiteColors`. `inspect` returns all generator parameters. No new operation or protocol version is required.
+and `noiseEncodings`, `noiseDimensions`, `noisePeriodicAxes`, `noiseWhiteColors`. `inspect` returns all generator parameters. No new operation or protocol version is required.
 
 ```json
 {"op":"add","type":"noise","as":"height","settings":{"noise":{
@@ -647,11 +649,13 @@ and `noiseEncodings`, `noiseDimensions`, `noiseWhiteColors`. `inspect` returns a
 | `noiseType` | OpenSimplex2, OpenSimplex2S, Cellular, Perlin, ValueCubic, Value, WhiteNoise, BlueNoise |
 | `whiteNoiseColor` | Monochrome (default), Color (independent RGB); shared by WhiteNoise and BlueNoise |
 | `whiteNoiseSize` | 1–1024 canvas pixels per grain, default 1; shared by WhiteNoise and BlueNoise |
-| `dimensions` | TwoD (default), OneD (straight stripes, a 2D noise slice) |
+| `dimensions` | TwoD (default), OneD (straight stripes), ThreeD (2D slice at Offset Z; not White/Blue) |
+| `periodic` | None (default), X, Y, XY; six smooth noise types in TwoD/ThreeD only |
 | `direction` | −180–180 degrees, default 0; OneD only; 0 varies horizontally (vertical stripes), 90 varies vertically |
 | `seed` | Signed 32-bit integer; passed to the shader as an integer, not a float |
-| `scale` | 0.01–1000 noise-space units across the shorter canvas side |
-| `offset` | `[x,y]`, each −10000–10000 noise-space units (canvas pixels for WhiteNoise/BlueNoise) |
+| `scale` | Scalar sets both axes, or `[x,y]`, each 0.01–1000 noise-space units across the shorter canvas side; inspect returns the pair |
+| `linkScale` | Boolean, default true; proportional inspector edits, explicit API values are applied literally |
+| `offset` | `[x,y]` preserves Z, `[x,y,z]` sets all axes; each −10000–10000 noise-space units (XY canvas pixels for WhiteNoise/BlueNoise). Inspect returns three values |
 | `fractal` | None, FBm, Ridged, PingPong |
 | `octaves`, `lacunarity`, `gain` | Integer 1–8; 1–4; 0–1 |
 | `weightedStrength`, `pingPongStrength` | 0–1; 0.01–8 |
@@ -659,10 +663,11 @@ and `noiseEncodings`, `noiseDimensions`, `noiseWhiteColors`. `inspect` returns a
 | `cellularReturn` | CellValue, Distance, Distance2, Distance2Add, Distance2Sub, Distance2Mul, Distance2Div |
 | `cellularJitter` | 0–1 |
 | `warp`, `warpStrength` | None, OpenSimplex2, OpenSimplex2Reduced, BasicGrid; 0–100 noise-space units |
-| `encoding` | ColorValues (display colors) or LinearData (raw normalized values) |
-| `inverted` | Boolean |
+| `encoding` | LinearData (default; raw normalized values), ColorValues (display colors), Gradient (monochrome noise mapped through a palette) |
+| `inverted` | Boolean; reverses noise values in every output mode, before palette sampling in Gradient |
+| `gradient` | Shared stops/object, default black-to-white, Perceptual interpolation when mode is omitted; RGBA/HDR palette, retained while disabled |
 
-RGB repeats the normalized scalar, except WhiteNoise/BlueNoise with Color which generates independent RGB; alpha is 1.
+Without gradient mapping, RGB repeats the normalized scalar, except WhiteNoise/BlueNoise with Color which generates independent RGB; alpha is 1. Gradient output supplies RGB and alpha through the same encoded LUT and linear decode as SDF. Inverted remains available and reverses values before palette sampling. Color WhiteNoise/BlueNoise supports only ColorValues/LinearData: a retained Gradient setting temporarily renders/displays ColorValues, then returns to Gradient on switching to monochrome. Changing Output preserves the palette. Random All preserves `gradient` and keeps `encoding:Gradient`; otherwise it randomizes encoding only between ColorValues and LinearData. It can vary `inverted`; for grain noise with stored Gradient output it also preserves the Color setting so effective Output cannot change. Noise gradients live inside `settings.noise` / clipboard `properties.noise`, not at the layer root; Noise has no `useGradient` field.
 FastNoiseLite output is remapped from signed noise to 0–1 and clamped.
 WhiteNoise hashes discrete canvas-space cells with the signed integer seed. It ignores `scale`, fractal,
 cellular and warp settings without resetting them; `whiteNoiseSize` controls its grain size instead.
@@ -678,7 +683,21 @@ For a Normal Map or SDF source, add the effect above Noise and assign `Previous`
 Domain Warp uses a single warp pass; noise fractal settings affect the subsequent noise evaluation.
 OneD projects aspect-correct centered coordinates onto the direction axis before offset and warp.
 Offset X moves along the slice and Y selects the slice. Thus warp and fractals preserve stripe invariance.
-Generation runs on GPU at the requested resolution; it is not time-animated or automatically seamless.
+ThreeD exposes Z in Offset and evaluates the native 3D kernel, including 3D Fractal and Domain Warp.
+Z is never periodic and never advances automatically. Cellular 3D slices differ visibly from 2D cells.
+White/Blue retain their 1D/2D behavior: a stored ThreeD temporarily uses TwoD; Periodic is ignored.
+OneD ignores Periodic, retaining it for a return to TwoD/ThreeD.
+
+Periodic wraps lattice hashes, not output colors. It fits integer periods independently on selected axes
+for every octave and the warp. Non-integral lacunarity remains periodic. Square/cubic lattices round
+to whole cells; 2D simplex uses an orthogonal basis of its triangular lattice, and 3D simplex fits
+external periods in multiples of three lattice units without repeating Z. Small scales can change
+in visible steps. Source-rectangle periodicity does not guarantee canvas tiling after arbitrary
+layer/group transforms or FX. Extreme aspect/scale/octave combinations exceeding 100 million lattice
+units, or base coordinates beyond 500 million lattice units, report an error instead of overflowing
+integer indices. High-frequency detail can still alias.
+Random All preserves Dimensions, Periodic, the linked scale ratio and Offset Z.
+Generation runs on GPU at the requested resolution.
 Seed and normalized coordinates are stable across preview/export sizes, but different GPUs may produce small
 floating-point differences. Saving stores the procedural parameters through existing document serialization;
 the usual baked output texture is still generated when required.

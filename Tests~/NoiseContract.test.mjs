@@ -10,7 +10,9 @@ const api = read('src/Automation/WhimTexApi.Noise.cs');
 const ui = read('src/Layers/Editors/NoiseLayerEditorWindow.cs');
 const guard = '#ifndef WHIMTEX_FASTNOISELITE_INCLUDED\n#define WHIMTEX_FASTNOISELITE_INCLUDED\n\n';
 assert.ok(fnl.includes(guard) && fnl.endsWith('#endif\n'), 'Built-in noise has a duplicate-include guard');
-const upstream = fnl.replace(guard, '').replace(/#endif\n$/, '');
+const upstream = fnl.replace(guard, '').replace(/#endif\n$/, '')
+    .replace(/#ifdef WHIMTEX_NOISE_LATTICE\n[\s\S]*?#else\n([\s\S]*?)#endif\n/g, '$1')
+    .replace(/#if defined\(WHIMTEX_NOISE_TYPE\)\n[\s\S]*?#elif UNITY_VERSION\n/, '#if UNITY_VERSION\n');
 assert.equal(createHash('sha256').update(upstream).digest('hex'),
     '275f0e558ea7fd967dd0a3f47f14397759e9e6da403d11c290484707dfb8c2cb', 'Pinned upstream HLSL is unchanged');
 
@@ -35,13 +37,17 @@ for (const [type, constants] of Object.entries(mappings)) {
 for (const [, name] of layer.matchAll(/material\.Set(?:Integer|Float|Vector)\("([^"]+)"/g))
     assert.match(shader, new RegExp(`\\b${name}\\b`), `Shader uniform ${name}`);
 for (const [, field] of layer.matchAll(/^        public (?:\w+) (\w+)(?:\s*=.*)?;/gm)) {
+    if (field === 'scale' || field === 'scaleY') {
+        assert.ok(api.includes('layer.Scale') && ui.includes('layer.Scale'), 'Scale axes use the shared value accessor');
+        continue;
+    }
     assert.ok(api.includes(`"${field}"`), `API setting: ${field}`);
     assert.ok(ui.includes(`layer.${field}`), `UI setting: ${field}`);
 }
 assert.match(layer, /SetInteger\("_NoiseSeed", seed\)/, 'No lossy float conversion of seed');
 assert.match(shader, /#pragma target 4\.5/);
 assert.match(shader, /if \(_NoiseType == 6 \|\| _NoiseType == 7\)/);
-assert.ok(shader.indexOf('WhiteNoise(i.uv)') < shader.indexOf('fnl_state state'), 'White Noise bypasses fractal and warp');
+assert.ok(shader.indexOf('WhiteNoise(i.uv)') < shader.indexOf('fnl_state state = fnlCreateState(_NoiseSeed)'), 'White Noise bypasses fractal and warp');
 assert.match(ui, /fractalChoice.EnableInClassList\("whimtex-hidden", isWhite\)/);
 assert.match(ui, /warpChoice.EnableInClassList\("whimtex-hidden", isWhite\)/);
 assert.match(shader, /return float4\(rgb, 1\.0\)/);

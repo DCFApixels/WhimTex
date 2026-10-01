@@ -31,7 +31,9 @@ public static class SdfGradientGpuSmoke
             for (int position = 0; position < 4; position++)
             for (int inverted = 0; inverted < 2; inverted++)
             for (int variant = 0; variant < 2; variant++)
+            for (int useGradient = 0; useGradient < 2; useGradient++)
             {
+                material.SetInt("_UseGradient", useGradient);
                 gradient.Mode = mode; gradient.WrapMode = wrap;
                 material.SetTexture("_GradientLut", lut.GetTexture(gradient, ColorSpace.Gamma));
                 material.SetInt("_GradientWrapMode", (int)wrap);
@@ -45,7 +47,7 @@ public static class SdfGradientGpuSmoke
                 {
                     float d=values[i]-offset; if(position==0)d=Mathf.Max(d,0); if(position==1)d=Mathf.Max(-d,0); if(position==2)d=Mathf.Abs(d);
                     float t=Mathf.Clamp01(position==3?.5f+.5f*d/(d<0?inside:outside):d/8); if(inverted!=0)t=1-t;
-                    Color expected=gradient.Evaluate(t).linear;
+                    Color expected=useGradient!=0 ? gradient.Evaluate(t).linear : new Color(t,t,t,1);
                     for(int c=0;c<4;c++)
                     {
                         if(Mathf.Abs(pixels[i][c]-expected[c])>.004f) throw new Exception($"{mode}/{wrap} pos={position} inv={inverted} i={i} c={c} actual={pixels[i][c]} expected={expected[c]} samples={pixels[0]} {pixels[16]} {pixels[32]} {pixels[48]} {pixels[64]} lut={lut.GetTexture(gradient, ColorSpace.Gamma).GetPixel(0,0)} texel={material.GetVector("_GradientLut_TexelSize")}");

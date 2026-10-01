@@ -99,7 +99,11 @@ typedef int fnl_cellular_return_type;
 typedef int fnl_domain_warp_type;
 
 // Removes [0x80004005 - unknown error] 'internal error: no storage type for block output' 
-#if UNITY_VERSION
+#if defined(WHIMTEX_NOISE_TYPE)
+    #define FNL_FLATTEN [branch]
+    // OpenSimplex2 3D must evaluate both interleaved grids.
+    #define FNL_UNROLL [unroll(2)]
+#elif UNITY_VERSION
     #define FNL_FLATTEN [flatten]
     #define FNL_UNROLL [unroll(1)]
 #else
@@ -426,24 +430,39 @@ static float _fnlCalculateFractalBounding(fnl_state state)
 
 // Hashing
 
+#ifdef WHIMTEX_NOISE_LATTICE
+// Keep lattice indices intact until the optional caller's periodic hash hook.
+static const int PRIME_X = 1;
+static const int PRIME_Y = 1;
+static const int PRIME_Z = 1;
+#else
 static const int PRIME_X = 501125321;
 static const int PRIME_Y = 1136930381;
 static const int PRIME_Z = 1720413743;
+#endif
 
 static inline int _fnlHash2D(int seed, int xPrimed, int yPrimed)
 {
+#ifdef WHIMTEX_NOISE_LATTICE
+    return WtHash2D(seed, xPrimed, yPrimed);
+#else
     int hash = seed ^ xPrimed ^ yPrimed;
 
     hash *= 0x27d4eb2d;
     return hash;
+#endif
 }
 
 static inline int _fnlHash3D(int seed, int xPrimed, int yPrimed, int zPrimed)
 {
+#ifdef WHIMTEX_NOISE_LATTICE
+    return WtHash3D(seed, xPrimed, yPrimed, zPrimed);
+#else
     int hash = seed ^ xPrimed ^ yPrimed ^ zPrimed;
 
     hash *= 0x27d4eb2d;
     return hash;
+#endif
 }
 
 static inline float _fnlValCoord2D(int seed, int xPrimed, int yPrimed)

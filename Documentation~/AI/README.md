@@ -279,7 +279,7 @@ uses the same version-1 clipboard format, without rounding numeric values.
   For independent tracks, use an object instead of an array:
   `{ "colors": [...], "alphas": [{ "time": 0, "alpha": 1, "midpoint": 0.5 }], "mode": "Linear", "smoothness": 1 }`.
   Each track supports 1..64 keys; times must increase. `colorSpace` is optionally `Gamma` (default) or `Linear`.
-  SDF uses `Linear` interpolation by default; general-purpose gradients use `Perceptual`. Explicit modes are preserved. `Fixed` ignores midpoint and smoothness.
+  SDF, Noise and general-purpose gradients use `Perceptual` interpolation by default. Explicit modes are preserved. `Fixed` ignores midpoint and smoothness.
 
 ### Noise
 
@@ -288,16 +288,28 @@ Use `properties.noise`:
 | Fields | Values |
 | --- | --- |
 | `noiseType` | `OpenSimplex2`, `OpenSimplex2S`, `Cellular`, `Perlin`, `ValueCubic`, `Value`, `WhiteNoise`, `BlueNoise` |
-| `seed`, `scale`, `offset` | 32-bit integer; 0.01..1000; two values -10000..10000 |
-| `dimensions`, `direction` | `TwoD` or `OneD` (stripes); -180..180 degrees |
+| `seed`, `scale`, `offset` | 32-bit integer; scale scalar or `[x,y]`, each 0.01..1000; offset `[x,y]` or `[x,y,z]`, each -10000..10000 |
+| `dimensions`, `direction` | `TwoD`, `OneD` (stripes), `ThreeD` (slice at Offset Z); -180..180 degrees in OneD |
+| `periodic`, `linkScale` | `None` (default), `X`, `Y`, `XY`; linkScale boolean (default true, proportional UI edits only) |
 | `fractal`, `octaves` | `None`, `FBm`, `Ridged`, `PingPong`; integer 1..8 |
 | `lacunarity`, `gain`, `weightedStrength`, `pingPongStrength` | 1..4; 0..1; 0..1; 0.01..8 |
 | `cellularDistance` | `Euclidean`, `EuclideanSquared`, `Manhattan`, `Hybrid` |
 | `cellularReturn` | `CellValue`, `Distance`, `Distance2`, `Distance2Add`, `Distance2Sub`, `Distance2Mul`, `Distance2Div` |
 | `cellularJitter` | 0..1 |
 | `warp`, `warpStrength` | `None`, `OpenSimplex2`, `OpenSimplex2Reduced`, `BasicGrid`; 0..100 |
-| `encoding`, `inverted` | `ColorValues` or `LinearData`; boolean |
+| `encoding`, `inverted` | `LinearData` (default), `ColorValues` or `Gradient`; boolean, reverses values before gradient sampling |
 | `whiteNoiseColor`, `whiteNoiseSize` | `Monochrome` or `Color`; 1..1024 pixel cell size, for White/Blue Noise |
+| `gradient` | Shared gradient stops/object, default black-to-white Perceptual |
+
+Gradient output applies only to monochrome noise and supplies RGB/HDR and alpha using the same rendering path as SDF. Inverted remains available in every output mode and reverses values before palette sampling. Color White/Blue Noise temporarily treats stored Gradient output as ColorValues without losing the palette; the UI offers only Color Values and Linear Data there. Random All preserves the palette and keeps Gradient output; otherwise Output varies only between Color Values and Linear Data. Inverted can still vary. For raw masks, height maps or dither thresholds, set `encoding:"LinearData"`. Noise has no `useGradient` field; SDF also selects its output through encoding (Gradient or LinearData).
+
+Periodic and ThreeD support the six non-grain types, including every Fractal and Domain Warp mode.
+White/Blue ignore Periodic and temporarily use TwoD if ThreeD is stored; OneD ignores Periodic.
+Offset Z is retained in all modes but used only in ThreeD and is never periodic. Two-value Offset
+patches preserve Z. Scale scalar sets both axes; inspect/export return Scale `[x,y]` and Offset `[x,y,z]`.
+Periodic fits native lattice periods on selected source axes per octave/warp, with visible Scale steps
+at low values (especially simplex). Transforms/FX can alter canvas seams. Random All keeps Dimensions,
+Periodic, linked Scale ratio and Offset Z. See [Noise details](../AgentAPI.md#noise-settings).
 
 ### Targeted effects
 
@@ -316,8 +328,8 @@ Use `properties.noise`:
   `fillCenter` boolean, `fillColor`, `metric`.
 - **sdf:** directly in `properties`: `sourceChannel` (`Alpha`, `Red`, `Green`, `Blue`, `Luminance`),
   `threshold` integer 0..255, `distancePosition` (`Outside`, `Inside`, `Center`, `Signed`),
-  `inverted` boolean, `maxDistance` 0..16384 (0 = automatic), `gradient` stops, `metric`.
-  Also `sourceOffset: [x,y]` in document pixels (each -16384..16384), `sourceEdges: "Transparent"|"Clamp"|"Repeat"|"Mirror"` (default Transparent), and `contourOffset` -16384..16384 (positive expands). Signed mode accepts `insideDistance` and `outsideDistance` 0..16384; 0 inherits maxDistance/auto. The contour maps to 0.5, interior limit to 0, exterior limit to 1. Optional `profile` uses the curve string syntax (`"linear"`, `"easeInOut"`, `"easeIn"`, `"easeOut"`, `"one"`, or `"keys((...))"` with the same seven values per key as FX curves). Inversion precedes Profile, then gradient sampling; profile output clamps to 0..1. Source Offset shifts the available input image without cropping the shifted contour before distance computation; it does not recover content already clipped by the upstream layer. Repeat considers contours across tile seams, Mirror reflects the field. Extended distance domains are limited to 64 million pixels; excessive offsets/resolutions report an error rather than silently cropping.
+  `inverted` boolean, `maxDistance` 0..16384 (0 = automatic), `gradient` stops, `metric`, `encoding` (`Gradient` default or `LinearData`). SDF and Noise start with identical Perceptual palettes: black at 0, white at 1. Inverted remains available in both modes and reverses distance before Profile and palette sampling. LinearData outputs normalized distance after Inverted/Profile as raw linear RGB 0–1 with alpha 1, without gamma conversion or palette sampling. Profile applies in both modes. Switching output retains the palette, inversion and explicit gradient mode. SDF has no ColorValues mode or useGradient field.
+  Also `sourceOffset: [x,y]` in document pixels (each -16384..16384), `sourceEdges: "Transparent"|"Clamp"|"Repeat"|"Mirror"` (default Transparent), and `contourOffset` -16384..16384 (positive expands). Signed mode accepts `insideDistance` and `outsideDistance` 0..16384; 0 inherits maxDistance/auto. The contour maps to 0.5, interior limit to 0, exterior limit to 1. Optional `profile` uses the curve string syntax (`"linear"`, `"easeInOut"`, `"easeIn"`, `"easeOut"`, `"one"`, or `"keys((...))"` with the same seven values per key as FX curves). In both modes, inversion precedes Profile; in Gradient, Profile precedes palette sampling. Profile output clamps to 0..1. Source Offset shifts the available input image without cropping the shifted contour before distance computation; it does not recover content already clipped by the upstream layer. Repeat considers contours across tile seams, Mirror reflects the field. Extended distance domains are limited to 64 million pixels; excessive offsets/resolutions report an error rather than silently cropping.
 - **metric** for Outline/SDF: `EuclideanExact`, `EuclideanApproximate`, `EuclideanAntialiased`,
   `Manhattan`, `Chebyshev`.
 - **makeSeamless:** `properties.makeSeamless`: `mode` (`OffsetBlend`, default for new layers; `Mirror`; `ScreenedPoisson`; `PatchQuilting`).

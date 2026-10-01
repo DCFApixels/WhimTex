@@ -17,6 +17,13 @@ void Reject(string json)
     Check(rejected, "Reject " + json);
 }
 Check(layer.seed == 1337 && layer.scale == 8 && layer.octaves == 3, "Defaults");
+Check(layer.encoding == DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.LinearData && layer.gradient.Mode == DCFApixels.WhimTex.WhimTexGradientMode.Perceptual, "Linear Data output and Perceptual palette defaults");
+Set("{\"encoding\":\"ColorValues\",\"gradient\":[{\"time\":0,\"color\":[1,0,0,0.5]},{\"time\":1,\"color\":[0,0,1,1]}]}");
+Check(layer.encoding == DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.ColorValues && layer.gradient.Mode == DCFApixels.WhimTex.WhimTexGradientMode.Perceptual, "Supplied stops default to Perceptual");
+var savedGradient = layer.gradient.Clone();
+Set("{\"encoding\":\"Gradient\"}");
+Check(layer.encoding == DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.Gradient && layer.gradient.Equals(savedGradient), "Output retains palette");
+Reject("{\"encoding\":\"Unknown\"}");
 Set("{\"seed\":2147483647,\"noiseType\":\"Cellular\",\"scale\":12.5,\"offset\":[3,-4],\"fractal\":\"Ridged\",\"octaves\":6,\"lacunarity\":3,\"gain\":0.6,\"weightedStrength\":0.2,\"pingPongStrength\":3,\"cellularDistance\":\"Hybrid\",\"cellularReturn\":\"Distance2Sub\",\"cellularJitter\":0.75,\"warp\":\"BasicGrid\",\"warpStrength\":2,\"encoding\":\"LinearData\",\"inverted\":true}");
 Check(layer.seed == int.MaxValue && layer.offset.y == -4 && layer.inverted, "Set parameters");
 var copy = new DCFApixels.WhimTex.NoiseLayerBehaviour();
@@ -43,4 +50,18 @@ Check(DCFApixels.WhimTex.WhimTexApi.Describe().Contains("BlueNoise"), "Blue Nois
 foreach (string json in new[] { "{\"scale\":0}", "{\"octaves\":9}", "{\"octaves\":1.5}", "{\"offset\":[10001,0]}",
     "{\"seed\":2147483648}", "{\"noiseType\":\"Unknown\"}", "{\"warp\":\"Unknown\"}", "{\"cellularJitter\":2}", "{\"unused\":true}" }) Reject(json);
 Check(DCFApixels.WhimTex.WhimTexApi.Describe().Contains("noiseDefaults"), "Discovery");
+Set("{\"dimensions\":\"ThreeD\",\"periodic\":\"XY\",\"scale\":[6.3,10.7],\"linkScale\":false,\"offset\":[3,-4,5]}");
+Check(layer.dimensions == DCFApixels.WhimTex.NoiseLayerBehaviour.NoiseDimensions.ThreeD && layer.offset.z == 5 &&
+    layer.Scale.y == 10.7f && !layer.linkScale, "3D anisotropic periodic settings");
+setter.Invoke(null, new object[] { copy, snapshot.Invoke(null, new object[] { layer }) });
+Check(snapshot.Invoke(null, new object[] { layer }).ToString() == snapshot.Invoke(null, new object[] { copy }).ToString(), "3D settings round trip");
+Set("{\"offset\":[1,2]}");
+Check(layer.offset.z == 5, "XY patch preserves Z");
+Set("{\"scale\":7}");
+Check(layer.Scale.x == 7 && layer.Scale.y == 7, "Scalar scale sets both axes");
+foreach (string invalid in new[] { "{\"scale\":[1]}", "{\"scale\":[1,1001]}", "{\"offset\":[0,0,10001]}", "{\"offset\":[0,0,0,0]}",
+    "{\"periodic\":\"Z\"}", "{\"dimensions\":\"FourD\"}", "{\"linkScale\":1}" }) Reject(invalid);
+var legacy = UnityEngine.JsonUtility.FromJson<DCFApixels.WhimTex.NoiseLayerBehaviour>("{\"scale\":3.25,\"offset\":{\"x\":1,\"y\":2}}");
+Check(legacy.Scale.x == 3.25f && legacy.Scale.y == 3.25f && legacy.offset.z == 0, "Existing scalar scale and XY offset retain their appearance");
+Check(DCFApixels.WhimTex.WhimTexApi.Describe().Contains("noisePeriodicAxes"), "Periodicity discovery");
 return "Noise API checks passed: " + checks;

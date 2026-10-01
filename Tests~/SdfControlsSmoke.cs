@@ -48,6 +48,19 @@ public static class SdfControlsSmoke
         using var copy=(IDisposable)Read(exported);
         var copied=(TextureCompositor)copy.GetType().GetField("Document",F).GetValue(copy);
         var sdf=(SDFLayerBehaviour)copied.layers[0].Behaviour;
+        Check(sdf.encoding == SDFLayerBehaviour.OutputEncoding.Gradient, "Default Gradient output");
+        Check(WhimTexApi.Describe().Contains("sdfEncodings"), "Output choices discoverable");
+        foreach (var outputMode in new[] { "LinearData", "Gradient" })
+        {
+            string request = "{\"format\":\"whimtex.layers\",\"version\":1,\"layers\":[{\"type\":\"sdf\",\"properties\":{\"encoding\":\"" + outputMode + "\"}}]}";
+            using var parsed = (IDisposable)Read(request);
+            var parsedDoc = (TextureCompositor)parsed.GetType().GetField("Document",F).GetValue(parsed);
+            Check(((SDFLayerBehaviour)parsedDoc.layers[0].Behaviour).encoding.ToString() == outputMode, "Explicit output accepted: " + outputMode);
+        }
+        bool rejected = false;
+        try { using var invalid = (IDisposable)Read("{\"format\":\"whimtex.layers\",\"version\":1,\"layers\":[{\"type\":\"sdf\",\"properties\":{\"encoding\":\"ColorValues\"}}]}"); }
+        catch (TargetInvocationException e) { rejected = e.InnerException is FormatException && e.InnerException.InnerException?.GetType().Name == "WhimTexApiException"; }
+        Check(rejected, "ColorValues is not an SDF output");
         Check(sdf.sourceOffset==new Vector2(4,-3)&&sdf.sourceEdges==SDFLayerBehaviour.SourceEdges.Repeat&&sdf.contourOffset==3&&sdf.insideDistance==8&&sdf.outsideDistance==24,"clipboard controls roundtrip");
         var texture=copied.Compose();
         try

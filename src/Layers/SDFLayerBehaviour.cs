@@ -15,6 +15,7 @@ namespace DCFApixels.WhimTex
     [Serializable]
     public sealed class SDFLayerBehaviour : TargetedLayerBehaviour
     {
+        public enum OutputEncoding { LinearData, Gradient }
         public DistanceMetric metric = DistanceMetric.EuclideanExact;
         public SourceChannel sourceChannel = SourceChannel.Alpha;
         [Range(0, 255)] public byte threshold = 128;
@@ -27,7 +28,8 @@ namespace DCFApixels.WhimTex
         public float insideDistance;
         public float outsideDistance;
         public AnimationCurve profile = AnimationCurve.Linear(0, 0, 1, 1);
-        public WhimTexGradient gradient = GradientUtility.CreateLinearWhiteToBlack();
+        public OutputEncoding encoding = OutputEncoding.Gradient;
+        public WhimTexGradient gradient = new WhimTexGradient();
 
         [NonSerialized] private WhimTexGradientTexture gradientLut;
         [NonSerialized] private Material gradientMaterial;
@@ -68,15 +70,21 @@ namespace DCFApixels.WhimTex
                 };
                 resultTexture.SetPixelData(signedDistances, 0);
                 resultTexture.Apply(false, false);
-                gradient ??= GradientUtility.CreateLinearWhiteToBlack();
-                gradientLut ??= new WhimTexGradientTexture();
                 if (gradientMaterial == null)
                 {
                     var shader = Shader.Find("Hidden/TextureCompositor/SdfGradient");
                     if (shader == null || !shader.isSupported) throw new InvalidOperationException("SDF gradient shader unavailable.");
                     gradientMaterial = new Material(shader) { hideFlags = HideFlags.HideAndDontSave };
                 }
-                gradientMaterial.SetTexture("_GradientLut", gradientLut.GetTexture(gradient, ColorSpace.Gamma));
+                bool applyGradient = encoding == OutputEncoding.Gradient;
+                gradientMaterial.SetInt("_UseGradient", applyGradient ? 1 : 0);
+                if (applyGradient)
+                {
+                    gradient ??= new WhimTexGradient();
+                    gradientLut ??= new WhimTexGradientTexture();
+                    gradientMaterial.SetTexture("_GradientLut", gradientLut.GetTexture(gradient, ColorSpace.Gamma));
+                    gradientMaterial.SetInt("_GradientWrapMode", (int)gradient.WrapMode);
+                }
                 gradientMaterial.SetFloat("_MaxDistance", GetNormalizationDistance(context));
                 float fallback = GetNormalizationDistance(context);
                 gradientMaterial.SetFloat("_InsideDistance", insideDistance > 0 ? insideDistance / context.scaleMultiplier : fallback);
@@ -86,7 +94,6 @@ namespace DCFApixels.WhimTex
                 gradientMaterial.SetTexture("_ProfileLut", profileLut.GetTexture(profile));
                 gradientMaterial.SetInt("_Position", (int)distancePosition);
                 gradientMaterial.SetInt("_Inverted", inverted ? 1 : 0);
-                gradientMaterial.SetInt("_GradientWrapMode", (int)gradient.WrapMode);
                 colored = RenderTexture.GetTemporary(context.width, context.height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
                 GL.sRGBWrite = false;
                 Graphics.Blit(resultTexture, colored, gradientMaterial);

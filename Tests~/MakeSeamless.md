@@ -16,6 +16,13 @@ through the project's existing C# execution bridge. It creates transient objects
 GPU previews, reads opposite edges, checks hidden-source input and serialization, then cleans up.
 It does not import, save or change the active document. Do not run automatically.
 
+`EdgeSelectorSmoke.cs` runs through Pipeline `run_script`, entry `EdgeSelectorSmoke.Run`.
+It checks the shared Noise/Make Seamless selector in a temporary window: linked and independent
+hover groups, hover cleanup, all four pair states across the five Poisson/Quilting controls,
+all 16 copy-edge masks, all nine Mirror direction combinations, center activation and one change
+transaction per click. Verified: 731 checks. Mirror center turns both axes off if either is active;
+from both off it enables Left To Right and Bottom To Top. Other centers invert each selected edge/pair.
+
 Manual UI checks:
 
 1. Select each layer type and a group. Properties includes the type name from the add menu;

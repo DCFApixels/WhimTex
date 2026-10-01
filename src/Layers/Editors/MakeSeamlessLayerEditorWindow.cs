@@ -177,9 +177,14 @@ namespace DCFApixels.WhimTex
             {
                 var container = new VisualElement { name = name };
                 container.Add(EdgeHeading(label));
-                var selector = new VisualElement { tooltip = "Opposite edges toggle together. Clear both pairs to skip this pass. Unselected pairs are not joined; their pixels may still change while another pair is selected." };
-                selector.AddToClassList("whimtex-seamless-edges");
-                selector.Add(new SeamlessImageIcon());
+                var selector = new WhimTexEdgeSelector(name + "Selector", () => applyChange("Invert " + label, () =>
+                {
+                    var current = get();
+                    set(current == MakeSeamlessLayerBehaviour.PoissonEdges.AllEdges ? MakeSeamlessLayerBehaviour.PoissonEdges.None
+                        : current == MakeSeamlessLayerBehaviour.PoissonEdges.None ? MakeSeamlessLayerBehaviour.PoissonEdges.AllEdges
+                        : current == MakeSeamlessLayerBehaviour.PoissonEdges.TopAndBottom ? MakeSeamlessLayerBehaviour.PoissonEdges.LeftAndRight
+                        : MakeSeamlessLayerBehaviour.PoissonEdges.TopAndBottom);
+                })) { tooltip = "Opposite edges toggle together. Clear both pairs to skip this pass. Unselected pairs are not joined; their pixels may still change while another pair is selected." };
                 container.Add(selector);
                 Add("top", MakeSeamlessLayerBehaviour.PoissonEdges.TopAndBottom);
                 Add("bottom", MakeSeamlessLayerBehaviour.PoissonEdges.TopAndBottom);
@@ -207,7 +212,7 @@ namespace DCFApixels.WhimTex
                         button.tooltip = pair == MakeSeamlessLayerBehaviour.PoissonEdges.TopAndBottom ? "Toggle Top & Bottom together (vertical tiling)."
                             : "Toggle Left & Right together (horizontal tiling).";
                     }
-                    Refresh(); bindings.Add(Refresh); selector.Add(button);
+                    Refresh(); bindings.Add(Refresh); selector.AddEdge(button, pair.ToString());
                 }
             }
             Toggle ToggleField(string label, string name, Func<bool> get, Action<bool> set, string tooltip)
@@ -399,9 +404,13 @@ namespace DCFApixels.WhimTex
         private static VisualElement BuildEdgeSelector(MakeSeamlessLayerBehaviour layer,
             Action<string, Action> applyChange, WhimTexUI.ValueBindings bindings)
         {
-            var selector = new VisualElement { name = "seamlessEdges" };
-            selector.AddToClassList("whimtex-seamless-edges");
-            selector.Add(new SeamlessImageIcon());
+            var selector = new WhimTexEdgeSelector("seamlessEdges", () => applyChange("Toggle Seamless Directions", () =>
+            {
+                bool active = layer.horizontal != MakeSeamlessLayerBehaviour.HorizontalDirection.Off
+                    || layer.vertical != MakeSeamlessLayerBehaviour.VerticalDirection.Off;
+                layer.horizontal = active ? MakeSeamlessLayerBehaviour.HorizontalDirection.Off : MakeSeamlessLayerBehaviour.HorizontalDirection.LeftToRight;
+                layer.vertical = active ? MakeSeamlessLayerBehaviour.VerticalDirection.Off : MakeSeamlessLayerBehaviour.VerticalDirection.BottomToTop;
+            }), "Toggle both reflection axes.");
 
             AddEdge("left", "Copy the right edge onto the left. Click again to turn horizontal blending off.",
                 () => layer.horizontal == MakeSeamlessLayerBehaviour.HorizontalDirection.RightToLeft,
@@ -430,17 +439,20 @@ namespace DCFApixels.WhimTex
                 void Refresh() => button.EnableInClassList("whimtex-seamless-edge--selected", selected());
                 Refresh();
                 bindings.Add(Refresh);
-                selector.Add(button);
+                selector.AddEdge(button, edge);
             }
         }
 
         private static VisualElement BuildProcessingEdges(MakeSeamlessLayerBehaviour layer,
             Action<string, Action> applyChange, WhimTexUI.ValueBindings bindings)
         {
-            var selector = new VisualElement { name = "seamlessProcessingEdges",
-                tooltip = "Click edges to select copy bands. All off skips copying, not enabled Poisson Correction. Corner regions belong to either selected edge." };
-            selector.AddToClassList("whimtex-seamless-edges");
-            selector.Add(new SeamlessImageIcon());
+            var selector = new WhimTexEdgeSelector("seamlessProcessingEdges", () => applyChange("Invert Seamless Edges", () =>
+            {
+                layer.leftEdge = !layer.leftEdge;
+                layer.rightEdge = !layer.rightEdge;
+                layer.topEdge = !layer.topEdge;
+                layer.bottomEdge = !layer.bottomEdge;
+            })) { tooltip = "Click edges to select copy bands. All off skips copying, not enabled Poisson Correction. Corner regions belong to either selected edge." };
             Add("left", () => layer.leftEdge, () => layer.leftEdge = !layer.leftEdge);
             Add("right", () => layer.rightEdge, () => layer.rightEdge = !layer.rightEdge);
             Add("top", () => layer.topEdge, () => layer.topEdge = !layer.topEdge);
@@ -454,39 +466,10 @@ namespace DCFApixels.WhimTex
                 button.AddToClassList("whimtex-seamless-edge");
                 button.AddToClassList("whimtex-seamless-edge--" + edge);
                 void Refresh() => button.EnableInClassList("whimtex-seamless-edge--selected", get());
-                Refresh(); bindings.Add(Refresh); selector.Add(button);
+                Refresh(); bindings.Add(Refresh); selector.AddEdge(button, edge);
             }
         }
 
-        private sealed class SeamlessImageIcon : VisualElement
-        {
-            public SeamlessImageIcon()
-            {
-                pickingMode = PickingMode.Ignore;
-                AddToClassList("whimtex-seamless-image");
-                generateVisualContent += Draw;
-            }
-
-            private void Draw(MeshGenerationContext context)
-            {
-                Rect r = contentRect;
-                if (r.width < 1f || r.height < 1f) return;
-                var painter = context.painter2D;
-                painter.fillColor = resolvedStyle.color;
-                Vector2 Point(float x, float y) => new Vector2(r.x + r.width * x, r.y + r.height * y);
-                painter.BeginPath();
-                painter.Arc(Point(.7f, .29f), r.width * .075f, 0f, 360f);
-                painter.Fill();
-                painter.BeginPath();
-                painter.MoveTo(Point(.16f, .77f));
-                painter.LineTo(Point(.4f, .37f));
-                painter.LineTo(Point(.57f, .62f));
-                painter.LineTo(Point(.69f, .49f));
-                painter.LineTo(Point(.85f, .77f));
-                painter.ClosePath();
-                painter.Fill();
-            }
-        }
 
         private static float Safe(float value, float min, float max, float previous) =>
             float.IsNaN(value) || float.IsInfinity(value) ? previous : Mathf.Clamp(value, min, max);

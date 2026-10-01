@@ -15,7 +15,7 @@ Use Noise for clouds, grain, stone-like patterns or a starting point for a heigh
 Add **Noise** through **+ → Noise** at the bottom of Layers and adjust the settings while watching the image.
 
 **Random All** at the top of the noise settings explores a new combination of generator parameters,
-including inactive options, **Output** and inversion. **Dimensions (1D/2D)**, layer transforms, blending and FX
+including inactive generator options and **Inverted**. Output varies between Color Values and Linear Data, but stays Gradient if selected. The gradient palette, **Dimensions**, **Seamless**, linked Scale ratio, Offset Z, layer transforms, blending and FX
 stay unchanged. One Undo restores the previous combination. **Random** beside **Seed** changes only the seed.
 Noise Type stays within the selected group: **White Noise / Blue Noise**, or all other noise types.
 
@@ -34,6 +34,23 @@ Noise Type stays within the selected group: **White Noise / Blue Noise**, or all
 For finer control, **Lacunarity** changes the spacing between detail scales and **Gain**
 changes how strongly the smaller details show.
 With Cellular, try **Distance**, **Return** and **Jitter** to change the shape and regularity of the cells.
+
+## Scale, 3D slices and seamless noise
+
+**Scale X/Y** controls detail independently on each axis. The chain button changes both
+proportionally; linking retains the current proportions. Scale is measured across the shorter canvas side.
+
+For OpenSimplex2, OpenSimplex2S, Cellular, Perlin, ValueCubic and Value, choose **Dimensions → 3D**
+to see a slice of a volume. **Offset** gains a **Z** component: move it to explore adjacent slices.
+Cellular slices have a different character from 2D cells. Fractal and Domain Warp work in both 2D and 3D.
+
+Use the square **Seamless** control to make the source repeat without blending edges.
+Left/right edges toggle together for X; top/bottom toggle together for Y. Select all four for XY,
+or clear both pairs to disable periodicity. Hovering either edge highlights its pair.
+Click the center image to invert the selected pairs.
+Fractal octaves and Domain Warp remain periodic; Z never repeats. Complete lattice cells must fit the tile,
+so Scale changes in steps, especially with small OpenSimplex scales. Arbitrary transforms and FX can
+introduce canvas seams again. White/Blue Noise and 1D do not offer this option.
 
 ## White noise
 
@@ -61,14 +78,16 @@ Choose **Dimensions → 1D** to create straight noise stripes instead of a two-d
 **Direction (deg)** rotates the direction of variation: 0 gives vertical stripes, 90 gives horizontal stripes.
 Direction is available for every noise type. **Scale** controls stripe width;
 White Noise and Blue Noise use **Grain Size (px)** instead.
-**Offset X** moves the pattern along the direction of variation; **Offset Y** has no effect.
+**Offset X** moves along the direction of variation; **Offset Y** selects another noise slice (for Blue Noise, another seeded sequence).
 Fractal and Domain Warp remain available except for White Noise and Blue Noise.
 Warp changes the pattern but keeps the stripes straight.
 Switch back to **2D** for the usual pattern without losing the direction setting.
 
 ## Color texture or height map?
 
-Choose **Output → Color Values** when using the noise as a visible image.
+**Output → Gradient** maps monochrome noise through the selected palette, including its alpha and HDR colors. The default output is **Linear Data**; the default gradient is black-to-white **Perceptual**. **Inverted** is available in every output mode and reverses noise values before gradient sampling. Switching Output keeps the palette. Color White/Blue Noise offers only Color Values and Linear Data; a previously selected Gradient temporarily uses Color Values until you return to Monochrome. Random All keeps Gradient output and the palette; otherwise it randomizes Output between Color Values and Linear Data. Inverted can change.
+
+Choose **Output → Color Values** to display the original noise as colors, with **Inverted** available.
 Choose **Output → Linear Data** when using it as a height map or packing it into texture channels.
 
 To create surface relief:
@@ -79,5 +98,5 @@ To create surface relief:
 4. In Normal Map's Advanced settings, choose **Input Space → Linear**.
 5. Adjust Strength and Smoothing. Change Noise Seed to try another surface.
 
-**Tiled** preview helps you inspect seams, but does not make Noise itself seamless.
+**Tiled** preview helps inspect seams; use **Seamless** to make the source repeat.
 For the next step, see [Normal Map](normal-map.md).

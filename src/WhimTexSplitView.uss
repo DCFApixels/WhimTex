@@ -1303,6 +1303,12 @@
     margin: 6px 0 10px 0;
 }
 
+.whimtex-seamless-edges--compact {
+    width: 72px;
+    height: 72px;
+    margin: 4px 0 6px 0;
+}
+
 .whimtex-seamless-image {
     position: absolute;
     left: 14px;
@@ -1356,7 +1362,53 @@
     height: 12px;
 }
 
-.unity-button.whimtex-seamless-edge:hover {
+.whimtex-seamless-edges--compact > .whimtex-seamless-image {
+    left: 12px;
+    right: 12px;
+    top: 12px;
+    bottom: 12px;
+}
+
+.whimtex-seamless-edges--compact > .whimtex-seamless-edge--left,
+.whimtex-seamless-edges--compact > .whimtex-seamless-edge--right {
+    width: 10px;
+    top: 12px;
+    bottom: 12px;
+}
+
+.whimtex-seamless-edges--compact > .whimtex-seamless-edge--top,
+.whimtex-seamless-edges--compact > .whimtex-seamless-edge--bottom {
+    height: 10px;
+    left: 12px;
+    right: 12px;
+}
+
+.unity-button.whimtex-seamless-image {
+    margin: 0;
+    padding: 0;
+    min-width: 0;
+    min-height: 0;
+}
+
+.whimtex-seamless-center-icon {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+}
+
+.unity-button.whimtex-seamless-image:hover {
+    background-color: rgba(128, 128, 128, 0.2);
+    opacity: 1;
+}
+
+.unity-button.whimtex-seamless-image:focus {
+    border-color: #90bce3;
+}
+
+.unity-button.whimtex-seamless-edge:hover,
+.unity-button.whimtex-seamless-edge--hovered {
     background-color: rgba(128, 128, 128, 0.5);
 }
 
@@ -1365,7 +1417,8 @@
     border-color: #6194c2;
 }
 
-.unity-button.whimtex-seamless-edge--selected:hover {
+.unity-button.whimtex-seamless-edge--selected:hover,
+.unity-button.whimtex-seamless-edge--selected.whimtex-seamless-edge--hovered {
     background-color: #488bcc;
 }
 

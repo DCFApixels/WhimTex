@@ -414,9 +414,35 @@
           "maximum": 2147483647
         },
         "scale": {
-          "type": "number",
-          "minimum": 0.01,
-          "maximum": 1000
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0.01,
+              "maximum": 1000
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0.01,
+                "maximum": 1000
+              },
+              "minItems": 2,
+              "maxItems": 2
+            }
+          ]
+        },
+        "linkScale": {
+          "type": "boolean"
+        },
+        "periodic": {
+          "type": "string",
+          "enum": [
+            "None",
+            "X",
+            "Y",
+            "XY"
+          ]
         },
         "offset": {
           "type": "array",
@@ -426,7 +452,7 @@
             "maximum": 10000
           },
           "minItems": 2,
-          "maxItems": 2
+          "maxItems": 3
         },
         "fractal": {
           "type": "string",
@@ -506,17 +532,22 @@
           "type": "string",
           "enum": [
             "ColorValues",
-            "LinearData"
+            "LinearData",
+            "Gradient"
           ]
         },
         "inverted": {
           "type": "boolean"
         },
+        "gradient": {
+          "$ref": "#/$defs/gradient"
+        },
         "dimensions": {
           "type": "string",
           "enum": [
             "TwoD",
-            "OneD"
+            "OneD",
+            "ThreeD"
           ]
         },
         "direction": {
@@ -3048,6 +3079,13 @@
                 "profile": {
                   "type": "string",
                   "maxLength": 65536
+                },
+                "encoding": {
+                  "type": "string",
+                  "enum": [
+                    "LinearData",
+                    "Gradient"
+                  ]
                 },
                 "gradient": {
                   "$ref": "#/$defs/gradient"

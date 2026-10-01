@@ -49,14 +49,15 @@ choose **Source Channel** (Alpha by default, or Red, Green, Blue or Luminance),
 then choose whether it sits inside, outside or across the edge.
 
 Use **SDF** when you want a gradual transition based on distance from the shape.
+**Output → Gradient** is the default, with a black-to-white **Perceptual** gradient (black at 0, white at 1). **Inverted** remains available and reverses normalized distance before Profile and palette sampling. Choose **Output → Linear Data** for normalized distance as raw 0–1 RGB with opaque alpha and no color gamma conversion. Inverted and Profile apply in both modes. Switching Output preserves the palette and inversion setting. Signed values are low inside and high outside; both outputs therefore have the same brightness direction with the default palette.
 **Threshold** sets the contour threshold; **Max Distance (px, 0 = auto)** sets the transition distance.
 At 0, the distance is chosen automatically. **Position** selects which side receives the gradient:
 Outside covers the outside, Inside the inside, and Center both sides.
-The default, **Signed**, covers both sides of the contour. **Inverted** reverses the gradient direction.
+The default, **Signed**, covers both sides of the contour. In both output modes, **Inverted** reverses normalized distance before Profile.
 
 **Source Offset (px)** shifts the input while retaining the influence of contours moved outside the canvas. **Source Edges** extends the image as Transparent (default), Clamp, Repeat (including distances across seams), or Mirror. It cannot recover details already clipped by the source layer.
 
-**Contour Offset (px)** expands the contour when positive and shrinks it when negative. In **Signed**, **Inside Distance** and **Outside Distance** independently set the interior/exterior range; 0 inherits Max Distance or auto. The contour stays at the gradient midpoint. **Profile** remaps the transition after Inverted and before gradient coloring; linear leaves it unchanged. For bevel lighting, start with a grayscale gradient and shape its height profile here.
+**Contour Offset (px)** expands the contour when positive and shrinks it when negative. In **Signed**, **Inside Distance** and **Outside Distance** independently set the interior/exterior range; 0 inherits Max Distance or auto. Before Profile, the contour maps to 0.5. **Profile** remaps the transition in both modes, after Inverted and before any palette sampling; linear leaves it unchanged. For bevel lighting, use Linear Data or a grayscale gradient and shape the height profile here.
 
 Large offsets and Repeat use more memory. Extended domains above 64 million pixels report an error rather than silently cropping; reduce offset or resolution if needed.
 The distance algorithm changes the character of corners and diagonals:
@@ -133,6 +134,10 @@ for both Offset Blend and Mirror. All Offset copy edges and both Mirror reflecti
 Existing layers retain their settings; switching methods does not reset them.
 
 **Copy Edges**, **Mirror Direction** and **Patch Edges** select the main pass; **Poisson Edges** selects the independent correction pass. Clearing a pass's edges disables its dependent settings, not the selectors or another pass. Values are retained. Quilting's Contrast Compensation is unavailable at **Feather 0%**; raise Feather to use it again.
+
+Linked opposite edges highlight together on hover. Click the center image to invert the selection.
+For **Mirror Direction**, the center instead turns both axes off if either is active; clicking again
+enables both, Left To Right and Bottom To Top.
 
 **Contrast Compensation** adds computation. The first evaluation after a long idle period or a size change can take longer than subsequent updates.
 

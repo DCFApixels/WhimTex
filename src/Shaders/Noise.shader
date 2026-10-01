@@ -9,20 +9,53 @@ Shader "Hidden/TextureCompositor/Noise"
             #pragma target 4.5
             #pragma vertex vert_img
             #pragma fragment frag
+            #pragma multi_compile_local __ WT_NOISE_3D
+            #pragma multi_compile_local __ WT_NOISE_PERIODIC
+            #pragma multi_compile_local WT_NOISE_0 WT_NOISE_1 WT_NOISE_2 WT_NOISE_3 WT_NOISE_4 WT_NOISE_5
             #include "UnityCG.cginc"
             #include "HdrColor.cginc"
             #include "ProceduralUv.cginc"
+            #if defined(WT_NOISE_PERIODIC)
+                #include "NoiseLattice.cginc"
+            #endif
+            #if defined(WT_NOISE_0)
+                #define WHIMTEX_NOISE_TYPE 0
+            #elif defined(WT_NOISE_1)
+                #define WHIMTEX_NOISE_TYPE 1
+            #elif defined(WT_NOISE_2)
+                #define WHIMTEX_NOISE_TYPE 2
+            #elif defined(WT_NOISE_3)
+                #define WHIMTEX_NOISE_TYPE 3
+            #elif defined(WT_NOISE_4)
+                #define WHIMTEX_NOISE_TYPE 4
+            #else
+                #define WHIMTEX_NOISE_TYPE 5
+            #endif
             #include "ThirdParty/FastNoiseLite.hlsl"
 
             float4 _NoiseDomain, _NoiseFractalSettings;
             float4 _NoiseAxis;
-            int _NoiseOneD;
-            float _NoiseScale, _NoiseCellularJitter, _NoiseWarpStrength;
+            int _NoiseOneD, _NoiseThreeD, _NoisePeriodic;
+            float2 _NoiseScale;
+            float _NoiseZ, _NoiseCellularJitter, _NoiseWarpStrength;
             int _NoiseSeed, _NoiseType, _NoiseFractal, _NoiseOctaves;
             int _NoiseCellularDistance, _NoiseCellularReturn, _NoiseWarp, _NoiseEncoding, _NoiseInverted;
             float4 _WhiteNoiseGrid;
             int _WhiteNoiseColor;
             Texture2D<float4> _BlueNoise2D, _BlueNoise1D;
+            sampler2D _GradientLut;
+            float4 _GradientLut_TexelSize;
+            int _UseGradient, _GradientWrapMode;
+
+            float4 MapGradient(float t)
+            {
+                if (_GradientWrapMode == 1) t = frac(t);
+                else if (_GradientWrapMode == 2) t = 1 - abs(frac(t * .5) * 2 - 1);
+                float u = lerp(.5 * _GradientLut_TexelSize.x, 1 - .5 * _GradientLut_TexelSize.x, t);
+                float4 c = tex2Dlod(_GradientLut, float4(u, .5, 0, 0));
+                c.rgb = SpriteDecode(c.rgb);
+                return c;
+            }
 
             uint WhiteHash(uint value)
             {
@@ -79,6 +112,63 @@ Shader "Hidden/TextureCompositor/Noise"
                 return _WhiteNoiseColor != 0 ? float3(r, BlueValue(cell, 1u), BlueValue(cell, 2u)) : r.xxx;
             }
 
+            #if defined(WT_NOISE_PERIODIC)
+            float PeriodicNoise(fnl_state state, float2 uv)
+            {
+                // Canonical tile coordinates avoid loss of phase on transformed repeats.
+                // Continuity comes from the lattice hash, not a fade at the boundary.
+                if ((_NoisePeriodic & 1) != 0) uv.x = frac(uv.x);
+                if ((_NoisePeriodic & 2) != 0) uv.y = frac(uv.y);
+                float3 displacement = 0;
+                if (_NoiseWarp > 0 && _NoiseWarpStrength > 0)
+                {
+                    fnl_state warp = fnlCreateState(_NoiseSeed);
+                    warp.domain_warp_type = _NoiseWarp - 1;
+                    float3 p = WtPosition(8, uv, 0);
+                    float amp = _NoiseWarpStrength * _fnlCalculateFractalBounding(warp);
+                    #if defined(WT_NOISE_3D)
+                        _fnlDoSingleDomainWarp3D(warp, _NoiseSeed, amp, 1, p.x, p.y, p.z, displacement.x, displacement.y, displacement.z);
+                    #else
+                        _fnlDoSingleDomainWarp2D(warp, _NoiseSeed, amp, 1, p.x, p.y, displacement.x, displacement.y);
+                    #endif
+                    if ((int)_NoiseWarpInverse.w == 2)
+                        displacement.xy = float2(displacement.x + displacement.y, displacement.y - displacement.x) * .7071067811865475;
+                    displacement *= _NoiseWarpInverse.xyz;
+                }
+                int count = _NoiseFractal == 0 ? 1 : _NoiseOctaves;
+                float amp = _NoiseFractal == 0 ? 1 : _fnlCalculateFractalBounding(state);
+                float sum = 0;
+                [loop] for (int octave = 0; octave < count; octave++)
+                {
+                    float3 p = WtPosition(octave, uv, displacement);
+                    #if defined(WT_NOISE_3D)
+                    float n = _fnlGenNoiseSingle3D(state, _NoiseSeed + octave, p.x, p.y, p.z);
+                    #else
+                    float n = _fnlGenNoiseSingle2D(state, _NoiseSeed + octave, p.x, p.y);
+                    #endif
+                    if (_NoiseFractal == 2)
+                    {
+                        n = abs(n);
+                        sum += (1 - 2 * n) * amp;
+                        amp *= lerp(1, 1 - n, state.weighted_strength);
+                    }
+                    else if (_NoiseFractal == 3)
+                    {
+                        n = _fnlPingPong((n + 1) * state.ping_pong_strength);
+                        sum += (n - .5) * 2 * amp;
+                        amp *= lerp(1, n, state.weighted_strength);
+                    }
+                    else
+                    {
+                        sum += n * amp;
+                        amp *= lerp(1, min(n + 1, 2) * .5, state.weighted_strength);
+                    }
+                    amp *= state.gain;
+                }
+                return sum;
+            }
+            #endif
+
             float4 frag(v2f_img i) : SV_Target
             {
                 i.uv = ProceduralSourceUv(i.uv);
@@ -86,12 +176,13 @@ Shader "Hidden/TextureCompositor/Noise"
                 {
                     float3 rgb = _NoiseType == 7 ? BlueNoise(i.uv) : WhiteNoise(i.uv);
                     if (_NoiseInverted != 0) rgb = 1.0 - rgb;
+                    if (_UseGradient != 0) return MapGradient(rgb.r);
                     if (_NoiseEncoding == 0) rgb = SpriteDecode(rgb);
                     return float4(rgb, 1.0);
                 }
                 fnl_state state = fnlCreateState(_NoiseSeed);
                 state.frequency = 1.0;
-                state.noise_type = _NoiseType;
+                state.noise_type = WHIMTEX_NOISE_TYPE;
                 state.fractal_type = _NoiseFractal;
                 state.octaves = _NoiseOctaves;
                 state.lacunarity = _NoiseFractalSettings.x;
@@ -101,22 +192,37 @@ Shader "Hidden/TextureCompositor/Noise"
                 state.cellular_distance_func = _NoiseCellularDistance;
                 state.cellular_return_type = _NoiseCellularReturn;
                 state.cellular_jitter_mod = _NoiseCellularJitter;
-                float2 p = (i.uv - .5) * _NoiseDomain.xy * _NoiseScale + _NoiseDomain.zw;
+                float3 p = float3((i.uv - .5) * _NoiseDomain.xy * _NoiseScale + _NoiseDomain.zw, _NoiseZ);
                 if (_NoiseOneD != 0)
                 {
                     float2 centered = (i.uv - .5) * _NoiseDomain.xy * _NoiseScale;
-                    p = float2(dot(centered, _NoiseAxis.xy), 0.0) + _NoiseDomain.zw;
+                    p.xy = float2(dot(centered, _NoiseAxis.xy), 0.0) + _NoiseDomain.zw;
                 }
+                #if !defined(WT_NOISE_PERIODIC)
                 if (_NoiseWarp > 0 && _NoiseWarpStrength > 0.0)
                 {
                     fnl_state warp = fnlCreateState(_NoiseSeed);
                     warp.frequency = 1.0;
                     warp.domain_warp_type = _NoiseWarp - 1;
                     warp.domain_warp_amp = _NoiseWarpStrength;
+                    #if defined(WT_NOISE_3D)
+                    fnlDomainWarp3D(warp, p.x, p.y, p.z);
+                    #else
                     fnlDomainWarp2D(warp, p.x, p.y);
+                    #endif
                 }
-                float value = saturate(fnlGetNoise2D(state, p.x, p.y) * .5 + .5);
+                #endif
+                float raw;
+                #if defined(WT_NOISE_PERIODIC)
+                raw = PeriodicNoise(state, i.uv);
+                #elif defined(WT_NOISE_3D)
+                raw = fnlGetNoise3D(state, p.x, p.y, p.z);
+                #else
+                raw = fnlGetNoise2D(state, p.x, p.y);
+                #endif
+                float value = saturate(raw * .5 + .5);
                 if (_NoiseInverted != 0) value = 1.0 - value;
+                if (_UseGradient != 0) return MapGradient(value);
                 float3 rgb = value.xxx;
                 if (_NoiseEncoding == 0) rgb = SpriteDecode(rgb);
                 return float4(rgb, 1.0);

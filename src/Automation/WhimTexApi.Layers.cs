@@ -139,7 +139,7 @@ namespace DCFApixels.WhimTex
         {
             Keys(settings, "name", "enabled", "clippingMask", "opacity", "blend", "filter", "source", "colorRange", "blendRange", "swizzle", "compositing", "color", "brush",
                 "fillMode", "fillPattern", "metric", "outlineWidth", "outlineSoftness", "outlinePosition", "outlineOffset", "fillCenter", "fillColor", "sourceChannel", "threshold",
-                "distancePosition", "inverted", "maxDistance", "sourceOffset", "sourceEdges", "contourOffset", "insideDistance", "outsideDistance", "profile", "gradient", "normalMap", "blur", "sharpen", "makeSeamless", "noise", "shape");
+                "distancePosition", "inverted", "maxDistance", "sourceOffset", "sourceEdges", "contourOffset", "insideDistance", "outsideDistance", "profile", "encoding", "gradient", "normalMap", "blur", "sharpen", "makeSeamless", "noise", "shape");
             foreach (var property in settings.Properties())
             {
                 string key = property.Name;
@@ -158,7 +158,7 @@ namespace DCFApixels.WhimTex
                     key == "shape" && layer?.Behaviour is ShapeLayerBehaviour ||
                     (key == "sourceChannel" || key == "outlineWidth" || key == "outlineSoftness" || key == "outlinePosition" ||
                      key == "outlineOffset" || key == "fillCenter" || key == "fillColor") && layer?.Behaviour is OutlineLayerBehaviour ||
-                    (key == "sourceChannel" || key == "threshold" || key == "distancePosition" || key == "inverted" || key == "maxDistance" || key == "sourceOffset" || key == "sourceEdges" || key == "contourOffset" || key == "insideDistance" || key == "outsideDistance" || key == "profile") && layer?.Behaviour is SDFLayerBehaviour ||
+                    (key == "sourceChannel" || key == "threshold" || key == "distancePosition" || key == "inverted" || key == "maxDistance" || key == "sourceOffset" || key == "sourceEdges" || key == "contourOffset" || key == "insideDistance" || key == "outsideDistance" || key == "profile" || key == "encoding") && layer?.Behaviour is SDFLayerBehaviour ||
                     key == "gradient" && (layer?.Behaviour is GradientLayerBehaviour || layer?.Behaviour is SDFLayerBehaviour));
                 Require(valid, key + " is not supported by " + TypeName(layer) + " layers.");
             }
@@ -247,7 +247,8 @@ namespace DCFApixels.WhimTex
                     sdf.sourceOffset = offset;
                 }
                 if (settings["profile"] != null) sdf.profile = WhimTexCurveTexture.Parse(Text(settings, "profile"));
-                if (settings["gradient"] != null) sdf.gradient = ReadGradient(settings["gradient"], WhimTexGradientMode.Linear);
+                sdf.encoding = Enum(settings, "encoding", sdf.encoding);
+                if (settings["gradient"] != null) sdf.gradient = ReadGradient(settings["gradient"]);
             }
             if (layer?.Behaviour is GradientLayerBehaviour gradient && settings["gradient"] != null) gradient.gradient = ReadGradient(settings["gradient"]);
         }

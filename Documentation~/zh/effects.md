@@ -49,13 +49,14 @@ next_page: "zh/blending.md"
 然后选择它位于边缘内侧、外侧还是跨越边缘。
 
 当你需要基于到形状距离的渐变过渡时，使用 **SDF**。
+**Output → Gradient** 是默认模式，渐变从 0 处的黑色到 1 处的白色，插值为 **Perceptual**。**Inverted** 保持可用，在 Profile 和渐变采样前反转归一化距离。**Output → Linear Data** 输出归一化的原始 RGB 0–1 值和不透明 Alpha，不进行颜色伽马转换。Inverted 和 Profile 对两种模式均生效。切换 Output 会保留渐变和反相设置。Signed 内部值较低、外部值较高；使用默认渐变时，两种输出的亮度方向相同。
 **Threshold** 设置确定轮廓的阈值，**Max Distance (px, 0 = auto)** 设置过渡距离；0 表示自动选择距离。
 **Position** 决定渐变覆盖轮廓的哪一侧：Outside 为外侧，Inside 为内侧，Center 为两侧。
-默认的 **Signed** 覆盖轮廓两侧。**Inverted** 反转渐变方向。
+默认的 **Signed** 覆盖轮廓两侧。在两种输出模式中，**Inverted** 在 Profile 之前反转归一化距离。
 
 **Source Offset (px)** 沿 X/Y 移动输入，保留移出画布的轮廓对距离的影响。**Source Edges** 可选 Transparent（默认，透明）、Clamp（延伸边缘像素）、Repeat（重复并计算跨接缝距离）或 Mirror（镜像）。无法恢复已被源图层裁掉的内容。
 
-**Contour Offset (px)** 为正时扩张轮廓，为负时收缩。在 **Signed** 模式下，**Inside Distance** 和 **Outside Distance** 分别控制内外距离；0 使用 Max Distance 或自动范围。轮廓始终映射到渐变中点。**Profile** 在 Inverted 之后、渐变着色之前调整过渡形状；线性曲线保持原样。制作浮雕时，可从灰度渐变开始，在此调整高度轮廓。
+**Contour Offset (px)** 为正时扩张轮廓，为负时收缩。在 **Signed** 模式下，**Inside Distance** 和 **Outside Distance** 分别控制内外距离；0 使用 Max Distance 或自动范围。应用 Profile 前，轮廓映射到 0.5。**Profile** 在两种模式中均调整过渡形状：位于 Inverted 之后、渐变采样之前；线性曲线保持原样。制作浮雕时，可使用 Linear Data 或灰度渐变，在此调整高度轮廓。
 
 大偏移和 Repeat 需要更多内存。扩展计算区域超过 6400 万像素时会报错而非静默裁切，请减小偏移或分辨率。
 距离算法会改变转角和对角线的特征：
@@ -127,6 +128,9 @@ Outline 的 **Width (px)** 支持小数。**Softness (px) = 0** 保持清晰而�
 现有图层保留设置，切换方法不会重置参数。
 
 **Copy Edges**、**Mirror Direction** 和 **Patch Edges** 选择主要处理的边，**Poisson Edges** 选择独立校正的边。取消某个处理的全部边时，仅禁用其相关参数，选择器与另一处理仍可使用，参数值保留。Quilting 在 **Feather 0%** 时无法使用对比度补偿；增大 Feather 即可恢复。
+
+相连的对边会在悬停时一起高亮。点击中央图标可反转选择。
+**Mirror Direction** 的中央按钮在任一轴开启时关闭两轴；再次点击按 Left To Right 和 Bottom To Top 开启两轴。
 
 **Contrast Compensation** 会增加计算量。长时间闲置或尺寸变化后的首次计算可能比后续更新慢。
 

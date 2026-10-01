@@ -63,6 +63,7 @@ namespace DCFApixels.WhimTex
             result["sharpenAlgorithms"] = new JArray(System.Enum.GetNames(typeof(SharpenLayerBehaviour.Algorithm)));
             result["sharpenChannels"] = new JArray(System.Enum.GetNames(typeof(SharpenLayerBehaviour.ChannelMode)));
             result["noiseDimensions"] = new JArray(System.Enum.GetNames(typeof(NoiseLayerBehaviour.NoiseDimensions)));
+            result["noisePeriodicAxes"] = new JArray(System.Enum.GetNames(typeof(NoiseLayerBehaviour.PeriodicAxes)));
             result["noiseDefaults"] = NoiseSnapshot(new NoiseLayerBehaviour());
             result["fillModes"] = new JArray(System.Enum.GetNames(typeof(ColorFillLayerBehaviour.FillMode)));
             result["fillPatternDefaults"] = FillPatternSnapshot(new FillPatternSettings());
@@ -75,6 +76,7 @@ namespace DCFApixels.WhimTex
             result["noiseCellularReturns"] = new JArray(System.Enum.GetNames(typeof(NoiseLayerBehaviour.CellularReturn)));
             result["noiseWarps"] = new JArray(System.Enum.GetNames(typeof(NoiseLayerBehaviour.WarpType)));
             result["noiseEncodings"] = new JArray(System.Enum.GetNames(typeof(NoiseLayerBehaviour.OutputEncoding)));
+            result["sdfEncodings"] = new JArray(System.Enum.GetNames(typeof(SDFLayerBehaviour.OutputEncoding)));
             result["normalMapDefaults"] = NormalMapSnapshot(new NormalMapLayerBehaviour());
             result["makeSeamlessDefaults"] = MakeSeamlessSnapshot(MakeSeamlessLayerBehaviour.CreateDefault());
             result["makeSeamlessModes"] = new JArray(System.Enum.GetNames(typeof(MakeSeamlessLayerBehaviour.SeamlessMode)));
@@ -278,6 +280,7 @@ namespace DCFApixels.WhimTex
                         settings["insideDistance"] = sdf.insideDistance;
                         settings["outsideDistance"] = sdf.outsideDistance;
                         settings["profile"] = WhimTexCurveTexture.Format(sdf.profile);
+                        settings["encoding"] = sdf.encoding.ToString();
                         entry["gradientKeys"] = GradientSnapshot(sdf.gradient);
                     }
                     if (layer?.Behaviour is NormalMapLayerBehaviour normal) settings["normalMap"] = NormalMapSnapshot(normal);

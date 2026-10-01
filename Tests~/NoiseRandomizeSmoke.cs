@@ -18,7 +18,7 @@ public static class NoiseRandomizeSmoke
         bool Grain(NoiseLayerBehaviour.NoiseType type) => type == NoiseLayerBehaviour.NoiseType.WhiteNoise || type == NoiseLayerBehaviour.NoiseType.BlueNoise;
         var doc = ScriptableObject.CreateInstance<TextureCompositor>();
         doc.width = doc.height = 32;
-        var noise = new NoiseLayerBehaviour();
+        var noise = new NoiseLayerBehaviour { encoding = NoiseLayerBehaviour.OutputEncoding.Gradient };
         doc.layers.Add(noise);
         typeof(TextureCompositor).GetMethod("NormalizeModel", Any).Invoke(doc, null);
         var layer = doc.layers[0];
@@ -71,11 +71,39 @@ public static class NoiseRandomizeSmoke
             }
             foreach (var field in fields)
             {
-                if (field.Name == "dimensions") continue;
+                if (field.Name == "dimensions" || field.Name == "encoding" || field.Name == "gradient" || field.Name == "periodic" || field.Name == "linkScale")
+                {
+                    if (field.Name != "dimensions") Check(seen[field.Name].Count == 1, "Preserves " + field.Name);
+                    continue;
+                }
                 Check(seen[field.Name].Count > 1, "Randomizes " + field.Name);
                 if (field.FieldType.IsEnum) Check(seen[field.Name].Count == Enum.GetValues(field.FieldType).Length, "All choices reachable " + field.Name);
             }
             Check(UnityEngine.Random.state.Equals(unityRandom), "Does not modify Unity random state");
+            foreach (NoiseLayerBehaviour.OutputEncoding output in Enum.GetValues(typeof(NoiseLayerBehaviour.OutputEncoding)))
+            {
+                noise.encoding = output;
+                var palette = noise.gradient.Clone();
+                var effectiveOutput = typeof(NoiseLayerBehaviour).GetProperty("EffectiveOutput", Any).GetValue(noise);
+                bool sawTrue = false, sawFalse = false;
+                var outputs = new HashSet<NoiseLayerBehaviour.OutputEncoding>();
+                for (int i = 0; i < 64; i++)
+                {
+                    randomize.Invoke(null, new object[] { noise });
+                    Check(noise.gradient.Equals(palette), "Random All preserves palette");
+                    if (output == NoiseLayerBehaviour.OutputEncoding.Gradient)
+                    {
+                        Check(noise.encoding == output, "Gradient output is retained");
+                        Check(Equals(effectiveOutput, typeof(NoiseLayerBehaviour).GetProperty("EffectiveOutput", Any).GetValue(noise)), "Gradient effective output is retained");
+                    }
+                    else Check(noise.encoding == NoiseLayerBehaviour.OutputEncoding.ColorValues || noise.encoding == NoiseLayerBehaviour.OutputEncoding.LinearData,
+                        "Raw outputs never switch to Gradient");
+                    outputs.Add(noise.encoding);
+                    sawTrue |= noise.inverted; sawFalse |= !noise.inverted;
+                }
+                Check(sawTrue && sawFalse, "Random All still varies Inverted: " + output);
+                Check(outputs.Count == (output == NoiseLayerBehaviour.OutputEncoding.Gradient ? 1 : 2), "Expected output choices reached: " + output);
+            }
             Check(layer.layerName == "Preserve" && layer.opacity == .7f && JsonUtility.ToJson(layer.transform) == transform && layer.modifiers.Count == 0, "Layer settings stay intact");
 
             window = ScriptableObject.CreateInstance<NoiseLayerEditorWindow>();
@@ -125,7 +153,7 @@ public static class NoiseRandomizeSmoke
                 Check(currentNoise.seed != lastSeed, "Seed-only button changes on every press");
                 Check(unchanged.All(pair => Equals(pair.Value, pair.Key.GetValue(currentNoise))), "Seed-only button preserves other settings");
             }
-            return "PASS NoiseRandomizeSmoke: " + checks + " checks; 256 combinations from all eight starting types, 64 GPU renders, " + (fields.Length - 1) + " randomized fields, preserved noise groups and 1D/2D, UI activation, Undo/Redo and bindings.";
+            return "PASS NoiseRandomizeSmoke: " + checks + " checks; 256 combinations from all eight starting types, 64 GPU renders, " + (fields.Length - 3) + " randomized fields, preserved gradient, noise groups and 1D/2D, UI activation, Undo/Redo and bindings.";
         }
         finally
         {

@@ -14,9 +14,13 @@ commit `7ccfbc16eb1c932568f177d63a9ba51d89bbe516`.
 
 File: `src/Shaders/ThirdParty/FastNoiseLite.hlsl`.
 
-Local modification: an include guard prevents duplicate declarations when the built-in library
-is also included explicitly. Noise algorithms are unchanged.
-The separate Noise shader adapts its output and parameters to WhimTex.
+Local modifications: an include guard prevents duplicate declarations; an opt-in lattice hash hook
+keeps integer indices unprimed for WhimTex's periodic Noise variants, and those variants use branch
+hints. Noise variants also allow both iterations of the 3D OpenSimplex2 BCC-grid loop, instead of
+the bundled single-iteration unroll hint. Kernel weights and gradient tables are unchanged.
+Other include users retain the upstream hashes and hints.
+The separate Noise shader supplies periodic lattice transforms, per-octave periods, precision handling,
+and adapts output and parameters to WhimTex.
 
 MIT License
 

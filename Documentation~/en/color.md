@@ -93,7 +93,7 @@ Use **Convert to 8-bit** only if you want to permanently reduce the stored color
 
 ## Edit a gradient
 
-New gradients, including brush-tip and brush-tint gradients, use **Perceptual** unless a control explicitly defines another mode, such as Linear for SDF and Pattern gradients. Existing gradients retain their selected interpolation.
+New gradients, including brush-tip and brush-tint gradients, use **Perceptual** unless a control explicitly defines another mode, such as Linear for Pattern gradients. Existing gradients retain their selected interpolation.
 
 Select a Gradient layer to activate **Gradient Handles**, the contextual hand tool. Square handles change its geometry;
 colored points move color keys. Click the line to add a key, or double-click a point to open WhimTex's
@@ -128,7 +128,7 @@ Double-click a color-key marker in the gradient editor to open its color picker.
 Closing the color picker or canceling it with Escape returns to the gradient editor without closing that editor.
 Use **HDR** beside the selected color when extra brightness is needed. Drag a key vertically
 away from its track to delete it; each track keeps at least one key. Right-click a gradient field
-to **Copy** or **Paste** an independent copy. SDF layers start with **Linear** interpolation.
+to **Copy** or **Paste** an independent copy. SDF and Noise palettes start with **Perceptual** interpolation.
 
 In **WhimTex Presets**, click the **New** swatch to save the current gradient without naming it.
 Click a swatch to apply it; right-click for **Copy** or **Delete**. Presets are

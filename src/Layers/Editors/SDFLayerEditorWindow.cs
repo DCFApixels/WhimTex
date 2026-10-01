@@ -104,11 +104,18 @@ namespace DCFApixels.WhimTex
             distancePosition.RegisterValueChangedCallback(_ => RefreshRanges());
             RefreshRanges();
             var profile = WhimTexUI.ConfigureField(new CurveField("Profile"));
-            profile.tooltip = "Remaps normalized distance before the gradient. Signed uses separate Inside/Outside distances; zero distance settings use Max Distance (or auto).";
+            profile.tooltip = "Remaps normalized distance in both output modes. Signed uses separate Inside/Outside distances; zero distance settings use Max Distance (or auto).";
             profile.SetValueWithoutNotify(layer.profile ?? WhimTexCurveTexture.Default());
             bindings.Track(profile, () => layer.profile ?? WhimTexCurveTexture.Default());
             profile.RegisterValueChangedCallback(e => applyChange("Change SDF Profile", () => layer.profile = WhimTexCurveTexture.Copy(e.newValue)));
             root.Add(profile);
+
+            var encoding = WhimTexUI.ConfigureField(new EnumField("Output", layer.encoding));
+            encoding.tooltip = "Linear Data outputs normalized distance as raw 0–1 RGB with opaque alpha. Gradient maps distance through the palette. Inverted reverses distance before Profile in either mode.";
+            bindings.Track(encoding, () => (Enum)layer.encoding);
+            encoding.RegisterValueChangedCallback(evt =>
+                applyChange("Change SDF Output", () => layer.encoding = (SDFLayerBehaviour.OutputEncoding)evt.newValue));
+            root.Add(encoding);
 
             Toggle inverted = WhimTexUI.ConfigureField(new Toggle("Inverted"));
             inverted.SetValueWithoutNotify(layer.inverted);
@@ -121,6 +128,13 @@ namespace DCFApixels.WhimTex
             gradient.RegisterValueChangedCallback(evt =>
                 applyChange("Change SDF Gradient", () => layer.gradient = GradientUtility.Create(evt.newValue)));
             root.Add(gradient);
+            void RefreshOutput()
+            {
+                bool showGradient = layer.encoding == SDFLayerBehaviour.OutputEncoding.Gradient;
+                gradient.EnableInClassList("whimtex-hidden", !showGradient);
+            }
+            bindings.Add(RefreshOutput);
+            RefreshOutput();
         }
     }
 }

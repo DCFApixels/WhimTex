@@ -23,7 +23,18 @@ public static class GradientDefaultsSmoke
         Check(GradientUtility.WhiteToBlack.Mode == WhimTexGradientMode.Perceptual, "Shared ramp default");
         Check(GradientUtility.Create((WhimTexGradient)null).Mode == WhimTexGradientMode.Perceptual, "Null fallback");
         Check(new GradientLayerBehaviour().gradient.Mode == WhimTexGradientMode.Perceptual, "Gradient layer default");
-        Check(new SDFLayerBehaviour().gradient.Mode == WhimTexGradientMode.Linear, "SDF stays Linear");
+        Check(new SDFLayerBehaviour().gradient.Mode == WhimTexGradientMode.Perceptual, "SDF defaults to Perceptual");
+        var sdfGradient = new SDFLayerBehaviour().gradient;
+        var noiseGradient = new NoiseLayerBehaviour().gradient;
+        Check(sdfGradient.Equals(noiseGradient), "SDF and Noise share identical default gradient values");
+        foreach (var gradient in new[] { sdfGradient, noiseGradient })
+        {
+            Check(gradient.Mode == WhimTexGradientMode.Perceptual, "SDF/Noise default Perceptual");
+            Check(gradient.ColorKeys.Length == 2, "Two default color keys");
+            Check(gradient.ColorKeys[0].time == 0f && gradient.ColorKeys[0].color == Color.black, "Default key 0 is black");
+            Check(gradient.ColorKeys[1].time == 1f && gradient.ColorKeys[1].color == Color.white, "Default key 1 is white");
+            Check(gradient.Evaluate(0).a == 1f && gradient.Evaluate(1).a == 1f, "Opaque default endpoints");
+        }
         Check(GradientUtility.CreateLinearWhiteToBlack().Mode == WhimTexGradientMode.Linear, "Explicit Linear helper");
         var brushType = assembly.GetType("DCFApixels.WhimTex.BrushDynamics");
         var brush = Activator.CreateInstance(brushType, true);

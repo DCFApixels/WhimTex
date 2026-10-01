@@ -363,8 +363,7 @@ namespace DCFApixels.WhimTex
                         defaultLayers.Add(type, baseline);
                     }
                     var properties = PortableProperties(layer, snapshot);
-                    RemovePortableDefaults(properties, baseline.properties,
-                        layer.Behaviour is SDFLayerBehaviour ? WhimTexGradientMode.Linear : WhimTexGradientMode.Perceptual);
+                    RemovePortableDefaults(properties, baseline.properties);
                     var transform = Transform(root ? document.GetCanvasTransform(layer) : layer.transform);
                     RemovePortableDefaults(transform, baseline.transform);
                     var node = new JObject { ["id"] = layer.Id, ["type"] = type, ["name"] = layer.layerName };
