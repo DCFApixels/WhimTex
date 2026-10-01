@@ -126,7 +126,6 @@ namespace DCFApixels.WhimTex
             periodic.Add(periodicHeading);
             var periodicEdges = new WhimTexEdgeSelector("periodicEdges", () =>
                 applyChange("Invert Noise Seamless", () => layer.periodic ^= NoiseLayerBehaviour.PeriodicAxes.XY));
-            periodicEdges.AddToClassList("whimtex-seamless-edges--compact");
             periodic.Add(periodicEdges);
             root.Add(periodic);
             PeriodicEdge("top", NoiseLayerBehaviour.PeriodicAxes.Y);

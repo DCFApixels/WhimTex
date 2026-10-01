@@ -49,6 +49,7 @@ choose **Source Channel** (Alpha by default, or Red, Green, Blue or Luminance),
 then choose whether it sits inside, outside or across the edge.
 
 Use **SDF** when you want a gradual transition based on distance from the shape.
+In Gradient output, the palette supplies both color (including HDR) and transparency; it does not retain the source alpha.
 **Output → Gradient** is the default, with a black-to-white **Perceptual** gradient (black at 0, white at 1). **Inverted** remains available and reverses normalized distance before Profile and palette sampling. Choose **Output → Linear Data** for normalized distance as raw 0–1 RGB with opaque alpha and no color gamma conversion. Inverted and Profile apply in both modes. Switching Output preserves the palette and inversion setting. Signed values are low inside and high outside; both outputs therefore have the same brightness direction with the default palette.
 **Threshold** sets the contour threshold; **Max Distance (px, 0 = auto)** sets the transition distance.
 At 0, the distance is chosen automatically. **Position** selects which side receives the gradient:

@@ -430,10 +430,17 @@
               "minItems": 2,
               "maxItems": 2
             }
-          ]
+          ],
+          "default": [
+            8,
+            8
+          ],
+          "description": "Scalar sets X and Y equally; [x,y] sets axes independently. Units span the shorter canvas side. Ignored by White/Blue. Seamless fits complete lattice cells per octave/warp, so small Scale changes can quantize."
         },
         "linkScale": {
-          "type": "boolean"
+          "type": "boolean",
+          "default": true,
+          "description": "Scale chain in the UI. Explicit API scale values are applied literally, even when linked."
         },
         "periodic": {
           "type": "string",
@@ -442,7 +449,9 @@
             "X",
             "Y",
             "XY"
-          ]
+          ],
+          "default": "None",
+          "description": "UI Seamless: X joins left/right, Y joins top/bottom, XY joins both. Ignored in OneD and White/Blue Noise; retained when inactive. Z never repeats."
         },
         "offset": {
           "type": "array",
@@ -452,7 +461,13 @@
             "maximum": 10000
           },
           "minItems": 2,
-          "maxItems": 3
+          "maxItems": 3,
+          "default": [
+            0,
+            0,
+            0
+          ],
+          "description": "[x,y] preserves Z in updates; [x,y,z] sets all axes. Z selects a ThreeD slice. XY uses noise-space units, or canvas pixels for White/Blue."
         },
         "fractal": {
           "type": "string",
@@ -534,13 +549,18 @@
             "ColorValues",
             "LinearData",
             "Gradient"
-          ]
+          ],
+          "default": "LinearData",
+          "description": "UI Output. Gradient maps monochrome noise through its RGBA/HDR palette. Color White/Blue temporarily renders stored Gradient as ColorValues."
         },
         "inverted": {
-          "type": "boolean"
+          "type": "boolean",
+          "default": false,
+          "description": "Reverses noise values in all outputs, before gradient sampling."
         },
         "gradient": {
-          "$ref": "#/$defs/gradient"
+          "$ref": "#/$defs/gradient",
+          "description": "Default opaque black at 0, white at 1, Perceptual interpolation. Replaces the complete palette; does not change encoding. Retained in other output modes."
         },
         "dimensions": {
           "type": "string",
@@ -548,7 +568,9 @@
             "TwoD",
             "OneD",
             "ThreeD"
-          ]
+          ],
+          "default": "TwoD",
+          "description": "OneD stripes, TwoD field or ThreeD slice at Offset Z. White/Blue temporarily renders stored ThreeD as TwoD."
         },
         "direction": {
           "type": "number",
@@ -3085,10 +3107,13 @@
                   "enum": [
                     "LinearData",
                     "Gradient"
-                  ]
+                  ],
+                  "default": "Gradient",
+                  "description": "UI Output. Gradient samples the RGBA/HDR palette; LinearData outputs normalized distance after Inverted/Profile, raw RGB 0..1 and alpha 1. No ColorValues mode."
                 },
                 "gradient": {
-                  "$ref": "#/$defs/gradient"
+                  "$ref": "#/$defs/gradient",
+                  "description": "Default opaque black at 0, white at 1, Perceptual interpolation. Replaces the complete palette without changing encoding. Inverted runs before Profile and palette sampling."
                 },
                 "filter": {
                   "type": "string",

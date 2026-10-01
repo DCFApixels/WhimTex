@@ -64,4 +64,36 @@ foreach (string invalid in new[] { "{\"scale\":[1]}", "{\"scale\":[1,1001]}", "{
 var legacy = UnityEngine.JsonUtility.FromJson<DCFApixels.WhimTex.NoiseLayerBehaviour>("{\"scale\":3.25,\"offset\":{\"x\":1,\"y\":2}}");
 Check(legacy.Scale.x == 3.25f && legacy.Scale.y == 3.25f && legacy.offset.z == 0, "Existing scalar scale and XY offset retain their appearance");
 Check(DCFApixels.WhimTex.WhimTexApi.Describe().Contains("noisePeriodicAxes"), "Periodicity discovery");
+Set("{\"linkScale\":true,\"scale\":[4,9],\"encoding\":\"LinearData\",\"gradient\":{\"colors\":[{\"time\":0,\"color\":[0,0,0,0.25]},{\"time\":1,\"color\":[2,1,0,1]}],\"mode\":\"Linear\"}}");
+Check(layer.Scale == new UnityEngine.Vector2(4,9), "API axes are literal even with chain enabled");
+Check(layer.encoding == DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.LinearData &&
+    layer.gradient.Mode == DCFApixels.WhimTex.WhimTexGradientMode.Linear, "Palette assignment does not enable Gradient; explicit mode retained");
+Set("{\"gradient\":[{\"time\":0,\"color\":[0,0,0,1]},{\"time\":1,\"color\":[1,1,1,1]}]}");
+Check(layer.gradient.Mode == DCFApixels.WhimTex.WhimTexGradientMode.Perceptual, "Replacement palette uses its own default mode");
+foreach(string invalid in new[]{"{\"seamless\":true}","{\"scaleY\":2}","{\"offsetZ\":1}","{\"useGradient\":true}"}) Reject(invalid);
+var sdf = new DCFApixels.WhimTex.SDFLayerBehaviour();
+Check(sdf.encoding == DCFApixels.WhimTex.SDFLayerBehaviour.OutputEncoding.Gradient &&
+    sdf.gradient.Equals(new DCFApixels.WhimTex.NoiseLayerBehaviour().gradient), "SDF Gradient default and identical Noise palette");
+var document = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositor>();
+document.layers.Add(sdf);
+try
+{
+    var setLayer = type.GetMethod("SetLayer", flags);
+    void SetSdf(string json) => setLayer.Invoke(null, new object[]{document, (DCFApixels.WhimTex.Layer)sdf, Json(json)});
+    SetSdf("{\"encoding\":\"LinearData\",\"inverted\":true}");
+    SetSdf("{\"gradient\":{\"colors\":[{\"time\":0,\"color\":[0,0,0,0.25]},{\"time\":1,\"color\":[2,1,0,1]}],\"mode\":\"Fixed\"}}");
+    Check(sdf.encoding == DCFApixels.WhimTex.SDFLayerBehaviour.OutputEncoding.LinearData && sdf.inverted &&
+        sdf.gradient.Mode == DCFApixels.WhimTex.WhimTexGradientMode.Fixed, "SDF palette assignment retains output/inversion and accepts explicit mode");
+    var palette = sdf.gradient.Clone();
+    SetSdf("{\"encoding\":\"Gradient\"}");
+    Check(sdf.gradient.Equals(palette) && sdf.inverted, "SDF output retains palette/inversion");
+    foreach(string invalid in new[]{"{\"encoding\":\"ColorValues\"}","{\"sdf\":{}}","{\"useGradient\":true}"})
+    {
+        bool rejected=false;
+        try{SetSdf(invalid);}catch(System.Reflection.TargetInvocationException e){rejected=e.InnerException?.GetType().Name=="WhimTexApiException";}
+        Check(rejected,"Reject SDF "+invalid);
+    }
+    Check(DCFApixels.WhimTex.WhimTexApi.Describe().Contains("sdfEncodings"), "SDF output discovery");
+}
+finally{UnityEngine.Object.DestroyImmediate(document);}
 return "Noise API checks passed: " + checks;

@@ -61,4 +61,29 @@ assert.match(read('src/WhimTexSplitView.uss'), /\.whimtex-hidden,\s*\.whimtex-br
 assert.match(read('src/LayerTypeRegistry.cs'), /new Entry\("noise", "Noise", "Noise", "Noise Layer", typeof\(NoiseLayerBehaviour\)/);
 assert.match(read('src/Automation/WhimTexApi.Layers.cs'), /LayerTypeRegistry.Find\(type\)/);
 assert.match(read('src/Automation/WhimTexApi.Inspect.cs'), /LayerTypeRegistry.Find\(layer\?\.Behaviour\?\.GetType\(\)\)\?\.ApiId/);
-console.log('Noise source contracts passed: pinned HLSL, enum/uniform mappings, API/UI coverage and live GPU path.');
+const schema = JSON.parse(read('Documentation~/AI/layers.schema.json'));
+const fields = schema.$defs.noise.properties;
+const keys = [...api.match(/Keys\(value,([\s\S]*?)\);/)[1].matchAll(/"([^"]+)"/g)].map(m => m[1]);
+const snapshotKeys = [...api.split('private static JObject NoiseSnapshot')[1].matchAll(/\["([^"]+)"\] =/g)].map(m => m[1]);
+assert.deepEqual(Object.keys(fields).sort(), keys.sort());
+assert.deepEqual(snapshotKeys.sort(), keys.sort());
+for (const [field, type] of Object.entries({noiseType:'NoiseType',dimensions:'NoiseDimensions',periodic:'PeriodicAxes',encoding:'OutputEncoding',fractal:'FractalType',warp:'WarpType'})) {
+    const names = layer.match(new RegExp(`public enum ${type} \\{([^}]+)\\}`))[1].split(',').map(s => s.trim());
+    assert.deepEqual(fields[field].enum, names, field);
+}
+assert.equal(fields.encoding.default, 'LinearData');
+assert.equal(fields.dimensions.default, 'TwoD');
+assert.equal(fields.periodic.default, 'None');
+assert.equal(fields.linkScale.default, true);
+assert.deepEqual(fields.scale.default, [8,8]);
+assert.deepEqual(fields.offset.default, [0,0,0]);
+assert.match(fields.periodic.description, /UI Seamless/);
+assert.match(fields.gradient.description, /does not change encoding/);
+const sdf = schema.$defs.layer.oneOf.find(x => x.properties.type.const === 'sdf').properties.properties.properties;
+assert.deepEqual(sdf.encoding.enum, ['LinearData','Gradient']);
+assert.equal(sdf.encoding.default, 'Gradient');
+assert.equal(sdf.gradient.$ref, '#/$defs/gradient');
+assert.equal(fields.gradient.$ref, '#/$defs/gradient');
+assert.ok(!Object.hasOwn(fields, 'useGradient') && !Object.hasOwn(sdf, 'useGradient'));
+assert.ok(!Object.hasOwn(fields, 'seamless') && !Object.hasOwn(fields, 'scaleY') && !Object.hasOwn(fields, 'offsetZ'));
+console.log('Noise/SDF source contracts passed: pinned HLSL, API/snapshot/schema keys, defaults, UI and gradient contracts.');

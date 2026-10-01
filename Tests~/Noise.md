@@ -9,6 +9,9 @@ node Tests~/NoiseContract.test.mjs
 `NoiseApiSmoke.cs` and `NoiseSmoke.cs` are opt-in C# snippets for the connected Editor,
 after compilation through the Unity Editor pipeline (never standalone MSBuild/dotnet).
 The API snippet checks partial settings, full signed seed range, validation, discovery and round trips.
+It also checks Noise/SDF output defaults, whole-palette replacement without enabling Gradient,
+retained explicit interpolation, literal Scale axes with the chain enabled, and rejection of UI-only
+or obsolete field spellings. SDF checks use a temporary document; no assets are saved.
 The GPU snippet creates only a small transient document and textures and disables gradient mapping
 to isolate the generator's original scalar/RGB output. It tests all eight algorithms,
 four noise fractals, seed determinism, high-bit seed precision, domain warp, inversion, color encoding,
@@ -69,7 +72,7 @@ Verified on the connected Unity Editor/DX12:
 
 - GPU/reference: 5,184 ordinary and 1,296 stress comparisons; maximum error below 0.0005.
 - Lattice precision: 96 checks, maximum fractional-coordinate error below 1.2e-7.
-- Controls/slices/cache: 121 checks; API: 40 checks; Random All: 6,465 checks.
+- Controls/slices/cache: 121 checks; Noise/SDF API: 54 checks; Random All: 6,465 checks.
 - Existing Noise: 99,755 checks; White/Blue regression: 589,832 checks; thumbnails: 153 checks.
 - Group/clipping/target integration: 2,051 checks.
 

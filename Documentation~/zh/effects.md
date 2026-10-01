@@ -49,6 +49,7 @@ next_page: "zh/blending.md"
 然后选择它位于边缘内侧、外侧还是跨越边缘。
 
 当你需要基于到形状距离的渐变过渡时，使用 **SDF**。
+在 Gradient 输出中，渐变同时决定颜色（包括 HDR）和透明度，不保留源图像的 Alpha。
 **Output → Gradient** 是默认模式，渐变从 0 处的黑色到 1 处的白色，插值为 **Perceptual**。**Inverted** 保持可用，在 Profile 和渐变采样前反转归一化距离。**Output → Linear Data** 输出归一化的原始 RGB 0–1 值和不透明 Alpha，不进行颜色伽马转换。Inverted 和 Profile 对两种模式均生效。切换 Output 会保留渐变和反相设置。Signed 内部值较低、外部值较高；使用默认渐变时，两种输出的亮度方向相同。
 **Threshold** 设置确定轮廓的阈值，**Max Distance (px, 0 = auto)** 设置过渡距离；0 表示自动选择距离。
 **Position** 决定渐变覆盖轮廓的哪一侧：Outside 为外侧，Inside 为内侧，Center 为两侧。

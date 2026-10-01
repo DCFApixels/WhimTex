@@ -527,6 +527,12 @@ HDR texture data is distinct from physical HDR monitor output; rendered PNG prev
 
 SDF also accepts `encoding` directly in settings: `Gradient` (default) or `LinearData`, reported by `sdfEncodings` in capabilities. Its default palette matches Noise: black at 0, white at 1, with Perceptual interpolation. Inverted remains available in both modes and reverses normalized distance before Profile and gradient sampling. LinearData outputs normalized distance after Inverted/Profile as raw linear RGB 0–1 with alpha 1, without gamma decoding or palette sampling. In Signed mode low values are inside and high values outside. Profile applies in both modes. Switching output preserves the palette and inversion setting; existing explicit gradient modes are retained. SDF has no `useGradient` field or ColorValues output. Document export encoding still applies normally; choose linear output when exporting numeric maps.
 
+SDF writes `settings.gradient` (clipboard `properties.gradient`), not `settings.sdf`.
+Inspection reports the palette separately as `gradientKeys`; write that body's value using `gradient`.
+Both stop arrays and the shared gradient object are accepted, including separate alpha keys, HDR colors,
+`mode`, `smoothness`, `wrapMode` and `colorSpace`. Supplying `gradient` replaces the whole palette but
+does not select an output mode; set `encoding:"Gradient"` explicitly to enable it from LinearData.
+
 SDF/Outline `metric` accepts `EuclideanExact` (default), `EuclideanApproximate`, `Manhattan`,
 `Chebyshev` and `EuclideanAntialiased`. The latter interpolates threshold crossings between horizontal/vertical
 neighboring samples and measures distance to the closest crossing point. It approximates the continuous contour
@@ -650,7 +656,7 @@ and `noiseEncodings`, `noiseDimensions`, `noisePeriodicAxes`, `noiseWhiteColors`
 | `whiteNoiseColor` | Monochrome (default), Color (independent RGB); shared by WhiteNoise and BlueNoise |
 | `whiteNoiseSize` | 1–1024 canvas pixels per grain, default 1; shared by WhiteNoise and BlueNoise |
 | `dimensions` | TwoD (default), OneD (straight stripes), ThreeD (2D slice at Offset Z; not White/Blue) |
-| `periodic` | None (default), X, Y, XY; six smooth noise types in TwoD/ThreeD only |
+| `periodic` | UI **Seamless**: None (default), X (left/right), Y (top/bottom), XY (both pairs); six non-grain noise types in TwoD/ThreeD only |
 | `direction` | −180–180 degrees, default 0; OneD only; 0 varies horizontally (vertical stripes), 90 varies vertically |
 | `seed` | Signed 32-bit integer; passed to the shader as an integer, not a float |
 | `scale` | Scalar sets both axes, or `[x,y]`, each 0.01–1000 noise-space units across the shorter canvas side; inspect returns the pair |
@@ -668,6 +674,23 @@ and `noiseEncodings`, `noiseDimensions`, `noisePeriodicAxes`, `noiseWhiteColors`
 | `gradient` | Shared stops/object, default black-to-white, Perceptual interpolation when mode is omitted; RGBA/HDR palette, retained while disabled |
 
 Without gradient mapping, RGB repeats the normalized scalar, except WhiteNoise/BlueNoise with Color which generates independent RGB; alpha is 1. Gradient output supplies RGB and alpha through the same encoded LUT and linear decode as SDF. Inverted remains available and reverses values before palette sampling. Color WhiteNoise/BlueNoise supports only ColorValues/LinearData: a retained Gradient setting temporarily renders/displays ColorValues, then returns to Gradient on switching to monochrome. Changing Output preserves the palette. Random All preserves `gradient` and keeps `encoding:Gradient`; otherwise it randomizes encoding only between ColorValues and LinearData. It can vary `inverted`; for grain noise with stored Gradient output it also preserves the Color setting so effective Output cannot change. Noise gradients live inside `settings.noise` / clipboard `properties.noise`, not at the layer root; Noise has no `useGradient` field.
+UI **Output** maps to `encoding`, **Seamless** to `periodic`, and the Scale chain to `linkScale`.
+There is no Noise `seamless` boolean, `scaleY` or `offsetZ` API field: use `periodic`, `scale:[x,y]`
+and `offset:[x,y,z]`. Supplying `gradient` alone does not enable it: also set `encoding:"Gradient"`.
+Gradient updates replace the whole palette, not individual keys. Omitted fields in settings retain
+their existing values. Inspection reports stored settings, even when a type/dimension temporarily
+ignores them. Portable export may omit values equal to new-layer defaults.
+
+For example, this partial update combines a 3D seamless source with an explicit palette:
+
+```json
+{"op":"set","layer":"LAYER-ID","settings":{"noise":{
+  "noiseType":"Perlin","dimensions":"ThreeD","periodic":"XY",
+  "scale":[6,10],"linkScale":false,"offset":[0,0,0.5],"encoding":"Gradient",
+  "gradient":{"colors":[{"time":0,"color":[0,0,0,1]},{"time":1,"color":[1,1,1,1]}],"mode":"Perceptual"}
+}}}
+```
+
 FastNoiseLite output is remapped from signed noise to 0–1 and clamped.
 WhiteNoise hashes discrete canvas-space cells with the signed integer seed. It ignores `scale`, fractal,
 cellular and warp settings without resetting them; `whiteNoiseSize` controls its grain size instead.

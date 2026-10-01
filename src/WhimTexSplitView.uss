@@ -1296,25 +1296,19 @@
 }
 
 .whimtex-seamless-edges {
-    width: 96px;
-    height: 96px;
-    flex-shrink: 0;
-    align-self: center;
-    margin: 6px 0 10px 0;
-}
-
-.whimtex-seamless-edges--compact {
     width: 72px;
     height: 72px;
+    flex-shrink: 0;
+    align-self: center;
     margin: 4px 0 6px 0;
 }
 
 .whimtex-seamless-image {
     position: absolute;
-    left: 14px;
-    right: 14px;
-    top: 14px;
-    bottom: 14px;
+    left: 12px;
+    right: 12px;
+    top: 12px;
+    bottom: 12px;
     background-color: rgba(128, 128, 128, 0.08);
     border-width: 1px;
     border-color: var(--whimtex-hover-overlay);
@@ -1336,51 +1330,30 @@
 
 .whimtex-seamless-edge--left {
     left: 0;
-    top: 14px;
-    bottom: 14px;
-    width: 12px;
+    top: 12px;
+    bottom: 12px;
+    width: 10px;
 }
 
 .whimtex-seamless-edge--right {
     right: 0;
-    top: 14px;
-    bottom: 14px;
-    width: 12px;
+    top: 12px;
+    bottom: 12px;
+    width: 10px;
 }
 
 .whimtex-seamless-edge--top {
     top: 0;
-    left: 14px;
-    right: 14px;
-    height: 12px;
+    left: 12px;
+    right: 12px;
+    height: 10px;
 }
 
 .whimtex-seamless-edge--bottom {
     bottom: 0;
-    left: 14px;
-    right: 14px;
-    height: 12px;
-}
-
-.whimtex-seamless-edges--compact > .whimtex-seamless-image {
     left: 12px;
     right: 12px;
-    top: 12px;
-    bottom: 12px;
-}
-
-.whimtex-seamless-edges--compact > .whimtex-seamless-edge--left,
-.whimtex-seamless-edges--compact > .whimtex-seamless-edge--right {
-    width: 10px;
-    top: 12px;
-    bottom: 12px;
-}
-
-.whimtex-seamless-edges--compact > .whimtex-seamless-edge--top,
-.whimtex-seamless-edges--compact > .whimtex-seamless-edge--bottom {
     height: 10px;
-    left: 12px;
-    right: 12px;
 }
 
 .unity-button.whimtex-seamless-image {

@@ -303,10 +303,16 @@ Use `properties.noise`:
 
 Gradient output applies only to monochrome noise and supplies RGB/HDR and alpha using the same rendering path as SDF. Inverted remains available in every output mode and reverses values before palette sampling. Color White/Blue Noise temporarily treats stored Gradient output as ColorValues without losing the palette; the UI offers only Color Values and Linear Data there. Random All preserves the palette and keeps Gradient output; otherwise Output varies only between Color Values and Linear Data. Inverted can still vary. For raw masks, height maps or dither thresholds, set `encoding:"LinearData"`. Noise has no `useGradient` field; SDF also selects its output through encoding (Gradient or LinearData).
 
+The **Seamless** UI control uses `periodic`, not a `seamless` boolean: X joins left/right,
+Y joins top/bottom, XY joins both. **Output** uses `encoding`. Gradient updates replace the complete
+palette and do not change Output; supply `encoding:"Gradient"` to enable it. Noise has no root-level
+`gradient`, `scaleY` or `offsetZ` property; use `properties.noise` with `scale:[x,y]` and `offset:[x,y,z]`.
+
 Periodic and ThreeD support the six non-grain types, including every Fractal and Domain Warp mode.
 White/Blue ignore Periodic and temporarily use TwoD if ThreeD is stored; OneD ignores Periodic.
 Offset Z is retained in all modes but used only in ThreeD and is never periodic. Two-value Offset
-patches preserve Z. Scale scalar sets both axes; inspect/export return Scale `[x,y]` and Offset `[x,y,z]`.
+patches preserve Z. Scale scalar sets both axes; inspection returns Scale `[x,y]` and Offset `[x,y,z]`.
+Portable export uses these shapes when present, but can omit fields equal to new-layer defaults.
 Periodic fits native lattice periods on selected source axes per octave/warp, with visible Scale steps
 at low values (especially simplex). Transforms/FX can alter canvas seams. Random All keeps Dimensions,
 Periodic, linked Scale ratio and Offset Z. See [Noise details](../AgentAPI.md#noise-settings).
@@ -330,6 +336,9 @@ Periodic, linked Scale ratio and Offset Z. See [Noise details](../AgentAPI.md#no
   `threshold` integer 0..255, `distancePosition` (`Outside`, `Inside`, `Center`, `Signed`),
   `inverted` boolean, `maxDistance` 0..16384 (0 = automatic), `gradient` stops, `metric`, `encoding` (`Gradient` default or `LinearData`). SDF and Noise start with identical Perceptual palettes: black at 0, white at 1. Inverted remains available in both modes and reverses distance before Profile and palette sampling. LinearData outputs normalized distance after Inverted/Profile as raw linear RGB 0–1 with alpha 1, without gamma conversion or palette sampling. Profile applies in both modes. Switching output retains the palette, inversion and explicit gradient mode. SDF has no ColorValues mode or useGradient field.
   Also `sourceOffset: [x,y]` in document pixels (each -16384..16384), `sourceEdges: "Transparent"|"Clamp"|"Repeat"|"Mirror"` (default Transparent), and `contourOffset` -16384..16384 (positive expands). Signed mode accepts `insideDistance` and `outsideDistance` 0..16384; 0 inherits maxDistance/auto. The contour maps to 0.5, interior limit to 0, exterior limit to 1. Optional `profile` uses the curve string syntax (`"linear"`, `"easeInOut"`, `"easeIn"`, `"easeOut"`, `"one"`, or `"keys((...))"` with the same seven values per key as FX curves). In both modes, inversion precedes Profile; in Gradient, Profile precedes palette sampling. Profile output clamps to 0..1. Source Offset shifts the available input image without cropping the shifted contour before distance computation; it does not recover content already clipped by the upstream layer. Repeat considers contours across tile seams, Mirror reflects the field. Extended distance domains are limited to 64 million pixels; excessive offsets/resolutions report an error rather than silently cropping.
+  SDF accepts the shared gradient object as well as stop arrays, including HDR colors and separate alpha keys.
+  Supplying `properties.gradient` replaces the palette without changing `properties.encoding`.
+  There is no `properties.sdf` wrapper. Inspection's `gradientKeys` is read-only naming; write its body using `gradient`.
 - **metric** for Outline/SDF: `EuclideanExact`, `EuclideanApproximate`, `EuclideanAntialiased`,
   `Manhattan`, `Chebyshev`.
 - **makeSeamless:** `properties.makeSeamless`: `mode` (`OffsetBlend`, default for new layers; `Mirror`; `ScreenedPoisson`; `PatchQuilting`).

@@ -35,10 +35,15 @@ const defs = {
   gradient: { oneOf: [{ $ref: '#/$defs/gradientStops' }, object({ colors: { $ref: '#/$defs/gradientStops' }, alphas: {type:'array', minItems:1, maxItems:64, items:object({time:number(0,1),alpha:number(0,1),midpoint:number(.01,.99)},['time','alpha'])}, mode:choice('Classic Linear Perceptual Fixed'), wrapMode:choice('Clamp Repeat Mirror'), smoothness:number(0,1), colorSpace:choice('Gamma Linear') }, ['colors'])] },
   gradientOptions: object({ type: enumeration('Layers/GradientLayerBehaviour.cs', 'GradientType'), repetitions: number(.00001, 1000), wrap: choice('Repeat PingPong'), mode: choice('Classic Linear Perceptual Fixed'), smoothness:number(0,1) }),
   noise: object({ noiseType: noiseEnum('NoiseType'), seed: integer(-2147483648, 2147483647), scale: { oneOf: [number(.01, 1000), tuple(number(.01, 1000), 2)] },
-    linkScale: bool, periodic: noiseEnum('PeriodicAxes'), offset: { type: 'array', items: number(-10000, 10000), minItems: 2, maxItems: 3 },
+    linkScale: { ...bool, default: true, description: 'Scale chain in the UI. Explicit API scale values are applied literally, even when linked.' },
+    periodic: { ...noiseEnum('PeriodicAxes'), default: 'None', description: 'UI Seamless: X joins left/right, Y joins top/bottom, XY joins both. Ignored in OneD and White/Blue Noise; retained when inactive. Z never repeats.' },
+    offset: { type: 'array', items: number(-10000, 10000), minItems: 2, maxItems: 3, default: [0,0,0], description: '[x,y] preserves Z in updates; [x,y,z] sets all axes. Z selects a ThreeD slice. XY uses noise-space units, or canvas pixels for White/Blue.' },
     fractal: noiseEnum('FractalType'), octaves: integer(1, 8), lacunarity: number(1, 4), gain: number(0, 1), weightedStrength: number(0, 1), pingPongStrength: number(.01, 8),
     cellularDistance: noiseEnum('CellularDistance'), cellularReturn: noiseEnum('CellularReturn'), cellularJitter: number(0, 1), warp: noiseEnum('WarpType'), warpStrength: number(0, 100),
-    encoding: noiseEnum('OutputEncoding'), inverted: bool, gradient: { $ref: '#/$defs/gradient' }, dimensions: noiseEnum('NoiseDimensions'), direction: number(-180, 180), whiteNoiseColor: noiseEnum('WhiteNoiseColor'), whiteNoiseSize: number(1, 1024) }),
+    encoding: { ...noiseEnum('OutputEncoding'), default: 'LinearData', description: 'UI Output. Gradient maps monochrome noise through its RGBA/HDR palette. Color White/Blue temporarily renders stored Gradient as ColorValues.' },
+    inverted: { ...bool, default: false, description: 'Reverses noise values in all outputs, before gradient sampling.' },
+    gradient: { $ref: '#/$defs/gradient', description: 'Default opaque black at 0, white at 1, Perceptual interpolation. Replaces the complete palette; does not change encoding. Retained in other output modes.' },
+    dimensions: { ...noiseEnum('NoiseDimensions'), default: 'TwoD', description: 'OneD stripes, TwoD field or ThreeD slice at Offset Z. White/Blue temporarily renders stored ThreeD as TwoD.' }, direction: number(-180, 180), whiteNoiseColor: noiseEnum('WhiteNoiseColor'), whiteNoiseSize: number(1, 1024) }),
   blur: object({ mode: choice('Gaussian Linear Circular'), strength: number(0, 4), radius: number(0, 256), distance: number(0, 512), angle: number(-180, 180), arc: number(0, 360),
     center: tuple(number(0, 1), 2), direction: choice('Centered Forward Backward'), edges: choice('Transparent Clamp Repeat Mirror') }),
   sharpen: object({ algorithm: choice('Gaussian Adaptive'), strength: number(0, 4), radius: number(0, 32), threshold: number(0, 1), noiseReduction: number(0, 1), haloSuppression: number(0, 1), channelMode: choice('RGB Luminance'), edges: choice('Transparent Clamp Repeat Mirror') }),
@@ -56,6 +61,7 @@ const defs = {
     code: { type: 'string', minLength: 1, maxLength: 65536, description: 'Portable ApplyFX HLSL, at most 64 KiB UTF-8 and 32 parameters. Declare values with // @param. Conditional/define directives and explicitly allowlisted built-in includes are supported; other includes must be expanded by Copy as Portable. No asset GUIDs.' } }, ['code'])
 };
 const seamless = defs.makeSeamless.properties;
+Object.assign(defs.noise.properties.scale, { default: [8,8], description: 'Scalar sets X and Y equally; [x,y] sets axes independently. Units span the shorter canvas side. Ignored by White/Blue. Seamless fits complete lattice cells per octave/warp, so small Scale changes can quantize.' });
 for (const [field, type] of Object.entries({
   mode: 'SeamlessMode', horizontal: 'HorizontalDirection', vertical: 'VerticalDirection',
   poissonEdges: 'PoissonEdges', mirrorPoissonEdges: 'PoissonEdges', offsetPoissonEdges: 'PoissonEdges',
@@ -111,6 +117,8 @@ const extra = {
   sdf: { metric, sourceChannel: enumeration('Layers/SDFLayerBehaviour.cs', 'SourceChannel'), threshold: integer(0, 255), distancePosition: enumeration('Layers/SDFLayerBehaviour.cs', 'DistancePosition'), inverted: bool, maxDistance: number(0, 16384), sourceOffset: tuple(number(-16384,16384),2), sourceEdges: choice('Transparent Clamp Repeat Mirror'), contourOffset: number(-16384,16384), insideDistance: number(0,16384), outsideDistance: number(0,16384), profile: str(65536), encoding: enumeration('Layers/SDFLayerBehaviour.cs', 'OutputEncoding'), gradient: ref('gradient') },
   shaderProcessor: {}, drawing: {}, file: {}, group: { compositing: choice('PassThrough Isolated') }
 };
+Object.assign(extra.sdf.encoding, { default: 'Gradient', description: 'UI Output. Gradient samples the RGBA/HDR palette; LinearData outputs normalized distance after Inverted/Profile, raw RGB 0..1 and alpha 1. No ColorValues mode.' });
+Object.assign(extra.sdf.gradient, { description: 'Default opaque black at 0, white at 1, Perceptual interpolation. Replaces the complete palette without changing encoding. Inverted runs before Profile and palette sampling.' });
 defs.layer = { oneOf: Object.entries(extra).map(([type, properties]) => {
   const fields = { type: { const: type }, id: { ...str(64), minLength: 1 }, name: str(128), properties: object({ ...common, ...properties, ...(type !== 'group' ? { filter: choice('Source Point Bilinear Trilinear') } : {}) }) };
   if (type === 'group') fields.children = { type: 'array', minItems: 1, maxItems: 128, items: ref('layer') };
