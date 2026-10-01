@@ -173,7 +173,15 @@ namespace DCFApixels.WhimTex
                 }
                 else Refresh();
             });
-            var heading = new Foldout { text = "History", value = true, tooltip = "Click to reuse. Drag to reorder; drag outside the history to remove on release (red outline). Escape cancels the drag." }; heading.AddToClassList("whimtex-picker-heading"); root.Add(heading);
+            const string historyExpandedKey = "DCFApixels.WhimTex.ColorPicker.HistoryExpanded";
+            var heading = new Foldout { text = "History", value = EditorPrefs.GetBool(historyExpandedKey, true), tooltip = "Click to reuse. Drag to reorder; drag outside the history to remove on release (red outline). Escape cancels the drag." };
+            heading.AddToClassList("whimtex-picker-heading");
+            heading.AddToClassList("whimtex-color-library-section");
+            heading.RegisterValueChangedCallback(e =>
+            {
+                if (e.target == heading) EditorPrefs.SetBool(historyExpandedKey, e.newValue);
+            });
+            root.Add(heading);
             var scroll = historyScroll = new ScrollView(); scroll.AddToClassList("whimtex-picker-history-scroll"); heading.Add(scroll);
             history = new VisualElement(); history.AddToClassList("whimtex-picker-history"); scroll.Add(history);
             var spacer = new VisualElement(); spacer.AddToClassList("whimtex-picker-debug-spacer"); root.Add(spacer);

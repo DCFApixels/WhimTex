@@ -34,7 +34,7 @@ public static class GradientHistorySmoke
         var list=(List<Color>)Get(doc,"colorHistory"); var grid=(VisualElement)Get(w,"historyGrid");
         Check(grid.childCount==list.Count&&grid.Q(className:"whimtex-picker-add-color")==null,"History without plus");
         var heading=w.rootVisualElement.Q("gradientColorHistory");
-        Check(heading.worldBound.yMax<=w.rootVisualElement.Q(className:"whimtex-gradient-presets-header").worldBound.yMin,"History above presets");
+        Check(heading.worldBound.yMax<=w.rootVisualElement.Q("gradientPresets").worldBound.yMin,"History above presets");
         foreach(var space in new[]{ColorSpace.Gamma,ColorSpace.Linear})
         {
             var gradient=new WhimTexGradient{ColorSpace=space};

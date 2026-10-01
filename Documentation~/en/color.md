@@ -42,7 +42,9 @@ Right-click → Remove and Delete/Backspace also remove a swatch.
 Removing a swatch does not alter colors already used by layers. Inputs outside a document have no document history.
 Confirming a manually entered color that exactly matches an existing History color (including alpha and HDR intensity) moves it to the front without a duplicate. Intermediate manual edits and canceling them do not automatically record or promote a color. Explicit History actions—clicking a swatch, adding, reordering or removing—remain after canceling color selection with Escape.
 
-The gradient editor also shows **History** above **WhimTex Presets**, without the **+** button. Select a color key and click a swatch to apply its RGB and HDR intensity directly, without opening the color picker. Opacity keys and the selected key's position are preserved. The palette is disabled for opacity keys and midpoints; drag reordering and drag-out removal work as in the picker.
+The gradient editor also shows **History** above **Presets**, without the **+** button. Select a color key and click a swatch to apply its RGB and HDR intensity directly, without opening the color picker. Opacity keys and the selected key's position are preserved. The palette is disabled for opacity keys and midpoints; drag reordering and drag-out removal work as in the picker.
+
+**History** in both windows and **Presets** in the gradient editor have matching dark foldout headers. Click a header to expand or collapse its palette; each section remembers its state between sessions. History colors remain saved with the document.
 
 ## Inspect a channel
 
@@ -130,7 +132,7 @@ Use **HDR** beside the selected color when extra brightness is needed. Drag a ke
 away from its track to delete it; each track keeps at least one key. Right-click a gradient field
 to **Copy** or **Paste** an independent copy. SDF and Noise palettes start with **Perceptual** interpolation.
 
-In **WhimTex Presets**, click the **New** swatch to save the current gradient without naming it.
+In **Presets**, click the **New** swatch to save the current gradient without naming it.
 Click a swatch to apply it; right-click for **Copy** or **Delete**. Presets are
 listed newest first, immediately after **New**. The folder is
 chosen in User Settings; gradients use its **Gradients** subfolder. **↻** reloads the list.

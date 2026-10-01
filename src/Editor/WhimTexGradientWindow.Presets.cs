@@ -8,18 +8,31 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class WhimTexGradientWindow
     {
+        private const string HistoryExpandedKey = "DCFApixels.WhimTex.Gradient.HistoryExpanded";
+        private const string PresetsExpandedKey = "DCFApixels.WhimTex.Gradient.PresetsExpanded";
         private VisualElement presetGrid;
         private HelpBox presetWarning;
         private Image newPresetImage;
         private readonly List<Texture2D> presetPreviews = new List<Texture2D>();
 
+        private Foldout BuildLibrarySection(string title, string name, string preference)
+        {
+            var section = new Foldout { text = title, name = name, value = EditorPrefs.GetBool(preference, true) };
+            section.AddToClassList("whimtex-color-library-section");
+            section.RegisterValueChangedCallback(e =>
+            {
+                if (e.target == section) EditorPrefs.SetBool(preference, e.newValue);
+            });
+            rootVisualElement.Add(section);
+            return section;
+        }
+
         private void BuildPresets()
         {
-            var header = new VisualElement();
-            header.AddToClassList("whimtex-gradient-presets-header");
-            header.Add(new Label("WhimTex Presets"));
-            header.Add(new Button(RefreshPresets) { text = "↻", tooltip = "Refresh gradient presets" });
-            rootVisualElement.Add(header);
+            var section = BuildLibrarySection("Presets", "gradientPresets", PresetsExpandedKey);
+            var refresh = new Button(RefreshPresets) { text = "↻", name = "gradientPresetsRefresh", tooltip = "Refresh gradient presets" };
+            refresh.AddToClassList("whimtex-gradient-presets-refresh");
+            section.hierarchy.Add(refresh);
             var scroll = new ScrollView(ScrollViewMode.Vertical)
             {
                 verticalScrollerVisibility = ScrollerVisibility.Auto,
@@ -30,9 +43,9 @@ namespace DCFApixels.WhimTex
             presetGrid = new VisualElement();
             presetGrid.AddToClassList("whimtex-gradient-presets-grid");
             scroll.Add(presetGrid);
-            rootVisualElement.Add(scroll);
+            section.Add(scroll);
             presetWarning = new HelpBox("", HelpBoxMessageType.Warning);
-            rootVisualElement.Add(presetWarning);
+            section.Add(presetWarning);
             RefreshPresets();
         }
 

@@ -28,8 +28,10 @@
 .whimtex-picker-hidden { display: none; }
 .whimtex-picker-history { flex-direction: row; flex-wrap: wrap; min-height: 14px; }
 .whimtex-picker-history-scroll { min-height: 18px; max-height: 154px; margin-top: 2px; }
-.whimtex-picker-heading { margin-top: 2px; flex-shrink: 1; }
-.whimtex-picker-heading > .unity-foldout__content { margin-left: 0; }
+.whimtex-color-library-section { margin-top: 8px; flex-shrink: 0; }
+.whimtex-color-library-section > .unity-foldout__toggle { height: 22px; margin: 0; padding: 2px; padding-right: 28px; background-color: rgba(0, 0, 0, 0.12); }
+.whimtex-color-library-section > .unity-foldout__content { margin-left: 0; }
+.whimtex-picker-heading { flex-shrink: 1; }
 .whimtex-picker-chip { width: 14px; height: 14px; margin: 0; flex-shrink: 0; border-width: 1px; border-color: rgb(30,30,30); }
 .whimtex-picker-chip--target { border-width: 2px; border-color: rgb(60,160,240); }
 .whimtex-picker-chip--dragging { opacity: 0.45; }

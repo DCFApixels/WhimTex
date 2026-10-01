@@ -20,14 +20,13 @@ namespace DCFApixels.WhimTex
         {
             var sheet = AssetDatabase.LoadAssetAtPath<StyleSheet>("Packages/com.dcfapixels.whimtex/src/Editor/WhimTexColorPicker.uss");
             if (sheet != null) rootVisualElement.styleSheets.Add(sheet);
-            var heading = new Foldout { text = "History", value = true, name = "gradientColorHistory",
-                tooltip = "Apply a history color to the selected color key. Opacity keys are unchanged. Drag to reorder; drag outside to remove." };
-            heading.AddToClassList("whimtex-picker-heading");
+            var heading = BuildLibrarySection("History", "gradientColorHistory", HistoryExpandedKey);
+            heading.tooltip = "Apply a history color to the selected color key. Opacity keys are unchanged. Drag to reorder; drag outside to remove.";
             heading.AddToClassList("whimtex-gradient-history");
             historyScroll = new ScrollView(ScrollViewMode.Vertical) { horizontalScrollerVisibility = ScrollerVisibility.Hidden };
             historyScroll.AddToClassList("whimtex-picker-history-scroll");
             historyGrid = new VisualElement(); historyGrid.AddToClassList("whimtex-picker-history");
-            historyScroll.Add(historyGrid); heading.Add(historyScroll); rootVisualElement.Add(heading);
+            historyScroll.Add(historyGrid); heading.Add(historyScroll);
             historyDocument = null; historySnapshot.Clear(); historyMask = -2;
             heading.schedule.Execute(RefreshColorHistory).Every(100);
             RefreshColorHistory(true);
