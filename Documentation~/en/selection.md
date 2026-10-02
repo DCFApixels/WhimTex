@@ -122,7 +122,9 @@ as an independent Drawing layer, keeping its original pixels and transparency. I
 centered with its proportions preserved, using the layer transform rather than resizing the image. The same size limits apply;
 downloads are limited to 64 MB. Links to web pages are not supported. Closing the window or switching documents
 cancels the download. For a local file, first drag it into Project, then onto the preview.
-Image links also work when [pasting layers from JSON](ai-authoring.md). After download confirmation,
-WhimTex adds all layers and images together; a failed download cancels the entire insertion.
+Old `whimtex.layers` JSON also supports image links through the [compatibility reader](../AI/LEGACY_LAYERS.md).
+After download confirmation, it adds all layers and images together; a failed download cancels insertion.
+Current `whimtex.document` JSON does not download images or store Drawing pixels. Paste an image link
+directly as described above, or use verified project asset references in [document JSON](ai-authoring.md).
 
 If painting seems blocked, try `Ctrl+D`.

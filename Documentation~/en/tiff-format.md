@@ -11,7 +11,7 @@ next_page: "en/shortcuts.md"
 
 # TIFF document
 
-TIFF is WhimTex's main document format. Each editable document is one `*.tiff` file: a Unity texture
+TIFF is WhimTex's main image-backed document format. Each TIFF document is one `*.tiff` file: a Unity texture
 and an editable document at the same time: the visible TIFF image is the last saved composite,
 while the layer model and Drawing data travel in an appended WhimTex container.
 
@@ -39,7 +39,8 @@ reopen or use **Save As**.
 
 Do not resave a WhimTex TIFF in an external image editor: it may discard the appended container and
 leave only the composite image. Legacy `.asset` documents remain readable for inspection and
-migration, but new documents are TIFF-only and migration never overwrites the legacy source.
+migration, but cannot be saved as new legacy documents. Migration creates TIFF without overwriting the source.
+[JSON documents](saving.md#json-documents) are an editable text alternative, without Drawing pixels or a Unity texture.
 PNG, JPEG, TGA and EXR contain the exported image without editable layers. PSD can retain some
 layers and effects, but does not replace the original WhimTex document.
 

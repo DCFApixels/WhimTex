@@ -77,7 +77,7 @@ function checkSource() {
       }
     }
   }
-  for (const file of [...markdown, path.join(repository, 'README.md'), path.join(repository, 'README-RU.md')]) {
+  for (const file of [...markdown, ...['README.md', 'README-RU.md', 'README-ZH.md'].map(name => path.join(repository, name))]) {
     const content = text(file).replace(/^```[^\n]*\n[\s\S]*?^```\s*$/gm, '');
     if (/^```/m.test(content)) fail(`${file}: unclosed code fence`);
     const links = [

@@ -61,6 +61,24 @@ assert.ok(!live.includes('without an initializer'), 'Gradient defaults support a
 const authoring = read('Documentation~/AI/README.md');
 assert.match(read('Documentation~/AI/BRUSHES.md'), /README\.md#standalone-gradient-json/, 'Brush gradient reference must target the current value contract');
 assert.match(authoring, /^## Standalone gradient JSON\r?$/m, 'The linked gradient section must exist');
+for (const file of ['README.md', 'README-RU.md', 'README-ZH.md']) {
+  const entry = read(file);
+  assert.ok(entry.includes('Documentation~/AI/document.schema.json'), `${file}: current document schema entry point`);
+  assert.ok(!entry.includes('Documentation~/AI/layers.schema.json'), `${file}: no legacy schema as the primary contract`);
+  assert.ok(entry.includes('legacy URL-input fixture'), `${file}: linked-image example is compatibility-only`);
+}
+assert.match(api, /\| `assetPath` \|[^\n]*\*\.tiff[^\n]*\*\.json/, 'Batch path table must document both storage formats');
+assert.ok(api.includes('not a `whimtex.document` file'), 'Batch command envelopes are distinguished from document content');
+const shaders = read('Documentation~/ShaderFX.md');
+assert.ok(shaders.includes('textureLayerId'), 'Unified JSON exposes stored FX layer bindings');
+assert.ok(!shaders.includes('Clipboard JSON does not expose these bindings'), 'No obsolete FX binding restriction');
+assert.ok(!shaders.includes('retains the last working shader'), 'Failed Apply must not promise rendering a stale shader');
+for (const lang of ['en', 'ru', 'zh']) {
+  assert.ok(read(`Documentation~/${lang}/selection.md`).includes('AI/LEGACY_LAYERS.md'), `${lang}: URL-in-JSON support is legacy-only`);
+  assert.ok(read(`Documentation~/${lang}/tiff-format.md`).includes('JSON'), `${lang}: editable documents are not TIFF-only`);
+}
+assert.ok(!read('Documentation~/TIFF_FORMAT.md').includes('documents are TIFF-only'), 'Technical TIFF reference must acknowledge JSON');
+assert.ok(read('Documentation~/Examples/index.md').includes('not stored documents or clipboard recipes'), 'API examples distinguish operations from content');
 for (const file of ['AI_AUTHORING.md', 'Documentation~/AI/README.md', 'Documentation~/Examples/Clipboard/README.md']) {
   const text = read(file);
   assert.ok(text.includes('whimtex.document') && text.includes('document.schema.json'), `${file}: current authoring contract`);

@@ -138,13 +138,13 @@ To edit the code independently in the document, click **Embed Copy** under **Cod
 - **Open Code** opens a working file in Unity's selected script editor. Saving updates the draft in WhimTex; click **Apply** to compile it.
 - **Open in VS Code** also installs WhimTex directive highlighting, completions and checks automatically in an isolated profile. Saving this working file requests **Apply** in Unity, without returning to the WhimTex window. The language mode remains **HLSL**; the bundled extension supports Restricted Mode.
 - If the VS Code button is missing, set **User Settings → External Code Editor → VS Code Command**. WhimTex checks Unity's registered editors and PATH before this fallback.
-- An invalid shader leaves the last working result visible and reports diagnostics. Save the document in WhimTex to keep your changes in the TIFF; saving the code file alone does not save it. After a Unity script reload, reopen the code from WhimTex to reconnect.
+- An invalid shader is skipped and reports diagnostics until a successful Apply; its code and parameter values remain editable. Save the document in WhimTex to keep changes in TIFF or JSON; saving the code file alone does not save the document. JSON can retain broken FX, while TIFF requires fixing them before saving. After a Unity script reload, reopen the code from WhimTex to reconnect.
 
 The VS Code extension highlights types, modifiers, parameter names, values and ranges as well as directive names. It checks defaults, tooltips, linked controls, conditions and groups; shader compilation errors still come from Unity. After an extension update, reopen code through **Open in VS Code**; an already-running window may need **Developer: Reload Window**.
 
 Type `// @if` or `// @group`, then press **Tab** to create a block with its closing directive. Tab moves through the condition or group title, then into the body. The compact spelling `//@if` / `//@group` also works. If your VS Code settings disable Tab completion, select the snippet with **Ctrl+Space** instead.
 
-External working files are temporary, not backups. Inactive copies unused for more than **24 hours** are automatically removed. Save your TIFF in WhimTex to keep the code; saving in the code editor alone does not save the document. After restarting Unity or reloading scripts, reopen code from WhimTex to reconnect it.
+External working files are temporary, not backups. Inactive copies unused for more than **24 hours** are automatically removed. Save your document in WhimTex to keep the code; saving in the code editor alone does not save the document. After restarting Unity or reloading scripts, reopen code from WhimTex to reconnect it.
 
 Effect order matters. Drag an FX header to reorder effects, or drop it onto another layer's row to move it there. **Move Up** and **Move Down** in the header context menu also change the order.
 

@@ -15,7 +15,9 @@ Technical specifications are maintained in English.
 
 - [Agent API](AgentAPI.md): discovery, JSON operations, layer settings, painting and safety.
 - [TIFF document format](TIFF_FORMAT.md): carrier layout, model/Drawing blocks, lazy loading and recovery rules.
-- [JSON examples](Examples/index.md): ready-to-adapt image and Drawing requests.
+- [JSON document format](JSON_FORMAT.md): editable files, clipboard layers, write modes and asset references.
+- [JSON API request examples](Examples/index.md): image and Drawing operations for a connected agent, not document files.
+- [Document JSON recipes](Examples/Clipboard/README.md): procedural documents to open or paste as layers.
 - [Color range, HDR and groups](HDR.md): color spaces, storage, isolation and diagnostics.
 - [Gaussian Blur and caching](GaussianBlur.md): source representations, quality and memory.
 - [Motion Blur](MotionBlur.md): sampling, density and working-buffer costs.

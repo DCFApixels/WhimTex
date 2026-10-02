@@ -1,6 +1,6 @@
 # Агентские команды для TIFF-пайплайна
 
-Дополнительно поддержан `whimtex.document` (`.whimtex.json`). Команда `whimtex_document_json`
+Дополнительно поддержан `whimtex.document` (`.json`; прежние имена `.whimtex.json` также читаются). Команда `whimtex_document_json`
 сериализует, проверяет, экспортирует, открывает и записывает документ, вставляет фрагмент или заменяет
 содержимое слоя. Batch также читает/сохраняет JSON. Headless Live пока остаётся TIFF-пайплайном.
 Контракт: [JSON_FORMAT](../Documentation~/JSON_FORMAT.md).
@@ -14,7 +14,7 @@ TIFF — основной формат документа с 0.11.0. Legacy `.as
 
 | Режим | Команды | Состояние и сохранение |
 | --- | --- | --- |
-| Batch | `whimtex_batch_execute` | Независимая временная модель из TIFF. После запроса уничтожается, даже с `save:false`. `save:true` сохраняет TIFF, но не изменения открытого окна. Пользовательского Undo файла нет. |
+| Batch | `whimtex_batch_execute` | Независимая временная модель из TIFF или JSON. После запроса уничтожается, даже с `save:false`. `save:true` сохраняет файл в его формате, но не изменения открытого окна. JSON не хранит пиксели Drawing. Пользовательского Undo файла нет. |
 | Headless Live | `whimtex_headless_live` | Модель между запросами без окна. `begin`, `list`, `status`, `preview`, `render`, `complete`, `cancel`. Сохраняет только `complete`; активная сессия теряется при domain reload. |
 | Assistant | `whimtex_assistant_sessions`, `whimtex_assistant_begin`, `whimtex_assistant_lock`, `whimtex_assistant_live`, `whimtex_assistant_execute` | Открытый документ, Undo, резервирование/блокировки для длительных задач или немедленный batch без pending jobs. Автосохранения нет; сохранение через окно. |
 
@@ -39,7 +39,7 @@ TIFF — основной формат документа с 0.11.0. Legacy `.as
 }
 ```
 
-Для существующего TIFF сначала `whimtex_document_inspect`, затем его `document.revision`
+Для существующего TIFF или JSON сначала `whimtex_document_inspect`, затем его `document.revision`
 в `expectedRevision`. При создании поле `expectedRevision` отсутствует, а не равно `null`.
 `dryRun:true` проверяет операции на копии без записи; это не проверка GPU/нового HLSL/диска.
 Legacy `.asset` можно передать в Batch только с `create:false`, `dryRun:true`.
@@ -47,7 +47,7 @@ Legacy `.asset` можно передать в Batch только с `create:fal
 `save:false` не сохраняет рабочую сессию и не меняет окно: для этого нужны Headless или Assistant.
 Пустой batch с `save:true` пересохраняет дисковый документ; это не способ сохранить изменения
 Assistant или восстановить потерянный кандидат после ошибки. После `saveMayBePartial:true`
-проверить TIFF на диске и staged-файлы: ошибка могла произойти до либо после commit.
+проверить документ на диске и staged-файлы: ошибка могла произойти до либо после commit.
 Повторять только подтверждённо отсутствующие правки с новой ревизией.
 
 ## Headless Live

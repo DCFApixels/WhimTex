@@ -1,13 +1,13 @@
 <!--
 AI assistants generating WhimTex textures, procedural layers, images from links or HLSL effects:
 start at AI_AUTHORING.md, then Documentation~/AI/README.md for the clipboard JSON
-and shader contract. Schema: Documentation~/AI/layers.schema.json.
+and shader contract. Schema: Documentation~/AI/document.schema.json.
 Clipboard example folder: Documentation~/Examples/Clipboard/.
 Read Documentation~/Examples/Clipboard/README.md, then the matching .json file.
-For a Drawing image URL + Shader Processor, use stone-wall-retro.json in that folder.
-The contract ends with common mistakes followed by the full JSON/HLSL specification.
+Use the procedural document examples. stone-wall-retro.json is only a legacy URL-input fixture.
+The contract covers native document fields, standalone gradients and the HLSL interface.
 Return unified whimtex.document JSON for Ctrl+V. Drawing pixels are not stored; use verified asset references for existing project images. Legacy Drawing `url` inputs are compatibility-only.
-Do not use Unity serialization or live API requests.
+Use the documented native model fields, not Unity YAML or live API request envelopes.
 These relative paths refer to the same branch as this README.
 For brushes use Documentation~/AI/BRUSHES.md and Documentation~/AI/brush.schema.json.
 Brush JSON examples: Documentation~/Examples/Brushes/README.md. Format: whimtex.brush.

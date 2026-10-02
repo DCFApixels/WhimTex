@@ -92,8 +92,10 @@ output settings during export.
 Use the exact enum spellings in the [generated schema](AI/document.schema.json).
 Fields match the persistent model: `behaviour` contains type-specific settings; `transform`,
 `modifiers` and `children` belong to the layer. Layer order is top to bottom. `$type` selects an
-allowlisted model type, not an arbitrary assembly-qualified runtime type. Numeric vectors and colors
-are arrays. Shader FX have `$type: "ShaderFX"`, source `code`, `parameters`, `active` and optional
+allowlisted model type, not an arbitrary assembly-qualified runtime type. Unity vectors and colors
+are fixed-length numeric arrays; transform `Double2` values use objects with `x` and `y`.
+Use the schema's exact component count; binary TIFF vector widening is not a JSON shorthand.
+Shader FX have `$type: "ShaderFX"`, source `code`, `parameters`, `active` and optional
 `$name`. Shared FX use `$id`/`$ref`; these IDs are distinct from layer IDs.
 
 There is no document/fragment discriminator. Exporting selected layers produces a document containing
@@ -103,9 +105,10 @@ only those layers, with source-canvas settings. The caller's operation determine
 - Insert/paste adds layers with remapped IDs; it does not replace existing layers or apply source output settings.
 - Replace changes only the explicitly selected layer through the API; content never requests replacement itself.
 
-New output never includes `kind`. The obsolete optional string field is ignored when reading earlier
+New output never includes root `kind`. The obsolete optional root string field is ignored when reading earlier
 exports, regardless of its value, and is not returned by the JSON API. It does not select an operation.
 The required `format` and `version` fields still identify the format and its version.
+This does not remove type-specific fields such as Shape's `behaviour.kind`.
 
 Clipboard may ask whether to adopt canvas dimensions; either choice preserves the destination's output
 filter, encoding and other output settings. Exporting selected nested layers converts
@@ -153,8 +156,9 @@ These are storage checks, not the stricter agent-property patch/UI slider bounds
 and native sentinels (such as Noise `scaleY: 0`) remain supported, with the model's existing rendering clamps.
 The generated schema describes per-field constraints; graph dependencies, total layer count and the
 combined canvas pixel budget additionally require the reader/API validator.
-The reader does not silently discard them. JSON limits are 64 MiB characters, depth 128 and one million
-model values; canvas limits are 16384 per axis and 16,777,216 pixels. Drawing pixels are not in that budget.
+The reader does not silently discard invalid data. JSON limits are 64 MiB characters, depth 128,
+one million model values and 1024 layers including group children; canvas limits are 16384 per axis
+and 16,777,216 pixels. Drawing pixels are not in that budget.
 
 ## C# and agents
 

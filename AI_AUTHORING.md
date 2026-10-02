@@ -9,7 +9,7 @@ Open the [clipboard example index](Documentation~/Examples/Clipboard/README.md),
 actual procedural recipe matching the task. These are stored documents, not live API requests.
 Use `behaviour.$type`, native model fields and `modifiers`; do not use legacy `type/properties/fx`.
 `document` is optional, but specify width and height for predictable source-canvas context.
-There is no `kind` discriminator. Default export mode is `FullOptimized`; use Full/Compact on request.
+There is no root `kind` discriminator. Default export mode is `FullOptimized`; use Full/Compact on request.
 
 For more involved VFX and surfaces, use the [internal texture samples](Samples~/AgentTextures/README.md).
 `Samples~/AgentTextures/manifest.json` indexes 38 editable recipes and individual PNG previews,

@@ -31,7 +31,7 @@ Writers always include both canvas dimensions, including in Compact mode, to pre
 | `serialize` | `assetPath`, optional `layerIds` array, `mode`, `allowDrawingOmission`. Returns `json` containing all or selected layers plus `warnings`, in the same document format. |
 | `export` | Same options without `layerIds`, plus a new `destinationPath` ending in `.json`. Does not modify the source. |
 | `validate` | Exactly one `json` object or `sourcePath`; optional `compile` (default false). Detached parsing, no save. |
-| `write` | `json` or `sourcePath`, destination `assetPath`, optional `save` (default true). Accepts whole-document or selected-layer exports; existing files require `expectedRevision`, including when `save:false`. |
+| `write` | `json` or `sourcePath`, destination TIFF or JSON `assetPath`, optional `save` (default true). Accepts whole-document or selected-layer exports; existing files require `expectedRevision`, including when `save:false`. |
 | `insert` | `json` or `sourcePath`, existing `assetPath`, `expectedRevision`, optional `save` (default true). Adds remapped roots at the top without changing output settings. |
 | `replace` | Same as insert plus `layerId`; exactly one incoming root. Keeps the target wrapper's ID, name, enabled state and placement in the stack. |
 | `open` | `assetPath` of a JSON document. Opens/focuses its WhimTex window. |
@@ -42,7 +42,9 @@ and `replace` compile by default; `compile:false` only postpones compilation and
 Failed FX compilation is reported in `warnings`; the JSON document still loads and retains the skipped
 FX for repair. Structural JSON/reference errors still reject the request. `write` without `mode` preserves
 the optional envelope `writeMode` (or uses FullOptimized when absent). Ordinary JSON saves retain that mode;
-one-off exports do not change it.
+one-off exports do not change it. Insert/replace use the request's `mode` (FullOptimized if omitted)
+when saving to JSON. A TIFF destination still uses TIFF save validation and may reject broken FX;
+the soft JSON storage rule is not a bypass for TIFF validation.
 Path edits refuse a conflicting open document. For `write`, `insert` and `replace`, `save:false` returns
 `saved:false` and the prospective snapshot, then discards the transient model. It neither creates nor
 overwrites the destination or its importer metadata; existing-file revision checks still apply.
@@ -67,7 +69,7 @@ The installed package also contains `Samples~/AgentTextures/manifest.json`: 38 p
 recipes with individual PNG previews, descriptions and tags. The longest canvas axis is 256 pixels;
 rectangular samples retain their aspect ratio. Read that folder's README before reuse. There are no
 bundled TIFF duplicates or overview atlas. The `.whimtex.json` files are complete editable documents,
-**not** requests for `ExecuteJson`: use the shared JSON API below, open a copy in an authorized folder,
+**not** requests for `ExecuteJson`: use the shared JSON API above, open a copy in an authorized folder,
 or paste their layers. Do not modify bundled references in place.
 Output encoding is stored in each JSON document. The three packed-data previews store raw linear values and
 must be imported with sRGB disabled; generic diagnostic PNG renders instead use sRGB preview encoding.
@@ -104,7 +106,7 @@ or select a WhimTex window.
 
 | Editing mode | Working state | Persistence and Undo |
 | --- | --- | --- |
-| Batch | Independent copy for one request | `save:true` writes TIFF; `save:false` discards edits after returning. No user Undo of the file |
+| Batch | Independent copy for one request | `save:true` writes TIFF or JSON according to the path; `save:false` discards edits after returning. No user Undo of the file |
 | Headless Live | Independent candidate between requests | `complete` saves; `cancel`/reload discard. No user Undo |
 | Assistant | The user's open document | Undo in the window; no automatic save |
 
@@ -113,12 +115,14 @@ or select a WhimTex window.
 `WhimTexDocumentFile.GetOutputSrgb(document)` reads the pending output encoding;
 `SetOutputSrgb(document, bool)` changes it on the Editor main thread and marks the document changed.
 It does **not** write the TIFF or importer: call `Save` to apply it together with other pending edits.
-`TextureCompositor.outputSrgb` defaults to true and is initialized from the importer on open.
+`TextureCompositor.outputSrgb` defaults to true. TIFF opening initializes it from the importer/carrier;
+JSON restores `document.outputSrgb`, or the format default if omitted.
 The UI supplies Undo; C# callers manage their own Undo records.
 Inspector Apply instead queues a conversion of the **saved** model after import, without saving current
 layer edits, then synchronizes the open document's encoding. This external reimport stops Live Update.
 Float32 output always remains Linear; alpha is unchanged. This is not a working-space or source-pixel
-conversion. These are C# methods, **not** new JSON operations or clipboard fields.
+conversion. These are C# methods, not batch operation names. The unified JSON storage field
+`document.outputSrgb` is separate from this importer-conversion workflow.
 
 Path-based inspection/rendering reads the disk document. To inspect unsaved window changes use
 Assistant; to inspect an unsaved Headless candidate use its session. These states are not interchangeable.
@@ -513,13 +517,18 @@ stretches a non-square source to the full canvas; omit scale to preserve the ini
 | Request field | Meaning |
 |---|---|
 | `apiVersion` | Required integer `1` |
-| `assetPath` | Required project-relative `Assets/.../*.tiff` for new documents; legacy `.asset` is read/migrate-only |
+| `assetPath` | Required project-relative `Assets/.../*.tiff` or `Assets/.../*.json` for new documents; legacy `.asset` is read/migrate-only |
 | `create` | Default false. True creates a new document |
 | `width`, `height` | Create only; integers, default 512 each, 1..16384 and at most 16,777,216 total pixels |
 | `expectedRevision` | Required for existing documents; copy the latest persisted document revision from inspect/successful save. Omit entirely on create; null is rejected. Do not use a discarded save:false candidate's revision |
 | `save` | Default true. False executes on a temporary copy and returns a snapshot, then discards it. It does not change an open window or retain a session. New documents require true unless dryRun |
 | `dryRun` | Default false. Validate the entire batch on a detached model, without strokes, rendering, saving or consuming real name counters |
 | `operations` | Required array, at most 256; use `[]` to save/rebake without additional edits |
+
+These fields describe an editing request, not a `whimtex.document` file. Batch JSON saves use
+the document's write mode and do not offer Drawing-omission permission: nonempty Drawing content
+cannot be saved to JSON through this command. Use TIFF for pixels, or explicitly authorize omission
+through the [document JSON API](#unified-json-documents) when exporting a settings-only copy.
 
 Unknown/duplicate fields, wrong JSON types, invalid enum names, non-finite numbers and out-of-range
 values fail validation. Omitted patch fields are preserved; JSON null is not a general reset

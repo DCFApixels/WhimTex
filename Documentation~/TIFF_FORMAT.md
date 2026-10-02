@@ -12,7 +12,7 @@ permalink: /reference/tiff-format/
 {: .no_toc }
 
 TIFF has been WhimTex's main editable document format since version 0.11.0.
-WhimTex stores a new editable document as one `*.tiff` file. The file is both a normal
+An image-backed document is stored as one `*.tiff` file. The file is both a normal
 Unity-importable texture and a document container. The visible TIFF image is the last saved
 composite; the editable model and Drawing data are stored after the image data in a WhimTex
 container.
@@ -74,12 +74,14 @@ TIFF remains in place until the commit succeeds. An unchanged document can reuse
 blocks and skip composition/import work when there are no external inputs or time-dependent effects.
 
 Unknown serialized fields, missing types or unresolved references block saving rather than silently
-discarding data. Legacy `.asset` documents remain readable for migration and inspection, but new
-documents are TIFF-only and the old asset is never overwritten by migration. Ordinary PNG, JPEG, TGA,
+discarding data. Legacy `.asset` documents remain readable for migration and inspection, but cannot
+be saved in the legacy format; migration creates a TIFF without overwriting the source.
+[Unified JSON](JSON_FORMAT.md) is also supported for editable settings without Drawing pixels or an image carrier.
+Ordinary PNG, JPEG, TGA,
 EXR and PSD export produces flattened/export files; those exports do not carry editable WhimTex layers.
 
 Do not resave a WhimTex TIFF in an external image editor. Such an editor may rewrite the TIFF and drop
-the trailing container, leaving only the composite image. Use **Save As TIFF** or the recovery command
+the trailing container, leaving only the composite image. Use **Save As** (TIFF) or the recovery command
 to produce a new WhimTex document instead.
 
 ## Limits and tooling
