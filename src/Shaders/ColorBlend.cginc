@@ -48,6 +48,27 @@ float3 BlendSoftLight(float3 backdrop, float3 source)
     return lerp(dark, light, step(0.5, source));
 }
 
+float BlendLuminosity(float3 color) { return dot(color, float3(0.3, 0.59, 0.11)); }
+float BlendSaturation(float3 color) { return max(color.r, max(color.g, color.b)) - min(color.r, min(color.g, color.b)); }
+
+float3 BlendSetSaturation(float3 color, float saturation)
+{
+    float low = min(color.r, min(color.g, color.b));
+    float range = BlendSaturation(color);
+    return range > 0.0 ? (color - low) * (saturation / max(range, 1e-20)) : 0.0;
+}
+
+float3 BlendSetLuminosity(float3 color, float luminosity)
+{
+    color += luminosity - BlendLuminosity(color);
+    if (_HdrBlend > 0.5) return color;
+    float low = min(color.r, min(color.g, color.b));
+    float high = max(color.r, max(color.g, color.b));
+    if (low < 0.0) color = luminosity + (color - luminosity) * (luminosity / max(luminosity - low, 1e-20));
+    if (high > 1.0) color = luminosity + (color - luminosity) * ((1.0 - luminosity) / max(high - luminosity, 1e-20));
+    return color;
+}
+
 float3 EvaluateBlend(float3 backdrop, float3 source, float mode)
 {
     if (mode == 1.0)  return backdrop * source;
@@ -92,6 +113,10 @@ float3 EvaluateBlend(float3 backdrop, float3 source, float mode)
     if (mode == 22.0) return abs(backdrop - source);
     if (mode == 23.0) return backdrop + source - 2.0 * backdrop * source;
     if (mode == 24.0) return 1.0 - abs(1.0 - backdrop - source);
+    if (mode == 25.0) return BlendSetLuminosity(BlendSetSaturation(source, BlendSaturation(backdrop)), BlendLuminosity(backdrop));
+    if (mode == 26.0) return BlendSetLuminosity(BlendSetSaturation(backdrop, BlendSaturation(source)), BlendLuminosity(backdrop));
+    if (mode == 27.0) return BlendSetLuminosity(source, BlendLuminosity(backdrop));
+    if (mode == 28.0) return BlendSetLuminosity(backdrop, BlendLuminosity(source));
     return source;
 }
 

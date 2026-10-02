@@ -191,6 +191,7 @@ namespace DCFApixels.WhimTex
 
         internal static void Attach(EnumField field)
         {
+            if (field.value is BlendMode) { BlendModeMenu.Attach(field); return; }
             if (attached.TryGetValue(field, out _)) return;
             Type cachedType = null;
             Enum[] choices = null;

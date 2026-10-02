@@ -29,16 +29,25 @@ namespace DCFApixels.WhimTex
         [SerializeField, HideInInspector] private List<ShaderFX> embeddedShaderFX = new List<ShaderFX>();
 
         internal static event Action<TextureCompositor> Changed;
+        // Compiled resources changed, but the editable document did not.
+        internal static event Action<TextureCompositor> RenderResourcesChanged;
         [SerializeField, HideInInspector] internal string documentLoadWarning;
         [SerializeField, HideInInspector] internal WhimTexDocumentBinding documentBinding;
         [NonSerialized] private Dictionary<UnityObjectID, OriginalFileCacheEntry> originalFileTextureCache;
 
-        internal static void NotifyShaderFXChanged(ShaderFX effect)
+        internal static void NotifyShaderFXChanged(ShaderFX effect, bool contentChanged)
         {
             // Only loaded documents need repainting; never load or rebake saved assets here.
             foreach (TextureCompositor document in Resources.FindObjectsOfTypeAll<TextureCompositor>())
                 if (ContainsShaderFX(document.layers, effect))
-                    Changed?.Invoke(document);
+                {
+                    if (contentChanged)
+                    {
+                        if (document.documentBinding != null) document.documentBinding.dirty = true;
+                        Changed?.Invoke(document);
+                    }
+                    else RenderResourcesChanged?.Invoke(document);
+                }
         }
 
         private static bool ContainsShaderFX(List<Layer> source, ShaderFX effect)
@@ -408,7 +417,11 @@ namespace DCFApixels.WhimTex
                 }
                 return decoded != null;
             }
+#if WHIMTEX_DEBUG
             catch (System.Exception exception)
+#else
+            catch (System.Exception)
+#endif
             {
                 if (decoded != null) DestroyImmediate(decoded);
 #if WHIMTEX_DEBUG

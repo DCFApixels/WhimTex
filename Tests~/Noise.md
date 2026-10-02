@@ -21,7 +21,7 @@ inversion, color encoding and bypassing fractal/warp. It does not save assets.
 
 `NoiseRandomizeSmoke.cs` runs with Pipeline `run_script`, entry `NoiseRandomizeSmoke.Run`.
 It tests 256 Random All combinations starting from all eight noise types, group-local type selection,
-preservation of both 1D/2D modes, the gradient palette and selected Gradient output, other generator fields, enum coverage and legal ranges. Starting from either ColorValues or LinearData, both raw outputs must be reachable and Gradient must never be selected. Inverted can still vary in every mode.
+preservation of both 1D/2D modes, Direction, both Seamless settings, Offset, the gradient palette and selected Gradient output, other generator fields, enum coverage and legal ranges. Starting from either ColorValues or LinearData, both raw outputs must be reachable and Gradient must never be selected. Inverted can still vary in every mode.
 It also checks 64 GPU renders, untouched layer settings and Unity random state. A temporary Properties window
 checks real button activation, field refresh, one-step Undo/Redo and the seed-only Random button.
 The window and document are destroyed afterwards; no project assets are saved.
@@ -50,6 +50,38 @@ decoding. Resources are released before assembly reload and on quit. The shared 
 
 ## Independent scales, 3D slices and lattice periodicity
 
+`NoiseScaleDistributionSmoke.Run` tests the main Scale randomization's soft weight around
+mean 8 using 800,000 deterministic samples against numerical integration of the weighted
+baseline. Profiles cover equal linked axes, unequal linked axes, unlinked axes and an extreme
+linked ratio. It checks the [1,2] weight, retained tails, legal bounds, proportions and no model
+side effects. `NoiseRandomizeSmoke.Run` covers its integration with Random All and Undo/Redo.
+
+Axis `warpScale` multipliers (default [1,1], each 0.01–1000) have GPU/cache/serialization
+coverage in `NoiseWarpScaleSmoke.Run`. `NoiseRandomizeSmoke.Run` exercises both chains,
+literal unlinked edits, proportional linked edits, preserved ratios, Undo/Redo and bindings.
+`NoiseApiSmoke.cs` covers scalar/vector inputs, bounds, round trips and the absent-field default.
+`NoiseWarpPeriodSmoke.Run(kind, dimensions)` covers all six kernels in 2D/3D, rectangular
+canvas, three Noise Scale pairs (including below 1), three anisotropic Warp Scale pairs,
+X/Y/XY, four fractals and three warps: 3,888 configurations. It checks a full-period shift
+at arbitrary positions and samples both sides of each selected seam. Cellular boundaries
+and Ridged/PingPong folds have intrinsic cusps; only smooth combinations assert curvature.
+Both CPU reference CSVs use Warp Scale [2.3,0.7], unchanged Z frequency and period-fit-only
+displacement compensation. Expected values come from the independent double-coordinate model.
+
+Verified 2026-10-01: all 12 Warp-period suites passed (3,888 configurations, 1,586,304
+sample comparisons/checks), maximum full-period difference 0.00008894. All 24 CPU/GPU
+reference suites passed (6,480 samples, maximum error <0.0005). Warp Scale GPU/cache tests
+passed 327,751 checks, UI/Random All/Undo tests 7,020, API tests 64, and Node source/schema
+contracts passed. These are connected-Editor checks, not exhaustive platform or all-value proofs.
+
+2026-10-01: 2D simplex periods now round each octave directly from requested Scale.
+The independent CPU reference fixtures were regenerated for this policy. All 24 ordinary/stress
+suites pass again (6,480 samples, max error <0.0005). Boundary tests explicitly copy integer
+uniforms into their detached materials so Fractal and Warp remain active during seam checks.
+`NoiseSmallScaleExperiment.Run` also verifies production against the approved small-scale
+candidate and straddles seams across 288 OpenSimplex2/2S combinations; see
+[small-scale validation](NoiseSmallScaleExperiment.md).
+
 `NoisePeriodicGpuSmoke.cs` runs with Pipeline `run_script`, entry `NoisePeriodicGpuSmoke.Run`,
 arguments `[type, dimensions, stress]`: type 0–5, dimensions 2 or 3, stress false or true.
 Run all 24 combinations serially. The two `NoisePeriodicReference*.csv` fixtures contain
@@ -67,6 +99,8 @@ toggle together, deselecting both pairs leaves the control enabled, and external
 refresh selection. Both run with Pipeline `run_script`. All objects are temporary.
 `NoiseIntegrationSmoke.Run` additionally checks isolated/pass-through groups, clipping coverage
 and a Specific target reading the changing Z slice of a nested Noise layer.
+Passing `true` to `NoiseIntegrationSmoke.Run` instead covers a rotated periodic 1D source,
+its Offset X, Seamless cache invalidation and PNG encoding/decoding.
 
 Verified on the connected Unity Editor/DX12:
 
@@ -77,9 +111,23 @@ Verified on the connected Unity Editor/DX12:
 - Group/clipping/target integration: 2,051 checks.
 
 These are correctness checks, not performance benchmarks or validation of every GPU backend.
-Periodicity is available for the six lattice noises in 2D/3D only; Z stays non-periodic.
-White/Blue and 1D retain their previous path. Small periods quantize; transformed layers or
+Periodicity is available for the six lattice noises in 1D/2D/3D; Z stays non-periodic.
+White/Blue retain their previous path. OneD has an independent `periodic1D` checkbox, off by default.
+`NoisePeriodic1DSmoke.Run(kind)` checks full-period repeat, transverse invariance and seam continuity
+for all six kernels, all Fractal/Warp modes, five angles and two anisotropic scales (including below 1).
+It also checks that disabling the checkbox ignores retained 2D edge settings. Angled stripes repeat
+along their own axis, not necessarily at rectangular canvas edges. Small periods quantize; transformed layers or
 downstream effects can break canvas tiling. Very high-frequency details can alias.
+
+1D Seamless follow-up, connected Editor/DX12 (2026-10-01):
+
+- 960 GPU configurations passed period, transverse-invariance and seam checks; maximum full-period error 0.000142.
+- 5,184 existing 2D/3D GPU/reference comparisons still passed (maximum error below 0.0005).
+- UI/cache/serialization/portable clipboard: 128 checks; API: 67; Random All including Direction preservation: 7,279.
+- Periodic 1D group/clipping/Specific-target/PNG integration: 2,056 checks; existing Noise/White regression: 99,755.
+- Source contracts, 1D projection checks, generated schema, agent documentation and localized source links passed.
+
+These results do not cover every graphics backend or extreme scale/octave combination.
 
 Manual interaction checks:
 

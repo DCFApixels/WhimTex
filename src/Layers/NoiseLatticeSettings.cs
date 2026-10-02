@@ -16,10 +16,13 @@ namespace DCFApixels.WhimTex
         {
             double frequency = 1;
             bool three = noise.EffectiveDimensions == NoiseLayerBehaviour.NoiseDimensions.ThreeD;
+            Vector2 warpScale = noise.WarpScale;
             for (int octave = 0; octave < 9; octave++)
             {
                 bool warp = octave == 8;
                 double f = warp ? 1 : frequency;
+                double fx = warp ? warpScale.x : f;
+                double fy = warp ? warpScale.y : f;
                 frequency *= NoiseLayerBehaviour.Limit(noise.lacunarity, 1, 4, 2);
                 int count = noise.fractal == NoiseLayerBehaviour.FractalType.None ? 1 : Mathf.Clamp(noise.octaves, 1, 8);
                 if (!warp && octave >= count) continue;
@@ -29,13 +32,14 @@ namespace DCFApixels.WhimTex
                 double unitY = simplex ? (three ? 3 : Math.Sqrt(2)) : 1;
                 bool repeatX = ((int)noise.EffectivePeriodic & 1) != 0;
                 bool repeatY = ((int)noise.EffectivePeriodic & 2) != 0;
-                // The triangular 2D lattice rounds the base cell count first.
-                double cellsX = simplex && !three ? Math.Max(1, Math.Round(width / unitX)) * f : width * f / unitX;
-                double cellsY = simplex && !three ? Math.Max(1, Math.Round(height / unitY)) * f : height * f / unitY;
+                // Round each octave's final period, not its base scale. Early rounding
+                // would pin all simplex octaves to the same detail at sub-cell scales.
+                double cellsX = width * fx / unitX;
+                double cellsY = height * fy / unitY;
                 double countX = Math.Max(1, Math.Round(cellsX, MidpointRounding.AwayFromZero));
                 double countY = Math.Max(1, Math.Round(cellsY, MidpointRounding.AwayFromZero));
-                double sx = repeatX ? countX * unitX / width : f;
-                double sy = repeatY ? countY * unitY / height : f;
+                double sx = repeatX ? countX * unitX / width : fx;
+                double sy = repeatY ? countY * unitY / height : fy;
                 double px = repeatX ? countX * (simplex && three ? 3 : 1) : 0;
                 double py = repeatY ? countY * (simplex && three ? 3 : 1) : 0;
                 // Protect integer lattice arithmetic on extremely elongated canvases.
@@ -76,7 +80,7 @@ namespace DCFApixels.WhimTex
                 // Normal floats only: subnormal bit-casts can flush to zero in dynamic GPU loads.
                 int ix = (int)px, iy = (int)py;
                 data[start + 12] = new Vector4(ix >> 12, iy >> 12, layout, (ix & 4095) | ((iy & 4095) << 12));
-                if (warp) material.SetVector(InverseId, new Vector4((float)(1 / sx), (float)(1 / sy), 1, layout));
+                if (warp) material.SetVector(InverseId, new Vector4((float)(fx / sx), (float)(fy / sy), 1, layout));
             }
             material.SetVectorArray(DataId, data);
         }

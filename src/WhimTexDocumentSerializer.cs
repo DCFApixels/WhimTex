@@ -813,19 +813,52 @@ namespace DCFApixels.WhimTex
                     case TagSByte: return _reader.ReadSByte();
                     case TagShort: return _reader.ReadInt16();
                     case TagUShort: return _reader.ReadUInt16();
-                    case TagInt: return _reader.ReadInt32();
+                    case TagInt:
+                        int integer = _reader.ReadInt32();
+                        if (declared == typeof(Vector2Int)) return new Vector2Int(integer, 0);
+                        if (declared == typeof(Vector3Int)) return new Vector3Int(integer, 0, 0);
+                        return integer;
                     case TagUInt: return _reader.ReadUInt32();
                     case TagLong: return _reader.ReadInt64();
                     case TagULong: return _reader.ReadUInt64();
-                    case TagFloat: return _reader.ReadSingle();
+                    case TagFloat:
+                        float scalar = _reader.ReadSingle();
+                        if (declared == typeof(Vector2)) return new Vector2(scalar, 0f);
+                        if (declared == typeof(Vector3)) return new Vector3(scalar, 0f, 0f);
+                        if (declared == typeof(Vector4)) return new Vector4(scalar, 0f, 0f, 0f);
+                        return scalar;
                     case TagDouble: return _reader.ReadDouble();
                     case TagChar: return _reader.ReadChar();
                     case TagString: return ReadText();
-                    case TagVector2: return new Vector2(_reader.ReadSingle(), _reader.ReadSingle());
-                    case TagVector3: return new Vector3(_reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle());
+                    case TagVector2:
+                        var vector2 = new Vector2(_reader.ReadSingle(), _reader.ReadSingle());
+                        // Widen by component order; the normal writer will persist the current field type.
+                        if (declared == typeof(Vector3)) return new Vector3(vector2.x, vector2.y, 0f);
+                        if (declared == typeof(Vector4)) return new Vector4(vector2.x, vector2.y, 0f, 0f);
+                        return vector2;
+                    case TagVector3:
+                        var vector3 = new Vector3(_reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle());
+                        if (declared == typeof(Vector4)) return new Vector4(vector3.x, vector3.y, vector3.z, 0f);
+                        return vector3;
                     case TagVector4: return new Vector4(_reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle());
-                    case TagVector2Int: return new Vector2Int(_reader.ReadInt32(), _reader.ReadInt32());
-                    case TagVector3Int: return new Vector3Int(_reader.ReadInt32(), _reader.ReadInt32(), _reader.ReadInt32());
+                    case TagVector2Int:
+                        var vector2Int = new Vector2Int(_reader.ReadInt32(), _reader.ReadInt32());
+                        if (declared == typeof(Vector3Int)) return new Vector3Int(vector2Int.x, vector2Int.y, 0);
+                        if (IsExactFloat(vector2Int.x) && IsExactFloat(vector2Int.y))
+                        {
+                            if (declared == typeof(Vector2)) return new Vector2(vector2Int.x, vector2Int.y);
+                            if (declared == typeof(Vector3)) return new Vector3(vector2Int.x, vector2Int.y, 0f);
+                            if (declared == typeof(Vector4)) return new Vector4(vector2Int.x, vector2Int.y, 0f, 0f);
+                        }
+                        return vector2Int;
+                    case TagVector3Int:
+                        var vector3Int = new Vector3Int(_reader.ReadInt32(), _reader.ReadInt32(), _reader.ReadInt32());
+                        if (IsExactFloat(vector3Int.x) && IsExactFloat(vector3Int.y) && IsExactFloat(vector3Int.z))
+                        {
+                            if (declared == typeof(Vector3)) return new Vector3(vector3Int.x, vector3Int.y, vector3Int.z);
+                            if (declared == typeof(Vector4)) return new Vector4(vector3Int.x, vector3Int.y, vector3Int.z, 0f);
+                        }
+                        return vector3Int;
                     case TagQuaternion: return new Quaternion(_reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle());
                     case TagColor: return new Color(_reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle());
                     case TagColor32: return new Color32(_reader.ReadByte(), _reader.ReadByte(), _reader.ReadByte(), _reader.ReadByte());
@@ -845,6 +878,13 @@ namespace DCFApixels.WhimTex
                         return _objects[id] is DeferredTextureReference deferred ? deferred.Resolve() : _objects[id];
                     default: throw new WhimTexDocumentException("Unknown value tag " + tag + " in the document.");
                 }
+            }
+
+            // Compare in double: int -> float -> int can overflow and hide boundary rounding.
+            private static bool IsExactFloat(int value)
+            {
+                float converted = value;
+                return (double)converted == value;
             }
 
             private object ReadCurve()
@@ -1044,6 +1084,10 @@ namespace DCFApixels.WhimTex
                     ReadAutomaticFields(instance);
                 }
                 if (instance is ISerializationCallbackReceiver receiver) receiver.OnAfterDeserialize();
+                // This reader reconstructs a file/copy, not a Unity Undo operation. Keep the
+                // deserialization hooks, but establish a clean baseline for later Undo events.
+                if (instance is TextureCompositor document) document.ResetUndoTrackingAfterLoad();
+                else if (instance is ShaderFX effect) effect.ResetUndoTrackingAfterLoad();
                 return instance;
             }
 
@@ -1093,31 +1137,38 @@ namespace DCFApixels.WhimTex
             {
                 byte tag = _reader.ReadByte();
                 if (tag == TagVector2) return new Vector2(_reader.ReadSingle(), _reader.ReadSingle());
-                return ReadTagged(tag, typeof(Vector2)) is Vector2 value ? value : default;
+                return ReadVectorFallback<Vector2>(tag);
             }
             public Vector3 ReadVector3()
             {
                 byte tag = _reader.ReadByte();
                 if (tag == TagVector3) return new Vector3(_reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle());
-                return ReadTagged(tag, typeof(Vector3)) is Vector3 value ? value : default;
+                return ReadVectorFallback<Vector3>(tag);
             }
             public Vector4 ReadVector4()
             {
                 byte tag = _reader.ReadByte();
                 if (tag == TagVector4) return new Vector4(_reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle());
-                return ReadTagged(tag, typeof(Vector4)) is Vector4 value ? value : default;
+                return ReadVectorFallback<Vector4>(tag);
             }
             public Vector2Int ReadVector2Int()
             {
                 byte tag = _reader.ReadByte();
                 if (tag == TagVector2Int) return new Vector2Int(_reader.ReadInt32(), _reader.ReadInt32());
-                return ReadTagged(tag, typeof(Vector2Int)) is Vector2Int value ? value : default;
+                return ReadVectorFallback<Vector2Int>(tag);
             }
             public Vector3Int ReadVector3Int()
             {
                 byte tag = _reader.ReadByte();
                 if (tag == TagVector3Int) return new Vector3Int(_reader.ReadInt32(), _reader.ReadInt32(), _reader.ReadInt32());
-                return ReadTagged(tag, typeof(Vector3Int)) is Vector3Int value ? value : default;
+                return ReadVectorFallback<Vector3Int>(tag);
+            }
+            private T ReadVectorFallback<T>(byte tag) where T : struct
+            {
+                if (ReadTagged(tag, typeof(T)) is T value) return value;
+                // Match automatic-field safety: an incompatible value must still block saving.
+                if (_manualType != null) RecordSkippedField(_manualType, _manualName ?? "unknown");
+                return default;
             }
             public Quaternion ReadQuaternion()
             {

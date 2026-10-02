@@ -15,9 +15,14 @@ translations: "en/noise.md,ru/noise.md,zh/noise.md"
 通过 Layers 底部的 **+ → Noise** 添加噪声图层，边观察图像边调整设置。
 
 噪声设置顶部的 **Random All** 会随机组合生成器参数，包括当前未启用的选项、
-以及 **Inverted**。Output 仅在 Color Values 和 Linear Data 之间随机切换；选定的 Gradient 保持不变。渐变配色、**Dimensions**、**Seamless**、链接的 Scale 比例、Offset Z、图层变换、混合和 FX 保持不变。
+以及 **Inverted**。Output 仅在 Color Values 和 Linear Data 之间随机切换；选定的 Gradient 保持不变。渐变配色、**Dimensions**、**Direction**、**Seamless**、链接的 Scale 和 Warp Scale 比例、**Offset X/Y/Z**、图层变换、混合和 FX 保持不变。
 一次撤销即可恢复上一个组合。**Seed** 旁的 **Random** 只改变种子。
 Noise Type 只会在当前组内切换：**White Noise / Blue Noise** 为一组，其余噪声类型为另一组。
+
+Random All 会略微偏向主 Scale 平均值 `(X + Y) / 2` 接近 **8** 的结果。
+平滑钟形权重从 1 到 2，因此较远的尺度仍然常见。链接轴时，1–64 的随机范围
+应用于两轴的平均值而非 X，并保留原有比例。极端比例会因每轴 0.01–1000 的限制
+而缩小可用平均值范围。未链接时 X/Y 仍分别从 1–64 取样。Warp Scale 的随机分布不变。
 
 ## 轴向缩放、3D 切片与无缝噪声
 
@@ -33,7 +38,17 @@ OpenSimplex2、OpenSimplex2S、Cellular、Perlin、ValueCubic 和 Value 支持 *
 悬停一条边会同时高亮相连的另一条边；点击中央图标可反转两对边缘的选择。
 每个分形八度及 Warp 均保持周期性；Z 从不循环。周期必须容纳完整的晶格单元，
 因此 Scale 会分段变化，尤其是在较小的 OpenSimplex 尺度下。任意变换和 FX 仍可能
-在画布上产生接缝。White/Blue Noise 及 1D 不提供该选项。
+在画布上产生接缝。White/Blue Noise 不提供该选项。
+
+在 **1D** 中，**Seamless** 改为复选框：沿噪声变化轴重复，Fractal 和 Warp 也保持周期性。
+一个周期覆盖画布在该轴上的投影；Scale 控制周期内的细节，仍按阶梯变化。
+Direction 为 0 时连接左右边缘，为 90 时连接上下边缘。任意角度下，沿噪声轴重复
+不保证画布边缘匹配。此复选框默认关闭，与 2D/3D 的边缘选择分别保存。
+
+在 2D OpenSimplex2/2S 中，小于 1 的 Scale 现在可以生成更大的分形细节：每个八度
+按所设 Scale 单独确定周期。变化仍然是阶梯式的，每个八度至少保留一个晶格单元。
+Fractal None 仍受最小单元限制。现有 2D 无缝 Simplex 图案可能改变，包括 Scale 大于 1
+的情况；其他噪声类型及 3D 保持不变。
 
 ## 从图案开始
 
@@ -46,10 +61,16 @@ OpenSimplex2、OpenSimplex2S、Cellular、Perlin、ValueCubic 和 Value 支持 *
 | Fractal | FBm 添加细节；Ridged 强调脊线；PingPong 创建重复条带；None 关闭分形。 |
 | Octaves | 添加更多细节层次。 |
 | Domain Warp | 弯曲并扭曲图案；**Warp Strength** 控制程度，None 关闭扭曲。 |
+| Warp Scale | Noise Scale 的 X/Y 倍率：每轴最终扭曲尺度为 `Scale × Warp Scale`。默认 [1,1]，每轴范围 0.01–1000。链条保持比例；断开后分别编辑。Random All 在 0.25–4 中选择并保持链接比例。 |
 
 如需更精细的控制，**Lacunarity** 会改变细节层次之间的间距，**Gain**
 会改变较小细节的显著程度。
 使用 Cellular 时，可以尝试 **Distance**、**Return** 和 **Jitter** 来改变细胞的形状和规律性。
+
+Warp Scale 适用于 1D、2D 和 3D；Z 频率不变。启用 Seamless 时，根据相乘后的最终尺度
+为所选轴匹配完整晶格单元。当 BasicGrid 两个轴都只有一个单元时，扭曲变成均匀平移：
+增大 Warp Scale 倍率即可获得变化的扭曲，而无需增大噪声 Scale。
+例如 Scale 0.5 × Warp Scale 6 得到扭曲尺度 3。White/Blue Noise 忽略 Warp Scale。
 
 ## 白噪声
 

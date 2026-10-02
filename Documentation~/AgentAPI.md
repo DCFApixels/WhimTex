@@ -136,6 +136,15 @@ Do not copy their unchanged HLSL into `code`: that creates an independent inline
 the catalog link. Use `set` for parameter-only changes. Raw `code` is for custom algorithms or
 intentionally independent variants, not the default way to reuse a preset.
 
+The built-in `Color/Gradient Map` samples full gradient RGBA from `_SourceChannel`: Luminance=0
+(default, unchanged), R=1, G=2, B=3, Alpha=4. Luminance uses nonnegative linear RGB weights
+0.2126/0.7152/0.0722; it and individual RGB sources clamp to 0..1 and use sRGB encoding before
+lookup. Alpha clamps to 0..1 without sRGB conversion. `_Reverse` precedes `_Mapping`, then the
+result samples the gradient. This selects one source, not independent per-channel remapping. Output alpha is
+`sourceAlpha * lerp(1, gradientAlpha, saturate(_Opacity))`; an opaque gradient preserves source alpha,
+zero strength bypasses the effect, and transparent input stays transparent. `_Mapping` and `_Reverse`
+affect the lookup for both RGB and alpha.
+
 Applying to a non-Drawing layer requires `allowRasterize:true` **inside the apply edit**.
 This consents to rasterization, including flattening a group. Logical transforms remain editable.
 Shader Processor captures its backdrop and maps Normal to Overwrite with its original opacity
@@ -551,6 +560,12 @@ For SDF on a group, Alpha requests coverage only; Red/Green/Blue/Luminance reque
 Changing SDF Source Channel therefore also changes the group's source-cache requirement.
 
 Discover blend modes, ranges, group compositing and distance metrics with `whimtex_describe`.
+Color-component blend names are `Hue`, `Saturation`, `Color`, and `Luminosity`, for layers,
+isolated groups, and brushes. Standard uses non-separable luminosity/saturation blending in
+sRGB blend space (luminosity weights 0.30/0.59/0.11, saturation max−min, luminosity-preserving
+gamut clipping), not HSV channel replacement. HDR evaluates the same component substitutions
+in linear light without gamut clipping. Alpha/opacity compositing is unchanged.
+The UI groups choices independently of their stable enum values; JSON names do not change.
 Groups default to PassThrough; set `compositing:"Isolated"` to apply their own blend mode and ranges.
 Group opacity applies to the complete result, not separately to every child. Groups support transforms and FX. Child transforms are parent-local; canvas matrices compose from parent to child. The group's frame is its own unit rectangle rather than the bounds of its children. The move operation preserves canvas placement when changing parents.
 `swizzle` accepts `R`, `G`, `B`, `A`, `1-R`, `1-G`, `1-B`, `1-A`, `0`, `1`, `R * A`, `G * A`, `B * A` as strings.
@@ -613,6 +628,8 @@ and `shapeKinds`; `inspect` includes all parameters. One layer contains one edit
 | `fill`, `fillColor` | Boolean (default true), RGBA color (default white) |
 | `stroke`, `strokeColor` | Boolean (default false), RGBA color (default black) |
 | `strokeWidth` | 0–8192 canvas pixels, inside the edge; default 2 |
+| `feather` | 0–8192 canvas pixels; total soft transition width; default 0 keeps the original antialiasing |
+| `featherPosition` | Inside, Outside, Centered (default); fades inward, outward or equally across the contour, including both boundaries of a hollow stroke |
 | `roundness` | 0–1 uniform rectangle rounding shortcut; setting it assigns all four corners |
 | `cornerRoundness` | Four 0–1 values, clockwise from top-left: TL, TR, BR, BL. Radius relative to the shorter half-extent |
 | `linkCorners` | Boolean, default true; enables proportional corner edits in Properties |
@@ -629,6 +646,10 @@ Set position/rotation with the existing `transform` operation. Line is a capsule
 length and thickness are its transformed width and height. Stroke width stays in canvas pixels.
 Colors follow the existing encoded-color contract; set layer color/blend ranges to HDR when needed.
 Inactive type-specific settings are retained when `kind` changes. SVG import/export is not implied.
+
+Feather uses the procedural contour distance, not a blur pass. At large widths, thin strokes and
+small shapes can become faint or disappear with Inside/Centered. Outside can expand into nearby
+gaps. Feather is applied before layer FX, opacity and compositing; colors retain their RGB/HDR values.
 
 ```json
 {"op":"add","type":"shape","as":"badge","settings":{"shape":{
@@ -657,6 +678,7 @@ and `noiseEncodings`, `noiseDimensions`, `noisePeriodicAxes`, `noiseWhiteColors`
 | `whiteNoiseSize` | 1–1024 canvas pixels per grain, default 1; shared by WhiteNoise and BlueNoise |
 | `dimensions` | TwoD (default), OneD (straight stripes), ThreeD (2D slice at Offset Z; not White/Blue) |
 | `periodic` | UI **Seamless**: None (default), X (left/right), Y (top/bottom), XY (both pairs); six non-grain noise types in TwoD/ThreeD only |
+| `periodic1D` | Boolean, default false; UI **Seamless** checkbox in OneD, repeats along the noise axis; ignored outside OneD and for White/Blue |
 | `direction` | −180–180 degrees, default 0; OneD only; 0 varies horizontally (vertical stripes), 90 varies vertically |
 | `seed` | Signed 32-bit integer; passed to the shader as an integer, not a float |
 | `scale` | Scalar sets both axes, or `[x,y]`, each 0.01–1000 noise-space units across the shorter canvas side; inspect returns the pair |
@@ -669,13 +691,15 @@ and `noiseEncodings`, `noiseDimensions`, `noisePeriodicAxes`, `noiseWhiteColors`
 | `cellularReturn` | CellValue, Distance, Distance2, Distance2Add, Distance2Sub, Distance2Mul, Distance2Div |
 | `cellularJitter` | 0–1 |
 | `warp`, `warpStrength` | None, OpenSimplex2, OpenSimplex2Reduced, BasicGrid; 0–100 noise-space units |
+| `warpScale` | number or [x,y], each 0.01–1000, default [1,1]; X/Y multipliers of Noise Scale; Random All samples 0.25–4 and preserves linked proportions |
+| `linkWarpScale` | boolean, default true; UI/Random All chain, explicit API values apply literally |
 | `encoding` | LinearData (default; raw normalized values), ColorValues (display colors), Gradient (monochrome noise mapped through a palette) |
 | `inverted` | Boolean; reverses noise values in every output mode, before palette sampling in Gradient |
 | `gradient` | Shared stops/object, default black-to-white, Perceptual interpolation when mode is omitted; RGBA/HDR palette, retained while disabled |
 
 Without gradient mapping, RGB repeats the normalized scalar, except WhiteNoise/BlueNoise with Color which generates independent RGB; alpha is 1. Gradient output supplies RGB and alpha through the same encoded LUT and linear decode as SDF. Inverted remains available and reverses values before palette sampling. Color WhiteNoise/BlueNoise supports only ColorValues/LinearData: a retained Gradient setting temporarily renders/displays ColorValues, then returns to Gradient on switching to monochrome. Changing Output preserves the palette. Random All preserves `gradient` and keeps `encoding:Gradient`; otherwise it randomizes encoding only between ColorValues and LinearData. It can vary `inverted`; for grain noise with stored Gradient output it also preserves the Color setting so effective Output cannot change. Noise gradients live inside `settings.noise` / clipboard `properties.noise`, not at the layer root; Noise has no `useGradient` field.
-UI **Output** maps to `encoding`, **Seamless** to `periodic`, and the Scale chain to `linkScale`.
-There is no Noise `seamless` boolean, `scaleY` or `offsetZ` API field: use `periodic`, `scale:[x,y]`
+UI **Output** maps to `encoding`, **Seamless** to `periodic` (TwoD/ThreeD) or `periodic1D` (OneD), and the Scale chain to `linkScale`.
+There is no Noise `seamless` boolean, `scaleY` or `offsetZ` API field: use `periodic`/`periodic1D`, `scale:[x,y]`
 and `offset:[x,y,z]`. Supplying `gradient` alone does not enable it: also set `encoding:"Gradient"`.
 Gradient updates replace the whole palette, not individual keys. Omitted fields in settings retain
 their existing values. Inspection reports stored settings, even when a type/dimension temporarily
@@ -704,22 +728,58 @@ The tables use 8-bit uniform ranks; use LinearData for raw dither thresholds.
 For masks/channel packing, prefer LinearData and apply the existing Swizzle/blend settings.
 For a Normal Map or SDF source, add the effect above Noise and assign `Previous` or a specific target as usual.
 Domain Warp uses a single warp pass; noise fractal settings affect the subsequent noise evaluation.
+Warp Scale multiplies Noise Scale separately on X/Y. For example, Scale [0.5,2] and
+Warp Scale [6,0.5] request final warp scales [3,1]. A scalar API value sets both multipliers.
+The chain only affects UI editing and Random All; enabling it retains the current ratio.
+Random All chooses X logarithmically from 0.25–4 and scales linked Y proportionally within
+the legal range, or samples both independently when unlinked. It retains the chain state.
+Seamless fits the resulting warp lattice periods and compensates displacement only for
+period fitting. Z input frequency is unchanged in 3D and Z remains non-periodic.
+Missing multipliers default to 1; no migration is performed. A serialized scalar warpScale
+is the X multiplier; absent warpScaleY follows X. The earlier unshipped absolute-scale
+prototype is superseded: its stored values now act as multipliers.
+One-cell XY BasicGrid can still give uniform displacement; increase Warp Scale to obtain
+a varying warp field at small Noise Scale. White/Blue Noise ignore these controls.
 OneD projects aspect-correct centered coordinates onto the direction axis before offset and warp.
 Offset X moves along the slice and Y selects the slice. Thus warp and fractals preserve stripe invariance.
 ThreeD exposes Z in Offset and evaluates the native 3D kernel, including 3D Fractal and Domain Warp.
 Z is never periodic and never advances automatically. Cellular 3D slices differ visibly from 2D cells.
 White/Blue retain their 1D/2D behavior: a stored ThreeD temporarily uses TwoD; Periodic is ignored.
-OneD ignores Periodic, retaining it for a return to TwoD/ThreeD.
+OneD ignores `periodic`, retaining it for a return to TwoD/ThreeD; its separate `periodic1D`
+flag enables the same periodic lattice kernels along the scalar axis before Fractal/Warp.
+For canvas W/H and short side S, the period extent is
+`abs(W/S * ScaleX * cos(Direction)) + abs(H/S * ScaleY * sin(Direction))`.
+Each octave and warp fits that extent independently; the transverse coordinate stays fixed
+before warp. Offset X moves along the slice, Y selects it, Z is ignored. Direction 0 joins
+left/right and 90 joins top/bottom. Arbitrarily angled stripes repeat along their axis but
+need not join rectangular canvas edges. Both seamless settings are retained independently.
 
 Periodic wraps lattice hashes, not output colors. It fits integer periods independently on selected axes
-for every octave and the warp. Non-integral lacunarity remains periodic. Square/cubic lattices round
+for every octave and the warp. Each period rounds `extent * octaveFrequency / latticeUnit`
+directly, with a minimum of one cell; 2D simplex no longer rounds the base extent before applying
+octave frequency. Sub-unit Scale therefore affects later fractal octaves, but does not remove
+the minimum-cell limit of Fractal None. This changes some existing 2D periodic simplex patterns
+at small and large scales, without changing stored parameters or non-periodic/3D rendering.
+Non-integral lacunarity remains periodic. Square/cubic lattices round
 to whole cells; 2D simplex uses an orthogonal basis of its triangular lattice, and 3D simplex fits
 external periods in multiples of three lattice units without repeating Z. Small scales can change
 in visible steps. Source-rectangle periodicity does not guarantee canvas tiling after arbitrary
 layer/group transforms or FX. Extreme aspect/scale/octave combinations exceeding 100 million lattice
 units, or base coordinates beyond 500 million lattice units, report an error instead of overflowing
 integer indices. High-frequency detail can still alias.
-Random All preserves Dimensions, Periodic, the linked scale ratio and Offset Z.
+Random All preserves Dimensions, Direction, both Seamless settings (`periodic`, `periodic1D`), the linked scale ratio and all Offset components (X/Y/Z).
+
+Linked main Scale samples the arithmetic mean M logarithmically from 1–64, then derives X/Y
+from the retained ratio; swapping axes does not change the distribution of M. Intersect this
+mean range with the means allowed by the per-axis 0.01–1000 bounds. If the intersection is empty
+for an extreme ratio, use its feasible mean range instead (8 may be unreachable without changing
+that ratio). Sampling the feasible interval directly avoids accumulating candidates at a clamp.
+Unlinked axes still sample X and Y independently, logarithmically from 1–64.
+Candidates are accepted with probability `(1 + exp(-0.5 * log2(M / 8)^2)) / 2`,
+where `M = (X + Y) / 2`. This reweights the candidate distribution
+by a factor in [1,2], without extra truncation or clamping at 8. For unlinked
+axes the baseline distribution of M is not log-uniform: the cap is on the relative weighting,
+not on absolute probabilities of arbitrary numeric bins. Warp Scale sampling is unchanged.
 Generation runs on GPU at the requested resolution.
 Seed and normalized coordinates are stable across preview/export sizes, but different GPUs may produce small
 floating-point differences. Saving stores the procedural parameters through existing document serialization;

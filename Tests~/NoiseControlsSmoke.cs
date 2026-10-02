@@ -57,7 +57,11 @@ public static class NoiseControlsSmoke
             ClickEdge("right");CheckEdges(2);ClickEdge("top");CheckEdges(0);
             noise.periodic=NoiseLayerBehaviour.PeriodicAxes.XY;Refresh();CheckEdges(3);
             dimensions.value="1D";Refresh();Check(periodicControl.ClassListContains("whimtex-hidden"),"Periodic hidden in 1D");
+            var oneD=root.Q<Toggle>("periodic1D");
+            Check(oneD!=null&&!oneD.ClassListContains("whimtex-hidden")&&!oneD.value,"1D Seamless checkbox visible, default off");
+            oneD.value=true;Refresh();Check(noise.periodic1D&&noise.periodic==NoiseLayerBehaviour.PeriodicAxes.XY,"1D checkbox preserves 2D edge selection");
             dimensions.value="2D";Refresh();Check(!periodicControl.ClassListContains("whimtex-hidden"),"Periodic restored in 2D");
+            Check(oneD.ClassListContains("whimtex-hidden")&&noise.periodic1D,"1D checkbox hidden but retained in 2D");
             noise.Scale=new Vector2(4,8);Refresh();scale.value=new Vector2(8,8);
             Check(noise.Scale==new Vector2(8,16),"Linked X edit preserves ratio");
             noise.linkScale=false;Refresh();scale.value=new Vector2(8,3);
@@ -72,6 +76,7 @@ public static class NoiseControlsSmoke
             noise.noiseType=NoiseLayerBehaviour.NoiseType.BlueNoise;Refresh();
             Check(dimensions.value=="2D"&&!dimensions.choices.Contains("3D"),"Grain offers 1D/2D only");
             Check(periodicControl.ClassListContains("whimtex-hidden"),"Periodic hidden for grain");
+            Check(oneD.ClassListContains("whimtex-hidden"),"1D Seamless hidden for grain");
             Check(noise.dimensions==NoiseLayerBehaviour.NoiseDimensions.ThreeD&&noise.offset.z==3,"Grain does not reset 3D settings");
             noise.noiseType=NoiseLayerBehaviour.NoiseType.Perlin;Refresh();
             Check(dimensions.value=="3D"&&dimensions.choices.Contains("3D"),"Returning restores 3D");
@@ -96,8 +101,17 @@ public static class NoiseControlsSmoke
             Check(thumbnail==null&&next!=null,"Scale axes invalidate thumbnail");
             thumbnail=next;noise.periodic=NoiseLayerBehaviour.PeriodicAxes.X;next=noise.GetPreviewTexture(24);
             Check(thumbnail==null&&next!=null,"Periodicity invalidates thumbnail");
+            thumbnail=next;noise.periodic1D=!noise.periodic1D;next=noise.GetPreviewTexture(24);
+            Check(thumbnail==null&&next!=null,"1D Seamless invalidates thumbnail");
+            noise.dimensions=NoiseLayerBehaviour.NoiseDimensions.OneD;noise.periodic1D=true;
             string saved=JsonUtility.ToJson(noise);var copy=JsonUtility.FromJson<NoiseLayerBehaviour>(saved);
             Check(copy.Scale==noise.Scale&&copy.offset==noise.offset&&copy.periodic==noise.periodic&&copy.dimensions==noise.dimensions,"Serialized settings round trip");
+            Check(copy.periodic1D==noise.periodic1D,"Serialized 1D Seamless round trip");
+            string portable=(string)typeof(WhimTexApi).GetMethod("WritePortableClipboard",flags).Invoke(null,new object[]{document,document.layers});
+            using var pasted=(IDisposable)typeof(WhimTexApi).GetMethod("ReadProceduralClipboard",flags).Invoke(null,new object[]{portable,32,32});
+            var pastedDoc=(TextureCompositor)pasted.GetType().GetField("Document",flags).GetValue(pasted);
+            var pastedNoise=(NoiseLayerBehaviour)pastedDoc.layers[0].Behaviour;
+            Check(pastedNoise.periodic1D&&pastedNoise.periodic==noise.periodic&&pastedNoise.dimensions==noise.dimensions,"Portable clipboard retains both Seamless settings");
             return "PASS Noise controls, Z slices and cache: "+checks;
         }
         finally {if(window!=null)window.Close();bindingsType.GetMethod("Clear").Invoke(bindings,null);UnityEngine.Object.DestroyImmediate(document);}

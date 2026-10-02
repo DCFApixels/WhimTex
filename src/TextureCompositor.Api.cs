@@ -14,6 +14,12 @@ namespace DCFApixels.WhimTex
         void ISerializationCallbackReceiver.OnBeforeSerialize() { }
         void ISerializationCallbackReceiver.OnAfterDeserialize() => undoDeserialized = true;
 
+        internal void ResetUndoTrackingAfterLoad()
+        {
+            undoDeserialized = false;
+            CaptureNativeUndoVersions();
+        }
+
         private void CaptureNativeUndoVersions()
         {
             nativeUndoVersions ??= new Dictionary<UnityEngine.Object, int>();
@@ -26,7 +32,8 @@ namespace DCFApixels.WhimTex
                 foreach (Layer layer in source)
                 {
                     if (layer == null) continue;
-                    if (layer?.Behaviour is DrawingLayerBehaviour drawing) Track(drawing.StoredTexture);
+                    // A baseline must not materialize lazy TIFF pixels just to track Undo.
+                    if (layer?.Behaviour is DrawingLayerBehaviour drawing && !drawing.HasDeferredTexture) Track(drawing.StoredTexture);
                     else if (layer?.Behaviour is FileLayerBehaviour) Track(layer.SamplingSource);
                     if (layer.modifiers != null)
                         foreach (UnityEngine.Object modifier in layer.modifiers)

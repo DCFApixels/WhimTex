@@ -157,9 +157,14 @@ Alpha is preserved by default; enable **Invert Alpha** to apply the same blend t
 **Gradient mapping**
 
 **Color → Gradient Map** recolors shadows, midtones and highlights using a gradient.
+**Source Channel** selects Luminance (default), R, G, B or Alpha as the gradient position.
+The selected value chooses the full gradient color, not a single output component. RGB sources
+use sRGB values; Alpha is read directly. Reverse and Mapping apply after source selection.
 Click **Gradient** to choose colors, use **Amount** to mix with the original image and
 **Reverse** to swap the mapping direction. Input brightness outside 0..1 uses the endpoint colors.
-The original alpha is preserved; gradient alpha is ignored.
+Gradient alpha multiplies source alpha: transparent stops hide the corresponding tones,
+while an opaque gradient preserves source transparency. FX strength controls both color and alpha;
+fully transparent source pixels stay invisible.
 
 **Pixelation and dithering**
 

@@ -39,6 +39,7 @@ namespace DCFApixels.WhimTex
         {
             EditorApplication.projectChanged += InvalidateFileSize;
             TextureCompositor.Changed += OnDocumentChanged;
+            TextureCompositor.RenderResourcesChanged += OnDocumentChanged;
             Undo.undoRedoPerformed += OnUndoRedo;
         }
         private void OnDocumentChanged(TextureCompositor changed)
@@ -407,6 +408,7 @@ namespace DCFApixels.WhimTex
         {
             EditorApplication.projectChanged -= InvalidateFileSize;
             TextureCompositor.Changed -= OnDocumentChanged;
+            TextureCompositor.RenderResourcesChanged -= OnDocumentChanged;
             Undo.undoRedoPerformed -= OnUndoRedo;
             ReleaseView();
         }

@@ -453,6 +453,11 @@
           "default": "None",
           "description": "UI Seamless: X joins left/right, Y joins top/bottom, XY joins both. Ignored in OneD and White/Blue Noise; retained when inactive. Z never repeats."
         },
+        "periodic1D": {
+          "type": "boolean",
+          "default": false,
+          "description": "UI Seamless in OneD: repeat along the projected noise axis, including Fractal and Warp. Independent of periodic; ignored outside OneD and for White/Blue. Angled stripes need not tile at canvas edges."
+        },
         "offset": {
           "type": "array",
           "items": {
@@ -542,6 +547,35 @@
           "type": "number",
           "minimum": 0,
           "maximum": 100
+        },
+        "warpScale": {
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0.01,
+              "maximum": 1000
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0.01,
+                "maximum": 1000
+              },
+              "minItems": 2,
+              "maxItems": 2
+            }
+          ],
+          "default": [
+            1,
+            1
+          ],
+          "description": "X/Y multipliers of Noise Scale. Z frequency unchanged. Seamless fits the resulting warp periods."
+        },
+        "linkWarpScale": {
+          "type": "boolean",
+          "default": true,
+          "description": "Warp Scale chain: UI and Random All preserve proportions; explicit API axes apply literally."
         },
         "encoding": {
           "type": "string",
@@ -791,6 +825,21 @@
           "type": "number",
           "minimum": 0,
           "maximum": 8192
+        },
+        "feather": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 8192,
+          "default": 0
+        },
+        "featherPosition": {
+          "type": "string",
+          "enum": [
+            "Inside",
+            "Outside",
+            "Centered"
+          ],
+          "default": "Centered"
         },
         "roundness": {
           "type": "number",
@@ -1441,7 +1490,11 @@
                     "SoftLight",
                     "Difference",
                     "Exclusion",
-                    "Negation"
+                    "Negation",
+                    "Hue",
+                    "Saturation",
+                    "Color",
+                    "Luminosity"
                   ]
                 },
                 "colorRange": {
@@ -1604,7 +1657,11 @@
                     "SoftLight",
                     "Difference",
                     "Exclusion",
-                    "Negation"
+                    "Negation",
+                    "Hue",
+                    "Saturation",
+                    "Color",
+                    "Luminosity"
                   ]
                 },
                 "colorRange": {
@@ -1734,7 +1791,11 @@
                     "SoftLight",
                     "Difference",
                     "Exclusion",
-                    "Negation"
+                    "Negation",
+                    "Hue",
+                    "Saturation",
+                    "Color",
+                    "Luminosity"
                   ]
                 },
                 "colorRange": {
@@ -1861,7 +1922,11 @@
                     "SoftLight",
                     "Difference",
                     "Exclusion",
-                    "Negation"
+                    "Negation",
+                    "Hue",
+                    "Saturation",
+                    "Color",
+                    "Luminosity"
                   ]
                 },
                 "colorRange": {
@@ -1988,7 +2053,11 @@
                     "SoftLight",
                     "Difference",
                     "Exclusion",
-                    "Negation"
+                    "Negation",
+                    "Hue",
+                    "Saturation",
+                    "Color",
+                    "Luminosity"
                   ]
                 },
                 "colorRange": {
@@ -2169,7 +2238,11 @@
                     "SoftLight",
                     "Difference",
                     "Exclusion",
-                    "Negation"
+                    "Negation",
+                    "Hue",
+                    "Saturation",
+                    "Color",
+                    "Luminosity"
                   ]
                 },
                 "colorRange": {
@@ -2350,7 +2423,11 @@
                     "SoftLight",
                     "Difference",
                     "Exclusion",
-                    "Negation"
+                    "Negation",
+                    "Hue",
+                    "Saturation",
+                    "Color",
+                    "Luminosity"
                   ]
                 },
                 "colorRange": {
@@ -2531,7 +2608,11 @@
                     "SoftLight",
                     "Difference",
                     "Exclusion",
-                    "Negation"
+                    "Negation",
+                    "Hue",
+                    "Saturation",
+                    "Color",
+                    "Luminosity"
                   ]
                 },
                 "colorRange": {
@@ -2712,7 +2793,11 @@
                     "SoftLight",
                     "Difference",
                     "Exclusion",
-                    "Negation"
+                    "Negation",
+                    "Hue",
+                    "Saturation",
+                    "Color",
+                    "Luminosity"
                   ]
                 },
                 "colorRange": {
@@ -2982,7 +3067,11 @@
                     "SoftLight",
                     "Difference",
                     "Exclusion",
-                    "Negation"
+                    "Negation",
+                    "Hue",
+                    "Saturation",
+                    "Color",
+                    "Luminosity"
                   ]
                 },
                 "colorRange": {
@@ -3253,7 +3342,11 @@
                     "SoftLight",
                     "Difference",
                     "Exclusion",
-                    "Negation"
+                    "Negation",
+                    "Hue",
+                    "Saturation",
+                    "Color",
+                    "Luminosity"
                   ]
                 },
                 "colorRange": {
@@ -3377,7 +3470,11 @@
                     "SoftLight",
                     "Difference",
                     "Exclusion",
-                    "Negation"
+                    "Negation",
+                    "Hue",
+                    "Saturation",
+                    "Color",
+                    "Luminosity"
                   ]
                 },
                 "colorRange": {
@@ -3540,7 +3637,11 @@
                     "SoftLight",
                     "Difference",
                     "Exclusion",
-                    "Negation"
+                    "Negation",
+                    "Hue",
+                    "Saturation",
+                    "Color",
+                    "Luminosity"
                   ]
                 },
                 "colorRange": {
@@ -3715,7 +3816,11 @@
                     "SoftLight",
                     "Difference",
                     "Exclusion",
-                    "Negation"
+                    "Negation",
+                    "Hue",
+                    "Saturation",
+                    "Color",
+                    "Luminosity"
                   ]
                 },
                 "colorRange": {

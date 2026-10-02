@@ -324,6 +324,10 @@ namespace DCFApixels.WhimTex
                 case BlendMode.SoftLight: return "sLit";
                 case BlendMode.Difference: return "diff";
                 case BlendMode.Exclusion: return "smud";
+                case BlendMode.Hue: return "hue ";
+                case BlendMode.Saturation: return "sat ";
+                case BlendMode.Color: return "colr";
+                case BlendMode.Luminosity: return "lum ";
                 case BlendMode.LinearLightAddSub: approximate = true; return "lLit";
                 case BlendMode.Negation: approximate = true; return "diff";
                 default: approximate = true; return "norm";

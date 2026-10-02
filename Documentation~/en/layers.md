@@ -96,6 +96,10 @@ The chain links proportional changes; the crossed-out chain lets you edit each c
 Linking keeps existing values. Linked changes stop when a corner reaches 100%; editing a zero corner
 adds the same amount to all four. The diagram shows the shape before its Transform rotation.
 The stroke sits inside the edge, and its width is measured in canvas pixels.
+**Feather (px)** softens the contour without blurring the whole image. **Feather Position**
+selects Inside, Outside or Centered; it also affects both edges of a hollow stroke.
+The value is the total transition width in canvas pixels. Zero keeps the original edge.
+Wide Inside/Centered feather can fade away thin strokes or small details; Outside expands into gaps.
 For a line, adjust its length and thickness with Transform.
 You can also create a centered shape through **+ → Shape**.
 

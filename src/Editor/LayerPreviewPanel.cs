@@ -120,6 +120,7 @@ namespace DCFApixels.WhimTex
             layoutParent = parent;
             layoutParent?.RegisterCallback<GeometryChangedEvent>(OnGeometry);
             TextureCompositor.Changed += OnChanged;
+            TextureCompositor.RenderResourcesChanged += OnChanged;
             if (document != null) document.MiniPreviewRendered += OnMainPreviewRendered;
             EditorApplication.update += Tick;
             RequestPreview(true);
@@ -317,6 +318,7 @@ namespace DCFApixels.WhimTex
             attached = false;
             EditorApplication.update -= Tick;
             TextureCompositor.Changed -= OnChanged;
+            TextureCompositor.RenderResourcesChanged -= OnChanged;
             if (!ReferenceEquals(document, null)) document.MiniPreviewRendered -= OnMainPreviewRendered;
             layoutParent?.UnregisterCallback<GeometryChangedEvent>(OnGeometry);
             layoutParent = null;

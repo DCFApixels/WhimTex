@@ -16,6 +16,20 @@ Lower **Opacity** to make the result less pronounced.
 
 ## Choose a blend
 
+Menus use horizontal separators: basic modes, lightening, darkening, contrast, other modes,
+then color-component modes. Groups also offer **Pass Through** at the top.
+
+The last group contains **Hue**, **Saturation**, **Color**, and **Luminosity**:
+
+- **Hue** takes the upper layer's hue, retaining the lower image's saturation and luminosity.
+- **Saturation** takes the upper layer's saturation, retaining the lower image's hue and luminosity.
+- **Color** takes the upper layer's hue and saturation, retaining the lower image's luminosity.
+- **Luminosity** takes the upper layer's luminosity, retaining the lower image's hue and saturation.
+
+Opacity and transparency still control the amount of blending. In **Standard** Blend Range,
+colors stay within the display range; **HDR** evaluates in linear light and can retain negative
+or above-one results. The same modes are available for brush blending.
+
 Start with these common choices:
 
 | Blend | Typical use |

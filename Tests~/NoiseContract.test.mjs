@@ -41,6 +41,10 @@ for (const [, field] of layer.matchAll(/^        public (?:\w+) (\w+)(?:\s*=.*)?
         assert.ok(api.includes('layer.Scale') && ui.includes('layer.Scale'), 'Scale axes use the shared value accessor');
         continue;
     }
+    if (field === 'warpScale' || field === 'warpScaleY') {
+        assert.ok(api.includes('layer.WarpScale') && ui.includes('layer.WarpScale'), 'Warp axes use the shared value accessor');
+        continue;
+    }
     assert.ok(api.includes(`"${field}"`), `API setting: ${field}`);
     assert.ok(ui.includes(`layer.${field}`), `UI setting: ${field}`);
 }
@@ -74,7 +78,11 @@ for (const [field, type] of Object.entries({noiseType:'NoiseType',dimensions:'No
 assert.equal(fields.encoding.default, 'LinearData');
 assert.equal(fields.dimensions.default, 'TwoD');
 assert.equal(fields.periodic.default, 'None');
+assert.equal(fields.periodic1D.default, false);
+assert.equal(fields.periodic1D.type, 'boolean');
 assert.equal(fields.linkScale.default, true);
+assert.equal(fields.linkWarpScale.default, true);
+assert.deepEqual(fields.warpScale.default, [1,1]);
 assert.deepEqual(fields.scale.default, [8,8]);
 assert.deepEqual(fields.offset.default, [0,0,0]);
 assert.match(fields.periodic.description, /UI Seamless/);

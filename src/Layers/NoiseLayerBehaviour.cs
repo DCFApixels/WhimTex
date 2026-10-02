@@ -31,6 +31,7 @@ namespace DCFApixels.WhimTex
         public bool linkScale = true;
         public Vector3 offset;
         public PeriodicAxes periodic;
+        public bool periodic1D;
         // A missing Y keeps the existing uniform scale; no document rewrite is needed.
         public Vector2 Scale
         {
@@ -40,13 +41,19 @@ namespace DCFApixels.WhimTex
         }
         internal bool IsGrain => noiseType == NoiseType.WhiteNoise || noiseType == NoiseType.BlueNoise;
         internal NoiseDimensions EffectiveDimensions => IsGrain && dimensions == NoiseDimensions.ThreeD ? NoiseDimensions.TwoD : dimensions;
-        internal PeriodicAxes EffectivePeriodic => IsGrain || dimensions == NoiseDimensions.OneD ? PeriodicAxes.None : periodic;
+        internal PeriodicAxes EffectivePeriodic => IsGrain ? PeriodicAxes.None
+            : dimensions == NoiseDimensions.OneD ? (periodic1D ? PeriodicAxes.X : PeriodicAxes.None) : periodic;
 
         internal Vector2 AdjustScale(Vector2 next)
+            => AdjustLinkedScale(Scale, next, linkScale);
+
+        internal Vector2 AdjustWarpScale(Vector2 next)
+            => AdjustLinkedScale(WarpScale, next, linkWarpScale);
+
+        private static Vector2 AdjustLinkedScale(Vector2 old, Vector2 next, bool linked)
         {
-            Vector2 old = Scale;
             next = new Vector2(Limit(next.x, .01f, 1000f, old.x), Limit(next.y, .01f, 1000f, old.y));
-            if (!linkScale) return next;
+            if (!linked) return next;
             float ratio = next.x != old.x ? next.x / old.x : next.y / old.y;
             ratio = Mathf.Clamp(ratio, Mathf.Max(.01f / old.x, .01f / old.y), Mathf.Min(1000f / old.x, 1000f / old.y));
             return old * ratio;
@@ -62,6 +69,15 @@ namespace DCFApixels.WhimTex
         public float cellularJitter = 1f;
         public WarpType warp;
         public float warpStrength = 1f;
+        public float warpScale = 1f;
+        public float warpScaleY;
+        public bool linkWarpScale = true;
+        public Vector2 WarpScale
+        {
+            get => new Vector2(Limit(warpScale, .01f, 1000f, 1f), warpScaleY == 0f
+                ? Limit(warpScale, .01f, 1000f, 1f) : Limit(warpScaleY, .01f, 1000f, 1f));
+            set { warpScale = Limit(value.x, .01f, 1000f, 1f); warpScaleY = Limit(value.y, .01f, 1000f, 1f); }
+        }
         public OutputEncoding encoding = OutputEncoding.LinearData;
         public bool inverted;
         public WhimTexGradient gradient = new WhimTexGradient();
@@ -81,11 +97,11 @@ namespace DCFApixels.WhimTex
             var hash = new HashCode();
             hash.Add(noiseType); hash.Add(whiteNoiseColor); hash.Add(whiteNoiseSize);
             hash.Add(dimensions); hash.Add(direction); hash.Add(seed); hash.Add(scale); hash.Add(offset);
-            hash.Add(scaleY); hash.Add(periodic);
+            hash.Add(scaleY); hash.Add(periodic); hash.Add(periodic1D);
             hash.Add(fractal); hash.Add(octaves); hash.Add(lacunarity); hash.Add(gain);
             hash.Add(weightedStrength); hash.Add(pingPongStrength);
             hash.Add(cellularDistance); hash.Add(cellularReturn); hash.Add(cellularJitter);
-            hash.Add(warp); hash.Add(warpStrength); hash.Add(encoding); hash.Add(inverted); hash.Add(filterMode);
+            hash.Add(warp); hash.Add(warpStrength); hash.Add(WarpScale); hash.Add(encoding); hash.Add(inverted); hash.Add(filterMode);
             hash.Add(gradient);
             thumbnail ??= new ProceduralLayerThumbnail();
             return thumbnail.Get(this, size, hash.ToHashCode());
@@ -127,17 +143,24 @@ namespace DCFApixels.WhimTex
             material.SetFloat("_NoiseZ", Limit(offset.z, -10000f, 10000f, 0f));
             material.SetInteger("_NoiseThreeD", EffectiveDimensions == NoiseDimensions.ThreeD ? 1 : 0);
             material.SetInteger("_NoisePeriodic", (int)EffectivePeriodic);
-            if (EffectivePeriodic != PeriodicAxes.None)
-            {
-                lattice ??= new NoiseLatticeSettings();
-                lattice.Apply(material, this, width / shortest * axesScale.x, height / shortest * axesScale.y);
-            }
             float radians = Limit(direction, -180f, 180f, 0f) * Mathf.Deg2Rad;
             float axisX = Mathf.Cos(radians), axisY = Mathf.Sin(radians);
             if (Mathf.Abs(axisX) < 0.000001f) axisX = 0f;
             if (Mathf.Abs(axisY) < 0.000001f) axisY = 0f;
+            double projectedX = (double)width / shortest * axesScale.x * axisX;
+            double projectedY = (double)height / shortest * axesScale.y * axisY;
+            double axisPeriod = Math.Abs(projectedX) + Math.Abs(projectedY);
+            if (EffectivePeriodic != PeriodicAxes.None)
+            {
+                lattice ??= new NoiseLatticeSettings();
+                if (dimensions == NoiseDimensions.OneD)
+                    lattice.Apply(material, this, axisPeriod, 1);
+                else
+                    lattice.Apply(material, this, width / shortest * axesScale.x, height / shortest * axesScale.y);
+            }
             material.SetInteger("_NoiseOneD", dimensions == NoiseDimensions.OneD ? 1 : 0);
-            material.SetVector("_NoiseAxis", new Vector4(axisX, axisY, 0f, 0f));
+            material.SetVector("_NoiseAxis", new Vector4(axisX, axisY,
+                (float)(projectedX / axisPeriod), (float)(projectedY / axisPeriod)));
             material.SetInteger("_NoiseSeed", seed);
             material.SetInteger("_NoiseType", Mathf.Clamp((int)noiseType, 0, 7));
             if (noiseType == NoiseType.BlueNoise)
@@ -157,6 +180,8 @@ namespace DCFApixels.WhimTex
             material.SetFloat("_NoiseCellularJitter", Limit(cellularJitter, 0f, 1f, 1f));
             material.SetInteger("_NoiseWarp", Mathf.Clamp((int)warp, 0, 3));
             material.SetFloat("_NoiseWarpStrength", Limit(warpStrength, 0f, 100f, 1f));
+            Vector2 warpMultiplier = WarpScale;
+            material.SetVector("_NoiseWarpScale", new Vector4(warpMultiplier.x, warpMultiplier.y, 1, 0));
             bool applyGradient = EffectiveOutput == OutputEncoding.Gradient;
             material.SetInteger("_NoiseEncoding", (int)EffectiveOutput);
             material.SetInteger("_NoiseInverted", inverted ? 1 : 0);

@@ -17,6 +17,19 @@ void Reject(string json)
     Check(rejected, "Reject " + json);
 }
 Check(layer.seed == 1337 && layer.scale == 8 && layer.octaves == 3, "Defaults");
+Check(!layer.periodic1D, "1D Seamless defaults off");
+Set("{\"dimensions\":\"OneD\",\"periodic1D\":true,\"periodic\":\"Y\"}");
+Check(layer.periodic1D && layer.periodic == DCFApixels.WhimTex.NoiseLayerBehaviour.PeriodicAxes.Y, "Separate 1D and 2D Seamless settings");
+Reject("{\"periodic1D\":1}");
+Check(layer.WarpScale == UnityEngine.Vector2.one && layer.linkWarpScale, "Warp multiplier defaults");
+Set("{\"warpScale\":3}");
+Check(layer.warpScale == 3 && layer.scale == 8, "Warp Scale independent of Noise Scale");
+Set("{\"scale\":0.5}");
+Check(layer.WarpScale == new UnityEngine.Vector2(3,3), "Noise Scale retains Warp multipliers");
+Set("{\"warpScale\":[2,5],\"linkWarpScale\":true}");
+Check(layer.WarpScale == new UnityEngine.Vector2(2,5), "Literal anisotropic warp multipliers with chain");
+Reject("{\"warpScale\":[1]}"); Reject("{\"warpScale\":[1,1001]}"); Reject("{\"linkWarpScale\":1}");
+Reject("{\"warpScale\":0}"); Reject("{\"warpScale\":1001}");
 Check(layer.encoding == DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.LinearData && layer.gradient.Mode == DCFApixels.WhimTex.WhimTexGradientMode.Perceptual, "Linear Data output and Perceptual palette defaults");
 Set("{\"encoding\":\"ColorValues\",\"gradient\":[{\"time\":0,\"color\":[1,0,0,0.5]},{\"time\":1,\"color\":[0,0,1,1]}]}");
 Check(layer.encoding == DCFApixels.WhimTex.NoiseLayerBehaviour.OutputEncoding.ColorValues && layer.gradient.Mode == DCFApixels.WhimTex.WhimTexGradientMode.Perceptual, "Supplied stops default to Perceptual");
@@ -63,6 +76,7 @@ foreach (string invalid in new[] { "{\"scale\":[1]}", "{\"scale\":[1,1001]}", "{
     "{\"periodic\":\"Z\"}", "{\"dimensions\":\"FourD\"}", "{\"linkScale\":1}" }) Reject(invalid);
 var legacy = UnityEngine.JsonUtility.FromJson<DCFApixels.WhimTex.NoiseLayerBehaviour>("{\"scale\":3.25,\"offset\":{\"x\":1,\"y\":2}}");
 Check(legacy.Scale.x == 3.25f && legacy.Scale.y == 3.25f && legacy.offset.z == 0, "Existing scalar scale and XY offset retain their appearance");
+Check(legacy.WarpScale == UnityEngine.Vector2.one, "Absent Warp Scale uses multiplier 1");
 Check(DCFApixels.WhimTex.WhimTexApi.Describe().Contains("noisePeriodicAxes"), "Periodicity discovery");
 Set("{\"linkScale\":true,\"scale\":[4,9],\"encoding\":\"LinearData\",\"gradient\":{\"colors\":[{\"time\":0,\"color\":[0,0,0,0.25]},{\"time\":1,\"color\":[2,1,0,1]}],\"mode\":\"Linear\"}}");
 Check(layer.Scale == new UnityEngine.Vector2(4,9), "API axes are literal even with chain enabled");

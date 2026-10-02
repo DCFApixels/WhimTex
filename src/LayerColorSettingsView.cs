@@ -12,9 +12,9 @@ namespace DCFApixels.WhimTex
             WhimTexUI.ValueBindings bindings)
         {
             var choices = new List<string> { "Pass Through" };
-            foreach (BlendMode mode in Enum.GetValues(typeof(BlendMode))) choices.Add(ObjectNames.NicifyVariableName(mode.ToString()));
+            foreach (BlendMode mode in Enum.GetValues(typeof(BlendMode))) choices.Add(BlendModeMenu.Label(mode));
             var field = new DropdownField(choices, 0);
-            TwoChoiceDropdown.Attach(field);
+            BlendModeMenu.Attach(field);
             bindings.Track(field, () => group.compositing == GroupCompositing.PassThrough
                 ? choices[0] : choices[(int)group.blendMode + 1]);
             field.RegisterValueChangedCallback(evt =>

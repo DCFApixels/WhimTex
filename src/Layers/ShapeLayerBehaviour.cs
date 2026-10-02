@@ -10,12 +10,15 @@ namespace DCFApixels.WhimTex
     public sealed class ShapeLayerBehaviour : LayerBehaviour
     {
         public enum ShapeKind { Rectangle, Ellipse, Polygon, Star, Line }
+        public enum FeatherPosition { Inside, Outside, Centered }
         public ShapeKind kind;
         public Color fillColor = Color.white;
         public bool fill = true;
         public bool stroke;
         public Color strokeColor = Color.black;
         public float strokeWidth = 2f;
+        public float feather;
+        public FeatherPosition featherPosition = FeatherPosition.Centered;
         public float roundness;
         public Vector4 cornerRoundness = -Vector4.one;
         public bool linkCorners = true;
@@ -31,6 +34,7 @@ namespace DCFApixels.WhimTex
             var hash = new HashCode();
             hash.Add(kind); hash.Add(fillColor); hash.Add(fill); hash.Add(stroke); hash.Add(strokeColor);
             hash.Add(strokeWidth); hash.Add(GetCornerRoundness()); hash.Add(sides); hash.Add(innerRadius); hash.Add(filterMode);
+            hash.Add(feather); hash.Add(featherPosition);
             thumbnail ??= new ProceduralLayerThumbnail();
             return thumbnail.Get(this, size, hash.ToHashCode());
         }
@@ -110,6 +114,8 @@ namespace DCFApixels.WhimTex
             material.SetVector("_ShapeStroke", HdrUtility.Decode(strokeColor));
             material.SetVector("_ShapeStyle", new Vector4(fill ? 1f : 0f, stroke ? 1f : 0f,
                 Limit(strokeWidth, 0f, 8192f, 2f), 0f));
+            material.SetVector("_ShapeFeather", new Vector4(Limit(feather, 0f, 8192f, 0f),
+                featherPosition == FeatherPosition.Inside ? 0f : featherPosition == FeatherPosition.Outside ? 1f : .5f, 0f, 0f));
             material.SetVector("_ShapeCorners", GetCornerRoundness());
             if (kind == ShapeKind.Polygon || kind == ShapeKind.Star) SetPolygon(material);
             var source = RenderTexture.GetTemporary(context.width, context.height, 0,

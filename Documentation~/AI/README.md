@@ -205,7 +205,7 @@ Groups support `fx`: effects process the combined children before group opacity 
 | --- | --- |
 | `enabled`, `clippingMask` | Boolean. A clipping layer uses the base below its clipping chain. Processor cannot be clipped. |
 | `opacity` | 0..1, **not** 0..100 |
-| `blend` | `Normal`, `Multiply`, `Overwrite`, `None`, `Add`, `Subtract`, `Divide`, `Screen`, `Overlay`, `Darken`, `Lighten`, `Dodge`, `Burn`, `LinearDodge`, `LinearBurn`, `LinearLight`, `LinearLightAddSub`, `VividLight`, `PinLight`, `HardMix`, `HardLight`, `SoftLight`, `Difference`, `Exclusion`, `Negation` |
+| `blend` | `Normal`, `Multiply`, `Overwrite`, `None`, `Add`, `Subtract`, `Divide`, `Screen`, `Overlay`, `Darken`, `Lighten`, `Dodge`, `Burn`, `LinearDodge`, `LinearBurn`, `LinearLight`, `LinearLightAddSub`, `VividLight`, `PinLight`, `HardMix`, `HardLight`, `SoftLight`, `Difference`, `Exclusion`, `Negation`, `Hue`, `Saturation`, `Color`, `Luminosity` |
 | `colorRange`, `blendRange` | `Standard` or `HDR` |
 | `filter` | Non-group only: `Source`, `Point`, `Bilinear`, `Trilinear` |
 | `swizzle` | Four strings in output RGBA order; each is `R`, `G`, `B`, `A`, `1-R`, `1-G`, `1-B`, `1-A`, `0`, `1`, `R * A`, `G * A`, `B * A` |
@@ -266,6 +266,7 @@ uses the same version-1 clipboard format, without rounding numeric values.
 - **color:** `properties.color` is RGBA.
 - **shape:** `properties.shape` accepts `kind` (`Rectangle`, `Ellipse`, `Polygon`, `Star`, `Line`),
   `fill`/`stroke` booleans, `fillColor`/`strokeColor`, `strokeWidth` (0..8192 pixels),
+  `feather` (0..8192 canvas pixels, default 0), `featherPosition` (`Inside`, `Outside`, `Centered`, default `Centered`),
   `roundness` (0..1), `cornerRoundness` (four 0..1 values: top-left, top-right, bottom-right, bottom-left),
   `linkCorners` boolean, `sides` (integer 3..32), `innerRadius` (0.01..1).
 - **gradient:** `properties.gradient` is 1..64 `{ "time": 0, "color": [1,1,1,1] }` stops,
@@ -290,32 +291,45 @@ Use `properties.noise`:
 | `noiseType` | `OpenSimplex2`, `OpenSimplex2S`, `Cellular`, `Perlin`, `ValueCubic`, `Value`, `WhiteNoise`, `BlueNoise` |
 | `seed`, `scale`, `offset` | 32-bit integer; scale scalar or `[x,y]`, each 0.01..1000; offset `[x,y]` or `[x,y,z]`, each -10000..10000 |
 | `dimensions`, `direction` | `TwoD`, `OneD` (stripes), `ThreeD` (slice at Offset Z); -180..180 degrees in OneD |
-| `periodic`, `linkScale` | `None` (default), `X`, `Y`, `XY`; linkScale boolean (default true, proportional UI edits only) |
+| `periodic`, `linkScale` | `None` (default), `X`, `Y`, `XY`; linkScale boolean (default true, UI/Random All preserve the X:Y ratio; explicit API axes are applied literally) |
+| `periodic1D` | boolean, default false; Seamless along the noise axis in OneD; independent of `periodic`, ignored for White/Blue and outside OneD |
 | `fractal`, `octaves` | `None`, `FBm`, `Ridged`, `PingPong`; integer 1..8 |
 | `lacunarity`, `gain`, `weightedStrength`, `pingPongStrength` | 1..4; 0..1; 0..1; 0.01..8 |
 | `cellularDistance` | `Euclidean`, `EuclideanSquared`, `Manhattan`, `Hybrid` |
 | `cellularReturn` | `CellValue`, `Distance`, `Distance2`, `Distance2Add`, `Distance2Sub`, `Distance2Mul`, `Distance2Div` |
 | `cellularJitter` | 0..1 |
 | `warp`, `warpStrength` | `None`, `OpenSimplex2`, `OpenSimplex2Reduced`, `BasicGrid`; 0..100 |
+| `warpScale` | number or [x,y], each 0.01..1000, default [1,1]; multipliers of Noise Scale per axis, final scale = Scale × Warp Scale; Z frequency unchanged; Seamless fits the resulting periods |
+| `linkWarpScale` | boolean, default true; UI/Random All preserve the X:Y multiplier ratio; explicit API axes are applied literally |
 | `encoding`, `inverted` | `LinearData` (default), `ColorValues` or `Gradient`; boolean, reverses values before gradient sampling |
 | `whiteNoiseColor`, `whiteNoiseSize` | `Monochrome` or `Color`; 1..1024 pixel cell size, for White/Blue Noise |
 | `gradient` | Shared gradient stops/object, default black-to-white Perceptual |
 
 Gradient output applies only to monochrome noise and supplies RGB/HDR and alpha using the same rendering path as SDF. Inverted remains available in every output mode and reverses values before palette sampling. Color White/Blue Noise temporarily treats stored Gradient output as ColorValues without losing the palette; the UI offers only Color Values and Linear Data there. Random All preserves the palette and keeps Gradient output; otherwise Output varies only between Color Values and Linear Data. Inverted can still vary. For raw masks, height maps or dither thresholds, set `encoding:"LinearData"`. Noise has no `useGradient` field; SDF also selects its output through encoding (Gradient or LinearData).
 
-The **Seamless** UI control uses `periodic`, not a `seamless` boolean: X joins left/right,
+The **Seamless** UI control uses `periodic` in TwoD/ThreeD, not a `seamless` boolean: X joins left/right,
 Y joins top/bottom, XY joins both. **Output** uses `encoding`. Gradient updates replace the complete
 palette and do not change Output; supply `encoding:"Gradient"` to enable it. Noise has no root-level
 `gradient`, `scaleY` or `offsetZ` property; use `properties.noise` with `scale:[x,y]` and `offset:[x,y,z]`.
 
 Periodic and ThreeD support the six non-grain types, including every Fractal and Domain Warp mode.
-White/Blue ignore Periodic and temporarily use TwoD if ThreeD is stored; OneD ignores Periodic.
+White/Blue ignore both Seamless settings and temporarily use TwoD if ThreeD is stored.
+OneD ignores `periodic` but offers `periodic1D:true`: repeat along the projected noise axis,
+including Fractal and Warp. The period spans the projection of the source rectangle onto that axis;
+Scale controls detail inside it. Direction 0 joins left/right, 90 joins top/bottom; other angles
+need not tile at canvas edges. The OneD flag and TwoD/ThreeD edges are retained independently.
 Offset Z is retained in all modes but used only in ThreeD and is never periodic. Two-value Offset
 patches preserve Z. Scale scalar sets both axes; inspection returns Scale `[x,y]` and Offset `[x,y,z]`.
 Portable export uses these shapes when present, but can omit fields equal to new-layer defaults.
 Periodic fits native lattice periods on selected source axes per octave/warp, with visible Scale steps
 at low values (especially simplex). Transforms/FX can alter canvas seams. Random All keeps Dimensions,
-Periodic, linked Scale ratio and Offset Z. See [Noise details](../AgentAPI.md#noise-settings).
+Direction, both Seamless settings, both scale-chain states and linked ratios, and all Offset components (X/Y/Z).
+Main Scale randomization softly favors the actual axis mean `M = (X + Y) / 2` near 8:
+the previous logarithmic candidate distribution is weighted by
+`1 + exp(-0.5 * log2(M / 8)^2)`, a factor between 1 and 2. Existing ranges and linked-axis
+limits remain unchanged; this is a relative weighting, not a twofold cap on probabilities
+of arbitrary numeric intervals. Warp Scale randomization is unchanged.
+See [Noise details](../AgentAPI.md#noise-settings).
 
 ### Targeted effects
 

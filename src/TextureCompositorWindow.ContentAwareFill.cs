@@ -72,6 +72,7 @@ namespace DCFApixels.WhimTex
             private void OnEnable()
             {
                 TextureCompositor.Changed += OnDocumentChanged;
+                TextureCompositor.RenderResourcesChanged += OnDocumentChanged;
                 TextureCompositor.OutputTextureChanged += OnOutputChanged;
                 Undo.undoRedoPerformed += InvalidateSource;
                 EditorApplication.projectChanged += InvalidateSource;
@@ -80,6 +81,7 @@ namespace DCFApixels.WhimTex
             private void OnDisable()
             {
                 TextureCompositor.Changed -= OnDocumentChanged;
+                TextureCompositor.RenderResourcesChanged -= OnDocumentChanged;
                 TextureCompositor.OutputTextureChanged -= OnOutputChanged;
                 Undo.undoRedoPerformed -= InvalidateSource;
                 EditorApplication.projectChanged -= InvalidateSource;

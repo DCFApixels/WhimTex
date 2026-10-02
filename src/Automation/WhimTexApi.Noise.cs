@@ -9,7 +9,7 @@ namespace DCFApixels.WhimTex
         {
             Keys(value, "noiseType", "seed", "scale", "offset", "fractal", "octaves", "lacunarity", "gain",
                 "weightedStrength", "pingPongStrength", "cellularDistance", "cellularReturn", "cellularJitter",
-                "warp", "warpStrength", "encoding", "inverted", "dimensions", "direction", "whiteNoiseColor", "whiteNoiseSize", "gradient", "periodic", "linkScale");
+                "warp", "warpStrength", "warpScale", "linkWarpScale", "encoding", "inverted", "dimensions", "direction", "whiteNoiseColor", "whiteNoiseSize", "gradient", "periodic", "periodic1D", "linkScale");
             layer.noiseType = Enum(value, "noiseType", layer.noiseType);
             layer.whiteNoiseColor = Enum(value, "whiteNoiseColor", layer.whiteNoiseColor);
             layer.whiteNoiseSize = Number(value, "whiteNoiseSize", layer.whiteNoiseSize, 1f, 1024f);
@@ -17,6 +17,7 @@ namespace DCFApixels.WhimTex
             layer.direction = Number(value, "direction", layer.direction, -180f, 180f);
             layer.seed = Int(value, "seed", layer.seed, int.MinValue, int.MaxValue);
             layer.periodic = Enum(value, "periodic", layer.periodic);
+            layer.periodic1D = Bool(value, "periodic1D", layer.periodic1D);
             layer.linkScale = Bool(value, "linkScale", layer.linkScale);
             if (value["scale"] is JArray axes)
             {
@@ -47,6 +48,18 @@ namespace DCFApixels.WhimTex
             layer.cellularJitter = Number(value, "cellularJitter", layer.cellularJitter, 0f, 1f);
             layer.warp = Enum(value, "warp", layer.warp);
             layer.warpStrength = Number(value, "warpStrength", layer.warpStrength, 0f, 100f);
+            layer.linkWarpScale = Bool(value, "linkWarpScale", layer.linkWarpScale);
+            if (value["warpScale"] is JArray warpAxes)
+            {
+                Require(warpAxes.Count == 2, "Noise warpScale must be a number or [x,y].");
+                layer.WarpScale = new UnityEngine.Vector2(Number(warpAxes[0], "warpScale.x", .01f, 1000f),
+                    Number(warpAxes[1], "warpScale.y", .01f, 1000f));
+            }
+            else if (value["warpScale"] != null)
+            {
+                float multiplier = Number(value["warpScale"], "warpScale", .01f, 1000f);
+                layer.WarpScale = new UnityEngine.Vector2(multiplier, multiplier);
+            }
             layer.encoding = Enum(value, "encoding", layer.encoding);
             layer.inverted = Bool(value, "inverted", layer.inverted);
             if (value["gradient"] != null) layer.gradient = ReadGradient(value["gradient"]);
@@ -58,13 +71,15 @@ namespace DCFApixels.WhimTex
             ["whiteNoiseColor"] = layer.whiteNoiseColor.ToString(), ["whiteNoiseSize"] = layer.whiteNoiseSize,
             ["dimensions"] = layer.dimensions.ToString(), ["direction"] = layer.direction,
             ["scale"] = Json(layer.Scale), ["linkScale"] = layer.linkScale, ["periodic"] = layer.periodic.ToString(),
+            ["periodic1D"] = layer.periodic1D,
             ["offset"] = new JArray(layer.offset.x, layer.offset.y, layer.offset.z),
             ["fractal"] = layer.fractal.ToString(), ["octaves"] = layer.octaves,
             ["lacunarity"] = layer.lacunarity, ["gain"] = layer.gain,
             ["weightedStrength"] = layer.weightedStrength, ["pingPongStrength"] = layer.pingPongStrength,
             ["cellularDistance"] = layer.cellularDistance.ToString(), ["cellularReturn"] = layer.cellularReturn.ToString(),
             ["cellularJitter"] = layer.cellularJitter, ["warp"] = layer.warp.ToString(),
-            ["warpStrength"] = layer.warpStrength, ["encoding"] = layer.encoding.ToString(), ["inverted"] = layer.inverted,
+            ["warpStrength"] = layer.warpStrength, ["warpScale"] = Json(layer.WarpScale), ["linkWarpScale"] = layer.linkWarpScale,
+            ["encoding"] = layer.encoding.ToString(), ["inverted"] = layer.inverted,
             ["gradient"] = GradientSnapshot(layer.gradient)
         };
     }

@@ -30,14 +30,14 @@ namespace DCFApixels.WhimTex
             if (catalogReloadPending) ReloadCatalogSource(true);
         }
 
-        private string CatalogHash(string path)
+        private string CatalogHash(string path, string source = null)
         {
             if (string.IsNullOrEmpty(path))
             {
                 SetCatalogDependencies(null);
                 return "missing";
             }
-            var dependencies = ShaderFXSourceBuilder.GetDependencies(code, path);
+            var dependencies = ShaderFXSourceBuilder.GetDependencies(source ?? code, path);
             SetCatalogDependencies(dependencies);
             var sorted = new List<string>(dependencies);
             sorted.Sort(StringComparer.Ordinal);
@@ -114,24 +114,28 @@ namespace DCFApixels.WhimTex
             if (WhimTexApi.IsShaderFXContentLocked(this)) { catalogReloadPending |= force; return; }
             catalogReloadPending = false;
             string path = CatalogPath;
-            string hash = CatalogHash(path);
-            if (!force && hash == catalogDependencyHash && path == catalogSourcePath) return;
-            catalogDependencyHash = hash;
+            bool contentChanged = false;
             try
             {
                 string source = ShaderFXCatalog.ReadSource(path);
+                // TIFF stores path-resolved fallback code. Compare the actual catalog dependency
+                // graph, including newly added includes, rather than the saved fallback text.
+                string hash = CatalogHash(path, source);
+                contentChanged = hash != catalogDependencyHash || path != catalogSourcePath;
+                if (!force && !contentChanged) return;
                 ShaderFXMetadata.Parse(source, true, out string menuPath);
                 code = source;
                 catalogSourcePath = path;
-                catalogDependencyHash = CatalogHash(path);
+                catalogDependencyHash = hash;
                 name = menuPath.Substring(menuPath.LastIndexOf('/') + 1);
-                Apply();
+                ApplyCore(contentChanged);
             }
             catch (Exception error)
             {
                 lastApplyFailed = true;
                 diagnostics = error.Message;
-                NotifyValuesChanged();
+                if (contentChanged || CatalogHash(path) != catalogDependencyHash) NotifyValuesChanged();
+                else QueueNotification(false);
             }
         }
     }

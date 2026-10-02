@@ -25,6 +25,31 @@ namespace DCFApixels.WhimTex
         private static bool IsGrainNoise(NoiseLayerBehaviour.NoiseType type) =>
             type == NoiseLayerBehaviour.NoiseType.WhiteNoise || type == NoiseLayerBehaviour.NoiseType.BlueNoise;
 
+        internal static Vector2 RandomizeScale(NoiseLayerBehaviour layer, System.Random random)
+        {
+            float Sample() => (float)Math.Exp(random.NextDouble() * Math.Log(64));
+            Vector2 axes = layer.Scale;
+            double mean = ((double)axes.x + axes.y) * .5;
+            double unitX = axes.x / mean, unitY = axes.y / mean;
+            double feasibleMin = .01 / Math.Min(unitX, unitY);
+            double feasibleMax = 1000 / Math.Max(unitX, unitY);
+            double meanMin = Math.Max(1, feasibleMin), meanMax = Math.Min(64, feasibleMax);
+            if (meanMin > meanMax) { meanMin = feasibleMin; meanMax = feasibleMax; }
+            while (true)
+            {
+                Vector2 candidate;
+                if (layer.linkScale)
+                {
+                    double sampledMean = Math.Exp(Math.Log(meanMin) + random.NextDouble() * Math.Log(meanMax / meanMin));
+                    candidate = new Vector2((float)(unitX * sampledMean), (float)(unitY * sampledMean));
+                }
+                else candidate = new Vector2(Sample(), Sample());
+                double distance = Math.Log((candidate.x + candidate.y) / 16.0, 2);
+                double weight = 1 + Math.Exp(-.5 * distance * distance);
+                if (random.NextDouble() * 2 < weight) return candidate;
+            }
+        }
+
         internal static void RandomizeParameters(NoiseLayerBehaviour layer)
         {
             int seed = NewSeed(layer.seed);
@@ -47,11 +72,7 @@ namespace DCFApixels.WhimTex
             if (!grain || layer.encoding != NoiseLayerBehaviour.OutputEncoding.Gradient)
                 layer.whiteNoiseColor = Pick<NoiseLayerBehaviour.WhiteNoiseColor>();
             layer.whiteNoiseSize = LogRange(1f, 32f);
-            layer.direction = Range(-180f, 180f);
-            float randomScale = LogRange(1f, 64f);
-            layer.Scale = layer.linkScale ? layer.AdjustScale(new Vector2(randomScale, layer.Scale.y))
-                : new Vector2(randomScale, LogRange(1f, 64f));
-            layer.offset = new Vector3(Range(-1000f, 1000f), Range(-1000f, 1000f), layer.offset.z);
+            layer.Scale = RandomizeScale(layer, random);
             layer.fractal = Pick<NoiseLayerBehaviour.FractalType>();
             layer.octaves = random.Next(1, 9);
             layer.lacunarity = Range(1f, 4f);
@@ -63,6 +84,9 @@ namespace DCFApixels.WhimTex
             layer.cellularJitter = Range(0f, 1f);
             layer.warp = Pick<NoiseLayerBehaviour.WarpType>();
             layer.warpStrength = LogRange(.05f, 8f);
+            float randomWarpScale = LogRange(.25f, 4f);
+            layer.WarpScale = layer.linkWarpScale ? layer.AdjustWarpScale(new Vector2(randomWarpScale, layer.WarpScale.y))
+                : new Vector2(randomWarpScale, LogRange(.25f, 4f));
             if (layer.encoding != NoiseLayerBehaviour.OutputEncoding.Gradient)
                 layer.encoding = random.Next(2) == 0
                     ? NoiseLayerBehaviour.OutputEncoding.ColorValues : NoiseLayerBehaviour.OutputEncoding.LinearData;
@@ -119,6 +143,11 @@ namespace DCFApixels.WhimTex
                 () => layer.dimensions = evt.newValue == "1D" ? NoiseLayerBehaviour.NoiseDimensions.OneD
                     : evt.newValue == "3D" ? NoiseLayerBehaviour.NoiseDimensions.ThreeD : NoiseLayerBehaviour.NoiseDimensions.TwoD));
             root.Add(dimensions);
+            var periodic1D = WhimTexUI.ConfigureField(new Toggle("Seamless") { name = "periodic1D" });
+            periodic1D.tooltip = "Repeat along the noise axis. Angled stripes do not necessarily tile at the canvas edges.";
+            bindings.Track(periodic1D, () => layer.periodic1D);
+            periodic1D.RegisterValueChangedCallback(evt => applyChange("Change 1D Noise Seamless", () => layer.periodic1D = evt.newValue));
+            root.Add(periodic1D);
             var periodic = new VisualElement { name = "periodic" };
             periodic.tooltip = "Repeat the native noise lattice on X, Y or both axes. Applies to every fractal octave and Domain Warp. Z is never repeated. Periods fit the layer's source rectangle; transforms and FX can change canvas seams.";
             var periodicHeading = new Label("Seamless");
@@ -166,27 +195,33 @@ namespace DCFApixels.WhimTex
             }, 64f));
             root.Add(seedRow);
             var scale = new VisualElement();
-            var scaleField = WhimTexUI.ConfigureField(new Vector2Field("Scale"));
-            scaleField.AddToClassList("whimtex-linked-vector");
-            bindings.Track(scaleField, () => layer.Scale);
-            scaleField.RegisterValueChangedCallback(e =>
-            {
-                var next = layer.AdjustScale(e.newValue);
-                applyChange("Change Noise Scale", () => layer.Scale = next);
-                scaleField.SetValueWithoutNotify(layer.Scale);
-            });
-            var icon = new WhimTexLinkIcon();
-            var link = new Button(() => applyChange("Link Noise Scale", () => layer.linkScale = !layer.linkScale)) { name = "linkScale" };
-            link.AddToClassList("whimtex-vector-link"); link.Add(icon);
-            scaleField.Q(className: "unity-base-field__input").Insert(0, link);
-            bindings.Add(() =>
-            {
-                icon.SetLinked(layer.linkScale);
-                link.tooltip = layer.linkScale ? "Linked: change X and Y proportionally. Click to unlink."
-                    : "Unlinked: edit X and Y independently. Click to link without changing the values.";
-            });
-            scale.Add(scaleField);
+            LinkedScale(scale, "Scale", "linkScale", () => layer.Scale, value => layer.Scale = value,
+                layer.AdjustScale, () => layer.linkScale, () => layer.linkScale = !layer.linkScale);
             root.Add(scale);
+            void LinkedScale(VisualElement parent, string label, string linkName, Func<Vector2> get,
+                Action<Vector2> set, Func<Vector2, Vector2> adjust, Func<bool> linked, Action toggle)
+            {
+                var scaleField = WhimTexUI.ConfigureField(new Vector2Field(label));
+                scaleField.AddToClassList("whimtex-linked-vector");
+                bindings.Track(scaleField, get);
+                scaleField.RegisterValueChangedCallback(e =>
+                {
+                    var next = adjust(e.newValue);
+                    applyChange("Change Noise " + label, () => set(next));
+                    scaleField.SetValueWithoutNotify(get());
+                });
+                var icon = new WhimTexLinkIcon();
+                var link = new Button(() => applyChange("Link Noise " + label, toggle)) { name = linkName };
+                link.AddToClassList("whimtex-vector-link"); link.Add(icon);
+                scaleField.Q(className: "unity-base-field__input").Insert(0, link);
+                bindings.Add(() =>
+                {
+                    icon.SetLinked(linked());
+                    link.tooltip = linked() ? "Linked: change X and Y proportionally. Click to unlink."
+                        : "Unlinked: edit X and Y independently. Click to link without changing the values.";
+                });
+                parent.Add(scaleField);
+            }
             var offset = WhimTexUI.ConfigureField(new Vector2Field("Offset"));
             bindings.Track(offset, () => (Vector2)layer.offset);
             offset.RegisterValueChangedCallback(evt => applyChange("Change Noise Offset", () => layer.offset = new Vector3(
@@ -225,6 +260,8 @@ namespace DCFApixels.WhimTex
             var warpChoice = Choice(root, "Domain Warp", () => layer.warp, value => layer.warp = value);
             var warp = new VisualElement();
             Number(warp, "Warp Strength", () => layer.warpStrength, value => layer.warpStrength = value, 0f, 100f);
+            LinkedScale(warp, "Warp Scale", "linkWarpScale", () => layer.WarpScale, value => layer.WarpScale = value,
+                layer.AdjustWarpScale, () => layer.linkWarpScale, () => layer.linkWarpScale = !layer.linkWarpScale);
             root.Add(warp);
             var scalarOutputs = new System.Collections.Generic.List<NoiseLayerBehaviour.OutputEncoding>
                 { NoiseLayerBehaviour.OutputEncoding.ColorValues, NoiseLayerBehaviour.OutputEncoding.LinearData, NoiseLayerBehaviour.OutputEncoding.Gradient };
@@ -269,6 +306,7 @@ namespace DCFApixels.WhimTex
                 offset.EnableInClassList("whimtex-hidden", three);
                 offset3D.EnableInClassList("whimtex-hidden", !three);
                 periodic.EnableInClassList("whimtex-hidden", isWhite || layer.dimensions == NoiseLayerBehaviour.NoiseDimensions.OneD);
+                periodic1D.EnableInClassList("whimtex-hidden", isWhite || layer.dimensions != NoiseLayerBehaviour.NoiseDimensions.OneD);
                 scale.EnableInClassList("whimtex-hidden", isWhite);
                 fractalChoice.EnableInClassList("whimtex-hidden", isWhite);
                 warpChoice.EnableInClassList("whimtex-hidden", isWhite);

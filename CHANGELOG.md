@@ -6,6 +6,11 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Gradient Map has a Source Channel selector: Luminance (default), R, G, B or Alpha. The selected input drives the full RGBA gradient; source-alpha preservation is unchanged.
+- Shape layers have SDF-based Feather in canvas pixels, with Inside, Outside and Centered placement for fill and stroke. Zero preserves existing rendering; softened ellipses use contour distance for even falloff.
+- Hue, Saturation, Color and Luminosity blend modes for layers, groups and brushes, with matching PSD blend keys. Blend menus now separate basic, lightening, darkening, contrast, other and color modes with horizontal lines.
+- Noise 1D has a Seamless checkbox for repetition along its axis, including Fractal and Domain Warp, for all six lattice noise types. Its state is independent of 2D/3D edge selection; angled stripes need not tile at canvas edges. White/Blue Noise are unchanged.
+
 - Color picker Preview EV footer, matching the gradient editor: −10..10 display-only exposure for inspecting HDR values in the SDR preview, without changing color values or History.
 - The gradient editor has a History palette above gradient presets, without an add button. Choose a color key and apply a document-history color directly, including HDR; opacity keys remain unchanged. The palette shares swatches, channel display, reordering and drag-out removal with the color picker.
 
@@ -26,6 +31,9 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Noise Random All preserves the 1D Direction setting as well as Offset and Seamless.
+
+- Gradient Map FX now applies gradient alpha, multiplied by source alpha and blended by FX strength. Opaque gradients retain the previous appearance.
 - New brush-tip gradients now default to Perceptual, matching brush tint, agent settings/strokes and brush clipboard import without an explicit mode. Existing gradients and explicit modes are preserved; SDF and Pattern defaults remain Linear.
 
 - History hides HDR colors while HDR is disabled in the color picker or selected gradient key, without removing saved colors. Re-enabling HDR restores them.
@@ -48,6 +56,8 @@ All notable changes to WhimTex are documented in this file.
 
 ### Fixed
 
+- Noise Random All now samples the linked main Scale's X/Y average instead of X, preserving proportions without pushing asymmetric scales upward. The gentle preference near 8 is unchanged.
+- Document vector fields now accept smaller vectors with zero-filled remaining components, including older Noise Offset values. Integer vectors can also become floating-point vectors when every component remains exact. Saving uses the current field type and retains all components; narrowing and incompatible values still block saving to protect data.
 - Brush preview-header labels align vertically across ordinary fields, edge mode and Pressure; the gradient swatch matches the ordinary field height without overflowing the toolbar. Other gradient fields retain their existing sizing.
 
 - Channel-aware HDR color fields retain their intensity gradients in both diagonal halves instead of showing only a flat swatch and HDR label.

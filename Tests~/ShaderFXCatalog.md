@@ -22,3 +22,23 @@ Manual interaction checks:
 
 Unity 6.0 compatibility is an API/source target. A successful run in a newer Editor does not establish
 runtime compatibility on 6.0; repeat there before publishing a compatibility claim.
+
+## Opening without false unsaved changes
+
+Run `ShaderFXDocumentDirtySmoke.cs` with Pipeline `run_script`, entry
+`ShaderFXDocumentDirtySmoke.Run`, after recompilation. It uses transient model/container
+round trips through the document serializer and the production FX preparation path, plus
+hidden test windows; it does not write/import assets or change existing windows.
+
+- No FX, inline FX, linked FX, and a linked FX with includes stay clean after restoration.
+- Owner dirty count and Undo group do not change just for compilation.
+- Render-only notifications refresh previews without marking the document/window dirty.
+- Explicit Apply, FX edits, layer edits, changed catalog revisions and missing-source fallback
+  still mark changes. Catalog-revision cases alter only a transient saved hash, not preset files.
+- Coalescing preserves real edits in either notification order; later refreshes never clear dirty.
+- File deserialization establishes an Undo baseline; actual FX Undo callbacks remain detectable.
+- Restored GPU output matches the original; existing user-window references/dirty flags remain intact.
+
+The test delivers the queued callback explicitly after attaching the document, so it is deterministic.
+It is not a disk-import or physical-click timing test. `DocumentTitle.test.mjs` and
+`EmptyDocumentSave.test.mjs` additionally cover the window save-prompt contracts.

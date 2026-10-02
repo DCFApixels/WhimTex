@@ -7,13 +7,15 @@ namespace DCFApixels.WhimTex
     {
         private static void SetShape(ShapeLayerBehaviour layer, JObject value)
         {
-            Keys(value, "kind", "fill", "fillColor", "stroke", "strokeColor", "strokeWidth", "roundness", "cornerRoundness", "linkCorners", "sides", "innerRadius");
+            Keys(value, "kind", "fill", "fillColor", "stroke", "strokeColor", "strokeWidth", "feather", "featherPosition", "roundness", "cornerRoundness", "linkCorners", "sides", "innerRadius");
             layer.kind = Enum(value, "kind", layer.kind);
             layer.fill = Bool(value, "fill", layer.fill);
             layer.stroke = Bool(value, "stroke", layer.stroke);
             if (value["fillColor"] != null) layer.fillColor = Color(value["fillColor"]);
             if (value["strokeColor"] != null) layer.strokeColor = Color(value["strokeColor"]);
             layer.strokeWidth = Number(value, "strokeWidth", layer.strokeWidth, 0f, 8192f);
+            layer.feather = Number(value, "feather", layer.feather, 0f, 8192f);
+            layer.featherPosition = Enum(value, "featherPosition", layer.featherPosition);
             if (value["roundness"] != null)
             {
                 layer.roundness = Number(value, "roundness", layer.roundness, 0f, 1f);
@@ -37,6 +39,7 @@ namespace DCFApixels.WhimTex
         {
             ["kind"] = layer.kind.ToString(), ["fill"] = layer.fill, ["fillColor"] = Json(layer.fillColor),
             ["stroke"] = layer.stroke, ["strokeColor"] = Json(layer.strokeColor), ["strokeWidth"] = layer.strokeWidth,
+            ["feather"] = layer.feather, ["featherPosition"] = layer.featherPosition.ToString(),
             ["roundness"] = layer.GetCornerRoundness().x,
             ["cornerRoundness"] = new JArray(layer.GetCornerRoundness().x, layer.GetCornerRoundness().y,
                 layer.GetCornerRoundness().z, layer.GetCornerRoundness().w),

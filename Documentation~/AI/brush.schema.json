@@ -206,7 +206,11 @@
             "SoftLight",
             "Difference",
             "Exclusion",
-            "Negation"
+            "Negation",
+            "Hue",
+            "Saturation",
+            "Color",
+            "Luminosity"
           ]
         },
         "blendApplication": {

@@ -18,7 +18,8 @@ public static class NoisePeriodicGpuSmoke
         var noise = new NoiseLayerBehaviour { noiseType=(NoiseLayerBehaviour.NoiseType)kind,
             dimensions=dimensions==3?NoiseLayerBehaviour.NoiseDimensions.ThreeD:NoiseLayerBehaviour.NoiseDimensions.TwoD,
             Scale=new Vector2(6.3f,10.7f), offset=new Vector3(.371f,-.619f,.371f),
-            octaves=4,lacunarity=1.73f,gain=.7f,weightedStrength=.65f,warpStrength=1.4f,pingPongStrength=2.3f };
+            octaves=4,lacunarity=1.73f,gain=.7f,weightedStrength=.65f,warpStrength=1.4f,pingPongStrength=2.3f,
+            WarpScale=new Vector2(2.3f,.7f) };
         doc.layers.Add(noise);
         var flags=BindingFlags.NonPublic|BindingFlags.Public|BindingFlags.Instance|BindingFlags.Static;
         typeof(TextureCompositor).GetMethod("NormalizeModel",flags).Invoke(doc,null);
@@ -62,13 +63,21 @@ public static class NoisePeriodicGpuSmoke
             var mt=typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.WhimTexMaterials");
             var shared=(Material)mt.GetProperty("Noise",flags).GetValue(null);
             var material=new Material(shared){hideFlags=HideFlags.HideAndDontSave};
+            // Copy dynamic integer uniforms explicitly; these are not ShaderLab properties.
+            foreach(var key in new[]{"_NoiseOneD","_NoiseThreeD","_NoisePeriodic","_NoiseSeed","_NoiseType",
+                "_NoiseFractal","_NoiseOctaves","_NoiseCellularDistance","_NoiseCellularReturn","_NoiseWarp",
+                "_NoiseEncoding","_NoiseInverted","_UseGradient"}) material.SetInteger(key,shared.GetInteger(key));
+            foreach(var key in new[]{"_NoiseDomain","_NoiseScale","_NoiseFractalSettings","_NoiseWarpInverse"})
+                material.SetVector(key,shared.GetVector(key));
+            foreach(var key in new[]{"_NoiseZ","_NoiseCellularJitter","_NoiseWarpStrength"})
+                material.SetFloat(key,shared.GetFloat(key));
             material.SetVectorArray("_NoiseLattice",shared.GetVectorArray("_NoiseLattice"));
             var rt=RenderTexture.GetTemporary(17,17,0,RenderTextureFormat.ARGBFloat,RenderTextureReadWrite.Linear);
             var read=new Texture2D(17,17,TextureFormat.RGBAFloat,false,true);
             var active=RenderTexture.active; bool srgb=GL.sRGBWrite;
             try
             {
-                material.SetInt("_UnboundedUv",1);
+                material.SetInteger("_UnboundedUv",1);
                 material.SetVector("_UvRow0",new Vector4(17f/16,0,-1f/32,0));
                 material.SetVector("_UvRow1",new Vector4(0,17f/16,-1f/32,0));
                 material.SetVector("_UvRow2",new Vector4(0,0,1,0));

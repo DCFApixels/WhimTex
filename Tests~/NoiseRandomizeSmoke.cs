@@ -18,7 +18,9 @@ public static class NoiseRandomizeSmoke
         bool Grain(NoiseLayerBehaviour.NoiseType type) => type == NoiseLayerBehaviour.NoiseType.WhiteNoise || type == NoiseLayerBehaviour.NoiseType.BlueNoise;
         var doc = ScriptableObject.CreateInstance<TextureCompositor>();
         doc.width = doc.height = 32;
-        var noise = new NoiseLayerBehaviour { encoding = NoiseLayerBehaviour.OutputEncoding.Gradient };
+        var noise = new NoiseLayerBehaviour { encoding = NoiseLayerBehaviour.OutputEncoding.Gradient,
+            offset = new Vector3(12.5f, -37.25f, 4.75f), direction = 37.5f, periodic1D = true };
+        var preservedOffset = noise.offset;
         doc.layers.Add(noise);
         typeof(TextureCompositor).GetMethod("NormalizeModel", Any).Invoke(doc, null);
         var layer = doc.layers[0];
@@ -33,7 +35,7 @@ public static class NoiseRandomizeSmoke
         {
             ["whiteNoiseSize"]=(1,1024), ["direction"]=(-180,180), ["scale"]=(.01f,1000),
             ["octaves"]=(1,8), ["lacunarity"]=(1,4), ["gain"]=(0,1), ["weightedStrength"]=(0,1),
-            ["pingPongStrength"]=(.01f,8), ["cellularJitter"]=(0,1), ["warpStrength"]=(0,100)
+            ["pingPongStrength"]=(.01f,8), ["cellularJitter"]=(0,1), ["warpStrength"]=(0,100), ["warpScale"]=(.25f,4), ["warpScaleY"]=(.25f,4)
         };
         NoiseLayerEditorWindow window = null;
         try
@@ -61,7 +63,8 @@ public static class NoiseRandomizeSmoke
                         Check(!float.IsNaN(number) && number >= range.lo && number <= range.hi, "Valid range " + field.Name);
                     }
                 }
-                Check(Mathf.Abs(noise.offset.x) <= 10000 && Mathf.Abs(noise.offset.y) <= 10000, "Valid offset");
+                Check(noise.offset.Equals(preservedOffset), "Random All preserves Offset XYZ exactly");
+                Check(noise.direction == 37.5f && noise.periodic1D, "Random All preserves Direction and 1D Seamless");
                 if (i % 4 == 0)
                 {
                     var image = doc.Compose();
@@ -71,7 +74,7 @@ public static class NoiseRandomizeSmoke
             }
             foreach (var field in fields)
             {
-                if (field.Name == "dimensions" || field.Name == "encoding" || field.Name == "gradient" || field.Name == "periodic" || field.Name == "linkScale")
+                if (field.Name == "dimensions" || field.Name == "direction" || field.Name == "encoding" || field.Name == "gradient" || field.Name == "periodic" || field.Name == "periodic1D" || field.Name == "linkScale" || field.Name == "linkWarpScale" || field.Name == "offset")
                 {
                     if (field.Name != "dimensions") Check(seen[field.Name].Count == 1, "Preserves " + field.Name);
                     continue;
@@ -111,6 +114,34 @@ public static class NoiseRandomizeSmoke
             window.ShowUtility();
             void Refresh() => typeof(LayerEditorWindowBase).GetMethod("RefreshInterface", Any).Invoke(window, new object[] {true});
             Refresh();
+            var warpFields = window.rootVisualElement.Query<FloatField>().ToList();
+            var warpScaleField = window.rootVisualElement.Query<Vector2Field>().ToList().Single(f => f.label == "Warp Scale");
+            var warpStrengthField = warpFields.Single(f => f.label == "Warp Strength");
+            Check(warpScaleField.parent == warpStrengthField.parent, "Warp fields share a section");
+            Check(warpScaleField.parent.IndexOf(warpScaleField) == warpStrengthField.parent.IndexOf(warpStrengthField) + 1, "Warp Scale follows Warp Strength");
+            float previousScale = noise.scale;
+            warpScaleField.value = new Vector2(3,3);
+            Check(Mathf.Approximately(noise.warpScale, 3) && noise.scale == previousScale,
+                "Warp Scale UI edits independently: warp=" + noise.warpScale + " scale=" + noise.scale + " previous=" + previousScale);
+            var warpLink = window.rootVisualElement.Q<Button>("linkWarpScale");
+            Check(warpLink != null && noise.linkWarpScale, "Warp chain defaults linked");
+            void ToggleWarpLink()
+            {
+                using var evt = NavigationSubmitEvent.GetPooled(); evt.target = warpLink; warpLink.SendEvent(evt);
+            }
+            ToggleWarpLink();
+            warpScaleField.value = new Vector2(2,5);
+            Check(noise.WarpScale == new Vector2(2,5) && !noise.linkWarpScale, "Independent warp axes");
+            ToggleWarpLink();
+            Check(noise.WarpScale == new Vector2(2,5), "Link retains proportions");
+            warpScaleField.value = new Vector2(4,5);
+            Check(noise.WarpScale == new Vector2(4,10), "Linked warp edit preserves ratio");
+            for(int i=0;i<32;i++)
+            {
+                randomize.Invoke(null,new object[]{noise});
+                Check(Mathf.Abs(noise.WarpScale.y/noise.WarpScale.x-2.5f)<.00001f,"Random All preserves linked warp ratio");
+            }
+            Refresh();
             void Click()
             {
                 var button = window.rootVisualElement.Q<Button>("whimtex-noise-random-all");
@@ -122,6 +153,7 @@ public static class NoiseRandomizeSmoke
                 button.SendEvent(evt);
                 Check(Grain(((NoiseLayerBehaviour)doc.layers[0].Behaviour).noiseType) == grain, "UI activation preserves noise group");
                 Check(((NoiseLayerBehaviour)doc.layers[0].Behaviour).dimensions == dimensions, "UI activation preserves Dimensions");
+                Check(((NoiseLayerBehaviour)doc.layers[0].Behaviour).offset.Equals(preservedOffset), "UI Random All preserves Offset XYZ");
             }
             string before = JsonUtility.ToJson(doc.layers[0].Behaviour);
             Undo.IncrementCurrentGroup();
@@ -141,6 +173,7 @@ public static class NoiseRandomizeSmoke
             Click();
             Check(((NoiseLayerBehaviour)doc.layers[0].Behaviour).seed != lastSeed, "Repeated UI activation changes seed");
             Check(window.rootVisualElement.Query<IntegerField>().ToList().Any(f => f.label == "Seed" && f.value == ((NoiseLayerBehaviour)doc.layers[0].Behaviour).seed), "Seed field refreshes");
+            Check(window.rootVisualElement.Query<Vector2Field>().ToList().Any(f => f.label == "Warp Scale" && f.value == ((NoiseLayerBehaviour)doc.layers[0].Behaviour).WarpScale), "Warp Scale refreshes after Random All and Undo/Redo");
             var currentNoise = (NoiseLayerBehaviour)doc.layers[0].Behaviour;
             var unchanged = fields.Where(f => f.Name != "seed").ToDictionary(f => f, f => f.GetValue(currentNoise));
             var seedButton = window.rootVisualElement.Query<Button>().ToList().Single(b => b.text == "Random");
@@ -153,7 +186,7 @@ public static class NoiseRandomizeSmoke
                 Check(currentNoise.seed != lastSeed, "Seed-only button changes on every press");
                 Check(unchanged.All(pair => Equals(pair.Value, pair.Key.GetValue(currentNoise))), "Seed-only button preserves other settings");
             }
-            return "PASS NoiseRandomizeSmoke: " + checks + " checks; 256 combinations from all eight starting types, 64 GPU renders, " + (fields.Length - 3) + " randomized fields, preserved gradient, noise groups and 1D/2D, UI activation, Undo/Redo and bindings.";
+            return "PASS NoiseRandomizeSmoke: " + checks + " checks; 256 combinations from all eight starting types, 64 GPU renders, preserved Direction/Offset/Seamless/gradient, noise groups and 1D/2D, UI activation, Undo/Redo and bindings.";
         }
         finally
         {

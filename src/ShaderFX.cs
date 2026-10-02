@@ -190,10 +190,13 @@ namespace DCFApixels.WhimTex
             public void Dispose() => lut.Dispose();
         }
         [NonSerialized] private bool notificationQueued;
+        [NonSerialized] private bool notificationContainsChanges;
         [NonSerialized] private volatile bool undoDeserialized;
 
         void ISerializationCallbackReceiver.OnBeforeSerialize() { }
         void ISerializationCallbackReceiver.OnAfterDeserialize() => undoDeserialized = true;
+
+        internal void ResetUndoTrackingAfterLoad() => undoDeserialized = false;
 
         internal bool ConsumeUndoChanges()
         {
@@ -202,6 +205,7 @@ namespace DCFApixels.WhimTex
             undoDeserialized = false;
             EditorApplication.delayCall -= SendNotification;
             notificationQueued = false;
+            notificationContainsChanges = false;
             ReleaseMaterial();
             MarkDraftChanged();
             return true;
@@ -335,10 +339,15 @@ namespace DCFApixels.WhimTex
                     // A live edit lock only postpones catalog refresh; retain the link so the
                     // unlock callback can retry it. A deleted or broken preset, however, must
                     // detach and use the source snapshot stored in the TIFF.
-                    if (!locked) DetachCatalog();
+                    if (!locked)
+                    {
+                        DetachCatalog();
+                        NotifyValuesChanged();
+                    }
                     code = fallback;
                 }
                 ApplyAgentDraft();
+                QueueNotification(false);
             }
             catch (Exception error)
             {
@@ -459,6 +468,7 @@ namespace DCFApixels.WhimTex
             EditorApplication.quitting -= ReleaseMaterial;
             EditorApplication.delayCall -= SendNotification;
             notificationQueued = false;
+            notificationContainsChanges = false;
             ReleaseCatalogDependencies();
             ReleaseMaterial();
         }
@@ -491,6 +501,13 @@ namespace DCFApixels.WhimTex
         {
             undoDeserialized = false;
             MarkDraftChanged();
+            QueueNotification(true);
+        }
+
+        private void QueueNotification(bool contentChanged)
+        {
+            // Resource restoration must never downgrade a real edit already queued this frame.
+            notificationContainsChanges |= contentChanged;
             if (notificationQueued)
                 return;
             notificationQueued = true;
@@ -499,9 +516,11 @@ namespace DCFApixels.WhimTex
 
         private void SendNotification()
         {
+            bool contentChanged = notificationContainsChanges;
             notificationQueued = false;
+            notificationContainsChanges = false;
             if (this != null)
-                TextureCompositor.NotifyShaderFXChanged(this);
+                TextureCompositor.NotifyShaderFXChanged(this, contentChanged);
         }
 
         internal Material GetMaterial(in LayerRenderContext context)
@@ -555,7 +574,9 @@ namespace DCFApixels.WhimTex
             return material;
         }
 
-        internal bool Apply()
+        internal bool Apply() => ApplyCore(true);
+
+        private bool ApplyCore(bool contentChanged)
         {
             if (WhimTexApi.IsShaderFXContentLocked(this)) return false;
             Shader candidate = null;
@@ -591,8 +612,11 @@ namespace DCFApixels.WhimTex
                 List<ShaderFXParameter> snapshot = new List<ShaderFXParameter>(parameters.Count);
                 foreach (ShaderFXParameter parameter in parameters)
                     snapshot.Add(parameter.Copy());
-                Undo.FlushUndoRecordObjects();
-                Undo.IncrementCurrentGroup();
+                if (contentChanged)
+                {
+                    Undo.FlushUndoRecordObjects();
+                    Undo.IncrementCurrentGroup();
+                }
                 if (compiledShader != null && AssetDatabase.GetAssetPath(compiledShader) == path)
                 {
                     try
@@ -621,18 +645,19 @@ namespace DCFApixels.WhimTex
                 diagnostics = messages.Length > 0 ? messages.ToString() : "Applied successfully.";
                 ReleaseMaterial();
                 EditorUtility.SetDirty(compiledShader);
-                EditorUtility.SetDirty(this);
-                if (embeddedOwner != null)
+                if (contentChanged) EditorUtility.SetDirty(this);
+                if (contentChanged && embeddedOwner != null)
                 {
                     PersistEmbedded(embeddedOwner);
                     EditorUtility.SetDirty(embeddedOwner);
                 }
-                else if (!string.IsNullOrEmpty(path))
+                else if (contentChanged && !string.IsNullOrEmpty(path))
                 {
                     AssetDatabase.SetMainObject(this, path);
                     AssetDatabase.SaveAssetIfDirty(this);
                 }
-                NotifyValuesChanged();
+                if (contentChanged) NotifyValuesChanged();
+                else QueueNotification(false);
                 return true;
             }
             catch (Exception exception)
@@ -640,7 +665,12 @@ namespace DCFApixels.WhimTex
                 parameters = previousParameters;
                 lastApplyFailed = true;
                 diagnostics = exception.Message;
-                EditorUtility.SetDirty(this);
+                if (contentChanged)
+                {
+                    EditorUtility.SetDirty(this);
+                    NotifyValuesChanged();
+                }
+                else QueueNotification(false);
                 return false;
             }
             finally

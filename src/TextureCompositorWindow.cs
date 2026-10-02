@@ -199,6 +199,7 @@ namespace DCFApixels.WhimTex
             paintingPreviewScale = ClampPaintingPreviewScale(
                 EditorPrefs.GetFloat(PaintingPreviewScalePrefKey, DefaultPaintingPreviewScale));
             TextureCompositor.Changed += OnCompositorChanged;
+            TextureCompositor.RenderResourcesChanged += OnCompositorRenderResourcesChanged;
             TextureCompositor.MiniPreviewRequested += OnMiniPreviewRequested;
             TextureCompositor.OutputTextureChanged += OnOutputTextureChanged;
             WhimTexUserSettings.Changed += OnPreviewAppearanceChanged;
@@ -242,6 +243,7 @@ namespace DCFApixels.WhimTex
             ResetAreaSelection();
             paintSettings?.ReleasePresetTip();
             TextureCompositor.Changed -= OnCompositorChanged;
+            TextureCompositor.RenderResourcesChanged -= OnCompositorRenderResourcesChanged;
             TextureCompositor.OutputTextureChanged -= OnOutputTextureChanged;
             WhimTexUserSettings.Changed -= OnPreviewAppearanceChanged;
             AssemblyReloadEvents.beforeAssemblyReload -= StopLiveOutput;
@@ -1255,6 +1257,12 @@ namespace DCFApixels.WhimTex
         }
 
         private void OnCompositorChanged(TextureCompositor changedCompositor)
+            => OnCompositorUpdated(changedCompositor, true);
+
+        private void OnCompositorRenderResourcesChanged(TextureCompositor changedCompositor)
+            => OnCompositorUpdated(changedCompositor, false);
+
+        private void OnCompositorUpdated(TextureCompositor changedCompositor, bool contentChanged)
         {
             if (changedCompositor != compositor)
                 return;
@@ -1268,13 +1276,14 @@ namespace DCFApixels.WhimTex
 
             toolkitInspectorEffectTarget?.Invalidate();
             CancelPreviewEyedropper();
-            if (TextureCompositor.IsRefreshingUndo)
+            if (contentChanged && TextureCompositor.IsRefreshingUndo)
             {
                 OnUndoRedo();
                 return;
             }
 
-            temporaryDocumentDirty |= !AssetDatabase.Contains(compositor);
+            temporaryDocumentDirty |= contentChanged && !AssetDatabase.Contains(compositor);
+            if (!contentChanged) ReleaseEffectCache();
             effectInteractiveUntil = EditorApplication.timeSinceStartup + .2d;
             UpdateUnsavedChangesState();
             RequestPreview();

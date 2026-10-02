@@ -15,6 +15,37 @@ Shader "Hidden/TextureCompositor/Shape"
             int _ShapeKind, _ShapeTiling, _ShapeVertexCount;
             float4 _ShapeVertices[64];
             float4 _ShapeFill, _ShapeStroke, _ShapeStyle, _ShapeCorners;
+            float2 _ShapeFeather;
+
+            float EllipseDistance(float2 p, float2 halfSize)
+            {
+                p = abs(p);
+                if (halfSize.x < halfSize.y) { halfSize = halfSize.yx; p = p.yx; }
+                if (abs(halfSize.x - halfSize.y) < 1e-5) return length(p) - halfSize.x;
+                float lo = 0, hi = UNITY_PI * .5;
+                [unroll] for (int i = 0; i < 20; i++)
+                {
+                    float angle = (lo + hi) * .5;
+                    float s, c;
+                    sincos(angle, s, c);
+                    float derivative = (halfSize.y * halfSize.y - halfSize.x * halfSize.x) * s * c
+                        + halfSize.x * p.x * s - halfSize.y * p.y * c;
+                    if (derivative > 0) hi = angle;
+                    else lo = angle;
+                }
+                float s, c;
+                sincos((lo + hi) * .5, s, c);
+                float result = length(p - halfSize * float2(c, s));
+                return dot(p / halfSize, p / halfSize) < 1 ? -result : result;
+            }
+
+            float FeatherCoverage(float distance, float aa)
+            {
+                float width = _ShapeFeather.x;
+                float soft = 1 - smoothstep(-width * (1 - _ShapeFeather.y), width * _ShapeFeather.y, distance);
+                float sharp = saturate(.5 - distance / aa);
+                return lerp(sharp, soft, saturate(width / aa));
+            }
 
             float BoxDistance(float2 p, float2 halfSize, float radius)
             {
@@ -69,6 +100,7 @@ Shader "Hidden/TextureCompositor/Shape"
                     float k = length(p / halfSize);
                     float gradient = length(p / (halfSize * halfSize));
                     distance = k < 1e-6 ? -min(halfSize.x, halfSize.y) : (k - 1) * k / max(gradient, 1e-8);
+                    if (_ShapeFeather.x > 0) distance = EllipseDistance(p, halfSize);
                 }
                 else if (_ShapeKind == 4) distance = BoxDistance(p, halfSize, min(halfSize.x, halfSize.y));
                 else distance = PolygonDistance(p, halfSize);
@@ -76,6 +108,12 @@ Shader "Hidden/TextureCompositor/Shape"
                 float outer = saturate(.5 - distance / aa);
                 float inner = saturate(.5 - (distance + _ShapeStyle.z) / aa);
                 float strokeCoverage = (outer - inner) * _ShapeStyle.y;
+                if (_ShapeFeather.x > 0)
+                {
+                    outer = FeatherCoverage(distance, aa);
+                    strokeCoverage = min(outer, FeatherCoverage(-distance - _ShapeStyle.z, aa)) * _ShapeStyle.y;
+                    if (_ShapeStyle.z <= 0) strokeCoverage = 0;
+                }
                 float fillCoverage = (outer - strokeCoverage) * _ShapeStyle.x;
                 float fillAlpha = fillCoverage * saturate(_ShapeFill.a);
                 float strokeAlpha = strokeCoverage * saturate(_ShapeStroke.a);

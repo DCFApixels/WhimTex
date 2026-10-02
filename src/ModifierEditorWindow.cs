@@ -38,12 +38,14 @@ namespace DCFApixels.WhimTex
         {
             titleContent = WhimTexBranding.WindowTitle(titleContent.text);
             TextureCompositor.Changed += OnCompositorChanged;
+            TextureCompositor.RenderResourcesChanged += OnCompositorChanged;
             WhimTexApi.LiveEditLocksChanged += RefreshAgentLock;
         }
 
         private void OnDisable()
         {
             TextureCompositor.Changed -= OnCompositorChanged;
+            TextureCompositor.RenderResourcesChanged -= OnCompositorChanged;
             WhimTexApi.LiveEditLocksChanged -= RefreshAgentLock;
         }
 

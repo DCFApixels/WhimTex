@@ -33,7 +33,11 @@ namespace DCFApixels.WhimTex
         [InspectorName("Soft Light")] SoftLight = 21,
         Difference = 22,
         Exclusion = 23,
-        Negation = 24
+        Negation = 24,
+        Hue = 25,
+        Saturation = 26,
+        Color = 27,
+        Luminosity = 28
     }
 
     public enum DistanceMetric
@@ -442,6 +446,7 @@ namespace DCFApixels.WhimTex
         {
             titleContent = WhimTexBranding.WindowTitle(titleContent.text);
             TextureCompositor.Changed += OnCompositorChanged;
+            TextureCompositor.RenderResourcesChanged += OnCompositorChanged;
             WhimTexApi.LiveEditLocksChanged += RefreshAgentLock;
             RequestPreview(true);
         }
@@ -449,6 +454,7 @@ namespace DCFApixels.WhimTex
         protected virtual void OnDisable()
         {
             TextureCompositor.Changed -= OnCompositorChanged;
+            TextureCompositor.RenderResourcesChanged -= OnCompositorChanged;
             WhimTexApi.LiveEditLocksChanged -= RefreshAgentLock;
             layerPreview?.Dispose();
             layerPreview = null;

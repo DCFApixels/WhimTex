@@ -57,6 +57,22 @@ namespace DCFApixels.WhimTex
             });
             width.tooltip = "Inside outline in canvas pixels. Type a value or drag the label to adjust. Resizing the shape keeps this width.";
             root.Add(width);
+            var feather = WhimTexUI.ConfigureField(new FloatField("Feather (px)"));
+            bindings.Track(feather, () => layer.feather);
+            feather.RegisterValueChangedCallback(evt =>
+            {
+                float value = ShapeLayerBehaviour.Limit(evt.newValue, 0f, 8192f, layer.feather);
+                apply("Change Shape Feather", () => layer.feather = value);
+                feather.SetValueWithoutNotify(value);
+            });
+            feather.tooltip = "Soft edge transition in canvas pixels. Zero keeps the original antialiased edge.";
+            root.Add(feather);
+            var featherPosition = WhimTexUI.ConfigureField(new EnumField("Feather Position", layer.featherPosition));
+            bindings.Track(featherPosition, () => (Enum)layer.featherPosition);
+            featherPosition.RegisterValueChangedCallback(evt => apply("Change Shape Feather Position",
+                () => layer.featherPosition = (ShapeLayerBehaviour.FeatherPosition)evt.newValue));
+            featherPosition.tooltip = "Fade inside, outside, or across the contour. Also applies to both edges of a hollow stroke.";
+            root.Add(featherPosition);
             var roundness = ShapeCornerSettingsView.Build(layer, apply, bindings);
             root.Add(roundness);
             var sides = WhimTexUI.ConfigureField(new SliderInt("Sides / Points", 3, 32) { showInputField = true });
@@ -67,6 +83,7 @@ namespace DCFApixels.WhimTex
             bindings.Add(() =>
             {
                 width.SetEnabled(layer.stroke);
+                featherPosition.SetEnabled(layer.feather > 0f);
                 roundness.EnableInClassList("whimtex-hidden", layer.kind != ShapeLayerBehaviour.ShapeKind.Rectangle);
                 sides.EnableInClassList("whimtex-hidden", layer.kind != ShapeLayerBehaviour.ShapeKind.Polygon && layer.kind != ShapeLayerBehaviour.ShapeKind.Star);
                 inner.EnableInClassList("whimtex-hidden", layer.kind != ShapeLayerBehaviour.ShapeKind.Star);

@@ -5,7 +5,7 @@ using UnityEngine;
 
 public static class NoiseIntegrationSmoke
 {
-    public static string Run()
+    public static string Run(bool oneD = false)
     {
         int checks=0;
         void Check(bool ok,string message){if(!ok)throw new Exception(message);checks++;}
@@ -15,9 +15,11 @@ public static class NoiseIntegrationSmoke
             noiseType=NoiseLayerBehaviour.NoiseType.Perlin,
             dimensions=NoiseLayerBehaviour.NoiseDimensions.ThreeD,
             periodic=NoiseLayerBehaviour.PeriodicAxes.XY,
-            offset=new Vector3(.3f,.7f,.2f)
+            offset=new Vector3(.3f,.7f,.2f),warp=NoiseLayerBehaviour.WarpType.BasicGrid,
+            WarpScale=new Vector2(2.3f,.7f)
         };
         noise.Scale=new Vector2(6.3f,10.7f);doc.layers.Add(noise);
+        if(oneD){noise.dimensions=NoiseLayerBehaviour.NoiseDimensions.OneD;noise.periodic1D=true;noise.direction=37;}
         Color[] Read(){var texture=doc.Compose();try{return texture.GetPixels();}finally{UnityEngine.Object.DestroyImmediate(texture);}}
         double Difference(Color[] a,Color[] b){double sum=0;for(int p=0;p<a.Length;p++)sum+=Math.Abs(a[p].r-b[p].r);return sum/a.Length;}
         try
@@ -27,7 +29,7 @@ public static class NoiseIntegrationSmoke
             foreach(var mode in new[]{GroupCompositing.PassThrough,GroupCompositing.Isolated})
             {
                 group.compositing=mode;
-                Check(Difference(plain,Read())<.0001,"Group preserves periodic 3D source: "+mode);
+                Check(Difference(plain,Read())<.0001,"Group preserves periodic source: "+mode);
             }
             var basis=new ColorFillLayerBehaviour{color=new Color(1,1,1,.25f)};
             group.layers.Add(basis);noise.clippingMask=true;
@@ -39,8 +41,25 @@ public static class NoiseIntegrationSmoke
                 inputSpace=NormalMapLayerBehaviour.InputSpace.Linear,
                 output=NormalMapLayerBehaviour.OutputMode.Height,smoothing=0
             };
-            doc.layers.Insert(0,effect);var a=Read();noise.offset.z+=.5f;var b=Read();
-            Check(Difference(a,b)>.001,"Specific target tracks changed Z in nested group");
+            doc.layers.Insert(0,effect);var a=Read();
+            if(oneD)noise.offset.x+=.5f;else noise.offset.z+=.5f;
+            var b=Read();
+            Check(Difference(a,b)>.001,"Specific target tracks changed slice in nested group");
+            if(oneD)
+            {
+                noise.periodic1D=false;var unwrapped=Read();
+                Check(Difference(b,unwrapped)>.001,"Specific target invalidates 1D Seamless toggle");
+                noise.periodic1D=true;Check(Difference(b,Read())<.0001,"Re-enabling restores exact periodic output");
+            }
+            noise.warpScaleY=3;var changedWarp=Read();
+            Check(Difference(b,changedWarp)>.001,"Specific target tracks Warp Scale Y");
+            var export=doc.Compose();var decoded=new Texture2D(2,2);
+            try
+            {
+                Check(decoded.LoadImage(export.EncodeToPNG()),"PNG export decodes");
+                Check(decoded.width==doc.width && decoded.height==doc.height,"PNG export dimensions");
+            }
+            finally {UnityEngine.Object.DestroyImmediate(export);UnityEngine.Object.DestroyImmediate(decoded);}
             foreach(var pixel in b)Check(!float.IsNaN(pixel.r)&&!float.IsInfinity(pixel.r),"Finite target output");
             return "PASS Noise group/clipping/target: "+checks;
         }

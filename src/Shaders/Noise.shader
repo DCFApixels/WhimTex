@@ -35,6 +35,7 @@ Shader "Hidden/TextureCompositor/Noise"
 
             float4 _NoiseDomain, _NoiseFractalSettings;
             float4 _NoiseAxis;
+            float3 _NoiseWarpScale;
             int _NoiseOneD, _NoiseThreeD, _NoisePeriodic;
             float2 _NoiseScale;
             float _NoiseZ, _NoiseCellularJitter, _NoiseWarpStrength;
@@ -115,6 +116,8 @@ Shader "Hidden/TextureCompositor/Noise"
             #if defined(WT_NOISE_PERIODIC)
             float PeriodicNoise(fnl_state state, float2 uv)
             {
+                if (_NoiseOneD != 0)
+                    uv = float2(dot(uv - .5, _NoiseAxis.zw) + .5, .5);
                 // Canonical tile coordinates avoid loss of phase on transformed repeats.
                 // Continuity comes from the lattice hash, not a fade at the boundary.
                 if ((_NoisePeriodic & 1) != 0) uv.x = frac(uv.x);
@@ -205,11 +208,14 @@ Shader "Hidden/TextureCompositor/Noise"
                     warp.frequency = 1.0;
                     warp.domain_warp_type = _NoiseWarp - 1;
                     warp.domain_warp_amp = _NoiseWarpStrength;
+                    float3 warpPosition = p * _NoiseWarpScale;
+                    float3 warpedPosition = warpPosition;
                     #if defined(WT_NOISE_3D)
-                    fnlDomainWarp3D(warp, p.x, p.y, p.z);
+                    fnlDomainWarp3D(warp, warpedPosition.x, warpedPosition.y, warpedPosition.z);
                     #else
-                    fnlDomainWarp2D(warp, p.x, p.y);
+                    fnlDomainWarp2D(warp, warpedPosition.x, warpedPosition.y);
                     #endif
+                    p += warpedPosition - warpPosition;
                 }
                 #endif
                 float raw;

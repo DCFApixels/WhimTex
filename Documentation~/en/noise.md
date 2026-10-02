@@ -15,9 +15,15 @@ Use Noise for clouds, grain, stone-like patterns or a starting point for a heigh
 Add **Noise** through **+ → Noise** at the bottom of Layers and adjust the settings while watching the image.
 
 **Random All** at the top of the noise settings explores a new combination of generator parameters,
-including inactive generator options and **Inverted**. Output varies between Color Values and Linear Data, but stays Gradient if selected. The gradient palette, **Dimensions**, **Seamless**, linked Scale ratio, Offset Z, layer transforms, blending and FX
+including inactive generator options and **Inverted**. Output varies between Color Values and Linear Data, but stays Gradient if selected. The gradient palette, **Dimensions**, **Direction**, **Seamless**, linked Scale and Warp Scale ratios, **Offset X/Y/Z**, layer transforms, blending and FX
 stay unchanged. One Undo restores the previous combination. **Random** beside **Seed** changes only the seed.
 Noise Type stays within the selected group: **White Noise / Blue Noise**, or all other noise types.
+
+Random All gently favors a main Scale average `(X + Y) / 2` near **8**. A smooth bell-shaped
+weight ranges from 1 to 2, so distant scales remain common. With linked axes, the random
+1–64 range applies to their average, not X; the existing proportions are retained. Extreme
+ratios can restrict the reachable average because each axis must stay within 0.01–1000.
+Unlinked axes keep independent 1–64 candidates. Warp Scale randomization is unchanged.
 
 ## Start with the pattern
 
@@ -30,6 +36,7 @@ Noise Type stays within the selected group: **White Noise / Blue Noise**, or all
 | Fractal | FBm adds detail; Ridged emphasizes ridges; PingPong creates repeated bands; None disables fractals. |
 | Octaves | Add more levels of detail. |
 | Domain Warp | Bend and distort the pattern; **Warp Strength** controls the amount. None disables distortion. |
+| Warp Scale | X/Y multipliers of Noise Scale: final warp scale is `Scale × Warp Scale` per axis. Default [1,1], range 0.01–1000 per multiplier. The chain preserves proportions; unlink to edit axes separately. Random All chooses 0.25–4, preserving linked proportions. |
 
 For finer control, **Lacunarity** changes the spacing between detail scales and **Gain**
 changes how strongly the smaller details show.
@@ -50,7 +57,24 @@ or clear both pairs to disable periodicity. Hovering either edge highlights its 
 Click the center image to invert the selected pairs.
 Fractal octaves and Domain Warp remain periodic; Z never repeats. Complete lattice cells must fit the tile,
 so Scale changes in steps, especially with small OpenSimplex scales. Arbitrary transforms and FX can
-introduce canvas seams again. White/Blue Noise and 1D do not offer this option.
+introduce canvas seams again. White/Blue Noise do not offer this option.
+
+In **1D**, **Seamless** is a checkbox: it repeats the pattern along its direction of variation,
+including Fractal and Warp. One period spans the canvas projected onto that axis; Scale controls
+the detail within it and still changes in steps. Direction 0 joins left/right and 90 joins top/bottom.
+At arbitrary angles, repetition along the noise axis does not guarantee matching canvas edges.
+The checkbox and the 2D/3D edge selection are remembered independently; it starts disabled.
+
+With 2D OpenSimplex2/2S, Scale below 1 can now produce coarser fractal detail: each octave
+fits its own period from the requested Scale. Changes remain stepped, with at least one cell
+per octave. With Fractal None, the minimum-cell limit remains. Existing 2D seamless simplex
+patterns may change, including at Scale above 1; other noise types and 3D are unchanged.
+
+Warp Scale applies in 1D, 2D and 3D; Z frequency is unchanged. With Seamless, each selected
+warp axis fits complete cells from its final scale. BasicGrid with only one cell on both axes
+becomes a uniform shift: increase the Warp Scale multipliers to get distortion without
+increasing Noise Scale. For example, Scale 0.5 × Warp Scale 6 requests a warp scale of 3.
+White/Blue Noise ignore Warp Scale.
 
 ## White noise
 

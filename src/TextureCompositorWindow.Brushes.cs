@@ -215,6 +215,7 @@ namespace DCFApixels.WhimTex
             foreach (BlendMode mode in Enum.GetValues(typeof(BlendMode)))
                 if (mode != BlendMode.Overwrite && mode != BlendMode.None) modes.Add(mode.ToString());
             var blend = WhimTexUI.ConfigureField(new DropdownField(modes, modes.IndexOf(paintSettings.dynamics.blend.ToString())) { label = "Blend" });
+            BlendModeMenu.Attach(blend);
             blend.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() => paintSettings.dynamics.blend = (BlendMode)Enum.Parse(typeof(BlendMode), evt.newValue)));
             brushSettingsBindings.Track(blend, () => paintSettings.dynamics.blend.ToString());
             brushSettingsBindings.Add(() => blend.SetEnabled(paintSettings.tool != PaintToolMode.Eraser));
