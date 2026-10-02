@@ -114,9 +114,13 @@ namespace DCFApixels.WhimTex
                     active.SetValueWithoutNotify(effect.Active);
                 });
                 toolbar.Add(active);
+                var warning = WhimTexUI.CreateFxWarning();
+                toolbar.Add(warning);
+                WhimTexUI.RefreshFxWarning(warning, effect);
                 refreshActivity.Add(() =>
                 {
                     if (effect == null) return;
+                    WhimTexUI.RefreshFxWarning(warning, effect);
                     active.SetValueWithoutNotify(effect.Active);
                     active.SetEnabled(!WhimTexApi.IsShaderFXContentLocked(effect));
                 });

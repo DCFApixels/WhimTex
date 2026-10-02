@@ -1,0 +1,821 @@
+{
+  "format": "whimtex.document",
+  "version": 1,
+  "document": {
+    "colorHistory": [],
+    "layerNameCounters": [
+      {
+        "prefix": "Noise",
+        "next": 3
+      },
+      {
+        "prefix": "Color Fill",
+        "next": 3
+      },
+      {
+        "prefix": "Shader Processor",
+        "next": 2
+      }
+    ],
+    "nextCopyNumber": 1,
+    "spriteSlices": [],
+    "width": 256,
+    "height": 256,
+    "outputFilter": "Bilinear",
+    "outputPrecision": "Auto",
+    "outputSrgb": true,
+    "uvReferenceMesh": null,
+    "uvReferenceChannel": 0,
+    "uvReferenceSubmesh": -1
+  },
+  "layers": [
+    {
+      "id": "e3fb634c03764957bba06d0ee81a7291",
+      "layerName": "Glaze Cracks",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx0",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Glaze Crazing\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.18 [0 .. 1]\r\n// @param float _Width = 0.004 [0.001 .. 0.03]\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n float d=abs(color.r-.5);float coverage=1-smoothstep(_Width,_Width+fwidth(color.r),d);\r\n return float4(.06,.11,.105,coverage*_Opacity);}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 0.18,
+              "id": "3c0491a21e54446f93e16c380891d8f3",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Width",
+              "type": "Float",
+              "floatValue": 0.004,
+              "id": "5deb4c3cb1d141ba841dfb0bcd49aba8",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "39edc2b9464a4f2ebf2eee3cfee2a33d",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "NoiseLayerBehaviour",
+        "noiseType": "OpenSimplex2",
+        "dimensions": "TwoD",
+        "seed": 631,
+        "scale": 43.0,
+        "scaleY": 0.0,
+        "linkScale": true,
+        "offset": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "periodic": "None",
+        "fractal": "None",
+        "warp": "OpenSimplex2",
+        "warpStrength": 0.4,
+        "warpScale": 1.0,
+        "warpScaleY": 0.0,
+        "linkWarpScale": true,
+        "encoding": "LinearData",
+        "inverted": false,
+        "recoveryId": "c8c1bfc0c3fa44789c40fdf311a0f7b0"
+      },
+      "behaviourId": "c8c1bfc0c3fa44789c40fdf311a0f7b0",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "f2d1baeffbf0419588040c945932289c",
+      "layerName": "Mineral Chips",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 0.4,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx1",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Mineral Chip Distribution\r\n// @param float _Density = 0.23 [0 .. 1]\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n float2 cell=floor(uv*79);float h=frac(sin(dot(cell,float2(19.7,93.1)))*43758.5);\r\n color.a*=step(1-_Density,h);return color;}\r\n",
+          "parameters": [
+            {
+              "name": "_Density",
+              "type": "Float",
+              "floatValue": 0.23,
+              "id": "c331fb27d63e4c55a5d02df1bb77d0c9",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "d7a1118bbb504b9ca24e4fdfae2026cd",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "ColorFillLayerBehaviour",
+        "mode": "Pattern",
+        "pattern": {
+          "cellColor": "Random",
+          "colorBlend": "Multiply",
+          "seed": 317,
+          "variation": 1.0,
+          "palette": {
+            "colors": [
+              {
+                "color": [
+                  0.035,
+                  0.09,
+                  0.1,
+                  1.0
+                ],
+                "time": 0.0,
+                "midpoint": 0.5
+              },
+              {
+                "color": [
+                  0.16,
+                  0.4,
+                  0.35,
+                  1.0
+                ],
+                "time": 0.48,
+                "midpoint": 0.5
+              },
+              {
+                "color": [
+                  1.0,
+                  0.86,
+                  0.64,
+                  1.0
+                ],
+                "time": 0.8,
+                "midpoint": 0.5
+              },
+              {
+                "color": [
+                  0.96,
+                  0.41,
+                  0.25,
+                  1.0
+                ],
+                "time": 1.0,
+                "midpoint": 0.5
+              }
+            ],
+            "alphas": [
+              {
+                "alpha": 1.0,
+                "time": 0.0,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 1.0,
+                "time": 0.48,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 1.0,
+                "time": 0.8,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 1.0,
+                "time": 1.0,
+                "midpoint": 0.5
+              }
+            ],
+            "mode": "Linear",
+            "wrapMode": "Clamp",
+            "colorSpace": "Gamma",
+            "smoothness": 1.0
+          },
+          "shape": "Triangles",
+          "circleLayout": "Dense",
+          "size": 3.25,
+          "sizeY": 3.25,
+          "linkSize": true,
+          "rotation": 0.0,
+          "offset": [
+            0.0,
+            0.0
+          ],
+          "seamless": true,
+          "gap": 0.74,
+          "roundness": 0.15,
+          "bulge": 0.0,
+          "distanceRange": 1.0,
+          "position": "Signed",
+          "inverted": false,
+          "profile": {
+            "preWrap": "ClampForever",
+            "postWrap": "ClampForever",
+            "keys": [
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0,
+                "None"
+              ],
+              [
+                1.0,
+                1.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                "None"
+              ]
+            ]
+          },
+          "gradient": {
+            "colors": [
+              {
+                "color": [
+                  1.0,
+                  1.0,
+                  1.0,
+                  0.65
+                ],
+                "time": 0.0,
+                "midpoint": 0.5
+              },
+              {
+                "color": [
+                  1.0,
+                  1.0,
+                  1.0,
+                  0.65
+                ],
+                "time": 0.47,
+                "midpoint": 0.5
+              },
+              {
+                "color": [
+                  1.0,
+                  1.0,
+                  1.0,
+                  0.0
+                ],
+                "time": 0.5,
+                "midpoint": 0.5
+              },
+              {
+                "color": [
+                  1.0,
+                  1.0,
+                  1.0,
+                  0.0
+                ],
+                "time": 1.0,
+                "midpoint": 0.5
+              }
+            ],
+            "alphas": [
+              {
+                "alpha": 0.65,
+                "time": 0.0,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 0.65,
+                "time": 0.47,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 0.0,
+                "time": 0.5,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 0.0,
+                "time": 1.0,
+                "midpoint": 0.5
+              }
+            ],
+            "mode": "Linear",
+            "wrapMode": "Clamp",
+            "colorSpace": "Gamma",
+            "smoothness": 1.0
+          }
+        },
+        "storedColor": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "recoveryId": "0e1dfc69f63c4de1b1b25778e889587b"
+      },
+      "behaviourId": "0e1dfc69f63c4de1b1b25778e889587b",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "2e4557060c974ca9ad54c4a2135903d6",
+      "layerName": "Color Finish",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "HDR",
+      "blendRange": "HDR",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx2",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Brightness Contrast\r\n// @control(_Opacity)\r\n// @group\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original colors and the adjusted result.\r\n// @param float _Brightness = 5 [~-100 .. ~100] // Adjust midtone brightness while retaining black and white. Soft bounds allow stronger values.\r\n// @param float _Contrast = 12 [~-100 .. ~100] // Positive increases tonal separation; negative brings tones toward middle gray. Soft bounds allow stronger values.\r\n// @endgroup\r\n\r\n\r\n// Rational tone curves avoid hard clipping and exponential overflow at extended settings.\r\n// Work in the incoming RGB space, retaining signed/HDR values outside the tonal interval.\r\nfloat AdjustTone(float value, float brightnessGain, float contrastGain)\r\n{\r\n    if (value <= 0.0 || value >= 1.0) return value;\r\n    float low = value;\r\n    float high = 1.0 - value;\r\n    if (_Brightness >= 0.0) high /= brightnessGain;\r\n    else low /= brightnessGain;\r\n    // Carry the unnormalized pair into contrast: normalizing brightness first loses\r\n    // the highlight distance to rounding, which extreme negative contrast amplifies.\r\n    float nearEdge = 2.0 * min(low, high);\r\n    float nearMiddle = abs(high - low);\r\n    if (_Contrast >= 0.0) nearEdge /= contrastGain;\r\n    else nearMiddle /= contrastGain;\r\n    float mapped = 0.5 * (nearEdge / (nearEdge + nearMiddle));\r\n    return low <= high ? mapped : 1.0 - mapped;\r\n}\r\n\r\nfloat4 ApplyFX(float2 uv, float4 color)\r\n{\r\n    if (_Brightness == 0.0 && _Contrast == 0.0) return color;\r\n    float brightnessGain = 1.0 + abs(_Brightness) / 50.0;\r\n    float contrastGain = 1.0 + abs(_Contrast) / 50.0;\r\n\tfloat4 result = color;\r\n\tresult.rgb = float3(AdjustTone(color.r, brightnessGain, contrastGain),\r\n        AdjustTone(color.g, brightnessGain, contrastGain),\r\n        AdjustTone(color.b, brightnessGain, contrastGain));\r\n\treturn lerp(color, result, _Opacity);\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "f574ec118e3b4674bcabc279da56498c",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Brightness",
+              "type": "Float",
+              "floatValue": 5.0,
+              "id": "1113016be93a4dc99380d54de2a8e9b6",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Contrast",
+              "type": "Float",
+              "floatValue": 12.0,
+              "id": "a9d913906d2a4065b008523895c55703",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "09e8e0e76a6641479d8a1ba8ff44aa5a",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Clip"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "ShaderProcessorLayerBehaviour",
+        "recoveryId": "e565c83861094983b5c484566ad9c4a8"
+      },
+      "behaviourId": "e565c83861094983b5c484566ad9c4a8",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "82c6d1b486e44baaa2aeeccd0d5d7482",
+      "layerName": "Glaze Texture",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 0.16,
+      "blendMode": "SoftLight",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "NoiseLayerBehaviour",
+        "noiseType": "OpenSimplex2",
+        "dimensions": "TwoD",
+        "seed": 329,
+        "scale": 64.0,
+        "scaleY": 0.0,
+        "linkScale": true,
+        "offset": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "periodic": "None",
+        "fractal": "FBm",
+        "octaves": 2,
+        "lacunarity": 2.0,
+        "gain": 0.5,
+        "weightedStrength": 0.0,
+        "warp": "None",
+        "encoding": "LinearData",
+        "inverted": false,
+        "recoveryId": "1228c71c2e294104a2ab7f032b620258"
+      },
+      "behaviourId": "1228c71c2e294104a2ab7f032b620258",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "8ad99d3a019d4285834a610fc2a3957b",
+      "layerName": "Triangle Tiles",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "ColorFillLayerBehaviour",
+        "mode": "Pattern",
+        "pattern": {
+          "cellColor": "Random",
+          "colorBlend": "Multiply",
+          "seed": 127,
+          "variation": 1.0,
+          "palette": {
+            "colors": [
+              {
+                "color": [
+                  0.1,
+                  0.3,
+                  0.32,
+                  1.0
+                ],
+                "time": 0.0,
+                "midpoint": 0.5
+              },
+              {
+                "color": [
+                  0.24,
+                  0.52,
+                  0.51,
+                  1.0
+                ],
+                "time": 0.3,
+                "midpoint": 0.5
+              },
+              {
+                "color": [
+                  0.89,
+                  0.8,
+                  0.59,
+                  1.0
+                ],
+                "time": 0.55,
+                "midpoint": 0.5
+              },
+              {
+                "color": [
+                  0.88,
+                  0.4,
+                  0.25,
+                  1.0
+                ],
+                "time": 0.75,
+                "midpoint": 0.5
+              },
+              {
+                "color": [
+                  0.34,
+                  0.12,
+                  0.13,
+                  1.0
+                ],
+                "time": 1.0,
+                "midpoint": 0.5
+              }
+            ],
+            "alphas": [
+              {
+                "alpha": 1.0,
+                "time": 0.0,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 1.0,
+                "time": 0.3,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 1.0,
+                "time": 0.55,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 1.0,
+                "time": 0.75,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 1.0,
+                "time": 1.0,
+                "midpoint": 0.5
+              }
+            ],
+            "mode": "Linear",
+            "wrapMode": "Clamp",
+            "colorSpace": "Gamma",
+            "smoothness": 1.0
+          },
+          "shape": "Triangles",
+          "circleLayout": "Dense",
+          "size": 24.0,
+          "sizeY": 24.0,
+          "linkSize": true,
+          "rotation": 0.0,
+          "offset": [
+            0.0,
+            0.0
+          ],
+          "seamless": true,
+          "gap": 0.055,
+          "roundness": 0.12,
+          "bulge": 0.28,
+          "distanceRange": 0.28,
+          "position": "Signed",
+          "inverted": false,
+          "profile": {
+            "preWrap": "ClampForever",
+            "postWrap": "ClampForever",
+            "keys": [
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0,
+                "None"
+              ],
+              [
+                1.0,
+                1.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                "None"
+              ]
+            ]
+          },
+          "gradient": {
+            "colors": [
+              {
+                "color": [
+                  1.0,
+                  1.0,
+                  1.0,
+                  1.0
+                ],
+                "time": 0.0,
+                "midpoint": 0.5
+              },
+              {
+                "color": [
+                  0.97,
+                  0.97,
+                  0.97,
+                  1.0
+                ],
+                "time": 0.35,
+                "midpoint": 0.5
+              },
+              {
+                "color": [
+                  0.65,
+                  0.65,
+                  0.65,
+                  1.0
+                ],
+                "time": 0.49,
+                "midpoint": 0.5
+              },
+              {
+                "color": [
+                  0.16,
+                  0.16,
+                  0.16,
+                  1.0
+                ],
+                "time": 0.53,
+                "midpoint": 0.5
+              },
+              {
+                "color": [
+                  0.12,
+                  0.12,
+                  0.12,
+                  1.0
+                ],
+                "time": 1.0,
+                "midpoint": 0.5
+              }
+            ],
+            "alphas": [
+              {
+                "alpha": 1.0,
+                "time": 0.0,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 1.0,
+                "time": 0.35,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 1.0,
+                "time": 0.49,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 1.0,
+                "time": 0.53,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 1.0,
+                "time": 1.0,
+                "midpoint": 0.5
+              }
+            ],
+            "mode": "Linear",
+            "wrapMode": "Clamp",
+            "colorSpace": "Gamma",
+            "smoothness": 1.0
+          }
+        },
+        "storedColor": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "recoveryId": "04cca6669519484398c8716a365ce3c9"
+      },
+      "behaviourId": "04cca6669519484398c8716a365ce3c9",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    }
+  ]
+}

@@ -6,6 +6,11 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- A unified Export window with format-specific settings and a separate final path selection. JSON defaults to Full Optimized and warns before omitting Drawing pixels; JPEG exposes quality, and EXR exposes precision and lossless compression. Canceling path selection retains settings; errors leave the window open. Save As remains separate.
+- Failed or uncompiled Shader FX have warning markers in Layers and both FX headers. JSON retains broken source and parameters while skipping the effect; repeated identical failures are not logged again for the same effect instance. Successful Apply restores the effect. Optional JSON write mode survives reopening and ordinary saves without changing on one-off export.
+
+- Editable `.json` documents share one format with layer clipboard and agent serialization. Full, Full Optimized (default), and Compact writing modes; JSON Export, reopening, versioned defaults, explicit Drawing omission warnings, and GUID/Path asset recovery.
+
 - Agent API `resize` operation for Batch, Headless Live and Assistant, preserving normalized layer placement without flattening sources. Pixel-valued effect settings remain explicit.
 - Gradient Map has a Source Channel selector: Luminance (default), R, G, B or Alpha. The selected input drives the full RGBA gradient; source-alpha preservation is unchanged.
 - Shape layers have SDF-based Feather in canvas pixels, with Inside, Outside and Centered placement for fill and stroke. Zero preserves existing rendering; softened ellipses use contour distance for even falloff.
@@ -32,6 +37,13 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- JSON paste now preserves FX with compilation failures, matching document opening: warnings identify skipped effects, while source, parameter values and enabled state remain available for repair. Invalid document structure and dependencies still block insertion.
+- Layers now labels its shared-format clipboard export Copy as JSON. Browser-AI instructions and nine procedural recipes use the unified document contract; legacy input syntax and URL-image support are documented separately without removing compatibility.
+- JSON Export uses the plain `.json` extension; existing `.whimtex.json` files remain readable. Save As saves TIFF directly, without a format submenu; Ctrl+S still saves an opened JSON document in place.
+- JSON reading validates scalar/component types, declared enum names and finite numeric representation with field paths, while preserving native storage sentinels and stepped curve tangents. The generated schema matches these constraints. Agent status identifies JSON storage, failed opens report errors without a modal dialog, and regular validation returns JSON load warnings.
+- JSON document settings are optional. Opening uses versioned defaults; pasting inherits unspecified canvas axes without an unnecessary size prompt. Every export mode retains explicit source dimensions for predictable reuse.
+- JSON no longer writes a document/fragment discriminator: whole-document and selected-layer exports can both be opened or pasted. The operation determines how content is applied; an earlier export's string `kind` is ignored.
+- Replaced the internal agent texture library with 38 curated procedural JSON recipes and individual losslessly optimized PNG previews. A searchable manifest includes descriptions, tags, output color encoding and per-sample dimensions; data-map PNGs retain raw linear channels. Redundant TIFFs and the overview atlas are no longer bundled.
 - Noise Random All preserves the 1D Direction setting as well as Offset and Seamless.
 
 - Gradient Map FX now applies gradient alpha, multiplied by source alpha and blended by FX strength. Opaque gradients retain the previous appearance.
@@ -56,6 +68,8 @@ All notable changes to WhimTex are documented in this file.
 - Ordinary preview is limited to 512 pixels and may choose different Quilting patches than export. Full-resolution Tiled preview is available with Pencil selected. Save and export use full resolution.
 
 ### Fixed
+
+- JSON-backed document revisions now include current Drawing pixels. Agent JSON `write` honors `save:false` without creating or overwriting files. Shared-format clipboard paste preserves the destination output filter, including when adopting source canvas dimensions.
 
 - Documentation publishing no longer fails on the build guide's validation-report link; source checks reject relative links to unpublished repository files.
 

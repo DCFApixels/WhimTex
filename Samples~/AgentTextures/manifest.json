@@ -1,129 +1,796 @@
 {
   "format": "whimtex.agent-samples",
-  "version": 1,
-  "canvas": {
-    "width": 256,
-    "height": 256
-  },
+  "version": 2,
+  "previewEncoding": "RGBA8, straight alpha; per-sample outputSrgb selects sRGB color encoding or unmodified linear data values. Values are clamped to 0..1.",
   "samples": [
     {
-      "id": "01",
+      "id": "Arcane_Rift",
       "title": "Arcane Rift",
-      "document": "01_Arcane_Rift.tiff",
-      "recipe": "01_Arcane_Rift.layers.json",
-      "preview": "01_Arcane_Rift.png",
+      "recipe": "Arcane_Rift.whimtex.json",
+      "preview": "Arcane_Rift.png",
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": true,
       "category": "VFX",
-      "description": "Layered plasma portal with broken arcs, spiral threads and orbiting motes.",
+      "description": "Broken plasma ring with spiral threads, orbiting motes and targeted glow.",
+      "tags": [
+        "portal",
+        "noise",
+        "twirl",
+        "gradient",
+        "glow"
+      ],
       "layers": 5
     },
     {
-      "id": "02",
-      "title": "Solar Impact",
-      "document": "02_Solar_Impact.tiff",
-      "recipe": "02_Solar_Impact.layers.json",
-      "preview": "02_Solar_Impact.png",
+      "id": "Aura_Soft",
+      "title": "Aura Soft",
+      "recipe": "Aura_Soft.whimtex.json",
+      "preview": "Aura_Soft.png",
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": true,
       "category": "VFX",
-      "description": "Radial impact burst with sparks, rays and a turbulent shock front.",
-      "layers": 5
+      "description": "Soft irregular luminous ring with a turbulent outline and broad halo.",
+      "tags": [
+        "aura",
+        "ring",
+        "noise",
+        "glow"
+      ],
+      "layers": 3
     },
     {
-      "id": "03",
-      "title": "Ethereal Smoke",
-      "document": "03_Ethereal_Smoke.tiff",
-      "recipe": "03_Ethereal_Smoke.layers.json",
-      "preview": "03_Ethereal_Smoke.png",
+      "id": "Beam",
+      "title": "Beam",
+      "recipe": "Beam.whimtex.json",
+      "preview": "Beam.png",
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": true,
       "category": "VFX",
-      "description": "Colored vapor with noise-shaped density, tendrils and floating motes.",
-      "layers": 5
+      "description": "Paired spectral diffraction lobes with a dark center.",
+      "tags": [
+        "beam",
+        "spectrum",
+        "diffraction"
+      ],
+      "layers": 2
     },
     {
-      "id": "04",
-      "title": "Terrazzo Triangles",
-      "document": "04_Terrazzo_Triangles.tiff",
-      "recipe": "04_Terrazzo_Triangles.layers.json",
-      "preview": "04_Terrazzo_Triangles.png",
-      "category": "Surface",
-      "description": "Rounded triangle SDF tiles with seeded palettes, chips and glaze.",
-      "layers": 5
-    },
-    {
-      "id": "05",
-      "title": "Hex Reactor Panels",
-      "document": "05_Hex_Reactor_Panels.tiff",
-      "recipe": "05_Hex_Reactor_Panels.layers.json",
-      "preview": "05_Hex_Reactor_Panels.png",
-      "category": "Surface",
-      "description": "Hexagon SDF panels, luminous seams, circuit markings and amber lamps.",
-      "layers": 5
-    },
-    {
-      "id": "06",
-      "title": "Surveyed Archipelago",
-      "document": "06_Surveyed_Archipelago.tiff",
-      "recipe": "06_Surveyed_Archipelago.layers.json",
-      "preview": "06_Surveyed_Archipelago.png",
-      "category": "Surface",
-      "description": "Domain-warped terrain with gradient colors, contour lines and survey markings.",
-      "layers": 5
-    },
-    {
-      "id": "07",
+      "id": "Bubble",
       "title": "Bubble",
-      "document": "07_Bubble.tiff",
-      "recipe": "07_Bubble.layers.json",
-      "preview": "07_Bubble.png",
+      "recipe": "Bubble.whimtex.json",
+      "preview": "Bubble.png",
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": true,
       "category": "VFX",
-      "description": "Translucent bubble with separate rim, inner reflection and highlights.",
+      "description": "Transparent bubble with a bright rim, inner reflection and two highlights.",
+      "tags": [
+        "bubble",
+        "transparent",
+        "rim",
+        "highlight"
+      ],
       "layers": 4
     },
     {
-      "id": "08",
-      "title": "Smoke Billows",
-      "document": "08_Smoke_Billows.tiff",
-      "recipe": "08_Smoke_Billows.layers.json",
-      "preview": "08_Smoke_Billows.png",
+      "id": "Clouds_Soft_2x2",
+      "title": "Clouds Soft 2x2",
+      "recipe": "Clouds_Soft_2x2.whimtex.json",
+      "preview": "Clouds_Soft_2x2.png",
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": true,
+      "category": "Sprite Sheet",
+      "description": "Four soft billowing cloud sprites arranged in a 2 by 2 sheet.",
+      "tags": [
+        "cloud",
+        "2x2",
+        "density",
+        "alpha"
+      ],
+      "layers": 2
+    },
+    {
+      "id": "Clouds_Soft_Translucent_2x2",
+      "title": "Clouds Soft Translucent 2x2",
+      "recipe": "Clouds_Soft_Translucent_2x2.whimtex.json",
+      "preview": "Clouds_Soft_Translucent_2x2.png",
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": true,
+      "category": "Sprite Sheet",
+      "description": "Translucent variation of the four billowing cloud sprites.",
+      "tags": [
+        "cloud",
+        "2x2",
+        "translucent",
+        "alpha"
+      ],
+      "layers": 2
+    },
+    {
+      "id": "Crescent_Trails",
+      "title": "Crescent Trails",
+      "recipe": "Crescent_Trails.whimtex.json",
+      "preview": "Crescent_Trails.png",
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": true,
       "category": "VFX",
-      "description": "Tint-ready smoke particle: overlapping density lobes, white RGB and soft alpha, without baked lighting.",
+      "description": "Luminous crescent front with layered straight trails of varied lengths.",
+      "tags": [
+        "crescent",
+        "trail",
+        "blur",
+        "alpha"
+      ],
+      "layers": 17
+    },
+    {
+      "id": "Drop_Opaque",
+      "title": "Drop Opaque",
+      "recipe": "Drop_Opaque.whimtex.json",
+      "preview": "Drop_Opaque.png",
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": true,
+      "category": "VFX",
+      "description": "Opaque rounded liquid drop with a soft reflection and rim light.",
+      "tags": [
+        "drop",
+        "opaque",
+        "reflection",
+        "rim"
+      ],
+      "layers": 4
+    },
+    {
+      "id": "Drop_Transparent",
+      "title": "Drop Transparent",
+      "recipe": "Drop_Transparent.whimtex.json",
+      "preview": "Drop_Transparent.png",
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": true,
+      "category": "VFX",
+      "description": "Transparent rounded liquid drop with a soft reflection and rim light.",
+      "tags": [
+        "drop",
+        "transparent",
+        "reflection",
+        "rim"
+      ],
+      "layers": 4
+    },
+    {
+      "id": "Flare_01",
+      "title": "Flare 01",
+      "recipe": "Flare_01.whimtex.json",
+      "preview": "Flare_01.png",
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": true,
+      "category": "VFX",
+      "description": "Four-point flare with asymmetric curved sides and a subtle halo.",
+      "tags": [
+        "flare",
+        "star",
+        "four-point",
+        "halo"
+      ],
+      "layers": 3
+    },
+    {
+      "id": "Flare_02",
+      "title": "Flare 02",
+      "recipe": "Flare_02.whimtex.json",
+      "preview": "Flare_02.png",
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": true,
+      "category": "VFX",
+      "description": "Crisp four-point pinched star with a compact center.",
+      "tags": [
+        "flare",
+        "star",
+        "four-point",
+        "sharp"
+      ],
+      "layers": 2
+    },
+    {
+      "id": "Flare_03",
+      "title": "Flare 03",
+      "recipe": "Flare_03.whimtex.json",
+      "preview": "Flare_03.png",
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": true,
+      "category": "VFX",
+      "description": "Soft four-point sparkle with a bright core and radial halo.",
+      "tags": [
+        "flare",
+        "sparkle",
+        "four-point",
+        "glow"
+      ],
+      "layers": 3
+    },
+    {
+      "id": "Gas_Particle",
+      "title": "Gas Particle",
+      "recipe": "Gas_Particle.whimtex.json",
+      "preview": "Gas_Particle.png",
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": false,
+      "category": "Packed Data",
+      "description": "Layered gas fields packed into RGB channels, with tile-edge processing.",
+      "tags": [
+        "gas",
+        "packed-channels",
+        "noise",
+        "seam-correction"
+      ],
+      "layers": 25
+    },
+    {
+      "id": "Glow_Soft",
+      "title": "Glow Soft",
+      "recipe": "Glow_Soft.whimtex.json",
+      "preview": "Glow_Soft.png",
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": true,
+      "category": "VFX",
+      "description": "Soft bright core surrounded by irregular radial light rays and a halo.",
+      "tags": [
+        "glow",
+        "flare",
+        "rays",
+        "halo"
+      ],
+      "layers": 4
+    },
+    {
+      "id": "Glow_Star",
+      "title": "Glow Star",
+      "recipe": "Glow_Star.whimtex.json",
+      "preview": "Glow_Star.png",
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": true,
+      "category": "VFX",
+      "description": "Small luminous star with thin diffraction rays and a broad soft halo.",
+      "tags": [
+        "glow",
+        "star",
+        "diffraction",
+        "halo"
+      ],
+      "layers": 5
+    },
+    {
+      "id": "Gradient_Vertical_Spiky",
+      "title": "Gradient Vertical Spiky",
+      "recipe": "Gradient_Vertical_Spiky.whimtex.json",
+      "preview": "Gradient_Vertical_Spiky.png",
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": true,
+      "category": "VFX",
+      "description": "Vertical energy curtain with varied spikes, designed to repeat horizontally.",
+      "tags": [
+        "gradient",
+        "spikes",
+        "horizontal-repeat"
+      ],
+      "layers": 2
+    },
+    {
+      "id": "Impact",
+      "title": "Impact",
+      "recipe": "Impact.whimtex.json",
+      "preview": "Impact.png",
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": true,
+      "category": "VFX",
+      "description": "Radial impact ring with straight pointed rays and layered Gaussian glow.",
+      "tags": [
+        "impact",
+        "rays",
+        "ring",
+        "gaussian-blur"
+      ],
+      "layers": 4
+    },
+    {
+      "id": "Light_Ray_01",
+      "title": "Light Ray 01",
+      "recipe": "Light_Ray_01.whimtex.json",
+      "preview": "Light_Ray_01.png",
+      "canvas": {
+        "width": 256,
+        "height": 64,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": true,
+      "category": "VFX",
+      "description": "Parallel light beam fading along its length, with soft Gaussian glow.",
+      "tags": [
+        "beam",
+        "trail",
+        "gaussian-blur"
+      ],
+      "layers": 3
+    },
+    {
+      "id": "Light_Ray_02",
+      "title": "Light Ray 02",
+      "recipe": "Light_Ray_02.whimtex.json",
+      "preview": "Light_Ray_02.png",
+      "canvas": {
+        "width": 256,
+        "height": 64,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": true,
+      "category": "VFX",
+      "description": "Expanding light beam with a tapered head, length fade and Gaussian glow.",
+      "tags": [
+        "beam",
+        "trail",
+        "taper",
+        "gaussian-blur"
+      ],
+      "layers": 3
+    },
+    {
+      "id": "Lightning",
+      "title": "Lightning",
+      "recipe": "Lightning.whimtex.json",
+      "preview": "Lightning.png",
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": true,
+      "category": "VFX",
+      "description": "Seeded lightning filament with independently tinted inner and outer glows.",
+      "tags": [
+        "lightning",
+        "filament",
+        "glow"
+      ],
+      "layers": 4
+    },
+    {
+      "id": "Magic_Blast",
+      "title": "Magic Blast",
+      "recipe": "Magic_Blast.whimtex.json",
+      "preview": "Magic_Blast.png",
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": true,
+      "category": "VFX",
+      "description": "Bright energy burst with pointed axial rays and layered soft glow.",
+      "tags": [
+        "burst",
+        "rays",
+        "gaussian-blur"
+      ],
+      "layers": 5
+    },
+    {
+      "id": "Magic_Line",
+      "title": "Magic Line",
+      "recipe": "Magic_Line.whimtex.json",
+      "preview": "Magic_Line.png",
+      "canvas": {
+        "width": 256,
+        "height": 128,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": true,
+      "category": "VFX",
+      "description": "Soft elongated magic streak with a luminous center and halo.",
+      "tags": [
+        "streak",
+        "trail",
+        "glow"
+      ],
+      "layers": 3
+    },
+    {
+      "id": "Magic_Line_Sharp",
+      "title": "Magic Line Sharp",
+      "recipe": "Magic_Line_Sharp.whimtex.json",
+      "preview": "Magic_Line_Sharp.png",
+      "canvas": {
+        "width": 256,
+        "height": 128,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": true,
+      "category": "VFX",
+      "description": "Sharp elongated magic streak with separate inner and outer contour glows.",
+      "tags": [
+        "streak",
+        "trail",
+        "sdf",
+        "contour-glow"
+      ],
+      "layers": 4
+    },
+    {
+      "id": "Muzzle_Flash",
+      "title": "Muzzle Flash",
+      "recipe": "Muzzle_Flash.whimtex.json",
+      "preview": "Muzzle_Flash.png",
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": true,
+      "category": "VFX",
+      "description": "Directional orange flame with rear spikes, fine sparks and a luminous core.",
+      "tags": [
+        "fire",
+        "muzzle-flash",
+        "sparks",
+        "gradient"
+      ],
+      "layers": 18
+    },
+    {
+      "id": "Orange_Sun",
+      "title": "Orange Sun",
+      "recipe": "Orange_Sun.whimtex.json",
+      "preview": "Orange_Sun.png",
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": true,
+      "category": "VFX",
+      "description": "Orange stellar sphere with granular surface, rim light and a broad corona.",
+      "tags": [
+        "sun",
+        "sphere",
+        "noise",
+        "corona"
+      ],
+      "layers": 7
+    },
+    {
+      "id": "Ring",
+      "title": "Ring",
+      "recipe": "Ring.whimtex.json",
+      "preview": "Ring.png",
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": true,
+      "category": "VFX",
+      "description": "Thin circular rim fading softly toward its transparent center.",
+      "tags": [
+        "ring",
+        "rim",
+        "gradient"
+      ],
+      "layers": 2
+    },
+    {
+      "id": "Ring_Distortion",
+      "title": "Ring Distortion",
+      "recipe": "Ring_Distortion.whimtex.json",
+      "preview": "Ring_Distortion.png",
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": false,
+      "category": "Packed Data",
+      "description": "Ring distortion texture carrying an RG field and a blue profile.",
+      "tags": [
+        "ring",
+        "distortion",
+        "packed-channels"
+      ],
+      "layers": 1
+    },
+    {
+      "id": "Ring_Portal_Spiky",
+      "title": "Ring Portal Spiky",
+      "recipe": "Ring_Portal_Spiky.whimtex.json",
+      "preview": "Ring_Portal_Spiky.png",
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": true,
+      "category": "VFX",
+      "description": "Portal rim with broad inward-pointing spikes and soft inner shading.",
+      "tags": [
+        "portal",
+        "ring",
+        "spikes",
+        "gradient"
+      ],
+      "layers": 8
+    },
+    {
+      "id": "Shockwave",
+      "title": "Shockwave",
+      "recipe": "Shockwave.whimtex.json",
+      "preview": "Shockwave.png",
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": true,
+      "category": "VFX",
+      "description": "Frayed shock ring with radial streaks and layer-sourced displacement.",
+      "tags": [
+        "shockwave",
+        "ring",
+        "displacement",
+        "noise"
+      ],
+      "layers": 7
+    },
+    {
+      "id": "Shockwave_Spiky",
+      "title": "Shockwave Spiky",
+      "recipe": "Shockwave_Spiky.whimtex.json",
+      "preview": "Shockwave_Spiky.png",
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": true,
+      "category": "VFX",
+      "description": "Bright shock ring with inward spikes and rounded rectangular gaps.",
+      "tags": [
+        "shockwave",
+        "ring",
+        "spikes",
+        "rounded-gaps"
+      ],
+      "layers": 4
+    },
+    {
+      "id": "Sketch_Hatching",
+      "title": "Sketch Hatching",
+      "recipe": "Sketch_Hatching.whimtex.json",
+      "preview": "Sketch_Hatching.png",
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": true,
+      "category": "Surface",
+      "description": "Cell-oriented hatching with changing stroke directions and fine antialiased lines.",
+      "tags": [
+        "hatching",
+        "cells",
+        "lines",
+        "antialiasing"
+      ],
+      "layers": 2
+    },
+    {
+      "id": "Smoke_2x2",
+      "title": "Smoke 2x2",
+      "recipe": "Smoke_2x2.whimtex.json",
+      "preview": "Smoke_2x2.png",
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": true,
+      "category": "Sprite Sheet",
+      "description": "Four folded smoke sprites with irregular noise-shaped silhouettes and tile-edge fades.",
+      "tags": [
+        "smoke",
+        "2x2",
+        "noise",
+        "edge-fade"
+      ],
+      "layers": 2
+    },
+    {
+      "id": "Smoke_Billows",
+      "title": "Smoke Billows",
+      "recipe": "Smoke_Billows.whimtex.json",
+      "preview": "Smoke_Billows.png",
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": true,
+      "category": "VFX",
+      "description": "Tint-ready billowing smoke built from overlapping density lobes with white RGB and soft alpha.",
+      "tags": [
+        "smoke",
+        "density",
+        "alpha",
+        "tint-ready"
+      ],
       "layers": 12
     },
     {
-      "id": "09",
-      "title": "Orange Sun",
-      "document": "09_Orange_Sun.tiff",
-      "recipe": "09_Orange_Sun.layers.json",
-      "preview": "09_Orange_Sun.png",
-      "category": "VFX",
-      "description": "Orange stellar sphere with granulation, a Fresnel-like rim and a broad corona.",
-      "layers": 7
+      "id": "Smoke_Light_2x2",
+      "title": "Smoke Light 2x2",
+      "recipe": "Smoke_Light_2x2.whimtex.json",
+      "preview": "Smoke_Light_2x2.png",
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": true,
+      "category": "Sprite Sheet",
+      "description": "Lighter variation of the folded smoke sheet with the same cell layout.",
+      "tags": [
+        "smoke",
+        "2x2",
+        "light",
+        "edge-fade"
+      ],
+      "layers": 2
     },
     {
-      "id": "10",
-      "title": "Lightning",
-      "document": "10_Lightning.tiff",
-      "recipe": "10_Lightning.layers.json",
-      "preview": "10_Lightning.png",
-      "category": "VFX",
-      "description": "Procedural lightning filament with independently tinted inner and outer glows.",
-      "layers": 4
+      "id": "Sphere_Distortion",
+      "title": "Sphere Distortion",
+      "recipe": "Sphere_Distortion.whimtex.json",
+      "preview": "Sphere_Distortion.png",
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": false,
+      "category": "Packed Data",
+      "description": "Smooth spherical distortion field with a circular profile.",
+      "tags": [
+        "sphere",
+        "distortion",
+        "packed-channels"
+      ],
+      "layers": 2
     },
     {
-      "id": "11",
-      "title": "Shock Wave",
-      "document": "11_Shock_Wave.tiff",
-      "recipe": "11_Shock_Wave.layers.json",
-      "preview": "11_Shock_Wave.png",
+      "id": "Steam",
+      "title": "Steam",
+      "recipe": "Steam.whimtex.json",
+      "preview": "Steam.png",
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": true,
       "category": "VFX",
-      "description": "Frayed shock ring combining radial flares, a radial gradient and layer-sourced displacement.",
-      "layers": 7
+      "description": "Soft steam plume with layered wisps and irregular fading density.",
+      "tags": [
+        "steam",
+        "smoke",
+        "wisps",
+        "alpha"
+      ],
+      "layers": 6
     },
     {
-      "id": "12",
-      "title": "Star Glow",
-      "document": "12_Star_Glow.tiff",
-      "recipe": "12_Star_Glow.layers.json",
-      "preview": "12_Star_Glow.png",
-      "category": "VFX",
-      "description": "White flare with separate core, diffraction rays and halo.",
+      "id": "Surveyed_Archipelago",
+      "title": "Surveyed Archipelago",
+      "recipe": "Surveyed_Archipelago.whimtex.json",
+      "preview": "Surveyed_Archipelago.png",
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": true,
+      "category": "Surface",
+      "description": "Domain-warped terrain with gradient colors, contour lines and survey markings.",
+      "tags": [
+        "terrain",
+        "domain-warp",
+        "gradient",
+        "contours"
+      ],
+      "layers": 5
+    },
+    {
+      "id": "Terrazzo_Triangles",
+      "title": "Terrazzo Triangles",
+      "recipe": "Terrazzo_Triangles.whimtex.json",
+      "preview": "Terrazzo_Triangles.png",
+      "canvas": {
+        "width": 256,
+        "height": 256,
+        "filter": "Bilinear"
+      },
+      "outputSrgb": true,
+      "category": "Surface",
+      "description": "Colored triangular tiles with seeded palettes, chips and surface grain.",
+      "tags": [
+        "triangles",
+        "pattern",
+        "palette",
+        "grain"
+      ],
       "layers": 5
     }
   ]

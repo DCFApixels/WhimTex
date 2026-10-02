@@ -1,0 +1,413 @@
+{
+  "format": "whimtex.document",
+  "version": 1,
+  "document": {
+    "colorHistory": [],
+    "layerNameCounters": [
+      {
+        "prefix": "Shader Processor",
+        "next": 2
+      },
+      {
+        "prefix": "Blur",
+        "next": 3
+      },
+      {
+        "prefix": "Color Fill",
+        "next": 2
+      }
+    ],
+    "nextCopyNumber": 1,
+    "spriteSlices": [],
+    "width": 256,
+    "height": 256,
+    "outputFilter": "Bilinear",
+    "outputPrecision": "Auto",
+    "outputSrgb": true,
+    "uvReferenceMesh": null,
+    "uvReferenceChannel": 0,
+    "uvReferenceSubmesh": -1
+  },
+  "layers": [
+    {
+      "id": "c0fc63a568604eec8030f1bb42bed429",
+      "layerName": "Master Tint",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "HDR",
+      "blendRange": "HDR",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx0",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Master Tint\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1]\r\n// @param color _Tint = (1, 1, 1, 1)\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color){return float4(color.rgb*_Tint.rgb,color.a*_Opacity*_Tint.a);}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "beb591bddbd74fe6a0ef56f9accb56cd",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Tint",
+              "type": "Color",
+              "colorValue": [
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ],
+              "id": "fd8f221217804cd29bce15dd0e46fb66",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "a5454e175aa640b9966b0dbd710b3131",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Clip"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "ShaderProcessorLayerBehaviour",
+        "recoveryId": "d0b9028f9d2348ff82aec3f867374a33"
+      },
+      "behaviourId": "d0b9028f9d2348ff82aec3f867374a33",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "4cd4a8d6c022431b92a661ceee10f391",
+      "layerName": "Inner Glow",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 0.65,
+      "blendMode": "Add",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx1",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Gain\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\r\n// @group\r\n// @param float _Gain = 1 [0 .. ~4]\r\n// @param color _Tint = (0, 0.9883721, 1, 1)\r\n// @endgroup\r\n\r\n\r\nfloat4 ApplyFX(float2 uv, float4 color)\r\n{\r\n    float4 correctedColor = float4(color.rgb * _Tint.rgb * _Gain, color.a * _Tint.a);\r\n\treturn lerp(color, correctedColor, _Opacity);\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "279dae2ef5a0471abed0b7bed606edde",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Gain",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "ee14d4e9e615436f8f5390fcd9cdf690",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Tint",
+              "type": "Color",
+              "colorValue": [
+                0.0,
+                0.9883721,
+                1.0,
+                1.0
+              ],
+              "id": "e3ebb2e2751b4d6ab1b67c0424db6f20",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "e5e146508ec04b57a15352c1dc8b13de",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Clip"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "BlurLayerBehaviour",
+        "strength": 1.16,
+        "radius": 7.0,
+        "edges": "Transparent",
+        "mode": "Gaussian",
+        "targetLayerId": "778710a9191b42d59d11d216e091389c",
+        "inputMode": "Specific",
+        "recoveryId": "ec1a899ef82b43f3ac488b4e24d8f199"
+      },
+      "behaviourId": "ec1a899ef82b43f3ac488b4e24d8f199",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "778710a9191b42d59d11d216e091389c",
+      "layerName": "Lightning Filament",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx2",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Lightning Path\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1]\r\n// @param float _Width = 0.012 [0.0005 .. 0.012]\r\n// @param float _Bend = 0.143 [0 .. 0.3]\r\n// @param float _Seed = 22.7 [0 .. 100]\r\n// @param float _Glow = 0.53 [0 .. 1]\r\n// @param float _GlowWidth = 1.8 [1 .. 20]\r\n\r\nfloat PathX(float t){return .5+_Bend*(.68*sin(t*9+_Seed)+.28*sin(t*24+1.2)+.12*sin(t*63+2));}\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n    float d=1;float along=0;\r\n    for(int i=0;i<96;i++){\r\n        float t=i/96.0;float s=(i+1)/96.0;\r\n        float2 a=float2(PathX(t),.065+t*.87);float2 b=float2(PathX(s),.065+s*.87);\r\n        float2 ab=b-a;float h=saturate(dot(uv-a,ab)/dot(ab,ab));\r\n        float distance=length(uv-a-ab*h);\r\n        if(distance<d){d=distance;along=lerp(t,s,h);}\r\n    }\r\n    float width=_Width*(.8+.2*sin(along*57+_Seed));\r\n    float aa=max(fwidth(d),.0003);\r\n    float alpha=1-smoothstep(width*.4,width+aa,d);\r\n    alpha+=_Glow*exp(-d/max(width*_GlowWidth,.0001));\r\n    alpha*=smoothstep(.045,.085,uv.y)*(1-smoothstep(.915,.955,uv.y));\r\n    return float4(1,1,1,saturate(alpha)*_Opacity);\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "27a18d7271df4e998249a460e2030157",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Width",
+              "type": "Float",
+              "floatValue": 0.012,
+              "id": "a0c34967d0174fbcb9c5b91ee34c17d0",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Bend",
+              "type": "Float",
+              "floatValue": 0.143,
+              "id": "1ff2a97ceb844025bafe023f058cab3d",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Seed",
+              "type": "Float",
+              "floatValue": 22.7,
+              "id": "a721d8b0b5eb40db9ab8c13a91a88dc3",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Glow",
+              "type": "Float",
+              "floatValue": 0.53,
+              "id": "4c4a94bb8d1f4d14902a28e5d4048370",
+              "declaredInCode": true
+            },
+            {
+              "name": "_GlowWidth",
+              "type": "Float",
+              "floatValue": 1.8,
+              "id": "fe3ddb710d694973a638dce580cfddad",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "9792aa9789184eed91c5f416274ded3f",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "ColorFillLayerBehaviour",
+        "mode": "Color",
+        "storedColor": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "recoveryId": "71ab427ab4124160b2805eb025f340bb"
+      },
+      "behaviourId": "71ab427ab4124160b2805eb025f340bb",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "5664791cbfe643b68313c04175e33743",
+      "layerName": "Outer Glow",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 0.9,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx3",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Gain\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\r\n// @group\r\n// @param float _Gain = 1.24 [0 .. ~4]\r\n// @param color _Tint = (0, 0.712175369, 1, 1)\r\n// @endgroup\r\n\r\n\r\nfloat4 ApplyFX(float2 uv, float4 color)\r\n{\r\n    float4 correctedColor = float4(color.rgb * _Tint.rgb * _Gain, color.a * _Tint.a);\r\n\treturn lerp(color, correctedColor, _Opacity);\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "8f1ac90e1b6e40ee8dbef707900c4bc0",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Gain",
+              "type": "Float",
+              "floatValue": 1.24,
+              "id": "0f6f9a0c96dc4afa98c48e23800b3bbb",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Tint",
+              "type": "Color",
+              "colorValue": [
+                0.0,
+                0.712175369,
+                1.0,
+                1.0
+              ],
+              "id": "4255def73d6949029057d8fcf8b9cb2a",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "2a7fbff503604c27a0ffdccb08def7c7",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Clip"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "BlurLayerBehaviour",
+        "strength": 2.22,
+        "radius": 30.5,
+        "edges": "Transparent",
+        "mode": "Gaussian",
+        "targetLayerId": "778710a9191b42d59d11d216e091389c",
+        "inputMode": "Specific",
+        "recoveryId": "f1c91595f37d41f788ed72701cf02d10"
+      },
+      "behaviourId": "f1c91595f37d41f788ed72701cf02d10",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    }
+  ]
+}

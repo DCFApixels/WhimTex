@@ -1,36 +1,38 @@
 # WhimTex AI authoring — start here
 
-**Generating a brush instead of layers?** Read the [brush JSON/HLSL contract](Documentation~/AI/BRUSHES.md),
-then an actual JSON file in [Documentation~/Examples/Brushes/](Documentation~/Examples/Brushes/README.md).
-Use [brush.schema.json](Documentation~/AI/brush.schema.json). The format is `whimtex.brush`:
-Ctrl+V replaces the current brush, without adding layers or changing the canvas.
+Use **`whimtex.document`, version 1** for new document files, layer fragments and clipboard JSON.
+Read the [authoring guide](Documentation~/AI/README.md), the
+[shared JSON contract](Documentation~/JSON_FORMAT.md), and the
+[document schema](Documentation~/AI/document.schema.json).
 
-Want to generate **WhimTex layers as clipboard JSON** — procedural layers, or a Drawing layer with
-`url` that fetches an image from a direct http(s) link — or **HLSL Shader FX**?
-Start with the [authoring guide](Documentation~/AI/README.md): it points to example files first,
-then lists common mistakes and the full JSON/HLSL specification at the bottom.
-
-**The clipboard example folder is `Documentation~/Examples/Clipboard/`.**
-Read the [example index](Documentation~/Examples/Clipboard/README.md), then open the actual
-`.json` recipe that matches the task. For an image URL with a shader effect, use
-[stone-wall-retro.json](Documentation~/Examples/Clipboard/stone-wall-retro.json);
-for editable shapes, noise or VFX, choose a recipe from the index.
-Do not use the live-agent examples in the parent folder for Ctrl+V.
+Open the [clipboard example index](Documentation~/Examples/Clipboard/README.md), then read an
+actual procedural recipe matching the task. These are stored documents, not live API requests.
+Use `behaviour.$type`, native model fields and `modifiers`; do not use legacy `type/properties/fx`.
+`document` is optional, but specify width and height for predictable source-canvas context.
+There is no `kind` discriminator. Default export mode is `FullOptimized`; use Full/Compact on request.
 
 For more involved VFX and surfaces, use the [internal texture samples](Samples~/AgentTextures/README.md).
-`Samples~/AgentTextures/manifest.json` indexes twelve 256×256 editable TIFFs, matching clipboard recipes
-and previews. Read only the examples relevant to the task. The folder is a package reference library,
-not an automatically imported editor preset collection.
+`Samples~/AgentTextures/manifest.json` indexes 38 editable recipes and individual PNG previews,
+with descriptions, tags and canvas dimensions (longest axis 256 pixels). Read only relevant examples.
+These are reference documents, not automatically imported presets; no TIFF duplicates or atlas are bundled.
 
-- [JSON Schema](Documentation~/AI/layers.schema.json)
-- [Complete JSON examples for AI authors](Documentation~/Examples/Clipboard/README.md): neon ring, car wheel, lightning, heart and more.
-- [Artist workflow: English](Documentation~/en/ai-authoring.md) · [Русский](Documentation~/ru/ai-authoring.md) · [简体中文](Documentation~/zh/ai-authoring.md)
+No Unity connection is needed to return JSON for the user to copy and paste with **Ctrl+V**.
+**Copy as JSON** uses the same shared format. **Export** can create a `.json` file;
+**Save As** creates TIFF. Never claim to have inserted, compiled or tested generated text.
 
-No Unity connection, agent plugin or local files are needed: return JSON for the user to copy,
-then paste with **Ctrl+V** in WhimTex. For shader-only requests return HLSL for **+ Shader FX**.
-Do not substitute Unity serialized JSON, ShaderLab, or the live-agent operation protocol.
-Do not claim to have inserted or tested anything when you only generated text.
+Drawing pixels are not stored in JSON. Exported nonempty Drawing layers become warned placeholders.
+Use verified `$asset` identities for existing project assets; do not invent GUIDs or paths.
+Old `whimtex.layers` payloads, including Drawing `url` imports, remain accepted only through the
+[compatibility clipboard reader](Documentation~/AI/LEGACY_LAYERS.md), not as the format for new output.
 
-The instructions in this repository describe the checked-out version. Procedural JSON clipboard
-support requires WhimTex 0.9.6 or later; Drawing layers that download an image from a link require
-0.10.1 or later.
+**Generating a brush?** Read the [brush contract](Documentation~/AI/BRUSHES.md),
+[brush examples](Documentation~/Examples/Brushes/README.md) and
+[brush schema](Documentation~/AI/brush.schema.json). `whimtex.brush` replaces the current brush.
+Standalone gradients likewise retain their separate `whimtex.gradient` value format.
+
+For shader-only requests return HLSL for **+ Shader FX**, not ShaderLab. Follow the
+[HLSL interface](Documentation~/AI/README.md#hlsl-interface--shader-only-or-inside-json).
+For connected operations use [AgentAPI](Documentation~/AgentAPI.md) or the live skill, not a
+command envelope inside document JSON.
+
+Artist workflow: [English](Documentation~/en/ai-authoring.md) · [Русский](Documentation~/ru/ai-authoring.md) · [简体中文](Documentation~/zh/ai-authoring.md).

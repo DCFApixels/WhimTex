@@ -1,59 +1,66 @@
 # Procedural texture samples for agents
 
-Twelve editable examples, numbered **01–12**, with native **256 × 256** canvases.
-These are package-internal authoring references, not editor presets or an automatic asset import.
-Read `manifest.json` first, then only the recipe relevant to the task.
+**38 curated examples**, each with an editable JSON recipe and an individual PNG preview.
+The longest canvas axis is **256 pixels**; rectangular beams and streaks retain their aspect ratio.
+These are package-internal references, not editor presets or an automatic asset import.
 
-![Samples in numbered order, left to right and top to bottom](overview.png)
-
-| # | Sample | Useful techniques |
-| --- | --- | --- |
-| 01 | [Arcane Rift](01_Arcane_Rift.layers.json) | Noise, Twirl, gradient-colored plasma, layered arcs and targeted glow. |
-| 02 | [Solar Impact](02_Solar_Impact.layers.json) | Seeded procedural sparks, radial rays and a turbulent shock front. |
-| 03 | [Ethereal Smoke](03_Ethereal_Smoke.layers.json) | Noise-shaped density, full multi-stop FX gradients, tendrils and motes. |
-| 04 | [Terrazzo Triangles](04_Terrazzo_Triangles.layers.json) | Triangle SDF patterns, rounded corners, random palettes, chips and surface grain. |
-| 05 | [Hex Reactor Panels](05_Hex_Reactor_Panels.layers.json) | Hexagon SDF pattern, seam glow, circuit markings and independently sized status lights. |
-| 06 | [Surveyed Archipelago](06_Surveyed_Archipelago.layers.json) | Shared terrain seeds, domain warping, gradient maps, contour ink and survey overlays. |
-| 07 | [Bubble](07_Bubble.layers.json) | Separate rim, inner reflection and editable highlight points. |
-| 08 | [Smoke Billows](08_Smoke_Billows.layers.json) | Unlit, tint-ready smoke particle made from overlapping noise-density lobes. |
-| 09 | [Orange Sun](09_Orange_Sun.layers.json) | Sphere distortion, granular surface, Fresnel-like rim, orange corona and glow. |
-| 10 | [Lightning](10_Lightning.layers.json) | Seeded filament and separate tinted inner/outer glow. |
-| 11 | [Shock Wave](11_Shock_Wave.layers.json) | Group composition, radial gradient, erosion and a layer-reference displacement map. |
-| 12 | [Star Glow](12_Star_Glow.layers.json) | Separate core, diffraction rays and halo beneath a whole-stack tint control. |
+Start with [manifest.json](manifest.json). Search its descriptions and tags, inspect the chosen PNG,
+then read only that example's recipe. There is no atlas to navigate or need to read all recipes.
 
 ## Files and reuse
 
-Each numbered stem has three matching files:
+Each descriptive filename has two matching files:
 
-- `.tiff` is the **editable WhimTex document**, including its rendered texture and embedded layers/FX.
-- `.layers.json` is a complete **`whimtex.layers` clipboard envelope**, not an `ExecuteJson` operation batch.
-- `.png` is a 256 × 256 preview for visual inspection only. Do not substitute it for the editable document.
+- `.whimtex.json` — a complete **`whimtex.document`** file with editable layers, document settings, History and embedded HLSL.
+- `.png` — an individual visual preview, not its editable source.
 
-The larger `overview.png` is only a contact sheet, not a sample texture.
-All recipes are procedural and self-contained: no downloads, external images, preset assets or project-specific GUIDs.
-Embedded HLSL and multi-stop gradients travel with each example. Full gradient values in `fx[].gradients`
-override the simple two-color defaults in the code declarations; preserve both when adapting a recipe.
+The version-2 manifest records each example's ID, title, recipe/preview paths, dimensions, filter,
+`outputSrgb`, category, description, tags and total layer count. JSON itself also stores output settings.
+There are no bundled TIFF duplicates or overview PNG.
 
-For an existing TIFF workflow, **copy the selected TIFF into an authorized `Assets/` output folder**,
-import it with `AssetDatabase.ImportAsset`, then use `WhimTexApi.Inspect`, revision-checked edits,
-`WhimTexApi.Validate` and `WhimTexApi.Render`. Do not edit the bundled references in place.
-Unity ignores `Samples~`; these references are not automatically imported into a user's project.
+Documents use **Full Optimized**: active settings are explicit, inactive branches are omitted.
+Their defaults are tied to format version 1. All samples are procedural; no external images,
+downloads or project-specific asset references are required. Embedded HLSL and its parameter values
+are separate data. Preserve both when adapting a sample.
 
-For clipboard authoring, copy the complete JSON text and paste into WhimTex; confirm canvas resizing
-when asked if you want the exact 256 × 256 composition. To generate a variant, follow the
-[clipboard contract](../../Documentation~/AI/README.md) and adapt only the relevant layers.
-Local `layer-XX` IDs are recipe-local references, not IDs to reuse in unrelated open documents.
+Read a chosen document with `WhimTexDocumentJson.Read`, or copy it into an authorized Assets folder
+and open it in WhimTex. Agents can use `whimtex_document_json` (`validate`, `write`, `insert`).
+Opening restores sRGB/filter/precision. Pasting its JSON inserts layers and does not overwrite the
+destination's output encoding; use the manifest's `outputSrgb` if reconstructing a complete sample by paste.
+Save as TIFF when a Unity texture is needed. Do not edit the bundled references in place.
+
+See the [shared format](../../Documentation~/JSON_FORMAT.md) and [schema](../../Documentation~/AI/document.schema.json).
+These content files are not `ExecuteJson` command envelopes. Unity ignores `Samples~`.
+
+## Finding examples
+
+Use manifest tags to locate rings/portals, flares/bursts, beams/trails, smoke/clouds, liquid,
+packed fields and surfaces. For example:
+
+- [Arcane Rift](Arcane_Rift.whimtex.json): noise, twirl, gradient-colored plasma and targeted glow.
+- [Magic Line Sharp](Magic_Line_Sharp.whimtex.json): sharp streak with inner/outer contour glow.
+- [Smoke 2x2](Smoke_2x2.whimtex.json): procedural smoke cells with irregular silhouettes and edge fades.
+- [Gas Particle](Gas_Particle.whimtex.json): gas fields packed into RGB channels.
+- [Surveyed Archipelago](Surveyed_Archipelago.whimtex.json): warped terrain and contour lines.
+- [Terrazzo Triangles](Terrazzo_Triangles.whimtex.json): seeded tile palette, chips and surface grain.
 
 ## Authoring notes
 
-- Layer order is top to bottom. Targeted Blur and displacement references are deliberate; retain their targets when rearranging layers.
-- VFX previews use a dark contact-sheet background; the underlying VFX textures retain alpha. Surface samples are opaque.
-- Smoke Billows uses white RGB and density in alpha, without baked lighting, for runtime tinting.
-- Shock Wave retains disabled **Noise Study** and **Preview Background** helpers. They are not part of the visible result.
-- Pattern `seamless` aligns the pattern layer to the canvas; it does not certify every overlaid noise/FX layer as seamless.
-- Blur radii/distances, pattern cell sizes and Displacement Map strength/depth are in pixels. Scale these when changing canvas resolution.
-  Noise frequency, normalized shape radii, UV positions and gradient stop positions should not be multiplied by the canvas ratio.
-- The fine surface noise is tuned for 256 × 256. Increase detail deliberately for larger variants instead of blindly scaling every parameter.
+- Layer order is top to bottom. Preserve effect targets, clipping bases and layer-texture references.
+- PNGs store straight RGBA8 without a baked checkerboard; alpha is never gamma-converted.
+  For `outputSrgb:true`, RGB uses sRGB encoding. For `outputSrgb:false`, channel values are stored directly
+  as linear data: import those PNGs with **sRGB disabled**. The PNG alone does not configure Unity's importer.
+  Gas Particle, Ring Distortion and Sphere Distortion are data maps. Their raw channels are also useful
+  for visual inspection, but are not sRGB display renders. HDR values are clamped for PNG only.
+  Do not use the API's generic diagnostic PNG render for data export: it always produces an sRGB preview.
+- Disabled study/background helpers are retained. Muzzle Flash retains its source background state;
+  this refresh preserves the curated documents rather than imposing a new transparency policy.
+- Smoke Billows uses white RGB and density in alpha for tinting. The 2x2 sheets contain four separate
+  sprites, not an animation with generated in-betweens.
+- Blur radii, pattern cell sizes and displacement strength/depth are pixel-based. Use the API `resize`
+  operation with `preserveLayout:true` for proportional canvas changes; explicit pixel constants inside
+  custom HLSL still require review. Do not scale normalized UV or gradient positions.
+- Seamless behavior is recipe-specific; a seamless source does not guarantee seamless overlaid FX.
 
 ## Verification
 
@@ -64,7 +71,15 @@ node Tests~/AgentSamples.test.mjs
 node Tests~/ProceduralClipboard.test.mjs
 ```
 
-In a connected Unity Editor, run `Tests~/AgentSamplesSmoke.cs` through Pipeline `run_script`, entry
-`AgentSamplesSmoke.Run`, explicitly targeting the intended project. It reopens every TIFF, compiles
-every recipe, checks layer counts/dimensions/diagnostics and compares the two rendered results.
-The test uses detached documents and does not write project assets or change open documents.
+Run `Tests~/AgentSamplesSmoke.cs` through connected Unity Pipeline `run_script`, entry
+`AgentSamplesSmoke.Run`, explicitly targeting the intended project. It compiles detached recipes,
+checks layer counts, dimensions, finite output and FX diagnostics, and compares SDR renders against
+decoded preview pixels. Optional `start`/`count` arguments allow short batches. It does not write project
+assets or change open documents.
+
+During this refresh all 38 JSON reconstructions were also compared against source TIFF composites
+in linear RGBA: every pixel matched exactly on the authoring Editor. PNG compression was optimized
+losslessly with decoded RGBA checked unchanged. Cross-device shader rounding can differ slightly.
+Sphere Distortion was subsequently corrected to output raw vector data (neutral RG=0.5), without
+decoding it as a display color; its source document and recipe were updated together. The three data-map
+PNGs were re-exported without sRGB encoding, and the smoke test also checks the sphere's neutral value.

@@ -1,0 +1,858 @@
+{
+  "format": "whimtex.document",
+  "version": 1,
+  "document": {
+    "colorHistory": [],
+    "layerNameCounters": [
+      {
+        "prefix": "Group",
+        "next": 2
+      },
+      {
+        "prefix": "Color Fill",
+        "next": 4
+      },
+      {
+        "prefix": "Noise",
+        "next": 3
+      },
+      {
+        "prefix": "Gradient",
+        "next": 2
+      }
+    ],
+    "nextCopyNumber": 1,
+    "spriteSlices": [],
+    "width": 256,
+    "height": 256,
+    "outputFilter": "Bilinear",
+    "outputPrecision": "Auto",
+    "outputSrgb": true,
+    "uvReferenceMesh": null,
+    "uvReferenceChannel": 0,
+    "uvReferenceSubmesh": -1
+  },
+  "layers": [
+    {
+      "id": "2178f3b15b57468d8d30f2071210f95f",
+      "layerName": "Shock Wave",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx0",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Shock Wave\r\n// @param color _Tint = (1, 1, 1, 1)\r\n\r\nfloat4 ApplyFX(float2 uv, float4 color)\r\n{\r\n    return float4(1, 1, 1, pow(color.r, 0.5)) * _Tint;\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Tint",
+              "type": "Color",
+              "colorValue": [
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ],
+              "id": "6034ea8704ae421db4d587cecc11e1c3",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "d1d3d4421ac64b6eae0a1b3991d1afec",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Clip"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "GroupLayerBehaviour",
+        "recoveryId": "befe254080ee4bf489e46f14bd25a353"
+      },
+      "behaviourId": "befe254080ee4bf489e46f14bd25a353",
+      "children": [
+        {
+          "id": "7128fc8bfbb74409aed44c90075b60aa",
+          "layerName": "Radial Flares",
+          "enabled": true,
+          "clippingMask": false,
+          "opacity": 1.0,
+          "blendMode": "Screen",
+          "colorRange": "Standard",
+          "blendRange": "Standard",
+          "swizzle": {
+            "packed": 0
+          },
+          "modifiers": [
+            {
+              "$type": "ShaderFX",
+              "$id": "fx1",
+              "active": true,
+              "code": "// @whimtex-effect Samples/Frayed Shock Wave\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1]\r\n// @param float _Radius = 0.3568 [0.1 .. 0.4]\r\n// @param float _Width = 0.06 [0.003 .. 0.06]\r\n// @param float _Raggedness = 0.08 [0 .. 0.08]\r\n// @param float _Seed = 24.3 [0 .. 100]\r\n// @param float _Density = 0.458 [0 .. 1]\r\n// @param float _Count = 38 [12 .. 72]\r\n\r\nfloat TuftHash(float x){return frac(sin(x*127.1+_Seed*31.7)*43758.5453);}\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n    float2 p=uv-.5;float r=length(p);\r\n    float count=floor(_Count+.5);\r\n    float angle=atan2(p.y,p.x)/6.2831853+.5;\r\n    float cell=floor(angle*count);\r\n    float alpha=0;\r\n    for(int j=-1;j<=1;j++){\r\n        float id=fmod(cell+j+count,count);\r\n        float h=TuftHash(id);float k=TuftHash(id+73);\r\n        float theta=((id+.5+(h-.5)*.7)/count-.5)*6.2831853;\r\n        float2 axis=float2(cos(theta),sin(theta));\r\n        float radial=dot(p,axis)-_Radius-(h-.5)*_Raggedness;\r\n        radial+=(color.r-.5)*_Raggedness*.45;\r\n        float tangent=dot(p,float2(-axis.y,axis.x))+(SampleInput(saturate(uv+float2(.04,.07))).r-.5)*.015;\r\n        float radialSize=_Width*(.6+k*1.15);\r\n        float tangentSize=6.2831853*_Radius/count*(.34+.22*h);\r\n        float2 q=float2(radial/radialSize,tangent/tangentSize);\r\n        float tuft=exp(-dot(q,q)*1.8);\r\n        float present=smoothstep(1-_Density-.15,1-_Density+.15,TuftHash(id+141));\r\n        alpha+=tuft*(.55+.45*k)*present;\r\n    }\r\n    alpha+=.09*exp(-pow((r-_Radius)/(_Width*.7),2))*smoothstep(.25,.65,color.r);\r\n    alpha*=lerp(.55,1,smoothstep(.15,.7,color.r))*(1-smoothstep(.43,.48,r));\r\n    return float4(1,1,1,saturate(alpha*1.45)*_Opacity);\r\n}\r\n",
+              "parameters": [
+                {
+                  "name": "_Opacity",
+                  "type": "Float",
+                  "floatValue": 1.0,
+                  "id": "5c3da00bc2c946f0bba30597549936c2",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_Radius",
+                  "type": "Float",
+                  "floatValue": 0.3568,
+                  "id": "4be7eeeab19e4bd28713c888eae8dd8e",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_Width",
+                  "type": "Float",
+                  "floatValue": 0.06,
+                  "id": "88ea93a35bdc46febe2902767bd3e6c6",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_Raggedness",
+                  "type": "Float",
+                  "floatValue": 0.08,
+                  "id": "c33c18aaa4454630a164a0abe72ae1ea",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_Seed",
+                  "type": "Float",
+                  "floatValue": 24.3,
+                  "id": "cf9a084eb8c94c7eb386eff4cb8d1808",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_Density",
+                  "type": "Float",
+                  "floatValue": 0.458,
+                  "id": "1608a752de2040f6896f683853364516",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_Count",
+                  "type": "Float",
+                  "floatValue": 38.0,
+                  "id": "e22dd64e64cb4bff81ceab30a3657f1f",
+                  "declaredInCode": true
+                }
+              ],
+              "shaderKey": "bd8118ea969b41e9956246a01e0349a5",
+              "$name": ""
+            }
+          ],
+          "transform": {
+            "pivot": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "rotation": 0.0,
+            "storage": "TRS",
+            "matrix": {
+              "m00": 0.0,
+              "m01": 0.0,
+              "m02": 0.0,
+              "m10": 0.0,
+              "m11": 0.0,
+              "m12": 0.0,
+              "m20": 0.0,
+              "m21": 0.0,
+              "m22": 0.0
+            },
+            "tiling": "Unbounded"
+          },
+          "filterMode": "Source",
+          "behaviour": {
+            "$type": "ColorFillLayerBehaviour",
+            "mode": "Color",
+            "storedColor": [
+              1.0,
+              1.0,
+              1.0,
+              1.0
+            ],
+            "recoveryId": "34e96ff52f7b4ac1916a0e7b98d9326f"
+          },
+          "behaviourId": "34e96ff52f7b4ac1916a0e7b98d9326f",
+          "children": null,
+          "group": false,
+          "compositing": "PassThrough"
+        },
+        {
+          "id": "8003a8de3ea342e7bdfc982f93ecef17",
+          "layerName": "Erosion Noise",
+          "enabled": true,
+          "clippingMask": false,
+          "opacity": 1.0,
+          "blendMode": "LinearBurn",
+          "colorRange": "Standard",
+          "blendRange": "Standard",
+          "swizzle": {
+            "packed": 0
+          },
+          "modifiers": [
+            {
+              "$type": "ShaderFX",
+              "$id": "fx2",
+              "active": true,
+              "code": "// @whimtex-effect Samples/Spherize\r\n// @group(Spherize Mode; _Mode)\r\n// @param hidden enum _Mode = 0 { Classic: 0, Sphere: 1 } // Classic is the current unbounded radial distortion. Sphere wraps the image over a sphere and clips outside its circular edge.\r\n// @param float _Strength = -1.16 [~-1 .. ~1]\r\n// @param transform2D _Area = (0.5, 0.5, 1, 1, 0)\r\n// @endgroup\r\n\r\n\r\nfloat4 ApplyFX(float2 uv, float4 color)\r\n{\r\n    float2 p = (_Area_ToLocal(uv) - 0.5) * 2.0;\r\n    float4 result = color;\r\n\r\n    if (_Mode < 0.5)\r\n    {\r\n        if (_Strength != 0)\r\n        {\r\n            float exponent = exp2(_Strength);\r\n            // The epsilon only protects the center; the radius is not limited to the frame.\r\n            float scale = pow(max(dot(p, p), 1e-12), 0.5 * (exponent - 1.0));\r\n            result = SampleInput(_Area_ToInput(0.5 + p * scale * 0.5));\r\n        }\r\n    }\r\n    else\r\n    {\r\n        float radius = length(p);\r\n        float clampedRadius = saturate(radius);\r\n        // A sphere maps the disk to its angular surface coordinates. Positive values bulge;\r\n        // negative values use the inverse mapping and pinch toward the center.\r\n        float sphericalRadius = _Strength >= 0.0\r\n            ? asin(clampedRadius) * 0.6366197723675814\r\n            : sin(clampedRadius * 1.5707963267948966);\r\n        float strength = abs(_Strength);\r\n        float sampleRadius = lerp(radius, sphericalRadius, min(strength, 1.0));\r\n        float excessStrength = max(strength - 1.0, 0.0);\r\n        // Beyond one, continue strengthening smoothly without clamping the soft UI range.\r\n        if (_Strength >= 0.0)\r\n            sampleRadius *= exp2(-excessStrength * (1.0 - sampleRadius));\r\n        else\r\n            sampleRadius = 1.0 - (1.0 - sampleRadius) * exp2(-excessStrength * sampleRadius);\r\n        float radialScale = sampleRadius / max(radius, 1e-6);\r\n        result = SampleInput(_Area_ToInput(0.5 + p * radialScale * 0.5));\r\n\r\n        // Keep a crisp circular silhouette with a sub-pixel antialiased edge.\r\n        float edgeWidth = max(fwidth(radius), 1e-4);\r\n        result.a *= 1.0 - smoothstep(1.0 - edgeWidth, 1.0 + edgeWidth, radius);\r\n    }\r\n\r\n    return result;\r\n}\r\n",
+              "parameters": [
+                {
+                  "name": "_Mode",
+                  "type": "Float",
+                  "floatValue": 0.0,
+                  "id": "d4391ef248a94a25849d2a25a4cb5a53",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_Strength",
+                  "type": "Float",
+                  "floatValue": -1.16,
+                  "id": "58d65dac3abb43d0ae35cd6cdbd70fb1",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_Area",
+                  "type": "Transform2D",
+                  "transformValue": {
+                    "position": {
+                      "x": 0.5,
+                      "y": 0.5
+                    },
+                    "size": {
+                      "x": 1.0,
+                      "y": 1.0
+                    },
+                    "rotation": 0.0,
+                    "storage": "TRS",
+                    "matrix": {
+                      "m00": 0.0,
+                      "m01": 0.0,
+                      "m02": 0.0,
+                      "m10": 0.0,
+                      "m11": 0.0,
+                      "m12": 0.0,
+                      "m20": 0.0,
+                      "m21": 0.0,
+                      "m22": 0.0
+                    }
+                  },
+                  "id": "6d6dc0eacd0445a79c18ac503309ae7c",
+                  "declaredInCode": true
+                }
+              ],
+              "shaderKey": "743df62eff93464b9bd27277dc8d1a2b",
+              "$name": ""
+            }
+          ],
+          "transform": {
+            "pivot": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "rotation": 0.0,
+            "storage": "TRS",
+            "matrix": {
+              "m00": 0.0,
+              "m01": 0.0,
+              "m02": 0.0,
+              "m10": 0.0,
+              "m11": 0.0,
+              "m12": 0.0,
+              "m20": 0.0,
+              "m21": 0.0,
+              "m22": 0.0
+            },
+            "tiling": "Unbounded"
+          },
+          "filterMode": "Source",
+          "behaviour": {
+            "$type": "NoiseLayerBehaviour",
+            "noiseType": "OpenSimplex2",
+            "dimensions": "TwoD",
+            "seed": 1337,
+            "scale": 9.36,
+            "scaleY": 0.0,
+            "linkScale": true,
+            "offset": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "periodic": "None",
+            "fractal": "None",
+            "warp": "None",
+            "encoding": "ColorValues",
+            "inverted": false,
+            "recoveryId": "4bb153fbcf2a4e33ad1e64476c779411"
+          },
+          "behaviourId": "4bb153fbcf2a4e33ad1e64476c779411",
+          "children": null,
+          "group": false,
+          "compositing": "PassThrough"
+        },
+        {
+          "id": "422c01581062482f81e5b6ddc0053369",
+          "layerName": "Ring Mask",
+          "enabled": true,
+          "clippingMask": false,
+          "opacity": 1.0,
+          "blendMode": "Normal",
+          "colorRange": "Standard",
+          "blendRange": "Standard",
+          "swizzle": {
+            "packed": 0
+          },
+          "modifiers": [
+            {
+              "$type": "ShaderFX",
+              "$id": "fx3",
+              "active": true,
+              "code": "// @whimtex-effect Samples/Displacement Map\r\n// @group(Map Wrap; _MapWrap)\r\n// @param texture2D _DisplacementMap // Source field. Vector mode reads R/G; Grayscale mode reads the selected channel.\r\n// @param transform2D _MapTransform = (0.5, 0.5, 1, 1, 0) // Positions and scales the map independently from the image being distorted.\r\n// @param hidden enum _MapWrap = 0 { Clamp: 0, Repeat: 1, Mirror: 2 } // Addressing for the map and an optional separate strength mask.\r\n// @endgroup\r\n// @group(Displacement Mode; _Mode)\r\n// @param hidden enum _Mode = 1 { VectorRG: 0, Grayscale: 1, ParallaxOcclusion: 2 }\r\n// @if _Mode != 2\r\n// @param float _Neutral = 0 [0 .. 1] // Neutral value for vector channels and the grayscale displacement.\r\n// @endif\r\n// @if _Mode != 0\r\n// @param enum _MapChannel = 0 { Luminance: 0, R: 1, G: 2, B: 3, Alpha: 4 }\r\n// @endif\r\n// @if _Mode == 0\r\n// @header(Vector)\r\n// @param float _StrengthX = 0 [~-512 .. ~512] // Horizontal displacement in canvas pixels at a full channel value.\r\n// @endif\r\n// @if _Mode == 0\r\n// @param float _StrengthY = 0 [~-512 .. ~512] // Vertical displacement in canvas pixels at a full channel value.\r\n// @endif\r\n// @if _Mode == 1\r\n// @header(Grayscale)\r\n// @param enum _Direction = 2 { Horizontal: 0, Vertical: 1, Radial: 2, Tangential: 3, Angle: 4 }\r\n// @endif\r\n// @if _Mode == 1\r\n// @param float _Strength = -2.75 [~-512 .. ~512] // Displacement in canvas pixels. The sign reverses the selected direction.\r\n// @endif\r\n// @if _Mode == 1\r\n// @param point _Center = (0.5, 0.5) // Origin for Radial and Tangential directions.\r\n// @endif\r\n// @if _Mode == 1\r\n// @param float _Angle = -9 [~-180 .. ~180] // Direction angle in degrees when Direction is Angle.\r\n// @endif\r\n// @if _Mode == 2\r\n// @header(Parallax)\r\n// @param float _Depth = 2 [0 .. 128] // Height range in canvas pixels; lower view elevation creates a larger parallax shift.\r\n// @endif\r\n// @if _Mode == 2\r\n// @param float _ViewAngle = 0 [~-180 .. ~180] // Direction of the virtual view ray in the canvas plane.\r\n// @endif\r\n// @if _Mode == 2\r\n// @param float _ViewElevation = 60 [5 .. 85] // 90 degrees is head-on; lower values increase parallax.\r\n// @endif\r\n// @if _Mode == 2\r\n// @param enum _ParallaxSteps = 8 { Fast: 4, Balanced: 8, High: 16, Ultra: 32 }\r\n// @endif\r\n// @if _Mode == 2\r\n// @param bool _InvertHeight = false // Use black as the raised surface and white as the recessed surface.\r\n// @endif\r\n// @endgroup\r\n// @group(Strength Mask Source; _MaskSource)\r\n// @param hidden enum _MaskSource = 0 { Constant1: 0, MapChannel: 1, InputAlpha: 2, SeparateTexture: 3 } // Constant1 needs no second texture; MapChannel reuses the displacement map.\r\n// @if _MaskSource != 0\r\n// @param bool _InvertMask = false\r\n// @endif\r\n// @if _MaskSource != 0\r\n// @param curve _MaskProfile = keys((0, 0, 0, 1, 0, 0, 0), (1, 1, 1, 0, 0, 0, 0)) // Remaps mask values; the default linear curve preserves them.\r\n// @endif\r\n// @if _MaskSource == 1\r\n// @param enum _MapMaskChannel = 0 { Alpha: 0, Luminance: 1, R: 2, G: 3, B: 4 }\r\n// @endif\r\n// @if _MaskSource == 3\r\n// @param texture2D _StrengthMask = none // Optional second texture. Leave Mask Source at Constant1 to work with only one map.\r\n// @endif\r\n// @if _MaskSource == 3\r\n// @param enum _SeparateMaskChannel = 0 { Alpha: 0, Luminance: 1, R: 2, G: 3, B: 4 }\r\n// @endif\r\n// @endgroup\r\n// @group(Output Mix; _Mix)\r\n// @param hidden float _Mix = 1 [0 .. 1] // Blend the displaced sample with the original image.\r\n// @param enum _InputEdge = 0 { Clamp: 0, Repeat: 1, Mirror: 2, Transparent: 3 } // Addressing for displaced image samples, independent of map wrapping.\r\n// @endgroup\r\n\r\n// Self-shadowing controls are temporarily disabled; keep their source here for later iteration.\r\n// // @header(Self-Shadowing)\r\n// // @param bool _SelfShadow = false // Trace the height field toward a virtual light and darken occluded areas.\r\n// // @param float _LightAngle = 45 [~-180 .. ~180] // Direction toward the virtual light in the canvas plane.\r\n// // @param float _LightElevation = 45 [5 .. 85]\r\n// // @param enum _ShadowSteps = Balanced {Low: 4, Balanced: 8, High: 16}\r\n// // @param float _ShadowStrength = 0.65 [0 .. 1]\r\n// // @param float _ShadowSoftness = 0.02 [0 .. 0.2]\r\n\r\nfloat ReadDisplacementChannel(float4 value, float channel)\r\n{\r\n    float result = dot(value.rgb, float3(0.2126, 0.7152, 0.0722));\r\n    if (channel > 0.5 && channel < 1.5) result = value.r;\r\n    else if (channel > 1.5 && channel < 2.5) result = value.g;\r\n    else if (channel > 2.5 && channel < 3.5) result = value.b;\r\n    else if (channel > 3.5) result = value.a;\r\n    return result;\r\n}\r\n\r\nfloat ReadStrengthChannel(float4 value, float channel)\r\n{\r\n    float result = value.a;\r\n    if (channel > 0.5 && channel < 1.5) result = dot(value.rgb, float3(0.2126, 0.7152, 0.0722));\r\n    else if (channel > 1.5 && channel < 2.5) result = value.r;\r\n    else if (channel > 2.5 && channel < 3.5) result = value.g;\r\n    else if (channel > 3.5) result = value.b;\r\n    return result;\r\n}\r\n\r\nfloat2 AddressMapUV(float2 uv, float mode, float2 texelSize)\r\n{\r\n    if (mode < 0.5)\r\n        return clamp(uv, texelSize * 0.5, 1.0 - texelSize * 0.5);\r\n    if (mode < 1.5)\r\n        uv = frac(uv);\r\n    else\r\n        uv = 1.0 - abs(frac(uv * 0.5) * 2.0 - 1.0);\r\n    return uv;\r\n}\r\n\r\nfloat2 AddressInputUV(float2 uv, float mode, float2 texelSize, out float inside)\r\n{\r\n    inside = 1.0;\r\n    if (mode < 0.5)\r\n        return clamp(uv, texelSize * 0.5, 1.0 - texelSize * 0.5);\r\n    if (mode < 1.5)\r\n        return frac(uv);\r\n    if (mode < 2.5)\r\n        return 1.0 - abs(frac(uv * 0.5) * 2.0 - 1.0);\r\n\r\n    inside = step(0.0, uv.x) * step(uv.x, 1.0) * step(0.0, uv.y) * step(uv.y, 1.0);\r\n    return clamp(uv, texelSize * 0.5, 1.0 - texelSize * 0.5);\r\n}\r\n\r\nfloat ReadHeightAtUV(float2 uv, float2 mapDDX, float2 mapDDY)\r\n{\r\n    float2 mapUV = AddressMapUV(_MapTransform_ToLocal(uv), _MapWrap, _DisplacementMap_TexelSize.xy);\r\n    float height = saturate(ReadDisplacementChannel(tex2Dgrad(_DisplacementMap, mapUV, mapDDX, mapDDY), _MapChannel));\r\n    return _InvertHeight > 0.5 ? 1.0 - height : height;\r\n}\r\n\r\nfloat2 DirectionFromAngle(float angle)\r\n{\r\n    float sine, cosine;\r\n    sincos(radians(angle), sine, cosine);\r\n    return float2(cosine, sine);\r\n}\r\n\r\nfloat2 TraceParallax(float2 uv, float strengthMask, float2 mapDDX, float2 mapDDY, out float hitHeight)\r\n{\r\n    int steps = clamp((int)round(_ParallaxSteps), 4, 32);\r\n    float elevation = radians(clamp(_ViewElevation, 5.0, 85.0));\r\n    float lateralPixels = _Depth * strengthMask / max(tan(elevation), 1e-3);\r\n    float2 stepUV = DirectionFromAngle(_ViewAngle) * lateralPixels * _CanvasSize.zw / steps;\r\n    float layerStep = 1.0 / steps;\r\n    float rayDepth = 0.0;\r\n    float2 previousUV = uv;\r\n    float2 currentUV = uv;\r\n    hitHeight = 0.0;\r\n\r\n    [loop]\r\n    for (int i = 0; i < 32; i++)\r\n    {\r\n        if (i >= steps) break;\r\n        previousUV = currentUV;\r\n        currentUV -= stepUV;\r\n        rayDepth += layerStep;\r\n        hitHeight = ReadHeightAtUV(currentUV, mapDDX, mapDDY);\r\n        float surfaceDepth = 1.0 - hitHeight;\r\n        if (rayDepth >= surfaceDepth)\r\n        {\r\n            float previousDepth = rayDepth - layerStep;\r\n            float beforeHit = surfaceDepth - previousDepth;\r\n            float afterHit = rayDepth - surfaceDepth;\r\n            float blend = saturate(beforeHit / max(beforeHit + afterHit, 1e-6));\r\n            currentUV = lerp(previousUV, currentUV, blend);\r\n            hitHeight = ReadHeightAtUV(currentUV, mapDDX, mapDDY);\r\n            break;\r\n        }\r\n    }\r\n    return currentUV;\r\n}\r\n\r\n// Temporarily disabled self-shadow implementation:\r\n// float TraceParallaxSelfShadow(float2 hitUV, float surfaceHeight, float strengthMask, float2 mapDDX, float2 mapDDY)\r\n// {\r\n//     int steps = clamp((int)round(_ShadowSteps), 4, 16);\r\n//     float elevation = radians(clamp(_LightElevation, 5.0, 85.0));\r\n//     float lateralPixels = _Depth * strengthMask * (1.0 - surfaceHeight) / max(tan(elevation), 1e-3);\r\n//     float2 lightStepUV = DirectionFromAngle(_LightAngle) * lateralPixels * _CanvasSize.zw / steps;\r\n//     float softness = max(_ShadowSoftness, 1e-4);\r\n//     float visibility = 1.0;\r\n//\r\n//     [loop]\r\n//     for (int i = 0; i < 16; i++)\r\n//     {\r\n//         if (i >= steps) break;\r\n//         float progress = (i + 1.0) / steps;\r\n//         float sampleHeight = ReadHeightAtUV(hitUV + lightStepUV * (i + 1), mapDDX, mapDDY);\r\n//         float rayHeight = lerp(surfaceHeight, 1.0, progress);\r\n//         visibility = min(visibility, 1.0 - smoothstep(-softness, softness, sampleHeight - rayHeight));\r\n//         if (visibility <= 1e-3) break;\r\n//     }\r\n//     return visibility;\r\n// }\r\n\r\nfloat2 GrayscaleDirection(float2 uv)\r\n{\r\n    float2 direction = float2(1.0, 0.0);\r\n    if (_Direction > 0.5 && _Direction < 1.5)\r\n        direction = float2(0.0, 1.0);\r\n    else if (_Direction > 1.5 && _Direction < 3.5)\r\n    {\r\n        float2 radial = (uv - _Center) * _CanvasSize.xy;\r\n        float radius = length(radial);\r\n        direction = radius > 1e-6 ? radial / radius : float2(0.0, 0.0);\r\n        if (_Direction > 2.5)\r\n            direction = float2(-direction.y, direction.x);\r\n    }\r\n    else if (_Direction > 3.5)\r\n    {\r\n        float sine, cosine;\r\n        sincos(radians(_Angle), sine, cosine);\r\n        direction = float2(cosine, sine);\r\n    }\r\n    return direction;\r\n}\r\n\r\nfloat4 ApplyFX(float2 uv, float4 color)\r\n{\r\n    float2 mapUV = _MapTransform_ToLocal(uv);\r\n    float2 mapDDX = ddx(mapUV);\r\n    float2 mapDDY = ddy(mapUV);\r\n    mapUV = AddressMapUV(mapUV, _MapWrap, _DisplacementMap_TexelSize.xy);\r\n    float4 mapSample = tex2D(_DisplacementMap, mapUV);\r\n    float2 displacementPixels = float2(0.0, 0.0);\r\n    float2 parallaxUV = uv;\r\n    float parallaxHeight = 0.0;\r\n\r\n    if (_Mode < 0.5)\r\n    {\r\n        displacementPixels = (mapSample.rg - float2(_Neutral, _Neutral)) * 2.0 * float2(_StrengthX, _StrengthY);\r\n    }\r\n    else if (_Mode < 1.5)\r\n    {\r\n        float mapValue = ReadDisplacementChannel(mapSample, _MapChannel);\r\n        float signedValue = (mapValue - _Neutral) * 2.0;\r\n        displacementPixels = GrayscaleDirection(uv) * signedValue * _Strength;\r\n    }\r\n\r\n    float strengthMask = 1.0;\r\n    if (_MaskSource > 0.5)\r\n    {\r\n        float maskValue = 1.0;\r\n        if (_MaskSource < 1.5)\r\n            maskValue = ReadStrengthChannel(mapSample, _MapMaskChannel);\r\n        else if (_MaskSource < 2.5)\r\n            maskValue = color.a;\r\n        else\r\n        {\r\n            float2 strengthMaskUV = AddressMapUV(_MapTransform_ToLocal(uv), _MapWrap, _StrengthMask_TexelSize.xy);\r\n            maskValue = ReadStrengthChannel(tex2D(_StrengthMask, strengthMaskUV), _SeparateMaskChannel);\r\n        }\r\n        maskValue = lerp(maskValue, 1.0 - maskValue, step(0.5001, _InvertMask));\r\n        strengthMask = saturate(_MaskProfile_Sample(saturate(maskValue)));\r\n    }\r\n\r\n    if (_Mode > 1.5)\r\n        parallaxUV = TraceParallax(uv, strengthMask, mapDDX, mapDDY, parallaxHeight);\r\n\r\n    float2 inputUV = _Mode > 1.5 ? parallaxUV : uv + displacementPixels * strengthMask * _CanvasSize.zw;\r\n    float inside;\r\n    inputUV = AddressInputUV(inputUV, _InputEdge, _MainTex_TexelSize.xy, inside);\r\n    float4 distorted = SampleInput(inputUV) * inside;\r\n    // if (_Mode > 1.5 && _SelfShadow > 0.5)\r\n    // {\r\n    //     float visibility = TraceParallaxSelfShadow(parallaxUV, parallaxHeight, strengthMask, mapDDX, mapDDY);\r\n    //     distorted.rgb *= lerp(1.0, visibility, saturate(_ShadowStrength));\r\n    // }\r\n    float4 result = lerp(color, distorted, saturate(_Mix));\r\n    return result;\r\n}\r\n",
+              "parameters": [
+                {
+                  "name": "_DisplacementMap",
+                  "type": "Texture2D",
+                  "textureSource": "Layer",
+                  "textureLayerId": "8003a8de3ea342e7bdfc982f93ecef17",
+                  "id": "afff91687ab74685b07dc785178f17c9",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_MapTransform",
+                  "type": "Transform2D",
+                  "transformValue": {
+                    "position": {
+                      "x": 0.5,
+                      "y": 0.5
+                    },
+                    "size": {
+                      "x": 1.0,
+                      "y": 1.0
+                    },
+                    "rotation": 0.0,
+                    "storage": "TRS",
+                    "matrix": {
+                      "m00": 0.0,
+                      "m01": 0.0,
+                      "m02": 0.0,
+                      "m10": 0.0,
+                      "m11": 0.0,
+                      "m12": 0.0,
+                      "m20": 0.0,
+                      "m21": 0.0,
+                      "m22": 0.0
+                    }
+                  },
+                  "id": "9815db0ef0f443108b3c77c86a0c9f46",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_MapWrap",
+                  "type": "Float",
+                  "floatValue": 0.0,
+                  "id": "60d2ecb088f043009f8b75284a6d8ef2",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_Mode",
+                  "type": "Float",
+                  "floatValue": 1.0,
+                  "id": "8738cf525508460c998727192633d43b",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_Neutral",
+                  "type": "Float",
+                  "floatValue": 0.0,
+                  "id": "8452db8b00974d7ba7c7f78c6712ba5e",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_MapChannel",
+                  "type": "Float",
+                  "floatValue": 0.0,
+                  "id": "08f310fb371d418b88bad1b29b00c6f7",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_StrengthX",
+                  "type": "Float",
+                  "floatValue": 0.0,
+                  "id": "d254cc58448a4e96a85d2933a69dcd1c",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_StrengthY",
+                  "type": "Float",
+                  "floatValue": 0.0,
+                  "id": "91cec69b6d3f4fc5b03466a40b3e4dac",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_Direction",
+                  "type": "Float",
+                  "floatValue": 2.0,
+                  "id": "0bd8f440ccc5433aace367e078e3f537",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_Strength",
+                  "type": "Float",
+                  "floatValue": -2.75,
+                  "id": "47a6058d55e942eea7d16b3d68a5d646",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_Center",
+                  "type": "Point",
+                  "vectorValue": [
+                    0.5,
+                    0.5,
+                    0.0,
+                    0.0
+                  ],
+                  "id": "ad931fe821624d978a964e51cccba161",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_Angle",
+                  "type": "Float",
+                  "floatValue": -9.0,
+                  "id": "3a24d60e0fb84e1da8a452df68df0860",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_Depth",
+                  "type": "Float",
+                  "floatValue": 2.0,
+                  "id": "070e40b4151d43ef8d6db1de0b8db9a6",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_ViewAngle",
+                  "type": "Float",
+                  "floatValue": 0.0,
+                  "id": "4e819cc0dc634c1fba02587cca825167",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_ViewElevation",
+                  "type": "Float",
+                  "floatValue": 60.0,
+                  "id": "e84cb1cdf18045f89fdec8ba29870ba9",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_ParallaxSteps",
+                  "type": "Float",
+                  "floatValue": 8.0,
+                  "id": "4f75baa7c1f74524b904608c89888787",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_InvertHeight",
+                  "type": "Bool",
+                  "floatValue": 0.0,
+                  "id": "67bdc59f194346a7b5af2ffc51c2218f",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_MaskSource",
+                  "type": "Float",
+                  "floatValue": 0.0,
+                  "id": "7054c7f7a83742e7830fa270cd9729b9",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_InvertMask",
+                  "type": "Bool",
+                  "floatValue": 0.0,
+                  "id": "8f5e64bf6e6a4c13a8870a6efa674d8e",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_MaskProfile",
+                  "type": "Curve",
+                  "curveValue": {
+                    "preWrap": "ClampForever",
+                    "postWrap": "ClampForever",
+                    "keys": [
+                      [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0,
+                        0.0,
+                        0.0,
+                        "None"
+                      ],
+                      [
+                        1.0,
+                        1.0,
+                        1.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        "None"
+                      ]
+                    ]
+                  },
+                  "id": "403b6bc3381e4602a285ae55e037c3b3",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_MapMaskChannel",
+                  "type": "Float",
+                  "floatValue": 0.0,
+                  "id": "702ffd0f646e4e719e2bef5fe4c6683e",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_StrengthMask",
+                  "type": "Texture2D",
+                  "textureSource": "None",
+                  "id": "d480c814cb5b45ad8a80ae7280e84d2f",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_SeparateMaskChannel",
+                  "type": "Float",
+                  "floatValue": 0.0,
+                  "id": "158a33bfaf0d48459585f66ce0291f7c",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_Mix",
+                  "type": "Float",
+                  "floatValue": 1.0,
+                  "id": "13806c5956da4bbc9362d00f943ecd6c",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_InputEdge",
+                  "type": "Float",
+                  "floatValue": 0.0,
+                  "id": "929a80af65c9491eadde2d7ca0c17c43",
+                  "declaredInCode": true
+                }
+              ],
+              "shaderKey": "14a2b0fd46fb426c814dd658151adf39",
+              "$name": ""
+            }
+          ],
+          "transform": {
+            "pivot": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 0.80377502062880124,
+              "y": 0.80377502062880124
+            },
+            "rotation": 0.23067278414964676,
+            "storage": "TRS",
+            "matrix": {
+              "m00": 0.0,
+              "m01": 0.0,
+              "m02": 0.0,
+              "m10": 0.0,
+              "m11": 0.0,
+              "m12": 0.0,
+              "m20": 0.0,
+              "m21": 0.0,
+              "m22": 0.0
+            },
+            "tiling": "Unbounded"
+          },
+          "filterMode": "Source",
+          "behaviour": {
+            "$type": "GradientLayerBehaviour",
+            "gradientType": "Radial",
+            "gradient": {
+              "colors": [
+                {
+                  "color": [
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
+                  ],
+                  "time": 0.0,
+                  "midpoint": 0.5
+                }
+              ],
+              "alphas": [
+                {
+                  "alpha": 0.0,
+                  "time": 0.342412442,
+                  "midpoint": 0.603278637
+                },
+                {
+                  "alpha": 1.0,
+                  "time": 0.8715953,
+                  "midpoint": 0.6470588
+                },
+                {
+                  "alpha": 0.0,
+                  "time": 1.0,
+                  "midpoint": 0.5
+                }
+              ],
+              "mode": "Classic",
+              "wrapMode": "Clamp",
+              "colorSpace": "Gamma",
+              "smoothness": 1.0
+            },
+            "recoveryId": "4ae63cb98bc54bfe99774687de60299e"
+          },
+          "behaviourId": "4ae63cb98bc54bfe99774687de60299e",
+          "children": null,
+          "group": false,
+          "compositing": "PassThrough"
+        },
+        {
+          "id": "e44a9c572f0b4314a5256caa899892c7",
+          "layerName": "Noise Study",
+          "enabled": false,
+          "clippingMask": false,
+          "opacity": 1.0,
+          "blendMode": "Normal",
+          "colorRange": "Standard",
+          "blendRange": "Standard",
+          "swizzle": {
+            "packed": 0
+          },
+          "modifiers": [],
+          "transform": {
+            "pivot": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "rotation": 0.0,
+            "storage": "TRS",
+            "matrix": {
+              "m00": 0.0,
+              "m01": 0.0,
+              "m02": 0.0,
+              "m10": 0.0,
+              "m11": 0.0,
+              "m12": 0.0,
+              "m20": 0.0,
+              "m21": 0.0,
+              "m22": 0.0
+            },
+            "tiling": "Unbounded"
+          },
+          "filterMode": "Source",
+          "behaviour": {
+            "$type": "NoiseLayerBehaviour",
+            "noiseType": "OpenSimplex2",
+            "dimensions": "TwoD",
+            "seed": 1337,
+            "scale": 8.0,
+            "scaleY": 0.0,
+            "linkScale": true,
+            "offset": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "periodic": "None",
+            "fractal": "None",
+            "warp": "None",
+            "encoding": "ColorValues",
+            "inverted": false,
+            "recoveryId": "2f5ec9bd1d8d4f87b61b181cb9bca4de"
+          },
+          "behaviourId": "2f5ec9bd1d8d4f87b61b181cb9bca4de",
+          "children": null,
+          "group": false,
+          "compositing": "PassThrough"
+        },
+        {
+          "id": "ce077cb600b0444e92eda93194ea53f8",
+          "layerName": "Black Mask Base",
+          "enabled": true,
+          "clippingMask": false,
+          "opacity": 1.0,
+          "blendMode": "Normal",
+          "colorRange": "Standard",
+          "blendRange": "Standard",
+          "swizzle": {
+            "packed": 0
+          },
+          "modifiers": [],
+          "transform": {
+            "pivot": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "rotation": 0.0,
+            "storage": "TRS",
+            "matrix": {
+              "m00": 0.0,
+              "m01": 0.0,
+              "m02": 0.0,
+              "m10": 0.0,
+              "m11": 0.0,
+              "m12": 0.0,
+              "m20": 0.0,
+              "m21": 0.0,
+              "m22": 0.0
+            },
+            "tiling": "Unbounded"
+          },
+          "filterMode": "Source",
+          "behaviour": {
+            "$type": "ColorFillLayerBehaviour",
+            "mode": "Color",
+            "storedColor": [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "recoveryId": "fc63f945cc594043b975e18205fb627a"
+          },
+          "behaviourId": "fc63f945cc594043b975e18205fb627a",
+          "children": null,
+          "group": false,
+          "compositing": "PassThrough"
+        }
+      ],
+      "group": true,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "92f3038b55a44993ab73357b0111634c",
+      "layerName": "Preview Background",
+      "enabled": false,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "ColorFillLayerBehaviour",
+        "mode": "Color",
+        "storedColor": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "recoveryId": "665895fdbc5a4bee9b11340049c0701b"
+      },
+      "behaviourId": "665895fdbc5a4bee9b11340049c0701b",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    }
+  ]
+}

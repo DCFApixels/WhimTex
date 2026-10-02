@@ -1,0 +1,607 @@
+{
+  "format": "whimtex.document",
+  "version": 1,
+  "document": {
+    "colorHistory": [
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "layerNameCounters": [
+      {
+        "prefix": "Group",
+        "next": 2
+      },
+      {
+        "prefix": "Noise",
+        "next": 3
+      },
+      {
+        "prefix": "Blur",
+        "next": 2
+      },
+      {
+        "prefix": "Shader Processor",
+        "next": 2
+      },
+      {
+        "prefix": "Gradient",
+        "next": 2
+      },
+      {
+        "prefix": "Color Fill",
+        "next": 2
+      }
+    ],
+    "nextCopyNumber": 1,
+    "spriteSlices": [],
+    "width": 256,
+    "height": 256,
+    "outputFilter": "Bilinear",
+    "outputPrecision": "Auto",
+    "outputSrgb": true,
+    "uvReferenceMesh": null,
+    "uvReferenceChannel": 0,
+    "uvReferenceSubmesh": -1
+  },
+  "layers": [
+    {
+      "id": "0ff90653f31440e19fe068a4326c495c",
+      "layerName": "Particle Finish",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "HDR",
+      "blendRange": "HDR",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx0",
+          "active": true,
+          "code": "// @whimtex-effect Learn/Particle Finish\r\n// @param color _Tint = (1, 1, 1, 1)\r\n// @param float _Opacity = 1 [0 .. 1]\r\n// @param float _EdgeFade = 3 [0 .. 16]\r\nfloat4 ApplyFX(float2 uv,float4 color) {\r\n float2 edge=min(uv,1-uv)*_CanvasSize.xy;\r\n float frame=_EdgeFade>0 ? smoothstep(0,_EdgeFade,min(edge.x,edge.y)) : 1;\r\n return float4(color.rgb*_Tint.rgb,color.a*_Tint.a*_Opacity*frame);\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Tint",
+              "type": "Color",
+              "colorValue": [
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ],
+              "id": "34645ef635634f3ca73636f6762436a0",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "44e5ca2983584e3a8c0ab576e205ca42",
+              "declaredInCode": true
+            },
+            {
+              "name": "_EdgeFade",
+              "type": "Float",
+              "floatValue": 1.5,
+              "id": "cd561384e00d48e2b2a6c4d7423ef71b",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "69c44dbf11b54381ae134d8c172ba626",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Clip"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "ShaderProcessorLayerBehaviour",
+        "recoveryId": "7536b7b3235c4b9095d8a300f9556ed8"
+      },
+      "behaviourId": "7536b7b3235c4b9095d8a300f9556ed8",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "edb22556aa1c4c5aa5a5b745b74f49db",
+      "layerName": "Soft Diffusion",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Clip"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "BlurLayerBehaviour",
+        "strength": 1.0,
+        "radius": 3.6,
+        "edges": "Transparent",
+        "mode": "Gaussian",
+        "targetLayerId": "d1b5329b63d54ac79fbceb9111e66995",
+        "inputMode": "Specific",
+        "recoveryId": "17ffb090f79b4378af0591879027d053"
+      },
+      "behaviourId": "17ffb090f79b4378af0591879027d053",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "d1b5329b63d54ac79fbceb9111e66995",
+      "layerName": "Vapor Density",
+      "enabled": false,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Clip"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "GroupLayerBehaviour",
+        "recoveryId": "371a58c024ff45319f6facffb19beb14"
+      },
+      "behaviourId": "371a58c024ff45319f6facffb19beb14",
+      "children": [
+        {
+          "id": "cbffb1b21d7045ff8897534ff4fc74e6",
+          "layerName": "Inner Vapor",
+          "enabled": true,
+          "clippingMask": false,
+          "opacity": 0.443,
+          "blendMode": "Normal",
+          "colorRange": "Standard",
+          "blendRange": "Standard",
+          "swizzle": {
+            "packed": 0
+          },
+          "modifiers": [],
+          "transform": {
+            "pivot": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "rotation": 0.0,
+            "storage": "Projective",
+            "matrix": {
+              "m00": 0.76564575380011413,
+              "m01": -0.0053262116222342294,
+              "m02": 0.11984022891106005,
+              "m10": 0.0053262116222342294,
+              "m11": 0.76564575380011413,
+              "m12": 0.11451401728882582,
+              "m20": 0.0,
+              "m21": 0.0,
+              "m22": 1.0
+            },
+            "tiling": "Unbounded"
+          },
+          "filterMode": "Source",
+          "behaviour": {
+            "$type": "GradientLayerBehaviour",
+            "gradientType": "Radial",
+            "gradient": {
+              "colors": [
+                {
+                  "color": [
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
+                  ],
+                  "time": 0.0,
+                  "midpoint": 0.5
+                }
+              ],
+              "alphas": [
+                {
+                  "alpha": 1.0,
+                  "time": 0.0,
+                  "midpoint": 0.332061082
+                },
+                {
+                  "alpha": 0.0,
+                  "time": 1.0,
+                  "midpoint": 0.5
+                }
+              ],
+              "mode": "Perceptual",
+              "wrapMode": "Clamp",
+              "colorSpace": "Gamma",
+              "smoothness": 1.0
+            },
+            "recoveryId": "56f31760ac6b475582305e5b8de6fbcb"
+          },
+          "behaviourId": "56f31760ac6b475582305e5b8de6fbcb",
+          "children": null,
+          "group": false,
+          "compositing": "PassThrough"
+        },
+        {
+          "id": "881ed5b3883c4279868aa9181a3521cd",
+          "layerName": "Steam Billows",
+          "enabled": true,
+          "clippingMask": false,
+          "opacity": 1.0,
+          "blendMode": "Normal",
+          "colorRange": "Standard",
+          "blendRange": "Standard",
+          "swizzle": {
+            "packed": 0
+          },
+          "modifiers": [
+            {
+              "$type": "ShaderFX",
+              "$id": "fx1",
+              "active": true,
+              "code": "// @whimtex-effect Learn/Steam Density\r\n// @param point _Center = (0.5, 0.5)\r\n// @param float2 _Radius = (0.36, 0.4)\r\n// @param float _Density = 1.2 [0 .. 3]\r\n// @param float _Breakup = 0.45 [0 .. 1]\r\n// @param float _Contrast = 1.15 [0.25 .. 3]\r\n// @param float _EdgeSoftness = 0.8 [0.1 .. 1]\r\n// Input is native procedural noise; output is tint-ready vapor density.\r\nfloat4 ApplyFX(float2 uv, float4 color) {\r\n float n=saturate(color.r);\r\n float nx=SampleInput(saturate(uv+float2(.153,.219))).r;\r\n float ny=SampleInput(saturate(uv+float2(-.241,.137))).r;\r\n float2 p=(LayerToLocal(uv)-_Center)/max(abs(_Radius),.001);\r\n p+=(float2(nx,ny)-.5)*_Breakup*1.5;\r\n float r=length(p);\r\n float envelope=exp(-r*r*1.1)*(1-smoothstep(1-_EdgeSoftness*.55,1.35,r));\r\n float density=lerp(0.1,1.0,pow(smoothstep(.16,.82,n),_Contrast));\r\n float frame=smoothstep(0,.07,min(min(uv.x,1-uv.x),min(uv.y,1-uv.y)));\r\n return float4(1,1,1,saturate(density*envelope*_Density*frame));\r\n}\r\n",
+              "parameters": [
+                {
+                  "name": "_Center",
+                  "type": "Point",
+                  "vectorValue": [
+                    0.5,
+                    0.5,
+                    0.0,
+                    0.0
+                  ],
+                  "id": "efaaebe7628546dc9d2330abc85a8871",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_Radius",
+                  "type": "Vector2",
+                  "vectorValue": [
+                    0.355,
+                    0.385,
+                    0.0,
+                    0.0
+                  ],
+                  "id": "d30e55d6bea64e13a62abda1c233115a",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_Density",
+                  "type": "Float",
+                  "floatValue": 0.94,
+                  "id": "3fc9fe2e511b4e3b9882e0cbc9fb49b7",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_Breakup",
+                  "type": "Float",
+                  "floatValue": 0.3,
+                  "id": "ff8f61244e114f57b4da3ae7b9fc50b3",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_Contrast",
+                  "type": "Float",
+                  "floatValue": 1.05,
+                  "id": "129d8a43a908466985a6612bddf77ed2",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_EdgeSoftness",
+                  "type": "Float",
+                  "floatValue": 0.8,
+                  "id": "45c83c5cae8e4f75a495e64187ace546",
+                  "declaredInCode": true
+                }
+              ],
+              "shaderKey": "7bb7a78965cc483ba8fcc9257c6c5a8b",
+              "$name": ""
+            }
+          ],
+          "transform": {
+            "pivot": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "rotation": 0.0,
+            "storage": "TRS",
+            "matrix": {
+              "m00": 0.0,
+              "m01": 0.0,
+              "m02": 0.0,
+              "m10": 0.0,
+              "m11": 0.0,
+              "m12": 0.0,
+              "m20": 0.0,
+              "m21": 0.0,
+              "m22": 0.0
+            },
+            "tiling": "Unbounded"
+          },
+          "filterMode": "Source",
+          "behaviour": {
+            "$type": "NoiseLayerBehaviour",
+            "noiseType": "Perlin",
+            "dimensions": "TwoD",
+            "seed": 1332,
+            "scale": 7.4,
+            "scaleY": 7.4,
+            "linkScale": true,
+            "offset": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "periodic": "None",
+            "fractal": "FBm",
+            "octaves": 3,
+            "lacunarity": 2.0,
+            "gain": 0.33,
+            "weightedStrength": 0.0,
+            "warp": "OpenSimplex2Reduced",
+            "warpStrength": 0.15,
+            "warpScale": 1.0,
+            "warpScaleY": 0.0,
+            "linkWarpScale": true,
+            "encoding": "LinearData",
+            "inverted": false,
+            "recoveryId": "13a0a55bb18a4a9ea48a37e0be4ecf46"
+          },
+          "behaviourId": "13a0a55bb18a4a9ea48a37e0be4ecf46",
+          "children": null,
+          "group": false,
+          "compositing": "PassThrough"
+        },
+        {
+          "id": "51b2406f41f34587bfdf74ca3cef38ff",
+          "layerName": "Diffuse Wisps",
+          "enabled": true,
+          "clippingMask": false,
+          "opacity": 0.2,
+          "blendMode": "Normal",
+          "colorRange": "Standard",
+          "blendRange": "Standard",
+          "swizzle": {
+            "packed": 0
+          },
+          "modifiers": [
+            {
+              "$type": "ShaderFX",
+              "$id": "fx2",
+              "active": true,
+              "code": "// @whimtex-effect Learn/Steam Density\r\n// @param point _Center = (0.5, 0.5)\r\n// @param float2 _Radius = (0.36, 0.4)\r\n// @param float _Density = 1.2 [0 .. 3]\r\n// @param float _Breakup = 0.45 [0 .. 1]\r\n// @param float _Contrast = 1.15 [0.25 .. 3]\r\n// @param float _EdgeSoftness = 0.8 [0.1 .. 1]\r\n// Input is native procedural noise; output is tint-ready vapor density.\r\nfloat4 ApplyFX(float2 uv, float4 color) {\r\n float n=saturate(color.r);\r\n float nx=SampleInput(saturate(uv+float2(.153,.219))).r;\r\n float ny=SampleInput(saturate(uv+float2(-.241,.137))).r;\r\n float2 p=(LayerToLocal(uv)-_Center)/max(abs(_Radius),.001);\r\n p+=(float2(nx,ny)-.5)*_Breakup*1.5;\r\n float r=length(p);\r\n float envelope=exp(-r*r*1.1)*(1-smoothstep(1-_EdgeSoftness*.55,1.35,r));\r\n float density=pow(smoothstep(.2,.78,n),_Contrast);\r\n float frame=smoothstep(0,.07,min(min(uv.x,1-uv.x),min(uv.y,1-uv.y)));\r\n return float4(1,1,1,saturate(density*envelope*_Density*frame));\r\n}\r\n",
+              "parameters": [
+                {
+                  "name": "_Center",
+                  "type": "Point",
+                  "vectorValue": [
+                    0.5,
+                    0.5,
+                    0.0,
+                    0.0
+                  ],
+                  "id": "adc3d71e35684b9caa5478b2fce47f11",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_Radius",
+                  "type": "Vector2",
+                  "vectorValue": [
+                    0.46,
+                    0.46,
+                    0.0,
+                    0.0
+                  ],
+                  "id": "faa1a97139ef48648818676787c82051",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_Density",
+                  "type": "Float",
+                  "floatValue": 0.8,
+                  "id": "09e0bf8737004ce6b9f232125c4c8b3f",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_Breakup",
+                  "type": "Float",
+                  "floatValue": 0.7,
+                  "id": "2d5bb7059e204ed4bcd87e3aa531bc38",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_Contrast",
+                  "type": "Float",
+                  "floatValue": 1.4,
+                  "id": "0ffb7843e3624cc286823f516c4df310",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_EdgeSoftness",
+                  "type": "Float",
+                  "floatValue": 0.8,
+                  "id": "5d3f487570644f6bb112f4a624d3ce5b",
+                  "declaredInCode": true
+                }
+              ],
+              "shaderKey": "4dbefcb3b939403ab6142b79e18dd915",
+              "$name": ""
+            }
+          ],
+          "transform": {
+            "pivot": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "rotation": 0.0,
+            "storage": "TRS",
+            "matrix": {
+              "m00": 0.0,
+              "m01": 0.0,
+              "m02": 0.0,
+              "m10": 0.0,
+              "m11": 0.0,
+              "m12": 0.0,
+              "m20": 0.0,
+              "m21": 0.0,
+              "m22": 0.0
+            },
+            "tiling": "Unbounded"
+          },
+          "filterMode": "Source",
+          "behaviour": {
+            "$type": "NoiseLayerBehaviour",
+            "noiseType": "OpenSimplex2S",
+            "dimensions": "TwoD",
+            "seed": 3811,
+            "scale": 7.2,
+            "scaleY": 7.2,
+            "linkScale": true,
+            "offset": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "periodic": "None",
+            "fractal": "FBm",
+            "octaves": 3,
+            "lacunarity": 2.0,
+            "gain": 0.3,
+            "weightedStrength": 0.0,
+            "warp": "OpenSimplex2Reduced",
+            "warpStrength": 0.15,
+            "warpScale": 1.0,
+            "warpScaleY": 0.0,
+            "linkWarpScale": true,
+            "encoding": "LinearData",
+            "inverted": false,
+            "recoveryId": "9363a463d1f441d59a23c7528204d3f6"
+          },
+          "behaviourId": "9363a463d1f441d59a23c7528204d3f6",
+          "children": null,
+          "group": false,
+          "compositing": "PassThrough"
+        }
+      ],
+      "group": true,
+      "compositing": "Isolated"
+    }
+  ]
+}

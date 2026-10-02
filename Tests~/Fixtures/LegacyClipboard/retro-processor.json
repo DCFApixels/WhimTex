@@ -1,0 +1,8 @@
+{
+  "format": "whimtex.layers", "version": 1,
+  "layers": [
+    { "type": "shaderProcessor", "name": "Retro Colors", "fx": [
+      { "name": "Posterize", "code": "// @param float _Steps = 6 [2 .. 32]\nfloat4 ApplyFX(float2 uv, float4 color)\n{\n    float steps = max(2, floor(_Steps));\n    color.rgb = floor(saturate(color.rgb) * (steps - 1) + 0.5) / (steps - 1);\n    return color;\n}" }
+    ] }
+  ]
+}

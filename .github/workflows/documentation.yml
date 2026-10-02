@@ -49,6 +49,7 @@ jobs:
       - name: Check agent documentation contracts
         run: |
           node ../Tests~/AgentDocumentation.test.mjs
+          node ../Tests~/DocumentJsonSchema.test.mjs
           node ../Tests~/AgentCommandInventory.test.mjs
           node ../Tests~/MakeSeamlessContract.test.mjs
           node ../Tests~/ProceduralClipboard.test.mjs

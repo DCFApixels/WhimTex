@@ -1,0 +1,1270 @@
+{
+  "format": "whimtex.document",
+  "version": 1,
+  "document": {
+    "colorHistory": [
+      [
+        0.427272737,
+        0.427272737,
+        0.427272737,
+        1.0
+      ],
+      [
+        1.0,
+        1.0,
+        0.0,
+        1.0
+      ],
+      [
+        1.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "layerNameCounters": [
+      {
+        "prefix": "Color Fill",
+        "next": 3
+      },
+      {
+        "prefix": "Shader Processor",
+        "next": 2
+      },
+      {
+        "prefix": "Group",
+        "next": 4
+      },
+      {
+        "prefix": "Layer",
+        "next": 1
+      },
+      {
+        "prefix": "Gradient",
+        "next": 4
+      },
+      {
+        "prefix": "Noise",
+        "next": 3
+      },
+      {
+        "prefix": "Blur",
+        "next": 2
+      }
+    ],
+    "nextCopyNumber": 12,
+    "spriteSlices": [],
+    "width": 256,
+    "height": 256,
+    "outputFilter": "Bilinear",
+    "outputPrecision": "Auto",
+    "outputSrgb": true,
+    "uvReferenceMesh": null,
+    "uvReferenceChannel": 0,
+    "uvReferenceSubmesh": -1
+  },
+  "layers": [
+    {
+      "id": "7019542fb6a14021bb661f2b2f3a63c8",
+      "layerName": "Portal Ring",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx0",
+          "active": true,
+          "code": "// @whimtex-effect Color/Mask\r\n// @control(_Opacity)\r\n// @formerlyserializedas(_Amount)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\r\n// @group(Mask Channel; _MaskChannel)\r\n// @param hidden enum _MaskChannel = R {Alpha: 0, Luminance: 1, R: 2, G: 3, B: 4}\r\n// @param texture2D _Mask = self // Mask source. Self uses the image before this FX.\r\n// @param transform2D _Transform = (0.5, 0.5, 1, 1, 0) // Position, scale and rotate the mask.\r\n// @endgroup\r\n// @group(Mask Shape)\r\n// @param label(Invert) bool _Invert = false\r\n// @param curve _Profile // Remap mask values; linear preserves the source.\r\n// @endgroup\r\n// @group(Apply To; _ApplyMode)\r\n// @param hidden enum _ApplyMode = Channels {Channels: 0, Color: 1}\r\n// @if _ApplyMode == 0\r\n// @param label(R) bool _ApplyRed = false\r\n// @param label(G) bool _ApplyGreen = false\r\n// @param label(B) bool _ApplyBlue = false\r\n// @param label(A) bool _ApplyAlpha = true\r\n// @endif\r\n// @if _ApplyMode == 1\r\n// @param label(Color) color _ApplyColor = (1, 1, 1, 0)\r\n// @endif\r\n// @endgroup\r\n\r\nfloat ReadMaskInput(float4 value)\r\n{\r\n    if (_MaskChannel < 0.5) return value.a;\r\n    if (_MaskChannel < 1.5) return dot(value.rgb, float3(0.2126, 0.7152, 0.0722));\r\n    if (_MaskChannel < 2.5) return value.r;\r\n    if (_MaskChannel < 3.5) return value.g;\r\n    return value.b;\r\n}\r\n\r\nfloat4 ApplyFX(float2 uv, float4 color)\r\n{\r\n\tfloat4 result = color;\r\n    float2 maskUV = _Transform_ToLocal(uv);\r\n    float2 halfTexel = 0.5 * _Mask_TexelSize.xy;\r\n    maskUV = clamp(maskUV, halfTexel, 1.0 - halfTexel);\r\n\r\n    float mask = saturate(_Profile_Sample(saturate(ReadMaskInput(tex2D(_Mask, maskUV)))));\r\n    if (_Invert > 0.5) mask = 1.0 - mask;\r\n\tfloat multiplier = mask;\r\n    float4 channelMask = float4(_ApplyRed, _ApplyGreen, _ApplyBlue, _ApplyAlpha);\r\n    float4 applyWeights = lerp(channelMask, 1 - _ApplyColor, _ApplyMode);\r\n\tresult *= lerp(float4(1.0, 1.0, 1.0, 1.0), float4(multiplier, multiplier, multiplier, multiplier), applyWeights);\r\n\treturn lerp(color, result, _Opacity);\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "0cf8c243280d42b8ab8ac477dc804d88",
+              "declaredInCode": true
+            },
+            {
+              "name": "_MaskChannel",
+              "type": "Float",
+              "floatValue": 2.0,
+              "id": "af7663d5441a46bb81e6fd96451daa3e",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Mask",
+              "type": "Texture2D",
+              "textureSource": "Layer",
+              "textureLayerId": "d4356275e851450e8fa368e21d0173e9",
+              "id": "9bc7b864ee604dc2b31b6fa71cbeddaa",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Transform",
+              "type": "Transform2D",
+              "transformValue": {
+                "position": {
+                  "x": 0.5,
+                  "y": 0.5
+                },
+                "size": {
+                  "x": 1.0,
+                  "y": 1.0
+                },
+                "rotation": 0.0,
+                "storage": "TRS",
+                "matrix": {
+                  "m00": 0.0,
+                  "m01": 0.0,
+                  "m02": 0.0,
+                  "m10": 0.0,
+                  "m11": 0.0,
+                  "m12": 0.0,
+                  "m20": 0.0,
+                  "m21": 0.0,
+                  "m22": 0.0
+                }
+              },
+              "id": "718157b35cdd4270a2a11f28b9f7fa07",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Invert",
+              "type": "Bool",
+              "floatValue": 0.0,
+              "id": "89399c07fe9f4b21aa4bc169afe3e12b",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Profile",
+              "type": "Curve",
+              "curveValue": {
+                "preWrap": "ClampForever",
+                "postWrap": "ClampForever",
+                "keys": [
+                  [
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0,
+                    0.0,
+                    0.0,
+                    "None"
+                  ],
+                  [
+                    1.0,
+                    1.0,
+                    1.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    "None"
+                  ]
+                ]
+              },
+              "id": "001acb3bcdd54ecaa13976eb1e9519cb",
+              "declaredInCode": true
+            },
+            {
+              "name": "_ApplyMode",
+              "type": "Float",
+              "floatValue": 0.0,
+              "id": "5897e7e74b7448a8adb6e8afce18ca83",
+              "declaredInCode": true
+            },
+            {
+              "name": "_ApplyRed",
+              "type": "Bool",
+              "floatValue": 1.0,
+              "id": "f38b2954e5894c5a9f09096296ad95ec",
+              "declaredInCode": true
+            },
+            {
+              "name": "_ApplyGreen",
+              "type": "Bool",
+              "floatValue": 1.0,
+              "id": "3a20f45d1828429da9fe14f87d2972b2",
+              "declaredInCode": true
+            },
+            {
+              "name": "_ApplyBlue",
+              "type": "Bool",
+              "floatValue": 1.0,
+              "id": "ff8b3d761d7640eab4f7d0f106ff2071",
+              "declaredInCode": true
+            },
+            {
+              "name": "_ApplyAlpha",
+              "type": "Bool",
+              "floatValue": 0.0,
+              "id": "a1fca5def9104a899e3d999d21739acd",
+              "declaredInCode": true
+            },
+            {
+              "name": "_ApplyColor",
+              "type": "Color",
+              "colorValue": [
+                1.0,
+                1.0,
+                1.0,
+                0.0
+              ],
+              "id": "016562feae134b88af80c7c2b8bf8801",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "72b20ea3119842c9879830aa3d541fe8",
+          "$name": "Mask"
+        },
+        {
+          "$type": "ShaderFX",
+          "$id": "fx1",
+          "active": true,
+          "code": "// @whimtex-effect Color/Gradient Map\r\n// @control(_Opacity)\r\n// @group\r\n// @formerlyserializedas(_Amount)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend the mapped colors and gradient opacity with the original image.\r\n// @param enum _SourceChannel = Luminance {Luminance: 0, R: 1, G: 2, B: 3, Alpha: 4} // Select the input used to look up the full gradient color. RGB uses sRGB values; alpha is read directly.\r\n// @param gradient _Gradient // Colors from shadows to highlights; gradient alpha multiplies source alpha.\r\n// @param curve _Mapping // Remap the selected input before sampling the gradient; the default is unchanged.\r\n// @param bool _Reverse = false // Map highlights to the beginning of the gradient instead of shadows.\r\n// @endgroup\r\n\r\n#ifndef WHIMTEX_HDR_COLOR_INCLUDED\r\n#define WHIMTEX_HDR_COLOR_INCLUDED\r\nfloat3 SpriteEncode(float3 color)\r\n{\r\n    float3 value = abs(color);\r\n    return sign(color) * lerp(value * 12.92, 1.055 * pow(value, 1.0 / 2.4) - .055, step(.0031308, value));\r\n}\r\nfloat3 SpriteDecode(float3 color)\r\n{\r\n    float3 value = abs(color);\r\n    return sign(color) * lerp(value / 12.92, pow((value + .055) / 1.055, 2.4), step(.04045, value));\r\n}\r\n#endif\r\n\r\n\r\nfloat4 ApplyFX(float2 uv, float4 color)\r\n{\r\n    float luminance = saturate(dot(max(color.rgb, 0.0), float3(0.2126, 0.7152, 0.0722)));\r\n    float brightness = SpriteEncode(float3(luminance, luminance, luminance)).r;\r\n    if (_SourceChannel > 3.5) brightness = saturate(color.a);\r\n    else if (_SourceChannel > .5)\r\n    {\r\n        float channel = _SourceChannel < 1.5 ? color.r : _SourceChannel < 2.5 ? color.g : color.b;\r\n        brightness = SpriteEncode(saturate(channel).xxx).r;\r\n    }\r\n    float t = _Reverse > 0.5 ? 1.0 - brightness : brightness;\r\n    float4 mapped = _Gradient_Sample(_Mapping_Sample(t));\r\n    float amount = saturate(_Opacity);\r\n    return float4(lerp(color.rgb, mapped.rgb, amount), color.a * lerp(1.0, mapped.a, amount));\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "66505a1f5c0d4b4f9aa0c2bd36e8ae10",
+              "declaredInCode": true
+            },
+            {
+              "name": "_SourceChannel",
+              "type": "Float",
+              "floatValue": 0.0,
+              "id": "37c3cb55f79641dabc818292ffbead37",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Gradient",
+              "type": "Gradient",
+              "gradientValue": {
+                "colors": [
+                  {
+                    "color": [
+                      1.0,
+                      1.0,
+                      1.0,
+                      1.0
+                    ],
+                    "time": 1.0,
+                    "midpoint": 0.5
+                  }
+                ],
+                "alphas": [
+                  {
+                    "alpha": 0.0,
+                    "time": 0.0,
+                    "midpoint": 0.5
+                  },
+                  {
+                    "alpha": 1.0,
+                    "time": 1.0,
+                    "midpoint": 0.5
+                  }
+                ],
+                "mode": "Perceptual",
+                "wrapMode": "Clamp",
+                "colorSpace": "Gamma",
+                "smoothness": 1.0
+              },
+              "id": "315b5364161b4621860a7e26ebdead10",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Mapping",
+              "type": "Curve",
+              "curveValue": {
+                "preWrap": "ClampForever",
+                "postWrap": "ClampForever",
+                "keys": [
+                  [
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0,
+                    0.0,
+                    0.0,
+                    "None"
+                  ],
+                  [
+                    1.0,
+                    1.0,
+                    1.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    "None"
+                  ]
+                ]
+              },
+              "id": "96e2e1abf12642cea48be341e2314791",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Reverse",
+              "type": "Bool",
+              "floatValue": 0.0,
+              "id": "27fafb2634c94352b3d4737ea46b7af6",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "e174fdc97e984b2697ff68f793ed302a",
+          "$name": "Gradient Map"
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Clip"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "GroupLayerBehaviour",
+        "recoveryId": "7bf4894d6cea4ac98ab1835e33937ec6"
+      },
+      "behaviourId": "7bf4894d6cea4ac98ab1835e33937ec6",
+      "children": [
+        {
+          "id": "f9569862b06f4d95a055d1d2fd1d5a70",
+          "layerName": "Inner Glow",
+          "enabled": true,
+          "clippingMask": false,
+          "opacity": 1.0,
+          "blendMode": "Normal",
+          "colorRange": "Standard",
+          "blendRange": "Standard",
+          "swizzle": {
+            "packed": 0
+          },
+          "modifiers": [
+            {
+              "$type": "ShaderFX",
+              "$id": "fx2",
+              "active": true,
+              "code": "// @whimtex-effect Color/Mask\r\n// @control(_Opacity)\r\n// @formerlyserializedas(_Amount)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\r\n// @group(Mask Channel; _MaskChannel)\r\n// @param hidden enum _MaskChannel = R {Alpha: 0, Luminance: 1, R: 2, G: 3, B: 4}\r\n// @param texture2D _Mask = self // Mask source. Self uses the image before this FX.\r\n// @param transform2D _Transform = (0.5, 0.5, 1, 1, 0) // Position, scale and rotate the mask.\r\n// @endgroup\r\n// @group(Mask Shape)\r\n// @param label(Invert) bool _Invert = false\r\n// @param curve _Profile // Remap mask values; linear preserves the source.\r\n// @endgroup\r\n// @group(Apply To; _ApplyMode)\r\n// @param hidden enum _ApplyMode = Channels {Channels: 0, Color: 1}\r\n// @if _ApplyMode == 0\r\n// @param label(R) bool _ApplyRed = false\r\n// @param label(G) bool _ApplyGreen = false\r\n// @param label(B) bool _ApplyBlue = false\r\n// @param label(A) bool _ApplyAlpha = true\r\n// @endif\r\n// @if _ApplyMode == 1\r\n// @param label(Color) color _ApplyColor = (1, 1, 1, 0)\r\n// @endif\r\n// @endgroup\r\n\r\nfloat ReadMaskInput(float4 value)\r\n{\r\n    if (_MaskChannel < 0.5) return value.a;\r\n    if (_MaskChannel < 1.5) return dot(value.rgb, float3(0.2126, 0.7152, 0.0722));\r\n    if (_MaskChannel < 2.5) return value.r;\r\n    if (_MaskChannel < 3.5) return value.g;\r\n    return value.b;\r\n}\r\n\r\nfloat4 ApplyFX(float2 uv, float4 color)\r\n{\r\n\tfloat4 result = color;\r\n    float2 maskUV = _Transform_ToLocal(uv);\r\n    float2 halfTexel = 0.5 * _Mask_TexelSize.xy;\r\n    maskUV = clamp(maskUV, halfTexel, 1.0 - halfTexel);\r\n\r\n    float mask = saturate(_Profile_Sample(saturate(ReadMaskInput(tex2D(_Mask, maskUV)))));\r\n    if (_Invert > 0.5) mask = 1.0 - mask;\r\n\tfloat multiplier = mask;\r\n    float4 channelMask = float4(_ApplyRed, _ApplyGreen, _ApplyBlue, _ApplyAlpha);\r\n    float4 applyWeights = lerp(channelMask, 1 - _ApplyColor, _ApplyMode);\r\n\tresult *= lerp(float4(1.0, 1.0, 1.0, 1.0), float4(multiplier, multiplier, multiplier, multiplier), applyWeights);\r\n\treturn lerp(color, result, _Opacity);\r\n}\r\n",
+              "parameters": [
+                {
+                  "name": "_Opacity",
+                  "type": "Float",
+                  "floatValue": 1.0,
+                  "id": "0cf8c243280d42b8ab8ac477dc804d88",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_MaskChannel",
+                  "type": "Float",
+                  "floatValue": 4.0,
+                  "id": "af7663d5441a46bb81e6fd96451daa3e",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_Mask",
+                  "type": "Texture2D",
+                  "textureSource": "Layer",
+                  "textureLayerId": "d4356275e851450e8fa368e21d0173e9",
+                  "id": "9bc7b864ee604dc2b31b6fa71cbeddaa",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_Transform",
+                  "type": "Transform2D",
+                  "transformValue": {
+                    "position": {
+                      "x": 0.5,
+                      "y": 0.5
+                    },
+                    "size": {
+                      "x": 1.0,
+                      "y": 1.0
+                    },
+                    "rotation": 0.0,
+                    "storage": "TRS",
+                    "matrix": {
+                      "m00": 0.0,
+                      "m01": 0.0,
+                      "m02": 0.0,
+                      "m10": 0.0,
+                      "m11": 0.0,
+                      "m12": 0.0,
+                      "m20": 0.0,
+                      "m21": 0.0,
+                      "m22": 0.0
+                    }
+                  },
+                  "id": "718157b35cdd4270a2a11f28b9f7fa07",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_Invert",
+                  "type": "Bool",
+                  "floatValue": 0.0,
+                  "id": "89399c07fe9f4b21aa4bc169afe3e12b",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_Profile",
+                  "type": "Curve",
+                  "curveValue": {
+                    "preWrap": "ClampForever",
+                    "postWrap": "ClampForever",
+                    "keys": [
+                      [
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        "None"
+                      ],
+                      [
+                        1.0,
+                        1.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        "None"
+                      ]
+                    ]
+                  },
+                  "id": "001acb3bcdd54ecaa13976eb1e9519cb",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_ApplyMode",
+                  "type": "Float",
+                  "floatValue": 0.0,
+                  "id": "5897e7e74b7448a8adb6e8afce18ca83",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_ApplyRed",
+                  "type": "Bool",
+                  "floatValue": 0.0,
+                  "id": "f38b2954e5894c5a9f09096296ad95ec",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_ApplyGreen",
+                  "type": "Bool",
+                  "floatValue": 0.0,
+                  "id": "3a20f45d1828429da9fe14f87d2972b2",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_ApplyBlue",
+                  "type": "Bool",
+                  "floatValue": 0.0,
+                  "id": "ff8b3d761d7640eab4f7d0f106ff2071",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_ApplyAlpha",
+                  "type": "Bool",
+                  "floatValue": 1.0,
+                  "id": "a1fca5def9104a899e3d999d21739acd",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_ApplyColor",
+                  "type": "Color",
+                  "colorValue": [
+                    1.0,
+                    1.0,
+                    1.0,
+                    0.0
+                  ],
+                  "id": "016562feae134b88af80c7c2b8bf8801",
+                  "declaredInCode": true
+                }
+              ],
+              "shaderKey": "4b8724d747764b178cf634d176a7c989",
+              "$name": ""
+            }
+          ],
+          "transform": {
+            "pivot": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "rotation": 0.0,
+            "storage": "TRS",
+            "matrix": {
+              "m00": 0.0,
+              "m01": 0.0,
+              "m02": 0.0,
+              "m10": 0.0,
+              "m11": 0.0,
+              "m12": 0.0,
+              "m20": 0.0,
+              "m21": 0.0,
+              "m22": 0.0
+            },
+            "tiling": "Clip"
+          },
+          "filterMode": "Source",
+          "behaviour": {
+            "$type": "BlurLayerBehaviour",
+            "strength": 0.9,
+            "radius": 19.0,
+            "edges": "Transparent",
+            "mode": "Gaussian",
+            "targetLayerId": "b715745ee5ee4bdd85fb5e642a63c566",
+            "inputMode": "Specific",
+            "recoveryId": "778ea4c2698a464b80089cb0aa2a0b82"
+          },
+          "behaviourId": "778ea4c2698a464b80089cb0aa2a0b82",
+          "children": [],
+          "group": false,
+          "compositing": "PassThrough"
+        },
+        {
+          "id": "b715745ee5ee4bdd85fb5e642a63c566",
+          "layerName": "Polar Ring Profile",
+          "enabled": true,
+          "clippingMask": false,
+          "opacity": 1.0,
+          "blendMode": "Normal",
+          "colorRange": "Standard",
+          "blendRange": "Standard",
+          "swizzle": {
+            "packed": 0
+          },
+          "modifiers": [
+            {
+              "$type": "ShaderFX",
+              "$id": "fx3",
+              "active": true,
+              "code": "// @whimtex-effect Distortion/Polar Coordinates\r\n// @param enum _Mode = 0 {ToPolar: 0, FromPolar: 1} // Wrap a strip into a circle, or unwrap a circle into a strip.\r\n// @param float _AngleOffset = 0 [~-180 .. ~180] // Angular offset in degrees.\r\n// @param float _RadialOffset = 0 [~-1 .. ~1] // Radial offset in normalized coordinates.\r\n// @param transform2D _Area\r\n\r\nfloat4 ApplyFX(float2 uv, float4 color)\r\n{\r\n    float2 sampleUV = uv;\r\n    if (_Mode < 0.5)\r\n    {\r\n        float2 p = (_Area_ToLocal(uv) - 0.5) * 2.0;\r\n        float radius = length(p);\r\n        // The center has no unique angle. Choose zero without evaluating atan2(0, 0).\r\n        float angle = 0.0;\r\n        if (radius > 0.0) angle = atan2(p.y, p.x) / 6.28318530718;\r\n        // Only the angular coordinate wraps; radius continues beyond the frame.\r\n        sampleUV = float2(frac(angle - _AngleOffset / 360.0), radius - _RadialOffset);\r\n    }\r\n    else\r\n    {\r\n        float angle = (uv.x + _AngleOffset / 360.0) * 6.28318530718;\r\n        float radius = uv.y + _RadialOffset;\r\n        float sine, cosine;\r\n        sincos(angle, sine, cosine);\r\n        float2 localUV = 0.5 + float2(cosine, sine) * radius * 0.5;\r\n        sampleUV = _Area_ToInput(localUV);\r\n    }\r\n    return SampleInput(sampleUV);\r\n}\r\n",
+              "parameters": [
+                {
+                  "name": "_Mode",
+                  "type": "Float",
+                  "floatValue": 0.0,
+                  "id": "669ec302580c4651b4e303627e45512e",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_AngleOffset",
+                  "type": "Float",
+                  "floatValue": 0.0,
+                  "id": "33879f122b564fd6b3ef44a88a650fbf",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_RadialOffset",
+                  "type": "Float",
+                  "floatValue": 0.0,
+                  "id": "ce25bbd65a2940d6bf758a464e45c1f7",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_Area",
+                  "type": "Transform2D",
+                  "transformValue": {
+                    "position": {
+                      "x": 0.5,
+                      "y": 0.5
+                    },
+                    "size": {
+                      "x": 1.0,
+                      "y": 1.0
+                    },
+                    "rotation": 0.0,
+                    "storage": "TRS",
+                    "matrix": {
+                      "m00": 0.0,
+                      "m01": 0.0,
+                      "m02": 0.0,
+                      "m10": 0.0,
+                      "m11": 0.0,
+                      "m12": 0.0,
+                      "m20": 0.0,
+                      "m21": 0.0,
+                      "m22": 0.0
+                    }
+                  },
+                  "id": "232ca8097d5641199e001571891e3fb1",
+                  "declaredInCode": true
+                }
+              ],
+              "shaderKey": "6a64e0abb9b44babb4d81ddce41a64c1",
+              "$name": "Polar Coordinates"
+            },
+            {
+              "$type": "ShaderFX",
+              "$id": "fx4",
+              "active": true,
+              "code": "// @whimtex-effect Color/Levels\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\r\n// @group\r\n// @header(Input Levels)\r\n// @param label(Input Black) float _InBlack = 0 [0 .. ~1] // Input black point. At or above white, the mapping becomes a hard threshold.\r\n// @param label(Input White) float _InWhite = 1 [0 .. ~1] // Input white point.\r\n// @param float _Gamma = 1 [0.1 .. ~5] // Midtone brightness.\r\n// @param curve _Curve // Remap tones after input levels and Gamma, before output levels. Linear leaves the mapping unchanged.\r\n// @header(Output Levels)\r\n// @param label(Output Black) float _OutBlack = 0 [0 .. ~1] // Output black point, including originally black pixels.\r\n// @param label(Output White) float _OutWhite = 1 [0 .. ~1] // Output white point; values below black invert the output.\r\n// @param bool _PreserveColor = true // On adjusts luminance; off applies levels independently to RGB.\r\n// @endgroup\r\n\r\nfloat MapLevels(float value)\r\n{\r\n    float mapped;\r\n    if (_InWhite <= _InBlack) mapped = step(_InBlack, value);\r\n    else mapped = saturate((value - _InBlack) / (_InWhite - _InBlack));\r\n    mapped = pow(mapped, 1.0 / max(_Gamma, 0.0001));\r\n    mapped = _Curve_Sample(mapped);\r\n    return lerp(_OutBlack, _OutWhite, mapped);\r\n}\r\n\r\nfloat4 ApplyFX(float2 uv, float4 color)\r\n{\r\n\tfloat4 result = color;\r\n    float3 rgb = max(color.rgb, 0.0);\r\n    if (_PreserveColor > 0.5)\r\n    {\r\n        float luma = dot(rgb, float3(0.2126, 0.7152, 0.0722));\r\n        float mapped = MapLevels(luma);\r\n\t\tresult.rgb = luma > 0.000001 ? rgb * (mapped / max(luma, 0.000001)) : mapped.xxx;\r\n\t}\r\n\telse\r\n\t{\r\n\t\tresult.rgb = float3(MapLevels(rgb.r), MapLevels(rgb.g), MapLevels(rgb.b));\r\n\t}\r\n\treturn lerp(color, result, _Opacity);\r\n}\r\n",
+              "parameters": [
+                {
+                  "name": "_Opacity",
+                  "type": "Float",
+                  "floatValue": 1.0,
+                  "id": "33fb56c92dd747a3a606bf5125d2ecd4",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_InBlack",
+                  "type": "Float",
+                  "floatValue": 0.0,
+                  "id": "5c8ba04400f641c99465afcfbbb2ddc7",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_InWhite",
+                  "type": "Float",
+                  "floatValue": 0.35,
+                  "id": "2ac0ee0acc9343cf808097d07b7a0b85",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_Gamma",
+                  "type": "Float",
+                  "floatValue": 0.82,
+                  "id": "a86295b1a2a34aca854b44cec0395eb5",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_Curve",
+                  "type": "Curve",
+                  "curveValue": {
+                    "preWrap": "ClampForever",
+                    "postWrap": "ClampForever",
+                    "keys": [
+                      [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0,
+                        0.0,
+                        0.0,
+                        "None"
+                      ],
+                      [
+                        1.0,
+                        1.0,
+                        1.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        "None"
+                      ]
+                    ]
+                  },
+                  "id": "1278fd5ba267479785b200d241819f2f",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_OutBlack",
+                  "type": "Float",
+                  "floatValue": 0.0,
+                  "id": "51b743e154a34ad0936262985272129c",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_OutWhite",
+                  "type": "Float",
+                  "floatValue": 1.0,
+                  "id": "b90362146c3e41abb2c12c46d4a568a2",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_PreserveColor",
+                  "type": "Bool",
+                  "floatValue": 1.0,
+                  "id": "b2cd9bec2fdb464b810b4b765648dc5c",
+                  "declaredInCode": true
+                }
+              ],
+              "shaderKey": "4d2ccb4369d2400099cb6af03e74358b",
+              "$name": "Levels"
+            }
+          ],
+          "transform": {
+            "pivot": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "rotation": 0.0,
+            "storage": "TRS",
+            "matrix": {
+              "m00": 0.0,
+              "m01": 0.0,
+              "m02": 0.0,
+              "m10": 0.0,
+              "m11": 0.0,
+              "m12": 0.0,
+              "m20": 0.0,
+              "m21": 0.0,
+              "m22": 0.0
+            },
+            "tiling": "Clip"
+          },
+          "filterMode": "Source",
+          "behaviour": {
+            "$type": "GroupLayerBehaviour",
+            "recoveryId": "1de470bda33e4deab1bf6f88df01cc5b"
+          },
+          "behaviourId": "1de470bda33e4deab1bf6f88df01cc5b",
+          "children": [
+            {
+              "id": "c93e96c217e249e680012f5a702afd73",
+              "layerName": "Outer Rim Lift",
+              "enabled": true,
+              "clippingMask": false,
+              "opacity": 1.0,
+              "blendMode": "Add",
+              "colorRange": "Standard",
+              "blendRange": "Standard",
+              "swizzle": {
+                "packed": 0
+              },
+              "modifiers": [],
+              "transform": {
+                "pivot": {
+                  "x": 0.5,
+                  "y": 0.5
+                },
+                "position": {
+                  "x": 0.0,
+                  "y": 0.0
+                },
+                "scale": {
+                  "x": 1.0,
+                  "y": 1.0
+                },
+                "rotation": 0.0,
+                "storage": "TRS",
+                "matrix": {
+                  "m00": 0.0,
+                  "m01": 0.0,
+                  "m02": 0.0,
+                  "m10": 0.0,
+                  "m11": 0.0,
+                  "m12": 0.0,
+                  "m20": 0.0,
+                  "m21": 0.0,
+                  "m22": 0.0
+                },
+                "tiling": "Unbounded"
+              },
+              "filterMode": "Source",
+              "behaviour": {
+                "$type": "GradientLayerBehaviour",
+                "gradientType": "Vertical",
+                "gradient": {
+                  "colors": [
+                    {
+                      "color": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                      ],
+                      "time": 0.1898098,
+                      "midpoint": 0.7882353
+                    },
+                    {
+                      "color": [
+                        0.299714357,
+                        0.299714357,
+                        0.299714267,
+                        1.0
+                      ],
+                      "time": 0.9408084,
+                      "midpoint": 0.5
+                    },
+                    {
+                      "color": [
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0
+                      ],
+                      "time": 1.0,
+                      "midpoint": 0.5
+                    }
+                  ],
+                  "alphas": [
+                    {
+                      "alpha": 1.0,
+                      "time": 0.0,
+                      "midpoint": 0.5
+                    },
+                    {
+                      "alpha": 1.0,
+                      "time": 1.0,
+                      "midpoint": 0.5
+                    }
+                  ],
+                  "mode": "Perceptual",
+                  "wrapMode": "Clamp",
+                  "colorSpace": "Gamma",
+                  "smoothness": 1.0
+                },
+                "recoveryId": "235b2586c2014a11ac1534f70f1015c4"
+              },
+              "behaviourId": "235b2586c2014a11ac1534f70f1015c4",
+              "children": [],
+              "group": false,
+              "compositing": "PassThrough"
+            },
+            {
+              "id": "630d1c74b41f4c958d3d5a1c4ca472f1",
+              "layerName": "Fine Radial Variation",
+              "enabled": true,
+              "clippingMask": false,
+              "opacity": 0.22,
+              "blendMode": "SoftLight",
+              "colorRange": "Standard",
+              "blendRange": "Standard",
+              "swizzle": {
+                "packed": 0
+              },
+              "modifiers": [],
+              "transform": {
+                "pivot": {
+                  "x": 0.5,
+                  "y": 0.5
+                },
+                "position": {
+                  "x": 0.0,
+                  "y": 0.0
+                },
+                "scale": {
+                  "x": 1.0,
+                  "y": 1.0
+                },
+                "rotation": 0.0,
+                "storage": "TRS",
+                "matrix": {
+                  "m00": 0.0,
+                  "m01": 0.0,
+                  "m02": 0.0,
+                  "m10": 0.0,
+                  "m11": 0.0,
+                  "m12": 0.0,
+                  "m20": 0.0,
+                  "m21": 0.0,
+                  "m22": 0.0
+                },
+                "tiling": "Unbounded"
+              },
+              "filterMode": "Source",
+              "behaviour": {
+                "$type": "NoiseLayerBehaviour",
+                "noiseType": "OpenSimplex2",
+                "dimensions": "TwoD",
+                "seed": 1337,
+                "scale": 27.9,
+                "scaleY": 0.01,
+                "linkScale": false,
+                "offset": [
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "periodic": "X",
+                "fractal": "FBm",
+                "octaves": 3,
+                "lacunarity": 2.0,
+                "gain": 0.5,
+                "weightedStrength": 0.0,
+                "warp": "None",
+                "encoding": "LinearData",
+                "inverted": false,
+                "recoveryId": "0ac5a473e5e94765aa8bfef9032fcd00"
+              },
+              "behaviourId": "0ac5a473e5e94765aa8bfef9032fcd00",
+              "children": [],
+              "group": false,
+              "compositing": "PassThrough"
+            },
+            {
+              "id": "9ccac96db6444c3aaa08c7aa9ff4d5c9",
+              "layerName": "Inward Falloff",
+              "enabled": true,
+              "clippingMask": false,
+              "opacity": 1.0,
+              "blendMode": "Multiply",
+              "colorRange": "Standard",
+              "blendRange": "Standard",
+              "swizzle": {
+                "packed": 0
+              },
+              "modifiers": [],
+              "transform": {
+                "pivot": {
+                  "x": 0.5,
+                  "y": 0.5
+                },
+                "position": {
+                  "x": 0.0,
+                  "y": 0.0
+                },
+                "scale": {
+                  "x": 1.0,
+                  "y": 1.0
+                },
+                "rotation": 0.0,
+                "storage": "TRS",
+                "matrix": {
+                  "m00": 0.0,
+                  "m01": 0.0,
+                  "m02": 0.0,
+                  "m10": 0.0,
+                  "m11": 0.0,
+                  "m12": 0.0,
+                  "m20": 0.0,
+                  "m21": 0.0,
+                  "m22": 0.0
+                },
+                "tiling": "Unbounded"
+              },
+              "filterMode": "Source",
+              "behaviour": {
+                "$type": "GradientLayerBehaviour",
+                "gradientType": "Vertical",
+                "gradient": {
+                  "colors": [
+                    {
+                      "color": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                      ],
+                      "time": 0.231993452,
+                      "midpoint": 0.632200539
+                    },
+                    {
+                      "color": [
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0
+                      ],
+                      "time": 0.978559554,
+                      "midpoint": 0.5
+                    },
+                    {
+                      "color": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                      ],
+                      "time": 0.992676437,
+                      "midpoint": 0.5
+                    }
+                  ],
+                  "alphas": [
+                    {
+                      "alpha": 1.0,
+                      "time": 0.0,
+                      "midpoint": 0.5
+                    },
+                    {
+                      "alpha": 1.0,
+                      "time": 1.0,
+                      "midpoint": 0.5
+                    }
+                  ],
+                  "mode": "Perceptual",
+                  "wrapMode": "Clamp",
+                  "colorSpace": "Gamma",
+                  "smoothness": 1.0
+                },
+                "recoveryId": "9e5dae4d07a041a0970c036e1d87d6f9"
+              },
+              "behaviourId": "9e5dae4d07a041a0970c036e1d87d6f9",
+              "children": [],
+              "group": false,
+              "compositing": "PassThrough"
+            },
+            {
+              "id": "975048f64fdc414495f0ca89b98b1a8e",
+              "layerName": "Cellular Spikes",
+              "enabled": true,
+              "clippingMask": false,
+              "opacity": 1.0,
+              "blendMode": "Normal",
+              "colorRange": "Standard",
+              "blendRange": "Standard",
+              "swizzle": {
+                "packed": 0
+              },
+              "modifiers": [],
+              "transform": {
+                "pivot": {
+                  "x": 0.5,
+                  "y": 0.5
+                },
+                "position": {
+                  "x": 0.0,
+                  "y": 0.0
+                },
+                "scale": {
+                  "x": 1.0,
+                  "y": 1.0
+                },
+                "rotation": 0.0,
+                "storage": "Projective",
+                "matrix": {
+                  "m00": 1.0,
+                  "m01": 0.0,
+                  "m02": 0.0,
+                  "m10": 0.0,
+                  "m11": 2.9660582542419438,
+                  "m12": -0.9830291271209719,
+                  "m20": 0.0,
+                  "m21": 0.0,
+                  "m22": 1.0
+                },
+                "tiling": "Unbounded"
+              },
+              "filterMode": "Source",
+              "behaviour": {
+                "$type": "NoiseLayerBehaviour",
+                "noiseType": "Cellular",
+                "dimensions": "ThreeD",
+                "seed": 1351291267,
+                "scale": 8.18,
+                "scaleY": 0.01,
+                "linkScale": false,
+                "offset": [
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "periodic": "X",
+                "fractal": "Ridged",
+                "octaves": 3,
+                "lacunarity": 1.38,
+                "gain": 0.1749334,
+                "weightedStrength": 0.837300241,
+                "cellularDistance": "Euclidean",
+                "cellularReturn": "Distance",
+                "cellularJitter": 1.0,
+                "warp": "None",
+                "encoding": "Gradient",
+                "inverted": false,
+                "gradient": {
+                  "colors": [
+                    {
+                      "color": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                      ],
+                      "time": 0.360687017,
+                      "midpoint": 0.7292819
+                    },
+                    {
+                      "color": [
+                        0.427272737,
+                        0.427272737,
+                        0.427272737,
+                        1.0
+                      ],
+                      "time": 0.536259532,
+                      "midpoint": 0.215517223
+                    },
+                    {
+                      "color": [
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0
+                      ],
+                      "time": 0.706106842,
+                      "midpoint": 0.5
+                    }
+                  ],
+                  "alphas": [
+                    {
+                      "alpha": 1.0,
+                      "time": 0.0,
+                      "midpoint": 0.610687
+                    },
+                    {
+                      "alpha": 1.0,
+                      "time": 1.0,
+                      "midpoint": 0.5
+                    }
+                  ],
+                  "mode": "Perceptual",
+                  "wrapMode": "Clamp",
+                  "colorSpace": "Gamma",
+                  "smoothness": 1.0
+                },
+                "recoveryId": "10e7e5147e074403bc7eab609b85b9ee"
+              },
+              "behaviourId": "10e7e5147e074403bc7eab609b85b9ee",
+              "children": [],
+              "group": false,
+              "compositing": "PassThrough"
+            }
+          ],
+          "group": true,
+          "compositing": "Isolated"
+        }
+      ],
+      "group": true,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "d4356275e851450e8fa368e21d0173e9",
+      "layerName": "Rim & Glow Mask",
+      "enabled": false,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "GradientLayerBehaviour",
+        "gradientType": "Radial",
+        "gradient": {
+          "colors": [
+            {
+              "color": [
+                1.0,
+                1.0,
+                0.0,
+                1.0
+              ],
+              "time": 0.0,
+              "midpoint": 0.5
+            },
+            {
+              "color": [
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ],
+              "time": 0.961832047,
+              "midpoint": 0.5
+            },
+            {
+              "color": [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "time": 0.982824445,
+              "midpoint": 0.5
+            }
+          ],
+          "alphas": [
+            {
+              "alpha": 1.0,
+              "time": 0.982824445,
+              "midpoint": 0.5
+            }
+          ],
+          "mode": "Perceptual",
+          "wrapMode": "Clamp",
+          "colorSpace": "Gamma",
+          "smoothness": 1.0
+        },
+        "recoveryId": "62e2cb65f3b144db9745485e10ba498e"
+      },
+      "behaviourId": "62e2cb65f3b144db9745485e10ba498e",
+      "children": [],
+      "group": false,
+      "compositing": "PassThrough"
+    }
+  ]
+}

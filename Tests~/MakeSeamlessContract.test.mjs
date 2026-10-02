@@ -6,7 +6,7 @@ const model = read('src/Layers/MakeSeamlessLayerBehaviour.cs');
 const inspect = read('src/Automation/WhimTexApi.Inspect.cs');
 const properties = JSON.parse(read('Documentation~/AI/layers.schema.json')).$defs.makeSeamless.properties;
 const reference = read('Documentation~/AgentAPI.md').split('### Make Seamless settings')[1].split('### Normal Map settings')[0];
-const clipboardGuide = read('Documentation~/AI/README.md').split('- **makeSeamless:**')[1].split('\n- **')[0];
+const clipboardGuide = read('Documentation~/AI/LEGACY_LAYERS.md').split('- **makeSeamless:**')[1].split('\n- **')[0];
 const keys = [...parser.match(/Keys\(value,([\s\S]*?)\);/)[1].matchAll(/"([^"]+)"/g)].map(m => m[1]);
 const snapshotKeys = [...parser.split('private static JObject MakeSeamlessSnapshot')[1].matchAll(/\["([^"]+)"\] =/g)].map(m => m[1]);
 assert.deepEqual(Object.keys(properties).sort(), [...keys].sort());

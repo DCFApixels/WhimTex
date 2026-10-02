@@ -11,6 +11,17 @@ next_page: "en/preview.md"
 
 # Shader FX and Processor
 
+## Compilation warnings
+
+A yellow **!** beside the layer and warning triangles in the **FX** section and individual effect
+headers identify an uncompiled or failed FX, even with the panels collapsed. Hover for the reason;
+open **Code** for full diagnostics. The FX is skipped without disabling or deleting it. Fix the code
+and click **Apply** to resume it and clear the indicators. A failed Apply does not use an older compiled
+version. Successful compilation with warnings does not disable the effect.
+
+JSON documents can save and reopen broken FX without losing their source or parameter values.
+Repeated identical failures do not add repeated WhimTex warnings to Console during the same FX lifetime.
+
 ## Bake effects into a layer
 
 **Apply All** beside the add-FX buttons bakes the entire stack. **⋮ → Apply** (also in the header context menu) bakes the selected FX and every FX above it, in stack order; later effects remain editable. Disabled FX in that prefix are removed without contributing to the image. This is different from **Apply** inside **Code**, which compiles HLSL.

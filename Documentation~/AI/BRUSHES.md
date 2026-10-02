@@ -24,7 +24,7 @@ Ready-to-copy files are in **Documentation~/Examples/Brushes/**:
 - [HLSL sparkle brush](../Examples/Brushes/hlsl-sparkle.json)
 
 Validate the structure against [brush.schema.json](brush.schema.json).
-These are **not** `whimtex.layers` examples or Unity serialized settings.
+These are **not** `whimtex.document` layer recipes or Unity serialized settings.
 
 ## Common mistakes
 

@@ -20,7 +20,7 @@ namespace DCFApixels.WhimTex
         }
 
         /// <summary>A document whose file is an imported image is updated through the document session.</summary>
-        private bool HasDocumentFile => compositor != null && TryGetDocumentFile(compositor, out _);
+        private bool HasDocumentFile => compositor != null && TryGetDocumentFile(compositor, out string path) && !WhimTexDocumentJson.IsJsonPath(path);
 
         private bool CanPublishLiveOutput => compositor != null &&
             (HasDocumentFile || compositor.OutputTexture != null && AssetDatabase.Contains(compositor) &&
@@ -58,6 +58,12 @@ namespace DCFApixels.WhimTex
         {
             if (liveOutputButton == null) return;
             liveOutputButton.SetEnabled(CanPublishLiveOutput);
+            if (WhimTexDocumentJson.IsJsonPath(WhimTexDocumentService.PathOf(compositor)))
+            {
+                liveOutputButton.tooltip = "JSON has no imported image. Save as TIFF to use Live Update.";
+                liveOutputButton.EnableInClassList("whimtex-channel-button--enabled", false);
+                return;
+            }
             liveOutputButton.EnableInClassList("whimtex-channel-button--enabled",
                 HasDocumentFile ? WhimTexDocumentSession.IsLiveFor(compositor) : liveOutputEnabled);
             liveOutputButton.tooltip = HasDocumentFile

@@ -7,28 +7,60 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
-        private enum TextureExportFormat { Png, Jpeg, Tga, Exr, Asset }
+        internal enum TextureExportFormat { Png, Jpeg, Tga, Exr, Asset, Psd, Json }
 
-        private void ShowExportMenu()
+        private void ShowExportWindow()
         {
-            GenericMenu menu = new GenericMenu();
-            menu.AddItem(new GUIContent("PNG (.png)"), false, () => ExportTexture(TextureExportFormat.Png));
-            menu.AddItem(new GUIContent("JPEG (.jpg, white background)"), false, () => ExportTexture(TextureExportFormat.Jpeg));
-            menu.AddItem(new GUIContent("TGA (.tga)"), false, () => ExportTexture(TextureExportFormat.Tga));
-            menu.AddItem(new GUIContent("OpenEXR (.exr)"), false, () => ExportTexture(TextureExportFormat.Exr));
-            menu.AddItem(new GUIContent("Layered PSD (.psd)"), false, ExportPsd);
-            menu.AddSeparator(string.Empty);
-            menu.AddItem(new GUIContent("Unity Texture2D (.asset)"), false, () => ExportTexture(TextureExportFormat.Asset));
-            menu.ShowAsContext();
+            if (compositor != null) WhimTexExportWindow.Open(this, compositor);
         }
 
-        private void ExportPsd()
+        internal bool ExportDocumentFromDialog(TextureCompositor source, WhimTexExportOptions options)
         {
-            if (compositor == null) return;
-            FinishPreviewTransform();
-            FinishPaintingStroke();
-            string path = EditorUtility.SaveFilePanel("Export layered PSD", Application.dataPath, "sprite", "psd");
-            if (string.IsNullOrEmpty(path)) return;
+            CheckExportSource(source);
+            options.Validate();
+            PrepareDocumentSave();
+            string extension = GetExportExtension(options.format);
+            string filename = string.IsNullOrEmpty(source.name) ? "WhimTex Document" : source.name;
+            string path = options.format == TextureExportFormat.Asset || options.format == TextureExportFormat.Json
+                ? EditorUtility.SaveFilePanelInProject("Export WhimTex", filename, extension,
+                    options.format == TextureExportFormat.Json ? "Save editable settings without Drawing pixels." : "Save the flattened texture without layers.")
+                : EditorUtility.SaveFilePanel("Export WhimTex", Application.dataPath, filename, extension);
+            return ExportDocumentToPath(source, options, path);
+        }
+
+        private void CheckExportSource(TextureCompositor source)
+        {
+            if (source == null || compositor != source)
+                throw new InvalidOperationException("The source document is no longer open here. Reopen Export from the document you want to export.");
+        }
+
+        internal bool ExportDocumentToPath(TextureCompositor source, WhimTexExportOptions options, string path)
+        {
+            if (string.IsNullOrEmpty(path)) return false;
+            CheckExportSource(source);
+            options.Validate();
+            PrepareDocumentSave();
+            string extension = GetExportExtension(options.format);
+            string selectedExtension = Path.GetExtension(path);
+            bool correctExtension = options.format == TextureExportFormat.Json ? WhimTexDocumentJson.IsJsonPath(path) :
+                string.Equals(selectedExtension, "." + extension, StringComparison.OrdinalIgnoreCase) ||
+                options.format == TextureExportFormat.Jpeg && string.Equals(selectedExtension, ".jpeg", StringComparison.OrdinalIgnoreCase);
+            if (!correctExtension) throw new InvalidOperationException("Choose a file with the ." + extension + " extension for this export format.");
+            if (options.format == TextureExportFormat.Json)
+            {
+                var jsonOptions = new WhimTexJsonWriteOptions { Mode = options.jsonMode, AllowDrawingOmission = true };
+                var written = WhimTexDocumentJson.Write(source, jsonOptions);
+                if (!ConfirmJsonDrawingOmission(written, true)) return false;
+                using var operation = new WhimTexDocumentOperation("Export WhimTex JSON");
+                WhimTexDocumentFile.ExportJson(source, path, jsonOptions);
+                return true;
+            }
+            if (options.format == TextureExportFormat.Psd) return ExportPsdToPath(path);
+            return ExportTextureToPath(options, path);
+        }
+
+        private bool ExportPsdToPath(string path)
+        {
             try
             {
                 PsdExportReport report = WhimTexPsdExporter.Export(compositor, path, overwrite: true,
@@ -43,46 +75,22 @@ namespace DCFApixels.WhimTex
                     $"Editable fills: {report.editableFillCount}. Editable outlines: {report.editableOutlineCount}.";
                 if (report.notes.Count > 0)
                 {
-#if WHIMTEX_DEBUG
-                    Debug.Log("PSD export: " + path + "\n" + summary + "\n" + string.Join("\n", report.notes));
-#endif
-                    summary += "\n\nSome settings were rasterized or approximated. Details are in the Console.";
+                    summary += "\n" + string.Join("\n", report.notes);
                 }
-                EditorUtility.DisplayDialog("PSD exported", summary, "OK");
-            }
-            catch (OperationCanceledException) { }
-            catch (Exception exception)
-            {
-                Debug.LogException(exception);
-                EditorUtility.DisplayDialog("PSD export failed", exception.Message, "OK");
+                Debug.Log("WhimTex PSD export: " + path + "\n" + summary);
+                return true;
             }
             finally { EditorUtility.ClearProgressBar(); }
         }
 
-        private void ExportTexture(TextureExportFormat format)
+        private bool ExportTextureToPath(WhimTexExportOptions options, string path)
         {
-            if (compositor == null)
-                return;
-            FinishPreviewTransform();
-            FinishPaintingStroke();
-            string extension = GetExportExtension(format);
-            string path = format == TextureExportFormat.Asset
-                ? EditorUtility.SaveFilePanelInProject("Export Unity Texture2D", "sprite", "asset",
-                    "Save the flattened texture, without the layer tree.")
-                : EditorUtility.SaveFilePanel("Export Sprite " + extension.ToUpperInvariant(), Application.dataPath, "sprite", extension);
-            if (string.IsNullOrEmpty(path))
-                return;
-
+            TextureExportFormat format = options.format;
             Texture2D texture = null;
             try
             {
-                string selectedExtension = Path.GetExtension(path);
-                if (!string.Equals(selectedExtension, "." + extension, StringComparison.OrdinalIgnoreCase) &&
-                    !(format == TextureExportFormat.Jpeg && string.Equals(selectedExtension, ".jpeg", StringComparison.OrdinalIgnoreCase)))
-                    throw new InvalidOperationException("Choose a file with the ." + extension + " extension for this export format.");
-
                 if (format == TextureExportFormat.Asset && !CanExportTextureAsset(path))
-                    return;
+                    return false;
                 texture = compositor.Compose();
                 if (format == TextureExportFormat.Asset)
                 {
@@ -90,17 +98,13 @@ namespace DCFApixels.WhimTex
                 }
                 else
                 {
-                    byte[] bytes = EncodeExportTexture(texture, format);
+                    byte[] bytes = EncodeExportTextureWithOptions(texture, format, options.jpegQuality, options.ExrFlags);
                     if (bytes == null || bytes.Length == 0)
                         throw new InvalidOperationException("Unity returned no image data for this format.");
                     File.WriteAllBytes(path, bytes);
                     ImportExportedTextureIfNeeded(path, format != TextureExportFormat.Exr);
                 }
-            }
-            catch (Exception exception)
-            {
-                Debug.LogException(exception);
-                EditorUtility.DisplayDialog("Sprite export failed", exception.Message, "OK");
+                return true;
             }
             finally
             {
@@ -175,13 +179,18 @@ namespace DCFApixels.WhimTex
                 case TextureExportFormat.Tga: return "tga";
                 case TextureExportFormat.Exr: return "exr";
                 case TextureExportFormat.Asset: return "asset";
+                case TextureExportFormat.Psd: return "psd";
+                case TextureExportFormat.Json: return WhimTexDocumentJson.Extension.TrimStart('.');
                 default: throw new ArgumentOutOfRangeException(nameof(format));
             }
         }
 
         private static byte[] EncodeExportTexture(Texture2D texture, TextureExportFormat format)
+            => EncodeExportTextureWithOptions(texture, format, 95, Texture2D.EXRFlags.CompressZIP);
+
+        private static byte[] EncodeExportTextureWithOptions(Texture2D texture, TextureExportFormat format, int jpegQuality, Texture2D.EXRFlags exrFlags)
         {
-            if (format == TextureExportFormat.Exr) return texture.EncodeToEXR(Texture2D.EXRFlags.CompressZIP);
+            if (format == TextureExportFormat.Exr) return texture.EncodeToEXR(exrFlags);
             Texture2D ldr = HdrUtility.ToLdr(texture, format == TextureExportFormat.Jpeg);
             try
             {
@@ -189,7 +198,7 @@ namespace DCFApixels.WhimTex
                 {
                     case TextureExportFormat.Png: return ldr.EncodeToPNG();
                     case TextureExportFormat.Tga: return ldr.EncodeToTGA();
-                    case TextureExportFormat.Jpeg: return ldr.EncodeToJPG(95);
+                    case TextureExportFormat.Jpeg: return ldr.EncodeToJPG(jpegQuality);
                     default: throw new ArgumentOutOfRangeException(nameof(format));
                 }
             }

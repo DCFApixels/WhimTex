@@ -1,0 +1,731 @@
+{
+  "format": "whimtex.document",
+  "version": 1,
+  "document": {
+    "colorHistory": [
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "layerNameCounters": [
+      {
+        "prefix": "Color Fill",
+        "next": 3
+      },
+      {
+        "prefix": "Blur",
+        "next": 2
+      },
+      {
+        "prefix": "Shader Processor",
+        "next": 2
+      },
+      {
+        "prefix": "SDF",
+        "next": 2
+      }
+    ],
+    "nextCopyNumber": 3,
+    "spriteSlices": [],
+    "width": 256,
+    "height": 128,
+    "outputFilter": "Bilinear",
+    "outputPrecision": "Auto",
+    "outputSrgb": true,
+    "uvReferenceMesh": null,
+    "uvReferenceChannel": 0,
+    "uvReferenceSubmesh": -1
+  },
+  "layers": [
+    {
+      "id": "6a041e34ecda4736b5023b5ae6b0c145",
+      "layerName": "Final Tint",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "HDR",
+      "blendRange": "HDR",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx0",
+          "active": true,
+          "code": "// @whimtex-effect Learn/Final Tint\r\n// @control(_Opacity)\r\n// @param float _Opacity = 1 [0 .. 1]\r\n// @param color _Tint = #FFFFFF\r\n// @param float _Brightness = 1 [0 .. ~3]\r\n\r\n\r\nfloat LearnHash(float2 p){ return frac(sin(dot(p,float2(127.1,311.7)))*43758.5453); }\r\nfloat LearnNoise(float2 p, float seed){\r\n fnl_state s=fnlCreateState((int)seed);s.noise_type=FNL_NOISE_OPENSIMPLEX2S;s.frequency=1;\r\n return fnlGetNoise2D(s,p.x,p.y)*.5+.5;\r\n}\r\nfloat LearnFbm(float2 p,float seed){\r\n fnl_state s=fnlCreateState((int)seed);s.noise_type=FNL_NOISE_OPENSIMPLEX2S;s.frequency=1;\r\n s.fractal_type=FNL_FRACTAL_FBM;s.octaves=3;s.gain=.42;\r\n return fnlGetNoise2D(s,p.x,p.y)*.5+.5;\r\n}\r\nfloat2 LearnRotate(float2 p,float angle){float c=cos(radians(angle)),s=sin(radians(angle));return float2(c*p.x-s*p.y,s*p.x+c*p.y);}\r\nfloat LearnEdge(float d,float softness){float w=max(fwidth(d),max(softness,.00001));return 1-smoothstep(-w,w,d);}\r\nfloat LearnGauss(float x){return exp(-x*x);}\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n\r\nreturn float4(color.rgb*_Tint.rgb*_Brightness,color.a*_Tint.a*_Opacity);\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "3be9f3aa9784424b8d522c6d03e35876",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Tint",
+              "type": "Color",
+              "colorValue": [
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ],
+              "id": "4ec4fabcafde4299969ee6946e3b8457",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Brightness",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "6c7c4d8e388a4ec58804a58e26f544aa",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "c1dcdc9b8bc1414591476a389704a263",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Clip"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "ShaderProcessorLayerBehaviour",
+        "recoveryId": "e9519edbf88e4d98acebe79fda254cca"
+      },
+      "behaviourId": "e9519edbf88e4d98acebe79fda254cca",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "d02e0c6afe5549a0ba1d8cd0141d40ef",
+      "layerName": "Sharp Magic Streak",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx1",
+          "active": true,
+          "code": "// @whimtex-effect Learn/Magic Lens\r\n// @control(_Opacity)\r\n// @param float _Opacity = 1 [0 .. 1]\r\n// @group(Placement)\r\n// @param point _Center = (0.5, 0.5)\r\n// @param float2 _Scale = (1, 1)\r\n// @param float _Angle = 0 [-180 .. 180]\r\n// @endgroup\r\n// @group(Profile)\r\n// @param float _HalfLength = 0.377 [0.02 .. 0.48]\r\n// @param float _HalfHeight = 0.056 [0.002 .. 0.2]\r\n// @param float _Taper = 2 [1 .. 4]\r\n// @param float _EdgeSoftness = 0.6 [0 .. 16]\r\n// @endgroup\r\n// Analytic tapered lens. Edge softness is measured in canvas pixels,\r\n// independently of length, height and the direction of the boundary.\r\nfloat4 ApplyFX(float2 uv, float4 color) {\r\n float2 p=(LayerToLocal(uv)-_Center)*_CanvasSize.xy;\r\n float c=cos(radians(_Angle)), s=sin(radians(_Angle));\r\n p=float2(c*p.x+s*p.y,-s*p.x+c*p.y)/max(abs(_Scale),0.001);\r\n float lengthPx=max(_HalfLength*_CanvasSize.x,0.001);\r\n float heightPx=max(_HalfHeight*_CanvasSize.y,0.001);\r\n float x=abs(p.x)/lengthPx;\r\n float halfHeight=heightPx*saturate(1-pow(x,_Taper));\r\n float slope=_Taper*pow(max(x,0.000001),_Taper-1)*heightPx/lengthPx;\r\n float normalization=length(float2(slope,1)/max(abs(_Scale),0.001));\r\n float upper=(p.y-halfHeight)/normalization;\r\n float lower=(p.y+halfHeight)/normalization;\r\n float aa=max(0.5*max(fwidth(upper),fwidth(lower)),0.45);\r\n float softness=max(_EdgeSoftness,aa);\r\n // Integrate a finite strip instead of blurring an infinite side:\r\n // coverage goes continuously to zero when the two sides meet at a tip.\r\n float coverage=saturate(smoothstep(-softness,softness,lower)-smoothstep(-softness,softness,upper));\r\n return float4(1,1,1,coverage*_Opacity);\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "52afa7bc48234d13a3023c60db118e4c",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Center",
+              "type": "Point",
+              "vectorValue": [
+                0.5,
+                0.5,
+                0.0,
+                0.0
+              ],
+              "id": "6fdf51c367574cef854c48c63016c82d",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Scale",
+              "type": "Vector2",
+              "vectorValue": [
+                1.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "id": "d313a8daae334d5ba45f717750f9d111",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Angle",
+              "type": "Float",
+              "floatValue": 0.0,
+              "id": "873d88e43eae4be2b520b08ab8d95a3a",
+              "declaredInCode": true
+            },
+            {
+              "name": "_HalfLength",
+              "type": "Float",
+              "floatValue": 0.377,
+              "id": "e1cafd56d7e74528945d660e08b459eb",
+              "declaredInCode": true
+            },
+            {
+              "name": "_HalfHeight",
+              "type": "Float",
+              "floatValue": 0.056,
+              "id": "0b74464686454619b549f5335e287c21",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Taper",
+              "type": "Float",
+              "floatValue": 2.0,
+              "id": "6a9109c388e143ea80c06edcc0f34ab4",
+              "declaredInCode": true
+            },
+            {
+              "name": "_EdgeSoftness",
+              "type": "Float",
+              "floatValue": 0.3,
+              "id": "833ce4cde9814e87a3df36f723fa2931",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "3cf09bc5c60e4ef482720d937fa7bfda",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "ColorFillLayerBehaviour",
+        "mode": "Color",
+        "storedColor": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "recoveryId": "99d58880262a44f89767655690b89edb"
+      },
+      "behaviourId": "99d58880262a44f89767655690b89edb",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "06db2fdcfde049bf81531c0f7b5b6118",
+      "layerName": "Outer Contour Glow",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 0.94,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx2",
+          "active": true,
+          "code": "// @whimtex-effect Learn/Glow Envelope\r\n// @param float _HalfLength = 0.47 [0.1 .. 0.8]\r\n// @param float _Taper = 3 [1 .. 8]\r\n// Attenuate distant tips without scaling or cropping the distance field.\r\nfloat4 ApplyFX(float2 uv,float4 color) {\r\n float x=abs(LayerToLocal(uv).x-0.5)/max(_HalfLength,0.001);\r\n color.a*=pow(saturate(1-x*x),_Taper);\r\n return color;\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_HalfLength",
+              "type": "Float",
+              "floatValue": 0.572,
+              "id": "03c0e7b5e7944f2f9ad3ede29b8b1291",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Taper",
+              "type": "Float",
+              "floatValue": 4.65,
+              "id": "9c89151ebeff4a49b71c068e1aca072a",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "86acbbf97ecd46399094a9a42aa555be",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Clip"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "SDFLayerBehaviour",
+        "metric": "EuclideanAntialiased",
+        "sourceChannel": "Alpha",
+        "threshold": 128,
+        "distancePosition": "Outside",
+        "inverted": false,
+        "maxDistanceNormalization": 47.0,
+        "sourceOffset": [
+          0.0,
+          0.0
+        ],
+        "sourceEdges": "Transparent",
+        "contourOffset": 0.0,
+        "insideDistance": 0.0,
+        "outsideDistance": 0.0,
+        "profile": {
+          "preWrap": "ClampForever",
+          "postWrap": "ClampForever",
+          "keys": [
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              "None"
+            ],
+            [
+              1.0,
+              1.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              "None"
+            ]
+          ]
+        },
+        "encoding": "Gradient",
+        "gradient": {
+          "colors": [
+            {
+              "color": [
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ],
+              "time": 0.0,
+              "midpoint": 0.5
+            },
+            {
+              "color": [
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ],
+              "time": 1.0,
+              "midpoint": 0.5
+            }
+          ],
+          "alphas": [
+            {
+              "alpha": 0.7,
+              "time": 0.0,
+              "midpoint": 0.5
+            },
+            {
+              "alpha": 0.690829933,
+              "time": 0.0625,
+              "midpoint": 0.5
+            },
+            {
+              "alpha": 0.658846438,
+              "time": 0.125,
+              "midpoint": 0.5
+            },
+            {
+              "alpha": 0.6037966,
+              "time": 0.1875,
+              "midpoint": 0.5
+            },
+            {
+              "alpha": 0.529897,
+              "time": 0.25,
+              "midpoint": 0.5
+            },
+            {
+              "alpha": 0.4441804,
+              "time": 0.3125,
+              "midpoint": 0.5
+            },
+            {
+              "alpha": 0.3548775,
+              "time": 0.375,
+              "midpoint": 0.5
+            },
+            {
+              "alpha": 0.26975584,
+              "time": 0.4375,
+              "midpoint": 0.5
+            },
+            {
+              "alpha": 0.194785729,
+              "time": 0.5,
+              "midpoint": 0.5
+            },
+            {
+              "alpha": 0.133423448,
+              "time": 0.5625,
+              "midpoint": 0.5
+            },
+            {
+              "alpha": 0.0865862146,
+              "time": 0.625,
+              "midpoint": 0.5
+            },
+            {
+              "alpha": 0.05317489,
+              "time": 0.6875,
+              "midpoint": 0.5
+            },
+            {
+              "alpha": 0.0308705289,
+              "time": 0.75,
+              "midpoint": 0.5
+            },
+            {
+              "alpha": 0.01692513,
+              "time": 0.8125,
+              "midpoint": 0.5
+            },
+            {
+              "alpha": 0.008755261,
+              "time": 0.875,
+              "midpoint": 0.5
+            },
+            {
+              "alpha": 0.004269509,
+              "time": 0.9375,
+              "midpoint": 0.5
+            },
+            {
+              "alpha": 0.0,
+              "time": 1.0,
+              "midpoint": 0.5
+            }
+          ],
+          "mode": "Linear",
+          "wrapMode": "Clamp",
+          "colorSpace": "Gamma",
+          "smoothness": 1.0
+        },
+        "targetLayerId": "d02e0c6afe5549a0ba1d8cd0141d40ef",
+        "inputMode": "Specific",
+        "recoveryId": "a64a4ca920bc43648a9d6cef389247e7"
+      },
+      "behaviourId": "a64a4ca920bc43648a9d6cef389247e7",
+      "children": [],
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "99c1b1258e5043c2ac17fb85dff0b119",
+      "layerName": "Inner Contour Glow",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 0.28,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx3",
+          "active": true,
+          "code": "// @whimtex-effect Learn/Glow Envelope\r\n// @param float _HalfLength = 0.47 [0.1 .. 0.8]\r\n// @param float _Taper = 3 [1 .. 8]\r\n// Attenuate distant tips without scaling or cropping the distance field.\r\nfloat4 ApplyFX(float2 uv,float4 color) {\r\n float x=abs(LayerToLocal(uv).x-0.5)/max(_HalfLength,0.001);\r\n color.a*=pow(saturate(1-x*x),_Taper);\r\n return color;\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_HalfLength",
+              "type": "Float",
+              "floatValue": 0.556,
+              "id": "03c0e7b5e7944f2f9ad3ede29b8b1291",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Taper",
+              "type": "Float",
+              "floatValue": 2.51,
+              "id": "9c89151ebeff4a49b71c068e1aca072a",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "5efeee82a6634fa9a240c192dc21fe88",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Clip"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "SDFLayerBehaviour",
+        "metric": "EuclideanAntialiased",
+        "sourceChannel": "Alpha",
+        "threshold": 128,
+        "distancePosition": "Outside",
+        "inverted": false,
+        "maxDistanceNormalization": 17.35,
+        "sourceOffset": [
+          0.0,
+          0.0
+        ],
+        "sourceEdges": "Transparent",
+        "contourOffset": 0.0,
+        "insideDistance": 0.0,
+        "outsideDistance": 0.0,
+        "profile": {
+          "preWrap": "ClampForever",
+          "postWrap": "ClampForever",
+          "keys": [
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              "None"
+            ],
+            [
+              1.0,
+              1.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              "None"
+            ]
+          ]
+        },
+        "encoding": "Gradient",
+        "gradient": {
+          "colors": [
+            {
+              "color": [
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ],
+              "time": 0.0,
+              "midpoint": 0.5
+            },
+            {
+              "color": [
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ],
+              "time": 1.0,
+              "midpoint": 0.5
+            }
+          ],
+          "alphas": [
+            {
+              "alpha": 0.7,
+              "time": 0.0,
+              "midpoint": 0.5
+            },
+            {
+              "alpha": 0.690829933,
+              "time": 0.0625,
+              "midpoint": 0.5
+            },
+            {
+              "alpha": 0.658846438,
+              "time": 0.125,
+              "midpoint": 0.5
+            },
+            {
+              "alpha": 0.6037966,
+              "time": 0.1875,
+              "midpoint": 0.5
+            },
+            {
+              "alpha": 0.529897,
+              "time": 0.25,
+              "midpoint": 0.5
+            },
+            {
+              "alpha": 0.4441804,
+              "time": 0.3125,
+              "midpoint": 0.5
+            },
+            {
+              "alpha": 0.3548775,
+              "time": 0.375,
+              "midpoint": 0.5
+            },
+            {
+              "alpha": 0.26975584,
+              "time": 0.4375,
+              "midpoint": 0.5
+            },
+            {
+              "alpha": 0.194785729,
+              "time": 0.5,
+              "midpoint": 0.5
+            },
+            {
+              "alpha": 0.133423448,
+              "time": 0.5625,
+              "midpoint": 0.5
+            },
+            {
+              "alpha": 0.0865862146,
+              "time": 0.625,
+              "midpoint": 0.5
+            },
+            {
+              "alpha": 0.05317489,
+              "time": 0.6875,
+              "midpoint": 0.5
+            },
+            {
+              "alpha": 0.0308705289,
+              "time": 0.75,
+              "midpoint": 0.5
+            },
+            {
+              "alpha": 0.01692513,
+              "time": 0.8125,
+              "midpoint": 0.5
+            },
+            {
+              "alpha": 0.008755261,
+              "time": 0.875,
+              "midpoint": 0.5
+            },
+            {
+              "alpha": 0.004269509,
+              "time": 0.9375,
+              "midpoint": 0.5
+            },
+            {
+              "alpha": 0.0,
+              "time": 1.0,
+              "midpoint": 0.5
+            }
+          ],
+          "mode": "Linear",
+          "wrapMode": "Clamp",
+          "colorSpace": "Gamma",
+          "smoothness": 1.0
+        },
+        "targetLayerId": "d02e0c6afe5549a0ba1d8cd0141d40ef",
+        "inputMode": "Specific",
+        "recoveryId": "6160b480772043128b1de50e3407cf53"
+      },
+      "behaviourId": "6160b480772043128b1de50e3407cf53",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    }
+  ]
+}

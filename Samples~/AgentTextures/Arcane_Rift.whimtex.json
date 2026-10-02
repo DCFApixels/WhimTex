@@ -1,0 +1,595 @@
+{
+  "format": "whimtex.document",
+  "version": 1,
+  "document": {
+    "colorHistory": [],
+    "layerNameCounters": [
+      {
+        "prefix": "Color Fill",
+        "next": 4
+      },
+      {
+        "prefix": "Noise",
+        "next": 2
+      },
+      {
+        "prefix": "Blur",
+        "next": 2
+      }
+    ],
+    "nextCopyNumber": 1,
+    "spriteSlices": [],
+    "width": 256,
+    "height": 256,
+    "outputFilter": "Bilinear",
+    "outputPrecision": "Auto",
+    "outputSrgb": true,
+    "uvReferenceMesh": null,
+    "uvReferenceChannel": 0,
+    "uvReferenceSubmesh": -1
+  },
+  "layers": [
+    {
+      "id": "8fabb3e4c240463982d31a5894d242cd",
+      "layerName": "Spiral Threads",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx0",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Spiral Filaments\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.55 [0 .. 1]\r\n// @param float _Turns = 2.4 [0.1 .. 5]\r\n// @param float _Count = 11 [2 .. 32]\r\n// @param color _Tint = (0.5803922, 0.458823532, 1, 1)\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n float2 p=uv-.5;float r=length(p);float a=atan2(p.y,p.x+1e-7);\r\n float phase=a*_Count+r*_Turns*70+sin(a*3+r*25)*1.7;\r\n float thread=pow(saturate(cos(phase)),42);\r\n float fade=smoothstep(.12,.23,r)*(1-smoothstep(.32,.46,r));\r\n float gaps=smoothstep(-.2,.4,sin(a*7+r*35));\r\n return float4(_Tint.rgb,thread*fade*gaps*_Opacity);}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 0.55,
+              "id": "98fd1aa491d24f12b21502454011ad56",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Turns",
+              "type": "Float",
+              "floatValue": 2.4,
+              "id": "6eee95206800482bb6bcff480903b715",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Count",
+              "type": "Float",
+              "floatValue": 11.0,
+              "id": "cc8d8a07881f4e58b5d160b3fd60dfb5",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Tint",
+              "type": "Color",
+              "colorValue": [
+                0.5803922,
+                0.458823532,
+                1.0,
+                1.0
+              ],
+              "id": "2f12eef20e53498aa7dec9ee629041c9",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "cbb2d9ef3e14419481beca2192580f8b",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "ColorFillLayerBehaviour",
+        "mode": "Color",
+        "storedColor": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "recoveryId": "176ccbc740594c0eb184a2be095efc72"
+      },
+      "behaviourId": "176ccbc740594c0eb184a2be095efc72",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "bc31954aa40f40359529ded51d9ef790",
+      "layerName": "Energy Motes",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx1",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Energy Motes\r\n// @control(_Amount)\r\n// @param hidden float _Amount = 0.65 [0 .. 1]\r\n// @param float _Seed = 53 [0 .. ~1000]\r\n// @param color _Tint = (0.647058845, 0.8666667, 1, 1)\r\n\r\nfloat HashM(float2 p){return frac(sin(dot(p,float2(127.1,311.7))+_Seed)*43758.5453);}\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n float2 q=uv*38;float2 id=floor(q);float2 local=frac(q);\r\n float h=HashM(id);float2 center=float2(HashM(id+2.7),HashM(id+15.4))*.7+.15;\r\n float d=length((local-center)*float2(1,1.7));float size=lerp(.025,.11,HashM(id+87));\r\n float spark=(1-smoothstep(size*.35,size,d))+exp(-d*18)*.18;\r\n float r=length(uv-.5);float region=smoothstep(.16,.22,r)*(1-smoothstep(.40,.48,r));\r\n return float4(_Tint.rgb,saturate(spark*step(.68,h)*region*_Amount));}\r\n",
+          "parameters": [
+            {
+              "name": "_Amount",
+              "type": "Float",
+              "floatValue": 0.65,
+              "id": "1ad35df69ae5432b98b8d1a6e57a5021",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Seed",
+              "type": "Float",
+              "floatValue": 53.0,
+              "id": "dd23a6201add49e29665b3c4b5f0dacd",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Tint",
+              "type": "Color",
+              "colorValue": [
+                0.647058845,
+                0.8666667,
+                1.0,
+                1.0
+              ],
+              "id": "76e5be4beb3f4576aca04a3566395ee0",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "1c8487788b384abda4720ebbf77034c2",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "ColorFillLayerBehaviour",
+        "mode": "Color",
+        "storedColor": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "recoveryId": "42574c1f406f474f833d4703990d1944"
+      },
+      "behaviourId": "42574c1f406f474f833d4703990d1944",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "9cbecc0ff90b4974af426465ebb48bb8",
+      "layerName": "Broken Arcs",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx2",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Fractured Orbitals\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.85 [0 .. 1]\r\n// @group(Orbitals)\r\n// @param float _Radius = 0.29 [0.1 .. 0.45]\r\n// @param float _Seed = 7 [0 .. ~100]\r\n// @param color _Tint = (0.490196079, 0.9764706, 1, 1)\r\n// @endgroup\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n float2 p=uv-.5;float r=length(p);float a=atan2(p.y,p.x+1e-7);float coverage=0;\r\n for(int i=0;i<4;i++){float rad=_Radius+i*.032;float phase=a*(11+i*3)+i*2.1;\r\n float broken=smoothstep(-.25,.05,sin(phase)+.2*sin(a*31));\r\n float band=exp(-abs(r-rad)*1800)*broken;\r\n float ticks=pow(saturate(cos(a*(64+i*11))),30)*exp(-abs(r-rad-.006)*400);\r\n coverage+=band+ticks*.5;}\r\n float wavy=_Radius-.023+sin(a*17+_Seed)*.004+sin(a*49)*.002;\r\n coverage+=exp(-abs(r-wavy)*1100)*smoothstep(-.2,.2,sin(a*5));\r\n return float4(_Tint.rgb,saturate(coverage)*_Opacity);}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 0.85,
+              "id": "d9535ab1c14d41c0b633597b261bcc1e",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Radius",
+              "type": "Float",
+              "floatValue": 0.29,
+              "id": "5b30a9757f9d49efb4e5c84c93594d94",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Seed",
+              "type": "Float",
+              "floatValue": 7.0,
+              "id": "9f828566521a4d12b912016768b513ad",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Tint",
+              "type": "Color",
+              "colorValue": [
+                0.490196079,
+                0.9764706,
+                1.0,
+                1.0
+              ],
+              "id": "68258c984f844fe3b7dcf10937211924",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "ff91be6a6f044ef1bd36bd958cf89b29",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "ColorFillLayerBehaviour",
+        "mode": "Color",
+        "storedColor": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "recoveryId": "1688de2f262345598bbb1ec43a27d74a"
+      },
+      "behaviourId": "1688de2f262345598bbb1ec43a27d74a",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "228d897c1c4f4abd8cdb46298bf81986",
+      "layerName": "Plasma Ring",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx3",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Twirl\r\n// @group(Twirl Angle; _Angle)\r\n// @param hidden float _Angle = 145 [~-720 .. ~720]\r\n// @if _Angle != 0\r\n// @param transform2D _Area = (0.5, 0.5, 1, 1, 0)\r\n// @endif\r\n// @endgroup\r\n\r\n\r\nfloat4 ApplyFX(float2 uv, float4 color)\r\n{\r\n    if (_Angle == 0) return color;\r\n\r\n    float2 p = (_Area_ToLocal(uv) - 0.5) * 2.0;\r\n    // Angle is the visible rotation at local radius 1; it continues beyond it.\r\n    float angle = -radians(_Angle) * length(p);\r\n    float sine, cosine;\r\n    sincos(angle, sine, cosine);\r\n    float2 rotated = float2(cosine * p.x - sine * p.y, sine * p.x + cosine * p.y);\r\n    return SampleInput(_Area_ToInput(0.5 + rotated * 0.5));\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Angle",
+              "type": "Float",
+              "floatValue": 145.0,
+              "id": "f180ab9292264f62bdbbfdc263f1b726",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Area",
+              "type": "Transform2D",
+              "transformValue": {
+                "position": {
+                  "x": 0.5,
+                  "y": 0.5
+                },
+                "size": {
+                  "x": 1.0,
+                  "y": 1.0
+                },
+                "rotation": 0.0,
+                "storage": "TRS",
+                "matrix": {
+                  "m00": 0.0,
+                  "m01": 0.0,
+                  "m02": 0.0,
+                  "m10": 0.0,
+                  "m11": 0.0,
+                  "m12": 0.0,
+                  "m20": 0.0,
+                  "m21": 0.0,
+                  "m22": 0.0
+                }
+              },
+              "id": "ba706e066aff4a6aaa288c7045703726",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "c4b10327ee1f4d34a25c0c49af62cd45",
+          "$name": ""
+        },
+        {
+          "$type": "ShaderFX",
+          "$id": "fx4",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Plasma Envelope\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1]\r\n// @group(Ring)\r\n// @param float _Radius = 0.34 [0.1 .. 0.45]\r\n// @param float _Width = 0.035 [0.01 .. 0.15]\r\n// @param float _Roughness = 0.035 [0 .. 0.1]\r\n// @endgroup\r\n// @param gradient _Tint = (0, 0, 0, 1) -> (1, 1, 1, 1)\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color) {\r\n float n=saturate(color.r); float d=length(uv-0.5);\r\n float ridge=abs(d-_Radius+(n-0.5)*_Roughness);\r\n float body=exp(-pow(ridge/_Width,2.0)*3.0);\r\n float filament=pow(saturate(n),2.2);\r\n float a=saturate(body*(0.12+1.7*filament))*_Opacity;\r\n a*=1-smoothstep(.43,.48,d); a*=smoothstep(.20,.24,d);\r\n float t=saturate(0.2+filament*1.5+exp(-ridge*220.0)*0.3);\r\n return float4(_Tint_Sample(t).rgb,a);\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "25eda0c3eed642c6a2f6f400500e8da8",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Radius",
+              "type": "Float",
+              "floatValue": 0.34,
+              "id": "98868fe5627745ee9c4f0406dc70e31a",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Width",
+              "type": "Float",
+              "floatValue": 0.035,
+              "id": "8725fa8edf8f47ca9d01edb31c7e8cbb",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Roughness",
+              "type": "Float",
+              "floatValue": 0.035,
+              "id": "53f309ef4ef14ba58befe65c5b24efde",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Tint",
+              "type": "Gradient",
+              "gradientValue": {
+                "colors": [
+                  {
+                    "color": [
+                      0.160784319,
+                      0.164705887,
+                      1.0,
+                      1.0
+                    ],
+                    "time": 0.0,
+                    "midpoint": 0.5
+                  },
+                  {
+                    "color": [
+                      0.772549033,
+                      1.0,
+                      1.0,
+                      1.0
+                    ],
+                    "time": 1.0,
+                    "midpoint": 0.5
+                  }
+                ],
+                "alphas": [
+                  {
+                    "alpha": 1.0,
+                    "time": 0.0,
+                    "midpoint": 0.5
+                  },
+                  {
+                    "alpha": 1.0,
+                    "time": 1.0,
+                    "midpoint": 0.5
+                  }
+                ],
+                "mode": "Classic",
+                "wrapMode": "Clamp",
+                "colorSpace": "Gamma",
+                "smoothness": 1.0
+              },
+              "id": "58666009962a447b9fa8c35746bab8b5",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "412cad9ed70f4af8966d7eff4a5b075c",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "NoiseLayerBehaviour",
+        "noiseType": "OpenSimplex2",
+        "dimensions": "TwoD",
+        "seed": 71,
+        "scale": 12.0,
+        "scaleY": 0.0,
+        "linkScale": true,
+        "offset": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "periodic": "None",
+        "fractal": "Ridged",
+        "octaves": 5,
+        "lacunarity": 2.0,
+        "gain": 0.5,
+        "weightedStrength": 0.0,
+        "warp": "OpenSimplex2",
+        "warpStrength": 2.8,
+        "warpScale": 1.0,
+        "warpScaleY": 0.0,
+        "linkWarpScale": true,
+        "encoding": "LinearData",
+        "inverted": false,
+        "recoveryId": "49f2de1d174d4bfa90dd45db50d2cbd3"
+      },
+      "behaviourId": "49f2de1d174d4bfa90dd45db50d2cbd3",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "2e4c62d7d51b4ed5a64c66519316d0f1",
+      "layerName": "Ring Glow",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 0.65,
+      "blendMode": "Add",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Clip"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "BlurLayerBehaviour",
+        "strength": 1.0,
+        "radius": 5.5,
+        "edges": "Transparent",
+        "mode": "Gaussian",
+        "targetLayerId": "228d897c1c4f4abd8cdb46298bf81986",
+        "inputMode": "Specific",
+        "recoveryId": "d6f379306c494400a6a3a2592dadf487"
+      },
+      "behaviourId": "d6f379306c494400a6a3a2592dadf487",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    }
+  ]
+}

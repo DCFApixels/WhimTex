@@ -67,7 +67,7 @@ namespace DCFApixels.WhimTex
             Keys(request, "apiVersion", "assetPath", "create", "width", "height", "expectedRevision", "dryRun", "save", "operations");
             Require(Int(request, "apiVersion", 0, 0, int.MaxValue) == ProtocolVersion, "apiVersion must be 1.");
             string path = DocumentPath(Text(request, "assetPath"));
-            bool tiff = IsTiffPath(path);
+            bool tiff = IsTiffPath(path) || WhimTexDocumentJson.IsJsonPath(path);
             Require(!tiff || !tiffLiveSessions.Values.Any(session => string.Equals(session.path, path, StringComparison.OrdinalIgnoreCase)),
                 "This TIFF has an active independent live session. Complete or cancel it first.", "live_session_active");
             Require(!liveJobs.Values.Any(j => j.editing && j.state == "pending" && j.document != null &&

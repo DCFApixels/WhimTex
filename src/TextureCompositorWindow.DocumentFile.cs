@@ -110,6 +110,8 @@ namespace DCFApixels.WhimTex
                 // the explicit TIFF Save As flow instead.
                 if (IsLegacyAssetPath(path))
                     return SaveDocumentAs(compositor);
+                if (WhimTexDocumentJson.IsJsonPath(path))
+                    return SaveJsonToPath(path, compositor.JsonWriteMode);
                 return SaveDocumentTo(compositor, path);
             }
             if (WhimTexLegacyMigration.IsLegacyAsset(compositor))
@@ -192,6 +194,11 @@ namespace DCFApixels.WhimTex
         private void OpenDocumentOutputSettings()
         {
             if (compositor == null) return;
+            if (WhimTexDocumentJson.IsJsonPath(WhimTexDocumentService.PathOf(compositor)))
+            {
+                EditorUtility.DisplayDialog("JSON document", "JSON has no texture importer. Use Export or Save As TIFF to create an image asset with import settings.", "OK");
+                return;
+            }
             if (AssetDatabase.Contains(compositor)) { WhimTexOutputSettingsWindow.Open(compositor); return; }
             if (!TryGetDocumentFile(compositor, out string path))
             {
@@ -343,9 +350,24 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private static bool OpenWhimTexDocumentPath(string path)
+        internal static bool OpenWhimTexDocumentPath(string path)
         {
             if (string.IsNullOrEmpty(path) || !WhimTexDocumentFile.IsDocument(path)) return false;
+            // Unity's asset-open callback reports whether the request was handled, even on failure.
+            try
+            {
+                if (!TryOpenWhimTexDocumentPath(path, out string error)) EditorUtility.DisplayDialog("WhimTex", error, "OK");
+            }
+            catch (System.OperationCanceledException) { }
+            return true;
+        }
+
+        // Automation needs actual success and must not block on a modal error dialog.
+        internal static bool TryOpenWhimTexDocumentPath(string path, out string error)
+        {
+            error = null;
+            if (string.IsNullOrEmpty(path) || !WhimTexDocumentFile.IsDocument(path))
+            { error = "Not a WhimTex document: " + path; return false; }
             foreach (TextureCompositorWindow existing in Resources.FindObjectsOfTypeAll<TextureCompositorWindow>())
                 if (existing != null && TryGetDocumentFile(existing.compositor, out string openPath) &&
                     string.Equals(openPath, path, System.StringComparison.OrdinalIgnoreCase))
@@ -355,16 +377,7 @@ namespace DCFApixels.WhimTex
                     return true;
                 }
             using var operation = new WhimTexDocumentOperation("Open WhimTex document");
-            TextureCompositor document;
-            try
-            {
-                if (!WhimTexDocumentFile.TryLoad(path, out document, out string error))
-                {
-                    EditorUtility.DisplayDialog("WhimTex", error, "OK");
-                    return true;
-                }
-            }
-            catch (System.OperationCanceledException) { return true; }
+            if (!WhimTexDocumentFile.TryLoad(path, out var document, out error)) return false;
             var window = CreateWindow<TextureCompositorWindow>("WhimTex", typeof(TextureCompositorWindow));
             window.SetCompositor(document);
             window.BindDocumentFile(path);

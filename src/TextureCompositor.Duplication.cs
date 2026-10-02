@@ -30,7 +30,7 @@ namespace DCFApixels.WhimTex
         internal Dictionary<Layer, Layer> PasteLayers(TextureCompositor snapshot)
             => CopyLayersFrom(snapshot, snapshot.layers, false, "Paste Layers");
 
-        private Dictionary<Layer, Layer> CopyLayersFrom(TextureCompositor sourceDocument,
+        internal Dictionary<Layer, Layer> CopyLayersFrom(TextureCompositor sourceDocument,
             List<Layer> requested, bool duplicate, string undoName)
         {
             bool recordUndo = undoName != null;
@@ -118,6 +118,7 @@ namespace DCFApixels.WhimTex
                     Undo.CollapseUndoOperations(undoGroup);
                 }
                 else NormalizeModel();
+                WhimTexDocumentJson.CopyMissingAssets(sourceDocument, this, copiedIds, effects);
                 return copies;
             }
             catch

@@ -1,0 +1,3522 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WhimTex document v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "version",
+    "layers"
+  ],
+  "properties": {
+    "format": {
+      "const": "whimtex.document"
+    },
+    "version": {
+      "const": 1
+    },
+    "kind": {
+      "type": "string",
+      "deprecated": true,
+      "description": "Obsolete, ignored on read and never written. The caller's operation selects open, insert or replace."
+    },
+    "writeMode": {
+      "type": "string",
+      "enum": [
+        "Full",
+        "FullOptimized",
+        "Compact"
+      ]
+    },
+    "document": {
+      "$ref": "#/$defs/TextureCompositor"
+    },
+    "layers": {
+      "type": "array",
+      "maxItems": 1024,
+      "items": {
+        "$ref": "#/$defs/Layer"
+      }
+    }
+  },
+  "$defs": {
+    "TextureCompositor": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "TextureCompositor"
+        },
+        "colorHistory": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "array",
+            "minItems": 4,
+            "maxItems": 4,
+            "items": {
+              "type": "number",
+              "minimum": -3.40282347E+38,
+              "maximum": 3.40282347E+38
+            }
+          }
+        },
+        "layerNameCounters": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/TextureCompositor+LayerNameCounter"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "nextCopyNumber": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "spriteSlices": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/TextureCompositor+SpriteSlice"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16384
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16384
+        },
+        "outputFilter": {
+          "type": "string",
+          "enum": [
+            "Point",
+            "Bilinear",
+            "Trilinear"
+          ]
+        },
+        "outputPrecision": {
+          "type": "string",
+          "enum": [
+            "Auto",
+            "EightBit",
+            "Float32"
+          ]
+        },
+        "outputSrgb": {
+          "type": "boolean"
+        },
+        "uvReferenceMesh": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "$asset"
+              ],
+              "properties": {
+                "$asset": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "guid": {
+                      "type": "string"
+                    },
+                    "path": {
+                      "type": "string"
+                    },
+                    "localId": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "guid",
+                    "path",
+                    "localId",
+                    "type"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "uvReferenceChannel": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "uvReferenceSubmesh": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        }
+      }
+    },
+    "TextureCompositor+LayerNameCounter": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "TextureCompositor+LayerNameCounter"
+        },
+        "prefix": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "next": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        }
+      }
+    },
+    "TextureCompositor+SpriteSlice": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "TextureCompositor+SpriteSlice"
+        },
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "rect": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "pivot": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "border": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        }
+      }
+    },
+    "Layer": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "Layer"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "layerName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "clippingMask": {
+          "type": "boolean"
+        },
+        "opacity": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "blendMode": {
+          "type": "string",
+          "enum": [
+            "Normal",
+            "Multiply",
+            "Overwrite",
+            "None",
+            "Add",
+            "Subtract",
+            "Divide",
+            "Screen",
+            "Overlay",
+            "Darken",
+            "Lighten",
+            "Dodge",
+            "Burn",
+            "LinearDodge",
+            "LinearBurn",
+            "LinearLight",
+            "LinearLightAddSub",
+            "VividLight",
+            "PinLight",
+            "HardMix",
+            "HardLight",
+            "SoftLight",
+            "Difference",
+            "Exclusion",
+            "Negation",
+            "Hue",
+            "Saturation",
+            "Color",
+            "Luminosity"
+          ]
+        },
+        "colorRange": {
+          "type": "string",
+          "enum": [
+            "Standard",
+            "HDR"
+          ]
+        },
+        "blendRange": {
+          "type": "string",
+          "enum": [
+            "Standard",
+            "HDR"
+          ]
+        },
+        "swizzle": {
+          "$ref": "#/$defs/LayerSwizzle"
+        },
+        "modifiers": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "$asset"
+                ],
+                "properties": {
+                  "$asset": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "guid": {
+                        "type": "string"
+                      },
+                      "path": {
+                        "type": "string"
+                      },
+                      "localId": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "guid",
+                      "path",
+                      "localId",
+                      "type"
+                    ]
+                  }
+                }
+              },
+              {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/ShaderFX"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "$ref"
+                ],
+                "properties": {
+                  "$ref": {
+                    "type": "string"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "transform": {
+          "$ref": "#/$defs/TextureTransform"
+        },
+        "filterMode": {
+          "type": "string",
+          "enum": [
+            "Source",
+            "Point",
+            "Bilinear",
+            "Trilinear"
+          ]
+        },
+        "behaviour": {
+          "anyOf": [
+            {
+              "allOf": [
+                {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/BlurLayerBehaviour"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "$type"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/ColorFillLayerBehaviour"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "$type"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/DrawingLayerBehaviour"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "$type"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/FileLayerBehaviour"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "$type"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/GradientLayerBehaviour"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "$type"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/GroupLayerBehaviour"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "$type"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/MakeSeamlessLayerBehaviour"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "$type"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/NoiseLayerBehaviour"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "$type"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/NormalMapLayerBehaviour"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "$type"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/OutlineLayerBehaviour"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "$type"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/PendingLayerBehaviour"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "$type"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/SDFLayerBehaviour"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "$type"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/ShaderProcessorLayerBehaviour"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "$type"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/ShapeLayerBehaviour"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "$type"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/SharpenLayerBehaviour"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "$type"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "behaviourId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "children": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/Layer"
+          }
+        },
+        "group": {
+          "type": "boolean"
+        },
+        "compositing": {
+          "type": "string",
+          "enum": [
+            "PassThrough",
+            "Isolated"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "behaviour"
+      ]
+    },
+    "LayerSwizzle": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "LayerSwizzle"
+        },
+        "packed": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        }
+      }
+    },
+    "ShaderFX": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "ShaderFX"
+        },
+        "$id": {
+          "type": "string"
+        },
+        "$name": {
+          "type": "string"
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "code": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "parameters": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ShaderFXParameter"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "shaderKey": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ShaderFXParameter": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "ShaderFXParameter"
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "Float",
+            "Color",
+            "Vector",
+            "Texture2D",
+            "Transform2D",
+            "Bool",
+            "Enum",
+            "Gradient",
+            "Vector2",
+            "Vector3",
+            "Normal",
+            "Curve",
+            "Point"
+          ]
+        },
+        "floatValue": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "colorValue": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "vectorValue": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "textureValue": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "$asset"
+              ],
+              "properties": {
+                "$asset": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "guid": {
+                      "type": "string"
+                    },
+                    "path": {
+                      "type": "string"
+                    },
+                    "localId": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "guid",
+                    "path",
+                    "localId",
+                    "type"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "textureSource": {
+          "type": "string",
+          "enum": [
+            "Texture",
+            "Layer",
+            "None",
+            "Self"
+          ]
+        },
+        "textureLayerId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "gradientValue": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WhimTexGradient"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "curveValue": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "required": [
+            "preWrap",
+            "postWrap",
+            "keys"
+          ],
+          "properties": {
+            "preWrap": {
+              "type": "string",
+              "enum": [
+                "Default",
+                "Once",
+                "Clamp",
+                "Loop",
+                "PingPong",
+                "ClampForever"
+              ]
+            },
+            "postWrap": {
+              "type": "string",
+              "enum": [
+                "Default",
+                "Once",
+                "Clamp",
+                "Loop",
+                "PingPong",
+                "ClampForever"
+              ]
+            },
+            "keys": {
+              "type": "array",
+              "maxItems": 65536,
+              "items": {
+                "type": "array",
+                "minItems": 7,
+                "maxItems": 7,
+                "prefixItems": [
+                  {
+                    "type": "number",
+                    "minimum": -3.40282347E+38,
+                    "maximum": 3.40282347E+38
+                  },
+                  {
+                    "type": "number",
+                    "minimum": -3.40282347E+38,
+                    "maximum": 3.40282347E+38
+                  },
+                  {
+                    "anyOf": [
+                      {
+                        "type": "number",
+                        "minimum": -3.40282347E+38,
+                        "maximum": 3.40282347E+38
+                      },
+                      {
+                        "enum": [
+                          "Infinity",
+                          "-Infinity"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "anyOf": [
+                      {
+                        "type": "number",
+                        "minimum": -3.40282347E+38,
+                        "maximum": 3.40282347E+38
+                      },
+                      {
+                        "enum": [
+                          "Infinity",
+                          "-Infinity"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "number",
+                    "minimum": -3.40282347E+38,
+                    "maximum": 3.40282347E+38
+                  },
+                  {
+                    "type": "number",
+                    "minimum": -3.40282347E+38,
+                    "maximum": 3.40282347E+38
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "None",
+                      "In",
+                      "Out",
+                      "Both"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "transformValue": {
+          "$ref": "#/$defs/ShaderFXTransform"
+        },
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "declaredInCode": {
+          "type": "boolean"
+        },
+        "hasMinimum": {
+          "type": "boolean"
+        },
+        "hasMaximum": {
+          "type": "boolean"
+        },
+        "softMinimum": {
+          "type": "boolean"
+        },
+        "softMaximum": {
+          "type": "boolean"
+        },
+        "minimum": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "maximum": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "controls": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ShaderFXParameterControl"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "WhimTexGradient": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "WhimTexGradient"
+        },
+        "colors": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/WhimTexGradient+ColorStop"
+          }
+        },
+        "alphas": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/WhimTexGradient+AlphaStop"
+          }
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "Fixed",
+            "Classic",
+            "Linear",
+            "Perceptual"
+          ]
+        },
+        "wrapMode": {
+          "type": "string",
+          "enum": [
+            "Clamp",
+            "Repeat",
+            "Mirror"
+          ]
+        },
+        "colorSpace": {
+          "type": "string",
+          "enum": [
+            "Gamma",
+            "Linear",
+            "Uninitialized"
+          ]
+        },
+        "smoothness": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        }
+      }
+    },
+    "WhimTexGradient+ColorStop": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "WhimTexGradient+ColorStop"
+        },
+        "color": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "time": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "midpoint": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        }
+      }
+    },
+    "WhimTexGradient+AlphaStop": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "WhimTexGradient+AlphaStop"
+        },
+        "alpha": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "time": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "midpoint": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        }
+      }
+    },
+    "ShaderFXTransform": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "ShaderFXTransform"
+        },
+        "position": {
+          "$ref": "#/$defs/Double2"
+        },
+        "size": {
+          "$ref": "#/$defs/Double2"
+        },
+        "rotation": {
+          "type": "number"
+        },
+        "storage": {
+          "type": "string",
+          "enum": [
+            "TRS",
+            "Projective"
+          ]
+        },
+        "matrix": {
+          "$ref": "#/$defs/ProjectiveMatrix"
+        }
+      }
+    },
+    "Double2": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "Double2"
+        },
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        }
+      }
+    },
+    "ProjectiveMatrix": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "ProjectiveMatrix"
+        },
+        "m00": {
+          "type": "number"
+        },
+        "m01": {
+          "type": "number"
+        },
+        "m02": {
+          "type": "number"
+        },
+        "m10": {
+          "type": "number"
+        },
+        "m11": {
+          "type": "number"
+        },
+        "m12": {
+          "type": "number"
+        },
+        "m20": {
+          "type": "number"
+        },
+        "m21": {
+          "type": "number"
+        },
+        "m22": {
+          "type": "number"
+        }
+      }
+    },
+    "ShaderFXParameterControl": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "ShaderFXParameterControl"
+        },
+        "tooltip": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "label": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "headers": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "helpBoxes": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "formerlySerializedAs": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "hidden": {
+          "type": "boolean"
+        },
+        "inGroup": {
+          "type": "boolean"
+        },
+        "groupId": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "groupTitle": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "groupHeaderParameter": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "Float",
+            "Color",
+            "Vector",
+            "Texture2D",
+            "Transform2D",
+            "Bool",
+            "Enum",
+            "Gradient",
+            "Vector2",
+            "Vector3",
+            "Normal",
+            "Curve",
+            "Point"
+          ]
+        },
+        "order": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "hasMinimum": {
+          "type": "boolean"
+        },
+        "hasMaximum": {
+          "type": "boolean"
+        },
+        "softMinimum": {
+          "type": "boolean"
+        },
+        "softMaximum": {
+          "type": "boolean"
+        },
+        "minimum": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "maximum": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "optionNames": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "optionValues": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "visibleIfParameter": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "visibleIfNotEqual": {
+          "type": "boolean"
+        },
+        "visibleIfValue": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        }
+      }
+    },
+    "TextureTransform": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "TextureTransform"
+        },
+        "pivot": {
+          "$ref": "#/$defs/Double2"
+        },
+        "position": {
+          "$ref": "#/$defs/Double2"
+        },
+        "scale": {
+          "$ref": "#/$defs/Double2"
+        },
+        "rotation": {
+          "type": "number"
+        },
+        "storage": {
+          "type": "string",
+          "enum": [
+            "TRS",
+            "Projective"
+          ]
+        },
+        "matrix": {
+          "$ref": "#/$defs/ProjectiveMatrix"
+        },
+        "tiling": {
+          "type": "string",
+          "enum": [
+            "Clip",
+            "Repeat",
+            "Mirror",
+            "Source",
+            "Clamp",
+            "Unbounded"
+          ]
+        }
+      }
+    },
+    "BlurLayerBehaviour": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "BlurLayerBehaviour"
+        },
+        "strength": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "radius": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "distance": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "angle": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "arc": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "center": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "direction": {
+          "type": "string",
+          "enum": [
+            "Centered",
+            "Forward",
+            "Backward"
+          ]
+        },
+        "edges": {
+          "type": "string",
+          "enum": [
+            "Transparent",
+            "Clamp",
+            "Repeat",
+            "Mirror"
+          ]
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "Gaussian",
+            "Linear",
+            "Circular"
+          ]
+        },
+        "targetLayerId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputMode": {
+          "type": "string",
+          "enum": [
+            "Previous",
+            "Specific",
+            "AllBelow"
+          ]
+        },
+        "recoveryId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ColorFillLayerBehaviour": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "ColorFillLayerBehaviour"
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "Color",
+            "UV",
+            "Pattern"
+          ]
+        },
+        "pattern": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FillPatternSettings"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "storedColor": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "recoveryId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "FillPatternSettings": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "FillPatternSettings"
+        },
+        "cellColor": {
+          "type": "string",
+          "enum": [
+            "Uniform",
+            "Random",
+            "Pattern"
+          ]
+        },
+        "colorBlend": {
+          "type": "string",
+          "enum": [
+            "Multiply",
+            "ReplaceRGB"
+          ]
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "variation": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "palette": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WhimTexGradient"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "shape": {
+          "type": "string",
+          "enum": [
+            "Triangles",
+            "Squares",
+            "Hexagons",
+            "Circles"
+          ]
+        },
+        "circleLayout": {
+          "type": "string",
+          "enum": [
+            "Square",
+            "Dense"
+          ]
+        },
+        "size": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "sizeY": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "linkSize": {
+          "type": "boolean"
+        },
+        "rotation": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "offset": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "seamless": {
+          "type": "boolean"
+        },
+        "gap": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "roundness": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "bulge": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "distanceRange": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "position": {
+          "type": "string",
+          "enum": [
+            "Outside",
+            "Inside",
+            "Center",
+            "Signed"
+          ]
+        },
+        "inverted": {
+          "type": "boolean"
+        },
+        "profile": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "required": [
+            "preWrap",
+            "postWrap",
+            "keys"
+          ],
+          "properties": {
+            "preWrap": {
+              "type": "string",
+              "enum": [
+                "Default",
+                "Once",
+                "Clamp",
+                "Loop",
+                "PingPong",
+                "ClampForever"
+              ]
+            },
+            "postWrap": {
+              "type": "string",
+              "enum": [
+                "Default",
+                "Once",
+                "Clamp",
+                "Loop",
+                "PingPong",
+                "ClampForever"
+              ]
+            },
+            "keys": {
+              "type": "array",
+              "maxItems": 65536,
+              "items": {
+                "type": "array",
+                "minItems": 7,
+                "maxItems": 7,
+                "prefixItems": [
+                  {
+                    "type": "number",
+                    "minimum": -3.40282347E+38,
+                    "maximum": 3.40282347E+38
+                  },
+                  {
+                    "type": "number",
+                    "minimum": -3.40282347E+38,
+                    "maximum": 3.40282347E+38
+                  },
+                  {
+                    "anyOf": [
+                      {
+                        "type": "number",
+                        "minimum": -3.40282347E+38,
+                        "maximum": 3.40282347E+38
+                      },
+                      {
+                        "enum": [
+                          "Infinity",
+                          "-Infinity"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "anyOf": [
+                      {
+                        "type": "number",
+                        "minimum": -3.40282347E+38,
+                        "maximum": 3.40282347E+38
+                      },
+                      {
+                        "enum": [
+                          "Infinity",
+                          "-Infinity"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "number",
+                    "minimum": -3.40282347E+38,
+                    "maximum": 3.40282347E+38
+                  },
+                  {
+                    "type": "number",
+                    "minimum": -3.40282347E+38,
+                    "maximum": 3.40282347E+38
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "None",
+                      "In",
+                      "Out",
+                      "Both"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "gradient": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WhimTexGradient"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "DrawingLayerBehaviour": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "DrawingLayerBehaviour"
+        },
+        "contentOmitted": {
+          "const": true
+        },
+        "hasBakedPixelFrame": {
+          "type": "boolean"
+        },
+        "bakedCanvasToLayer": {
+          "$ref": "#/$defs/ProjectiveMatrix"
+        },
+        "hasBakedFxFrame": {
+          "type": "boolean"
+        },
+        "bakedLayerToFx": {
+          "$ref": "#/$defs/ProjectiveMatrix"
+        },
+        "processorSnapshot": {
+          "type": "boolean"
+        },
+        "processorNormalBlend": {
+          "type": "boolean"
+        },
+        "tool": {
+          "type": "string",
+          "enum": [
+            "Brush",
+            "Eraser"
+          ]
+        },
+        "brushColor": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "secondaryBrushColor": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "brushSize": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "brushHardness": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "brushSpacing": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "brushDynamics": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BrushDynamics"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "fillSampleMode": {
+          "type": "string",
+          "enum": [
+            "CurrentLayer",
+            "AllLayers"
+          ]
+        },
+        "fillContiguous": {
+          "type": "boolean"
+        },
+        "fillTolerance": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "fillAntialias": {
+          "type": "boolean"
+        },
+        "fillExpand": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "mirrorAcrossVerticalAxis": {
+          "type": "boolean"
+        },
+        "mirrorAcrossHorizontalAxis": {
+          "type": "boolean"
+        },
+        "mirrorAngle": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "patternCenter": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "repeatMode": {
+          "type": "string",
+          "enum": [
+            "None",
+            "Horizontal",
+            "Vertical",
+            "Grid",
+            "Radial",
+            "Mirror"
+          ]
+        },
+        "repeatElementMode": {
+          "type": "string",
+          "enum": [
+            "Copy",
+            "AlternateMirror"
+          ]
+        },
+        "repeatBoundaryMode": {
+          "type": "string",
+          "enum": [
+            "Continue",
+            "Clip"
+          ]
+        },
+        "repeatCount": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "repeatSecondaryCount": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "radialStartAngle": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "recoveryId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "BrushDynamics": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "BrushDynamics"
+        },
+        "opacity": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "flow": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "pressure": {
+          "type": "boolean"
+        },
+        "scatter": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "scatterBias": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "sizeJitter": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "angleJitter": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "angleOffset": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "flipX": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "flipY": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "rotationMode": {
+          "type": "string",
+          "enum": [
+            "Fixed",
+            "StrokeDirection"
+          ]
+        },
+        "randomAlgorithm": {
+          "type": "string",
+          "enum": [
+            "Random",
+            "Sobol"
+          ]
+        },
+        "tintGradient": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WhimTexGradient"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tip": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "$asset"
+              ],
+              "properties": {
+                "$asset": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "guid": {
+                      "type": "string"
+                    },
+                    "path": {
+                      "type": "string"
+                    },
+                    "localId": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "guid",
+                    "path",
+                    "localId",
+                    "type"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "Standard",
+            "HLSL"
+          ]
+        },
+        "hlslCode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hlslResolution": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "hlslParameters": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ShaderFXParameter"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "tipChannel": {
+          "type": "string",
+          "enum": [
+            "Alpha",
+            "Luminance",
+            "InvertedLuminance",
+            "Color"
+          ]
+        },
+        "tipSdf": {
+          "type": "boolean"
+        },
+        "proceduralMode": {
+          "type": "string",
+          "enum": [
+            "Hardness",
+            "SdfGradient"
+          ]
+        },
+        "tipGradient": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WhimTexGradient"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "blend": {
+          "type": "string",
+          "enum": [
+            "Normal",
+            "Multiply",
+            "Overwrite",
+            "None",
+            "Add",
+            "Subtract",
+            "Divide",
+            "Screen",
+            "Overlay",
+            "Darken",
+            "Lighten",
+            "Dodge",
+            "Burn",
+            "LinearDodge",
+            "LinearBurn",
+            "LinearLight",
+            "LinearLightAddSub",
+            "VividLight",
+            "PinLight",
+            "HardMix",
+            "HardLight",
+            "SoftLight",
+            "Difference",
+            "Exclusion",
+            "Negation",
+            "Hue",
+            "Saturation",
+            "Color",
+            "Luminosity"
+          ]
+        },
+        "blendApplication": {
+          "type": "string",
+          "enum": [
+            "Stroke",
+            "Stamp"
+          ]
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        }
+      }
+    },
+    "FileLayerBehaviour": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "FileLayerBehaviour"
+        },
+        "sourceTexture": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "$asset"
+              ],
+              "properties": {
+                "$asset": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "guid": {
+                      "type": "string"
+                    },
+                    "path": {
+                      "type": "string"
+                    },
+                    "localId": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "guid",
+                    "path",
+                    "localId",
+                    "type"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "sourceAssigned": {
+          "type": "boolean"
+        },
+        "portableAssetGuid": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "portableAssetLocalId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "recoveryId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "GradientLayerBehaviour": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "GradientLayerBehaviour"
+        },
+        "gradientType": {
+          "type": "string",
+          "enum": [
+            "Vertical",
+            "Horizontal",
+            "Radial",
+            "Circular",
+            "Diamond",
+            "Square"
+          ]
+        },
+        "gradient": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WhimTexGradient"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "circularRepetitions": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "circularWrapMode": {
+          "type": "string",
+          "enum": [
+            "Repeat",
+            "PingPong"
+          ]
+        },
+        "recoveryId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "GroupLayerBehaviour": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "GroupLayerBehaviour"
+        },
+        "recoveryId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "MakeSeamlessLayerBehaviour": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "MakeSeamlessLayerBehaviour"
+        },
+        "quiltingEdges": {
+          "type": "string",
+          "enum": [
+            "AllEdges",
+            "TopAndBottom",
+            "LeftAndRight",
+            "None"
+          ]
+        },
+        "quiltingWidth": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "quiltingAlongSearch": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "quiltingFeather": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "quiltingContrastCompensation": {
+          "type": "boolean"
+        },
+        "quiltingContrast": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "quiltingQuality": {
+          "type": "string",
+          "enum": [
+            "Draft",
+            "Normal",
+            "High"
+          ]
+        },
+        "quiltingSeed": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "quiltingChannels": {
+          "type": "string",
+          "enum": [
+            "Linked",
+            "Independent"
+          ]
+        },
+        "quiltingSeamCorrection": {
+          "type": "boolean"
+        },
+        "quiltingPoissonEdges": {
+          "type": "string",
+          "enum": [
+            "AllEdges",
+            "TopAndBottom",
+            "LeftAndRight",
+            "None"
+          ]
+        },
+        "quiltingCorrectionRadius": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "poissonEdges": {
+          "type": "string",
+          "enum": [
+            "AllEdges",
+            "TopAndBottom",
+            "LeftAndRight",
+            "None"
+          ]
+        },
+        "mirrorPoissonEdges": {
+          "type": "string",
+          "enum": [
+            "AllEdges",
+            "TopAndBottom",
+            "LeftAndRight",
+            "None"
+          ]
+        },
+        "offsetPoissonEdges": {
+          "type": "string",
+          "enum": [
+            "AllEdges",
+            "TopAndBottom",
+            "LeftAndRight",
+            "None"
+          ]
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "Mirror",
+            "ScreenedPoisson",
+            "OffsetBlend",
+            "PatchQuilting"
+          ]
+        },
+        "horizontal": {
+          "type": "string",
+          "enum": [
+            "Off",
+            "LeftToRight",
+            "RightToLeft"
+          ]
+        },
+        "vertical": {
+          "type": "string",
+          "enum": [
+            "Off",
+            "BottomToTop",
+            "TopToBottom"
+          ]
+        },
+        "blendWidth": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "mirrorTransitionStart": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "falloff": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "mirrorContrastCompensation": {
+          "type": "boolean"
+        },
+        "mirrorContrast": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "mirrorSeamCorrection": {
+          "type": "boolean"
+        },
+        "mirrorAutoRadius": {
+          "type": "boolean"
+        },
+        "mirrorCorrectionRadius": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "leftEdge": {
+          "type": "boolean"
+        },
+        "rightEdge": {
+          "type": "boolean"
+        },
+        "bottomEdge": {
+          "type": "boolean"
+        },
+        "topEdge": {
+          "type": "boolean"
+        },
+        "screeningRadius": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "edgeWidth": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "offsetTransitionStart": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "histogramContrast": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "offsetContrastCompensation": {
+          "type": "boolean"
+        },
+        "offsetSeamCorrection": {
+          "type": "boolean"
+        },
+        "offsetAutoRadius": {
+          "type": "boolean"
+        },
+        "offsetCorrectionRadius": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "processRed": {
+          "type": "boolean"
+        },
+        "processGreen": {
+          "type": "boolean"
+        },
+        "processBlue": {
+          "type": "boolean"
+        },
+        "processAlpha": {
+          "type": "boolean"
+        },
+        "targetLayerId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputMode": {
+          "type": "string",
+          "enum": [
+            "Previous",
+            "Specific",
+            "AllBelow"
+          ]
+        },
+        "recoveryId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "NoiseLayerBehaviour": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "NoiseLayerBehaviour"
+        },
+        "noiseType": {
+          "type": "string",
+          "enum": [
+            "OpenSimplex2",
+            "OpenSimplex2S",
+            "Cellular",
+            "Perlin",
+            "ValueCubic",
+            "Value",
+            "WhiteNoise",
+            "BlueNoise"
+          ]
+        },
+        "whiteNoiseColor": {
+          "type": "string",
+          "enum": [
+            "Monochrome",
+            "Color"
+          ]
+        },
+        "whiteNoiseSize": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "dimensions": {
+          "type": "string",
+          "enum": [
+            "TwoD",
+            "OneD",
+            "ThreeD"
+          ]
+        },
+        "direction": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "scale": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "scaleY": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "linkScale": {
+          "type": "boolean"
+        },
+        "offset": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "periodic": {
+          "type": "string",
+          "enum": [
+            "None",
+            "X",
+            "Y",
+            "XY"
+          ]
+        },
+        "periodic1D": {
+          "type": "boolean"
+        },
+        "fractal": {
+          "type": "string",
+          "enum": [
+            "None",
+            "FBm",
+            "Ridged",
+            "PingPong"
+          ]
+        },
+        "octaves": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "lacunarity": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "gain": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "weightedStrength": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "pingPongStrength": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "cellularDistance": {
+          "type": "string",
+          "enum": [
+            "Euclidean",
+            "EuclideanSquared",
+            "Manhattan",
+            "Hybrid"
+          ]
+        },
+        "cellularReturn": {
+          "type": "string",
+          "enum": [
+            "CellValue",
+            "Distance",
+            "Distance2",
+            "Distance2Add",
+            "Distance2Sub",
+            "Distance2Mul",
+            "Distance2Div"
+          ]
+        },
+        "cellularJitter": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "warp": {
+          "type": "string",
+          "enum": [
+            "None",
+            "OpenSimplex2",
+            "OpenSimplex2Reduced",
+            "BasicGrid"
+          ]
+        },
+        "warpStrength": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "warpScale": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "warpScaleY": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "linkWarpScale": {
+          "type": "boolean"
+        },
+        "encoding": {
+          "type": "string",
+          "enum": [
+            "ColorValues",
+            "LinearData",
+            "Gradient"
+          ]
+        },
+        "inverted": {
+          "type": "boolean"
+        },
+        "gradient": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WhimTexGradient"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "recoveryId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "NormalMapLayerBehaviour": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "NormalMapLayerBehaviour"
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "HeightMap",
+            "Texture"
+          ]
+        },
+        "sourceChannel": {
+          "type": "string",
+          "enum": [
+            "Luminance",
+            "Red",
+            "Green",
+            "Blue",
+            "Alpha",
+            "Maximum"
+          ]
+        },
+        "inputSpace": {
+          "type": "string",
+          "enum": [
+            "ColorValues",
+            "Linear"
+          ]
+        },
+        "edges": {
+          "type": "string",
+          "enum": [
+            "Clamp",
+            "Repeat",
+            "Mirror"
+          ]
+        },
+        "derivative": {
+          "type": "string",
+          "enum": [
+            "Sobel",
+            "Scharr",
+            "CentralDifference"
+          ]
+        },
+        "alphaMode": {
+          "type": "string",
+          "enum": [
+            "Opaque",
+            "Source"
+          ]
+        },
+        "output": {
+          "type": "string",
+          "enum": [
+            "Normal",
+            "Height"
+          ]
+        },
+        "encoding": {
+          "type": "string",
+          "enum": [
+            "PackedColor",
+            "LinearData"
+          ]
+        },
+        "strength": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "blackLevel": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "whiteLevel": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "gamma": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "smoothing": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "mediumRadius": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "largeRadius": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "fineDetail": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "mediumDetail": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "largeDetail": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "lightRemoval": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "inverted": {
+          "type": "boolean"
+        },
+        "flipX": {
+          "type": "boolean"
+        },
+        "flipY": {
+          "type": "boolean"
+        },
+        "ignoreTransparent": {
+          "type": "boolean"
+        },
+        "targetLayerId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputMode": {
+          "type": "string",
+          "enum": [
+            "Previous",
+            "Specific",
+            "AllBelow"
+          ]
+        },
+        "recoveryId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "OutlineLayerBehaviour": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "OutlineLayerBehaviour"
+        },
+        "metric": {
+          "type": "string",
+          "enum": [
+            "EuclideanExact",
+            "EuclideanApproximate",
+            "Manhattan",
+            "Chebyshev",
+            "EuclideanAntialiased"
+          ]
+        },
+        "sourceChannel": {
+          "type": "string",
+          "enum": [
+            "Alpha",
+            "Red",
+            "Green",
+            "Blue",
+            "Luminance"
+          ]
+        },
+        "outlineColor": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "outlineWidth": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "outlineSoftness": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "outlineOffset": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "fillCenter": {
+          "type": "boolean"
+        },
+        "fillColor": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "outlinePosition": {
+          "type": "string",
+          "enum": [
+            "Outside",
+            "Inside",
+            "Center"
+          ]
+        },
+        "targetLayerId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputMode": {
+          "type": "string",
+          "enum": [
+            "Previous",
+            "Specific",
+            "AllBelow"
+          ]
+        },
+        "recoveryId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "PendingLayerBehaviour": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "PendingLayerBehaviour"
+        },
+        "jobId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "recoveryId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "SDFLayerBehaviour": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "SDFLayerBehaviour"
+        },
+        "metric": {
+          "type": "string",
+          "enum": [
+            "EuclideanExact",
+            "EuclideanApproximate",
+            "Manhattan",
+            "Chebyshev",
+            "EuclideanAntialiased"
+          ]
+        },
+        "sourceChannel": {
+          "type": "string",
+          "enum": [
+            "Alpha",
+            "Red",
+            "Green",
+            "Blue",
+            "Luminance"
+          ]
+        },
+        "threshold": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "distancePosition": {
+          "type": "string",
+          "enum": [
+            "Outside",
+            "Inside",
+            "Center",
+            "Signed"
+          ]
+        },
+        "inverted": {
+          "type": "boolean"
+        },
+        "maxDistanceNormalization": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "sourceOffset": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "sourceEdges": {
+          "type": "string",
+          "enum": [
+            "Transparent",
+            "Clamp",
+            "Repeat",
+            "Mirror"
+          ]
+        },
+        "contourOffset": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "insideDistance": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "outsideDistance": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "profile": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "required": [
+            "preWrap",
+            "postWrap",
+            "keys"
+          ],
+          "properties": {
+            "preWrap": {
+              "type": "string",
+              "enum": [
+                "Default",
+                "Once",
+                "Clamp",
+                "Loop",
+                "PingPong",
+                "ClampForever"
+              ]
+            },
+            "postWrap": {
+              "type": "string",
+              "enum": [
+                "Default",
+                "Once",
+                "Clamp",
+                "Loop",
+                "PingPong",
+                "ClampForever"
+              ]
+            },
+            "keys": {
+              "type": "array",
+              "maxItems": 65536,
+              "items": {
+                "type": "array",
+                "minItems": 7,
+                "maxItems": 7,
+                "prefixItems": [
+                  {
+                    "type": "number",
+                    "minimum": -3.40282347E+38,
+                    "maximum": 3.40282347E+38
+                  },
+                  {
+                    "type": "number",
+                    "minimum": -3.40282347E+38,
+                    "maximum": 3.40282347E+38
+                  },
+                  {
+                    "anyOf": [
+                      {
+                        "type": "number",
+                        "minimum": -3.40282347E+38,
+                        "maximum": 3.40282347E+38
+                      },
+                      {
+                        "enum": [
+                          "Infinity",
+                          "-Infinity"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "anyOf": [
+                      {
+                        "type": "number",
+                        "minimum": -3.40282347E+38,
+                        "maximum": 3.40282347E+38
+                      },
+                      {
+                        "enum": [
+                          "Infinity",
+                          "-Infinity"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "number",
+                    "minimum": -3.40282347E+38,
+                    "maximum": 3.40282347E+38
+                  },
+                  {
+                    "type": "number",
+                    "minimum": -3.40282347E+38,
+                    "maximum": 3.40282347E+38
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "None",
+                      "In",
+                      "Out",
+                      "Both"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "encoding": {
+          "type": "string",
+          "enum": [
+            "LinearData",
+            "Gradient"
+          ]
+        },
+        "gradient": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WhimTexGradient"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "targetLayerId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputMode": {
+          "type": "string",
+          "enum": [
+            "Previous",
+            "Specific",
+            "AllBelow"
+          ]
+        },
+        "recoveryId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ShaderProcessorLayerBehaviour": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "ShaderProcessorLayerBehaviour"
+        },
+        "recoveryId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ShapeLayerBehaviour": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "ShapeLayerBehaviour"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "Rectangle",
+            "Ellipse",
+            "Polygon",
+            "Star",
+            "Line"
+          ]
+        },
+        "fillColor": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "fill": {
+          "type": "boolean"
+        },
+        "stroke": {
+          "type": "boolean"
+        },
+        "strokeColor": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "strokeWidth": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "feather": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "featherPosition": {
+          "type": "string",
+          "enum": [
+            "Inside",
+            "Outside",
+            "Centered"
+          ]
+        },
+        "roundness": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "cornerRoundness": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "linkCorners": {
+          "type": "boolean"
+        },
+        "sides": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "innerRadius": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "recoveryId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "SharpenLayerBehaviour": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "SharpenLayerBehaviour"
+        },
+        "algorithm": {
+          "type": "string",
+          "enum": [
+            "Gaussian",
+            "Adaptive"
+          ]
+        },
+        "strength": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "radius": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "threshold": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "noiseReduction": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "haloSuppression": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "channelMode": {
+          "type": "string",
+          "enum": [
+            "RGB",
+            "Luminance"
+          ]
+        },
+        "edges": {
+          "type": "string",
+          "enum": [
+            "Transparent",
+            "Clamp",
+            "Repeat",
+            "Mirror"
+          ]
+        },
+        "targetLayerId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputMode": {
+          "type": "string",
+          "enum": [
+            "Previous",
+            "Specific",
+            "AllBelow"
+          ]
+        },
+        "recoveryId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

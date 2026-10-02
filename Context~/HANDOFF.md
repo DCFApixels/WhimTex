@@ -34,6 +34,7 @@
 | --- | --- |
 | Модель и типы слоёв | [Layer.cs](../src/Layers/Layer.cs), [Layers/](../src/Layers/) |
 | Формат документа | [DOCUMENT_FORMAT.md](DOCUMENT_FORMAT.md), [WhimTexDocumentContainer.cs](../src/WhimTexDocumentContainer.cs) |
+| Единый JSON документа/фрагмента, режимы записи, assets и Drawing | [JSON_FORMAT.md](../Documentation~/JSON_FORMAT.md), [WhimTexDocumentJson.cs](../src/WhimTexDocumentJson.cs), [JSON API](../src/Automation/WhimTexApi.DocumentJson.cs) |
 | Независимая сборка TIFF, без смены API агентов | [TIFF_AUTHORING.md](TIFF_AUTHORING.md), [WhimTexDocumentBuild.cs](../src/WhimTexDocumentBuild.cs) |
 | Проверка переезда на TIFF: build, сбои, большие Drawing | [TIFF_VALIDATION.md](TIFF_VALIDATION.md) |
 | Узкие места 4K Drawing Save: замеры и план оптимизации | [TIFF_SAVE_PERFORMANCE.md](TIFF_SAVE_PERFORMANCE.md) |
@@ -52,7 +53,7 @@
 | Clipboard слоёв / кистей | [WhimTexApi.Clipboard.cs](../src/Automation/WhimTexApi.Clipboard.cs), [WhimTexApi.BrushClipboard.cs](../src/Automation/WhimTexApi.BrushClipboard.cs) |
 | Контракты ИИ | [AI_AUTHORING.md](../AI_AUTHORING.md), [AI/README](../Documentation~/AI/README.md), [AI/BRUSHES](../Documentation~/AI/BRUSHES.md), [примеры](../Documentation~/Examples/Clipboard/README.md) |
 | Живое редактирование | [skill](../Skills~/whimtex-live/SKILL.md), [LiveAgentAPI](../Documentation~/LiveAgentAPI.md), [AgentAPI](../Documentation~/AgentAPI.md) |
-| Проверки | [Tests~/](../Tests~/), [building.md](../Documentation~/building.md), [генератор схемы слоёв](../Documentation~/scripts/build-clipboard-schema.mjs) |
+| Проверки | [Tests~/](../Tests~/), [building.md](../Documentation~/building.md), [генератор схемы JSON](../Documentation~/scripts/DocumentJsonSchema.cs); [legacy clipboard schema](../Documentation~/scripts/build-clipboard-schema.mjs) — только совместимый ввод |
 
 ## Как продолжать
 

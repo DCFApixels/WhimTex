@@ -1,0 +1,433 @@
+{
+  "format": "whimtex.document",
+  "version": 1,
+  "document": {
+    "colorHistory": [],
+    "layerNameCounters": [
+      {
+        "prefix": "Color Fill",
+        "next": 2
+      },
+      {
+        "prefix": "Blur",
+        "next": 3
+      },
+      {
+        "prefix": "Shader Processor",
+        "next": 2
+      }
+    ],
+    "nextCopyNumber": 1,
+    "spriteSlices": [],
+    "width": 256,
+    "height": 256,
+    "outputFilter": "Bilinear",
+    "outputPrecision": "Auto",
+    "outputSrgb": true,
+    "uvReferenceMesh": null,
+    "uvReferenceChannel": 0,
+    "uvReferenceSubmesh": -1
+  },
+  "layers": [
+    {
+      "id": "f90ac41edf6641a6a87a9f557db4f0e6",
+      "layerName": "Impact Tone",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "HDR",
+      "blendRange": "HDR",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx0",
+          "active": true,
+          "code": "// @whimtex-effect Impact/Tone\r\n// @control(_Opacity)\r\n// @param float _Opacity = 1 [0 .. 1]\r\n// @param color _Tint = #FFFFFF\r\n// @param float _Brightness = 1 [0 .. ~3]\r\nfloat4 ApplyFX(float2 uv,float4 color) { return float4(color.rgb*_Tint.rgb*_Brightness,color.a*_Tint.a*_Opacity); }\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "61423141e56b47beb4f3c1fa6353d44b",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Tint",
+              "type": "Color",
+              "colorValue": [
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ],
+              "id": "33dc81b34a23434eb249458d68156d19",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Brightness",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "05b7eabf59cc47b5ae626a90055caa23",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "27ab61bb7b8a404099eb9adc76deaec9",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Clip"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "ShaderProcessorLayerBehaviour",
+        "recoveryId": "3472e0f170bd4b15b6770e2906b621a8"
+      },
+      "behaviourId": "3472e0f170bd4b15b6770e2906b621a8",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "79da8d1eee624d47ac09cf43c644924a",
+      "layerName": "Impact Core",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 0.65,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx1",
+          "active": true,
+          "code": "// @whimtex-effect Impact/Fractured Light\r\n// @control(_Opacity)\r\n// @param float _Opacity = 1 [0 .. 1]\r\n// @group(Placement)\r\n// @param point _Center = (0.5, 0.5)\r\n// @param float2 _Scale = (1.05, 1.05)\r\n// @param float _Angle = 0 [-180 .. 180]\r\n// @endgroup\r\n// @group(Silhouette)\r\n// @param float _Radius = 0.205 [0.05 .. 0.4]\r\n// @param float _Width = 0.062 [0.005 .. 0.15]\r\n// @param float _Spikes = 0.22 [0 .. 0.35]\r\n// @param float _Count = 10 [3 .. 32]\r\n// @param float _Sharpness = 4.5 [1 .. 10]\r\n// @param float _Warp = 0.075 [0 .. 0.15]\r\n// @param float _Softness = 0.026 [0.001 .. 0.05]\r\n// @endgroup\r\n// @group(Light)\r\n// @param float _Brightness = 2.1 [0 .. 4]\r\n// @param float _Falloff = 2.4 [0 .. 4]\r\n// @param float _Breakup = 0.55 [0 .. 1]\r\n// @param float _Patchiness = 0.7 [0 .. 1]\r\n// @param float _Detail = 0.22 [0 .. 1]\r\n// @param float _Seed = 137 [1 .. ~5000]\r\n// @endgroup\r\nfloat ImpactN(float2 p,float seed) {\r\n fnl_state s=fnlCreateState((int)seed);s.noise_type=FNL_NOISE_OPENSIMPLEX2S;s.frequency=1;\r\n return .5+.5*fnlGetNoise2D(s,p.x,p.y);\r\n}\r\nfloat4 ApplyFX(float2 uv,float4 color) {\r\n float ca=cos(radians(_Angle)),sa=sin(radians(_Angle));\r\n float2 p=(LayerToLocal(uv)-_Center)/max(abs(_Scale),.001);\r\n p=float2(ca*p.x+sa*p.y,-sa*p.x+ca*p.y);\r\n float r=length(p);float2 dir=p/max(r,.00001);float a=atan2(p.y,p.x);\r\n float broad=ImpactN(dir*3,_Seed+37);\r\n float phase=a*round(_Count)+1.7*sin(a*3);\r\n float wave=1-abs(atan2(sin(phase),cos(phase)))/3.14159265;\r\n float spoke=pow(saturate(wave),_Sharpness);\r\n spoke*=.35+.85*ImpactN(dir*4,_Seed+81);\r\n float radius=_Radius+(broad-.5)*_Warp;\r\n float outer=radius+_Spikes*spoke+(broad-.5)*_Warp;\r\n float inner=radius-_Width+_Spikes*.2*ImpactN(dir*2,_Seed+13);\r\n float radial=saturate((r-inner)/max(outer-inner,.001));\r\n float micro=ImpactN(dir*16+float2(r*14,0),_Seed);\r\n float soft=max(_Softness,fwidth(r));\r\n float shape=smoothstep(inner-soft*1.5,inner+soft*1.5,r)*(1-smoothstep(outer-soft,outer+soft,r));\r\n float light=exp(-_Falloff*radial);\r\n float clouds=ImpactN(dir*5+float2(r*8,3),_Seed+23);\r\n light*=lerp(1,.35+clouds*1.2,_Breakup);\r\n light*=1+_Detail*(micro-.5);\r\n float clump=ImpactN(dir*3.7+float2(3.1,5.8),_Seed+19);\r\n float clump2=ImpactN(dir*11+float2(r*5,2),_Seed+83);\r\n float patch=lerp(1,lerp(.22,1.8,smoothstep(.22,.76,clump))*(.65+.7*clump2),_Patchiness);\r\n float alpha=1-exp(-shape*light*_Brightness*patch);\r\n return float4(1,1,1,saturate(alpha)*_Opacity);\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "e4ea56df54364e61ab55b0528226f920",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Center",
+              "type": "Point",
+              "vectorValue": [
+                0.5,
+                0.5,
+                0.0,
+                0.0
+              ],
+              "id": "e2075c726e844e418988561a8fa918c6",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Scale",
+              "type": "Vector2",
+              "vectorValue": [
+                1.1,
+                1.1,
+                0.0,
+                0.0
+              ],
+              "id": "334e9c31fb0a4a70ad737618a3eb3ba0",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Angle",
+              "type": "Float",
+              "floatValue": 0.0,
+              "id": "04f1a0589fcc43bd8b905656b7ce2278",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Radius",
+              "type": "Float",
+              "floatValue": 0.205,
+              "id": "d68acd294b38444ca8911b61a7fb7cbc",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Width",
+              "type": "Float",
+              "floatValue": 0.046,
+              "id": "b6cd4a76332b476083d86c60801eda31",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Spikes",
+              "type": "Float",
+              "floatValue": 0.22,
+              "id": "ecb8acf7cc454057910f26292bf4b5d5",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Count",
+              "type": "Float",
+              "floatValue": 10.0,
+              "id": "3e6e66bbc3bf4576a7b12e9b9f681a60",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Sharpness",
+              "type": "Float",
+              "floatValue": 4.5,
+              "id": "20b068b66fa64a2495042d176b2286ba",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Warp",
+              "type": "Float",
+              "floatValue": 0.075,
+              "id": "d0f570249915432d84cc7b6cd66851a8",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Softness",
+              "type": "Float",
+              "floatValue": 0.026,
+              "id": "e9e6a028ffd14e7c8a4ecf39e6230d9f",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Brightness",
+              "type": "Float",
+              "floatValue": 3.2,
+              "id": "03bb6d3f0ce049abbe7041234a85560e",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Falloff",
+              "type": "Float",
+              "floatValue": 2.9,
+              "id": "b1f6bbb567244c7abfadc9c56a262ba2",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Breakup",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "5aaea3dd23c2453ba7b878d72833e68a",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Patchiness",
+              "type": "Float",
+              "floatValue": 0.7,
+              "id": "8210cc6ccbc341e99175d9cbb7095f88",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Detail",
+              "type": "Float",
+              "floatValue": 0.4,
+              "id": "11a40f47f5e641a7ab0bb2e06f89aed5",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Seed",
+              "type": "Float",
+              "floatValue": 137.0,
+              "id": "fd60682572b342a5942d2881748289ca",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "226cd9b71b4f4b28b0c2530e49ef8939",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "ColorFillLayerBehaviour",
+        "mode": "Color",
+        "storedColor": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "recoveryId": "80566953c4f1407e86cefb687fe503aa"
+      },
+      "behaviourId": "80566953c4f1407e86cefb687fe503aa",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "acaebdfc2fac47a38fa8c683f796e099",
+      "layerName": "Near Glow",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Clip"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "BlurLayerBehaviour",
+        "strength": 2.4,
+        "radius": 13.0,
+        "edges": "Transparent",
+        "mode": "Gaussian",
+        "targetLayerId": "79da8d1eee624d47ac09cf43c644924a",
+        "inputMode": "Specific",
+        "recoveryId": "96a41d816b814f5dba9050de9b4a2058"
+      },
+      "behaviourId": "96a41d816b814f5dba9050de9b4a2058",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "c0b3b287f3244519893e30f8c83b7e75",
+      "layerName": "Wide Glow",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 0.52,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Clip"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "BlurLayerBehaviour",
+        "strength": 1.5,
+        "radius": 26.0,
+        "edges": "Transparent",
+        "mode": "Gaussian",
+        "targetLayerId": "79da8d1eee624d47ac09cf43c644924a",
+        "inputMode": "Specific",
+        "recoveryId": "65dee355db5e43a2a260a1758b7d10e6"
+      },
+      "behaviourId": "65dee355db5e43a2a260a1758b7d10e6",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    }
+  ]
+}

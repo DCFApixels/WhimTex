@@ -1,0 +1,582 @@
+{
+  "format": "whimtex.document",
+  "version": 1,
+  "document": {
+    "colorHistory": [],
+    "layerNameCounters": [
+      {
+        "prefix": "Color Fill",
+        "next": 3
+      },
+      {
+        "prefix": "Blur",
+        "next": 3
+      },
+      {
+        "prefix": "Shader Processor",
+        "next": 2
+      }
+    ],
+    "nextCopyNumber": 1,
+    "spriteSlices": [],
+    "width": 256,
+    "height": 256,
+    "outputFilter": "Bilinear",
+    "outputPrecision": "Auto",
+    "outputSrgb": true,
+    "uvReferenceMesh": null,
+    "uvReferenceChannel": 0,
+    "uvReferenceSubmesh": -1
+  },
+  "layers": [
+    {
+      "id": "5db7123a10cd4bd8b54df57504384f3d",
+      "layerName": "Final Tint",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "HDR",
+      "blendRange": "HDR",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx0",
+          "active": true,
+          "code": "// @whimtex-effect Light/Final Tint\r\n// @control(_Opacity)\r\n// @param float _Opacity = 1 [0 .. 1]\r\n// @param color _Tint = #FFFFFF\r\n// @param float _Brightness = 1 [0 .. ~3]\r\n// @param float _Grain = 0.055 [0 .. 0.2]\r\n// @param float _EdgeFade = 16 [0 .. 64]\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n float edge=min(min(uv.x,1-uv.x)*_CanvasSize.x,min(uv.y,1-uv.y)*_CanvasSize.y);\r\n float fade=_EdgeFade>0?smoothstep(0.5,_EdgeFade+0.5,edge):1;\r\n float2 px=floor(uv*_CanvasSize.xy);\r\n float noise=frac(sin(dot(px,float2(12.9898,78.233)))*43758.5453)-.5;\r\n color.a=saturate(color.a+noise*_Grain*4*color.a*(1-color.a));\r\n return float4(color.rgb*_Tint.rgb*_Brightness,color.a*_Tint.a*_Opacity*fade);\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "30554437ed3e4b4a8887c775d712bd68",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Tint",
+              "type": "Color",
+              "colorValue": [
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ],
+              "id": "803e6e140b8a41488e840c701a02d4b4",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Brightness",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "8849618f11f94c97aedcf8a283475697",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Grain",
+              "type": "Float",
+              "floatValue": 0.0275,
+              "id": "0fcd7ca2054f478c862cfe1116317502",
+              "declaredInCode": true
+            },
+            {
+              "name": "_EdgeFade",
+              "type": "Float",
+              "floatValue": 8.0,
+              "id": "59af409f33ff4bc4b7fb8af04c96275d",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "83507fba665748d79a3dd5a703598a65",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Clip"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "ShaderProcessorLayerBehaviour",
+        "recoveryId": "b867817641484555af1807934edad04b"
+      },
+      "behaviourId": "b867817641484555af1807934edad04b",
+      "children": [],
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "e7ce8a919e24417ca7968915d9dcb704",
+      "layerName": "Long Axial Rays",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx1",
+          "active": true,
+          "code": "// @whimtex-effect Learn/Diffraction Shape\r\n// @control(_Opacity)\r\n// @param float _Opacity = 1 [0 .. 1]\r\n// @group(Placement)\r\n// @param point _Center = (0.5, 0.5)\r\n// @param float2 _Scale = (1, 1)\r\n// @param float _Angle = 0 [-180 .. 180]\r\n// @endgroup\r\n// @group(Shape; _Style)\r\n// @param hidden enum _Style = Star {Star:0, Rays:1, Lens:2}\r\n// @param float _Radius = 0.37 [0.03 .. 0.48]\r\n// @param float _Pinch = 0.55 [0.2 .. 1]\r\n// @param float _Softness = 0.002 [0 .. 0.08]\r\n// @param float _Core = 0.023 [0.002 .. 0.12]\r\n// @param float _RayCount = 12 [2 .. 60]\r\n// @param float _RaySharpness = 28 [2 .. 100]\r\n// @param float _Seed = 29 [1 .. ~5000]\r\n// @endgroup\r\n\r\nfloat LearnHash(float2 p){ return frac(sin(dot(p,float2(127.1,311.7)))*43758.5453); }\r\nfloat LearnNoise(float2 p, float seed){\r\n fnl_state s=fnlCreateState((int)seed);s.noise_type=FNL_NOISE_OPENSIMPLEX2S;s.frequency=1;\r\n return fnlGetNoise2D(s,p.x,p.y)*.5+.5;\r\n}\r\nfloat LearnFbm(float2 p,float seed){\r\n fnl_state s=fnlCreateState((int)seed);s.noise_type=FNL_NOISE_OPENSIMPLEX2S;s.frequency=1;\r\n s.fractal_type=FNL_FRACTAL_FBM;s.octaves=3;s.gain=.42;\r\n return fnlGetNoise2D(s,p.x,p.y)*.5+.5;\r\n}\r\nfloat2 LearnRotate(float2 p,float angle){float c=cos(radians(angle)),s=sin(radians(angle));return float2(c*p.x-s*p.y,s*p.x+c*p.y);}\r\nfloat LearnEdge(float d,float softness){float w=max(fwidth(d),max(softness,.00001));return 1-smoothstep(-w,w,d);}\r\nfloat LearnGauss(float x){return exp(-x*x);}\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\nfloat2 p=LearnRotate(LayerToLocal(uv)-_Center,-_Angle)/max(abs(_Scale),.001);\r\n\r\nfloat r=length(p);float a=atan2(p.y,p.x);float coverage=0;\r\nif(_Style<.5){\r\n float2 q=abs(p)/_Radius;\r\n float d=pow(pow(q.x,_Pinch)+pow(q.y,_Pinch),1/_Pinch)-1;\r\n coverage=LearnEdge(d,_Softness*20);\r\n}else if(_Style<1.5){\r\n float ray=pow(abs(cos(a*round(_RayCount)*.5)),_RaySharpness);\r\n float varied=.5+.5*LearnNoise(float2(cos(a),sin(a))*8,_Seed);\r\n coverage=exp(-r/max(_Radius*.35,.001))*ray*varied;\r\n coverage+=exp(-r*r/max(_Core*_Core,.000001));\r\n coverage*=1-smoothstep(_Radius*.85,_Radius*1.3,r);\r\n}else{\r\n float2 q=float2(p.x/_Radius,p.y/max(.003,_Core));\r\n float d=abs(q.y)+pow(abs(q.x),1.35)-1;\r\n coverage=LearnEdge(d,_Softness*20);\r\n}\r\nreturn float4(1,1,1,saturate(coverage)*_Opacity);\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 0.055,
+              "id": "0f2c2c1dc8594ca2a3a0a932c737007d",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Center",
+              "type": "Point",
+              "vectorValue": [
+                0.5,
+                0.5,
+                0.0,
+                0.0
+              ],
+              "id": "ddad38138de44339b6a8c0a98ad8fd88",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Scale",
+              "type": "Vector2",
+              "vectorValue": [
+                1.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "id": "f52d32134c94406cac8e9c7d239ff1cc",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Angle",
+              "type": "Float",
+              "floatValue": 0.0,
+              "id": "5ee23fef8adf42bb8d45e639de107678",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Style",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "675725cee9cb40f291c67b76176a7120",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Radius",
+              "type": "Float",
+              "floatValue": 0.38,
+              "id": "9574493def044d68a7a842dc34e7551a",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Pinch",
+              "type": "Float",
+              "floatValue": 0.55,
+              "id": "6caa70aa0e2942e6845ca7bae7e61f0c",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Softness",
+              "type": "Float",
+              "floatValue": 0.002,
+              "id": "618cd3b1c5ba4d50b3f141681bc3c159",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Core",
+              "type": "Float",
+              "floatValue": 0.023,
+              "id": "60e55b0461da4ec7908a1b26aaab1dee",
+              "declaredInCode": true
+            },
+            {
+              "name": "_RayCount",
+              "type": "Float",
+              "floatValue": 8.0,
+              "id": "df582fe48583494da1d4e34b9b9ed0d0",
+              "declaredInCode": true
+            },
+            {
+              "name": "_RaySharpness",
+              "type": "Float",
+              "floatValue": 40.0,
+              "id": "70f30918c5d9496c862c4b4cc9da0259",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Seed",
+              "type": "Float",
+              "floatValue": 29.0,
+              "id": "e97f22c7a21a401abd6327425263093e",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "afad14b9f7754c26b717e83e74203486",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "ColorFillLayerBehaviour",
+        "mode": "Color",
+        "storedColor": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "recoveryId": "444610c316ca4f40a1954b5568484347"
+      },
+      "behaviourId": "444610c316ca4f40a1954b5568484347",
+      "children": [],
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "9f95757122e64a7386073d8690697146",
+      "layerName": "Energy Burst",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 0.65,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx2",
+          "active": true,
+          "code": "// @whimtex-effect Light/Irregular Radial Flare\r\n// @control(_Opacity)\r\n// @param float _Opacity = 1 [0 .. 1]\r\n// @group(Placement)\r\n// @param point _Center = (0.5, 0.5)\r\n// @param float2 _Scale = (1, 1)\r\n// @param float _Angle = 0 [-180 .. 180]\r\n// @endgroup\r\n// @group(Rays)\r\n// @param float _Seed = 47 [1 .. ~5000]\r\n// @param float _Count = 14 [4 .. 32]\r\n// @param float _Length = 0.37 [0.1 .. 0.48]\r\n// @param float _Width = 0.055 [0.01 .. 0.15]\r\n// @param float _Variation = 0.7 [0 .. 1]\r\n// @param float _RayPower = 0.95 [0 .. 2]\r\n// @param float _Filaments = 0.35 [0 .. 1]\r\n// @endgroup\r\n// @group(Core)\r\n// @param float _Core = 0.095 [0.02 .. 0.2]\r\n// @param float _CorePower = 1.4 [0 .. 3]\r\n// @endgroup\r\nfloat H(float x){return frac(sin(x*127.1+_Seed*311.7)*43758.5453);}\r\nfloat N(float2 p){\r\n fnl_state s=fnlCreateState((int)_Seed);s.noise_type=FNL_NOISE_OPENSIMPLEX2S;s.frequency=1;\r\n return fnlGetNoise2D(s,p.x,p.y)*.5+.5;\r\n}\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n float2 p=(LayerToLocal(uv)-_Center)/max(abs(_Scale),.001);\r\n float angle=radians(-_Angle),c=cos(angle),s=sin(angle);\r\n p=float2(c*p.x-s*p.y,s*p.x+c*p.y);\r\n float r=length(p),density=_CorePower*exp(-r*r/(_Core*_Core));\r\n int count=(int)round(_Count);\r\n for(int i=0;i<32;i++){\r\n  if(i>=count)break;\r\n  float fi=(float)i;\r\n  float a=(fi+(H(fi+3)-.5)*.75)*6.2831853/count;\r\n  float2 dir=float2(cos(a),sin(a));\r\n  float t=dot(p,dir),side=dot(p,float2(-dir.y,dir.x));\r\n  float len=_Length*lerp(1,lerp(.56,1.1,H(fi+13)),_Variation);\r\n  float power=H(fi+47);\r\n  float width=_Width*lerp(1,lerp(.5,1.55,H(fi+29)),_Variation)*lerp(1.15,.9,power*power);\r\n  len*=lerp(.94,1.1,power*power);\r\n  float u=saturate(t/len);\r\n  float lateral=width*(1-u*lerp(.2,.9,H(fi+73)));\r\n  lateral=max(lateral,.005);\r\n  float ray=exp(-pow(abs(side)/lateral,2.5))*exp(-3*pow(max(t,0)/len,4));\r\n  ray*=smoothstep(-.025,.02,t);\r\n  ray*=lerp(.4,2.3,power*power)*_RayPower;\r\n  float fiber=N(float2(side/max(t,.05)*38, t*3)+fi*11);\r\n  ray*=lerp(1,.45+fiber,_Filaments*smoothstep(.06,.22,t));\r\n  density+=ray;\r\n }\r\n float a=saturate(1.12*(1-exp(-density)));\r\n return float4(1,1,1,a*_Opacity);\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "09f286b39bba4ecb90b81972266ab8d0",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Center",
+              "type": "Point",
+              "vectorValue": [
+                0.5,
+                0.5,
+                0.0,
+                0.0
+              ],
+              "id": "b63534e2a2f44db3a9ae3cb791516237",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Scale",
+              "type": "Vector2",
+              "vectorValue": [
+                0.87,
+                1.05,
+                0.0,
+                0.0
+              ],
+              "id": "2fb3f162c2634e52b0152003af1c5f93",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Angle",
+              "type": "Float",
+              "floatValue": -20.0,
+              "id": "b36b69e975874d62ac443ea59e36ce74",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Seed",
+              "type": "Float",
+              "floatValue": 3768.0,
+              "id": "d3c3a9469b834e3c8b69396937638547",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Count",
+              "type": "Float",
+              "floatValue": 14.0,
+              "id": "7dae7a116d9441989e78f8d076ff0f89",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Length",
+              "type": "Float",
+              "floatValue": 0.399,
+              "id": "a006e11fca8145148cba218ffa386a85",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Width",
+              "type": "Float",
+              "floatValue": 0.0536,
+              "id": "4b33f6e2db09483cb3ffc8e8591eed34",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Variation",
+              "type": "Float",
+              "floatValue": 0.532,
+              "id": "96483d4c809444c9822702e3957613e8",
+              "declaredInCode": true
+            },
+            {
+              "name": "_RayPower",
+              "type": "Float",
+              "floatValue": 1.91,
+              "id": "8bf5769eac6a488bab532ac92d67100e",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Filaments",
+              "type": "Float",
+              "floatValue": 0.0,
+              "id": "6fd299fdcfb2453e955e46c614cb7439",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Core",
+              "type": "Float",
+              "floatValue": 0.08,
+              "id": "67495d44b1604a69964c8651bf274501",
+              "declaredInCode": true
+            },
+            {
+              "name": "_CorePower",
+              "type": "Float",
+              "floatValue": 1.93,
+              "id": "242a0006e00a4cd38350661e1d66f658",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "ed56135057c247e3828d0b953b77c620",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "ColorFillLayerBehaviour",
+        "mode": "Color",
+        "storedColor": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "recoveryId": "04f4b6311051457b927ab890de4026b2"
+      },
+      "behaviourId": "04f4b6311051457b927ab890de4026b2",
+      "children": [],
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "95e6eb063bab4c86b2cf64b78e6021ae",
+      "layerName": "Gaussian Body",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Clip"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "BlurLayerBehaviour",
+        "strength": 1.2,
+        "radius": 15.0,
+        "edges": "Transparent",
+        "mode": "Gaussian",
+        "targetLayerId": "9f95757122e64a7386073d8690697146",
+        "inputMode": "Specific",
+        "recoveryId": "0ea6a289d0b74b9f93a2dba66ba53cb2"
+      },
+      "behaviourId": "0ea6a289d0b74b9f93a2dba66ba53cb2",
+      "children": [],
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "7698b45042ee4786896abc83b7688d97",
+      "layerName": "Wide Glow",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 0.65,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Clip"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "BlurLayerBehaviour",
+        "strength": 1.15,
+        "radius": 34.0,
+        "edges": "Transparent",
+        "mode": "Gaussian",
+        "targetLayerId": "9f95757122e64a7386073d8690697146",
+        "inputMode": "Specific",
+        "recoveryId": "2105a661a3634e539a0bfeb564b3ea38"
+      },
+      "behaviourId": "2105a661a3634e539a0bfeb564b3ea38",
+      "children": [],
+      "group": false,
+      "compositing": "PassThrough"
+    }
+  ]
+}

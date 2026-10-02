@@ -1,32 +1,169 @@
 {
-  "format": "whimtex.layers",
+  "format": "whimtex.document",
   "version": 1,
-  "canvas": { "width": 256, "height": 256 },
+  "document": {
+    "colorHistory": [],
+    "layerNameCounters": [
+      {
+        "prefix": "Make Seamless",
+        "next": 2
+      },
+      {
+        "prefix": "Noise",
+        "next": 2
+      }
+    ],
+    "nextCopyNumber": 1,
+    "spriteSlices": [],
+    "width": 256,
+    "height": 256,
+    "outputFilter": "Bilinear",
+    "outputPrecision": "Auto",
+    "outputSrgb": true,
+    "uvReferenceMesh": null,
+    "uvReferenceChannel": 0,
+    "uvReferenceSubmesh": -1
+  },
   "layers": [
     {
-      "type": "makeSeamless",
-      "name": "Seamless Noise",
-      "target": "source",
-      "properties": {
-        "makeSeamless": {
-          "mode": "OffsetBlend",
-          "edgeWidth": 0.2,
-          "offsetTransitionStart": -0.25,
-          "offsetContrastCompensation": true,
-          "offsetSeamCorrection": true,
-          "offsetPoissonEdges": "AllEdges",
-          "offsetAutoRadius": true
-        }
-      }
+      "id": "819cd57d783d4bf9af80747ed6ed044b",
+      "layerName": "Seamless Noise",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Clip"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "MakeSeamlessLayerBehaviour",
+        "offsetPoissonEdges": "AllEdges",
+        "mode": "OffsetBlend",
+        "leftEdge": true,
+        "rightEdge": true,
+        "bottomEdge": true,
+        "topEdge": true,
+        "edgeWidth": 0.2,
+        "offsetTransitionStart": -0.25,
+        "histogramContrast": 1.0,
+        "offsetContrastCompensation": true,
+        "offsetSeamCorrection": true,
+        "offsetAutoRadius": true,
+        "processRed": true,
+        "processGreen": true,
+        "processBlue": true,
+        "processAlpha": true,
+        "targetLayerId": "fc525bd49cba4a67b9e794f88ad985e3",
+        "inputMode": "Specific",
+        "recoveryId": "76ae9f96ccdd402abf12cc11195c4dc1"
+      },
+      "behaviourId": "76ae9f96ccdd402abf12cc11195c4dc1",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
     },
     {
-      "type": "noise",
-      "id": "source",
-      "name": "Noise Source",
-      "properties": {
-        "enabled": false,
-        "noise": { "noiseType": "OpenSimplex2", "seed": 42, "scale": 6, "fractal": "FBm", "octaves": 4 }
-      }
+      "id": "fc525bd49cba4a67b9e794f88ad985e3",
+      "layerName": "Noise Source",
+      "enabled": false,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "NoiseLayerBehaviour",
+        "noiseType": "OpenSimplex2",
+        "dimensions": "TwoD",
+        "seed": 42,
+        "scale": 6.0,
+        "scaleY": 6.0,
+        "linkScale": true,
+        "offset": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "periodic": "None",
+        "fractal": "FBm",
+        "octaves": 4,
+        "lacunarity": 2.0,
+        "gain": 0.5,
+        "weightedStrength": 0.0,
+        "warp": "None",
+        "encoding": "LinearData",
+        "inverted": false,
+        "recoveryId": "011d1718b9134cb98da0077322e78cc7"
+      },
+      "behaviourId": "011d1718b9134cb98da0077322e78cc7",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
     }
   ]
 }

@@ -850,7 +850,7 @@ namespace DCFApixels.WhimTex
                 () => ConvertLayersToDrawing(roots, true));
             menu.AddSeparator(string.Empty);
             menu.AddItem(new GUIContent("Duplicate"), false, () => DuplicateLayers(roots));
-            menu.AddItem(new GUIContent("Copy as Portable"), false, () =>
+            menu.AddItem(new GUIContent("Copy as JSON"), false, () =>
             {
                 FinishPaintingStroke();
                 FinishPreviewTransform();
@@ -858,11 +858,11 @@ namespace DCFApixels.WhimTex
                 {
                     string json = WhimTexApi.WritePortableClipboardReport(compositor, roots, out var warnings);
                     GUIUtility.systemCopyBuffer = json;
-                    ShowNotification(new GUIContent("Portable layer JSON copied."));
+                    ShowNotification(new GUIContent("Layer JSON copied."));
                     if (warnings.Count > 0)
-                        EditorUtility.DisplayDialog("Copied with warnings", string.Join("\n\n", warnings), "OK");
+                        EditorUtility.DisplayDialog("Copy as JSON — warnings", string.Join("\n\n", warnings), "OK");
                 }
-                catch (Exception error) { EditorUtility.DisplayDialog("Copy as Portable", error.Message, "OK"); }
+                catch (Exception error) { EditorUtility.DisplayDialog("Copy as JSON", error.Message, "OK"); }
             });
             menu.AddItem(new GUIContent("Merge Selected %e"), false, () => MergeSelectedLayers(roots, false));
             menu.AddItem(new GUIContent("Merge Selected as Copy %&e"), false, () => MergeSelectedLayers(roots, true));

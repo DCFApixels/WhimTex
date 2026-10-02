@@ -200,7 +200,7 @@ namespace DCFApixels.WhimTex
                 status.messageType = effect.LastApplyFailed ? HelpBoxMessageType.Error : HelpBoxMessageType.Info;
                 status.EnableInClassList("whimtex-shader-fx-hidden", !effect.LastApplyFailed && !pendingChanges);
                 status.text = effect.LastApplyFailed
-                    ? (effect.HasAppliedShader ? "Apply failed. The last successfully applied effect is still in use." : "Apply failed. This FX is skipped until it compiles successfully.")
+                    ? "Apply failed. This FX is skipped until it compiles successfully."
                     : pendingChanges ? "Unapplied code or parameter declarations. Click Apply when ready."
                     : "Applied. Values update without recompiling. Click Apply again after editing an included library.";
                 diagnostics.SetValueWithoutNotify(effect.Diagnostics);

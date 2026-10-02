@@ -10,14 +10,67 @@ permalink: /reference/agentapi/
 
 # WhimTex: agent API v1
 
+## Unified JSON documents
+
+`whimtex_document_json` takes an absolute `requestPath`. Equivalent C# methods are
+`WhimTexApi.DocumentJsonFile(path)` and `WhimTexApi.DocumentJson(requestJson)`.
+Content uses the [shared document format](JSON_FORMAT.md); commands are only an operation envelope.
+There is no required `kind`: the same content can be opened, written, inserted or used for an explicit
+layer replacement. Earlier exports' optional string `kind` is ignored and never returned or written.
+The `document` object and its fields are optional. Open/write use version-1 defaults for missing
+settings (512 × 512 canvas). Insert/replace use destination dimensions for each omitted source axis,
+without resizing or changing destination output settings. Standalone validate uses format defaults.
+Writers always include both canvas dimensions, including in Compact mode, to preserve placement context.
+
+```json
+{"apiVersion":1,"action":"serialize","assetPath":"Assets/Art/Icon.tiff","mode":"FullOptimized","allowDrawingOmission":false}
+```
+
+| Action | Inputs and result |
+| --- | --- |
+| `serialize` | `assetPath`, optional `layerIds` array, `mode`, `allowDrawingOmission`. Returns `json` containing all or selected layers plus `warnings`, in the same document format. |
+| `export` | Same options without `layerIds`, plus a new `destinationPath` ending in `.json`. Does not modify the source. |
+| `validate` | Exactly one `json` object or `sourcePath`; optional `compile` (default false). Detached parsing, no save. |
+| `write` | `json` or `sourcePath`, destination `assetPath`, optional `save` (default true). Accepts whole-document or selected-layer exports; existing files require `expectedRevision`, including when `save:false`. |
+| `insert` | `json` or `sourcePath`, existing `assetPath`, `expectedRevision`, optional `save` (default true). Adds remapped roots at the top without changing output settings. |
+| `replace` | Same as insert plus `layerId`; exactly one incoming root. Keeps the target wrapper's ID, name, enabled state and placement in the stack. |
+| `open` | `assetPath` of a JSON document. Opens/focuses its WhimTex window. |
+
+`mode` is `Full`, `FullOptimized` (default), or `Compact`. Nonempty Drawing pixels require
+`allowDrawingOmission: true` when serializing/exporting. Empty Drawing nodes remain. `write`, `insert`
+and `replace` compile by default; `compile:false` only postpones compilation and does not make shader code trusted.
+Failed FX compilation is reported in `warnings`; the JSON document still loads and retains the skipped
+FX for repair. Structural JSON/reference errors still reject the request. `write` without `mode` preserves
+the optional envelope `writeMode` (or uses FullOptimized when absent). Ordinary JSON saves retain that mode;
+one-off exports do not change it.
+Path edits refuse a conflicting open document. For `write`, `insert` and `replace`, `save:false` returns
+`saved:false` and the prospective snapshot, then discards the transient model. It neither creates nor
+overwrites the destination or its importer metadata; existing-file revision checks still apply.
+Insert/replace do not overwrite the destination's dimensions, encoding, filtering or History.
+Revisions include current Drawing pixels even for JSON-backed documents, including pending paint-surface
+changes; this conflict-detection fingerprint does not imply that JSON can store Drawing pixels.
+The regular batch, inspect and render APIs also support `.json` (including earlier `.whimtex.json` names). Independent Headless Live sessions
+and TIFF storage diagnostics remain TIFF-specific. `json` is content, never an `ExecuteJson` request.
+`Status` reports `format:"whimtex.document"` for JSON paths. JSON `open` reports `success:false` with
+`errorCode:"open_failed"` and the load error when a recognized document cannot load; it does not show a modal
+error dialog. An already open document is focused without reloading it.
+Regular `Validate` returns JSON load warnings (including missing assets, omitted Drawing content and failed
+FX) in `warnings`. Structural errors make `valid:false`; unavailable FX also fail the readiness check while
+remaining loadable/editable. Check both the response `success` and `valid`, not just transport success.
+JSON document fields use strict types, named enums and finite representable numbers, with field paths in errors.
+They retain native storage semantics rather than imposing every UI/patch range; see the shared format reference.
+
 For a browser AI without a Unity connection, use the separate [clipboard JSON/HLSL contract](AI/README.md).
 Clipboard paste does not execute the operations described on this page.
 
-The installed package also contains `Samples~/AgentTextures/manifest.json`: twelve numbered
-256×256 procedural reference textures with editable TIFFs, portable clipboard JSON and previews.
-Read that folder's README before reuse. Copy a TIFF into an authorized `Assets/` folder and import
-it before path-based editing; do not modify bundled references. The matching `.layers.json` files
-are clipboard envelopes, **not** requests for `ExecuteJson`.
+The installed package also contains `Samples~/AgentTextures/manifest.json`: 38 procedural reference
+recipes with individual PNG previews, descriptions and tags. The longest canvas axis is 256 pixels;
+rectangular samples retain their aspect ratio. Read that folder's README before reuse. There are no
+bundled TIFF duplicates or overview atlas. The `.whimtex.json` files are complete editable documents,
+**not** requests for `ExecuteJson`: use the shared JSON API below, open a copy in an authorized folder,
+or paste their layers. Do not modify bundled references in place.
+Output encoding is stored in each JSON document. The three packed-data previews store raw linear values and
+must be imported with sRGB disabled; generic diagnostic PNG renders instead use sRGB preview encoding.
 
 WhimTex is installed as `com.dcfapixels.whimtex`, its namespace is `DCFApixels.WhimTex` and its
 assemblies are `DCFApixels.WhimTex*` (previously `com.dcfa_pixels.sprite-editor` and
@@ -41,8 +94,8 @@ new default folder does not exist; a custom preset-folder path must be selected 
 The API edits the same model and uses the same renderer, brush and save path as the window.
 For reservations, generation and selected-region edits in an open (possibly unsaved) document,
 use the [live editing API](LiveAgentAPI.md). The path-based batch contract below remains unchanged.
-No WhimTex window or active selection is required. New agent documents must use a TIFF
-`assetPath` such as `Assets/Art/Icon.tiff`. A legacy `.asset` may still be inspected or
+No WhimTex window or active selection is required. New agent documents may use a TIFF or JSON
+`assetPath`, such as `Assets/Art/Icon.tiff` or `Assets/Art/Icon.json`. A legacy `.asset` may still be inspected or
 passed to the explicit migration command, but agents should not create new `.asset` documents.
 The retired ScriptableObject writer is kept only as an internal migration/regression fixture; it is
 not reachable from the window or agent API.
@@ -327,8 +380,8 @@ float4 ApplyFX(float2 uv, float4 color) { return color * _Tint * _Accent * _Ramp
 unity command whimtex_fx_compile --source $fx --project-path 'D:/Projects/MyGame' --format json
 ```
 
-`whimtex_describe` also returns `agentModes` and `storagePolicy`. New documents are TIFF-only:
-`whimtex_batch_execute` creates and saves only `*.tiff`, while an existing legacy `.asset`
+`whimtex_describe` also returns `agentModes` and `storagePolicy`. New documents use TIFF or unified JSON:
+`whimtex_batch_execute` creates and saves `*.tiff` or `*.json`, while an existing legacy `.asset`
 can only be inspected, rendered, validated, exported or migrated. Passing a legacy `.asset` to a
 batch is allowed only with `dryRun:true`; applying or saving it returns `legacy_read_only`.
 
@@ -489,8 +542,10 @@ Gradient inputs accept either an ordered stop array or the object form documente
 Color-picker preferences are not API input transforms: RGB/HSV entry mode, HDR input toggles,
 Channels and Preview EV do not modify supplied RGBA or gradient values. API/clipboard writes do not
 add or promote colors in document History. Color and gradient JSON still use numeric RGBA, not the
-picker's HEX text syntax. Layer/brush/FX JSON RGB limits remain -107..107 with alpha 0..1;
+picker's HEX text syntax. Editing-operation and brush RGB limits remain -107..107 with alpha 0..1;
 the standalone gradient clipboard's -65504..65504 range does not extend these API limits.
+Unified document JSON is a separate storage contract with native field types and representability
+checks, not these editing-operation ranges; see [JSON format](JSON_FORMAT.md).
 HDR texture data is distinct from physical HDR monitor output; rendered PNG previews are SDR.
 
 ### Operations
@@ -536,7 +591,8 @@ HDR texture data is distinct from physical HDR monitor output; rendered PNG prev
 
 SDF also accepts `encoding` directly in settings: `Gradient` (default) or `LinearData`, reported by `sdfEncodings` in capabilities. Its default palette matches Noise: black at 0, white at 1, with Perceptual interpolation. Inverted remains available in both modes and reverses normalized distance before Profile and gradient sampling. LinearData outputs normalized distance after Inverted/Profile as raw linear RGB 0–1 with alpha 1, without gamma decoding or palette sampling. In Signed mode low values are inside and high values outside. Profile applies in both modes. Switching output preserves the palette and inversion setting; existing explicit gradient modes are retained. SDF has no `useGradient` field or ColorValues output. Document export encoding still applies normally; choose linear output when exporting numeric maps.
 
-SDF writes `settings.gradient` (clipboard `properties.gradient`), not `settings.sdf`.
+SDF operations write `settings.gradient`, not `settings.sdf`. Unified document/clipboard JSON
+instead stores the native palette in `behaviour.gradient` on `SDFLayerBehaviour`.
 Inspection reports the palette separately as `gradientKeys`; write that body's value using `gradient`.
 Both stop arrays and the shared gradient object are accepted, including separate alpha keys, HDR colors,
 `mode`, `smoothness`, `wrapMode` and `colorSpace`. Supplying `gradient` replaces the whole palette but
@@ -721,13 +777,14 @@ and `noiseEncodings`, `noiseDimensions`, `noisePeriodicAxes`, `noiseWhiteColors`
 | `inverted` | Boolean; reverses noise values in every output mode, before palette sampling in Gradient |
 | `gradient` | Shared stops/object, default black-to-white, Perceptual interpolation when mode is omitted; RGBA/HDR palette, retained while disabled |
 
-Without gradient mapping, RGB repeats the normalized scalar, except WhiteNoise/BlueNoise with Color which generates independent RGB; alpha is 1. Gradient output supplies RGB and alpha through the same encoded LUT and linear decode as SDF. Inverted remains available and reverses values before palette sampling. Color WhiteNoise/BlueNoise supports only ColorValues/LinearData: a retained Gradient setting temporarily renders/displays ColorValues, then returns to Gradient on switching to monochrome. Changing Output preserves the palette. Random All preserves `gradient` and keeps `encoding:Gradient`; otherwise it randomizes encoding only between ColorValues and LinearData. It can vary `inverted`; for grain noise with stored Gradient output it also preserves the Color setting so effective Output cannot change. Noise gradients live inside `settings.noise` / clipboard `properties.noise`, not at the layer root; Noise has no `useGradient` field.
+Without gradient mapping, RGB repeats the normalized scalar, except WhiteNoise/BlueNoise with Color which generates independent RGB; alpha is 1. Gradient output supplies RGB and alpha through the same encoded LUT and linear decode as SDF. Inverted remains available and reverses values before palette sampling. Color WhiteNoise/BlueNoise supports only ColorValues/LinearData: a retained Gradient setting temporarily renders/displays ColorValues, then returns to Gradient on switching to monochrome. Changing Output preserves the palette. Random All preserves `gradient` and keeps `encoding:Gradient`; otherwise it randomizes encoding only between ColorValues and LinearData. It can vary `inverted`; for grain noise with stored Gradient output it also preserves the Color setting so effective Output cannot change. Noise operations put the palette inside `settings.noise`; unified document/clipboard JSON uses `behaviour.gradient` on `NoiseLayerBehaviour`. Noise has no `useGradient` field.
 UI **Output** maps to `encoding`, **Seamless** to `periodic` (TwoD/ThreeD) or `periodic1D` (OneD), and the Scale chain to `linkScale`.
 There is no Noise `seamless` boolean, `scaleY` or `offsetZ` API field: use `periodic`/`periodic1D`, `scale:[x,y]`
 and `offset:[x,y,z]`. Supplying `gradient` alone does not enable it: also set `encoding:"Gradient"`.
 Gradient updates replace the whole palette, not individual keys. Omitted fields in settings retain
 their existing values. Inspection reports stored settings, even when a type/dimension temporarily
-ignores them. Portable export may omit values equal to new-layer defaults.
+ignores them. Unified JSON export uses its selected write mode and frozen version defaults,
+not the live editing-operation shapes or current new-layer factory defaults.
 
 For example, this partial update combines a 3D seamless source with an explicit palette:
 
@@ -894,7 +951,8 @@ See [Motion Blur](MotionBlur.md) for sampling, alpha, quality and memory details
 ### Make Seamless settings
 
 Use `type:"makeSeamless"` and partial `settings.makeSeamless` updates in shared operations,
-including live batches. Clipboard JSON uses **`properties.makeSeamless`**, not `settings`;
+including live batches. Unified document/clipboard JSON puts the native fields directly inside
+`behaviour` with `$type: "MakeSeamlessLayerBehaviour"`, without a `properties` or `settings` wrapper;
 see the [clipboard contract](AI/README.md) and [complete recipe](Examples/Clipboard/seamless-noise.json).
 This is a targeted effect layer, not an FX preset or an input wrap mode.
 
@@ -1234,7 +1292,8 @@ The validator caps estimated replicated stamps at 100,000 per stroke, covered br
 
 Use `settings.fillMode:"Pattern"` and partial `settings.fillPattern` updates.
 `describe` returns `fillModes` and `fillPatternDefaults`; `inspect` includes the full
-pattern. Portable clipboard uses the same keys in `properties`.
+pattern. Unified document/clipboard JSON uses `behaviour.mode` and `behaviour.pattern`
+on `ColorFillLayerBehaviour`; use the document schema for their native field shapes.
 
 | Field | Values |
 |---|---|

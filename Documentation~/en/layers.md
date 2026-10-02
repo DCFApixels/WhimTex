@@ -166,13 +166,20 @@ when you want to paint on the combined result.
 
 Drag one or more selected layers into another open WhimTex window to copy them. Drop outside the Layers list to insert at the top; inside the list, use the insertion indicator or drop onto a group to copy into it. Source layers and the clipboard stay unchanged. Groups and Drawing pixels are copied independently, and one Undo removes the transfer. Within the source window, dragging still moves layers.
 
-Select layers and choose **Copy as Portable** from their context menu. Send the JSON as text or a `.json` file; the recipient copies its contents and presses **Ctrl+V** in WhimTex. Ordinary Ctrl+C is unchanged.
+Select layers and choose **Copy as JSON**. Send the text or a `.json` file; the recipient copies
+its contents and presses **Ctrl+V**. Ordinary Ctrl+C is unchanged.
 
-The exported JSON omits settings that match a new layer's defaults, empty settings blocks and unused layer IDs. Names, custom values and required references remain; formatting stays readable. Gradient stops, transparency and non-default interpolation settings are preserved.
+Copy uses FullOptimized: active settings and defaults remain, while inactive settings are omitted.
+Disabled layers and FX stay in the tree. For Full or Compact, use the JSON option in **Export**.
 
-Procedural layers, groups, transforms and self-contained HLSL FX keep their settings. Include source layers used by Target, FX textures and clipping masks. Raster pixels are not embedded. Drawing uses its original URL until its pixels are edited; otherwise it is copied as an empty layer with a warning. Transforms and FX keep the URL usable. File keeps its asset GUID and local ID: the same asset and `.meta` file must exist in the receiving project. If unavailable, it is pasted empty with a warning. Empty layers retain settings and references. Opening a saved document remains offline, but pasting linked Drawing JSON downloads the image again. Check links before sharing: they can expire, change, or contain private access tokens. Unsupported dependencies still stop copying with an explanation.
+Include source layers used by Target, FX textures and clipping masks. Drawing pixels are not
+embedded: copying reports empty Drawing placeholders, even if the image originally came from a URL.
+Use TIFF or cross-window dragging to preserve painted content. File layers reference project assets;
+missing assets produce warnings and empty inputs until restored.
 
-Custom HLSL includes are expanded when copying; helper functions and their calls remain separate. Built-in UnityCG, WhimTex noise and dithering libraries remain references. The limit is 64 KiB per FX and 8 include levels; missing, cyclic or oversized dependencies stop copying.
+Custom FX source is retained. Includes are expanded where possible; unavailable dependencies may
+leave an FX unable to compile on the receiving machine. Check the warnings and preview after importing.
+See the [shared JSON format](../JSON_FORMAT.md) for technical details.
 
 ## Repair a missing layer
 

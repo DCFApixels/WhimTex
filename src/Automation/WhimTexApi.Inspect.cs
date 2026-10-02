@@ -35,10 +35,12 @@ namespace DCFApixels.WhimTex
             result["fxCatalog"] = "whimtex_fx_catalog: query installed presets; pass presetId for parameter details. Use returned id in FX add/replace.";
             result["assistantBatch"] = "whimtex_assistant_execute: sessionId + expectedRevision + operations, same operations as batch/headless; one Undo step, no save. Finish active jobs first.";
             result["renderProbe"] = "whimtex_render_probe: exactly one assetPath/assistantSessionId/headlessSessionId; stage composite/layer/beforeFx/afterFx; channel rgba/r/g/b/a.";
-            result["storageFormats"] = new JArray("asset", "tiff");
+            result["storageFormats"] = new JArray("asset", "tiff", "whimtex.document");
+            result["documentJson"] = "whimtex_document_json: shared document/fragment schema; Full, FullOptimized (default), Compact. Drawing pixels require explicit omission permission. Assets resolve GUID/localId, then Path if GUID is missing.";
             result["backends"] = new JObject {
                 ["asset"] = "legacy Unity ScriptableObject compositor; readable for compatibility, not writable through path-based agent batches",
-                ["tiff"] = "window-independent WhimTexDocumentBuild; transient model with atomic TIFF save"
+                ["tiff"] = "window-independent WhimTexDocumentBuild; transient model with atomic TIFF save",
+                ["whimtex.document"] = "editable .json document; shared reader/writer for storage, clipboard and agents; no Drawing pixels"
             };
             result["migration"] = "Use WhimTexApi.Migrate(sourcePath, destinationPath, overwrite) or whimtex_document_migrate. The legacy .asset remains unchanged.";
             result["diagnostics"] = new JObject {
@@ -102,9 +104,9 @@ namespace DCFApixels.WhimTex
             result["limits"] = new JObject { ["requestBytes"] = 4194304, ["operations"] = 256, ["canvasPixels"] = MaxCanvasPixels,
                 ["layers"] = 1024, ["drawingPixels"] = 67108864, ["strokePoints"] = 4096, ["strokeStamps"] = 100000, ["strokeCoveragePixels"] = 250000000,
                 ["fxParameters"] = MaxFxParameters, ["fxPerLayer"] = 32, ["headlessSessions"] = 8 };
-            result["editing"] = "Inspect before editing; expectedRevision is mandatory on existing TIFF documents. Use @aliases within a batch. New documents require a TIFF assetPath and save=true. Legacy .asset batches are dryRun-only. Save failure may leave partial asset I/O: inspect before retrying.";
+            result["editing"] = "Inspect before editing; expectedRevision is mandatory on existing TIFF/JSON documents. Use @aliases within a batch. New documents require a TIFF/JSON assetPath and save=true. Legacy .asset batches are dryRun-only. Save failure may leave partial asset I/O: inspect before retrying.";
             result["storagePolicy"] = new JObject {
-                ["newDocuments"] = "TIFF only (*.tiff)",
+                ["newDocuments"] = "TIFF (*.tiff) or unified JSON (*.json)",
                 ["legacyAsset"] = "Read-only for agent batches; use whimtex_document_migrate to create a TIFF copy",
                 ["readOperations"] = new JArray("whimtex_document_inspect", "whimtex_document_render", "whimtex_document_validate", "whimtex_document_status", "whimtex_document_export")
             };
@@ -112,8 +114,8 @@ namespace DCFApixels.WhimTex
                 ["batch"] = new JObject {
                     ["command"] = "whimtex_batch_execute",
                     ["windowRequired"] = false,
-                    ["persistence"] = "save=true writes TIFF; save=false discards the temporary model after returning. No user Undo of the file. Does not save unsaved Assistant changes.",
-                    ["assetPath"] = "TIFF for create/edit/save; legacy .asset only supports dryRun validation"
+                    ["persistence"] = "save=true writes TIFF/JSON; save=false discards the temporary model after returning. No user Undo of the file. Does not save unsaved Assistant changes. JSON cannot save Drawing pixels.",
+                    ["assetPath"] = "TIFF/JSON for create/edit/save; legacy .asset only supports dryRun validation"
                 },
                 ["headlessLive"] = new JObject {
                     ["command"] = "whimtex_headless_live",
@@ -149,7 +151,12 @@ namespace DCFApixels.WhimTex
         private static string Revision(TextureCompositor document)
         {
             using var hash = SHA256.Create();
-            var text = new StringBuilder(EditorJsonUtility.ToJson(document));
+            foreach (Layer layer in Enumerate(document.layers))
+                if (layer?.Behaviour is DrawingLayerBehaviour drawing) drawing.SyncPendingSurfaceToTexture();
+            bool json = WhimTexDocumentJson.IsJsonPath(WhimTexDocumentService.PathOf(document));
+            var text = new StringBuilder(json ? WhimTexDocumentJson.Write(document,
+                new WhimTexJsonWriteOptions { Mode = WhimTexJsonWriteMode.Full, AllowDrawingOmission = true }).Json
+                : EditorJsonUtility.ToJson(document));
             string path = AssetDatabase.GetAssetPath(document);
             if (!string.IsNullOrEmpty(path)) text.Append(AssetDatabase.GetAssetDependencyHash(path));
             foreach (Layer layer in Enumerate(document.layers))
@@ -157,9 +164,12 @@ namespace DCFApixels.WhimTex
                 if (layer?.Behaviour is DrawingLayerBehaviour drawing && drawing.StoredTexture != null)
                 {
                     Require(drawing.StoredTexture.isReadable, "Drawing texture is not readable.", "invalid_document");
+                    if (json) text.Append("|drawing:").Append(layer.Id).Append(':').Append(drawing.StoredTexture.width)
+                        .Append('x').Append(drawing.StoredTexture.height).Append(':').Append(drawing.StoredTexture.format)
+                        .Append(':').Append(drawing.StoredTexture.mipmapCount).Append(':').Append(drawing.StoredTexture.isDataSRGB).Append(':');
                     text.Append(Convert.ToBase64String(hash.ComputeHash(drawing.StoredTexture.GetRawTextureData())));
                 }
-                if (layer.modifiers != null)
+                if (!json && layer.modifiers != null)
                     foreach (UnityEngine.Object modifier in layer.modifiers)
                         if (modifier != null) text.Append(DocumentModifierRevision(modifier));
             }

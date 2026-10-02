@@ -6,7 +6,7 @@ Clipboard example folder: Documentation~/Examples/Clipboard/.
 Read Documentation~/Examples/Clipboard/README.md, then the matching .json file.
 For a Drawing image URL + Shader Processor, use stone-wall-retro.json in that folder.
 The contract ends with common mistakes followed by the full JSON/HLSL specification.
-Return clipboard JSON for Ctrl+V. A Drawing layer with `url` may fetch a PNG or JPEG from a direct http(s) link.
+Return unified whimtex.document JSON for Ctrl+V. Drawing pixels are not stored; use verified asset references for existing project images. Legacy Drawing `url` inputs are compatibility-only.
 Do not use Unity serialization or live API requests.
 These relative paths refer to the same branch as this README.
 For brushes use Documentation~/AI/BRUSHES.md and Documentation~/AI/brush.schema.json.

@@ -276,6 +276,23 @@ namespace DCFApixels.WhimTex
             return result;
         }
 
+        internal static VisualElement CreateFxWarning(bool triangle = true)
+        {
+            VisualElement warning = triangle ? new LayerActionIcon(LayerActionIcon.Kind.Warning) : new Label("!");
+            warning.name = "fxWarning";
+            warning.pickingMode = PickingMode.Position;
+            warning.AddToClassList("whimtex-fx-warning");
+            warning.AddToClassList("whimtex-hidden");
+            return warning;
+        }
+
+        internal static void RefreshFxWarning(VisualElement warning, ShaderFX effect)
+        {
+            string reason = effect != null ? effect.UnavailableReason : null;
+            warning.EnableInClassList("whimtex-hidden", reason == null);
+            warning.tooltip = reason;
+        }
+
         internal static Foldout CreateInspectorSection(string title, string name, LayerActionIcon.Kind icon,
             bool expanded, Action<bool> expansionChanged = null, bool available = true)
         {
@@ -326,6 +343,18 @@ namespace DCFApixels.WhimTex
                 fxExpanded, fxExpansionChanged);
             fx.contentContainer.AddToClassList("whimtex-fx-section-content");
             root.Add(fx);
+            var warning = CreateFxWarning();
+            warning.AddToClassList("whimtex-fx-section-warning");
+            var fxLabel = fx.Q<Toggle>().Q<Label>(className: "unity-toggle__text");
+            fxLabel.parent.Insert(fxLabel.parent.IndexOf(fxLabel), warning);
+            void RefreshWarning()
+            {
+                var unavailable = layer.UnavailableEffect;
+                RefreshFxWarning(warning, unavailable);
+                fx.EnableInClassList("whimtex-inspector-section--fx-warning", unavailable != null);
+            }
+            RefreshWarning();
+            bindings.Add(RefreshWarning);
             var view = new LayerShaderFXView(layer, owner, apply);
             fx.Add(view);
             return view;

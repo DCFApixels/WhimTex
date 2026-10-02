@@ -12,7 +12,30 @@ next_page: "en/tiff-format.md"
 # Save and export
 
 Save your document to keep its layers editable and use the result directly in Unity.
-Export only when you need a separate image file.
+Export when you need a separate image or JSON copy.
+
+## JSON documents
+
+Use **Export → Format: WhimTex JSON**, with **Mode: Full Optimized (Default)**, for an editable text copy.
+**Full** also keeps inactive settings; **Compact** additionally omits defaults. Disabled layers and FX remain.
+Double-click the `.json` file to reopen it. Ctrl+S then saves JSON; use **Save As** to save a TIFF
+when you need a Unity texture. JSON is a text asset and does not provide a texture importer or Live Update.
+The selected JSON write mode is remembered after reopening and on Ctrl+S; exporting in another mode
+does not change it. Broken FX remain editable in JSON and are skipped with warning markers until repaired.
+
+Open **Export**, choose **WhimTex JSON** in **Format**, then select **Mode** (Full Optimized by default).
+This makes a separate copy without changing or marking the source document saved.
+Drawing pixels cannot be stored: confirm the warning to retain empty Drawing nodes with their settings and FX.
+Use TIFF to retain painted pixels. Missing linked assets show warnings; their references remain in the JSON.
+Opening restores canvas size, output encoding, filtering, precision and History. Pasting layers does not
+change the destination output encoding or filter, even when adopting the source canvas dimensions.
+JSON copied from selected layers can also be opened as a separate document. The same JSON can be
+pasted to add layers to another document; opening and pasting do not require different formats.
+If received JSON omits its canvas size, opening uses 512 × 512; pasting uses your current canvas
+without a size prompt. If only one dimension is supplied, the other keeps its respective default
+or current value. Standard exports include both dimensions to preserve the source proportions.
+Hand-edited JSON must use numbers and booleans without quotes and exact enum names. Invalid types or
+numeric values are rejected with a field path; missing assets and broken FX remain recoverable warnings.
 
 ## Save a document
 
@@ -21,7 +44,7 @@ Press `Ctrl+S`. The first save asks for a location; later saves update the same 
 you can save, discard them or cancel closing.
 An untouched new document closes without a prompt. Deleting the last layer is still a change and can be saved.
 
-The saved asset is ready to use as a **texture**. Double-click it to continue editing;
+A saved TIFF is ready to use as a **texture**. Double-click it to continue editing;
 if it is already open, WhimTex focuses that window.
 
 Unity normally shows the **last saved image**. Enable [Live Update](preview.md#see-your-paint-on-a-model)
@@ -143,7 +166,10 @@ new TIFF where needed and review its import settings. Use the TIFF Inspector for
 
 ## Choose an export format
 
-Use **Export** in the window header:
+Use **Export** in the window header to open the export window. Choose **Format** and its settings,
+then press **Export…** to choose a path. **Cancel** closes the window without exporting.
+Canceling the path dialog keeps the export window and your settings. Successful export closes it;
+an error stays visible so you can retry. **Save As** always saves TIFF and has no format submenu.
 
 | Format | Best for |
 | :--- | :--- |
@@ -152,6 +178,12 @@ Use **Export** in the window header:
 | **EXR** | HDR images. |
 | **PSD** | Exchanging a layered image. |
 | **Texture2D (.asset)** | A standalone Unity texture without the editable layers. |
+| **WhimTex JSON (.json)** | Editable settings and layers, without Drawing pixels. |
+
+JPEG offers **Quality** (1–100, default 95). EXR offers **Precision** (16-bit Half or 32-bit Float)
+and lossless **Compression** (ZIP by default, RLE, PIZ or None). JSON offers **Mode** and shows a warning
+before path selection when Drawing pixels will be omitted; a separate confirmation is still required.
+JSON and Unity Texture2D destinations are inside the project's Assets folder.
 
 EXR and Texture2D keep HDR brightness. PNG, JPEG, TGA and PSD use the ordinary color range.
 Exporting does not change the original document's color range.
@@ -164,5 +196,5 @@ PSD keeps the layer names, order, groups, visibility, opacity and supported blen
 Compatible color fills, gradients and outlines remain editable.
 Other effects become pixels, and some blend modes can look different.
 
-Read the export notes if the result differs. Keep the original WhimTex document
+Read the export notes in the Console if the result differs. Keep the original WhimTex document
 so you can still change all effects and their sources later.

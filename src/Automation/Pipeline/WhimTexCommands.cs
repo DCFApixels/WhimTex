@@ -6,6 +6,10 @@ namespace DCFApixels.WhimTex
 {
     public static class WhimTexCommands
     {
+        [CliCommand("whimtex_document_json", "Serialize, validate, export, open, create, insert or replace using the shared WhimTex JSON document format.", MainThreadRequired = true)]
+        public static JObject DocumentJson([CliArg("requestPath", "Absolute path to a JSON operation request", Required = true)] string requestPath)
+            => JObject.Parse(WhimTexApi.DocumentJsonFile(requestPath));
+
         [CliCommand("whimtex_assistant_begin", "Create a named reservation and capture context in one call in the open WhimTex window. No automatic save.", MainThreadRequired = true)]
         public static JObject Begin(
             [CliArg("requestId", "Caller-generated UUID; reuse identical arguments for retries", Required = true)] string requestId,

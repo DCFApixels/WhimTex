@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "WhimTex clipboard layer JSON, version 1",
-  "description": "1 MiB maximum; 128 total layers, 8 nested groups, 16 total shaders, 16 linked images. IDs must be unique, targets must resolve without cycles. Canvas at most 16,777,216 pixels. A Drawing layer with url downloads one image (PNG or JPEG, at most 64 MB and 16 megapixels) after a confirmation. Unity also checks cross-field and shader constraints.",
+  "title": "WhimTex legacy layer JSON input, version 1",
+  "description": "Compatibility clipboard input only. Generate new documents and recipes with document.schema.json (whimtex.document). Legacy limits: 1 MiB maximum; 128 total layers, 8 nested groups, 16 total shaders, 16 linked images. IDs must be unique, targets must resolve without cycles. Canvas at most 16,777,216 pixels. A Drawing layer with url downloads one image (PNG or JPEG, at most 64 MB and 16 megapixels) after a confirmation. Unity also checks cross-field and shader constraints.",
   "type": "object",
   "additionalProperties": false,
   "properties": {
@@ -1423,7 +1423,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 65536,
-          "description": "Portable ApplyFX HLSL, at most 64 KiB UTF-8 and 32 parameters. Declare values with // @param. Conditional/define directives and explicitly allowlisted built-in includes are supported; other includes must be expanded by Copy as Portable. No asset GUIDs."
+          "description": "Portable ApplyFX HLSL, at most 64 KiB UTF-8 and 32 parameters. Declare values with // @param. Conditional/define directives and explicitly allowlisted built-in includes are supported; legacy input must already have other includes expanded. Copy as JSON writes the unified document format. No asset GUIDs."
         }
       },
       "required": [

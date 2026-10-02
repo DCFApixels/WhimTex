@@ -56,7 +56,7 @@ float4 ApplyFX(float2 uv, float4 color)
 ```
 
 Parameter declarations generate uniforms and editor controls automatically; the supported types are described below.
-Code and declarations stay drafts until **Apply**, including an Apply request from saving the working file in the bundled VS Code integration. A compile error keeps the last working effect.
+Code and declarations stay drafts until **Apply**, including an Apply request from saving the working file in the bundled VS Code integration. A failed Apply skips the FX, including any previously compiled version, until successful recompilation. Code, values and enabled state remain editable. Yellow indicators in Layers, the FX section and the effect header remain visible when collapsed. Ordinary compiler warnings do not disable a successfully compiled FX. JSON loading/saving retains broken effects and reports diagnostics without aborting the document; TIFF save validation is unchanged.
 
 `LayerToLocal(uv)` converts canvas UV to local layer UV, including parent transforms and perspective. Use it for procedural shapes that should follow the layer. It does not clamp or wrap UV; `SampleInput` still expects canvas UV.
 

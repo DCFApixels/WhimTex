@@ -1,84 +1,602 @@
 {
-  "format": "whimtex.layers",
+  "format": "whimtex.document",
   "version": 1,
+  "document": {
+    "colorHistory": [],
+    "layerNameCounters": [
+      {
+        "prefix": "Group",
+        "next": 2
+      },
+      {
+        "prefix": "Shader Processor",
+        "next": 2
+      },
+      {
+        "prefix": "Gradient",
+        "next": 4
+      },
+      {
+        "prefix": "Noise",
+        "next": 2
+      }
+    ],
+    "nextCopyNumber": 1,
+    "spriteSlices": [],
+    "width": 512,
+    "height": 512,
+    "outputFilter": "Bilinear",
+    "outputPrecision": "Auto",
+    "outputSrgb": true,
+    "uvReferenceMesh": null,
+    "uvReferenceChannel": 0,
+    "uvReferenceSubmesh": -1
+  },
   "layers": [
     {
-      "type": "group",
-      "name": "Shock Wave",
+      "id": "df97b796c31c452496b45867a3ce52b4",
+      "layerName": "Shock Wave",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Clip"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "GroupLayerBehaviour",
+        "recoveryId": "3371e8c0ad2a4cc1bd2edd555560cb63"
+      },
+      "behaviourId": "3371e8c0ad2a4cc1bd2edd555560cb63",
       "children": [
         {
-          "type": "shaderProcessor",
-          "name": "Contrast Boost",
-          "fx": [
-            {
-              "name": "Contrast Boost FX",
-              "code": "float4 ApplyFX(float2 uv, float4 color)\n{\n    return color * color;\n}"
-            }
-          ]
-        },
-        {
-          "type": "gradient",
-          "name": "Outline",
-          "properties": {
-            "blend": "Screen",
-            "gradient": [
-              { "time": 0.8117647, "color": [0, 0, 0, 1] },
-              { "time": 0.917647064, "color": [0.4528302, 0.4528302, 0.4528302, 1] },
-              { "time": 0.9852903, "color": [1, 1, 1, 1] },
-              { "time": 1, "color": [0, 0, 0, 1] }
-            ],
-            "gradientOptions": { "type": "Radial" }
-          }
-        },
-        {
-          "type": "gradient",
-          "name": "Fade",
-          "properties": {
-            "blend": "Multiply",
-            "gradient": [
-              { "time": 0.135301754, "color": [0, 0, 0, 1] },
-              { "time": 0.9676509, "color": [0.8301887, 0.8301887, 0.8301887, 1] },
-              { "time": 1, "color": [0, 0, 0, 1] }
-            ],
-            "gradientOptions": {
-              "type": "Radial",
-              "mode": "Perceptual"
-            }
-          }
-        },
-        {
-          "type": "gradient",
-          "name": "Streak Variation",
-          "properties": {
-            "blend": "Multiply",
-            "gradient": [
-              { "time": 0.008819715, "color": [1, 1, 1, 1] },
-              { "time": 1, "color": [0, 0, 0, 1] }
-            ],
-            "gradientOptions": {
-              "type": "Circular",
-              "repetitions": 10,
-              "wrap": "PingPong"
-            }
-          }
-        },
-        {
-          "type": "noise",
-          "name": "Streak Noise",
-          "properties": {
-            "noise": {
-              "noiseType": "BlueNoise",
-              "dimensions": "OneD"
-            }
+          "id": "dc0306921f1448b98cecb5269a47c662",
+          "layerName": "Contrast Boost",
+          "enabled": true,
+          "clippingMask": false,
+          "opacity": 1.0,
+          "blendMode": "Normal",
+          "colorRange": "HDR",
+          "blendRange": "HDR",
+          "swizzle": {
+            "packed": 0
           },
-          "fx": [
+          "modifiers": [
             {
-              "name": "Polar Coordinates",
-              "code": "// @whimtex-effect Distortion/Polar Coordinates\n// @param enum _Mode = 0 {ToPolar: 0, FromPolar: 1} // Wrap a strip into a circle, or unwrap a circle into a strip.\n// @param float _AngleOffset = 0 [~-180 .. ~180] // Angular offset in degrees.\n// @param float _RadialOffset = 0 [~-1 .. ~1] // Radial offset in normalized coordinates.\n// @param transform2D _Area\n\nfloat4 ApplyFX(float2 uv, float4 color)\n{\n    float2 sampleUV = uv;\n    if (_Mode < 0.5)\n    {\n        float2 p = (_Area_ToLocal(uv) - 0.5) * 2.0;\n        float radius = length(p);\n        // The center has no unique angle. Choose zero without evaluating atan2(0, 0).\n        float angle = 0.0;\n        if (radius > 0.0) angle = atan2(p.y, p.x) / 6.28318530718;\n        // Only the angular coordinate wraps; radius continues beyond the frame.\n        sampleUV = float2(frac(angle - _AngleOffset / 360.0), radius - _RadialOffset);\n    }\n    else\n    {\n        float angle = (uv.x + _AngleOffset / 360.0) * 6.28318530718;\n        float radius = uv.y + _RadialOffset;\n        float sine, cosine;\n        sincos(angle, sine, cosine);\n        float2 localUV = 0.5 + float2(cosine, sine) * radius * 0.5;\n        sampleUV = _Area_ToInput(localUV);\n    }\n    return SampleInput(sampleUV);\n}"
+              "$type": "ShaderFX",
+              "$id": "fx0",
+              "active": true,
+              "code": "float4 ApplyFX(float2 uv, float4 color)\r\n{\r\n    return color * color;\r\n}\r\n",
+              "parameters": [],
+              "shaderKey": "76cbe52813d8424aaf08fe36b3976e20",
+              "$name": "Contrast Boost FX"
             }
-          ]
+          ],
+          "transform": {
+            "pivot": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "rotation": 0.0,
+            "storage": "TRS",
+            "matrix": {
+              "m00": 0.0,
+              "m01": 0.0,
+              "m02": 0.0,
+              "m10": 0.0,
+              "m11": 0.0,
+              "m12": 0.0,
+              "m20": 0.0,
+              "m21": 0.0,
+              "m22": 0.0
+            },
+            "tiling": "Clip"
+          },
+          "filterMode": "Source",
+          "behaviour": {
+            "$type": "ShaderProcessorLayerBehaviour",
+            "recoveryId": "59776fa010eb45c691a3ffbb94a466d1"
+          },
+          "behaviourId": "59776fa010eb45c691a3ffbb94a466d1",
+          "children": null,
+          "group": false,
+          "compositing": "PassThrough"
+        },
+        {
+          "id": "4fb34e6d8dd44a1da1daab8112243700",
+          "layerName": "Outline",
+          "enabled": true,
+          "clippingMask": false,
+          "opacity": 1.0,
+          "blendMode": "Screen",
+          "colorRange": "Standard",
+          "blendRange": "Standard",
+          "swizzle": {
+            "packed": 0
+          },
+          "modifiers": [],
+          "transform": {
+            "pivot": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "rotation": 0.0,
+            "storage": "TRS",
+            "matrix": {
+              "m00": 0.0,
+              "m01": 0.0,
+              "m02": 0.0,
+              "m10": 0.0,
+              "m11": 0.0,
+              "m12": 0.0,
+              "m20": 0.0,
+              "m21": 0.0,
+              "m22": 0.0
+            },
+            "tiling": "Unbounded"
+          },
+          "filterMode": "Source",
+          "behaviour": {
+            "$type": "GradientLayerBehaviour",
+            "gradientType": "Radial",
+            "gradient": {
+              "colors": [
+                {
+                  "color": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0
+                  ],
+                  "time": 0.8117647,
+                  "midpoint": 0.5
+                },
+                {
+                  "color": [
+                    0.4528302,
+                    0.4528302,
+                    0.4528302,
+                    1.0
+                  ],
+                  "time": 0.917647064,
+                  "midpoint": 0.5
+                },
+                {
+                  "color": [
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
+                  ],
+                  "time": 0.9852903,
+                  "midpoint": 0.5
+                },
+                {
+                  "color": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0
+                  ],
+                  "time": 1.0,
+                  "midpoint": 0.5
+                }
+              ],
+              "alphas": [
+                {
+                  "alpha": 1.0,
+                  "time": 0.8117647,
+                  "midpoint": 0.5
+                },
+                {
+                  "alpha": 1.0,
+                  "time": 0.917647064,
+                  "midpoint": 0.5
+                },
+                {
+                  "alpha": 1.0,
+                  "time": 0.9852903,
+                  "midpoint": 0.5
+                },
+                {
+                  "alpha": 1.0,
+                  "time": 1.0,
+                  "midpoint": 0.5
+                }
+              ],
+              "mode": "Perceptual",
+              "wrapMode": "Clamp",
+              "colorSpace": "Gamma",
+              "smoothness": 1.0
+            },
+            "recoveryId": "677d89f43ccc44c895db5198f88b4c7b"
+          },
+          "behaviourId": "677d89f43ccc44c895db5198f88b4c7b",
+          "children": null,
+          "group": false,
+          "compositing": "PassThrough"
+        },
+        {
+          "id": "0b538d4686bb4c5bac7f9bb7c29ee4d5",
+          "layerName": "Fade",
+          "enabled": true,
+          "clippingMask": false,
+          "opacity": 1.0,
+          "blendMode": "Multiply",
+          "colorRange": "Standard",
+          "blendRange": "Standard",
+          "swizzle": {
+            "packed": 0
+          },
+          "modifiers": [],
+          "transform": {
+            "pivot": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "rotation": 0.0,
+            "storage": "TRS",
+            "matrix": {
+              "m00": 0.0,
+              "m01": 0.0,
+              "m02": 0.0,
+              "m10": 0.0,
+              "m11": 0.0,
+              "m12": 0.0,
+              "m20": 0.0,
+              "m21": 0.0,
+              "m22": 0.0
+            },
+            "tiling": "Unbounded"
+          },
+          "filterMode": "Source",
+          "behaviour": {
+            "$type": "GradientLayerBehaviour",
+            "gradientType": "Radial",
+            "gradient": {
+              "colors": [
+                {
+                  "color": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0
+                  ],
+                  "time": 0.135301754,
+                  "midpoint": 0.5
+                },
+                {
+                  "color": [
+                    0.8301887,
+                    0.8301887,
+                    0.8301887,
+                    1.0
+                  ],
+                  "time": 0.9676509,
+                  "midpoint": 0.5
+                },
+                {
+                  "color": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0
+                  ],
+                  "time": 1.0,
+                  "midpoint": 0.5
+                }
+              ],
+              "alphas": [
+                {
+                  "alpha": 1.0,
+                  "time": 0.135301754,
+                  "midpoint": 0.5
+                },
+                {
+                  "alpha": 1.0,
+                  "time": 0.9676509,
+                  "midpoint": 0.5
+                },
+                {
+                  "alpha": 1.0,
+                  "time": 1.0,
+                  "midpoint": 0.5
+                }
+              ],
+              "mode": "Perceptual",
+              "wrapMode": "Clamp",
+              "colorSpace": "Gamma",
+              "smoothness": 1.0
+            },
+            "recoveryId": "1de6c8a7c5cd4f3db05a1a99e177cac5"
+          },
+          "behaviourId": "1de6c8a7c5cd4f3db05a1a99e177cac5",
+          "children": null,
+          "group": false,
+          "compositing": "PassThrough"
+        },
+        {
+          "id": "67663b3007cc4b8898be5a924f80ff5a",
+          "layerName": "Streak Variation",
+          "enabled": true,
+          "clippingMask": false,
+          "opacity": 1.0,
+          "blendMode": "Multiply",
+          "colorRange": "Standard",
+          "blendRange": "Standard",
+          "swizzle": {
+            "packed": 0
+          },
+          "modifiers": [],
+          "transform": {
+            "pivot": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "rotation": 0.0,
+            "storage": "TRS",
+            "matrix": {
+              "m00": 0.0,
+              "m01": 0.0,
+              "m02": 0.0,
+              "m10": 0.0,
+              "m11": 0.0,
+              "m12": 0.0,
+              "m20": 0.0,
+              "m21": 0.0,
+              "m22": 0.0
+            },
+            "tiling": "Unbounded"
+          },
+          "filterMode": "Source",
+          "behaviour": {
+            "$type": "GradientLayerBehaviour",
+            "gradientType": "Circular",
+            "gradient": {
+              "colors": [
+                {
+                  "color": [
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
+                  ],
+                  "time": 0.008819715,
+                  "midpoint": 0.5
+                },
+                {
+                  "color": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0
+                  ],
+                  "time": 1.0,
+                  "midpoint": 0.5
+                }
+              ],
+              "alphas": [
+                {
+                  "alpha": 1.0,
+                  "time": 0.008819715,
+                  "midpoint": 0.5
+                },
+                {
+                  "alpha": 1.0,
+                  "time": 1.0,
+                  "midpoint": 0.5
+                }
+              ],
+              "mode": "Perceptual",
+              "wrapMode": "Clamp",
+              "colorSpace": "Gamma",
+              "smoothness": 1.0
+            },
+            "circularRepetitions": 10.0,
+            "circularWrapMode": "PingPong",
+            "recoveryId": "0429345d707b4e15ab4173b6ccfa17f9"
+          },
+          "behaviourId": "0429345d707b4e15ab4173b6ccfa17f9",
+          "children": null,
+          "group": false,
+          "compositing": "PassThrough"
+        },
+        {
+          "id": "b3da5e9b3f664173841b5c0aad22a92b",
+          "layerName": "Streak Noise",
+          "enabled": true,
+          "clippingMask": false,
+          "opacity": 1.0,
+          "blendMode": "Normal",
+          "colorRange": "Standard",
+          "blendRange": "Standard",
+          "swizzle": {
+            "packed": 0
+          },
+          "modifiers": [
+            {
+              "$type": "ShaderFX",
+              "$id": "fx1",
+              "active": true,
+              "code": "// @whimtex-effect Distortion/Polar Coordinates\r\n// @param enum _Mode = 0 {ToPolar: 0, FromPolar: 1} // Wrap a strip into a circle, or unwrap a circle into a strip.\r\n// @param float _AngleOffset = 0 [~-180 .. ~180] // Angular offset in degrees.\r\n// @param float _RadialOffset = 0 [~-1 .. ~1] // Radial offset in normalized coordinates.\r\n// @param transform2D _Area\r\n\r\nfloat4 ApplyFX(float2 uv, float4 color)\r\n{\r\n    float2 sampleUV = uv;\r\n    if (_Mode < 0.5)\r\n    {\r\n        float2 p = (_Area_ToLocal(uv) - 0.5) * 2.0;\r\n        float radius = length(p);\r\n        // The center has no unique angle. Choose zero without evaluating atan2(0, 0).\r\n        float angle = 0.0;\r\n        if (radius > 0.0) angle = atan2(p.y, p.x) / 6.28318530718;\r\n        // Only the angular coordinate wraps; radius continues beyond the frame.\r\n        sampleUV = float2(frac(angle - _AngleOffset / 360.0), radius - _RadialOffset);\r\n    }\r\n    else\r\n    {\r\n        float angle = (uv.x + _AngleOffset / 360.0) * 6.28318530718;\r\n        float radius = uv.y + _RadialOffset;\r\n        float sine, cosine;\r\n        sincos(angle, sine, cosine);\r\n        float2 localUV = 0.5 + float2(cosine, sine) * radius * 0.5;\r\n        sampleUV = _Area_ToInput(localUV);\r\n    }\r\n    return SampleInput(sampleUV);\r\n}\r\n",
+              "parameters": [
+                {
+                  "name": "_Mode",
+                  "type": "Float",
+                  "floatValue": 0.0,
+                  "id": "81fa723ea73d40589762909731d9276e",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_AngleOffset",
+                  "type": "Float",
+                  "floatValue": 0.0,
+                  "id": "35366c888b5249c297cd5ad9f13898b3",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_RadialOffset",
+                  "type": "Float",
+                  "floatValue": 0.0,
+                  "id": "0ff1b0ed4225426d8f224d90e872d369",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_Area",
+                  "type": "Transform2D",
+                  "transformValue": {
+                    "position": {
+                      "x": 0.5,
+                      "y": 0.5
+                    },
+                    "size": {
+                      "x": 1.0,
+                      "y": 1.0
+                    },
+                    "rotation": 0.0,
+                    "storage": "TRS",
+                    "matrix": {
+                      "m00": 0.0,
+                      "m01": 0.0,
+                      "m02": 0.0,
+                      "m10": 0.0,
+                      "m11": 0.0,
+                      "m12": 0.0,
+                      "m20": 0.0,
+                      "m21": 0.0,
+                      "m22": 0.0
+                    }
+                  },
+                  "id": "eb9f224a015d4818bd585738f7f1a2f8",
+                  "declaredInCode": true
+                }
+              ],
+              "shaderKey": "bb13b9328c6c4a4681a711d1c289d873",
+              "$name": "Polar Coordinates"
+            }
+          ],
+          "transform": {
+            "pivot": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "rotation": 0.0,
+            "storage": "TRS",
+            "matrix": {
+              "m00": 0.0,
+              "m01": 0.0,
+              "m02": 0.0,
+              "m10": 0.0,
+              "m11": 0.0,
+              "m12": 0.0,
+              "m20": 0.0,
+              "m21": 0.0,
+              "m22": 0.0
+            },
+            "tiling": "Unbounded"
+          },
+          "filterMode": "Source",
+          "behaviour": {
+            "$type": "NoiseLayerBehaviour",
+            "noiseType": "BlueNoise",
+            "whiteNoiseColor": "Monochrome",
+            "whiteNoiseSize": 1.0,
+            "dimensions": "OneD",
+            "direction": 0.0,
+            "seed": 1337,
+            "scale": 8.0,
+            "scaleY": 0.0,
+            "linkScale": true,
+            "offset": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "periodic1D": false,
+            "encoding": "LinearData",
+            "inverted": false,
+            "recoveryId": "6806a7e73ee641fb8f10b2862d4f0918"
+          },
+          "behaviourId": "6806a7e73ee641fb8f10b2862d4f0918",
+          "children": null,
+          "group": false,
+          "compositing": "PassThrough"
         }
-      ]
+      ],
+      "group": true,
+      "compositing": "PassThrough"
     }
   ]
 }

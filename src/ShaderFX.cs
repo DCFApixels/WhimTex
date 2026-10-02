@@ -175,6 +175,7 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private Dictionary<ShaderFXParameter, GradientBinding> gradientBindings;
         [NonSerialized] private string determinismWarningSource;
         [NonSerialized] private bool determinismWarningCached, determinismWarningFound;
+        [NonSerialized] private HashSet<Hash128> reportedFailures;
 
         [NonSerialized] private Dictionary<ShaderFXParameter, WhimTexCurveTexture> curveBindings;
 
@@ -216,6 +217,23 @@ namespace DCFApixels.WhimTex
         internal string Diagnostics => diagnostics;
         internal bool LastApplyFailed => lastApplyFailed;
         internal bool HasAppliedShader => compiledShader != null;
+        internal bool IsUnavailable => lastApplyFailed || compiledShader == null;
+        internal string UnavailableReason => IsUnavailable ? $"{name}: FX is skipped until it compiles successfully.\n{diagnostics}" : null;
+
+        private void RecordApplyFailure(Exception error)
+        {
+            lastApplyFailed = true;
+            diagnostics = error.Message;
+            reportedFailures ??= new HashSet<Hash128>();
+            if (reportedFailures.Add(Hash128.Compute(code + "\n" + diagnostics)))
+                Debug.LogWarning("WhimTex: " + UnavailableReason, this);
+        }
+
+        internal bool TryPrepareDocumentEffect(out string warning)
+        {
+            try { ApplyAgentDraft(); warning = null; return true; }
+            catch (Exception) when (lastApplyFailed) { warning = UnavailableReason; return false; }
+        }
         internal bool UsesUnsupportedTimeInputs
         {
             get
@@ -279,6 +297,7 @@ namespace DCFApixels.WhimTex
         {
             Shader candidate = null;
             Material test = null;
+            var previousParameters = parameters;
             try
             {
                 PrepareParameterDeclarations();
@@ -312,6 +331,15 @@ namespace DCFApixels.WhimTex
                 appliedParameters = new List<ShaderFXParameter>();
                 foreach (var parameter in parameters) appliedParameters.Add(parameter.Copy());
                 lastApplyFailed = false;
+                ReleaseMaterial();
+                QueueNotification(false);
+            }
+            catch (Exception error)
+            {
+                parameters = previousParameters;
+                RecordApplyFailure(error);
+                QueueNotification(false);
+                throw;
             }
             finally
             {
@@ -323,7 +351,7 @@ namespace DCFApixels.WhimTex
         internal void RestoreDocumentShader()
         {
             EditorApplication.delayCall -= ReloadCatalogAfterEnable;
-            if (AssetDatabase.Contains(this) || HasAppliedShader) return;
+            if (AssetDatabase.Contains(this) || HasAppliedShader || lastApplyFailed) return;
             try
             {
                 // The serialized code is deliberately kept as a fallback. For a catalog-linked
@@ -525,7 +553,7 @@ namespace DCFApixels.WhimTex
 
         internal Material GetMaterial(in LayerRenderContext context)
         {
-            if (compiledShader == null)
+            if (IsUnavailable)
                 return null;
             if (material == null || materialSourceShader != compiledShader)
             {
@@ -663,8 +691,7 @@ namespace DCFApixels.WhimTex
             catch (Exception exception)
             {
                 parameters = previousParameters;
-                lastApplyFailed = true;
-                diagnostics = exception.Message;
+                RecordApplyFailure(exception);
                 if (contentChanged)
                 {
                     EditorUtility.SetDirty(this);

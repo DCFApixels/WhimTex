@@ -59,7 +59,7 @@ const defs = {
   fx: object({ name: str(4096), enabled: bool,
     gradients: { type: 'object', additionalProperties: { $ref: '#/$defs/gradient' } },
     textures: { type: 'object', additionalProperties: object({ layer: str(64) }, ['layer']) },
-    code: { type: 'string', minLength: 1, maxLength: 65536, description: 'Portable ApplyFX HLSL, at most 64 KiB UTF-8 and 32 parameters. Declare values with // @param. Conditional/define directives and explicitly allowlisted built-in includes are supported; other includes must be expanded by Copy as Portable. No asset GUIDs.' } }, ['code'])
+    code: { type: 'string', minLength: 1, maxLength: 65536, description: 'Portable ApplyFX HLSL, at most 64 KiB UTF-8 and 32 parameters. Declare values with // @param. Conditional/define directives and explicitly allowlisted built-in includes are supported; legacy input must already have other includes expanded. Copy as JSON writes the unified document format. No asset GUIDs.' } }, ['code'])
 };
 const seamless = defs.makeSeamless.properties;
 Object.assign(defs.noise.properties.scale, { default: [8,8], description: 'Scalar sets X and Y equally; [x,y] sets axes independently. Units span the shorter canvas side. Ignored by White/Blue. Seamless fits complete lattice cells per octave/warp, so small Scale changes can quantize.' });
@@ -150,8 +150,8 @@ defs.layer = { oneOf: Object.entries(extra).map(([type, properties]) => {
 }) };
 const schema = {
   $schema: 'https://json-schema.org/draft/2020-12/schema',
-  title: 'WhimTex clipboard layer JSON, version 1',
-  description: '1 MiB maximum; 128 total layers, 8 nested groups, 16 total shaders, 16 linked images. IDs must be unique, targets must resolve without cycles. Canvas at most 16,777,216 pixels. A Drawing layer with url downloads one image (PNG or JPEG, at most 64 MB and 16 megapixels) after a confirmation. Unity also checks cross-field and shader constraints.',
+  title: 'WhimTex legacy layer JSON input, version 1',
+  description: 'Compatibility clipboard input only. Generate new documents and recipes with document.schema.json (whimtex.document). Legacy limits: 1 MiB maximum; 128 total layers, 8 nested groups, 16 total shaders, 16 linked images. IDs must be unique, targets must resolve without cycles. Canvas at most 16,777,216 pixels. A Drawing layer with url downloads one image (PNG or JPEG, at most 64 MB and 16 megapixels) after a confirmation. Unity also checks cross-field and shader constraints.',
   ...object({ format: { const: 'whimtex.layers' }, version: { const: 1 }, canvas: object({ width: integer(1, 16384), height: integer(1, 16384), filter: choice('Point Bilinear Trilinear') }, ['width', 'height']), layers: { type: 'array', minItems: 1, maxItems: 128, items: ref('layer') } }, ['format', 'version', 'layers']),
   $defs: defs
 };

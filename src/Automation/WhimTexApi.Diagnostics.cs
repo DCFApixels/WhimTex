@@ -266,7 +266,7 @@ namespace DCFApixels.WhimTex
             var warnings = new JArray();
             var shaderFx = new JArray();
             result["assetPath"] = path;
-            result["format"] = IsTiffPath(path) ? "tiff" : "asset";
+            result["format"] = IsTiffPath(path) ? "tiff" : WhimTexDocumentJson.IsJsonPath(path) ? WhimTexDocumentJson.Format : "asset";
             result["renderRequested"] = render;
             TextureCompositor document = null;
             Texture2D preview = null;
@@ -274,7 +274,11 @@ namespace DCFApixels.WhimTex
             {
                 bool loaded;
                 string loadError = null;
-                if (IsTiffPath(path)) loaded = WhimTexDocumentFile.TryLoad(path, out document, out loadError, true);
+                if (IsTiffPath(path) || WhimTexDocumentJson.IsJsonPath(path))
+                {
+                    loaded = WhimTexDocumentFile.TryLoad(path, out document, out loadError, true, out var loadWarnings);
+                    foreach (string warning in loadWarnings) warnings.Add(warning);
+                }
                 else
                 {
                     document = Load(path);
@@ -350,11 +354,11 @@ namespace DCFApixels.WhimTex
             var displayed = WhimTexDocumentService.FindDisplayed(path);
             var result = Success();
             result["assetPath"] = path;
-            result["format"] = IsTiffPath(path) ? "tiff" : "asset";
+            result["format"] = IsTiffPath(path) ? "tiff" : WhimTexDocumentJson.IsJsonPath(path) ? WhimTexDocumentJson.Format : "asset";
             result["exists"] = info.Exists;
             result["guid"] = AssetDatabase.AssetPathToGUID(path);
             result["imported"] = AssetDatabase.LoadMainAssetAtPath(path) != null;
-            result["isDocument"] = info.Exists && (IsTiffPath(path) ? WhimTexDocumentFile.IsDocument(path) :
+            result["isDocument"] = info.Exists && (IsTiffPath(path) || WhimTexDocumentJson.IsJsonPath(path) ? WhimTexDocumentFile.IsDocument(path) :
                 TextureCompositor.FindDocument(AssetDatabase.LoadMainAssetAtPath(path)) != null);
             result["fileBytes"] = info.Exists ? info.Length : 0;
             result["lastWriteUtc"] = info.Exists ? info.LastWriteTimeUtc.ToString("O") : null;

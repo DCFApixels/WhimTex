@@ -1,16 +1,309 @@
 {
-  "format": "whimtex.layers", "version": 1,
+  "format": "whimtex.document",
+  "version": 1,
+  "document": {
+    "colorHistory": [],
+    "layerNameCounters": [
+      {
+        "prefix": "Group",
+        "next": 2
+      },
+      {
+        "prefix": "Gradient",
+        "next": 2
+      },
+      {
+        "prefix": "Blur",
+        "next": 2
+      },
+      {
+        "prefix": "Noise",
+        "next": 2
+      }
+    ],
+    "nextCopyNumber": 1,
+    "spriteSlices": [],
+    "width": 512,
+    "height": 512,
+    "outputFilter": "Bilinear",
+    "outputPrecision": "Auto",
+    "outputSrgb": true,
+    "uvReferenceMesh": null,
+    "uvReferenceChannel": 0,
+    "uvReferenceSubmesh": -1
+  },
   "layers": [
-    { "type": "group", "name": "Mystic Fog", "properties": { "compositing": "Isolated" }, "children": [
-      { "type": "gradient", "name": "Violet Tint", "transform": { "scale": [1.4, 1.4] }, "properties": {
-        "blend": "Multiply",
-        "gradient": [ { "time": 0, "color": [0.15, 0.05, 0.4, 1] }, { "time": 1, "color": [0.3, 0.8, 1, 1] } ],
-        "gradientOptions": { "type": "Radial" }
-      } },
-      { "type": "blur", "name": "Soft Clouds", "target": "clouds", "properties": { "blur": { "radius": 5 } } },
-      { "type": "noise", "id": "clouds", "name": "Cloud Source", "properties": {
-        "enabled": false, "noise": { "noiseType": "OpenSimplex2", "seed": 42, "scale": 6, "fractal": "FBm", "octaves": 4 }
-      } }
-    ] }
+    {
+      "id": "bb3fce2636d141bc8cd2f1cb2a72f73b",
+      "layerName": "Mystic Fog",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Clip"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "GroupLayerBehaviour",
+        "recoveryId": "523c8619371f48d8a6c17a469169fa83"
+      },
+      "behaviourId": "523c8619371f48d8a6c17a469169fa83",
+      "children": [
+        {
+          "id": "dd21365598de4f728e3eb420a698f59a",
+          "layerName": "Violet Tint",
+          "enabled": true,
+          "clippingMask": false,
+          "opacity": 1.0,
+          "blendMode": "Multiply",
+          "colorRange": "Standard",
+          "blendRange": "Standard",
+          "swizzle": {
+            "packed": 0
+          },
+          "modifiers": [],
+          "transform": {
+            "pivot": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.4,
+              "y": 1.4
+            },
+            "rotation": 0.0,
+            "storage": "TRS",
+            "matrix": {
+              "m00": 0.0,
+              "m01": 0.0,
+              "m02": 0.0,
+              "m10": 0.0,
+              "m11": 0.0,
+              "m12": 0.0,
+              "m20": 0.0,
+              "m21": 0.0,
+              "m22": 0.0
+            },
+            "tiling": "Unbounded"
+          },
+          "filterMode": "Source",
+          "behaviour": {
+            "$type": "GradientLayerBehaviour",
+            "gradientType": "Radial",
+            "gradient": {
+              "colors": [
+                {
+                  "color": [
+                    0.15,
+                    0.05,
+                    0.4,
+                    1.0
+                  ],
+                  "time": 0.0,
+                  "midpoint": 0.5
+                },
+                {
+                  "color": [
+                    0.3,
+                    0.8,
+                    1.0,
+                    1.0
+                  ],
+                  "time": 1.0,
+                  "midpoint": 0.5
+                }
+              ],
+              "alphas": [
+                {
+                  "alpha": 1.0,
+                  "time": 0.0,
+                  "midpoint": 0.5
+                },
+                {
+                  "alpha": 1.0,
+                  "time": 1.0,
+                  "midpoint": 0.5
+                }
+              ],
+              "mode": "Perceptual",
+              "wrapMode": "Clamp",
+              "colorSpace": "Gamma",
+              "smoothness": 1.0
+            },
+            "recoveryId": "8ada54af99b745009e615ff2b9c82d68"
+          },
+          "behaviourId": "8ada54af99b745009e615ff2b9c82d68",
+          "children": null,
+          "group": false,
+          "compositing": "PassThrough"
+        },
+        {
+          "id": "7e80416317a04314b98b020dafed7b50",
+          "layerName": "Soft Clouds",
+          "enabled": true,
+          "clippingMask": false,
+          "opacity": 1.0,
+          "blendMode": "Normal",
+          "colorRange": "Standard",
+          "blendRange": "Standard",
+          "swizzle": {
+            "packed": 0
+          },
+          "modifiers": [],
+          "transform": {
+            "pivot": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "rotation": 0.0,
+            "storage": "TRS",
+            "matrix": {
+              "m00": 0.0,
+              "m01": 0.0,
+              "m02": 0.0,
+              "m10": 0.0,
+              "m11": 0.0,
+              "m12": 0.0,
+              "m20": 0.0,
+              "m21": 0.0,
+              "m22": 0.0
+            },
+            "tiling": "Clip"
+          },
+          "filterMode": "Source",
+          "behaviour": {
+            "$type": "BlurLayerBehaviour",
+            "strength": 1.0,
+            "radius": 5.0,
+            "edges": "Transparent",
+            "mode": "Gaussian",
+            "targetLayerId": "53a6161fd7c5435196c9662e951917d6",
+            "inputMode": "Specific",
+            "recoveryId": "faa911d9bd074e8589e845056dc2510e"
+          },
+          "behaviourId": "faa911d9bd074e8589e845056dc2510e",
+          "children": null,
+          "group": false,
+          "compositing": "PassThrough"
+        },
+        {
+          "id": "53a6161fd7c5435196c9662e951917d6",
+          "layerName": "Cloud Source",
+          "enabled": false,
+          "clippingMask": false,
+          "opacity": 1.0,
+          "blendMode": "Normal",
+          "colorRange": "Standard",
+          "blendRange": "Standard",
+          "swizzle": {
+            "packed": 0
+          },
+          "modifiers": [],
+          "transform": {
+            "pivot": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "rotation": 0.0,
+            "storage": "TRS",
+            "matrix": {
+              "m00": 0.0,
+              "m01": 0.0,
+              "m02": 0.0,
+              "m10": 0.0,
+              "m11": 0.0,
+              "m12": 0.0,
+              "m20": 0.0,
+              "m21": 0.0,
+              "m22": 0.0
+            },
+            "tiling": "Unbounded"
+          },
+          "filterMode": "Source",
+          "behaviour": {
+            "$type": "NoiseLayerBehaviour",
+            "noiseType": "OpenSimplex2",
+            "dimensions": "TwoD",
+            "seed": 42,
+            "scale": 6.0,
+            "scaleY": 6.0,
+            "linkScale": true,
+            "offset": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "periodic": "None",
+            "fractal": "FBm",
+            "octaves": 4,
+            "lacunarity": 2.0,
+            "gain": 0.5,
+            "weightedStrength": 0.0,
+            "warp": "None",
+            "encoding": "LinearData",
+            "inverted": false,
+            "recoveryId": "c25462fcb5d54e04ab195580193d52b6"
+          },
+          "behaviourId": "c25462fcb5d54e04ab195580193d52b6",
+          "children": null,
+          "group": false,
+          "compositing": "PassThrough"
+        }
+      ],
+      "group": true,
+      "compositing": "Isolated"
+    }
   ]
 }

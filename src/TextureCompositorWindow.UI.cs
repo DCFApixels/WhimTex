@@ -388,12 +388,12 @@ namespace DCFApixels.WhimTex
             toolkitSaveButton = WhimTexUI.CreateToolbarButton("Save", () => SaveDocument(), 46f);
             toolkitSaveButton.tooltip = "Save the document (Ctrl+S). Legacy .asset documents are read-only and open Save As for a TIFF copy.";
             toolbar.Add(toolkitSaveButton);
-            toolkitSaveAsButton = WhimTexUI.CreateToolbarButton("Save As", () => SaveDocumentAs(), 82f);
+            toolkitSaveAsButton = WhimTexUI.CreateToolbarButton("Save As", SaveDocumentAs, 82f);
             toolkitSaveAsButton.tooltip = "Save the document under another name.";
             toolbar.Add(toolkitSaveAsButton);
             toolkitSettingsBindings.Add(RefreshDocumentSaveControls);
             RefreshDocumentSaveControls();
-            Button export = WhimTexUI.CreateToolbarButton("Export", ShowExportMenu, 64f);
+            Button export = WhimTexUI.CreateToolbarButton("Export", ShowExportWindow, 64f);
             export.tooltip = "Export the flattened texture as PNG, JPEG, TGA, EXR, or a Unity Texture2D asset.";
             toolbar.Add(export);
             Button userSettings = WhimTexUI.CreateToolbarButton(string.Empty, WhimTexUserSettingsWindow.Open, 26f);
@@ -426,6 +426,8 @@ namespace DCFApixels.WhimTex
                     ? "Legacy .asset is read-only; Ctrl+S opens Save As for a TIFF copy."
                     : sourceImage != null
                     ? "Save the document (Ctrl+S). With one layer, the linked image is updated in its original format."
+                    : WhimTexDocumentJson.IsJsonPath(WhimTexDocumentService.PathOf(compositor))
+                    ? "Save the editable JSON document (Ctrl+S). Use Save As TIFF for a Unity texture."
                     : "Save the document (Ctrl+S). The document is a WhimTex file: a TIFF that Unity imports as a texture.";
             toolkitSaveButton?.SetEnabled(saved && (HasDocumentChanges() || paintingLayer != null ||
                 previewTransformManipulator != null && previewTransformManipulator.IsDragging));
@@ -887,6 +889,7 @@ namespace DCFApixels.WhimTex
                 ToggleLayerGroup(group);
             });
             nameCell.Add(foldout);
+            AddLayerFxWarning(nameCell, group);
 
             TextField name = new TextField { isDelayed = true, isReadOnly = group.Behaviour == null };
             name.AddToClassList("whimtex-layer-name");
@@ -940,6 +943,7 @@ namespace DCFApixels.WhimTex
             };
             thumbnail.AddToClassList("whimtex-layer-thumbnail");
             nameCell.Add(thumbnail);
+            AddLayerFxWarning(nameCell, layer);
             if (layer.Behaviour is FileLayerBehaviour fileLayer)
             {
                 var referenceAccent = new VisualElement { pickingMode = PickingMode.Ignore };
@@ -1042,6 +1046,15 @@ namespace DCFApixels.WhimTex
             row.Add(CreateLayerMenuButton(() => ShowLayerContextMenu(layer, container, index)));
             RegisterToolkitLayerDrop(row, layer, container, index, depth);
             return row;
+        }
+
+        private void AddLayerFxWarning(VisualElement parent, Layer layer)
+        {
+            var warning = WhimTexUI.CreateFxWarning(false);
+            parent.Add(warning);
+            void Refresh() => WhimTexUI.RefreshFxWarning(warning, layer.UnavailableEffect);
+            Refresh();
+            toolkitLayerBindings.Add(Refresh);
         }
 
         private Button CreateLayerVisibilityButton(Layer layer)

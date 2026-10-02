@@ -1,0 +1,504 @@
+{
+  "format": "whimtex.document",
+  "version": 1,
+  "document": {
+    "colorHistory": [],
+    "layerNameCounters": [
+      {
+        "prefix": "Shader Processor",
+        "next": 2
+      },
+      {
+        "prefix": "Color Fill",
+        "next": 4
+      },
+      {
+        "prefix": "Blur",
+        "next": 2
+      }
+    ],
+    "nextCopyNumber": 1,
+    "spriteSlices": [],
+    "width": 256,
+    "height": 256,
+    "outputFilter": "Bilinear",
+    "outputPrecision": "Auto",
+    "outputSrgb": true,
+    "uvReferenceMesh": null,
+    "uvReferenceChannel": 0,
+    "uvReferenceSubmesh": -1
+  },
+  "layers": [
+    {
+      "id": "a048fa5f3886426bb97ad835ca55268e",
+      "layerName": "Master Tint",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "HDR",
+      "blendRange": "HDR",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx0",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Master Tint\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1]\r\n// @param color _Tint = (1, 1, 1, 1)\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color){return float4(color.rgb*_Tint.rgb,color.a*_Opacity*_Tint.a);}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "32ed64cb33794754ad1ce2f418290585",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Tint",
+              "type": "Color",
+              "colorValue": [
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ],
+              "id": "3a2287ea78cc4bf1bc61a397de8ae2aa",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "df8eb84e355241a0b8ad3aa6b840a4a1",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Clip"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "ShaderProcessorLayerBehaviour",
+        "recoveryId": "41b8dfa8220d47f4b30f49a709e6a2ac"
+      },
+      "behaviourId": "41b8dfa8220d47f4b30f49a709e6a2ac",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "8dce79a6d9db42c9bb122090cf84d2e1",
+      "layerName": "Light Core",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx1",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Star Glare\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1]\r\n// @param enum _Part = 2 { Halo: 0, Rays: 1, Core: 2 }\r\n// @param float _Angle = 24 [-180 .. 180]\r\n// @param float _Size = 1 [0.2 .. 2]\r\n// @param float _RayWidth = 1 [0.3 .. 3]\r\n// @param float _RayLength = 1 [0.3 .. 1.5]\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n    float2 p=(uv-.5)/_Size;\r\n    float r=length(p);float a=radians(_Angle);\r\n    float2 q=float2(p.x*cos(a)-p.y*sin(a),p.x*sin(a)+p.y*cos(a));\r\n    float halo=exp(-r*10)*.65+exp(-r*r/.036)*.2;\r\n    float rays=exp(-abs(q.x)*180/_RayWidth-abs(q.y)*13/_RayLength)+exp(-abs(q.y)*230/_RayWidth-abs(q.x)*16/_RayLength);\r\n    float2 s=float2(q.x+q.y,q.y-q.x)*.7071;\r\n    rays+=.30*(exp(-abs(s.x)*300-abs(s.y)*22)+exp(-abs(s.y)*300-abs(s.x)*22));\r\n    float core=exp(-pow(r/.022,2.4))+.6*exp(-r*r/.0013);\r\n    float alpha=_Part<.5?halo:(_Part<1.5?rays:core);\r\n    alpha*=1-smoothstep(.42,.49,length(uv-.5));\r\n    return float4(1,1,1,saturate(alpha)*_Opacity);\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "ce884dca26fc4e18a94c97285bbeb59a",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Part",
+              "type": "Float",
+              "floatValue": 2.0,
+              "id": "b346237749bb4c2aa1b57e1e28c86766",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Angle",
+              "type": "Float",
+              "floatValue": 24.0,
+              "id": "89c8460ef6234f6cba48491f5cdd1543",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Size",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "bd1e582eec7a498695c4a14697e684e9",
+              "declaredInCode": true
+            },
+            {
+              "name": "_RayWidth",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "e56c569152f1428da21e5920ca8a30cc",
+              "declaredInCode": true
+            },
+            {
+              "name": "_RayLength",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "59de84373eec49ed97cfa418fa95182d",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "fc329cd0c82249fb8ddfd608912e005c",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "ColorFillLayerBehaviour",
+        "mode": "Color",
+        "storedColor": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "recoveryId": "9a6df2dc027443d584be5d22512a6581"
+      },
+      "behaviourId": "9a6df2dc027443d584be5d22512a6581",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "4edca1548e2e482fbcdd07909c2bb011",
+      "layerName": "Core Bloom",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 0.65,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Clip"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "BlurLayerBehaviour",
+        "strength": 1.0,
+        "radius": 4.0,
+        "edges": "Transparent",
+        "mode": "Gaussian",
+        "targetLayerId": "8dce79a6d9db42c9bb122090cf84d2e1",
+        "inputMode": "Specific",
+        "recoveryId": "9f43758612a0455fa15c75cfb8dac96e"
+      },
+      "behaviourId": "9f43758612a0455fa15c75cfb8dac96e",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "4b14f8f68e57484097b5c923ada338c0",
+      "layerName": "Star Rays",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx2",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Star Glare\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1]\r\n// @param enum _Part = 1 { Halo: 0, Rays: 1, Core: 2 }\r\n// @param float _Angle = 24 [-180 .. 180]\r\n// @param float _Size = 1 [0.2 .. 2]\r\n// @param float _RayWidth = 1 [0.3 .. 3]\r\n// @param float _RayLength = 1 [0.3 .. 1.5]\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n    float2 p=(uv-.5)/_Size;\r\n    float r=length(p);float a=radians(_Angle);\r\n    float2 q=float2(p.x*cos(a)-p.y*sin(a),p.x*sin(a)+p.y*cos(a));\r\n    float halo=exp(-r*10)*.65+exp(-r*r/.036)*.2;\r\n    float rays=exp(-abs(q.x)*180/_RayWidth-abs(q.y)*13/_RayLength)+exp(-abs(q.y)*230/_RayWidth-abs(q.x)*16/_RayLength);\r\n    float2 s=float2(q.x+q.y,q.y-q.x)*.7071;\r\n    rays+=.30*(exp(-abs(s.x)*300-abs(s.y)*22)+exp(-abs(s.y)*300-abs(s.x)*22));\r\n    float core=exp(-pow(r/.022,2.4))+.6*exp(-r*r/.0013);\r\n    float alpha=_Part<.5?halo:(_Part<1.5?rays:core);\r\n    alpha*=1-smoothstep(.42,.49,length(uv-.5));\r\n    return float4(1,1,1,saturate(alpha)*_Opacity);\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "9476a2192f1644308c7a0fe74612c13b",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Part",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "a11b9aec665b4a40a6c6f32fd9fd1f26",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Angle",
+              "type": "Float",
+              "floatValue": 24.0,
+              "id": "d6079607d99b4e1087ee5e018fb1a4e1",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Size",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "2188d30028f2474ea6394286c72dbbe1",
+              "declaredInCode": true
+            },
+            {
+              "name": "_RayWidth",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "adeedb555006484aac7d5605794c2a22",
+              "declaredInCode": true
+            },
+            {
+              "name": "_RayLength",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "11553aedebb24eb2a82353518d044dbb",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "5215f4b7a51948248ba5fdeed6729592",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "ColorFillLayerBehaviour",
+        "mode": "Color",
+        "storedColor": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "recoveryId": "9a8ff8e3dc3142df9647a805ea541cc2"
+      },
+      "behaviourId": "9a8ff8e3dc3142df9647a805ea541cc2",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "41710f6085764605b63b358b28d2d8ec",
+      "layerName": "Halo",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx3",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Star Glare\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.9 [0 .. 1]\r\n// @param enum _Part = 0 { Halo: 0, Rays: 1, Core: 2 }\r\n// @param float _Angle = 24 [-180 .. 180]\r\n// @param float _Size = 1 [0.2 .. 2]\r\n// @param float _RayWidth = 1 [0.3 .. 3]\r\n// @param float _RayLength = 1 [0.3 .. 1.5]\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n    float2 p=(uv-.5)/_Size;\r\n    float r=length(p);float a=radians(_Angle);\r\n    float2 q=float2(p.x*cos(a)-p.y*sin(a),p.x*sin(a)+p.y*cos(a));\r\n    float halo=exp(-r*10)*.65+exp(-r*r/.036)*.2;\r\n    float rays=exp(-abs(q.x)*180/_RayWidth-abs(q.y)*13/_RayLength)+exp(-abs(q.y)*230/_RayWidth-abs(q.x)*16/_RayLength);\r\n    float2 s=float2(q.x+q.y,q.y-q.x)*.7071;\r\n    rays+=.30*(exp(-abs(s.x)*300-abs(s.y)*22)+exp(-abs(s.y)*300-abs(s.x)*22));\r\n    float core=exp(-pow(r/.022,2.4))+.6*exp(-r*r/.0013);\r\n    float alpha=_Part<.5?halo:(_Part<1.5?rays:core);\r\n    alpha*=1-smoothstep(.42,.49,length(uv-.5));\r\n    return float4(1,1,1,saturate(alpha)*_Opacity);\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 0.9,
+              "id": "c2fa2744247246df8933bc5f5aa59c61",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Part",
+              "type": "Float",
+              "floatValue": 0.0,
+              "id": "a5e6599ddc074aa3baaa9fbc73142cc2",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Angle",
+              "type": "Float",
+              "floatValue": 24.0,
+              "id": "955fbd655c58462ca572a75407820469",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Size",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "55cad6798f30418cade627d89d10e1ff",
+              "declaredInCode": true
+            },
+            {
+              "name": "_RayWidth",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "9eb89cfc2f8d4f6185bcbb7fd611b09e",
+              "declaredInCode": true
+            },
+            {
+              "name": "_RayLength",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "a6034e799e6544a6ab5de5756baf5b1c",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "d920cb5b84334c60ad67bf4aaae69704",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "ColorFillLayerBehaviour",
+        "mode": "Color",
+        "storedColor": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "recoveryId": "85d3c83b74f449c3b673f09a46711ff5"
+      },
+      "behaviourId": "85d3c83b74f449c3b673f09a46711ff5",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    }
+  ]
+}

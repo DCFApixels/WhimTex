@@ -1,0 +1,330 @@
+{
+  "format": "whimtex.document",
+  "version": 1,
+  "document": {
+    "colorHistory": [],
+    "layerNameCounters": [
+      {
+        "prefix": "Noise",
+        "next": 2
+      },
+      {
+        "prefix": "Shader Processor",
+        "next": 2
+      },
+      {
+        "prefix": "Color Fill",
+        "next": 2
+      }
+    ],
+    "nextCopyNumber": 1,
+    "spriteSlices": [],
+    "width": 256,
+    "height": 256,
+    "outputFilter": "Bilinear",
+    "outputPrecision": "Auto",
+    "outputSrgb": true,
+    "uvReferenceMesh": null,
+    "uvReferenceChannel": 0,
+    "uvReferenceSubmesh": -1
+  },
+  "layers": [
+    {
+      "id": "44de7876c5d84fa9b48b3b7493ea949f",
+      "layerName": "Final Tint",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "HDR",
+      "blendRange": "HDR",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx0",
+          "active": true,
+          "code": "// @whimtex-effect Learn/Final Tint\r\n// @control(_Opacity)\r\n// @param float _Opacity = 1 [0 .. 1]\r\n// @param color _Tint = #FFFFFF\r\n// @param float _Brightness = 1 [0 .. ~3]\r\n\r\n\r\nfloat LearnHash(float2 p){ return frac(sin(dot(p,float2(127.1,311.7)))*43758.5453); }\r\nfloat LearnNoise(float2 p, float seed){\r\n fnl_state s=fnlCreateState((int)seed);s.noise_type=FNL_NOISE_OPENSIMPLEX2S;s.frequency=1;\r\n return fnlGetNoise2D(s,p.x,p.y)*.5+.5;\r\n}\r\nfloat LearnFbm(float2 p,float seed){\r\n fnl_state s=fnlCreateState((int)seed);s.noise_type=FNL_NOISE_OPENSIMPLEX2S;s.frequency=1;\r\n s.fractal_type=FNL_FRACTAL_FBM;s.octaves=3;s.gain=.42;\r\n return fnlGetNoise2D(s,p.x,p.y)*.5+.5;\r\n}\r\nfloat2 LearnRotate(float2 p,float angle){float c=cos(radians(angle)),s=sin(radians(angle));return float2(c*p.x-s*p.y,s*p.x+c*p.y);}\r\nfloat LearnEdge(float d,float softness){float w=max(fwidth(d),max(softness,.00001));return 1-smoothstep(-w,w,d);}\r\nfloat LearnGauss(float x){return exp(-x*x);}\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n\r\nreturn float4(color.rgb*_Tint.rgb*_Brightness,color.a*_Tint.a*_Opacity);\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "164f771f4c52458fa37bba3ee4d2f46d",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Tint",
+              "type": "Color",
+              "colorValue": [
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ],
+              "id": "c3dfe2349aa642d39e8485b8d81b4fcd",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Brightness",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "94b5280b29e543249b78910e417d2782",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "79c2d5c088e54f32ad97843377a142a8",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Clip"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "ShaderProcessorLayerBehaviour",
+        "recoveryId": "b85a32283ba74821a79fa95495772a1d"
+      },
+      "behaviourId": "b85a32283ba74821a79fa95495772a1d",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "4f786b0c1cf442e9898b585927ce90cd",
+      "layerName": "Four Folded Smoke Cells",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx1",
+          "active": true,
+          "code": "// @whimtex-effect Learn/Soft Folded Smoke\r\n// @control(_Opacity)\r\n// @param float _Opacity = 1 [0 .. 1]\r\n// @group(Atlas)\r\n// @param float _Columns = 2 [1 .. 4]\r\n// @param float _Rows = 2 [1 .. 4]\r\n// @param float _CellScale = 0.9 [0.3 .. 1]\r\n// @param float _CellPadding = 0.035 [0 .. 0.2]\r\n// @param float _CellFade = 0.18 [0.01 .. 0.4]\r\n// @param float _Seed = 321 [1 .. ~5000]\r\n// @endgroup\r\n// @group(Shape)\r\n// @param float _Radius = 0.235 [0.05 .. 0.35]\r\n// @param float _Lobes = 7 [3 .. 16]\r\n// @param float _PuffSize = 0.235 [0.06 .. 0.3]\r\n// @param float _Warp = 0.035 [0 .. 0.18]\r\n// @param float _Density = 1.15 [0.2 .. 3]\r\n// @param float _EdgeSoftness = 0.11 [0.03 .. 0.2]\r\n// @param float _ContourFlow = 0.13 [0 .. 0.6]\r\n// @param float _Dissipation = 0.045 [0 .. 0.4]\r\n// @endgroup\r\n// @group(Structure)\r\n// @param float _DetailScale = 1.7 [1 .. 12]\r\n// @param float _Fold = 0.8 [0 .. 1]\r\n// @param float _Detail = 0.22 [0 .. 1]\r\n// @param float _Relief = 1 [0 .. 1]\r\n// @param bool _AlphaOnly = false\r\n// @endgroup\r\nfloat SmokeHash(float2 p){return frac(sin(dot(p,float2(127.1,311.7)))*43758.5453);}\r\nfloat SmokeNoise(float2 p,float seed){fnl_state s=fnlCreateState((int)seed);s.noise_type=FNL_NOISE_OPENSIMPLEX2S;s.frequency=1;return fnlGetNoise2D(s,p.x,p.y)*.5+.5;}\r\nfloat SmokeFbm(float2 p,float seed){return .64*SmokeNoise(p,seed)+.25*SmokeNoise(p*2.03,seed+31)+.11*SmokeNoise(p*4.07,seed+89);}\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n float2 count=max(1,round(float2(_Columns,_Rows))),local=LayerToLocal(uv);\r\n float2 cell=floor(local*count),cellUV=frac(local*count)-.5;\r\n float2 p=cellUV/max(_CellScale,.001);\r\n float seed=_Seed+dot(cell,float2(71,193));\r\n float2 warp=float2(SmokeNoise(p*3,seed+5),SmokeNoise(p*3,seed+43))-.5;\r\n float2 q=p+warp*_Warp*2;\r\n float2 fineWarp=float2(SmokeNoise(q*6,seed+17),SmokeNoise(q*6,seed+59))-.5;\r\n q+=fineWarp*_Warp*.24;\r\n float density=0;\r\n [loop]for(int k=0;k<16;k++){\r\n  if(k>=round(_Lobes))break;\r\n  float h=SmokeHash(float2(k+seed,19)),h2=SmokeHash(float2(k,seed+7));\r\n  float angle=k*2.39996+h*.7;\r\n  float2 center=float2(cos(angle),sin(angle))*_Radius*sqrt(h2);\r\n  float radius=_PuffSize*lerp(.72,1.3,h);\r\n  float2 d=(q-center)/radius;\r\n  d.x*=lerp(.85,1.15,h2);\r\n  density+=exp(-dot(d,d)*1.7)*lerp(.65,1,h);\r\n }\r\n float broad=SmokeFbm(q*_DetailScale+warp*.7,seed+73);\r\n float folded=SmokeNoise(q*_DetailScale+fineWarp*.15+warp*.65,seed+37);\r\n float ridge=exp(-pow((folded-.52)/.23,2));\r\n float fine=SmokeFbm(q*(_DetailScale*2.4),seed+193);\r\n density*=lerp(1,lerp(.5,1.25,broad),.7);\r\n density*=lerp(1,lerp(.7,1.2,fine),_Detail);\r\n float transport=1-smoothstep(.25,1.2,density);\r\n float2 shapeQ=q+warp*_ContourFlow*transport;\r\n float transportedDensity=0;\r\n [loop]for(int j=0;j<16;j++){\r\n  if(j>=round(_Lobes))break;\r\n  float h=SmokeHash(float2(j+seed,19)),h2=SmokeHash(float2(j,seed+7));\r\n  float angle=j*2.39996+h*.7;\r\n  float2 center=float2(cos(angle),sin(angle))*_Radius*sqrt(h2);\r\n  float radius=_PuffSize*lerp(.72,1.3,h);\r\n  float2 d=(shapeQ-center)/radius;\r\n  d.x*=lerp(.85,1.15,h2);\r\n  transportedDensity+=exp(-dot(d,d)*1.7)*lerp(.65,1,h);\r\n }\r\n transportedDensity*=lerp(1,lerp(.5,1.25,broad),.7);\r\n transportedDensity*=lerp(1,lerp(.7,1.2,fine),_Detail);\r\n float material=lerp(density,transportedDensity,transport);\r\n float foldDensity=smoothstep(.22,.72,broad+.12*ridge);\r\n material*=lerp(1,lerp(.35,1.2,foldDensity),transport*.65);\r\n float a=(1-exp(-material*_Density))*.86;\r\n a*=smoothstep(_Dissipation,_Dissipation+_EdgeSoftness*3,material);\r\n // Independent fades on each side; the central density and shading stay intact.\r\n float2 borderDistance=.5-abs(cellUV);\r\n float2 borderFade=smoothstep(_CellPadding,_CellPadding+max(_CellFade,.001),borderDistance);\r\n a*=borderFade.x*borderFade.y;\r\n float2 lp=q*_DetailScale+warp*.5;\r\n float lighting=SmokeNoise(lp+float2(-.12,.18),seed+37)-SmokeNoise(lp-float2(-.12,.18),seed+37);\r\n float shade=.3+.53*broad+_Fold*(.65*lighting+.23*ridge)+(fine-.5)*_Detail*.15;\r\n shade+=.08*saturate(.5+q.y-q.x);\r\n shade=lerp(1,saturate(shade),_Relief);\r\n float3 rgb=GammaToLinearSpace(shade.xxx);\r\n if(_AlphaOnly>.5){a*=shade;rgb=1;}\r\n return float4(rgb,saturate(a)*_Opacity);\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "dd0c08a0113d4a4c9668505265cdf5c4",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Columns",
+              "type": "Float",
+              "floatValue": 2.0,
+              "id": "42b3e55becab40a09b106b86b534db41",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Rows",
+              "type": "Float",
+              "floatValue": 2.0,
+              "id": "5f5c9d20e4d141eeabf70ca21ba6a843",
+              "declaredInCode": true
+            },
+            {
+              "name": "_CellScale",
+              "type": "Float",
+              "floatValue": 0.9,
+              "id": "f62b41195f214ae0937b51ef929c6d25",
+              "declaredInCode": true
+            },
+            {
+              "name": "_CellPadding",
+              "type": "Float",
+              "floatValue": 0.035,
+              "id": "17b8d5cd15044950b5a6fa6659c53740",
+              "declaredInCode": true
+            },
+            {
+              "name": "_CellFade",
+              "type": "Float",
+              "floatValue": 0.18,
+              "id": "016a343e37844a389851ac4d6ef0688e",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Seed",
+              "type": "Float",
+              "floatValue": 321.0,
+              "id": "4a065d50f83d40edbc825b923daec74e",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Radius",
+              "type": "Float",
+              "floatValue": 0.235,
+              "id": "2fcebebd3c9b4662b2cc13030a539ff3",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Lobes",
+              "type": "Float",
+              "floatValue": 7.0,
+              "id": "70b410106d9f40e7a6e9269160598a62",
+              "declaredInCode": true
+            },
+            {
+              "name": "_PuffSize",
+              "type": "Float",
+              "floatValue": 0.235,
+              "id": "cfcd5718526a49fe81d55fd96517aaf6",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Warp",
+              "type": "Float",
+              "floatValue": 0.035,
+              "id": "32cc31d58dbb4efe9e688edb60806a47",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Density",
+              "type": "Float",
+              "floatValue": 1.15,
+              "id": "587df63159db44d1bd84a9dfee120ed8",
+              "declaredInCode": true
+            },
+            {
+              "name": "_EdgeSoftness",
+              "type": "Float",
+              "floatValue": 0.11,
+              "id": "f67ae47e24ca4164bf6e27e278552736",
+              "declaredInCode": true
+            },
+            {
+              "name": "_ContourFlow",
+              "type": "Float",
+              "floatValue": 0.13,
+              "id": "122fb279dc5249aa86144b4924e5dd01",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Dissipation",
+              "type": "Float",
+              "floatValue": 0.045,
+              "id": "bde1601362394467ac76a9bbb7962525",
+              "declaredInCode": true
+            },
+            {
+              "name": "_DetailScale",
+              "type": "Float",
+              "floatValue": 1.7,
+              "id": "c926e63f19404c9095350cc4e5f73ae1",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Fold",
+              "type": "Float",
+              "floatValue": 0.8,
+              "id": "27d17abe86e0410198166715068b4258",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Detail",
+              "type": "Float",
+              "floatValue": 0.22,
+              "id": "7676b55c964141f7b1efc90729863edf",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Relief",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "dc43dc77486a49d2a38e22fe004be555",
+              "declaredInCode": true
+            },
+            {
+              "name": "_AlphaOnly",
+              "type": "Bool",
+              "floatValue": 0.0,
+              "id": "50ab5b13fae742daa5ff189763c3d074",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "1b23573be1ef4d559e84b752d1586031",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "ColorFillLayerBehaviour",
+        "mode": "Color",
+        "storedColor": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "recoveryId": "75719ce504af468ba5c19e625588b716"
+      },
+      "behaviourId": "75719ce504af468ba5c19e625588b716",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    }
+  ]
+}

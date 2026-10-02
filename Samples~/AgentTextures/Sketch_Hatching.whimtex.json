@@ -1,0 +1,290 @@
+{
+  "format": "whimtex.document",
+  "version": 1,
+  "document": {
+    "colorHistory": [],
+    "layerNameCounters": [
+      {
+        "prefix": "Color Fill",
+        "next": 2
+      },
+      {
+        "prefix": "Shader Processor",
+        "next": 2
+      }
+    ],
+    "nextCopyNumber": 1,
+    "spriteSlices": [],
+    "width": 256,
+    "height": 256,
+    "outputFilter": "Bilinear",
+    "outputPrecision": "Auto",
+    "outputSrgb": true,
+    "uvReferenceMesh": null,
+    "uvReferenceChannel": 0,
+    "uvReferenceSubmesh": -1
+  },
+  "layers": [
+    {
+      "id": "6696a410556644b6a3576e5e8601ffe7",
+      "layerName": "Final Tint",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "HDR",
+      "blendRange": "HDR",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx0",
+          "active": true,
+          "code": "// @whimtex-effect Learn/Final Tint\r\n// @control(_Opacity)\r\n// @param float _Opacity = 1 [0 .. 1]\r\n// @param color _Tint = #FFFFFF\r\n// @param float _Brightness = 1 [0 .. ~3]\r\n\r\n\r\nfloat LearnHash(float2 p){ return frac(sin(dot(p,float2(127.1,311.7)))*43758.5453); }\r\nfloat LearnNoise(float2 p, float seed){\r\n fnl_state s=fnlCreateState((int)seed);s.noise_type=FNL_NOISE_OPENSIMPLEX2S;s.frequency=1;\r\n return fnlGetNoise2D(s,p.x,p.y)*.5+.5;\r\n}\r\nfloat LearnFbm(float2 p,float seed){\r\n fnl_state s=fnlCreateState((int)seed);s.noise_type=FNL_NOISE_OPENSIMPLEX2S;s.frequency=1;\r\n s.fractal_type=FNL_FRACTAL_FBM;s.octaves=3;s.gain=.42;\r\n return fnlGetNoise2D(s,p.x,p.y)*.5+.5;\r\n}\r\nfloat2 LearnRotate(float2 p,float angle){float c=cos(radians(angle)),s=sin(radians(angle));return float2(c*p.x-s*p.y,s*p.x+c*p.y);}\r\nfloat LearnEdge(float d,float softness){float w=max(fwidth(d),max(softness,.00001));return 1-smoothstep(-w,w,d);}\r\nfloat LearnGauss(float x){return exp(-x*x);}\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n\r\nreturn float4(color.rgb*_Tint.rgb*_Brightness,color.a*_Tint.a*_Opacity);\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "78e8ad23d64f4604aeb51d0b1660afc5",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Tint",
+              "type": "Color",
+              "colorValue": [
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ],
+              "id": "2feab333feff492191e7217109ac55b5",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Brightness",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "a14182adf6e84ecfb47315d79d802b38",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "fb66a565cf80429d983677188705f6c0",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Clip"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "ShaderProcessorLayerBehaviour",
+        "recoveryId": "a26034901c3545c5905a9dd01f8010f8"
+      },
+      "behaviourId": "a26034901c3545c5905a9dd01f8010f8",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "99cd50a0312f403fb02e69e4b1cd1c6d",
+      "layerName": "Cell Oriented Hatches",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx1",
+          "active": true,
+          "code": "// @whimtex-effect Learn/Woven Hatching\r\n// @control(_Opacity)\r\n// @param float _Opacity = 1 [0 .. 1]\r\n// @group(Placement)\r\n// @param point _Center = (0.5, 0.5)\r\n// @param float2 _Scale = (1, 1)\r\n// @param float _Angle = 0 [-180 .. 180]\r\n// @endgroup\r\n// @group(Hatching; _Style)\r\n// @param hidden enum _Style = Cross {Cross:0, Diagonal:1, Cells:2}\r\n// @param float _Spacing = 0.028 [0.005 .. 0.15]\r\n// @param float _Width = 0.12 [0.01 .. 0.45]\r\n// @param float _Roughness = 0.7 [0 .. 1]\r\n// @param float _CellSize = 0.17 [0.04 .. 0.4]\r\n// @param float _Seed = 17 [1 .. ~5000]\r\n// @param color _Paper = #FFFFFF\r\n// @param color _Ink = #242424\r\n// @endgroup\r\n\r\nfloat LearnHash(float2 p){ return frac(sin(dot(p,float2(127.1,311.7)))*43758.5453); }\r\nfloat LearnNoise(float2 p, float seed){\r\n fnl_state s=fnlCreateState((int)seed);s.noise_type=FNL_NOISE_OPENSIMPLEX2S;s.frequency=1;\r\n return fnlGetNoise2D(s,p.x,p.y)*.5+.5;\r\n}\r\nfloat LearnFbm(float2 p,float seed){\r\n fnl_state s=fnlCreateState((int)seed);s.noise_type=FNL_NOISE_OPENSIMPLEX2S;s.frequency=1;\r\n s.fractal_type=FNL_FRACTAL_FBM;s.octaves=3;s.gain=.42;\r\n return fnlGetNoise2D(s,p.x,p.y)*.5+.5;\r\n}\r\nfloat2 LearnRotate(float2 p,float angle){float c=cos(radians(angle)),s=sin(radians(angle));return float2(c*p.x-s*p.y,s*p.x+c*p.y);}\r\nfloat LearnEdge(float d,float softness){float w=max(fwidth(d),max(softness,.00001));return 1-smoothstep(-w,w,d);}\r\nfloat LearnGauss(float x){return exp(-x*x);}\r\n\r\nfloat4 SampleHatching(float2 uv,float4 color){\r\nfloat2 p=LearnRotate(LayerToLocal(uv)-_Center,-_Angle)/max(abs(_Scale),.001);\r\n\r\nfloat2 q=LearnRotate(p,45);float ink=0;\r\nif(_Style>1.5){\r\n float2 lattice=p/_CellSize;float2 cell=floor(lattice);float best=1e6;float2 chosen=0,center=0;\r\n for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){\r\n  float2 id=cell+float2(x,y);float2 c=id+.5+(float2(LearnHash(id+_Seed),LearnHash(id+31+_Seed))-.5)*.7;\r\n  float d=dot(lattice-c,lattice-c);if(d<best){best=d;chosen=id;center=c;}\r\n }\r\n q=LearnRotate((lattice-center)*_CellSize,LearnHash(chosen+_Seed+13)*180);\r\n}\r\nfloat grain=LearnNoise(p*65,_Seed);float bend=(LearnNoise(p*7,_Seed+1)-.5)*_Roughness*.32;\r\nfloat stripe=abs(frac(q.x/_Spacing+bend)-.5);\r\nfloat aa=max(0.5*fwidth(q.x/_Spacing),.005);\r\nink=1-smoothstep(_Width-aa,_Width+aa,stripe);\r\nif(_Style<.5){\r\n float other=abs(frac(q.y/_Spacing-bend)-.5);\r\n ink=max(ink,(1-smoothstep(_Width-aa,_Width+aa,other))*.85);\r\n}\r\nink*=lerp(1,grain*.8+.3,_Roughness);\r\nif(_Style<1.5){\r\n float fine=abs(frac((q.x+q.y*.06)/(_Spacing*.42)+bend*.5)-.5);\r\n ink=max(ink,(1-smoothstep(_Width*.5-aa,_Width*.5+aa,fine))*grain*.22);\r\n}\r\nreturn float4(lerp(_Paper.rgb,_Ink.rgb,saturate(ink)),_Opacity);\r\n}\r\n\r\n// Four procedural subpixel samples retain fine ink coverage at the reduced canvas size.\r\nfloat4 ApplyFX(float2 uv, float4 color) {\r\n float2 d=0.25*_CanvasSize.zw;\r\n return 0.25*(SampleHatching(uv+float2(-d.x,-d.y),color)+SampleHatching(uv+float2(d.x,-d.y),color)+SampleHatching(uv+float2(-d.x,d.y),color)+SampleHatching(uv+d,color));\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "868a4b5123594332b32224c5d0b0c475",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Center",
+              "type": "Point",
+              "vectorValue": [
+                0.5,
+                0.5,
+                0.0,
+                0.0
+              ],
+              "id": "b75b3af3b46f4e259af1535088327f8b",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Scale",
+              "type": "Vector2",
+              "vectorValue": [
+                1.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "id": "e075c707ee8643cfb54c0ded141602e9",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Angle",
+              "type": "Float",
+              "floatValue": 0.0,
+              "id": "b3ef662b709d4556bd91d5ab863289e0",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Style",
+              "type": "Float",
+              "floatValue": 2.0,
+              "id": "0a0a31521fd047599943fb0b0827de70",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Spacing",
+              "type": "Float",
+              "floatValue": 0.0248,
+              "id": "22ede3cf4b324177849c836875177dee",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Width",
+              "type": "Float",
+              "floatValue": 0.153,
+              "id": "2e914f3fd87445ed95c6cc80c9e63bb3",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Roughness",
+              "type": "Float",
+              "floatValue": 0.357,
+              "id": "dc05b14b4b814c909893affe5ebcb4a6",
+              "declaredInCode": true
+            },
+            {
+              "name": "_CellSize",
+              "type": "Float",
+              "floatValue": 0.183,
+              "id": "71423f9a58014a6c840a806d62bbec1a",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Seed",
+              "type": "Float",
+              "floatValue": 17.0,
+              "id": "840b5d1596cc4ad886fef55da0b18b38",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Paper",
+              "type": "Color",
+              "colorValue": [
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ],
+              "id": "b0eae7b56fe24619a45d9e9b68c864b9",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Ink",
+              "type": "Color",
+              "colorValue": [
+                0.141176477,
+                0.141176477,
+                0.141176477,
+                1.0
+              ],
+              "id": "6616e33f8fd44e0fae8172b3bc6aca96",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "fde94a823621418ea33e91f87597753d",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "ColorFillLayerBehaviour",
+        "mode": "Color",
+        "storedColor": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "recoveryId": "c712f0c4bfc04b939a6889b965cb2264"
+      },
+      "behaviourId": "c712f0c4bfc04b939a6889b965cb2264",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    }
+  ]
+}

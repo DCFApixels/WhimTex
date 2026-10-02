@@ -28,7 +28,8 @@ namespace DCFApixels.WhimTex
             new System.Runtime.CompilerServices.ConditionalWeakTable<TextureCompositor, SaveSnapshot>();
 
         /// <summary>True when the file carries a WhimTex document, used to distinguish documents from plain images.</summary>
-        public static bool IsDocument(string assetPath) => WhimTexTiffCarrier.IsDocument(assetPath);
+        public static bool IsDocument(string assetPath) => WhimTexDocumentJson.IsJsonPath(assetPath)
+            ? WhimTexDocumentJson.IsDocumentFile(assetPath) : WhimTexTiffCarrier.IsDocument(assetPath);
 
         internal static (int blocks, long modelBytes, long textureBytes, string[] names, long[] sizes) InspectStorage(string path)
         {
@@ -51,6 +52,7 @@ namespace DCFApixels.WhimTex
         /// <summary>Saves the document and returns the TIFF path; HDR never changes its extension.</summary>
         public static string Save(TextureCompositor document, string path, bool deferImport = false)
         {
+            if (WhimTexDocumentJson.IsJsonPath(path)) return SaveJson(document, path, deferImport: deferImport);
             if (document == null) throw new WhimTexDocumentException("There is no document to save.");
             if (string.IsNullOrEmpty(path)) throw new WhimTexDocumentException("The document path is empty.");
             if (!string.IsNullOrEmpty(document.documentLoadWarning))
@@ -266,7 +268,13 @@ namespace DCFApixels.WhimTex
             => TryLoad(path, out document, out error, true);
 
         internal static bool TryLoad(string path, out TextureCompositor document, out string error, bool prepareEffects)
+            => TryLoad(path, out document, out error, prepareEffects, out _);
+
+        internal static bool TryLoad(string path, out TextureCompositor document, out string error, bool prepareEffects,
+            out IReadOnlyList<string> loadWarnings)
         {
+            loadWarnings = Array.Empty<string>();
+            if (WhimTexDocumentJson.IsJsonPath(path)) return TryLoadJson(path, out document, out error, prepareEffects, out loadWarnings);
             document = null;
             error = null;
             if (string.IsNullOrEmpty(path) || !File.Exists(path))

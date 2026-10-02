@@ -1,0 +1,191 @@
+{
+  "format": "whimtex.layers",
+  "version": 1,
+  "canvas": {
+    "width": 512,
+    "height": 512
+  },
+  "layers": [
+    {
+      "type": "group",
+      "name": "Car Wheel",
+      "properties": {
+        "compositing": "Isolated"
+      },
+      "children": [
+        {
+          "type": "shape",
+          "name": "Center Cap",
+          "properties": {
+            "shape": {
+              "kind": "Ellipse",
+              "fillColor": [
+                0.16,
+                0.18,
+                0.21,
+                1
+              ],
+              "stroke": true,
+              "strokeColor": [
+                0.75,
+                0.79,
+                0.84,
+                1
+              ],
+              "strokeWidth": 10
+            }
+          },
+          "transform": {
+            "scale": [
+              0.15,
+              0.15
+            ]
+          }
+        },
+        {
+          "type": "shape",
+          "name": "Five Spokes",
+          "properties": {
+            "shape": {
+              "kind": "Star",
+              "sides": 5,
+              "innerRadius": 0.32,
+              "fillColor": [
+                0.62,
+                0.67,
+                0.73,
+                1
+              ],
+              "stroke": true,
+              "strokeColor": [
+                0.88,
+                0.91,
+                0.95,
+                1
+              ],
+              "strokeWidth": 3
+            }
+          },
+          "transform": {
+            "scale": [
+              0.61,
+              0.61
+            ],
+            "rotation": 18
+          }
+        },
+        {
+          "type": "shape",
+          "name": "Brake Disc",
+          "properties": {
+            "shape": {
+              "kind": "Ellipse",
+              "fillColor": [
+                0.21,
+                0.23,
+                0.26,
+                1
+              ],
+              "stroke": true,
+              "strokeColor": [
+                0.32,
+                0.35,
+                0.39,
+                1
+              ],
+              "strokeWidth": 6
+            }
+          },
+          "transform": {
+            "scale": [
+              0.47,
+              0.47
+            ]
+          }
+        },
+        {
+          "type": "shape",
+          "name": "Metal Rim",
+          "properties": {
+            "shape": {
+              "kind": "Ellipse",
+              "fillColor": [
+                0.055,
+                0.065,
+                0.08,
+                1
+              ],
+              "stroke": true,
+              "strokeColor": [
+                0.72,
+                0.77,
+                0.83,
+                1
+              ],
+              "strokeWidth": 14
+            }
+          },
+          "transform": {
+            "scale": [
+              0.65,
+              0.65
+            ]
+          }
+        },
+        {
+          "type": "shape",
+          "name": "Sidewall Ring",
+          "properties": {
+            "shape": {
+              "kind": "Ellipse",
+              "fill": false,
+              "stroke": true,
+              "strokeColor": [
+                0.13,
+                0.14,
+                0.155,
+                1
+              ],
+              "strokeWidth": 3
+            }
+          },
+          "transform": {
+            "scale": [
+              0.78,
+              0.78
+            ]
+          }
+        },
+        {
+          "type": "shape",
+          "name": "Tire",
+          "properties": {
+            "shape": {
+              "kind": "Ellipse",
+              "fillColor": [
+                0.045,
+                0.05,
+                0.06,
+                1
+              ],
+              "stroke": true,
+              "strokeColor": [
+                0.09,
+                0.1,
+                0.115,
+                1
+              ],
+              "strokeWidth": 9
+            }
+          },
+          "transform": {
+            "scale": [
+              0.88,
+              0.88
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

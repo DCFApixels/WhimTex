@@ -5,7 +5,7 @@ namespace DCFApixels.WhimTex
 {
     internal sealed class LayerActionIcon : VisualElement
     {
-        internal enum Kind { Add, Group, Delete, Bug, Eye, EyeOff, Alpha, AddDrawing, Transform, Properties, Effects, Settings }
+        internal enum Kind { Add, Group, Delete, Bug, Eye, EyeOff, Alpha, AddDrawing, Transform, Properties, Effects, Settings, Warning }
 
         private readonly Kind kind;
 
@@ -30,6 +30,22 @@ namespace DCFApixels.WhimTex
             painter.BeginPath();
             switch (kind)
             {
+                case Kind.Warning:
+                    painter.fillColor = new Color(1f, 0.73f, 0.2f);
+                    painter.MoveTo(new Vector2(8f, 1f));
+                    painter.LineTo(new Vector2(15f, 14f));
+                    painter.LineTo(new Vector2(1f, 14f));
+                    painter.ClosePath();
+                    painter.Fill();
+                    painter.strokeColor = new Color(0.2f, 0.17f, 0.1f);
+                    painter.lineWidth = 1.6f;
+                    painter.BeginPath();
+                    painter.MoveTo(new Vector2(8f, 5.5f));
+                    painter.LineTo(new Vector2(8f, 9f));
+                    painter.MoveTo(new Vector2(8f, 11.5f));
+                    painter.LineTo(new Vector2(8f, 11.6f));
+                    painter.Stroke();
+                    return;
                 case Kind.Settings:
                     DrawSettings(painter);
                     return;

@@ -1,0 +1,1537 @@
+{
+  "format": "whimtex.document",
+  "version": 1,
+  "document": {
+    "colorHistory": [],
+    "layerNameCounters": [
+      {
+        "prefix": "Noise",
+        "next": 13
+      }
+    ],
+    "nextCopyNumber": 1,
+    "spriteSlices": [],
+    "width": 256,
+    "height": 256,
+    "outputFilter": "Bilinear",
+    "outputPrecision": "Auto",
+    "outputSrgb": true,
+    "uvReferenceMesh": null,
+    "uvReferenceChannel": 0,
+    "uvReferenceSubmesh": -1
+  },
+  "layers": [
+    {
+      "id": "ac0c1d4954dd4bffaa87d12a2c4c28ac",
+      "layerName": "Smoke Lobe 11",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx0",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.38, 0.32)\r\n// @param float _Radius = 0.105 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 0.86,
+              "id": "07e6cc9675c04790818e033eeab09203",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Center",
+              "type": "Point",
+              "vectorValue": [
+                0.38,
+                0.32,
+                0.0,
+                0.0
+              ],
+              "id": "08c3aa50e0b841e7b1b4883127513d06",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Radius",
+              "type": "Float",
+              "floatValue": 0.105,
+              "id": "b2a0843d58af47deabd7fb60e8fabb9c",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Detail",
+              "type": "Float",
+              "floatValue": 0.32,
+              "id": "f923c4d2ebb3466da0e1bd7fc80a546a",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Softness",
+              "type": "Float",
+              "floatValue": 0.75,
+              "id": "1d9a359386664d64ba600393e28ea615",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "557407b864da4f2b8f75d6153a4e3d97",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "NoiseLayerBehaviour",
+        "noiseType": "OpenSimplex2S",
+        "dimensions": "TwoD",
+        "seed": 1880,
+        "scale": 12.0,
+        "scaleY": 0.0,
+        "linkScale": true,
+        "offset": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "periodic": "None",
+        "fractal": "FBm",
+        "octaves": 4,
+        "lacunarity": 2.0,
+        "gain": 0.5,
+        "weightedStrength": 0.0,
+        "warp": "OpenSimplex2Reduced",
+        "warpStrength": 0.3,
+        "warpScale": 1.0,
+        "warpScaleY": 0.0,
+        "linkWarpScale": true,
+        "encoding": "LinearData",
+        "inverted": false,
+        "recoveryId": "9d10dd7db27646bc9213764ced12988a"
+      },
+      "behaviourId": "9d10dd7db27646bc9213764ced12988a",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "a6647883d70f49d896eb4609a1f6d46b",
+      "layerName": "Smoke Lobe 10",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx1",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.45, 0.64)\r\n// @param float _Radius = 0.08 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 0.86,
+              "id": "00bcc24c98f04067af1cd1bd80659027",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Center",
+              "type": "Point",
+              "vectorValue": [
+                0.45,
+                0.64,
+                0.0,
+                0.0
+              ],
+              "id": "a6d7248dadc54146b9cdfd4fcb913b3d",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Radius",
+              "type": "Float",
+              "floatValue": 0.08,
+              "id": "250c9ec2919746768c2ac52d8ef45e0c",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Detail",
+              "type": "Float",
+              "floatValue": 0.32,
+              "id": "389dde5cff414744aaa0e847676900e4",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Softness",
+              "type": "Float",
+              "floatValue": 0.75,
+              "id": "71ed9fbe469441f1b326c41450b76d60",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "463e09047c3d4e149f0495499f17992e",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "NoiseLayerBehaviour",
+        "noiseType": "OpenSimplex2S",
+        "dimensions": "TwoD",
+        "seed": 1707,
+        "scale": 12.0,
+        "scaleY": 0.0,
+        "linkScale": true,
+        "offset": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "periodic": "None",
+        "fractal": "FBm",
+        "octaves": 4,
+        "lacunarity": 2.0,
+        "gain": 0.5,
+        "weightedStrength": 0.0,
+        "warp": "OpenSimplex2Reduced",
+        "warpStrength": 0.3,
+        "warpScale": 1.0,
+        "warpScaleY": 0.0,
+        "linkWarpScale": true,
+        "encoding": "LinearData",
+        "inverted": false,
+        "recoveryId": "e17de5ed8a104abcb193c0174ffc0cc4"
+      },
+      "behaviourId": "e17de5ed8a104abcb193c0174ffc0cc4",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "8ce34454ba6045679ea2ac52aa7841db",
+      "layerName": "Smoke Lobe 09",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx2",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.62, 0.57)\r\n// @param float _Radius = 0.115 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 0.86,
+              "id": "f03a4b38c3024c4db2f78ea337d66473",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Center",
+              "type": "Point",
+              "vectorValue": [
+                0.62,
+                0.57,
+                0.0,
+                0.0
+              ],
+              "id": "0ec3fa31343246a9bae0d4cd9d224d27",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Radius",
+              "type": "Float",
+              "floatValue": 0.115,
+              "id": "fb767760bda741488206a844c95f7705",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Detail",
+              "type": "Float",
+              "floatValue": 0.32,
+              "id": "14144036faa94b5db4793a55622595fc",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Softness",
+              "type": "Float",
+              "floatValue": 0.75,
+              "id": "5ee6b7c2cc8f48208de8676fd423375e",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "2b52984a3659422a9f6ec410cc636596",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "NoiseLayerBehaviour",
+        "noiseType": "OpenSimplex2S",
+        "dimensions": "TwoD",
+        "seed": 1534,
+        "scale": 12.0,
+        "scaleY": 0.0,
+        "linkScale": true,
+        "offset": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "periodic": "None",
+        "fractal": "FBm",
+        "octaves": 4,
+        "lacunarity": 2.0,
+        "gain": 0.5,
+        "weightedStrength": 0.0,
+        "warp": "OpenSimplex2Reduced",
+        "warpStrength": 0.3,
+        "warpScale": 1.0,
+        "warpScaleY": 0.0,
+        "linkWarpScale": true,
+        "encoding": "LinearData",
+        "inverted": false,
+        "recoveryId": "42433ff19cc34cc88bcab1a1554f5445"
+      },
+      "behaviourId": "42433ff19cc34cc88bcab1a1554f5445",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "44ea98aa865d448380e1a38647ea7e3a",
+      "layerName": "Smoke Lobe 08",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx3",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.54, 0.3)\r\n// @param float _Radius = 0.1 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 0.86,
+              "id": "9b5e785d18c747998785e4008ea8ee71",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Center",
+              "type": "Point",
+              "vectorValue": [
+                0.54,
+                0.3,
+                0.0,
+                0.0
+              ],
+              "id": "f60f7cb2e65e41589d0cfb4d0f7f2fd8",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Radius",
+              "type": "Float",
+              "floatValue": 0.1,
+              "id": "e6eb323a3b1b48c29d2ccb515a01f75f",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Detail",
+              "type": "Float",
+              "floatValue": 0.32,
+              "id": "319106d37305494db0fd83b42eec6ea2",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Softness",
+              "type": "Float",
+              "floatValue": 0.75,
+              "id": "ba91cc4c03f344b69166e97b301a9fe8",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "52bd8b8eaabf4770b87b20c743076feb",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "NoiseLayerBehaviour",
+        "noiseType": "OpenSimplex2S",
+        "dimensions": "TwoD",
+        "seed": 1361,
+        "scale": 12.0,
+        "scaleY": 0.0,
+        "linkScale": true,
+        "offset": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "periodic": "None",
+        "fractal": "FBm",
+        "octaves": 4,
+        "lacunarity": 2.0,
+        "gain": 0.5,
+        "weightedStrength": 0.0,
+        "warp": "OpenSimplex2Reduced",
+        "warpStrength": 0.3,
+        "warpScale": 1.0,
+        "warpScaleY": 0.0,
+        "linkWarpScale": true,
+        "encoding": "LinearData",
+        "inverted": false,
+        "recoveryId": "2f60774ff4cb4b37aeb9bb88f0e066de"
+      },
+      "behaviourId": "2f60774ff4cb4b37aeb9bb88f0e066de",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "fae331afc55d422abe981e3435775861",
+      "layerName": "Smoke Lobe 07",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx4",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.29, 0.51)\r\n// @param float _Radius = 0.095 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 0.86,
+              "id": "350fc59d65dc4c1bb728d9257cfe8559",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Center",
+              "type": "Point",
+              "vectorValue": [
+                0.29,
+                0.51,
+                0.0,
+                0.0
+              ],
+              "id": "ebafba754ff34658965a5a291bcd08be",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Radius",
+              "type": "Float",
+              "floatValue": 0.095,
+              "id": "9368424c3c114347997d6cc199756980",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Detail",
+              "type": "Float",
+              "floatValue": 0.32,
+              "id": "8eb0b103a90644499b9659c0fc51a688",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Softness",
+              "type": "Float",
+              "floatValue": 0.75,
+              "id": "8c9ed8e9b08c4ae7a6613213b936bc20",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "4cbc7ee302ef4daabf4586d9f2c4717a",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "NoiseLayerBehaviour",
+        "noiseType": "OpenSimplex2S",
+        "dimensions": "TwoD",
+        "seed": 1188,
+        "scale": 12.0,
+        "scaleY": 0.0,
+        "linkScale": true,
+        "offset": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "periodic": "None",
+        "fractal": "FBm",
+        "octaves": 4,
+        "lacunarity": 2.0,
+        "gain": 0.5,
+        "weightedStrength": 0.0,
+        "warp": "OpenSimplex2Reduced",
+        "warpStrength": 0.3,
+        "warpScale": 1.0,
+        "warpScaleY": 0.0,
+        "linkWarpScale": true,
+        "encoding": "LinearData",
+        "inverted": false,
+        "recoveryId": "76365d6fa7f049e2a4eacc93f466414c"
+      },
+      "behaviourId": "76365d6fa7f049e2a4eacc93f466414c",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "27cff6b1d1d849fcb026cce864b311d2",
+      "layerName": "Smoke Lobe 06",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx5",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.47, 0.51)\r\n// @param float _Radius = 0.14 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 0.86,
+              "id": "8ccadd8997a1468a9544b6555a9e9998",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Center",
+              "type": "Point",
+              "vectorValue": [
+                0.47,
+                0.51,
+                0.0,
+                0.0
+              ],
+              "id": "a8bfeecc25a84be79bec901844267d0d",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Radius",
+              "type": "Float",
+              "floatValue": 0.14,
+              "id": "563a380c6fdb455695bffa79201e8c1e",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Detail",
+              "type": "Float",
+              "floatValue": 0.32,
+              "id": "35de75285f1542dcb2217629850d45f6",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Softness",
+              "type": "Float",
+              "floatValue": 0.75,
+              "id": "337415568dab4a09beebc0b052b627ef",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "715a971ee66a4e7382d7258d12e03410",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "NoiseLayerBehaviour",
+        "noiseType": "OpenSimplex2S",
+        "dimensions": "TwoD",
+        "seed": 1015,
+        "scale": 12.0,
+        "scaleY": 0.0,
+        "linkScale": true,
+        "offset": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "periodic": "None",
+        "fractal": "FBm",
+        "octaves": 4,
+        "lacunarity": 2.0,
+        "gain": 0.5,
+        "weightedStrength": 0.0,
+        "warp": "OpenSimplex2Reduced",
+        "warpStrength": 0.3,
+        "warpScale": 1.0,
+        "warpScaleY": 0.0,
+        "linkWarpScale": true,
+        "encoding": "LinearData",
+        "inverted": false,
+        "recoveryId": "2ab61dd6ff7840daa5115cb919d950a8"
+      },
+      "behaviourId": "2ab61dd6ff7840daa5115cb919d950a8",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "cdb744ad32f64229be241f7f379ddb21",
+      "layerName": "Smoke Lobe 05",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx6",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.34, 0.64)\r\n// @param float _Radius = 0.14 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 0.86,
+              "id": "6b31115e63bd404b9cfd8eb5c7cd6e7c",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Center",
+              "type": "Point",
+              "vectorValue": [
+                0.34,
+                0.64,
+                0.0,
+                0.0
+              ],
+              "id": "c57674c3c3cb4fc089faa4dbb1693a59",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Radius",
+              "type": "Float",
+              "floatValue": 0.14,
+              "id": "c448fb746d9b4af89bdaa71f7e771000",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Detail",
+              "type": "Float",
+              "floatValue": 0.32,
+              "id": "c8c8e4801e2b45508372c387e45fecd1",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Softness",
+              "type": "Float",
+              "floatValue": 0.75,
+              "id": "5c99ae04830f4f46b0a8d9bad551ceab",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "8f011d67a010406185b82bd9591ea4e6",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "NoiseLayerBehaviour",
+        "noiseType": "OpenSimplex2S",
+        "dimensions": "TwoD",
+        "seed": 842,
+        "scale": 12.0,
+        "scaleY": 0.0,
+        "linkScale": true,
+        "offset": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "periodic": "None",
+        "fractal": "FBm",
+        "octaves": 4,
+        "lacunarity": 2.0,
+        "gain": 0.5,
+        "weightedStrength": 0.0,
+        "warp": "OpenSimplex2Reduced",
+        "warpStrength": 0.3,
+        "warpScale": 1.0,
+        "warpScaleY": 0.0,
+        "linkWarpScale": true,
+        "encoding": "LinearData",
+        "inverted": false,
+        "recoveryId": "cfb931c7a40947cbbd6d3dd4f9da09c2"
+      },
+      "behaviourId": "cfb931c7a40947cbbd6d3dd4f9da09c2",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "4fe10fd10b6c45c6b7ac6a9ea52f4c9d",
+      "layerName": "Smoke Lobe 04",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx7",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.52, 0.72)\r\n// @param float _Radius = 0.135 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 0.86,
+              "id": "6607405b037f480c901929369c41213f",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Center",
+              "type": "Point",
+              "vectorValue": [
+                0.52,
+                0.72,
+                0.0,
+                0.0
+              ],
+              "id": "7dd00d8fb01242d39f12e9c562fdb06a",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Radius",
+              "type": "Float",
+              "floatValue": 0.135,
+              "id": "de3d39ad0f0b447fbc90bf638fe2ca03",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Detail",
+              "type": "Float",
+              "floatValue": 0.32,
+              "id": "52777b889abf4fe8af2c6446dd8c6f94",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Softness",
+              "type": "Float",
+              "floatValue": 0.75,
+              "id": "fae1bc2d898d42dea98041ecb8738633",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "c6be7e49bd154801b312a1d27cf74fb3",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "NoiseLayerBehaviour",
+        "noiseType": "OpenSimplex2S",
+        "dimensions": "TwoD",
+        "seed": 669,
+        "scale": 12.0,
+        "scaleY": 0.0,
+        "linkScale": true,
+        "offset": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "periodic": "None",
+        "fractal": "FBm",
+        "octaves": 4,
+        "lacunarity": 2.0,
+        "gain": 0.5,
+        "weightedStrength": 0.0,
+        "warp": "OpenSimplex2Reduced",
+        "warpStrength": 0.3,
+        "warpScale": 1.0,
+        "warpScaleY": 0.0,
+        "linkWarpScale": true,
+        "encoding": "LinearData",
+        "inverted": false,
+        "recoveryId": "29f7d1d4defe4e3e990949a318395f17"
+      },
+      "behaviourId": "29f7d1d4defe4e3e990949a318395f17",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "4bffc29350eb4da782cd07ef4eced3cd",
+      "layerName": "Smoke Lobe 03",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx8",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.71, 0.55)\r\n// @param float _Radius = 0.125 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 0.86,
+              "id": "8f34b3f0b82545d6962b6b9a93648c0c",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Center",
+              "type": "Point",
+              "vectorValue": [
+                0.71,
+                0.55,
+                0.0,
+                0.0
+              ],
+              "id": "be4234d3d0834ceebc26b235ef7efc0d",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Radius",
+              "type": "Float",
+              "floatValue": 0.125,
+              "id": "1e2291829ba841a6ad689932500cac65",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Detail",
+              "type": "Float",
+              "floatValue": 0.32,
+              "id": "1aaa9fcae1ad42f880ff7058afe0a2ca",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Softness",
+              "type": "Float",
+              "floatValue": 0.75,
+              "id": "62d6177ff317408db5ac44d40d3a8b5e",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "e5d7dd77a2704e48a009f0dd1e941a70",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "NoiseLayerBehaviour",
+        "noiseType": "OpenSimplex2S",
+        "dimensions": "TwoD",
+        "seed": 496,
+        "scale": 12.0,
+        "scaleY": 0.0,
+        "linkScale": true,
+        "offset": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "periodic": "None",
+        "fractal": "FBm",
+        "octaves": 4,
+        "lacunarity": 2.0,
+        "gain": 0.5,
+        "weightedStrength": 0.0,
+        "warp": "OpenSimplex2Reduced",
+        "warpStrength": 0.3,
+        "warpScale": 1.0,
+        "warpScaleY": 0.0,
+        "linkWarpScale": true,
+        "encoding": "LinearData",
+        "inverted": false,
+        "recoveryId": "cd16183cf6b14a19b912b1cca90ef1d7"
+      },
+      "behaviourId": "cd16183cf6b14a19b912b1cca90ef1d7",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "44064f52d6b54f18b325c63a8d389e51",
+      "layerName": "Smoke Lobe 02",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx9",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.63, 0.39)\r\n// @param float _Radius = 0.145 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 0.86,
+              "id": "ff64276e66f2436983f819af3de50e33",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Center",
+              "type": "Point",
+              "vectorValue": [
+                0.63,
+                0.39,
+                0.0,
+                0.0
+              ],
+              "id": "625d01f5ea0b4afea25c7694616a80e1",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Radius",
+              "type": "Float",
+              "floatValue": 0.145,
+              "id": "3295ed934c244ff5a6751a2142de454f",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Detail",
+              "type": "Float",
+              "floatValue": 0.32,
+              "id": "933d7c49d2254bff90ee06e64da870d4",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Softness",
+              "type": "Float",
+              "floatValue": 0.75,
+              "id": "e9eb7bbda89b447eb3c1c12d7eb6b55e",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "b2b2a02f963e4f66899a5df83b6979ff",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "NoiseLayerBehaviour",
+        "noiseType": "OpenSimplex2S",
+        "dimensions": "TwoD",
+        "seed": 323,
+        "scale": 12.0,
+        "scaleY": 0.0,
+        "linkScale": true,
+        "offset": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "periodic": "None",
+        "fractal": "FBm",
+        "octaves": 4,
+        "lacunarity": 2.0,
+        "gain": 0.5,
+        "weightedStrength": 0.0,
+        "warp": "OpenSimplex2Reduced",
+        "warpStrength": 0.3,
+        "warpScale": 1.0,
+        "warpScaleY": 0.0,
+        "linkWarpScale": true,
+        "encoding": "LinearData",
+        "inverted": false,
+        "recoveryId": "9bbedc78e1254997b5518dc013f3e71f"
+      },
+      "behaviourId": "9bbedc78e1254997b5518dc013f3e71f",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "0302830987a34cbe8d0e0fd63780b38e",
+      "layerName": "Smoke Lobe 01",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx10",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.86 [0 .. 1]\r\n// @param point _Center = (0.32, 0.42)\r\n// @param float _Radius = 0.135 [0.02 .. 0.4]\r\n// @param float _Detail = 0.32 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 0.86,
+              "id": "c146a152e511446fb42d6525bc4280ee",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Center",
+              "type": "Point",
+              "vectorValue": [
+                0.32,
+                0.42,
+                0.0,
+                0.0
+              ],
+              "id": "9df98e2c36b84d1f8d295235c436c8da",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Radius",
+              "type": "Float",
+              "floatValue": 0.135,
+              "id": "10e6c99778f6464fbff80a20cf7fdb06",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Detail",
+              "type": "Float",
+              "floatValue": 0.32,
+              "id": "51248013d09e46cb804b96fc24c8c561",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Softness",
+              "type": "Float",
+              "floatValue": 0.75,
+              "id": "e1fa7c4dea79452e84a9e66e74e18a53",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "da336814783944f487f71204e3741ece",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "NoiseLayerBehaviour",
+        "noiseType": "OpenSimplex2S",
+        "dimensions": "TwoD",
+        "seed": 150,
+        "scale": 12.0,
+        "scaleY": 0.0,
+        "linkScale": true,
+        "offset": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "periodic": "None",
+        "fractal": "FBm",
+        "octaves": 4,
+        "lacunarity": 2.0,
+        "gain": 0.5,
+        "weightedStrength": 0.0,
+        "warp": "OpenSimplex2Reduced",
+        "warpStrength": 0.3,
+        "warpScale": 1.0,
+        "warpScaleY": 0.0,
+        "linkWarpScale": true,
+        "encoding": "LinearData",
+        "inverted": false,
+        "recoveryId": "b8e81e44f7ff43198cdf983e28283f0d"
+      },
+      "behaviourId": "b8e81e44f7ff43198cdf983e28283f0d",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "ad92f531ea5d4729a69f8cb073831953",
+      "layerName": "Base Mist",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx11",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Unlit Smoke Density\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.12 [0 .. 1]\r\n// @param point _Center = (0.5, 0.49)\r\n// @param float _Radius = 0.33 [0.02 .. 0.4]\r\n// @param float _Detail = 0.25 [0 .. 1]\r\n// @param float _Softness = 0.75 [0.1 .. 1]\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n    float n=saturate(color.r);\r\n    float m=SampleInput(saturate(uv+float2(.08,.11))).r;\r\n    float2 p=(uv-_Center)/_Radius;\r\n    float2 q=p+float2(n-.5,m-.5)*_Detail*.65;\r\n    float r=length(q);\r\n    float density=exp(-pow(r/.78,lerp(4,2,_Softness))*1.2);\r\n    float alpha=density*(1-smoothstep(.95,1.28,r))*_Opacity;\r\n    alpha*=lerp(1,smoothstep(.05,.75,n),_Detail*.6);\r\n    return float4(1,1,1,saturate(alpha));\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 0.12,
+              "id": "c4948a6da9bc43d994aa700d3061fd93",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Center",
+              "type": "Point",
+              "vectorValue": [
+                0.5,
+                0.49,
+                0.0,
+                0.0
+              ],
+              "id": "5affede4b28346279e96cc17e19d8c73",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Radius",
+              "type": "Float",
+              "floatValue": 0.33,
+              "id": "69bc86008b374ddbb29cf0616c583c07",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Detail",
+              "type": "Float",
+              "floatValue": 0.25,
+              "id": "c1ae1033a0e64ff49bd4d5f8f1016078",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Softness",
+              "type": "Float",
+              "floatValue": 0.75,
+              "id": "56e2679639b249638d0390a6ce78a16a",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "9ae99130222f423eb1bdca3ed0cdf637",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "NoiseLayerBehaviour",
+        "noiseType": "OpenSimplex2S",
+        "dimensions": "TwoD",
+        "seed": 467,
+        "scale": 8.0,
+        "scaleY": 0.0,
+        "linkScale": true,
+        "offset": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "periodic": "None",
+        "fractal": "FBm",
+        "octaves": 4,
+        "lacunarity": 2.0,
+        "gain": 0.5,
+        "weightedStrength": 0.0,
+        "warp": "OpenSimplex2Reduced",
+        "warpStrength": 0.3,
+        "warpScale": 1.0,
+        "warpScaleY": 0.0,
+        "linkWarpScale": true,
+        "encoding": "LinearData",
+        "inverted": false,
+        "recoveryId": "9e92d3c4223040acbf26b9f345660bf2"
+      },
+      "behaviourId": "9e92d3c4223040acbf26b9f345660bf2",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    }
+  ]
+}

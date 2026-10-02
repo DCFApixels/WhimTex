@@ -12,7 +12,8 @@ public static class AgentSamplesSmoke
     const BindingFlags Hidden = BindingFlags.Instance | BindingFlags.NonPublic;
     const string Folder = "Packages/com.dcfapixels.whimtex/Samples~/AgentTextures/";
     [Serializable] public sealed class Manifest { public Entry[] samples; }
-    [Serializable] public sealed class Entry { public string title, document, recipe; public int layers; }
+    [Serializable] public sealed class Entry { public string title, recipe, preview; public int layers; public Canvas canvas; public bool outputSrgb; }
+    [Serializable] public sealed class Canvas { public int width, height; public string filter; }
     static void Check(bool value, string message) { if (!value) throw new Exception(message); }
     static int CheckLayers(List<Layer> layers)
     {
@@ -36,50 +37,72 @@ public static class AgentSamplesSmoke
         }
         return count;
     }
-    public static string Run()
+    public static string Run(int start = 0, int count = 38)
     {
         var json = Type.GetType("Newtonsoft.Json.JsonConvert, Newtonsoft.Json", true);
         var manifest = (Manifest)json.GetMethod("DeserializeObject", new[] { typeof(string), typeof(Type) })
             .Invoke(null, new object[] { File.ReadAllText(Folder + "manifest.json"), typeof(Manifest) });
-        var read = typeof(WhimTexApi).GetMethod("ReadProceduralClipboard", BindingFlags.Static | BindingFlags.NonPublic);
-        Check(manifest.samples.Length == 12, "Expected twelve samples.");
-        foreach (var entry in manifest.samples)
+        Check(manifest.samples.Length == 38, "Expected 38 samples.");
+        Check(start >= 0 && start < manifest.samples.Length && count > 0, "Invalid sample range.");
+        var ldr = typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.HdrUtility")
+            .GetMethod("ToLdr", BindingFlags.Static | BindingFlags.NonPublic);
+        int checkedCount = 0;
+        for (int sampleIndex = start; sampleIndex < Math.Min(start + count, manifest.samples.Length); sampleIndex++)
         {
-            TextureCompositor saved = null;
-            Texture2D a = null, b = null;
+            var entry = manifest.samples[sampleIndex];
+            Texture2D preview = null, rendered = null, encoded = null;
             try
             {
-                string path = Path.GetFullPath(Folder + entry.document);
-                Check(WhimTexDocumentFile.IsDocument(path), entry.title + " is not an editable TIFF.");
-                Check(WhimTexDocumentFile.TryLoad(path, out saved, out string error), entry.title + ": " + error);
-                Check(saved.width == 256 && saved.height == 256, entry.title + " canvas dimensions.");
-                using var recipe = (IDisposable)read.Invoke(null, new object[] { File.ReadAllText(Folder + entry.recipe), 256, 256 });
-                recipe.GetType().GetMethod("Compile", Hidden).Invoke(recipe, null);
-                var generated = (TextureCompositor)recipe.GetType().GetField("Document", Hidden).GetValue(recipe);
-                generated.outputFilter = FilterMode.Bilinear;
-                Check(CheckLayers(saved.layers) == entry.layers, entry.title + " TIFF layer count.");
-                Check(CheckLayers(generated.layers) == entry.layers, entry.title + " recipe layer count.");
-                a = saved.Compose(); b = generated.Compose();
-                Check(a.width == 256 && a.height == 256 && b.width == 256 && b.height == 256, entry.title + " render dimensions.");
-                var pa = a.GetPixels(); var pb = b.GetPixels();
-                double difference = 0, alpha = 0;
-                for (int i = 0; i < pa.Length; i++)
+                int width = entry.canvas.width, height = entry.canvas.height;
+                Check(Math.Max(width, height) == 256, entry.title + " canvas dimensions.");
+                using var recipe = WhimTexDocumentJson.Read(File.ReadAllText(Folder + entry.recipe));
+                var generated = recipe.Document;
+                Check(generated.outputFilter.ToString() == entry.canvas.filter && generated.outputSrgb == entry.outputSrgb, "Stored output settings differ.");
+                rendered = generated.Compose();
+                Check(CheckLayers(generated.layers) == entry.layers, entry.title + " layer count.");
+                Check(rendered.width == width && rendered.height == height, entry.title + " render dimensions.");
+                double alpha = 0;
+                foreach (var pixel in rendered.GetPixels())
                 {
-                    var x = pa[i]; var y = pb[i];
-                    Check(float.IsFinite(x.r) && float.IsFinite(x.g) && float.IsFinite(x.b) && float.IsFinite(x.a), entry.title + " non-finite output.");
-                    difference += Math.Abs(x.r-y.r) + Math.Abs(x.g-y.g) + Math.Abs(x.b-y.b) + Math.Abs(x.a-y.a);
-                    alpha += x.a;
+                    Check(float.IsFinite(pixel.r) && float.IsFinite(pixel.g) && float.IsFinite(pixel.b) && float.IsFinite(pixel.a), entry.title + " non-finite output.");
+                    alpha += pixel.a;
                 }
                 Check(alpha > 1, entry.title + " is empty.");
-                Check(difference / (pa.Length * 4) < .001, entry.title + " TIFF differs from the recipe: " + difference / (pa.Length * 4));
+                if (entry.outputSrgb) encoded = (Texture2D)ldr.Invoke(null, new object[] { rendered, false });
+                else
+                {
+                    encoded = new Texture2D(width, height, TextureFormat.RGBA32, false, true);
+                    encoded.SetPixels(rendered.GetPixels()); encoded.Apply();
+                    if (entry.recipe == "Sphere_Distortion.whimtex.json")
+                    {
+                        var neutral = rendered.GetPixel(0, 0);
+                        Check(Math.Abs(neutral.r - .5f) < .001f && Math.Abs(neutral.g - .5f) < .001f && neutral.b == 0,
+                            "Sphere vector field must retain neutral RG=0.5, B=0.");
+                    }
+                }
+                preview = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+                Check(preview.LoadImage(File.ReadAllBytes(Folder + entry.preview)), entry.title + " invalid PNG.");
+                Check(preview.width == width && preview.height == height, entry.title + " PNG dimensions.");
+                var actual = encoded.GetPixels32(); var expected = preview.GetPixels32();
+                double difference = 0; int maximum = 0;
+                for (int i = 0; i < actual.Length; i++)
+                {
+                    var a = actual[i]; var b = expected[i];
+                    int r=Math.Abs(a.r-b.r), g=Math.Abs(a.g-b.g), blue=Math.Abs(a.b-b.b), opacity=Math.Abs(a.a-b.a);
+                    difference += r+g+blue+opacity;
+                    maximum = Math.Max(maximum, Math.Max(Math.Max(r,g),Math.Max(blue,opacity)));
+                }
+                Check(maximum <= 2 && difference / (actual.Length * 4) <= .05,
+                    entry.title + " preview differs: byte MAE=" + difference / (actual.Length * 4) + ", max=" + maximum);
+                checkedCount++;
             }
             finally
             {
-                if (a != null) UnityEngine.Object.DestroyImmediate(a);
-                if (b != null) UnityEngine.Object.DestroyImmediate(b);
-                if (saved != null) UnityEngine.Object.DestroyImmediate(saved);
+                if (preview != null) UnityEngine.Object.DestroyImmediate(preview);
+                if (rendered != null) UnityEngine.Object.DestroyImmediate(rendered);
+                if (encoded != null) UnityEngine.Object.DestroyImmediate(encoded);
             }
         }
-        return "PASS: 12 package TIFFs reload at 256x256; all recipes compile without warnings, preserve layer counts and reproduce their TIFF renders.";
+        return "PASS: " + checkedCount + " recipes from index " + start + " compile without warnings, preserve dimensions/layer counts and match their individual PNG previews.";
     }
 }

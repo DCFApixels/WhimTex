@@ -318,7 +318,7 @@ namespace DCFApixels.WhimTex
                 {
                     var include = PortableInclude.Match(clean);
                     if (!include.Success || !PortableIncludes.Contains(include.Groups[1].Value))
-                        throw new FormatException("Portable FX only accepts literal built-in includes: " + string.Join(", ", PortableIncludes) + ". Copy as Portable expands other files on the sender's machine.");
+                        throw new FormatException("Legacy clipboard FX only accepts literal built-in includes: " + string.Join(", ", PortableIncludes) + ". Use Copy as JSON to export the current document format.");
                 }
                 else if (!PortableDirectives.Contains(name))
                     throw new FormatException("Unsupported portable HLSL directive: #" + name);

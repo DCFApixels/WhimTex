@@ -27,7 +27,7 @@ function matches(rule, value) {
     (rule.type !== 'integer' || Number.isInteger(value)) && value >= rule.minimum && value <= rule.maximum;
   return true;
 }
-const directory = path.join(root, 'Documentation~/Examples/Clipboard');
+const directory = path.join(root, 'Tests~/Fixtures/LegacyClipboard');
 for (const file of fs.readdirSync(directory).filter(f => f.endsWith('.json')))
   assert.ok(matches(schema, JSON.parse(fs.readFileSync(path.join(directory, file), 'utf8'))), file + ' does not match the schema');
 const samples = path.join(root, 'Samples~/AgentTextures');
@@ -36,7 +36,7 @@ for (const file of fs.readdirSync(samples).filter(f => f.endsWith('.layers.json'
 assert.equal(matches(schema.$defs.fx, {code:'float4 ApplyFX(float2 uv, float4 color) { return color; }', textures:{_Map:{layer:'noise'}}}), true);
 assert.equal(matches(schema.$defs.fx, {code:'x', textures:{_Map:{asset:'external'}}}), false);
 assert.equal(matches(schema.$defs.fx, {code:'x', gradients:{_Tint:'invalid'}}), false);
-const guide = read('Documentation~/AI/README.md');
+const guide = read('Documentation~/AI/LEGACY_LAYERS.md');
 for (const type of ['outline', 'sdf', 'normalMap', 'blur', 'sharpen', 'makeSeamless']) {
   assert.equal(matches(schema.$defs.layer, { type, input: 'AllBelow' }), true);
   assert.equal(matches(schema.$defs.layer, { type, input: 'Unknown' }), false);
@@ -82,6 +82,10 @@ assert.ok(!linked.includes('placement.scale'), 'The hand-rolled fit math is gone
 assert.match(linked, /ImageUrlMaximumBytes = 64 \* 1024 \* 1024/);
 assert.match(linked, /jsonPasteData|clipboardPasteData/, 'Linked images are pasted by the download batch');
 const parser = read('src/Automation/WhimTexApi.Clipboard.cs');
+assert.match(parser, /TryPrepareDocumentEffect\(out string warning\)/, 'Clipboard shares the soft document FX preparation path');
+assert.match(parser, /!Warnings.Contains\(warning\)/, 'Repeated preparation does not duplicate paste warnings');
+assert.ok(linked.indexOf('"Paste with warnings"') < linked.indexOf('PasteCopiedLayers(data.Document'), 'Warning confirmation precedes insertion');
+assert.match(linked, /string.Join\("\\n\\n", data.Warnings\), "Paste", "Cancel"\)\) return false;/, 'Cancel must leave before insertion');
 assert.match(parser, /url is only supported on Drawing layers/);
 assert.match(linked, /if \(fit && layer.TryGetOriginalAspectTransform/);
 assert.match(parser, /link\.Scheme == "http" \|\| link\.Scheme == "https"/);
@@ -98,7 +102,7 @@ assert.equal(matches(schema, { format: 'whimtex.layers', version: 1, layers: [{ 
 // A linked Drawing layer must be discoverable from every entry point an AI reads first.
 for (const file of ['README.md', 'README-RU.md', 'AI_AUTHORING.md', 'AGENTS.md'])
   assert.match(read(file), /url/, file + ' must name the linked Drawing layer (url)');
-assert.match(guide, /Drawing layer that has a `url`/, 'The authoring guide must state the linked Drawing layer');
+assert.match(guide, /A Drawing layer owns its pixels/, 'Legacy URL inputs remain documented');
 for (const [name, text] of [['AI/README.md', guide],
                             ['en/ai-authoring.md', read('Documentation~/en/ai-authoring.md')],
                             ['ru/ai-authoring.md', read('Documentation~/ru/ai-authoring.md')]]) {

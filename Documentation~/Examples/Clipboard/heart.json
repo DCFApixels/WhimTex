@@ -1,145 +1,755 @@
 {
-  "format": "whimtex.layers",
+  "format": "whimtex.document",
   "version": 1,
-  "canvas": {
+  "document": {
+    "colorHistory": [],
+    "layerNameCounters": [
+      {
+        "prefix": "Group",
+        "next": 3
+      },
+      {
+        "prefix": "SDF",
+        "next": 2
+      },
+      {
+        "prefix": "Blur",
+        "next": 2
+      },
+      {
+        "prefix": "Shape",
+        "next": 3
+      },
+      {
+        "prefix": "Gradient",
+        "next": 2
+      },
+      {
+        "prefix": "Color Fill",
+        "next": 2
+      },
+      {
+        "prefix": "Outline",
+        "next": 2
+      }
+    ],
+    "nextCopyNumber": 1,
+    "spriteSlices": [],
     "width": 512,
-    "height": 512
+    "height": 512,
+    "outputFilter": "Bilinear",
+    "outputPrecision": "Auto",
+    "outputSrgb": true,
+    "uvReferenceMesh": null,
+    "uvReferenceChannel": 0,
+    "uvReferenceSubmesh": -1
   },
   "layers": [
     {
-      "type": "group",
-      "name": "Heart",
-      "properties": {
-        "compositing": "Isolated"
+      "id": "ab05ec78ef994d079df8e3b2e538b509",
+      "layerName": "Heart",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
       },
+      "modifiers": [],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Clip"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "GroupLayerBehaviour",
+        "recoveryId": "ca3deffb57de4aaa88ee1d1b7a9e3df8"
+      },
+      "behaviourId": "ca3deffb57de4aaa88ee1d1b7a9e3df8",
       "children": [
         {
-          "type": "sdf",
-          "name": "Rimlight",
-          "properties": {
-            "opacity": 0.4,
-            "clippingMask": true,
-            "distancePosition": "Inside",
-            "maxDistance": 19.8,
-            "gradient": [
-              {
-                "time": 0,
-                "color": [1, 0.714147866, 0.635294139, 1]
-              },
-              {
-                "time": 1,
-                "color": [1, 0.635294139, 0.7029992, 0]
-              }
-            ]
+          "id": "be536e404b0a40a682745236da82072c",
+          "layerName": "Rimlight",
+          "enabled": true,
+          "clippingMask": true,
+          "opacity": 0.4,
+          "blendMode": "Normal",
+          "colorRange": "Standard",
+          "blendRange": "Standard",
+          "swizzle": {
+            "packed": 0
           },
+          "modifiers": [],
           "transform": {
-            "position": [1.77459717, 7.9291687],
-            "scale": [1.06605351, 1.03097332]
+            "pivot": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "position": {
+              "x": 1.77459717,
+              "y": 7.9291687
+            },
+            "scale": {
+              "x": 1.06605351,
+              "y": 1.03097332
+            },
+            "rotation": 0.0,
+            "storage": "TRS",
+            "matrix": {
+              "m00": 0.0,
+              "m01": 0.0,
+              "m02": 0.0,
+              "m10": 0.0,
+              "m11": 0.0,
+              "m12": 0.0,
+              "m20": 0.0,
+              "m21": 0.0,
+              "m22": 0.0
+            },
+            "tiling": "Clip"
           },
-          "target": "heart-shape"
+          "filterMode": "Source",
+          "behaviour": {
+            "$type": "SDFLayerBehaviour",
+            "metric": "EuclideanExact",
+            "sourceChannel": "Alpha",
+            "threshold": 128,
+            "distancePosition": "Inside",
+            "inverted": false,
+            "maxDistanceNormalization": 19.8,
+            "sourceOffset": [
+              0.0,
+              0.0
+            ],
+            "sourceEdges": "Transparent",
+            "contourOffset": 0.0,
+            "insideDistance": 0.0,
+            "outsideDistance": 0.0,
+            "profile": {
+              "preWrap": "ClampForever",
+              "postWrap": "ClampForever",
+              "keys": [
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.0,
+                  0.0,
+                  "None"
+                ],
+                [
+                  1.0,
+                  1.0,
+                  1.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  "None"
+                ]
+              ]
+            },
+            "encoding": "Gradient",
+            "gradient": {
+              "colors": [
+                {
+                  "color": [
+                    1.0,
+                    0.714147866,
+                    0.635294139,
+                    1.0
+                  ],
+                  "time": 0.0,
+                  "midpoint": 0.5
+                },
+                {
+                  "color": [
+                    1.0,
+                    0.635294139,
+                    0.7029992,
+                    0.0
+                  ],
+                  "time": 1.0,
+                  "midpoint": 0.5
+                }
+              ],
+              "alphas": [
+                {
+                  "alpha": 1.0,
+                  "time": 0.0,
+                  "midpoint": 0.5
+                },
+                {
+                  "alpha": 0.0,
+                  "time": 1.0,
+                  "midpoint": 0.5
+                }
+              ],
+              "mode": "Perceptual",
+              "wrapMode": "Clamp",
+              "colorSpace": "Gamma",
+              "smoothness": 1.0
+            },
+            "targetLayerId": "3cfc9a67ac374ef0b254e9c9867d6c19",
+            "inputMode": "Specific",
+            "recoveryId": "766ee10353494989b68dde49b2317f84"
+          },
+          "behaviourId": "766ee10353494989b68dde49b2317f84",
+          "children": null,
+          "group": false,
+          "compositing": "PassThrough"
         },
         {
-          "type": "blur",
-          "name": "Highlight Glow · Gaussian",
-          "properties": {
-            "clippingMask": true,
-            "blur": {
-              "strength": 3.17299986,
-              "radius": 58.5
-            }
+          "id": "7f8bce12098a46969d1fa2cfb32b8fe3",
+          "layerName": "Highlight Glow · Gaussian",
+          "enabled": true,
+          "clippingMask": true,
+          "opacity": 1.0,
+          "blendMode": "Normal",
+          "colorRange": "Standard",
+          "blendRange": "Standard",
+          "swizzle": {
+            "packed": 0
           },
-          "target": "highlights"
+          "modifiers": [],
+          "transform": {
+            "pivot": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "rotation": 0.0,
+            "storage": "TRS",
+            "matrix": {
+              "m00": 0.0,
+              "m01": 0.0,
+              "m02": 0.0,
+              "m10": 0.0,
+              "m11": 0.0,
+              "m12": 0.0,
+              "m20": 0.0,
+              "m21": 0.0,
+              "m22": 0.0
+            },
+            "tiling": "Clip"
+          },
+          "filterMode": "Source",
+          "behaviour": {
+            "$type": "BlurLayerBehaviour",
+            "strength": 3.17299986,
+            "radius": 58.5,
+            "edges": "Transparent",
+            "mode": "Gaussian",
+            "targetLayerId": "e887fb6235054d5288806f0a6aea20d6",
+            "inputMode": "Specific",
+            "recoveryId": "e7d4d12dd6a648c09a46864818899385"
+          },
+          "behaviourId": "e7d4d12dd6a648c09a46864818899385",
+          "children": null,
+          "group": false,
+          "compositing": "PassThrough"
         },
         {
-          "type": "group",
-          "id": "highlights",
-          "name": "Highlight · Ellipses",
-          "properties": {
-            "clippingMask": true,
-            "compositing": "Isolated"
+          "id": "e887fb6235054d5288806f0a6aea20d6",
+          "layerName": "Highlight · Ellipses",
+          "enabled": true,
+          "clippingMask": true,
+          "opacity": 1.0,
+          "blendMode": "Normal",
+          "colorRange": "Standard",
+          "blendRange": "Standard",
+          "swizzle": {
+            "packed": 0
           },
+          "modifiers": [],
+          "transform": {
+            "pivot": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "rotation": 0.0,
+            "storage": "TRS",
+            "matrix": {
+              "m00": 0.0,
+              "m01": 0.0,
+              "m02": 0.0,
+              "m10": 0.0,
+              "m11": 0.0,
+              "m12": 0.0,
+              "m20": 0.0,
+              "m21": 0.0,
+              "m22": 0.0
+            },
+            "tiling": "Clip"
+          },
+          "filterMode": "Source",
+          "behaviour": {
+            "$type": "GroupLayerBehaviour",
+            "recoveryId": "196adaca0a894597aa6ba8e756bb5eb1"
+          },
+          "behaviourId": "196adaca0a894597aa6ba8e756bb5eb1",
           "children": [
             {
-              "type": "shape",
-              "name": "Large Highlight",
-              "properties": {
-                "shape": {
-                  "kind": "Ellipse",
-                  "fillColor": [1, 0.9, 0.87, 0.62]
-                }
+              "id": "0f66bf93601e404a87a70b811115265d",
+              "layerName": "Large Highlight",
+              "enabled": true,
+              "clippingMask": false,
+              "opacity": 1.0,
+              "blendMode": "Normal",
+              "colorRange": "Standard",
+              "blendRange": "Standard",
+              "swizzle": {
+                "packed": 0
               },
+              "modifiers": [],
               "transform": {
-                "position": [-117, 112],
-                "scale": [0.055, 0.1],
-                "rotation": -35
-              }
+                "pivot": {
+                  "x": 0.5,
+                  "y": 0.5
+                },
+                "position": {
+                  "x": -117.0,
+                  "y": 112.0
+                },
+                "scale": {
+                  "x": 0.055,
+                  "y": 0.1
+                },
+                "rotation": -35.0,
+                "storage": "TRS",
+                "matrix": {
+                  "m00": 0.0,
+                  "m01": 0.0,
+                  "m02": 0.0,
+                  "m10": 0.0,
+                  "m11": 0.0,
+                  "m12": 0.0,
+                  "m20": 0.0,
+                  "m21": 0.0,
+                  "m22": 0.0
+                },
+                "tiling": "Clip"
+              },
+              "filterMode": "Source",
+              "behaviour": {
+                "$type": "ShapeLayerBehaviour",
+                "kind": "Ellipse",
+                "fillColor": [
+                  1.0,
+                  0.9,
+                  0.87,
+                  0.62
+                ],
+                "fill": true,
+                "stroke": false,
+                "feather": 0.0,
+                "recoveryId": "0558049a542a46069614b1f759ecd4a1"
+              },
+              "behaviourId": "0558049a542a46069614b1f759ecd4a1",
+              "children": null,
+              "group": false,
+              "compositing": "PassThrough"
             },
             {
-              "type": "shape",
-              "name": "Small Highlight",
-              "properties": {
-                "shape": {
-                  "kind": "Ellipse",
-                  "fillColor": [1, 0.9, 0.87, 0.62]
-                }
+              "id": "61d5578515494ce88c72d7bfb891e74c",
+              "layerName": "Small Highlight",
+              "enabled": true,
+              "clippingMask": false,
+              "opacity": 1.0,
+              "blendMode": "Normal",
+              "colorRange": "Standard",
+              "blendRange": "Standard",
+              "swizzle": {
+                "packed": 0
               },
+              "modifiers": [],
               "transform": {
-                "position": [-85, 134],
-                "scale": [0.033, 0.033]
-              }
+                "pivot": {
+                  "x": 0.5,
+                  "y": 0.5
+                },
+                "position": {
+                  "x": -85.0,
+                  "y": 134.0
+                },
+                "scale": {
+                  "x": 0.033,
+                  "y": 0.033
+                },
+                "rotation": 0.0,
+                "storage": "TRS",
+                "matrix": {
+                  "m00": 0.0,
+                  "m01": 0.0,
+                  "m02": 0.0,
+                  "m10": 0.0,
+                  "m11": 0.0,
+                  "m12": 0.0,
+                  "m20": 0.0,
+                  "m21": 0.0,
+                  "m22": 0.0
+                },
+                "tiling": "Clip"
+              },
+              "filterMode": "Source",
+              "behaviour": {
+                "$type": "ShapeLayerBehaviour",
+                "kind": "Ellipse",
+                "fillColor": [
+                  1.0,
+                  0.9,
+                  0.87,
+                  0.62
+                ],
+                "fill": true,
+                "stroke": false,
+                "feather": 0.0,
+                "recoveryId": "bdd79420ac184aca8419538f266a1a49"
+              },
+              "behaviourId": "bdd79420ac184aca8419538f266a1a49",
+              "children": null,
+              "group": false,
+              "compositing": "PassThrough"
             }
-          ]
+          ],
+          "group": true,
+          "compositing": "Isolated"
         },
         {
-          "type": "gradient",
-          "name": "Pink → Raspberry · Clipping",
-          "properties": {
-            "clippingMask": true,
-            "gradient": [
-              {
-                "time": 0,
-                "color": [0.56, 0.035, 0.18, 1]
-              },
-              {
-                "time": 0.2399939,
-                "color": [0.83, 0.06, 0.25, 1]
-              },
-              {
-                "time": 0.6,
-                "color": [1, 0.24, 0.39, 1]
-              },
-              {
-                "time": 1,
-                "color": [1, 0.65, 0.66, 1]
-              }
-            ]
-          }
+          "id": "bd9838dcd6c545cd98830b0656d5e6c6",
+          "layerName": "Pink → Raspberry · Clipping",
+          "enabled": true,
+          "clippingMask": true,
+          "opacity": 1.0,
+          "blendMode": "Normal",
+          "colorRange": "Standard",
+          "blendRange": "Standard",
+          "swizzle": {
+            "packed": 0
+          },
+          "modifiers": [],
+          "transform": {
+            "pivot": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "rotation": 0.0,
+            "storage": "TRS",
+            "matrix": {
+              "m00": 0.0,
+              "m01": 0.0,
+              "m02": 0.0,
+              "m10": 0.0,
+              "m11": 0.0,
+              "m12": 0.0,
+              "m20": 0.0,
+              "m21": 0.0,
+              "m22": 0.0
+            },
+            "tiling": "Unbounded"
+          },
+          "filterMode": "Source",
+          "behaviour": {
+            "$type": "GradientLayerBehaviour",
+            "gradientType": "Vertical",
+            "gradient": {
+              "colors": [
+                {
+                  "color": [
+                    0.56,
+                    0.035,
+                    0.18,
+                    1.0
+                  ],
+                  "time": 0.0,
+                  "midpoint": 0.5
+                },
+                {
+                  "color": [
+                    0.83,
+                    0.06,
+                    0.25,
+                    1.0
+                  ],
+                  "time": 0.2399939,
+                  "midpoint": 0.5
+                },
+                {
+                  "color": [
+                    1.0,
+                    0.24,
+                    0.39,
+                    1.0
+                  ],
+                  "time": 0.6,
+                  "midpoint": 0.5
+                },
+                {
+                  "color": [
+                    1.0,
+                    0.65,
+                    0.66,
+                    1.0
+                  ],
+                  "time": 1.0,
+                  "midpoint": 0.5
+                }
+              ],
+              "alphas": [
+                {
+                  "alpha": 1.0,
+                  "time": 0.0,
+                  "midpoint": 0.5
+                },
+                {
+                  "alpha": 1.0,
+                  "time": 0.2399939,
+                  "midpoint": 0.5
+                },
+                {
+                  "alpha": 1.0,
+                  "time": 0.6,
+                  "midpoint": 0.5
+                },
+                {
+                  "alpha": 1.0,
+                  "time": 1.0,
+                  "midpoint": 0.5
+                }
+              ],
+              "mode": "Perceptual",
+              "wrapMode": "Clamp",
+              "colorSpace": "Gamma",
+              "smoothness": 1.0
+            },
+            "recoveryId": "720f5e5922e64853b7420c44585ef221"
+          },
+          "behaviourId": "720f5e5922e64853b7420c44585ef221",
+          "children": null,
+          "group": false,
+          "compositing": "PassThrough"
         },
         {
-          "type": "color",
-          "id": "heart-shape",
-          "name": "Heart Shape",
-          "fx": [
+          "id": "3cfc9a67ac374ef0b254e9c9867d6c19",
+          "layerName": "Heart Shape",
+          "enabled": true,
+          "clippingMask": false,
+          "opacity": 1.0,
+          "blendMode": "Normal",
+          "colorRange": "Standard",
+          "blendRange": "Standard",
+          "swizzle": {
+            "packed": 0
+          },
+          "modifiers": [
             {
-              "name": "Heart Shape FX",
-              "code": "// @param float _HeartWidth = 1 [0.65 .. 1.25]\n// @param float _NotchDepth = 1 [0.35 .. 1.8]\n// @param float _TipLength = 1 [0.65 .. 1.3]\n// @param float _Fullness = 1 [0.25 .. 1.8]\n\nfloat2 HeartCurve(float2 a, float2 b, float2 c, float2 d, float t)\n{\n    float s = 1-t;\n    return s*s*s*a + 3*s*s*t*b + 3*s*t*t*c + t*t*t*d;\n}\nvoid HeartEdge(float2 p, float2 a, float2 b, inout float distanceSq, inout float crossings)\n{\n    float2 e=b-a, v=p-a;\n    float2 nearPoint=v-e*saturate(dot(v,e)/max(dot(e,e),0.000001));\n    distanceSq=min(distanceSq,dot(nearPoint,nearPoint));\n    if ((a.y>p.y)!=(b.y>p.y))\n    {\n        float x=a.x+(p.y-a.y)*(b.x-a.x)/(b.y-a.y);\n        if(x>p.x)crossings+=1;\n    }\n}\nvoid HeartArc(float2 p, float2 a, float2 b, float2 c, float2 d, inout float distanceSq, inout float crossings)\n{\n    float2 previous=a;\n    [unroll] for(int i=1;i<=20;i++)\n    {\n        float2 next=HeartCurve(a,b,c,d,i/20.0);\n        HeartEdge(p,previous,next,distanceSq,crossings);\n        previous=next;\n    }\n}\nfloat4 ApplyFX(float2 uv, float4 color)\n{\n    uv = LayerToLocal(uv);\n    float2 p=float2(abs(uv.x*512-256),(1-uv.y)*512);\n    float d=1000000, crossings=0;\n    // Shape controls move the curve anchors, keeping symmetry and smooth joins.\n    float width = _HeartWidth;\n    float notch = 96.0 + 62.0 * _NotchDepth;\n    float tip = 178.0 + 229.0 * _TipLength;\n    HeartArc(p, float2(0,notch), float2(22*width,96+21*_NotchDepth),\n        float2(62*width,96), float2(95*width,96), d,crossings);\n    HeartArc(p, float2(95*width,96), float2(144*width,96),\n        float2(180*width,131), float2(180*width,178), d,crossings);\n    HeartArc(p, float2(180*width,178), float2(180*width,178+88*_TipLength),\n        float2(79*width*_Fullness,178+164*_TipLength), float2(0,tip), d,crossings);\n    float signedDistance=sqrt(d)*(fmod(crossings,2)>0.5?-1:1);\n    float aa=max(fwidth(signedDistance), 0.0001);\n    color.a*=saturate(0.5-signedDistance/aa);\n    return color;\n}"
+              "$type": "ShaderFX",
+              "$id": "fx0",
+              "active": true,
+              "code": "// @param float _HeartWidth = 1 [0.65 .. 1.25]\r\n// @param float _NotchDepth = 1 [0.35 .. 1.8]\r\n// @param float _TipLength = 1 [0.65 .. 1.3]\r\n// @param float _Fullness = 1 [0.25 .. 1.8]\r\n\r\nfloat2 HeartCurve(float2 a, float2 b, float2 c, float2 d, float t)\r\n{\r\n    float s = 1-t;\r\n    return s*s*s*a + 3*s*s*t*b + 3*s*t*t*c + t*t*t*d;\r\n}\r\nvoid HeartEdge(float2 p, float2 a, float2 b, inout float distanceSq, inout float crossings)\r\n{\r\n    float2 e=b-a, v=p-a;\r\n    float2 nearPoint=v-e*saturate(dot(v,e)/max(dot(e,e),0.000001));\r\n    distanceSq=min(distanceSq,dot(nearPoint,nearPoint));\r\n    if ((a.y>p.y)!=(b.y>p.y))\r\n    {\r\n        float x=a.x+(p.y-a.y)*(b.x-a.x)/(b.y-a.y);\r\n        if(x>p.x)crossings+=1;\r\n    }\r\n}\r\nvoid HeartArc(float2 p, float2 a, float2 b, float2 c, float2 d, inout float distanceSq, inout float crossings)\r\n{\r\n    float2 previous=a;\r\n    [unroll] for(int i=1;i<=20;i++)\r\n    {\r\n        float2 next=HeartCurve(a,b,c,d,i/20.0);\r\n        HeartEdge(p,previous,next,distanceSq,crossings);\r\n        previous=next;\r\n    }\r\n}\r\nfloat4 ApplyFX(float2 uv, float4 color)\r\n{\r\n    uv = LayerToLocal(uv);\r\n    float2 p=float2(abs(uv.x*512-256),(1-uv.y)*512);\r\n    float d=1000000, crossings=0;\r\n    // Shape controls move the curve anchors, keeping symmetry and smooth joins.\r\n    float width = _HeartWidth;\r\n    float notch = 96.0 + 62.0 * _NotchDepth;\r\n    float tip = 178.0 + 229.0 * _TipLength;\r\n    HeartArc(p, float2(0,notch), float2(22*width,96+21*_NotchDepth),\r\n        float2(62*width,96), float2(95*width,96), d,crossings);\r\n    HeartArc(p, float2(95*width,96), float2(144*width,96),\r\n        float2(180*width,131), float2(180*width,178), d,crossings);\r\n    HeartArc(p, float2(180*width,178), float2(180*width,178+88*_TipLength),\r\n        float2(79*width*_Fullness,178+164*_TipLength), float2(0,tip), d,crossings);\r\n    float signedDistance=sqrt(d)*(fmod(crossings,2)>0.5?-1:1);\r\n    float aa=max(fwidth(signedDistance), 0.0001);\r\n    color.a*=saturate(0.5-signedDistance/aa);\r\n    return color;\r\n}\r\n",
+              "parameters": [
+                {
+                  "name": "_HeartWidth",
+                  "type": "Float",
+                  "floatValue": 1.0,
+                  "id": "1f2a23b7ec1d4aee97610bbdb4a7eebf",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_NotchDepth",
+                  "type": "Float",
+                  "floatValue": 1.0,
+                  "id": "28dc051991b74f5d9438898a39e558bf",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_TipLength",
+                  "type": "Float",
+                  "floatValue": 1.0,
+                  "id": "aa2eabc8102e48deaf12cd20df6492fb",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_Fullness",
+                  "type": "Float",
+                  "floatValue": 1.0,
+                  "id": "14378ec4dfbc404f94fe2e860b4666ce",
+                  "declaredInCode": true
+                }
+              ],
+              "shaderKey": "93631b06c547453b92e3a16480cb137d",
+              "$name": "Heart Shape FX"
             }
-          ]
+          ],
+          "transform": {
+            "pivot": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "rotation": 0.0,
+            "storage": "TRS",
+            "matrix": {
+              "m00": 0.0,
+              "m01": 0.0,
+              "m02": 0.0,
+              "m10": 0.0,
+              "m11": 0.0,
+              "m12": 0.0,
+              "m20": 0.0,
+              "m21": 0.0,
+              "m22": 0.0
+            },
+            "tiling": "Unbounded"
+          },
+          "filterMode": "Source",
+          "behaviour": {
+            "$type": "ColorFillLayerBehaviour",
+            "mode": "Color",
+            "storedColor": [
+              1.0,
+              1.0,
+              1.0,
+              1.0
+            ],
+            "recoveryId": "5ebf2e1a38b24eb187b26b1544ecdc4e"
+          },
+          "behaviourId": "5ebf2e1a38b24eb187b26b1544ecdc4e",
+          "children": null,
+          "group": false,
+          "compositing": "PassThrough"
         },
         {
-          "type": "outline",
-          "name": "Raspberry Outline",
-          "properties": {
-            "color": [0.38, 0.055, 0.14, 1],
+          "id": "ec24f84f8aa14d21bfbeaa5cee4fa4a2",
+          "layerName": "Raspberry Outline",
+          "enabled": true,
+          "clippingMask": false,
+          "opacity": 1.0,
+          "blendMode": "Normal",
+          "colorRange": "Standard",
+          "blendRange": "Standard",
+          "swizzle": {
+            "packed": 0
+          },
+          "modifiers": [],
+          "transform": {
+            "pivot": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "rotation": 0.0,
+            "storage": "TRS",
+            "matrix": {
+              "m00": 0.0,
+              "m01": 0.0,
+              "m02": 0.0,
+              "m10": 0.0,
+              "m11": 0.0,
+              "m12": 0.0,
+              "m20": 0.0,
+              "m21": 0.0,
+              "m22": 0.0
+            },
+            "tiling": "Clip"
+          },
+          "filterMode": "Source",
+          "behaviour": {
+            "$type": "OutlineLayerBehaviour",
             "metric": "EuclideanAntialiased",
+            "sourceChannel": "Alpha",
+            "outlineColor": [
+              0.38,
+              0.055,
+              0.14,
+              1.0
+            ],
             "outlineWidth": 25.41,
             "outlineSoftness": 0.65,
+            "outlineOffset": 0.0,
             "fillCenter": true,
-            "fillColor": [0.38, 0.055, 0.14, 1]
+            "fillColor": [
+              0.38,
+              0.055,
+              0.14,
+              1.0
+            ],
+            "outlinePosition": "Outside",
+            "targetLayerId": "3cfc9a67ac374ef0b254e9c9867d6c19",
+            "inputMode": "Specific",
+            "recoveryId": "808e0f14dce24ab8b4ad08e297cbb336"
           },
-          "target": "heart-shape"
+          "behaviourId": "808e0f14dce24ab8b4ad08e297cbb336",
+          "children": null,
+          "group": false,
+          "compositing": "PassThrough"
         }
-      ]
+      ],
+      "group": true,
+      "compositing": "Isolated"
     }
   ]
 }

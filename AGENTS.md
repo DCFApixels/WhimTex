@@ -6,7 +6,7 @@
 - Browser AI / clipboard JSON / standalone HLSL: [AI_AUTHORING.md](AI_AUTHORING.md) → [contract](Documentation~/AI/README.md) → [examples](Documentation~/Examples/Clipboard/README.md).
 - Edit an open compositor: read [whimtex-live skill](Skills~/whimtex-live/SKILL.md) first, then [LiveAgentAPI](Documentation~/LiveAgentAPI.md) as needed.
 - Edit a compositor by path: [AgentAPI](Documentation~/AgentAPI.md).
-- Texture/VFX authoring references: [internal agent samples](Samples~/AgentTextures/README.md). Twelve numbered 256×256 editable TIFFs with matching portable JSON recipes and previews; read the manifest and only the relevant examples.
+- Texture/VFX authoring references: [internal agent samples](Samples~/AgentTextures/README.md). 38 procedural JSON recipes with individual PNG previews, at most 256 pixels on the longest axis; no bundled TIFF duplicates. Read the manifest descriptions/tags and only the relevant examples.
 - Do not load all references for an unrelated task. These files describe rules and decisions, not Git status or a task queue.
 
 ## Identity and compatibility
@@ -44,7 +44,7 @@
 - Inline shader work uses live `fx` requests, not separate shader files by default.
 - Live image completion inserts owned Drawing pixels. For path-based imported File workflows, generate the image externally, import with `whimtex_image_import`, reuse its returned path. Read the selected workflow's contract rather than mixing the two.
 - Preserve source resolution; fit with transforms. Drawing strokes are for painting/masks/touch-ups, not a substitute for requested image generation.
-- Clipboard Drawing `url` download support is distinct from live/local image import; do not infer URL support for arbitrary API operations.
+- New document/layer clipboard recipes use `whimtex.document`; see `AI_AUTHORING.md` and `Documentation~/JSON_FORMAT.md`. Drawing `url` downloads belong only to the legacy `whimtex.layers` compatibility reader, not unified JSON or arbitrary API operations.
 
 ## UI and validation
 

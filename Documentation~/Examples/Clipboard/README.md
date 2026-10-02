@@ -1,41 +1,40 @@
 # Clipboard JSON examples for AI authors
 
-Reference recipes for AI assistants generating WhimTex layer JSON. These are not built-in editor presets
-or a user-guide gallery. Read the [authoring contract](../../AI/README.md) before adapting them.
+The nine procedural recipes below use **`whimtex.document`, version 1**, the same format as
+document files, Copy as JSON and agent serialization. Read the [authoring guide](../../AI/README.md),
+[shared contract](../../JSON_FORMAT.md) and [document schema](../../AI/document.schema.json).
 
 | Example | What to learn |
 | --- | --- |
-| [Neon ring](neon-ring.json) | A Shape and a targeted Blur inside a group. |
-| [Shock wave](shock-wave.json) | Radial and circular Gradients shaping one-dimensional Blue Noise into an uneven energy ring. |
-| [Car wheel](car-wheel.json) | A layered illustration built entirely from ellipses and a five-point star. |
-| [Forked lightning](forked-lightning.json) | A procedural particle sprite with embedded HLSL, editable parameters, transparency and separate glow. |
-| [Heart](heart.json) | Parameterized heart silhouette, clipping Gradient, SDF rim light, Outline and two ellipse highlights feeding a Blur. |
+| [Neon ring](neon-ring.json) | Shape and targeted Blur inside a group. |
+| [Shock wave](shock-wave.json) | Radial/circular gradients, one-dimensional Blue Noise and inline FX. |
+| [Car wheel](car-wheel.json) | Editable ellipses and a five-point star. |
+| [Forked lightning](forked-lightning.json) | Procedural sprite with HLSL parameters, transparency and separate glow. |
+| [Heart](heart.json) | Clipping, SDF rim light, Outline and blurred highlights. |
 | [Mystic fog](mystic-fog.json) | Noise, a hidden source and a coloring gradient. |
-| [Seamless noise](seamless-noise.json) | Offset Blend with explicit source, negative Transition Start and independent Poisson edge selection; fractions versus Feather percentage units are explained in the contract. |
-| [Retro processor](retro-processor.json) | A standalone Processor acting on an existing lower stack. |
-| [Stone wall: posterize + dither](stone-wall-retro.json) | A Drawing layer downloaded from a direct image URL, with pixelation and Bayer dithering in a Processor above it. |
+| [Seamless noise](seamless-noise.json) | Offset Blend, negative Transition Start and independent Poisson edge selection. |
+| [Retro processor](retro-processor.json) | Processor acting on the lower stack. |
 | [Local distortion](local-distortion.json) | An editable Transform 2D shader parameter. |
 
-Use only the parts needed for the requested result. Omit default properties such as identity Swizzle,
-Normal blending and Standard ranges unless they differ from defaults. Keep local IDs only where referenced.
-The heart is the cleaned-up recipe: no Shader Processor 1, no Drawing layer, and nothing external.
-That describes this one recipe, not the format: a Drawing layer is allowed, and it may fetch a PNG or
-JPEG from a direct http(s) link with `url`. See the [authoring contract](../../AI/README.md).
-Do not infer that every recipe needs a shader: the wheel and neon ring need none.
+These are complete FullOptimized documents: active defaults are deliberately explicit.
+Keep disabled layers, IDs and dependencies. Full retains inactive values; Compact also omits
+version defaults. Adapt the native model fields, not live API `settings` wrappers.
+Copy the JSON content, not the filename. The same content can be opened as a document or pasted
+as layers. These are reference examples, not built-in presets.
 
-Files are complete clipboard envelopes; copy their JSON content, not their filename or this table.
-Schema checks cover every JSON file here. The Unity smoke test also loads, compiles and renders these examples.
+Schema checks validate all current recipes. Unity tests compile and compare their 64-pixel
+renders with the original compatibility fixtures; no network or user document is required.
+More examples with individual previews: [38 texture samples](../../../Samples~/AgentTextures/README.md).
 
-## Linked image + Shader Processor
+## Legacy linked-image fixture
 
-![Stone wall source image](stone-wall.png)
+[Stone wall: linked Drawing + Processor](stone-wall-retro.json) is intentionally **not** a current
+document example. It tests the input-only `whimtex.layers` compatibility reader.
+See the [legacy reference](../../AI/LEGACY_LAYERS.md); do not copy its envelope or field structure
+into new recipes. Unified JSON omits Drawing pixels and does not download a Drawing URL.
 
-This is the **source image**, before the effect. Copy [stone-wall-retro.json](stone-wall-retro.json)
-to download it into a Drawing layer and apply the Processor above it. Adjust Posterize Levels,
-Pixel Size and Dither Strength to change the retro look. The canvas is 1024 × 1024; the source
-image retains its original resolution and is fitted with the layer transform.
+![Legacy source image](stone-wall.png)
 
-The `url` is a plain direct PNG link to this repository, not a Markdown link or a GitHub file page.
-Pasting requires internet access and may ask you to allow the download host. The image must be
-published on `main` before its download URL works. This example is intentionally not fully procedural:
-the Drawing layer contains the downloaded pixels; the Processor remains editable HLSL.
+This old fixture downloads a direct PNG URL after host confirmation. The image must be available
+online; a failed download cancels insertion. It retains source resolution and uses a transform to
+fit its 1024 × 1024 canvas. Only the Processor is procedural.

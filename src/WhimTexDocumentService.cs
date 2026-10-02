@@ -89,7 +89,7 @@ namespace DCFApixels.WhimTex
             foreach (string part in path.Split('/'))
                 if (part.Length == 0 || part == "." || part == ".." || part.EndsWith(".") || part.EndsWith(" ") || part.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
                     throw new WhimTexDocumentException("Invalid document path.");
-            if (!path.EndsWith(".tiff", StringComparison.OrdinalIgnoreCase) && !path.EndsWith(".tif", StringComparison.OrdinalIgnoreCase))
+            if (!path.EndsWith(".tiff", StringComparison.OrdinalIgnoreCase) && !path.EndsWith(".tif", StringComparison.OrdinalIgnoreCase) && !WhimTexDocumentJson.IsJsonPath(path))
                 path = System.IO.Path.ChangeExtension(path, "tiff");
             string root = System.IO.Path.GetFullPath(Application.dataPath);
             for (string current = System.IO.Path.GetFullPath(path); !string.Equals(current, root, StringComparison.OrdinalIgnoreCase); current = System.IO.Path.GetDirectoryName(current))

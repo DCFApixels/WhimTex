@@ -22,8 +22,8 @@ namespace DCFApixels.WhimTex
             internal void Compile()
             {
                 foreach (var effect in Effects)
-                    try { effect.ApplyAgentDraft(); }
-                    catch (Exception error) { throw new FormatException(effect.name + ": " + error.Message, error); }
+                    if (!effect.TryPrepareDocumentEffect(out string warning) && !Warnings.Contains(warning))
+                        Warnings.Add(warning);
                 ValidateTargets(Document, null);
                 foreach (var effect in Effects)
                     foreach (var parameter in effect.TextureLayerParameters())
@@ -63,11 +63,21 @@ namespace DCFApixels.WhimTex
             if (string.IsNullOrWhiteSpace(text)) return false;
             string start = text.TrimStart('\uFEFF', ' ', '\r', '\n', '\t');
             return (start.StartsWith("{") || start.StartsWith("```")) &&
-                text.IndexOf("whimtex.layers", StringComparison.Ordinal) >= 0;
+                (text.IndexOf("whimtex.layers", StringComparison.Ordinal) >= 0 || text.IndexOf(WhimTexDocumentJson.Format, StringComparison.Ordinal) >= 0);
         }
 
         internal static ProceduralClipboard ReadProceduralClipboard(string text, int width, int height)
         {
+            if (text != null && text.IndexOf(WhimTexDocumentJson.Format, StringComparison.Ordinal) >= 0 &&
+                (string)WhimTexDocumentJson.Parse(text)["format"] == WhimTexDocumentJson.Format)
+            {
+                using var read = WhimTexDocumentJson.ReadForInsertion(text, width, height, false);
+                var data = new ProceduralClipboard { HasCanvas = read.HasCanvasSize };
+                data.Effects.AddRange(read.Effects);
+                data.Warnings.AddRange(read.Warnings);
+                data.Document = read.TakeDocument();
+                return data;
+            }
             Require(text != null && text.Length <= 1024 * 1024, "Layer JSON must be at most 1 MiB.");
             text = text.Trim().TrimStart('\uFEFF');
             if (text.StartsWith("```"))
@@ -299,237 +309,10 @@ namespace DCFApixels.WhimTex
 
         internal static string WritePortableClipboardReport(TextureCompositor document, List<Layer> requested, out List<string> warnings)
         {
-            var messages = new List<string>();
-            warnings = messages;
-            Require(document != null && requested != null && requested.Count > 0, "Select layers to copy.");
-            var selected = new HashSet<Layer>(requested);
-            var roots = new List<Layer>();
-            var included = new HashSet<string>();
-            void Collect(List<Layer> list, bool inside)
-            {
-                foreach (var layer in list)
-                {
-                    bool take = inside || selected.Contains(layer);
-                    if (take)
-                    {
-                        Require(layer != null && layer.Behaviour != null && !ContainsReservation(layer), "Missing or reserved layers cannot be copied.");
-                        if (!inside) roots.Add(layer);
-                        included.Add(layer.Id);
-                    }
-                    if (layer?.IsGroup == true) Collect(layer.layers, take);
-                }
-            }
-            Collect(document.layers, false);
-            var snapshots = new Dictionary<string, JObject>();
-            foreach (JObject item in (JArray)Snapshot(document, "")["layers"]) snapshots[(string)item["id"]] = item;
-            // Use the same layer factory as paste, including per-type transforms and settings.
-            using var defaults = WhimTexDocumentBuild.Create(document.width, document.height);
-            var defaultLayers = new Dictionary<string, (JObject properties, JObject transform)>();
-            var referenced = new HashSet<string>();
-            string Reference(string id, string label)
-            {
-                Require(!string.IsNullOrEmpty(id) && included.Contains(id), label + ": include the referenced source layer in the selection.");
-                referenced.Add(id);
-                return id;
-            }
-            JObject Transform(TextureTransform t)
-            {
-                var json = new JObject { ["pivot"] = new JArray(t.pivot.x, t.pivot.y), ["tiling"] = t.tiling.ToString() };
-                if (t.storage == TransformStorage.Projective)
-                {
-                    var m = t.matrix;
-                    json["matrix"] = new JArray(m.m00,m.m01,m.m02,m.m10,m.m11,m.m12,m.m20,m.m21,m.m22);
-                }
-                else
-                {
-                    json["position"] = new JArray(t.position.x,t.position.y);
-                    json["scale"] = new JArray(t.scale.x,t.scale.y);
-                    json["rotation"] = t.rotation;
-                }
-                return json;
-            }
-            JObject Write(Layer layer, bool root)
-            {
-                try
-                {
-                    var snapshot = snapshots[layer.Id];
-                    string type = TypeName(layer);
-                    if (!defaultLayers.TryGetValue(type, out var baseline))
-                    {
-                        var fresh = LayerTypeRegistry.Find(type).CreateLayer();
-                        defaults.Document.layers.Clear(); defaults.Document.layers.Add(fresh);
-                        var freshSnapshot = (JObject)((JArray)Snapshot(defaults.Document, "")["layers"])[0];
-                        baseline = (PortableProperties(fresh, freshSnapshot), Transform(fresh.transform));
-                        defaultLayers.Add(type, baseline);
-                    }
-                    var properties = PortableProperties(layer, snapshot);
-                    RemovePortableDefaults(properties, baseline.properties);
-                    var transform = Transform(root ? document.GetCanvasTransform(layer) : layer.transform);
-                    RemovePortableDefaults(transform, baseline.transform);
-                    var node = new JObject { ["id"] = layer.Id, ["type"] = type, ["name"] = layer.layerName };
-                    if (properties.Count > 0) node["properties"] = properties;
-                    if (transform.Count > 0) node["transform"] = transform;
-                    if (layer.Behaviour is DrawingLayerBehaviour drawing)
-                    {
-                        if (!string.IsNullOrEmpty(drawing.PortableImageUrl))
-                        {
-                            node["url"] = drawing.PortableImageUrl;
-                            // Missing scale/matrix means fit-to-source on URL paste, not identity.
-                            if (transform["matrix"] == null)
-                            {
-                                var t = root ? document.GetCanvasTransform(layer) : layer.transform;
-                                transform["scale"] = new JArray(t.scale.x, t.scale.y);
-                                node["transform"] = transform;
-                            }
-                        }
-                        else
-                        {
-                            node["contentOmitted"] = true;
-                            messages.Add(layer.layerName + ": Drawing pixels cannot be included; copied as an empty Drawing layer.");
-                        }
-                    }
-                    if (layer.Behaviour is FileLayerBehaviour file)
-                    {
-                        string guid = file.portableAssetGuid, localId = file.portableAssetLocalId;
-                        if (file.sourceTexture != null)
-                        {
-                            guid = null; localId = null;
-                            if (AssetDatabase.TryGetGUIDAndLocalFileIdentifier(file.sourceTexture, out string foundGuid, out long foundId))
-                            { guid = foundGuid; localId = foundId.ToString(System.Globalization.CultureInfo.InvariantCulture); }
-                        }
-                        if (!string.IsNullOrEmpty(guid))
-                        {
-                            var asset = new JObject { ["guid"] = guid };
-                            if (localId != null) asset["localId"] = localId;
-                            node["asset"] = asset;
-                            messages.Add(layer.layerName + ": copied an asset reference, not pixels. The same texture GUID/local ID must exist in the receiving project; otherwise the File layer will be empty.");
-                        }
-                        else
-                        {
-                            node["contentOmitted"] = true;
-                            messages.Add(layer.layerName + ": no saved texture asset reference; copied as an empty File layer.");
-                        }
-                    }
-                    if (layer.clippingMask) Reference(document.GetClippingBase(layer)?.Id, "Clipping mask");
-                    if (layer.Behaviour is TargetedLayerBehaviour targeted)
-                    {
-                        if (targeted.inputMode == EffectInputMode.AllBelow) node["input"] = "AllBelow";
-                        else
-                        {
-                            string target = targeted.TargetLayerId;
-                            if (targeted.inputMode == EffectInputMode.Previous && document.TryFindLayer(layer, out var container, out int index))
-                                target = index + 1 < container.Count ? container[index + 1]?.Id : null;
-                            node["target"] = Reference(target, "Target");
-                        }
-                    }
-                    if (layer.IsGroup && layer.layers.Count > 0)
-                    {
-                        var children = new JArray();
-                        foreach (var child in layer.layers) children.Add(Write(child, false));
-                        node["children"] = children;
-                    }
-                    var effects = new JArray();
-                    foreach (var modifier in layer.modifiers)
-                    {
-                        Require(modifier is ShaderFX, "Only HLSL Shader FX can be copied; Material/missing FX cannot be embedded.");
-                        var fx = (ShaderFX)modifier;
-                        Require(!fx.HasPendingChanges && !fx.LastApplyFailed, "Apply or fix pending shader changes before copying.");
-                        var gradients = new JObject(); var textures = new JObject();
-                        string code = ShaderFXPresetWriter.BuildPortableSource(fx);
-                        var declarations = ShaderFXMetadata.Parse(code, false, out _);
-                        foreach (var p in fx.Parameters)
-                        {
-                            if (p.type == ShaderFXParameterType.Gradient)
-                            {
-                                var declaration = declarations.Find(value => value.name == p.name);
-                                var value = GradientSnapshot(p.gradientValue);
-                                if (!JToken.DeepEquals(value, GradientSnapshot(declaration?.gradientValue)))
-                                    gradients[p.name] = CompactPortableGradient(value, WhimTexGradientMode.Perceptual);
-                            }
-                            if (p.type != ShaderFXParameterType.Texture2D) continue;
-                            Require(p.textureSource != ShaderFXTextureSource.Texture || p.textureValue == null,
-                                "FX texture assets cannot be embedded; use a layer, Self or None.");
-                            if (p.textureSource == ShaderFXTextureSource.Layer)
-                                textures[p.name] = new JObject { ["layer"] = Reference(p.textureLayerId, p.name) };
-                        }
-                        var entry = new JObject { ["code"] = code };
-                        if (fx.name != layer.layerName + " FX") entry["name"] = fx.name;
-                        if (!fx.Active) entry["enabled"] = false;
-                        if (gradients.Count > 0) entry["gradients"] = gradients;
-                        if (textures.Count > 0) entry["textures"] = textures;
-                        effects.Add(entry);
-                    }
-                    if (effects.Count > 0) node["fx"] = effects;
-                    return node;
-                }
-                catch (Exception error) { throw new FormatException(layer.layerName + ": " + error.Message, error); }
-            }
-            var layers = new JArray();
-            foreach (var layer in roots) layers.Add(Write(layer, true));
-            void RemoveUnusedIds(JArray nodes)
-            {
-                foreach (JObject node in nodes)
-                {
-                    if (!referenced.Contains((string)node["id"])) node.Remove("id");
-                    if (node["children"] is JArray children) RemoveUnusedIds(children);
-                }
-            }
-            RemoveUnusedIds(layers);
-            string text = new JObject { ["format"] = "whimtex.layers", ["version"] = 1,
-                ["canvas"] = new JObject { ["width"] = document.width, ["height"] = document.height, ["filter"] = document.outputFilter.ToString() },
-                ["layers"] = layers }.ToString();
-            // Validate through the same parser as paste; never replace the clipboard with partial data.
-            using (ReadProceduralClipboard(text, document.width, document.height)) { }
-            return text;
-        }
-
-        private static JObject PortableProperties(Layer layer, JObject snapshot)
-        {
-            var properties = (JObject)snapshot["settings"].DeepClone();
-            properties.Remove("name"); properties.Remove("brush"); properties.Remove("source");
-            if (snapshot["gradientKeys"] != null) properties["gradient"] = snapshot["gradientKeys"].DeepClone();
-            if (layer.Behaviour is GradientLayerBehaviour gradient)
-                properties["gradientOptions"] = new JObject { ["type"] = gradient.gradientType.ToString(),
-                    ["repetitions"] = gradient.circularRepetitions, ["wrap"] = gradient.circularWrapMode.ToString() };
-            return properties;
-        }
-
-        // Settings objects merge into a fresh layer; arrays and gradients replace their entire value.
-        private static void RemovePortableDefaults(JObject value, JObject defaults,
-            WhimTexGradientMode gradientMode = WhimTexGradientMode.Perceptual)
-        {
-            foreach (var property in new List<JProperty>(value.Properties()))
-            {
-                var original = property.Value;
-                if (JToken.DeepEquals(original, defaults?[property.Name])) { property.Remove(); continue; }
-                if (!(original is JObject nested)) continue;
-                if (nested["colors"] != null)
-                    property.Value = CompactPortableGradient(nested, gradientMode);
-                else
-                {
-                    RemovePortableDefaults(nested, defaults?[property.Name] as JObject,
-                        property.Name == "fillPattern" ? WhimTexGradientMode.Linear : gradientMode);
-                    if (nested.Count == 0) property.Remove();
-                }
-            }
-        }
-
-        private static JToken CompactPortableGradient(JObject value, WhimTexGradientMode defaultMode)
-        {
-            var original = ReadGradient(value, defaultMode);
-            foreach (string key in new[] { "colors", "alphas" })
-                if (value[key] is JArray stops)
-                    foreach (JObject stop in stops)
-                        if ((float?)stop["midpoint"] == .5f) stop.Remove("midpoint");
-            if ((string)value["mode"] == defaultMode.ToString()) value.Remove("mode");
-            if ((string)value["wrapMode"] == "Clamp") value.Remove("wrapMode");
-            if ((string)value["colorSpace"] == "Gamma") value.Remove("colorSpace");
-            if ((float?)value["smoothness"] == 1f) value.Remove("smoothness");
-            // Without explicit alpha stops the reader derives them from the color stops.
-            var alphas = value["alphas"];
-            value.Remove("alphas");
-            if (!original.Equals(ReadGradient(value, defaultMode))) value["alphas"] = alphas;
-            return value.Count == 1 ? value["colors"].DeepClone() : value;
+            var result = WhimTexDocumentJson.WriteLayers(document, requested,
+                new WhimTexJsonWriteOptions { AllowDrawingOmission = true });
+            warnings = new List<string>(result.Warnings);
+            return result.Json;
         }
 
         private static void SetClipboardGradient(Layer layer, JObject options)

@@ -113,6 +113,7 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private bool strokeWrapCanvas;
 
         internal Texture2D StoredTexture { get { EnsureDeferredTexture(); return pixels; } }
+        internal bool HasJsonOmittedPixels => pixels != null || deferredTexture.HasValue || paintSurfaceDirty;
         internal long DocumentPixelBytes
         {
             get

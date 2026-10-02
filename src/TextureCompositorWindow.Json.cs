@@ -1,0 +1,56 @@
+using System;
+using UnityEditor;
+using UnityEngine;
+
+namespace DCFApixels.WhimTex
+{
+    public sealed partial class TextureCompositorWindow
+    {
+        private bool SaveJsonToPath(string path, WhimTexJsonWriteMode mode)
+        {
+            PrepareDocumentSave();
+            TextureCompositor copy = null;
+            try
+            {
+                var options = new WhimTexJsonWriteOptions { Mode = mode, AllowDrawingOmission = true };
+                var written = WhimTexDocumentJson.Write(compositor, options);
+                if (!ConfirmJsonDrawingOmission(written, false)) return false;
+                using var operation = new WhimTexDocumentOperation("Save WhimTex JSON");
+                if (written.Warnings.Count == 0 && string.Equals(WhimTexDocumentService.PathOf(compositor), path, StringComparison.OrdinalIgnoreCase))
+                {
+                    WhimTexDocumentFile.SaveJson(compositor, path, options);
+                    temporaryDocumentDirty = false;
+                    UpdateUnsavedChangesState();
+                }
+                else
+                {
+                    using var read = WhimTexDocumentJson.Read(written.Json);
+                    copy = read.TakeDocument();
+                    copy.name = compositor.name;
+                    // Empty Drawing placeholders are expected here; no live pixel data is discarded in place.
+                    WhimTexDocumentFile.SaveJsonSnapshot(compositor, copy, path, options);
+                    WhimTexApi.TransferLiveDocument(agentSessionId, compositor, copy);
+                    agentSessionDocument = copy;
+                    SetCompositor(copy);
+                    copy = null;
+                    BindDocumentFile(path);
+                    temporaryDocumentDirty = false;
+                    UpdateUnsavedChangesState();
+                }
+                var asset = AssetDatabase.LoadMainAssetAtPath(path);
+                if (asset != null) EditorGUIUtility.PingObject(asset);
+                return true;
+            }
+            catch (OperationCanceledException) { return false; }
+            catch (Exception error) { Debug.LogException(error); EditorUtility.DisplayDialog("WhimTex", error.Message, "OK"); return false; }
+            finally { if (copy != null) DestroyImmediate(copy); }
+        }
+
+        private static bool ConfirmJsonDrawingOmission(WhimTexJsonWriteResult written, bool export)
+            => written.Warnings.Count == 0 || EditorUtility.DisplayDialog("Save without Drawing pixels?",
+                string.Join("\n", written.Warnings) + (export
+                    ? "\n\nThe open document is not changed."
+                    : "\n\nEmpty Drawing nodes and their settings will be retained. The open document will switch to the saved version without Drawing pixels. Save as TIFF instead to keep them."),
+                "Save Without Pixels", "Cancel");
+    }
+}

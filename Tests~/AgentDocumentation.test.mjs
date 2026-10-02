@@ -58,4 +58,21 @@ for (const file of ['Documentation~/AgentAPI.md', 'Documentation~/LiveAgentAPI.m
 for (const forbidden of ['visible to an open WhimTex', 'source-space diameter', 'does not author Shader FX', 'retains its fixtures'])
   assert.ok(!api.includes(forbidden), `Obsolete contract: ${forbidden}`);
 assert.ok(!live.includes('without an initializer'), 'Gradient defaults support an initializer');
+const authoring = read('Documentation~/AI/README.md');
+for (const file of ['AI_AUTHORING.md', 'Documentation~/AI/README.md', 'Documentation~/Examples/Clipboard/README.md']) {
+  const text = read(file);
+  assert.ok(text.includes('whimtex.document') && text.includes('document.schema.json'), `${file}: current authoring contract`);
+  assert.ok(!text.includes('Copy as Portable'), `${file}: obsolete menu name`);
+}
+assert.ok(authoring.includes('LEGACY_LAYERS.md'), 'Compatibility input is documented separately');
+assert.ok(authoring.includes('compilation failure does not reject') && !authoring.includes('successful compilation before insertion'), 'Paste documents recoverable FX errors');
+assert.ok(!authoring.includes('"format": "whimtex.layers",'), 'No new recipe teaches legacy output');
+const layerMenu = read('src/TextureCompositorWindow.cs');
+assert.ok(layerMenu.includes('new GUIContent("Copy as JSON")'), 'Layer copy menu uses the current name');
+assert.ok(layerMenu.includes('DisplayDialog("Copy as JSON",'), 'Copy failure dialog uses the current name');
+assert.ok(!layerMenu.includes('Copy as Portable') && !layerMenu.includes('Portable layer JSON copied.'), 'No obsolete copy UI messages');
+for (const lang of ['en', 'ru', 'zh']) {
+  assert.ok(read(`Documentation~/${lang}/layers.md`).includes('Copy as JSON'), `Localized ${lang} copy label`);
+  assert.ok(read(`Documentation~/${lang}/ai-authoring.md`).includes('whimtex.document'), `Localized ${lang} authoring format`);
+}
 console.log(`Agent documentation contracts checked: ${commands.length} commands, ${examples} JSON examples (${fileURLToPath(root)}).`);

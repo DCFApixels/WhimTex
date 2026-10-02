@@ -1,0 +1,2792 @@
+{
+  "format": "whimtex.document",
+  "version": 1,
+  "document": {
+    "colorHistory": [
+      [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ]
+    ],
+    "layerNameCounters": [
+      {
+        "prefix": "Group",
+        "next": 13
+      },
+      {
+        "prefix": "Color Fill",
+        "next": 3
+      },
+      {
+        "prefix": "Noise",
+        "next": 17
+      },
+      {
+        "prefix": "Blur",
+        "next": 3
+      },
+      {
+        "prefix": "Make Seamless",
+        "next": 11
+      },
+      {
+        "prefix": "Gradient",
+        "next": 9
+      },
+      {
+        "prefix": "Shader Processor",
+        "next": 3
+      },
+      {
+        "prefix": "Layer",
+        "next": 5
+      },
+      {
+        "prefix": "Shape",
+        "next": 3
+      },
+      {
+        "prefix": "Sharpen",
+        "next": 5
+      }
+    ],
+    "nextCopyNumber": 23,
+    "spriteSlices": [],
+    "width": 256,
+    "height": 256,
+    "outputFilter": "Bilinear",
+    "outputPrecision": "Auto",
+    "outputSrgb": false,
+    "uvReferenceMesh": null,
+    "uvReferenceChannel": 0,
+    "uvReferenceSubmesh": -1
+  },
+  "layers": [
+    {
+      "id": "970793f0df714c7db5a211f3a763bc49",
+      "layerName": "Tile Edges",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Clip"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "MakeSeamlessLayerBehaviour",
+        "poissonEdges": "AllEdges",
+        "mode": "ScreenedPoisson",
+        "screeningRadius": 0.0526000038,
+        "processRed": false,
+        "processGreen": true,
+        "processBlue": true,
+        "processAlpha": true,
+        "inputMode": "Previous",
+        "recoveryId": "6456fe59514249cba821efdb9d2d07a2"
+      },
+      "behaviourId": "6456fe59514249cba821efdb9d2d07a2",
+      "children": [],
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "c03e47d9b54a45439fa14d689dda21be",
+      "layerName": "Gas Particle - RGB Channels",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Clip"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "GroupLayerBehaviour",
+        "recoveryId": "3d41fe12340b4fc7ae9074fe125c6c20"
+      },
+      "behaviourId": "3d41fe12340b4fc7ae9074fe125c6c20",
+      "children": [
+        {
+          "id": "6d0df0723fb846da9a31e55fc1303511",
+          "layerName": "B - Dense Turbulence",
+          "enabled": true,
+          "clippingMask": false,
+          "opacity": 1.0,
+          "blendMode": "Add",
+          "colorRange": "Standard",
+          "blendRange": "Standard",
+          "swizzle": {
+            "packed": 41624
+          },
+          "modifiers": [],
+          "transform": {
+            "pivot": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "rotation": 0.0,
+            "storage": "TRS",
+            "matrix": {
+              "m00": 0.0,
+              "m01": 0.0,
+              "m02": 0.0,
+              "m10": 0.0,
+              "m11": 0.0,
+              "m12": 0.0,
+              "m20": 0.0,
+              "m21": 0.0,
+              "m22": 0.0
+            },
+            "tiling": "Clip"
+          },
+          "filterMode": "Source",
+          "behaviour": {
+            "$type": "GroupLayerBehaviour",
+            "recoveryId": "e9c62449c0aa49e9ae707161b8790388"
+          },
+          "behaviourId": "e9c62449c0aa49e9ae707161b8790388",
+          "children": [
+            {
+              "id": "14335c1002714d72bed0962a26f8ef18",
+              "layerName": "Noise Mix",
+              "enabled": true,
+              "clippingMask": false,
+              "opacity": 1.0,
+              "blendMode": "Normal",
+              "colorRange": "Standard",
+              "blendRange": "Standard",
+              "swizzle": {
+                "packed": 0
+              },
+              "modifiers": [
+                {
+                  "$type": "ShaderFX",
+                  "$id": "fx0",
+                  "active": true,
+                  "code": "// @whimtex-effect Color/Levels\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\r\n// @group\r\n// @header(Input Levels)\r\n// @param label(Input Black) float _InBlack = 0 [0 .. ~1] // Input black point. At or above white, the mapping becomes a hard threshold.\r\n// @param label(Input White) float _InWhite = 1 [0 .. ~1] // Input white point.\r\n// @param float _Gamma = 1 [0.1 .. ~5] // Midtone brightness.\r\n// @param curve _Curve // Remap tones after input levels and Gamma, before output levels. Linear leaves the mapping unchanged.\r\n// @header(Output Levels)\r\n// @param label(Output Black) float _OutBlack = 0 [0 .. ~1] // Output black point, including originally black pixels.\r\n// @param label(Output White) float _OutWhite = 1 [0 .. ~1] // Output white point; values below black invert the output.\r\n// @param bool _PreserveColor = true // On adjusts luminance; off applies levels independently to RGB.\r\n// @endgroup\r\n\r\nfloat MapLevels(float value)\r\n{\r\n    float mapped;\r\n    if (_InWhite <= _InBlack) mapped = step(_InBlack, value);\r\n    else mapped = saturate((value - _InBlack) / (_InWhite - _InBlack));\r\n    mapped = pow(mapped, 1.0 / max(_Gamma, 0.0001));\r\n    mapped = _Curve_Sample(mapped);\r\n    return lerp(_OutBlack, _OutWhite, mapped);\r\n}\r\n\r\nfloat4 ApplyFX(float2 uv, float4 color)\r\n{\r\n\tfloat4 result = color;\r\n    float3 rgb = max(color.rgb, 0.0);\r\n    if (_PreserveColor > 0.5)\r\n    {\r\n        float luma = dot(rgb, float3(0.2126, 0.7152, 0.0722));\r\n        float mapped = MapLevels(luma);\r\n\t\tresult.rgb = luma > 0.000001 ? rgb * (mapped / max(luma, 0.000001)) : mapped.xxx;\r\n\t}\r\n\telse\r\n\t{\r\n\t\tresult.rgb = float3(MapLevels(rgb.r), MapLevels(rgb.g), MapLevels(rgb.b));\r\n\t}\r\n\treturn lerp(color, result, _Opacity);\r\n}\r\n",
+                  "parameters": [
+                    {
+                      "name": "_Opacity",
+                      "type": "Float",
+                      "floatValue": 1.0,
+                      "id": "8b3e0cb231d349c2b06be376282a8d54",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_InBlack",
+                      "type": "Float",
+                      "floatValue": 0.078,
+                      "id": "915fe32f37554af58267a089937f4f16",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_InWhite",
+                      "type": "Float",
+                      "floatValue": 0.66,
+                      "id": "bfc78fa7e85246839d96d1dc6e9584e8",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_Gamma",
+                      "type": "Float",
+                      "floatValue": 1.71,
+                      "id": "bfc632f1c4174e37b93fbdcea1ecc69f",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_Curve",
+                      "type": "Curve",
+                      "curveValue": {
+                        "preWrap": "ClampForever",
+                        "postWrap": "ClampForever",
+                        "keys": [
+                          [
+                            0.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            "None"
+                          ],
+                          [
+                            1.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            "None"
+                          ]
+                        ]
+                      },
+                      "id": "2b63cbd1e9504620b0543d0014d675c8",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_OutBlack",
+                      "type": "Float",
+                      "floatValue": 0.0,
+                      "id": "e68809626e484d90b0042e695e180ee5",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_OutWhite",
+                      "type": "Float",
+                      "floatValue": 1.0,
+                      "id": "939b1183654747cf8f7679782404e375",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_PreserveColor",
+                      "type": "Bool",
+                      "floatValue": 0.0,
+                      "id": "4cd92eacf2484a6f8c0921a1fcc94d47",
+                      "declaredInCode": true
+                    }
+                  ],
+                  "shaderKey": "aecc1e7413e44df78d6fc25bb30d5ef4",
+                  "$name": "Levels"
+                },
+                {
+                  "$type": "ShaderFX",
+                  "$id": "fx1",
+                  "active": true,
+                  "code": "// @whimtex-effect Distortion/Displacement Map\r\n// @group(Map Wrap; _MapWrap)\r\n// @param texture2D _DisplacementMap = self // Source field. Vector mode reads R/G; Grayscale mode reads the selected channel.\r\n// @param transform2D _MapTransform = (0.5, 0.5, 1, 1, 0) // Positions and scales the map independently from the image being distorted.\r\n// @param hidden enum _MapWrap = Clamp {Clamp: 0, Repeat: 1, Mirror: 2} // Addressing for the map and an optional separate strength mask.\r\n// @endgroup\r\n// @group(Displacement Mode; _Mode)\r\n// @param hidden enum _Mode = VectorRG {VectorRG: 0, Grayscale: 1, ParallaxOcclusion: 2}\r\n// @if _Mode != 2\r\n// @param float _Neutral = 0.5 [0 .. 1] // Neutral value for vector channels and the grayscale displacement.\r\n// @endif\r\n// @if _Mode != 0\r\n// @param enum _MapChannel = Luminance {Luminance: 0, R: 1, G: 2, B: 3, Alpha: 4}\r\n// @endif\r\n// @if _Mode == 0\r\n// @header(Vector)\r\n// @param float _StrengthX = 0 [~-512 .. ~512] // Horizontal displacement in canvas pixels at a full channel value.\r\n// @param float _StrengthY = 0 [~-512 .. ~512] // Vertical displacement in canvas pixels at a full channel value.\r\n// @endif\r\n// @if _Mode == 1\r\n// @header(Grayscale)\r\n// @param enum _Direction = Horizontal {Horizontal: 0, Vertical: 1, Radial: 2, Tangential: 3, Angle: 4}\r\n// @param float _Strength = 0 [~-512 .. ~512] // Displacement in canvas pixels. The sign reverses the selected direction.\r\n// @param point _Center = (0.5, 0.5) // Origin for Radial and Tangential directions.\r\n// @param float _Angle = 0 [~-180 .. ~180] // Direction angle in degrees when Direction is Angle.\r\n// @endif\r\n// @if _Mode == 2\r\n// @header(Parallax)\r\n// @param float _Depth = 8 [0 .. 128] // Height range in canvas pixels; lower view elevation creates a larger parallax shift.\r\n// @param float _ViewAngle = 0 [~-180 .. ~180] // Direction of the virtual view ray in the canvas plane.\r\n// @param float _ViewElevation = 60 [5 .. 85] // 90 degrees is head-on; lower values increase parallax.\r\n// @param enum _ParallaxSteps = Balanced {Fast: 4, Balanced: 8, High: 16, Ultra: 32}\r\n// @param bool _InvertHeight = false // Use black as the raised surface and white as the recessed surface.\r\n// Self-shadowing controls are temporarily disabled; keep their source here for later iteration.\r\n// // @header(Self-Shadowing)\r\n// // @param bool _SelfShadow = false // Trace the height field toward a virtual light and darken occluded areas.\r\n// // @param float _LightAngle = 45 [~-180 .. ~180] // Direction toward the virtual light in the canvas plane.\r\n// // @param float _LightElevation = 45 [5 .. 85]\r\n// // @param enum _ShadowSteps = Balanced {Low: 4, Balanced: 8, High: 16}\r\n// // @param float _ShadowStrength = 0.65 [0 .. 1]\r\n// // @param float _ShadowSoftness = 0.02 [0 .. 0.2]\r\n// @endif\r\n// @endgroup\r\n// @group(Strength Mask Source; _MaskSource)\r\n// @param hidden enum _MaskSource = Constant1 {Constant1: 0, MapChannel: 1, InputAlpha: 2, SeparateTexture: 3} // Constant1 needs no second texture; MapChannel reuses the displacement map.\r\n// @if _MaskSource != 0\r\n// @param bool _InvertMask = false\r\n// @param curve _MaskProfile // Remaps mask values; the default linear curve preserves them.\r\n// @endif\r\n// @if _MaskSource == 1\r\n// @param enum _MapMaskChannel = Alpha {Alpha: 0, Luminance: 1, R: 2, G: 3, B: 4}\r\n// @endif\r\n// @if _MaskSource == 3\r\n// @param texture2D _StrengthMask = none // Optional second texture. Leave Mask Source at Constant1 to work with only one map.\r\n// @param enum _SeparateMaskChannel = Alpha {Alpha: 0, Luminance: 1, R: 2, G: 3, B: 4}\r\n// @endif\r\n// @endgroup\r\n// @group(Output Mix; _Mix)\r\n// @param hidden float _Mix = 1 [0 .. 1] // Blend the displaced sample with the original image.\r\n// @param enum _InputEdge = Clamp {Clamp: 0, Repeat: 1, Mirror: 2, Transparent: 3} // Addressing for displaced image samples, independent of map wrapping.\r\n// @endgroup\r\n\r\nfloat ReadDisplacementChannel(float4 value, float channel)\r\n{\r\n    float result = dot(value.rgb, float3(0.2126, 0.7152, 0.0722));\r\n    if (channel > 0.5 && channel < 1.5) result = value.r;\r\n    else if (channel > 1.5 && channel < 2.5) result = value.g;\r\n    else if (channel > 2.5 && channel < 3.5) result = value.b;\r\n    else if (channel > 3.5) result = value.a;\r\n    return result;\r\n}\r\n\r\nfloat ReadStrengthChannel(float4 value, float channel)\r\n{\r\n    float result = value.a;\r\n    if (channel > 0.5 && channel < 1.5) result = dot(value.rgb, float3(0.2126, 0.7152, 0.0722));\r\n    else if (channel > 1.5 && channel < 2.5) result = value.r;\r\n    else if (channel > 2.5 && channel < 3.5) result = value.g;\r\n    else if (channel > 3.5) result = value.b;\r\n    return result;\r\n}\r\n\r\nfloat2 AddressMapUV(float2 uv, float mode, float2 texelSize)\r\n{\r\n    if (mode < 0.5)\r\n        return clamp(uv, texelSize * 0.5, 1.0 - texelSize * 0.5);\r\n    if (mode < 1.5)\r\n        uv = frac(uv);\r\n    else\r\n        uv = 1.0 - abs(frac(uv * 0.5) * 2.0 - 1.0);\r\n    return uv;\r\n}\r\n\r\nfloat2 AddressInputUV(float2 uv, float mode, float2 texelSize, out float inside)\r\n{\r\n    inside = 1.0;\r\n    if (mode < 0.5)\r\n        return clamp(uv, texelSize * 0.5, 1.0 - texelSize * 0.5);\r\n    if (mode < 1.5)\r\n        return frac(uv);\r\n    if (mode < 2.5)\r\n        return 1.0 - abs(frac(uv * 0.5) * 2.0 - 1.0);\r\n\r\n    inside = step(0.0, uv.x) * step(uv.x, 1.0) * step(0.0, uv.y) * step(uv.y, 1.0);\r\n    return clamp(uv, texelSize * 0.5, 1.0 - texelSize * 0.5);\r\n}\r\n\r\nfloat ReadHeightAtUV(float2 uv, float2 mapDDX, float2 mapDDY)\r\n{\r\n    float2 mapUV = AddressMapUV(_MapTransform_ToLocal(uv), _MapWrap, _DisplacementMap_TexelSize.xy);\r\n    float height = saturate(ReadDisplacementChannel(tex2Dgrad(_DisplacementMap, mapUV, mapDDX, mapDDY), _MapChannel));\r\n    return _InvertHeight > 0.5 ? 1.0 - height : height;\r\n}\r\n\r\nfloat2 DirectionFromAngle(float angle)\r\n{\r\n    float sine, cosine;\r\n    sincos(radians(angle), sine, cosine);\r\n    return float2(cosine, sine);\r\n}\r\n\r\nfloat2 TraceParallax(float2 uv, float strengthMask, float2 mapDDX, float2 mapDDY, out float hitHeight)\r\n{\r\n    int steps = clamp((int)round(_ParallaxSteps), 4, 32);\r\n    float elevation = radians(clamp(_ViewElevation, 5.0, 85.0));\r\n    float lateralPixels = _Depth * strengthMask / max(tan(elevation), 1e-3);\r\n    float2 stepUV = DirectionFromAngle(_ViewAngle) * lateralPixels * _CanvasSize.zw / steps;\r\n    float layerStep = 1.0 / steps;\r\n    float rayDepth = 0.0;\r\n    float2 previousUV = uv;\r\n    float2 currentUV = uv;\r\n    hitHeight = 0.0;\r\n\r\n    [loop]\r\n    for (int i = 0; i < 32; i++)\r\n    {\r\n        if (i >= steps) break;\r\n        previousUV = currentUV;\r\n        currentUV -= stepUV;\r\n        rayDepth += layerStep;\r\n        hitHeight = ReadHeightAtUV(currentUV, mapDDX, mapDDY);\r\n        float surfaceDepth = 1.0 - hitHeight;\r\n        if (rayDepth >= surfaceDepth)\r\n        {\r\n            float previousDepth = rayDepth - layerStep;\r\n            float beforeHit = surfaceDepth - previousDepth;\r\n            float afterHit = rayDepth - surfaceDepth;\r\n            float blend = saturate(beforeHit / max(beforeHit + afterHit, 1e-6));\r\n            currentUV = lerp(previousUV, currentUV, blend);\r\n            hitHeight = ReadHeightAtUV(currentUV, mapDDX, mapDDY);\r\n            break;\r\n        }\r\n    }\r\n    return currentUV;\r\n}\r\n\r\n// Temporarily disabled self-shadow implementation:\r\n// float TraceParallaxSelfShadow(float2 hitUV, float surfaceHeight, float strengthMask, float2 mapDDX, float2 mapDDY)\r\n// {\r\n//     int steps = clamp((int)round(_ShadowSteps), 4, 16);\r\n//     float elevation = radians(clamp(_LightElevation, 5.0, 85.0));\r\n//     float lateralPixels = _Depth * strengthMask * (1.0 - surfaceHeight) / max(tan(elevation), 1e-3);\r\n//     float2 lightStepUV = DirectionFromAngle(_LightAngle) * lateralPixels * _CanvasSize.zw / steps;\r\n//     float softness = max(_ShadowSoftness, 1e-4);\r\n//     float visibility = 1.0;\r\n//\r\n//     [loop]\r\n//     for (int i = 0; i < 16; i++)\r\n//     {\r\n//         if (i >= steps) break;\r\n//         float progress = (i + 1.0) / steps;\r\n//         float sampleHeight = ReadHeightAtUV(hitUV + lightStepUV * (i + 1), mapDDX, mapDDY);\r\n//         float rayHeight = lerp(surfaceHeight, 1.0, progress);\r\n//         visibility = min(visibility, 1.0 - smoothstep(-softness, softness, sampleHeight - rayHeight));\r\n//         if (visibility <= 1e-3) break;\r\n//     }\r\n//     return visibility;\r\n// }\r\n\r\nfloat2 GrayscaleDirection(float2 uv)\r\n{\r\n    float2 direction = float2(1.0, 0.0);\r\n    if (_Direction > 0.5 && _Direction < 1.5)\r\n        direction = float2(0.0, 1.0);\r\n    else if (_Direction > 1.5 && _Direction < 3.5)\r\n    {\r\n        float2 radial = (uv - _Center) * _CanvasSize.xy;\r\n        float radius = length(radial);\r\n        direction = radius > 1e-6 ? radial / radius : float2(0.0, 0.0);\r\n        if (_Direction > 2.5)\r\n            direction = float2(-direction.y, direction.x);\r\n    }\r\n    else if (_Direction > 3.5)\r\n    {\r\n        float sine, cosine;\r\n        sincos(radians(_Angle), sine, cosine);\r\n        direction = float2(cosine, sine);\r\n    }\r\n    return direction;\r\n}\r\n\r\nfloat4 ApplyFX(float2 uv, float4 color)\r\n{\r\n    float2 mapUV = _MapTransform_ToLocal(uv);\r\n    float2 mapDDX = ddx(mapUV);\r\n    float2 mapDDY = ddy(mapUV);\r\n    mapUV = AddressMapUV(mapUV, _MapWrap, _DisplacementMap_TexelSize.xy);\r\n    float4 mapSample = tex2D(_DisplacementMap, mapUV);\r\n    float2 displacementPixels = float2(0.0, 0.0);\r\n    float2 parallaxUV = uv;\r\n    float parallaxHeight = 0.0;\r\n\r\n    if (_Mode < 0.5)\r\n    {\r\n        displacementPixels = (mapSample.rg - float2(_Neutral, _Neutral)) * 2.0 * float2(_StrengthX, _StrengthY);\r\n    }\r\n    else if (_Mode < 1.5)\r\n    {\r\n        float mapValue = ReadDisplacementChannel(mapSample, _MapChannel);\r\n        float signedValue = (mapValue - _Neutral) * 2.0;\r\n        displacementPixels = GrayscaleDirection(uv) * signedValue * _Strength;\r\n    }\r\n\r\n    float strengthMask = 1.0;\r\n    if (_MaskSource > 0.5)\r\n    {\r\n        float maskValue = 1.0;\r\n        if (_MaskSource < 1.5)\r\n            maskValue = ReadStrengthChannel(mapSample, _MapMaskChannel);\r\n        else if (_MaskSource < 2.5)\r\n            maskValue = color.a;\r\n        else\r\n        {\r\n            float2 strengthMaskUV = AddressMapUV(_MapTransform_ToLocal(uv), _MapWrap, _StrengthMask_TexelSize.xy);\r\n            maskValue = ReadStrengthChannel(tex2D(_StrengthMask, strengthMaskUV), _SeparateMaskChannel);\r\n        }\r\n        maskValue = lerp(maskValue, 1.0 - maskValue, step(0.5001, _InvertMask));\r\n        strengthMask = saturate(_MaskProfile_Sample(saturate(maskValue)));\r\n    }\r\n\r\n    if (_Mode > 1.5)\r\n        parallaxUV = TraceParallax(uv, strengthMask, mapDDX, mapDDY, parallaxHeight);\r\n\r\n    float2 inputUV = _Mode > 1.5 ? parallaxUV : uv + displacementPixels * strengthMask * _CanvasSize.zw;\r\n    float inside;\r\n    inputUV = AddressInputUV(inputUV, _InputEdge, _MainTex_TexelSize.xy, inside);\r\n    float4 distorted = SampleInput(inputUV) * inside;\r\n    // if (_Mode > 1.5 && _SelfShadow > 0.5)\r\n    // {\r\n    //     float visibility = TraceParallaxSelfShadow(parallaxUV, parallaxHeight, strengthMask, mapDDX, mapDDY);\r\n    //     distorted.rgb *= lerp(1.0, visibility, saturate(_ShadowStrength));\r\n    // }\r\n    float4 result = lerp(color, distorted, saturate(_Mix));\r\n    return result;\r\n}\r\n",
+                  "parameters": [
+                    {
+                      "name": "_DisplacementMap",
+                      "type": "Texture2D",
+                      "textureSource": "Self",
+                      "id": "c67bac2d62204041bad9c7b3307254ec",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_MapTransform",
+                      "type": "Transform2D",
+                      "transformValue": {
+                        "position": {
+                          "x": 0.5,
+                          "y": 0.5
+                        },
+                        "size": {
+                          "x": 1.0,
+                          "y": 1.0
+                        },
+                        "rotation": 0.0,
+                        "storage": "TRS",
+                        "matrix": {
+                          "m00": 0.0,
+                          "m01": 0.0,
+                          "m02": 0.0,
+                          "m10": 0.0,
+                          "m11": 0.0,
+                          "m12": 0.0,
+                          "m20": 0.0,
+                          "m21": 0.0,
+                          "m22": 0.0
+                        }
+                      },
+                      "id": "78b192c68e0e4e8fa0fd5cb824b02a1c",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_MapWrap",
+                      "type": "Float",
+                      "floatValue": 0.0,
+                      "id": "4a51c55b73904e86a53edeb876a7b5a3",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_Mode",
+                      "type": "Float",
+                      "floatValue": 1.0,
+                      "id": "eb8bcb743c2a4a14abf35566e55322a4",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_Neutral",
+                      "type": "Float",
+                      "floatValue": 0.328,
+                      "id": "88feb514adc64aebb5e15b3584a45336",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_MapChannel",
+                      "type": "Float",
+                      "floatValue": 0.0,
+                      "id": "234fed0af651461bbb4607018e32073d",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_StrengthX",
+                      "type": "Float",
+                      "floatValue": 0.0,
+                      "id": "3f9dd5163947453d877f9738f458ec56",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_StrengthY",
+                      "type": "Float",
+                      "floatValue": 0.0,
+                      "id": "bb6a0588e7834a758fbbca7391845eda",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_Direction",
+                      "type": "Float",
+                      "floatValue": 4.0,
+                      "id": "9a6c14be8a92450f9c431c04d79ddf70",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_Strength",
+                      "type": "Float",
+                      "floatValue": 7.0,
+                      "id": "4efd0445ec8d49caa3277ce947aaebdc",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_Center",
+                      "type": "Point",
+                      "vectorValue": [
+                        0.5,
+                        0.5,
+                        0.0,
+                        0.0
+                      ],
+                      "id": "52cdb00d7670412796ac6aa6f08cd3da",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_Angle",
+                      "type": "Float",
+                      "floatValue": -32.0,
+                      "id": "6dd8c1349042480c922eeca484a37e61",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_Depth",
+                      "type": "Float",
+                      "floatValue": 4.0,
+                      "id": "0a98148ba3744667aa274e61281fda68",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_ViewAngle",
+                      "type": "Float",
+                      "floatValue": 0.0,
+                      "id": "a8f47d5ebc954c958bc1a953b2d48a13",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_ViewElevation",
+                      "type": "Float",
+                      "floatValue": 60.0,
+                      "id": "f636f6a18c9841ed95d50621de2c3cd8",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_ParallaxSteps",
+                      "type": "Float",
+                      "floatValue": 8.0,
+                      "id": "07b0dd089a0340e4a88f9df9aca966da",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_InvertHeight",
+                      "type": "Bool",
+                      "floatValue": 0.0,
+                      "id": "c2b2a78a4f294a349514a0b2fb84f5eb",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_MaskSource",
+                      "type": "Float",
+                      "floatValue": 0.0,
+                      "id": "0b1ed4d08669466c9c7c052b96515912",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_InvertMask",
+                      "type": "Bool",
+                      "floatValue": 0.0,
+                      "id": "fc2d3fbf0b6c4f249f7b7fa69989010e",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_MaskProfile",
+                      "type": "Curve",
+                      "curveValue": {
+                        "preWrap": "ClampForever",
+                        "postWrap": "ClampForever",
+                        "keys": [
+                          [
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            "None"
+                          ],
+                          [
+                            1.0,
+                            1.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            "None"
+                          ]
+                        ]
+                      },
+                      "id": "f35bc7ed71f6420cab848b497d55d2e3",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_MapMaskChannel",
+                      "type": "Float",
+                      "floatValue": 0.0,
+                      "id": "37ca2dadb840496b89ff266a1d50b2e3",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_StrengthMask",
+                      "type": "Texture2D",
+                      "textureSource": "None",
+                      "id": "495b0fc5f48d446abf2a224848036a62",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_SeparateMaskChannel",
+                      "type": "Float",
+                      "floatValue": 0.0,
+                      "id": "e9c7d419762c40ab8d0bfa0d069d4c12",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_Mix",
+                      "type": "Float",
+                      "floatValue": 1.0,
+                      "id": "8edf6a6ae6114af3a144da6807084790",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_InputEdge",
+                      "type": "Float",
+                      "floatValue": 0.0,
+                      "id": "e197c38e7b5b404f8b9fc76eba2d0b7e",
+                      "declaredInCode": true
+                    }
+                  ],
+                  "shaderKey": "4329e20e9d77490fbf089ffe2b71ecfc",
+                  "$name": "Displacement Map"
+                }
+              ],
+              "transform": {
+                "pivot": {
+                  "x": 0.5,
+                  "y": 0.5
+                },
+                "position": {
+                  "x": 0.0,
+                  "y": 0.0
+                },
+                "scale": {
+                  "x": 1.0,
+                  "y": 1.0
+                },
+                "rotation": 0.0,
+                "storage": "TRS",
+                "matrix": {
+                  "m00": 0.0,
+                  "m01": 0.0,
+                  "m02": 0.0,
+                  "m10": 0.0,
+                  "m11": 0.0,
+                  "m12": 0.0,
+                  "m20": 0.0,
+                  "m21": 0.0,
+                  "m22": 0.0
+                },
+                "tiling": "Clip"
+              },
+              "filterMode": "Source",
+              "behaviour": {
+                "$type": "GroupLayerBehaviour",
+                "recoveryId": "183333ad55864218811f8a24f1aa2d04"
+              },
+              "behaviourId": "183333ad55864218811f8a24f1aa2d04",
+              "children": [
+                {
+                  "id": "735b7a3c5b474f1e90e638a3482bccfc",
+                  "layerName": "Turbulence Definition",
+                  "enabled": true,
+                  "clippingMask": false,
+                  "opacity": 1.0,
+                  "blendMode": "Normal",
+                  "colorRange": "Standard",
+                  "blendRange": "Standard",
+                  "swizzle": {
+                    "packed": 0
+                  },
+                  "modifiers": [],
+                  "transform": {
+                    "pivot": {
+                      "x": 0.5,
+                      "y": 0.5
+                    },
+                    "position": {
+                      "x": 0.0,
+                      "y": 0.0
+                    },
+                    "scale": {
+                      "x": 1.0,
+                      "y": 1.0
+                    },
+                    "rotation": 0.0,
+                    "storage": "TRS",
+                    "matrix": {
+                      "m00": 0.0,
+                      "m01": 0.0,
+                      "m02": 0.0,
+                      "m10": 0.0,
+                      "m11": 0.0,
+                      "m12": 0.0,
+                      "m20": 0.0,
+                      "m21": 0.0,
+                      "m22": 0.0
+                    },
+                    "tiling": "Clip"
+                  },
+                  "filterMode": "Source",
+                  "behaviour": {
+                    "$type": "SharpenLayerBehaviour",
+                    "algorithm": "Adaptive",
+                    "strength": 4.0,
+                    "radius": 10.615,
+                    "threshold": 0.0,
+                    "noiseReduction": 0.741,
+                    "haloSuppression": 0.0,
+                    "channelMode": "RGB",
+                    "edges": "Clamp",
+                    "targetLayerId": "e782c551ffae4a048a3e9a42a8258ea5",
+                    "inputMode": "Specific",
+                    "recoveryId": "1b3df424f71643b2b2e2cfb1500265ce"
+                  },
+                  "behaviourId": "1b3df424f71643b2b2e2cfb1500265ce",
+                  "children": [],
+                  "group": false,
+                  "compositing": "PassThrough"
+                },
+                {
+                  "id": "e782c551ffae4a048a3e9a42a8258ea5",
+                  "layerName": "Turbulence Structure",
+                  "enabled": true,
+                  "clippingMask": false,
+                  "opacity": 1.0,
+                  "blendMode": "Normal",
+                  "colorRange": "Standard",
+                  "blendRange": "Standard",
+                  "swizzle": {
+                    "packed": 0
+                  },
+                  "modifiers": [],
+                  "transform": {
+                    "pivot": {
+                      "x": 0.5,
+                      "y": 0.5
+                    },
+                    "position": {
+                      "x": 0.0,
+                      "y": 0.0
+                    },
+                    "scale": {
+                      "x": 1.0,
+                      "y": 1.0
+                    },
+                    "rotation": 0.0,
+                    "storage": "TRS",
+                    "matrix": {
+                      "m00": 0.0,
+                      "m01": 0.0,
+                      "m02": 0.0,
+                      "m10": 0.0,
+                      "m11": 0.0,
+                      "m12": 0.0,
+                      "m20": 0.0,
+                      "m21": 0.0,
+                      "m22": 0.0
+                    },
+                    "tiling": "Clip"
+                  },
+                  "filterMode": "Source",
+                  "behaviour": {
+                    "$type": "GroupLayerBehaviour",
+                    "recoveryId": "b56ef91c540c4250ac25db8f1ae85c64"
+                  },
+                  "behaviourId": "b56ef91c540c4250ac25db8f1ae85c64",
+                  "children": [
+                    {
+                      "id": "03d2258b3e6a4c60a654cfd98955f0b7",
+                      "layerName": "Fine Ridge Detail",
+                      "enabled": true,
+                      "clippingMask": false,
+                      "opacity": 0.1,
+                      "blendMode": "Overlay",
+                      "colorRange": "Standard",
+                      "blendRange": "Standard",
+                      "swizzle": {
+                        "packed": 0
+                      },
+                      "modifiers": [],
+                      "transform": {
+                        "pivot": {
+                          "x": 0.5,
+                          "y": 0.5
+                        },
+                        "position": {
+                          "x": 0.0,
+                          "y": 0.0
+                        },
+                        "scale": {
+                          "x": 1.0,
+                          "y": 1.0
+                        },
+                        "rotation": 0.0,
+                        "storage": "TRS",
+                        "matrix": {
+                          "m00": 0.0,
+                          "m01": 0.0,
+                          "m02": 0.0,
+                          "m10": 0.0,
+                          "m11": 0.0,
+                          "m12": 0.0,
+                          "m20": 0.0,
+                          "m21": 0.0,
+                          "m22": 0.0
+                        },
+                        "tiling": "Clip"
+                      },
+                      "filterMode": "Source",
+                      "behaviour": {
+                        "$type": "NoiseLayerBehaviour",
+                        "noiseType": "OpenSimplex2S",
+                        "dimensions": "TwoD",
+                        "seed": 110,
+                        "scale": 7.9,
+                        "scaleY": 7.9,
+                        "linkScale": true,
+                        "offset": [
+                          0.3,
+                          0.81,
+                          0.0
+                        ],
+                        "periodic": "XY",
+                        "fractal": "Ridged",
+                        "octaves": 2,
+                        "lacunarity": 1.89,
+                        "gain": 0.25,
+                        "weightedStrength": 0.0,
+                        "warp": "OpenSimplex2",
+                        "warpStrength": 0.18,
+                        "warpScale": 1.0,
+                        "warpScaleY": 1.0,
+                        "linkWarpScale": true,
+                        "encoding": "LinearData",
+                        "inverted": false,
+                        "recoveryId": "718392ff7c4241c79693497bac9ff17d"
+                      },
+                      "behaviourId": "718392ff7c4241c79693497bac9ff17d",
+                      "children": [],
+                      "group": false,
+                      "compositing": "PassThrough"
+                    },
+                    {
+                      "id": "86254e8047c44bd0aaba9323ac7a38e9",
+                      "layerName": "Broad Density Modulation",
+                      "enabled": true,
+                      "clippingMask": false,
+                      "opacity": 0.688,
+                      "blendMode": "Multiply",
+                      "colorRange": "Standard",
+                      "blendRange": "Standard",
+                      "swizzle": {
+                        "packed": 0
+                      },
+                      "modifiers": [],
+                      "transform": {
+                        "pivot": {
+                          "x": 0.5,
+                          "y": 0.5
+                        },
+                        "position": {
+                          "x": 0.0,
+                          "y": 0.0
+                        },
+                        "scale": {
+                          "x": 1.0,
+                          "y": 1.0
+                        },
+                        "rotation": 0.0,
+                        "storage": "TRS",
+                        "matrix": {
+                          "m00": 0.0,
+                          "m01": 0.0,
+                          "m02": 0.0,
+                          "m10": 0.0,
+                          "m11": 0.0,
+                          "m12": 0.0,
+                          "m20": 0.0,
+                          "m21": 0.0,
+                          "m22": 0.0
+                        },
+                        "tiling": "Clip"
+                      },
+                      "filterMode": "Source",
+                      "behaviour": {
+                        "$type": "NoiseLayerBehaviour",
+                        "noiseType": "Value",
+                        "dimensions": "TwoD",
+                        "seed": -1009338501,
+                        "scale": 3.1,
+                        "scaleY": 0.0,
+                        "linkScale": true,
+                        "offset": [
+                          52.5,
+                          86.4,
+                          0.0
+                        ],
+                        "periodic": "XY",
+                        "fractal": "None",
+                        "warp": "None",
+                        "encoding": "ColorValues",
+                        "inverted": false,
+                        "recoveryId": "ef064bf9cf1740e9b4d4a4d263678e89"
+                      },
+                      "behaviourId": "ef064bf9cf1740e9b4d4a4d263678e89",
+                      "children": [],
+                      "group": false,
+                      "compositing": "PassThrough"
+                    },
+                    {
+                      "id": "bb2566749ac14e539cefea6a2e4fb56a",
+                      "layerName": "Dense Ridges",
+                      "enabled": true,
+                      "clippingMask": false,
+                      "opacity": 1.0,
+                      "blendMode": "Normal",
+                      "colorRange": "Standard",
+                      "blendRange": "Standard",
+                      "swizzle": {
+                        "packed": 0
+                      },
+                      "modifiers": [
+                        {
+                          "$type": "ShaderFX",
+                          "$id": "fx2",
+                          "active": true,
+                          "code": "// @whimtex-effect Color/Levels\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\r\n// @group\r\n// @header(Input Levels)\r\n// @param label(Input Black) float _InBlack = 0 [0 .. ~1] // Input black point. At or above white, the mapping becomes a hard threshold.\r\n// @param label(Input White) float _InWhite = 1 [0 .. ~1] // Input white point.\r\n// @param float _Gamma = 1 [0.1 .. ~5] // Midtone brightness.\r\n// @param curve _Curve // Remap tones after input levels and Gamma, before output levels. Linear leaves the mapping unchanged.\r\n// @header(Output Levels)\r\n// @param label(Output Black) float _OutBlack = 0 [0 .. ~1] // Output black point, including originally black pixels.\r\n// @param label(Output White) float _OutWhite = 1 [0 .. ~1] // Output white point; values below black invert the output.\r\n// @param bool _PreserveColor = true // On adjusts luminance; off applies levels independently to RGB.\r\n// @endgroup\r\n\r\nfloat MapLevels(float value)\r\n{\r\n    float mapped;\r\n    if (_InWhite <= _InBlack) mapped = step(_InBlack, value);\r\n    else mapped = saturate((value - _InBlack) / (_InWhite - _InBlack));\r\n    mapped = pow(mapped, 1.0 / max(_Gamma, 0.0001));\r\n    mapped = _Curve_Sample(mapped);\r\n    return lerp(_OutBlack, _OutWhite, mapped);\r\n}\r\n\r\nfloat4 ApplyFX(float2 uv, float4 color)\r\n{\r\n\tfloat4 result = color;\r\n    float3 rgb = max(color.rgb, 0.0);\r\n    if (_PreserveColor > 0.5)\r\n    {\r\n        float luma = dot(rgb, float3(0.2126, 0.7152, 0.0722));\r\n        float mapped = MapLevels(luma);\r\n\t\tresult.rgb = luma > 0.000001 ? rgb * (mapped / max(luma, 0.000001)) : mapped.xxx;\r\n\t}\r\n\telse\r\n\t{\r\n\t\tresult.rgb = float3(MapLevels(rgb.r), MapLevels(rgb.g), MapLevels(rgb.b));\r\n\t}\r\n\treturn lerp(color, result, _Opacity);\r\n}\r\n",
+                          "parameters": [
+                            {
+                              "name": "_Opacity",
+                              "type": "Float",
+                              "floatValue": 1.0,
+                              "id": "df746225cc4e422cbc535bdf6d14328d",
+                              "declaredInCode": true
+                            },
+                            {
+                              "name": "_InBlack",
+                              "type": "Float",
+                              "floatValue": 0.135,
+                              "id": "13150d7a60cb47dba2e88d3b38613510",
+                              "declaredInCode": true
+                            },
+                            {
+                              "name": "_InWhite",
+                              "type": "Float",
+                              "floatValue": 1.0,
+                              "id": "efc88ed296614202a21d3fdcb56eb9a1",
+                              "declaredInCode": true
+                            },
+                            {
+                              "name": "_Gamma",
+                              "type": "Float",
+                              "floatValue": 0.74,
+                              "id": "49cf136e941b466a85e02e9ae8128ec5",
+                              "declaredInCode": true
+                            },
+                            {
+                              "name": "_Curve",
+                              "type": "Curve",
+                              "curveValue": {
+                                "preWrap": "ClampForever",
+                                "postWrap": "ClampForever",
+                                "keys": [
+                                  [
+                                    0.0,
+                                    0.0,
+                                    1.0,
+                                    1.0,
+                                    0.0,
+                                    0.0,
+                                    "None"
+                                  ],
+                                  [
+                                    1.0,
+                                    1.0,
+                                    1.0,
+                                    1.0,
+                                    0.0,
+                                    0.0,
+                                    "None"
+                                  ]
+                                ]
+                              },
+                              "id": "37c6d69f86a446a2911cf104ce763bc8",
+                              "declaredInCode": true
+                            },
+                            {
+                              "name": "_OutBlack",
+                              "type": "Float",
+                              "floatValue": 0.0,
+                              "id": "7f1ab84a74a44ee19927a9b0e659f467",
+                              "declaredInCode": true
+                            },
+                            {
+                              "name": "_OutWhite",
+                              "type": "Float",
+                              "floatValue": 1.0,
+                              "id": "8a0f1956a1fe43e58b695816e9e20b69",
+                              "declaredInCode": true
+                            },
+                            {
+                              "name": "_PreserveColor",
+                              "type": "Bool",
+                              "floatValue": 0.0,
+                              "id": "cff52f01563e43ea8c0b115f26f11e49",
+                              "declaredInCode": true
+                            }
+                          ],
+                          "shaderKey": "36b72ed0d37f4bfa9a87ccfc2ea442a7",
+                          "$name": "Levels"
+                        }
+                      ],
+                      "transform": {
+                        "pivot": {
+                          "x": 0.5,
+                          "y": 0.5
+                        },
+                        "position": {
+                          "x": 0.0,
+                          "y": 0.0
+                        },
+                        "scale": {
+                          "x": 1.0,
+                          "y": 1.0
+                        },
+                        "rotation": 0.0,
+                        "storage": "TRS",
+                        "matrix": {
+                          "m00": 0.0,
+                          "m01": 0.0,
+                          "m02": 0.0,
+                          "m10": 0.0,
+                          "m11": 0.0,
+                          "m12": 0.0,
+                          "m20": 0.0,
+                          "m21": 0.0,
+                          "m22": 0.0
+                        },
+                        "tiling": "Clip"
+                      },
+                      "filterMode": "Source",
+                      "behaviour": {
+                        "$type": "NoiseLayerBehaviour",
+                        "noiseType": "Perlin",
+                        "dimensions": "TwoD",
+                        "seed": 73,
+                        "scale": 5.71,
+                        "scaleY": 3.65,
+                        "linkScale": false,
+                        "offset": [
+                          -2.04,
+                          0.81,
+                          0.0
+                        ],
+                        "periodic": "XY",
+                        "fractal": "Ridged",
+                        "octaves": 2,
+                        "lacunarity": 2.2,
+                        "gain": 0.24,
+                        "weightedStrength": 0.0,
+                        "warp": "OpenSimplex2",
+                        "warpStrength": 0.2,
+                        "warpScale": 0.59,
+                        "warpScaleY": 0.59,
+                        "linkWarpScale": true,
+                        "encoding": "LinearData",
+                        "inverted": false,
+                        "recoveryId": "335843b5c714497b82213408a1c9f259"
+                      },
+                      "behaviourId": "335843b5c714497b82213408a1c9f259",
+                      "children": [],
+                      "group": false,
+                      "compositing": "PassThrough"
+                    }
+                  ],
+                  "group": true,
+                  "compositing": "PassThrough"
+                }
+              ],
+              "group": true,
+              "compositing": "Isolated"
+            }
+          ],
+          "group": true,
+          "compositing": "Isolated"
+        },
+        {
+          "id": "a2c7f0c178514886a49f6a6f863fae34",
+          "layerName": "G - Soft Filaments",
+          "enabled": true,
+          "clippingMask": false,
+          "opacity": 1.0,
+          "blendMode": "Add",
+          "colorRange": "Standard",
+          "blendRange": "Standard",
+          "swizzle": {
+            "packed": 43544
+          },
+          "modifiers": [],
+          "transform": {
+            "pivot": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "rotation": 0.0,
+            "storage": "TRS",
+            "matrix": {
+              "m00": 0.0,
+              "m01": 0.0,
+              "m02": 0.0,
+              "m10": 0.0,
+              "m11": 0.0,
+              "m12": 0.0,
+              "m20": 0.0,
+              "m21": 0.0,
+              "m22": 0.0
+            },
+            "tiling": "Clip"
+          },
+          "filterMode": "Source",
+          "behaviour": {
+            "$type": "GroupLayerBehaviour",
+            "recoveryId": "42a60b06031449efb35cdf52a4a19545"
+          },
+          "behaviourId": "42a60b06031449efb35cdf52a4a19545",
+          "children": [
+            {
+              "id": "0e84fb6d48ea4610b391f3056be0da66",
+              "layerName": "Filament Mix",
+              "enabled": true,
+              "clippingMask": false,
+              "opacity": 1.0,
+              "blendMode": "Normal",
+              "colorRange": "Standard",
+              "blendRange": "Standard",
+              "swizzle": {
+                "packed": 0
+              },
+              "modifiers": [
+                {
+                  "$type": "ShaderFX",
+                  "$id": "fx3",
+                  "active": true,
+                  "code": "// @whimtex-effect Color/Levels\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\r\n// @group\r\n// @header(Input Levels)\r\n// @param label(Input Black) float _InBlack = 0 [0 .. ~1] // Input black point. At or above white, the mapping becomes a hard threshold.\r\n// @param label(Input White) float _InWhite = 1 [0 .. ~1] // Input white point.\r\n// @param float _Gamma = 1 [0.1 .. ~5] // Midtone brightness.\r\n// @param curve _Curve // Remap tones after input levels and Gamma, before output levels. Linear leaves the mapping unchanged.\r\n// @header(Output Levels)\r\n// @param label(Output Black) float _OutBlack = 0 [0 .. ~1] // Output black point, including originally black pixels.\r\n// @param label(Output White) float _OutWhite = 1 [0 .. ~1] // Output white point; values below black invert the output.\r\n// @param bool _PreserveColor = true // On adjusts luminance; off applies levels independently to RGB.\r\n// @endgroup\r\n\r\nfloat MapLevels(float value)\r\n{\r\n    float mapped;\r\n    if (_InWhite <= _InBlack) mapped = step(_InBlack, value);\r\n    else mapped = saturate((value - _InBlack) / (_InWhite - _InBlack));\r\n    mapped = pow(mapped, 1.0 / max(_Gamma, 0.0001));\r\n    mapped = _Curve_Sample(mapped);\r\n    return lerp(_OutBlack, _OutWhite, mapped);\r\n}\r\n\r\nfloat4 ApplyFX(float2 uv, float4 color)\r\n{\r\n\tfloat4 result = color;\r\n    float3 rgb = max(color.rgb, 0.0);\r\n    if (_PreserveColor > 0.5)\r\n    {\r\n        float luma = dot(rgb, float3(0.2126, 0.7152, 0.0722));\r\n        float mapped = MapLevels(luma);\r\n\t\tresult.rgb = luma > 0.000001 ? rgb * (mapped / max(luma, 0.000001)) : mapped.xxx;\r\n\t}\r\n\telse\r\n\t{\r\n\t\tresult.rgb = float3(MapLevels(rgb.r), MapLevels(rgb.g), MapLevels(rgb.b));\r\n\t}\r\n\treturn lerp(color, result, _Opacity);\r\n}\r\n",
+                  "parameters": [
+                    {
+                      "name": "_Opacity",
+                      "type": "Float",
+                      "floatValue": 1.0,
+                      "id": "bd677345e9ca436ba6e3536641f00834",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_InBlack",
+                      "type": "Float",
+                      "floatValue": 0.0,
+                      "id": "6d5d3c8eb3864b629c9323be52f73031",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_InWhite",
+                      "type": "Float",
+                      "floatValue": 0.83,
+                      "id": "73d9d6dafce04c8a8ee98a313d290582",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_Gamma",
+                      "type": "Float",
+                      "floatValue": 1.53,
+                      "id": "11c7f6a70b6c439eb6d23eacef51e228",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_Curve",
+                      "type": "Curve",
+                      "curveValue": {
+                        "preWrap": "ClampForever",
+                        "postWrap": "ClampForever",
+                        "keys": [
+                          [
+                            0.0,
+                            0.0,
+                            0.358205169,
+                            0.358205169,
+                            0.0,
+                            0.0731158555,
+                            "None"
+                          ],
+                          [
+                            0.300076,
+                            0.331562459,
+                            1.15644431,
+                            1.15644431,
+                            0.333333343,
+                            0.333333343,
+                            "None"
+                          ],
+                          [
+                            1.0,
+                            1.0,
+                            1.3782897,
+                            1.3782897,
+                            0.0691060647,
+                            0.0,
+                            "None"
+                          ]
+                        ]
+                      },
+                      "id": "6d829c4931e345daacb51c5e504e1940",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_OutBlack",
+                      "type": "Float",
+                      "floatValue": 0.0,
+                      "id": "7cd94d88eee3405e99c66ef2366c3b57",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_OutWhite",
+                      "type": "Float",
+                      "floatValue": 1.0,
+                      "id": "6a3a2e5920d24a1ea6a9c2db9b2afb10",
+                      "declaredInCode": true
+                    },
+                    {
+                      "name": "_PreserveColor",
+                      "type": "Bool",
+                      "floatValue": 0.0,
+                      "id": "0d95ad655f4c463c967db834326ad110",
+                      "declaredInCode": true
+                    }
+                  ],
+                  "shaderKey": "7d0cf46dd555458cbd59c3756125ccf0",
+                  "$name": "Levels"
+                }
+              ],
+              "transform": {
+                "pivot": {
+                  "x": 0.5,
+                  "y": 0.5
+                },
+                "position": {
+                  "x": 0.0,
+                  "y": 0.0
+                },
+                "scale": {
+                  "x": 1.0,
+                  "y": 1.0
+                },
+                "rotation": 0.0,
+                "storage": "TRS",
+                "matrix": {
+                  "m00": 0.0,
+                  "m01": 0.0,
+                  "m02": 0.0,
+                  "m10": 0.0,
+                  "m11": 0.0,
+                  "m12": 0.0,
+                  "m20": 0.0,
+                  "m21": 0.0,
+                  "m22": 0.0
+                },
+                "tiling": "Clip"
+              },
+              "filterMode": "Source",
+              "behaviour": {
+                "$type": "GroupLayerBehaviour",
+                "recoveryId": "1d6085e9744b475b9faa1c992dba1d0e"
+              },
+              "behaviourId": "1d6085e9744b475b9faa1c992dba1d0e",
+              "children": [
+                {
+                  "id": "b2d57858b82a4ec68081cb529a3f116f",
+                  "layerName": "Broad Filament Flow",
+                  "enabled": true,
+                  "clippingMask": false,
+                  "opacity": 1.0,
+                  "blendMode": "HardLight",
+                  "colorRange": "Standard",
+                  "blendRange": "Standard",
+                  "swizzle": {
+                    "packed": 0
+                  },
+                  "modifiers": [],
+                  "transform": {
+                    "pivot": {
+                      "x": 0.5,
+                      "y": 0.5
+                    },
+                    "position": {
+                      "x": 0.0,
+                      "y": 0.0
+                    },
+                    "scale": {
+                      "x": 1.0,
+                      "y": 1.0
+                    },
+                    "rotation": 0.0,
+                    "storage": "TRS",
+                    "matrix": {
+                      "m00": 0.0,
+                      "m01": 0.0,
+                      "m02": 0.0,
+                      "m10": 0.0,
+                      "m11": 0.0,
+                      "m12": 0.0,
+                      "m20": 0.0,
+                      "m21": 0.0,
+                      "m22": 0.0
+                    },
+                    "tiling": "Unbounded"
+                  },
+                  "filterMode": "Source",
+                  "behaviour": {
+                    "$type": "NoiseLayerBehaviour",
+                    "noiseType": "OpenSimplex2",
+                    "dimensions": "TwoD",
+                    "seed": 1502823473,
+                    "scale": 0.7285713,
+                    "scaleY": 0.6,
+                    "linkScale": true,
+                    "offset": [
+                      726.3,
+                      -340.202026,
+                      0.0
+                    ],
+                    "periodic": "XY",
+                    "fractal": "PingPong",
+                    "octaves": 3,
+                    "lacunarity": 2.84,
+                    "gain": 1.0,
+                    "weightedStrength": 0.61,
+                    "pingPongStrength": 1.0,
+                    "warp": "OpenSimplex2Reduced",
+                    "warpStrength": 0.21,
+                    "warpScale": 1.0,
+                    "warpScaleY": 1.0,
+                    "linkWarpScale": true,
+                    "encoding": "ColorValues",
+                    "inverted": false,
+                    "recoveryId": "c4ac9d508f104ca29c7ec43b94782b06"
+                  },
+                  "behaviourId": "c4ac9d508f104ca29c7ec43b94782b06",
+                  "children": [],
+                  "group": false,
+                  "compositing": "PassThrough"
+                },
+                {
+                  "id": "8c6cb4bbd6314180b18436f3371e2657",
+                  "layerName": "Fine Filament Modulation",
+                  "enabled": true,
+                  "clippingMask": false,
+                  "opacity": 0.563,
+                  "blendMode": "HardLight",
+                  "colorRange": "Standard",
+                  "blendRange": "Standard",
+                  "swizzle": {
+                    "packed": 0
+                  },
+                  "modifiers": [
+                    {
+                      "$type": "ShaderFX",
+                      "$id": "fx4",
+                      "active": true,
+                      "code": "// @whimtex-effect Color/Levels\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\r\n// @group\r\n// @header(Input Levels)\r\n// @param label(Input Black) float _InBlack = 0 [0 .. ~1] // Input black point. At or above white, the mapping becomes a hard threshold.\r\n// @param label(Input White) float _InWhite = 1 [0 .. ~1] // Input white point.\r\n// @param float _Gamma = 1 [0.1 .. ~5] // Midtone brightness.\r\n// @param curve _Curve // Remap tones after input levels and Gamma, before output levels. Linear leaves the mapping unchanged.\r\n// @header(Output Levels)\r\n// @param label(Output Black) float _OutBlack = 0 [0 .. ~1] // Output black point, including originally black pixels.\r\n// @param label(Output White) float _OutWhite = 1 [0 .. ~1] // Output white point; values below black invert the output.\r\n// @param bool _PreserveColor = true // On adjusts luminance; off applies levels independently to RGB.\r\n// @endgroup\r\n\r\nfloat MapLevels(float value)\r\n{\r\n    float mapped;\r\n    if (_InWhite <= _InBlack) mapped = step(_InBlack, value);\r\n    else mapped = saturate((value - _InBlack) / (_InWhite - _InBlack));\r\n    mapped = pow(mapped, 1.0 / max(_Gamma, 0.0001));\r\n    mapped = _Curve_Sample(mapped);\r\n    return lerp(_OutBlack, _OutWhite, mapped);\r\n}\r\n\r\nfloat4 ApplyFX(float2 uv, float4 color)\r\n{\r\n\tfloat4 result = color;\r\n    float3 rgb = max(color.rgb, 0.0);\r\n    if (_PreserveColor > 0.5)\r\n    {\r\n        float luma = dot(rgb, float3(0.2126, 0.7152, 0.0722));\r\n        float mapped = MapLevels(luma);\r\n\t\tresult.rgb = luma > 0.000001 ? rgb * (mapped / max(luma, 0.000001)) : mapped.xxx;\r\n\t}\r\n\telse\r\n\t{\r\n\t\tresult.rgb = float3(MapLevels(rgb.r), MapLevels(rgb.g), MapLevels(rgb.b));\r\n\t}\r\n\treturn lerp(color, result, _Opacity);\r\n}\r\n",
+                      "parameters": [
+                        {
+                          "name": "_Opacity",
+                          "type": "Float",
+                          "floatValue": 1.0,
+                          "id": "da94710018a148b5a0734dbe77ef533d",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_InBlack",
+                          "type": "Float",
+                          "floatValue": 0.268,
+                          "id": "66b35eb0685745339fc9e31c7ba7e2be",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_InWhite",
+                          "type": "Float",
+                          "floatValue": 1.0,
+                          "id": "569baaba981646cbbc143426f3e017ee",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_Gamma",
+                          "type": "Float",
+                          "floatValue": 0.76,
+                          "id": "2899c8bf96ec4869924af59fd113f60a",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_Curve",
+                          "type": "Curve",
+                          "curveValue": {
+                            "preWrap": "ClampForever",
+                            "postWrap": "ClampForever",
+                            "keys": [
+                              [
+                                0.0,
+                                0.0,
+                                1.0,
+                                1.0,
+                                0.0,
+                                0.0,
+                                "None"
+                              ],
+                              [
+                                1.0,
+                                1.0,
+                                1.0,
+                                1.0,
+                                0.0,
+                                0.0,
+                                "None"
+                              ]
+                            ]
+                          },
+                          "id": "aa930f2b5dc94d01a08382e2749a623d",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_OutBlack",
+                          "type": "Float",
+                          "floatValue": 0.0,
+                          "id": "1edd603ee3684e679d2732cb3d67cf41",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_OutWhite",
+                          "type": "Float",
+                          "floatValue": 0.31,
+                          "id": "fc6de45378994a968b84136f9692936c",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_PreserveColor",
+                          "type": "Bool",
+                          "floatValue": 1.0,
+                          "id": "4c8d67df2d0741d8b76930b67eb1fae7",
+                          "declaredInCode": true
+                        }
+                      ],
+                      "shaderKey": "a54ad13ac9f340469097796a2ebab245",
+                      "$name": "Levels"
+                    }
+                  ],
+                  "transform": {
+                    "pivot": {
+                      "x": 0.5,
+                      "y": 0.5
+                    },
+                    "position": {
+                      "x": 0.0,
+                      "y": 0.0
+                    },
+                    "scale": {
+                      "x": 1.0,
+                      "y": 1.0
+                    },
+                    "rotation": 0.0,
+                    "storage": "TRS",
+                    "matrix": {
+                      "m00": 0.0,
+                      "m01": 0.0,
+                      "m02": 0.0,
+                      "m10": 0.0,
+                      "m11": 0.0,
+                      "m12": 0.0,
+                      "m20": 0.0,
+                      "m21": 0.0,
+                      "m22": 0.0
+                    },
+                    "tiling": "Unbounded"
+                  },
+                  "filterMode": "Source",
+                  "behaviour": {
+                    "$type": "NoiseLayerBehaviour",
+                    "noiseType": "ValueCubic",
+                    "dimensions": "TwoD",
+                    "seed": -1445441339,
+                    "scale": 8.47,
+                    "scaleY": 0.0,
+                    "linkScale": true,
+                    "offset": [
+                      -919.0079,
+                      93.34993,
+                      0.0
+                    ],
+                    "periodic": "XY",
+                    "fractal": "PingPong",
+                    "octaves": 2,
+                    "lacunarity": 1.3,
+                    "gain": 0.371,
+                    "weightedStrength": 1.0,
+                    "pingPongStrength": 1.0,
+                    "warp": "BasicGrid",
+                    "warpStrength": 0.49,
+                    "warpScale": 1.0,
+                    "warpScaleY": 1.0,
+                    "linkWarpScale": true,
+                    "encoding": "ColorValues",
+                    "inverted": false,
+                    "recoveryId": "a48e61989c2d4db29f2d6dac5f579ee0"
+                  },
+                  "behaviourId": "a48e61989c2d4db29f2d6dac5f579ee0",
+                  "children": [],
+                  "group": false,
+                  "compositing": "PassThrough"
+                },
+                {
+                  "id": "1cb886e1d2de4b708d81720a0f22edff",
+                  "layerName": "Warped Filament Structure",
+                  "enabled": true,
+                  "clippingMask": false,
+                  "opacity": 1.0,
+                  "blendMode": "Normal",
+                  "colorRange": "Standard",
+                  "blendRange": "Standard",
+                  "swizzle": {
+                    "packed": 0
+                  },
+                  "modifiers": [
+                    {
+                      "$type": "ShaderFX",
+                      "$id": "fx5",
+                      "active": true,
+                      "code": "// @whimtex-effect Distortion/Displacement Map\r\n// @group(Map Wrap; _MapWrap)\r\n// @param texture2D _DisplacementMap = self // Source field. Vector mode reads R/G; Grayscale mode reads the selected channel.\r\n// @param transform2D _MapTransform = (0.5, 0.5, 1, 1, 0) // Positions and scales the map independently from the image being distorted.\r\n// @param hidden enum _MapWrap = Clamp {Clamp: 0, Repeat: 1, Mirror: 2} // Addressing for the map and an optional separate strength mask.\r\n// @endgroup\r\n// @group(Displacement Mode; _Mode)\r\n// @param hidden enum _Mode = VectorRG {VectorRG: 0, Grayscale: 1, ParallaxOcclusion: 2}\r\n// @if _Mode != 2\r\n// @param float _Neutral = 0.5 [0 .. 1] // Neutral value for vector channels and the grayscale displacement.\r\n// @endif\r\n// @if _Mode != 0\r\n// @param enum _MapChannel = Luminance {Luminance: 0, R: 1, G: 2, B: 3, Alpha: 4}\r\n// @endif\r\n// @if _Mode == 0\r\n// @header(Vector)\r\n// @param float _StrengthX = 0 [~-512 .. ~512] // Horizontal displacement in canvas pixels at a full channel value.\r\n// @param float _StrengthY = 0 [~-512 .. ~512] // Vertical displacement in canvas pixels at a full channel value.\r\n// @endif\r\n// @if _Mode == 1\r\n// @header(Grayscale)\r\n// @param enum _Direction = Horizontal {Horizontal: 0, Vertical: 1, Radial: 2, Tangential: 3, Angle: 4}\r\n// @param float _Strength = 0 [~-512 .. ~512] // Displacement in canvas pixels. The sign reverses the selected direction.\r\n// @param point _Center = (0.5, 0.5) // Origin for Radial and Tangential directions.\r\n// @param float _Angle = 0 [~-180 .. ~180] // Direction angle in degrees when Direction is Angle.\r\n// @endif\r\n// @if _Mode == 2\r\n// @header(Parallax)\r\n// @param float _Depth = 8 [0 .. 128] // Height range in canvas pixels; lower view elevation creates a larger parallax shift.\r\n// @param float _ViewAngle = 0 [~-180 .. ~180] // Direction of the virtual view ray in the canvas plane.\r\n// @param float _ViewElevation = 60 [5 .. 85] // 90 degrees is head-on; lower values increase parallax.\r\n// @param enum _ParallaxSteps = Balanced {Fast: 4, Balanced: 8, High: 16, Ultra: 32}\r\n// @param bool _InvertHeight = false // Use black as the raised surface and white as the recessed surface.\r\n// Self-shadowing controls are temporarily disabled; keep their source here for later iteration.\r\n// // @header(Self-Shadowing)\r\n// // @param bool _SelfShadow = false // Trace the height field toward a virtual light and darken occluded areas.\r\n// // @param float _LightAngle = 45 [~-180 .. ~180] // Direction toward the virtual light in the canvas plane.\r\n// // @param float _LightElevation = 45 [5 .. 85]\r\n// // @param enum _ShadowSteps = Balanced {Low: 4, Balanced: 8, High: 16}\r\n// // @param float _ShadowStrength = 0.65 [0 .. 1]\r\n// // @param float _ShadowSoftness = 0.02 [0 .. 0.2]\r\n// @endif\r\n// @endgroup\r\n// @group(Strength Mask Source; _MaskSource)\r\n// @param hidden enum _MaskSource = Constant1 {Constant1: 0, MapChannel: 1, InputAlpha: 2, SeparateTexture: 3} // Constant1 needs no second texture; MapChannel reuses the displacement map.\r\n// @if _MaskSource != 0\r\n// @param bool _InvertMask = false\r\n// @param curve _MaskProfile // Remaps mask values; the default linear curve preserves them.\r\n// @endif\r\n// @if _MaskSource == 1\r\n// @param enum _MapMaskChannel = Alpha {Alpha: 0, Luminance: 1, R: 2, G: 3, B: 4}\r\n// @endif\r\n// @if _MaskSource == 3\r\n// @param texture2D _StrengthMask = none // Optional second texture. Leave Mask Source at Constant1 to work with only one map.\r\n// @param enum _SeparateMaskChannel = Alpha {Alpha: 0, Luminance: 1, R: 2, G: 3, B: 4}\r\n// @endif\r\n// @endgroup\r\n// @group(Output Mix; _Mix)\r\n// @param hidden float _Mix = 1 [0 .. 1] // Blend the displaced sample with the original image.\r\n// @param enum _InputEdge = Clamp {Clamp: 0, Repeat: 1, Mirror: 2, Transparent: 3} // Addressing for displaced image samples, independent of map wrapping.\r\n// @endgroup\r\n\r\nfloat ReadDisplacementChannel(float4 value, float channel)\r\n{\r\n    float result = dot(value.rgb, float3(0.2126, 0.7152, 0.0722));\r\n    if (channel > 0.5 && channel < 1.5) result = value.r;\r\n    else if (channel > 1.5 && channel < 2.5) result = value.g;\r\n    else if (channel > 2.5 && channel < 3.5) result = value.b;\r\n    else if (channel > 3.5) result = value.a;\r\n    return result;\r\n}\r\n\r\nfloat ReadStrengthChannel(float4 value, float channel)\r\n{\r\n    float result = value.a;\r\n    if (channel > 0.5 && channel < 1.5) result = dot(value.rgb, float3(0.2126, 0.7152, 0.0722));\r\n    else if (channel > 1.5 && channel < 2.5) result = value.r;\r\n    else if (channel > 2.5 && channel < 3.5) result = value.g;\r\n    else if (channel > 3.5) result = value.b;\r\n    return result;\r\n}\r\n\r\nfloat2 AddressMapUV(float2 uv, float mode, float2 texelSize)\r\n{\r\n    if (mode < 0.5)\r\n        return clamp(uv, texelSize * 0.5, 1.0 - texelSize * 0.5);\r\n    if (mode < 1.5)\r\n        uv = frac(uv);\r\n    else\r\n        uv = 1.0 - abs(frac(uv * 0.5) * 2.0 - 1.0);\r\n    return uv;\r\n}\r\n\r\nfloat2 AddressInputUV(float2 uv, float mode, float2 texelSize, out float inside)\r\n{\r\n    inside = 1.0;\r\n    if (mode < 0.5)\r\n        return clamp(uv, texelSize * 0.5, 1.0 - texelSize * 0.5);\r\n    if (mode < 1.5)\r\n        return frac(uv);\r\n    if (mode < 2.5)\r\n        return 1.0 - abs(frac(uv * 0.5) * 2.0 - 1.0);\r\n\r\n    inside = step(0.0, uv.x) * step(uv.x, 1.0) * step(0.0, uv.y) * step(uv.y, 1.0);\r\n    return clamp(uv, texelSize * 0.5, 1.0 - texelSize * 0.5);\r\n}\r\n\r\nfloat ReadHeightAtUV(float2 uv, float2 mapDDX, float2 mapDDY)\r\n{\r\n    float2 mapUV = AddressMapUV(_MapTransform_ToLocal(uv), _MapWrap, _DisplacementMap_TexelSize.xy);\r\n    float height = saturate(ReadDisplacementChannel(tex2Dgrad(_DisplacementMap, mapUV, mapDDX, mapDDY), _MapChannel));\r\n    return _InvertHeight > 0.5 ? 1.0 - height : height;\r\n}\r\n\r\nfloat2 DirectionFromAngle(float angle)\r\n{\r\n    float sine, cosine;\r\n    sincos(radians(angle), sine, cosine);\r\n    return float2(cosine, sine);\r\n}\r\n\r\nfloat2 TraceParallax(float2 uv, float strengthMask, float2 mapDDX, float2 mapDDY, out float hitHeight)\r\n{\r\n    int steps = clamp((int)round(_ParallaxSteps), 4, 32);\r\n    float elevation = radians(clamp(_ViewElevation, 5.0, 85.0));\r\n    float lateralPixels = _Depth * strengthMask / max(tan(elevation), 1e-3);\r\n    float2 stepUV = DirectionFromAngle(_ViewAngle) * lateralPixels * _CanvasSize.zw / steps;\r\n    float layerStep = 1.0 / steps;\r\n    float rayDepth = 0.0;\r\n    float2 previousUV = uv;\r\n    float2 currentUV = uv;\r\n    hitHeight = 0.0;\r\n\r\n    [loop]\r\n    for (int i = 0; i < 32; i++)\r\n    {\r\n        if (i >= steps) break;\r\n        previousUV = currentUV;\r\n        currentUV -= stepUV;\r\n        rayDepth += layerStep;\r\n        hitHeight = ReadHeightAtUV(currentUV, mapDDX, mapDDY);\r\n        float surfaceDepth = 1.0 - hitHeight;\r\n        if (rayDepth >= surfaceDepth)\r\n        {\r\n            float previousDepth = rayDepth - layerStep;\r\n            float beforeHit = surfaceDepth - previousDepth;\r\n            float afterHit = rayDepth - surfaceDepth;\r\n            float blend = saturate(beforeHit / max(beforeHit + afterHit, 1e-6));\r\n            currentUV = lerp(previousUV, currentUV, blend);\r\n            hitHeight = ReadHeightAtUV(currentUV, mapDDX, mapDDY);\r\n            break;\r\n        }\r\n    }\r\n    return currentUV;\r\n}\r\n\r\n// Temporarily disabled self-shadow implementation:\r\n// float TraceParallaxSelfShadow(float2 hitUV, float surfaceHeight, float strengthMask, float2 mapDDX, float2 mapDDY)\r\n// {\r\n//     int steps = clamp((int)round(_ShadowSteps), 4, 16);\r\n//     float elevation = radians(clamp(_LightElevation, 5.0, 85.0));\r\n//     float lateralPixels = _Depth * strengthMask * (1.0 - surfaceHeight) / max(tan(elevation), 1e-3);\r\n//     float2 lightStepUV = DirectionFromAngle(_LightAngle) * lateralPixels * _CanvasSize.zw / steps;\r\n//     float softness = max(_ShadowSoftness, 1e-4);\r\n//     float visibility = 1.0;\r\n//\r\n//     [loop]\r\n//     for (int i = 0; i < 16; i++)\r\n//     {\r\n//         if (i >= steps) break;\r\n//         float progress = (i + 1.0) / steps;\r\n//         float sampleHeight = ReadHeightAtUV(hitUV + lightStepUV * (i + 1), mapDDX, mapDDY);\r\n//         float rayHeight = lerp(surfaceHeight, 1.0, progress);\r\n//         visibility = min(visibility, 1.0 - smoothstep(-softness, softness, sampleHeight - rayHeight));\r\n//         if (visibility <= 1e-3) break;\r\n//     }\r\n//     return visibility;\r\n// }\r\n\r\nfloat2 GrayscaleDirection(float2 uv)\r\n{\r\n    float2 direction = float2(1.0, 0.0);\r\n    if (_Direction > 0.5 && _Direction < 1.5)\r\n        direction = float2(0.0, 1.0);\r\n    else if (_Direction > 1.5 && _Direction < 3.5)\r\n    {\r\n        float2 radial = (uv - _Center) * _CanvasSize.xy;\r\n        float radius = length(radial);\r\n        direction = radius > 1e-6 ? radial / radius : float2(0.0, 0.0);\r\n        if (_Direction > 2.5)\r\n            direction = float2(-direction.y, direction.x);\r\n    }\r\n    else if (_Direction > 3.5)\r\n    {\r\n        float sine, cosine;\r\n        sincos(radians(_Angle), sine, cosine);\r\n        direction = float2(cosine, sine);\r\n    }\r\n    return direction;\r\n}\r\n\r\nfloat4 ApplyFX(float2 uv, float4 color)\r\n{\r\n    float2 mapUV = _MapTransform_ToLocal(uv);\r\n    float2 mapDDX = ddx(mapUV);\r\n    float2 mapDDY = ddy(mapUV);\r\n    mapUV = AddressMapUV(mapUV, _MapWrap, _DisplacementMap_TexelSize.xy);\r\n    float4 mapSample = tex2D(_DisplacementMap, mapUV);\r\n    float2 displacementPixels = float2(0.0, 0.0);\r\n    float2 parallaxUV = uv;\r\n    float parallaxHeight = 0.0;\r\n\r\n    if (_Mode < 0.5)\r\n    {\r\n        displacementPixels = (mapSample.rg - float2(_Neutral, _Neutral)) * 2.0 * float2(_StrengthX, _StrengthY);\r\n    }\r\n    else if (_Mode < 1.5)\r\n    {\r\n        float mapValue = ReadDisplacementChannel(mapSample, _MapChannel);\r\n        float signedValue = (mapValue - _Neutral) * 2.0;\r\n        displacementPixels = GrayscaleDirection(uv) * signedValue * _Strength;\r\n    }\r\n\r\n    float strengthMask = 1.0;\r\n    if (_MaskSource > 0.5)\r\n    {\r\n        float maskValue = 1.0;\r\n        if (_MaskSource < 1.5)\r\n            maskValue = ReadStrengthChannel(mapSample, _MapMaskChannel);\r\n        else if (_MaskSource < 2.5)\r\n            maskValue = color.a;\r\n        else\r\n        {\r\n            float2 strengthMaskUV = AddressMapUV(_MapTransform_ToLocal(uv), _MapWrap, _StrengthMask_TexelSize.xy);\r\n            maskValue = ReadStrengthChannel(tex2D(_StrengthMask, strengthMaskUV), _SeparateMaskChannel);\r\n        }\r\n        maskValue = lerp(maskValue, 1.0 - maskValue, step(0.5001, _InvertMask));\r\n        strengthMask = saturate(_MaskProfile_Sample(saturate(maskValue)));\r\n    }\r\n\r\n    if (_Mode > 1.5)\r\n        parallaxUV = TraceParallax(uv, strengthMask, mapDDX, mapDDY, parallaxHeight);\r\n\r\n    float2 inputUV = _Mode > 1.5 ? parallaxUV : uv + displacementPixels * strengthMask * _CanvasSize.zw;\r\n    float inside;\r\n    inputUV = AddressInputUV(inputUV, _InputEdge, _MainTex_TexelSize.xy, inside);\r\n    float4 distorted = SampleInput(inputUV) * inside;\r\n    // if (_Mode > 1.5 && _SelfShadow > 0.5)\r\n    // {\r\n    //     float visibility = TraceParallaxSelfShadow(parallaxUV, parallaxHeight, strengthMask, mapDDX, mapDDY);\r\n    //     distorted.rgb *= lerp(1.0, visibility, saturate(_ShadowStrength));\r\n    // }\r\n    float4 result = lerp(color, distorted, saturate(_Mix));\r\n    return result;\r\n}\r\n",
+                      "parameters": [
+                        {
+                          "name": "_DisplacementMap",
+                          "type": "Texture2D",
+                          "textureSource": "Self",
+                          "id": "97e1629d15e440c0aec2d85c3218a55e",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_MapTransform",
+                          "type": "Transform2D",
+                          "transformValue": {
+                            "position": {
+                              "x": 0.5,
+                              "y": 0.5
+                            },
+                            "size": {
+                              "x": 1.0,
+                              "y": 1.0
+                            },
+                            "rotation": 0.0,
+                            "storage": "TRS",
+                            "matrix": {
+                              "m00": 0.0,
+                              "m01": 0.0,
+                              "m02": 0.0,
+                              "m10": 0.0,
+                              "m11": 0.0,
+                              "m12": 0.0,
+                              "m20": 0.0,
+                              "m21": 0.0,
+                              "m22": 0.0
+                            }
+                          },
+                          "id": "931ea62f6bf0434e8641cc80366f22bc",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_MapWrap",
+                          "type": "Float",
+                          "floatValue": 0.0,
+                          "id": "710cce8dce4f417a83e493eedad152dc",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_Mode",
+                          "type": "Float",
+                          "floatValue": 1.0,
+                          "id": "cbc929efb22548008753d52c180c6217",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_Neutral",
+                          "type": "Float",
+                          "floatValue": 0.5,
+                          "id": "7408623dcea94f70a83fdd39cf8a14f1",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_MapChannel",
+                          "type": "Float",
+                          "floatValue": 0.0,
+                          "id": "940ee0fddb1947de932ea9b97699b771",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_StrengthX",
+                          "type": "Float",
+                          "floatValue": 0.0,
+                          "id": "9c49383f95e843fa8410337713489f83",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_StrengthY",
+                          "type": "Float",
+                          "floatValue": 0.0,
+                          "id": "9b4b24f831e84a4192f1823c03d466a7",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_Direction",
+                          "type": "Float",
+                          "floatValue": 4.0,
+                          "id": "dae05db445bf4c8ea43c4aa9693f3691",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_Strength",
+                          "type": "Float",
+                          "floatValue": 10.0,
+                          "id": "841cd44354a94fb198a0159e5f9f6526",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_Center",
+                          "type": "Point",
+                          "vectorValue": [
+                            0.5,
+                            0.5,
+                            0.0,
+                            0.0
+                          ],
+                          "id": "1f5f4ee8c4924261995a84637a1d86af",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_Angle",
+                          "type": "Float",
+                          "floatValue": 25.0,
+                          "id": "5920ad66f17b42d88ce4e44470c9cf3b",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_Depth",
+                          "type": "Float",
+                          "floatValue": 4.0,
+                          "id": "9af6f522ba9c4958a0442687d358875b",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_ViewAngle",
+                          "type": "Float",
+                          "floatValue": 0.0,
+                          "id": "25c03f56074141b2abcea9717549a7aa",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_ViewElevation",
+                          "type": "Float",
+                          "floatValue": 60.0,
+                          "id": "383cfe72dd894c84b43a439282d3c01d",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_ParallaxSteps",
+                          "type": "Float",
+                          "floatValue": 8.0,
+                          "id": "87f6798233f6491cba18041f8c2d69e0",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_InvertHeight",
+                          "type": "Bool",
+                          "floatValue": 0.0,
+                          "id": "00d76e4a66fc44a29f91dda8314bbf02",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_MaskSource",
+                          "type": "Float",
+                          "floatValue": 0.0,
+                          "id": "5b07ede1fd5d43ea98ad9c504247e038",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_InvertMask",
+                          "type": "Bool",
+                          "floatValue": 0.0,
+                          "id": "84abfa61568042dd894b0d6a959c05be",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_MaskProfile",
+                          "type": "Curve",
+                          "curveValue": {
+                            "preWrap": "ClampForever",
+                            "postWrap": "ClampForever",
+                            "keys": [
+                              [
+                                0.0,
+                                0.0,
+                                0.0,
+                                1.0,
+                                0.0,
+                                0.0,
+                                "None"
+                              ],
+                              [
+                                1.0,
+                                1.0,
+                                1.0,
+                                0.0,
+                                0.0,
+                                0.0,
+                                "None"
+                              ]
+                            ]
+                          },
+                          "id": "d33db12f2dcf499eba98f30f82bdb9bd",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_MapMaskChannel",
+                          "type": "Float",
+                          "floatValue": 0.0,
+                          "id": "d48a8396bbb9468aafc518a92f823226",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_StrengthMask",
+                          "type": "Texture2D",
+                          "textureSource": "None",
+                          "id": "0f53c50d4de64b4daf1db304cf55bfc9",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_SeparateMaskChannel",
+                          "type": "Float",
+                          "floatValue": 0.0,
+                          "id": "7347a4cdee35455694d34d38ec10f5b0",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_Mix",
+                          "type": "Float",
+                          "floatValue": 1.0,
+                          "id": "34464411bff34b61b7702c53f66bc890",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_InputEdge",
+                          "type": "Float",
+                          "floatValue": 0.0,
+                          "id": "f6873a7741de4f7db0e57a8a04b16409",
+                          "declaredInCode": true
+                        }
+                      ],
+                      "shaderKey": "2acf7197480e42e8a52a0b8baa57937e",
+                      "$name": "Displacement Map"
+                    }
+                  ],
+                  "transform": {
+                    "pivot": {
+                      "x": 0.5,
+                      "y": 0.5
+                    },
+                    "position": {
+                      "x": 0.0,
+                      "y": 0.0
+                    },
+                    "scale": {
+                      "x": 1.0,
+                      "y": 1.0
+                    },
+                    "rotation": 0.0,
+                    "storage": "TRS",
+                    "matrix": {
+                      "m00": 0.0,
+                      "m01": 0.0,
+                      "m02": 0.0,
+                      "m10": 0.0,
+                      "m11": 0.0,
+                      "m12": 0.0,
+                      "m20": 0.0,
+                      "m21": 0.0,
+                      "m22": 0.0
+                    },
+                    "tiling": "Clip"
+                  },
+                  "filterMode": "Source",
+                  "behaviour": {
+                    "$type": "GroupLayerBehaviour",
+                    "recoveryId": "edd7717398634ed19a4482526c2d791d"
+                  },
+                  "behaviourId": "edd7717398634ed19a4482526c2d791d",
+                  "children": [
+                    {
+                      "id": "6d5059d8d74744acbc9f8f245b063deb",
+                      "layerName": "Broad Filament Density",
+                      "enabled": true,
+                      "clippingMask": false,
+                      "opacity": 0.55,
+                      "blendMode": "Multiply",
+                      "colorRange": "Standard",
+                      "blendRange": "Standard",
+                      "swizzle": {
+                        "packed": 0
+                      },
+                      "modifiers": [],
+                      "transform": {
+                        "pivot": {
+                          "x": 0.5,
+                          "y": 0.5
+                        },
+                        "position": {
+                          "x": 0.0,
+                          "y": 0.0
+                        },
+                        "scale": {
+                          "x": 1.0,
+                          "y": 1.0
+                        },
+                        "rotation": 0.0,
+                        "storage": "TRS",
+                        "matrix": {
+                          "m00": 0.0,
+                          "m01": 0.0,
+                          "m02": 0.0,
+                          "m10": 0.0,
+                          "m11": 0.0,
+                          "m12": 0.0,
+                          "m20": 0.0,
+                          "m21": 0.0,
+                          "m22": 0.0
+                        },
+                        "tiling": "Clip"
+                      },
+                      "filterMode": "Source",
+                      "behaviour": {
+                        "$type": "NoiseLayerBehaviour",
+                        "noiseType": "Perlin",
+                        "dimensions": "TwoD",
+                        "seed": 1680892913,
+                        "scale": 1.8,
+                        "scaleY": 0.0,
+                        "linkScale": true,
+                        "offset": [
+                          0.37,
+                          0.81,
+                          0.0
+                        ],
+                        "periodic": "XY",
+                        "fractal": "None",
+                        "warp": "OpenSimplex2",
+                        "warpStrength": 0.12,
+                        "warpScale": 1.0,
+                        "warpScaleY": 1.0,
+                        "linkWarpScale": true,
+                        "encoding": "LinearData",
+                        "inverted": false,
+                        "recoveryId": "3d3214fa0d1847c49804f4cb078d8901"
+                      },
+                      "behaviourId": "3d3214fa0d1847c49804f4cb078d8901",
+                      "children": [],
+                      "group": false,
+                      "compositing": "PassThrough"
+                    },
+                    {
+                      "id": "99775bf3361b433f9b1010a142f04bf8",
+                      "layerName": "Fine Filament Ridges",
+                      "enabled": true,
+                      "clippingMask": false,
+                      "opacity": 0.18,
+                      "blendMode": "Multiply",
+                      "colorRange": "Standard",
+                      "blendRange": "Standard",
+                      "swizzle": {
+                        "packed": 0
+                      },
+                      "modifiers": [],
+                      "transform": {
+                        "pivot": {
+                          "x": 0.5,
+                          "y": 0.5
+                        },
+                        "position": {
+                          "x": 0.0,
+                          "y": 0.0
+                        },
+                        "scale": {
+                          "x": 1.0,
+                          "y": 1.0
+                        },
+                        "rotation": 0.0,
+                        "storage": "TRS",
+                        "matrix": {
+                          "m00": 0.0,
+                          "m01": 0.0,
+                          "m02": 0.0,
+                          "m10": 0.0,
+                          "m11": 0.0,
+                          "m12": 0.0,
+                          "m20": 0.0,
+                          "m21": 0.0,
+                          "m22": 0.0
+                        },
+                        "tiling": "Clip"
+                      },
+                      "filterMode": "Source",
+                      "behaviour": {
+                        "$type": "NoiseLayerBehaviour",
+                        "noiseType": "OpenSimplex2S",
+                        "dimensions": "TwoD",
+                        "seed": 38,
+                        "scale": 7.0,
+                        "scaleY": 0.0,
+                        "linkScale": true,
+                        "offset": [
+                          0.37,
+                          0.81,
+                          0.0
+                        ],
+                        "periodic": "XY",
+                        "fractal": "Ridged",
+                        "octaves": 2,
+                        "lacunarity": 2.2,
+                        "gain": 0.25,
+                        "weightedStrength": 0.0,
+                        "warp": "OpenSimplex2",
+                        "warpStrength": 0.18,
+                        "warpScale": 1.0,
+                        "warpScaleY": 1.0,
+                        "linkWarpScale": true,
+                        "encoding": "LinearData",
+                        "inverted": false,
+                        "recoveryId": "a5469bd3db33421e89749399cc4341f3"
+                      },
+                      "behaviourId": "a5469bd3db33421e89749399cc4341f3",
+                      "children": [],
+                      "group": false,
+                      "compositing": "PassThrough"
+                    },
+                    {
+                      "id": "d86f802f6ffc4d41a5300b0aa71b8c60",
+                      "layerName": "Ridge Softness",
+                      "enabled": true,
+                      "clippingMask": false,
+                      "opacity": 0.24,
+                      "blendMode": "Normal",
+                      "colorRange": "Standard",
+                      "blendRange": "Standard",
+                      "swizzle": {
+                        "packed": 0
+                      },
+                      "modifiers": [],
+                      "transform": {
+                        "pivot": {
+                          "x": 0.5,
+                          "y": 0.5
+                        },
+                        "position": {
+                          "x": 0.0,
+                          "y": 0.0
+                        },
+                        "scale": {
+                          "x": 1.0,
+                          "y": 1.0
+                        },
+                        "rotation": 0.0,
+                        "storage": "TRS",
+                        "matrix": {
+                          "m00": 0.0,
+                          "m01": 0.0,
+                          "m02": 0.0,
+                          "m10": 0.0,
+                          "m11": 0.0,
+                          "m12": 0.0,
+                          "m20": 0.0,
+                          "m21": 0.0,
+                          "m22": 0.0
+                        },
+                        "tiling": "Clip"
+                      },
+                      "filterMode": "Source",
+                      "behaviour": {
+                        "$type": "BlurLayerBehaviour",
+                        "strength": 1.0,
+                        "radius": 5.0,
+                        "edges": "Repeat",
+                        "mode": "Gaussian",
+                        "targetLayerId": "058a1329f7d64eef9d23b9b45e30847b",
+                        "inputMode": "Specific",
+                        "recoveryId": "0bbeb3161d094c3d88f9a4a0ccb25d74"
+                      },
+                      "behaviourId": "0bbeb3161d094c3d88f9a4a0ccb25d74",
+                      "children": [],
+                      "group": false,
+                      "compositing": "PassThrough"
+                    },
+                    {
+                      "id": "058a1329f7d64eef9d23b9b45e30847b",
+                      "layerName": "Broad Filament Ridges",
+                      "enabled": true,
+                      "clippingMask": false,
+                      "opacity": 1.0,
+                      "blendMode": "Normal",
+                      "colorRange": "Standard",
+                      "blendRange": "Standard",
+                      "swizzle": {
+                        "packed": 0
+                      },
+                      "modifiers": [
+                        {
+                          "$type": "ShaderFX",
+                          "$id": "fx6",
+                          "active": true,
+                          "code": "// @whimtex-effect Color/Levels\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\r\n// @group\r\n// @header(Input Levels)\r\n// @param label(Input Black) float _InBlack = 0 [0 .. ~1] // Input black point. At or above white, the mapping becomes a hard threshold.\r\n// @param label(Input White) float _InWhite = 1 [0 .. ~1] // Input white point.\r\n// @param float _Gamma = 1 [0.1 .. ~5] // Midtone brightness.\r\n// @param curve _Curve // Remap tones after input levels and Gamma, before output levels. Linear leaves the mapping unchanged.\r\n// @header(Output Levels)\r\n// @param label(Output Black) float _OutBlack = 0 [0 .. ~1] // Output black point, including originally black pixels.\r\n// @param label(Output White) float _OutWhite = 1 [0 .. ~1] // Output white point; values below black invert the output.\r\n// @param bool _PreserveColor = true // On adjusts luminance; off applies levels independently to RGB.\r\n// @endgroup\r\n\r\nfloat MapLevels(float value)\r\n{\r\n    float mapped;\r\n    if (_InWhite <= _InBlack) mapped = step(_InBlack, value);\r\n    else mapped = saturate((value - _InBlack) / (_InWhite - _InBlack));\r\n    mapped = pow(mapped, 1.0 / max(_Gamma, 0.0001));\r\n    mapped = _Curve_Sample(mapped);\r\n    return lerp(_OutBlack, _OutWhite, mapped);\r\n}\r\n\r\nfloat4 ApplyFX(float2 uv, float4 color)\r\n{\r\n\tfloat4 result = color;\r\n    float3 rgb = max(color.rgb, 0.0);\r\n    if (_PreserveColor > 0.5)\r\n    {\r\n        float luma = dot(rgb, float3(0.2126, 0.7152, 0.0722));\r\n        float mapped = MapLevels(luma);\r\n\t\tresult.rgb = luma > 0.000001 ? rgb * (mapped / max(luma, 0.000001)) : mapped.xxx;\r\n\t}\r\n\telse\r\n\t{\r\n\t\tresult.rgb = float3(MapLevels(rgb.r), MapLevels(rgb.g), MapLevels(rgb.b));\r\n\t}\r\n\treturn lerp(color, result, _Opacity);\r\n}\r\n",
+                          "parameters": [
+                            {
+                              "name": "_Opacity",
+                              "type": "Float",
+                              "floatValue": 1.0,
+                              "id": "ee4beda45f8c4dc080c9ebd26eb87f6b",
+                              "declaredInCode": true
+                            },
+                            {
+                              "name": "_InBlack",
+                              "type": "Float",
+                              "floatValue": 0.28,
+                              "id": "32e6928ae77d4cbdbf91028ee00801d8",
+                              "declaredInCode": true
+                            },
+                            {
+                              "name": "_InWhite",
+                              "type": "Float",
+                              "floatValue": 1.0,
+                              "id": "aa9d97acf9094138bb6a516d70b487d2",
+                              "declaredInCode": true
+                            },
+                            {
+                              "name": "_Gamma",
+                              "type": "Float",
+                              "floatValue": 1.0,
+                              "id": "c2c1fca5214d458697426ca4a501757a",
+                              "declaredInCode": true
+                            },
+                            {
+                              "name": "_Curve",
+                              "type": "Curve",
+                              "curveValue": {
+                                "preWrap": "ClampForever",
+                                "postWrap": "ClampForever",
+                                "keys": [
+                                  [
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    1.0,
+                                    0.0,
+                                    0.0,
+                                    "None"
+                                  ],
+                                  [
+                                    1.0,
+                                    1.0,
+                                    1.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    "None"
+                                  ]
+                                ]
+                              },
+                              "id": "38e13fbacd744903bf83df2f83bd725b",
+                              "declaredInCode": true
+                            },
+                            {
+                              "name": "_OutBlack",
+                              "type": "Float",
+                              "floatValue": 0.0,
+                              "id": "77bdc0953b8c4d9db1a3b2cddbabb04e",
+                              "declaredInCode": true
+                            },
+                            {
+                              "name": "_OutWhite",
+                              "type": "Float",
+                              "floatValue": 1.0,
+                              "id": "59babb3b47324e10b9ab839891646fc9",
+                              "declaredInCode": true
+                            },
+                            {
+                              "name": "_PreserveColor",
+                              "type": "Bool",
+                              "floatValue": 0.0,
+                              "id": "0c1756ca795d4a60875163497097b044",
+                              "declaredInCode": true
+                            }
+                          ],
+                          "shaderKey": "8321ef084a9643a3ba0cbece062a9cd3",
+                          "$name": "Levels"
+                        }
+                      ],
+                      "transform": {
+                        "pivot": {
+                          "x": 0.5,
+                          "y": 0.5
+                        },
+                        "position": {
+                          "x": 0.0,
+                          "y": 0.0
+                        },
+                        "scale": {
+                          "x": 1.0,
+                          "y": 1.0
+                        },
+                        "rotation": 0.0,
+                        "storage": "TRS",
+                        "matrix": {
+                          "m00": 0.0,
+                          "m01": 0.0,
+                          "m02": 0.0,
+                          "m10": 0.0,
+                          "m11": 0.0,
+                          "m12": 0.0,
+                          "m20": 0.0,
+                          "m21": 0.0,
+                          "m22": 0.0
+                        },
+                        "tiling": "Clip"
+                      },
+                      "filterMode": "Source",
+                      "behaviour": {
+                        "$type": "NoiseLayerBehaviour",
+                        "noiseType": "Perlin",
+                        "dimensions": "TwoD",
+                        "seed": -1933409451,
+                        "scale": 3.4,
+                        "scaleY": 0.0,
+                        "linkScale": true,
+                        "offset": [
+                          0.41,
+                          1.11,
+                          0.0
+                        ],
+                        "periodic": "XY",
+                        "fractal": "Ridged",
+                        "octaves": 2,
+                        "lacunarity": 2.2,
+                        "gain": 0.2,
+                        "weightedStrength": 0.0,
+                        "warp": "OpenSimplex2",
+                        "warpStrength": 0.28,
+                        "warpScale": 1.0,
+                        "warpScaleY": 1.0,
+                        "linkWarpScale": true,
+                        "encoding": "LinearData",
+                        "inverted": false,
+                        "recoveryId": "551680f848894fb9859c442cbf99d77d"
+                      },
+                      "behaviourId": "551680f848894fb9859c442cbf99d77d",
+                      "children": [],
+                      "group": false,
+                      "compositing": "PassThrough"
+                    }
+                  ],
+                  "group": true,
+                  "compositing": "PassThrough"
+                }
+              ],
+              "group": true,
+              "compositing": "Isolated"
+            }
+          ],
+          "group": true,
+          "compositing": "Isolated"
+        },
+        {
+          "id": "14a5531ca33d4d498f7da1e2d8d2b61c",
+          "layerName": "R - Opacity Mask",
+          "enabled": true,
+          "clippingMask": false,
+          "opacity": 1.0,
+          "blendMode": "Normal",
+          "colorRange": "Standard",
+          "blendRange": "Standard",
+          "swizzle": {
+            "packed": 43664
+          },
+          "modifiers": [
+            {
+              "$type": "ShaderFX",
+              "$id": "fx7",
+              "active": true,
+              "code": "// @whimtex-effect Color/Levels\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\r\n// @group\r\n// @header(Input Levels)\r\n// @param label(Input Black) float _InBlack = 0 [0 .. ~1] // Input black point. At or above white, the mapping becomes a hard threshold.\r\n// @param label(Input White) float _InWhite = 1 [0 .. ~1] // Input white point.\r\n// @param float _Gamma = 1 [0.1 .. ~5] // Midtone brightness.\r\n// @param curve _Curve // Remap tones after input levels and Gamma, before output levels. Linear leaves the mapping unchanged.\r\n// @header(Output Levels)\r\n// @param label(Output Black) float _OutBlack = 0 [0 .. ~1] // Output black point, including originally black pixels.\r\n// @param label(Output White) float _OutWhite = 1 [0 .. ~1] // Output white point; values below black invert the output.\r\n// @param bool _PreserveColor = true // On adjusts luminance; off applies levels independently to RGB.\r\n// @endgroup\r\n\r\nfloat MapLevels(float value)\r\n{\r\n    float mapped;\r\n    if (_InWhite <= _InBlack) mapped = step(_InBlack, value);\r\n    else mapped = saturate((value - _InBlack) / (_InWhite - _InBlack));\r\n    mapped = pow(mapped, 1.0 / max(_Gamma, 0.0001));\r\n    mapped = _Curve_Sample(mapped);\r\n    return lerp(_OutBlack, _OutWhite, mapped);\r\n}\r\n\r\nfloat4 ApplyFX(float2 uv, float4 color)\r\n{\r\n\tfloat4 result = color;\r\n    float3 rgb = max(color.rgb, 0.0);\r\n    if (_PreserveColor > 0.5)\r\n    {\r\n        float luma = dot(rgb, float3(0.2126, 0.7152, 0.0722));\r\n        float mapped = MapLevels(luma);\r\n\t\tresult.rgb = luma > 0.000001 ? rgb * (mapped / max(luma, 0.000001)) : mapped.xxx;\r\n\t}\r\n\telse\r\n\t{\r\n\t\tresult.rgb = float3(MapLevels(rgb.r), MapLevels(rgb.g), MapLevels(rgb.b));\r\n\t}\r\n\treturn lerp(color, result, _Opacity);\r\n}\r\n",
+              "parameters": [
+                {
+                  "name": "_Opacity",
+                  "type": "Float",
+                  "floatValue": 1.0,
+                  "id": "261bfa02de554fb38c1b6f1ae76e0fe9",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_InBlack",
+                  "type": "Float",
+                  "floatValue": 0.0,
+                  "id": "f914990a17724a1cabb34be0a6b9bd70",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_InWhite",
+                  "type": "Float",
+                  "floatValue": 0.86,
+                  "id": "8841ebcf76314634b4fcb8966f0c09fa",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_Gamma",
+                  "type": "Float",
+                  "floatValue": 0.63,
+                  "id": "116e56c8d8784728bf178f749f1f9eed",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_Curve",
+                  "type": "Curve",
+                  "curveValue": {
+                    "preWrap": "ClampForever",
+                    "postWrap": "ClampForever",
+                    "keys": [
+                      [
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        "None"
+                      ],
+                      [
+                        1.0,
+                        1.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        "None"
+                      ]
+                    ]
+                  },
+                  "id": "628013f353604447b9dcb189a964b77e",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_OutBlack",
+                  "type": "Float",
+                  "floatValue": 0.0,
+                  "id": "e3a56e67e1014206b98ab93ed05ef28f",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_OutWhite",
+                  "type": "Float",
+                  "floatValue": 1.0,
+                  "id": "6bc14ae95a924f8b82337d76e42058ae",
+                  "declaredInCode": true
+                },
+                {
+                  "name": "_PreserveColor",
+                  "type": "Bool",
+                  "floatValue": 1.0,
+                  "id": "1ae97d63ecb7467a9f9e9c545236c333",
+                  "declaredInCode": true
+                }
+              ],
+              "shaderKey": "bbb6ef178b7244a8b75416392a7945da",
+              "$name": "Levels"
+            }
+          ],
+          "transform": {
+            "pivot": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "rotation": 0.0,
+            "storage": "TRS",
+            "matrix": {
+              "m00": 0.0,
+              "m01": 0.0,
+              "m02": 0.0,
+              "m10": 0.0,
+              "m11": 0.0,
+              "m12": 0.0,
+              "m20": 0.0,
+              "m21": 0.0,
+              "m22": 0.0
+            },
+            "tiling": "Clip"
+          },
+          "filterMode": "Source",
+          "behaviour": {
+            "$type": "GroupLayerBehaviour",
+            "recoveryId": "011d3d4675ab41c7ba4fc338a6a3cb39"
+          },
+          "behaviourId": "011d3d4675ab41c7ba4fc338a6a3cb39",
+          "children": [
+            {
+              "id": "958b88727b0840d7a074b31f3846af4a",
+              "layerName": "Opacity Definition",
+              "enabled": true,
+              "clippingMask": false,
+              "opacity": 1.0,
+              "blendMode": "Normal",
+              "colorRange": "Standard",
+              "blendRange": "Standard",
+              "swizzle": {
+                "packed": 0
+              },
+              "modifiers": [],
+              "transform": {
+                "pivot": {
+                  "x": 0.5,
+                  "y": 0.5
+                },
+                "position": {
+                  "x": 0.0,
+                  "y": 0.0
+                },
+                "scale": {
+                  "x": 1.0,
+                  "y": 1.0
+                },
+                "rotation": 0.0,
+                "storage": "TRS",
+                "matrix": {
+                  "m00": 0.0,
+                  "m01": 0.0,
+                  "m02": 0.0,
+                  "m10": 0.0,
+                  "m11": 0.0,
+                  "m12": 0.0,
+                  "m20": 0.0,
+                  "m21": 0.0,
+                  "m22": 0.0
+                },
+                "tiling": "Clip"
+              },
+              "filterMode": "Source",
+              "behaviour": {
+                "$type": "SharpenLayerBehaviour",
+                "algorithm": "Adaptive",
+                "strength": 3.873,
+                "radius": 5.62,
+                "threshold": 0.0,
+                "noiseReduction": 0.598,
+                "haloSuppression": 0.0,
+                "channelMode": "RGB",
+                "edges": "Clamp",
+                "inputMode": "Previous",
+                "recoveryId": "3724509d034a43a8904556916877ae13"
+              },
+              "behaviourId": "3724509d034a43a8904556916877ae13",
+              "children": [],
+              "group": false,
+              "compositing": "PassThrough"
+            },
+            {
+              "id": "a54f80e35ce24a95ade442cc2256ffa3",
+              "layerName": "Opacity Structure",
+              "enabled": true,
+              "clippingMask": false,
+              "opacity": 1.0,
+              "blendMode": "Normal",
+              "colorRange": "Standard",
+              "blendRange": "Standard",
+              "swizzle": {
+                "packed": 0
+              },
+              "modifiers": [],
+              "transform": {
+                "pivot": {
+                  "x": 0.5,
+                  "y": 0.5
+                },
+                "position": {
+                  "x": 0.0,
+                  "y": 0.0
+                },
+                "scale": {
+                  "x": 1.0,
+                  "y": 1.0
+                },
+                "rotation": 0.0,
+                "storage": "TRS",
+                "matrix": {
+                  "m00": 0.0,
+                  "m01": 0.0,
+                  "m02": 0.0,
+                  "m10": 0.0,
+                  "m11": 0.0,
+                  "m12": 0.0,
+                  "m20": 0.0,
+                  "m21": 0.0,
+                  "m22": 0.0
+                },
+                "tiling": "Clip"
+              },
+              "filterMode": "Source",
+              "behaviour": {
+                "$type": "GroupLayerBehaviour",
+                "recoveryId": "798e2bec84404b2bb51d2af337e04bd8"
+              },
+              "behaviourId": "798e2bec84404b2bb51d2af337e04bd8",
+              "children": [
+                {
+                  "id": "1d74fce989ee41c09b43c8cb1fa92f83",
+                  "layerName": "Radial Fade",
+                  "enabled": true,
+                  "clippingMask": false,
+                  "opacity": 1.0,
+                  "blendMode": "Multiply",
+                  "colorRange": "Standard",
+                  "blendRange": "Standard",
+                  "swizzle": {
+                    "packed": 0
+                  },
+                  "modifiers": [],
+                  "transform": {
+                    "pivot": {
+                      "x": 0.5,
+                      "y": 0.5
+                    },
+                    "position": {
+                      "x": 0.0,
+                      "y": 0.0
+                    },
+                    "scale": {
+                      "x": 1.0,
+                      "y": 1.0
+                    },
+                    "rotation": 0.0,
+                    "storage": "TRS",
+                    "matrix": {
+                      "m00": 0.0,
+                      "m01": 0.0,
+                      "m02": 0.0,
+                      "m10": 0.0,
+                      "m11": 0.0,
+                      "m12": 0.0,
+                      "m20": 0.0,
+                      "m21": 0.0,
+                      "m22": 0.0
+                    },
+                    "tiling": "Unbounded"
+                  },
+                  "filterMode": "Source",
+                  "behaviour": {
+                    "$type": "GradientLayerBehaviour",
+                    "gradientType": "Radial",
+                    "gradient": {
+                      "colors": [
+                        {
+                          "color": [
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0
+                          ],
+                          "time": 0.455813944,
+                          "midpoint": 0.8915175
+                        },
+                        {
+                          "color": [
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                          ],
+                          "time": 0.999,
+                          "midpoint": 0.5
+                        },
+                        {
+                          "color": [
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                          ],
+                          "time": 1.0,
+                          "midpoint": 0.5
+                        }
+                      ],
+                      "alphas": [
+                        {
+                          "alpha": 1.0,
+                          "time": 0.0,
+                          "midpoint": 0.5
+                        },
+                        {
+                          "alpha": 1.0,
+                          "time": 1.0,
+                          "midpoint": 0.5
+                        }
+                      ],
+                      "mode": "Perceptual",
+                      "wrapMode": "Clamp",
+                      "colorSpace": "Linear",
+                      "smoothness": 1.0
+                    },
+                    "recoveryId": "2f7145656bf844e7a2ef82da83fe6dbf"
+                  },
+                  "behaviourId": "2f7145656bf844e7a2ef82da83fe6dbf",
+                  "children": [],
+                  "group": false,
+                  "compositing": "PassThrough"
+                },
+                {
+                  "id": "25e018b89d404a3c88f920121d643399",
+                  "layerName": "Fine Opacity Variation",
+                  "enabled": true,
+                  "clippingMask": false,
+                  "opacity": 0.566,
+                  "blendMode": "Normal",
+                  "colorRange": "Standard",
+                  "blendRange": "Standard",
+                  "swizzle": {
+                    "packed": 0
+                  },
+                  "modifiers": [],
+                  "transform": {
+                    "pivot": {
+                      "x": 0.5,
+                      "y": 0.5
+                    },
+                    "position": {
+                      "x": 0.0,
+                      "y": 0.0
+                    },
+                    "scale": {
+                      "x": 1.0,
+                      "y": 1.0
+                    },
+                    "rotation": 0.0,
+                    "storage": "TRS",
+                    "matrix": {
+                      "m00": 0.0,
+                      "m01": 0.0,
+                      "m02": 0.0,
+                      "m10": 0.0,
+                      "m11": 0.0,
+                      "m12": 0.0,
+                      "m20": 0.0,
+                      "m21": 0.0,
+                      "m22": 0.0
+                    },
+                    "tiling": "Unbounded"
+                  },
+                  "filterMode": "Source",
+                  "behaviour": {
+                    "$type": "NoiseLayerBehaviour",
+                    "noiseType": "Value",
+                    "dimensions": "TwoD",
+                    "seed": -1869768435,
+                    "scale": 7.9,
+                    "scaleY": 0.0,
+                    "linkScale": true,
+                    "offset": [
+                      814.9,
+                      -705.5331,
+                      0.0
+                    ],
+                    "periodic": "None",
+                    "fractal": "None",
+                    "warp": "OpenSimplex2Reduced",
+                    "warpStrength": 0.33,
+                    "warpScale": 1.0,
+                    "warpScaleY": 1.0,
+                    "linkWarpScale": true,
+                    "encoding": "LinearData",
+                    "inverted": false,
+                    "recoveryId": "5d0d50cc48c746fda8eabd3d0180c199"
+                  },
+                  "behaviourId": "5d0d50cc48c746fda8eabd3d0180c199",
+                  "children": [],
+                  "group": false,
+                  "compositing": "PassThrough"
+                },
+                {
+                  "id": "83d1cc4625b340f4bb40de92e598a29c",
+                  "layerName": "Cloud Detail",
+                  "enabled": true,
+                  "clippingMask": false,
+                  "opacity": 1.0,
+                  "blendMode": "Screen",
+                  "colorRange": "Standard",
+                  "blendRange": "Standard",
+                  "swizzle": {
+                    "packed": 0
+                  },
+                  "modifiers": [],
+                  "transform": {
+                    "pivot": {
+                      "x": 0.5,
+                      "y": 0.5
+                    },
+                    "position": {
+                      "x": 0.0,
+                      "y": 0.0
+                    },
+                    "scale": {
+                      "x": 1.0,
+                      "y": 1.0
+                    },
+                    "rotation": 0.0,
+                    "storage": "TRS",
+                    "matrix": {
+                      "m00": 0.0,
+                      "m01": 0.0,
+                      "m02": 0.0,
+                      "m10": 0.0,
+                      "m11": 0.0,
+                      "m12": 0.0,
+                      "m20": 0.0,
+                      "m21": 0.0,
+                      "m22": 0.0
+                    },
+                    "tiling": "Unbounded"
+                  },
+                  "filterMode": "Source",
+                  "behaviour": {
+                    "$type": "NoiseLayerBehaviour",
+                    "noiseType": "Perlin",
+                    "dimensions": "TwoD",
+                    "seed": -675661633,
+                    "scale": 4.45,
+                    "scaleY": 0.0,
+                    "linkScale": true,
+                    "offset": [
+                      394.305237,
+                      750.439636,
+                      0.0
+                    ],
+                    "periodic": "None",
+                    "fractal": "FBm",
+                    "octaves": 7,
+                    "lacunarity": 1.23159826,
+                    "gain": 0.82,
+                    "weightedStrength": 0.557,
+                    "warp": "BasicGrid",
+                    "warpStrength": 0.67,
+                    "warpScale": 2.51,
+                    "warpScaleY": 2.51,
+                    "linkWarpScale": true,
+                    "encoding": "ColorValues",
+                    "inverted": false,
+                    "recoveryId": "7dae2b16e71b491db36e039eb07b2134"
+                  },
+                  "behaviourId": "7dae2b16e71b491db36e039eb07b2134",
+                  "children": [],
+                  "group": false,
+                  "compositing": "PassThrough"
+                },
+                {
+                  "id": "4aa0648ec249447b8efb6bf988eb7504",
+                  "layerName": "Cloud Noise",
+                  "enabled": true,
+                  "clippingMask": false,
+                  "opacity": 1.0,
+                  "blendMode": "Normal",
+                  "colorRange": "Standard",
+                  "blendRange": "Standard",
+                  "swizzle": {
+                    "packed": 0
+                  },
+                  "modifiers": [
+                    {
+                      "$type": "ShaderFX",
+                      "$id": "fx8",
+                      "active": true,
+                      "code": "// @whimtex-effect Color/Levels\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.\r\n// @group\r\n// @header(Input Levels)\r\n// @param label(Input Black) float _InBlack = 0 [0 .. ~1] // Input black point. At or above white, the mapping becomes a hard threshold.\r\n// @param label(Input White) float _InWhite = 1 [0 .. ~1] // Input white point.\r\n// @param float _Gamma = 1 [0.1 .. ~5] // Midtone brightness.\r\n// @param curve _Curve // Remap tones after input levels and Gamma, before output levels. Linear leaves the mapping unchanged.\r\n// @header(Output Levels)\r\n// @param label(Output Black) float _OutBlack = 0 [0 .. ~1] // Output black point, including originally black pixels.\r\n// @param label(Output White) float _OutWhite = 1 [0 .. ~1] // Output white point; values below black invert the output.\r\n// @param bool _PreserveColor = true // On adjusts luminance; off applies levels independently to RGB.\r\n// @endgroup\r\n\r\nfloat MapLevels(float value)\r\n{\r\n    float mapped;\r\n    if (_InWhite <= _InBlack) mapped = step(_InBlack, value);\r\n    else mapped = saturate((value - _InBlack) / (_InWhite - _InBlack));\r\n    mapped = pow(mapped, 1.0 / max(_Gamma, 0.0001));\r\n    mapped = _Curve_Sample(mapped);\r\n    return lerp(_OutBlack, _OutWhite, mapped);\r\n}\r\n\r\nfloat4 ApplyFX(float2 uv, float4 color)\r\n{\r\n\tfloat4 result = color;\r\n    float3 rgb = max(color.rgb, 0.0);\r\n    if (_PreserveColor > 0.5)\r\n    {\r\n        float luma = dot(rgb, float3(0.2126, 0.7152, 0.0722));\r\n        float mapped = MapLevels(luma);\r\n\t\tresult.rgb = luma > 0.000001 ? rgb * (mapped / max(luma, 0.000001)) : mapped.xxx;\r\n\t}\r\n\telse\r\n\t{\r\n\t\tresult.rgb = float3(MapLevels(rgb.r), MapLevels(rgb.g), MapLevels(rgb.b));\r\n\t}\r\n\treturn lerp(color, result, _Opacity);\r\n}\r\n",
+                      "parameters": [
+                        {
+                          "name": "_Opacity",
+                          "type": "Float",
+                          "floatValue": 1.0,
+                          "id": "3c9695ae9fbd4e84b684efee0f6831a3",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_InBlack",
+                          "type": "Float",
+                          "floatValue": 0.0,
+                          "id": "d59cf984ffcd43879e453741ffd4c37c",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_InWhite",
+                          "type": "Float",
+                          "floatValue": 0.7,
+                          "id": "cb51969760e248aa935b15900f2ce894",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_Gamma",
+                          "type": "Float",
+                          "floatValue": 1.4,
+                          "id": "d0066a6995cd418bb915ae35a961a201",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_Curve",
+                          "type": "Curve",
+                          "curveValue": {
+                            "preWrap": "ClampForever",
+                            "postWrap": "ClampForever",
+                            "keys": [
+                              [
+                                0.0,
+                                0.0,
+                                0.0,
+                                1.0,
+                                0.0,
+                                0.0,
+                                "None"
+                              ],
+                              [
+                                1.0,
+                                1.0,
+                                1.0,
+                                0.0,
+                                0.0,
+                                0.0,
+                                "None"
+                              ]
+                            ]
+                          },
+                          "id": "0169393ed90d402ea25675f0916e013c",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_OutBlack",
+                          "type": "Float",
+                          "floatValue": 0.0,
+                          "id": "af559558a57d451293f8cbf3847c821b",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_OutWhite",
+                          "type": "Float",
+                          "floatValue": 1.0,
+                          "id": "dd0a2571251a4fa4bdf87d3c6fbc3881",
+                          "declaredInCode": true
+                        },
+                        {
+                          "name": "_PreserveColor",
+                          "type": "Bool",
+                          "floatValue": 0.0,
+                          "id": "5f65a2c234934acbbc61e1965990f747",
+                          "declaredInCode": true
+                        }
+                      ],
+                      "shaderKey": "22ced94255e140d584d6b577cd274ddc",
+                      "$name": "Levels"
+                    }
+                  ],
+                  "transform": {
+                    "pivot": {
+                      "x": 0.5,
+                      "y": 0.5
+                    },
+                    "position": {
+                      "x": 0.0,
+                      "y": 0.0
+                    },
+                    "scale": {
+                      "x": 1.0,
+                      "y": 1.0
+                    },
+                    "rotation": 0.0,
+                    "storage": "TRS",
+                    "matrix": {
+                      "m00": 0.0,
+                      "m01": 0.0,
+                      "m02": 0.0,
+                      "m10": 0.0,
+                      "m11": 0.0,
+                      "m12": 0.0,
+                      "m20": 0.0,
+                      "m21": 0.0,
+                      "m22": 0.0
+                    },
+                    "tiling": "Unbounded"
+                  },
+                  "filterMode": "Source",
+                  "behaviour": {
+                    "$type": "NoiseLayerBehaviour",
+                    "noiseType": "Perlin",
+                    "dimensions": "TwoD",
+                    "seed": -419543719,
+                    "scale": 2.54,
+                    "scaleY": 0.0,
+                    "linkScale": true,
+                    "offset": [
+                      939.6,
+                      -89.4491043,
+                      0.0
+                    ],
+                    "periodic": "None",
+                    "fractal": "None",
+                    "warp": "OpenSimplex2",
+                    "warpStrength": 2.1,
+                    "warpScale": 1.0,
+                    "warpScaleY": 1.0,
+                    "linkWarpScale": true,
+                    "encoding": "ColorValues",
+                    "inverted": false,
+                    "recoveryId": "d2c6b6621e614d458b295e0ecaa4107f"
+                  },
+                  "behaviourId": "d2c6b6621e614d458b295e0ecaa4107f",
+                  "children": [],
+                  "group": false,
+                  "compositing": "PassThrough"
+                }
+              ],
+              "group": true,
+              "compositing": "PassThrough"
+            }
+          ],
+          "group": true,
+          "compositing": "Isolated"
+        }
+      ],
+      "group": true,
+      "compositing": "PassThrough"
+    }
+  ]
+}

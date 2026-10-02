@@ -1,8 +1,123 @@
 {
-  "format": "whimtex.layers", "version": 1,
+  "format": "whimtex.document",
+  "version": 1,
+  "document": {
+    "colorHistory": [],
+    "layerNameCounters": [
+      {
+        "prefix": "Shader Processor",
+        "next": 2
+      }
+    ],
+    "nextCopyNumber": 1,
+    "spriteSlices": [],
+    "width": 512,
+    "height": 512,
+    "outputFilter": "Bilinear",
+    "outputPrecision": "Auto",
+    "outputSrgb": true,
+    "uvReferenceMesh": null,
+    "uvReferenceChannel": 0,
+    "uvReferenceSubmesh": -1
+  },
   "layers": [
-    { "type": "shaderProcessor", "name": "Local Swirl", "fx": [
-      { "name": "Swirl", "code": "// @param float _Angle = 90 [-360 .. 360]\n// @param transform2D _Area = (0.5, 0.5, 0.6, 0.6, 0)\nfloat4 ApplyFX(float2 uv, float4 color)\n{\n    float2 p = _Area_ToLocal(uv) - 0.5;\n    float weight = saturate(1 - length(p) * 2);\n    float angle = radians(_Angle) * weight * weight;\n    float s = sin(angle), c = cos(angle);\n    float2 q = float2(c * p.x - s * p.y, s * p.x + c * p.y);\n    return SampleInput(_Area_ToInput(q + 0.5));\n}" }
-    ] }
+    {
+      "id": "c7f7d7ca620b407581fdb0df932c807d",
+      "layerName": "Local Swirl",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "HDR",
+      "blendRange": "HDR",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx0",
+          "active": true,
+          "code": "// @param float _Angle = 90 [-360 .. 360]\r\n// @param transform2D _Area = (0.5, 0.5, 0.6, 0.6, 0)\r\nfloat4 ApplyFX(float2 uv, float4 color)\r\n{\r\n    float2 p = _Area_ToLocal(uv) - 0.5;\r\n    float weight = saturate(1 - length(p) * 2);\r\n    float angle = radians(_Angle) * weight * weight;\r\n    float s = sin(angle), c = cos(angle);\r\n    float2 q = float2(c * p.x - s * p.y, s * p.x + c * p.y);\r\n    return SampleInput(_Area_ToInput(q + 0.5));\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Angle",
+              "type": "Float",
+              "floatValue": 90.0,
+              "id": "c084e7e3c55f4caa87424eeeff706d82",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Area",
+              "type": "Transform2D",
+              "transformValue": {
+                "position": {
+                  "x": 0.5,
+                  "y": 0.5
+                },
+                "size": {
+                  "x": 0.6,
+                  "y": 0.6
+                },
+                "rotation": 0.0,
+                "storage": "TRS",
+                "matrix": {
+                  "m00": 0.0,
+                  "m01": 0.0,
+                  "m02": 0.0,
+                  "m10": 0.0,
+                  "m11": 0.0,
+                  "m12": 0.0,
+                  "m20": 0.0,
+                  "m21": 0.0,
+                  "m22": 0.0
+                }
+              },
+              "id": "4128e1b15cc145d49eec3cc073b63a45",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "c4a9b47fe8fd4717849e5458f53ff6d7",
+          "$name": "Swirl"
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Clip"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "ShaderProcessorLayerBehaviour",
+        "recoveryId": "ebf9c9dad1b544069fe15453696e51a9"
+      },
+      "behaviourId": "ebf9c9dad1b544069fe15453696e51a9",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    }
   ]
 }

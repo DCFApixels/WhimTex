@@ -1,0 +1,416 @@
+{
+  "format": "whimtex.document",
+  "version": 1,
+  "document": {
+    "colorHistory": [],
+    "layerNameCounters": [
+      {
+        "prefix": "Color Fill",
+        "next": 5
+      }
+    ],
+    "nextCopyNumber": 1,
+    "spriteSlices": [],
+    "width": 256,
+    "height": 256,
+    "outputFilter": "Bilinear",
+    "outputPrecision": "Auto",
+    "outputSrgb": true,
+    "uvReferenceMesh": null,
+    "uvReferenceChannel": 0,
+    "uvReferenceSubmesh": -1
+  },
+  "layers": [
+    {
+      "id": "d94f7213623f4900837a0786f087a192",
+      "layerName": "Small Highlight",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx0",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Bubble Highlight\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1]\r\n// @param point _Center = (0.292, 0.633)\r\n// @param float _Size = 0.029 [0.005 .. 0.15]\r\n// @param float _Halo = 0.25 [0 .. 1]\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n    float d=length(uv-_Center)/max(_Size,.001);\r\n    float core=exp(-pow(d,4)*1.5);\r\n    float halo=exp(-d*d*.32)*_Halo;\r\n    float clip=1-smoothstep(.382,.390,length(uv-.5));\r\n    return float4(1,1,1,saturate(core+halo)*_Opacity*clip);\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "5bed1572d4974fc7a8c035d08b468aeb",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Center",
+              "type": "Point",
+              "vectorValue": [
+                0.292,
+                0.633,
+                0.0,
+                0.0
+              ],
+              "id": "5d65d97170ed4bee977cd9849a3d2197",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Size",
+              "type": "Float",
+              "floatValue": 0.029,
+              "id": "b3181ec9f292437780fa415e53011fdb",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Halo",
+              "type": "Float",
+              "floatValue": 0.25,
+              "id": "4c744571a9234208a7e38ad98adc28cb",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "0a7ee99c39eb424ca7604d52898c3e9b",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "ColorFillLayerBehaviour",
+        "mode": "Color",
+        "storedColor": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "recoveryId": "14516d4c5c5542dea38acea9e319fcf8"
+      },
+      "behaviourId": "14516d4c5c5542dea38acea9e319fcf8",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "dd9dfaebc94b4a67a3540fd33affe7af",
+      "layerName": "Main Highlight",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx1",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Bubble Highlight\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1]\r\n// @param point _Center = (0.375, 0.715)\r\n// @param float _Size = 0.053 [0.005 .. 0.15]\r\n// @param float _Halo = 0.25 [0 .. 1]\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n    float d=length(uv-_Center)/max(_Size,.001);\r\n    float core=exp(-pow(d,4)*1.5);\r\n    float halo=exp(-d*d*.32)*_Halo;\r\n    float clip=1-smoothstep(.382,.390,length(uv-.5));\r\n    return float4(1,1,1,saturate(core+halo)*_Opacity*clip);\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "5767a68ab14146a98f49406a2caabfeb",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Center",
+              "type": "Point",
+              "vectorValue": [
+                0.375,
+                0.715,
+                0.0,
+                0.0
+              ],
+              "id": "5b6b05eb639847ff8b1d17de053f3244",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Size",
+              "type": "Float",
+              "floatValue": 0.053,
+              "id": "ef68fdbb0e9644a0bf913bfb1e6a2e46",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Halo",
+              "type": "Float",
+              "floatValue": 0.25,
+              "id": "398582ab31a3408097da3f54c68feced",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "c8b80db58a4544bb85abbc8487235e06",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "ColorFillLayerBehaviour",
+        "mode": "Color",
+        "storedColor": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "recoveryId": "f47ae34b6a9441c9b3b3cc004503e0df"
+      },
+      "behaviourId": "f47ae34b6a9441c9b3b3cc004503e0df",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "1139035cf173461887506390dc474215",
+      "layerName": "Bubble Rim",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx2",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Bubble Rim\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 1 [0 .. 1]\r\n// @param float _Radius = 0.39 [0.1 .. 0.45]\r\n// @param float _Width = 0.014 [0.002 .. 0.06]\r\n// @param float _Softness = 0.032 [0.005 .. 0.1]\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n    float2 p=uv-.5;\r\n    float r=length(p);\r\n    float inset=_Radius-r;\r\n    float outer=smoothstep(-.003,.003,inset);\r\n    float ring=exp(-pow((inset-.008)/_Width,2));\r\n    float soft=exp(-max(inset,0)/_Softness)*.60;\r\n    float angle=dot(p/max(r,.0001),normalize(float2(-.7,1)));\r\n    float alpha=outer*saturate(max(ring,soft)*(.82+.18*angle))*_Opacity;\r\n    return float4(1,1,1,alpha);\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "52a8a9a9fb454db2b90c489aa7e6ddcb",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Radius",
+              "type": "Float",
+              "floatValue": 0.39,
+              "id": "f15f14d8b1f7424b8809e8c5e4ce6ba6",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Width",
+              "type": "Float",
+              "floatValue": 0.014,
+              "id": "8703a972355448d39187d694fe504edc",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Softness",
+              "type": "Float",
+              "floatValue": 0.032,
+              "id": "b60a0702729148cc9ee8910869b3b731",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "e89d706b3d5d4c8fa4fe7be062632bae",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "ColorFillLayerBehaviour",
+        "mode": "Color",
+        "storedColor": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "recoveryId": "4d0eabdb695f41f0accd4773d85303eb"
+      },
+      "behaviourId": "4d0eabdb695f41f0accd4773d85303eb",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "96252ae13a654e06a3209d5b99e904c7",
+      "layerName": "Inner Reflection",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx3",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Bubble Reflection\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.5 [0 .. 1]\r\n// @param float _Radius = 0.39 [0.1 .. 0.45]\r\n// @param float _Depth = 0.085 [0.01 .. 0.2]\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n    float2 p=uv-.5;\r\n    float r=length(p);\r\n    float edge=1-smoothstep(_Radius-.007,_Radius,r);\r\n    float2 direction=p/max(r,.0001);\r\n    float lower=pow(saturate(dot(direction,normalize(float2(.50,-1)))*.5+.5),3);\r\n    float upper=pow(saturate(dot(direction,normalize(float2(-.6,1)))*.5+.5),5);\r\n    float depth=exp(-pow((r-(_Radius-.045))/_Depth,2));\r\n    float reflection=depth*(.75*lower+.30*upper);\r\n    return float4(1,1,1,saturate(reflection*_Opacity*edge));\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 0.5,
+              "id": "db80fbecfd2c491c9baf2dc085a528a9",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Radius",
+              "type": "Float",
+              "floatValue": 0.39,
+              "id": "265a0006aec24aada1dd79a94275ebf3",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Depth",
+              "type": "Float",
+              "floatValue": 0.085,
+              "id": "2619580bb9854c90908c66d01ad69c1a",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "c2be5e8f0a944249aaf8822287c1059d",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "ColorFillLayerBehaviour",
+        "mode": "Color",
+        "storedColor": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "recoveryId": "ddd37a7c741a4b219b73763accad46c7"
+      },
+      "behaviourId": "ddd37a7c741a4b219b73763accad46c7",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    }
+  ]
+}

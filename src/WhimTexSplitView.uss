@@ -1072,6 +1072,32 @@
     background-color: var(--whimtex-surface-light);
 }
 
+.whimtex-fx-warning {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    align-self: center;
+    margin-left: 2px;
+    margin-right: 2px;
+    color: #ffba33;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+}
+
+.whimtex-layer-row .whimtex-fx-warning {
+    width: 8px;
+    margin-left: 1px;
+    margin-right: 1px;
+}
+
+.whimtex-fx-section-warning {
+    margin-left: 22px;
+}
+
+.whimtex-inspector-section--fx-warning > .unity-foldout__toggle .unity-toggle__text {
+    margin-left: 2px;
+}
+
 .whimtex-properties-scroll {
     flex-grow: 1;
     flex-basis: 0;
@@ -2750,3 +2776,11 @@
     margin-bottom: 6px;
     color: rgb(170, 170, 170);
 }
+
+.whimtex-export-window { padding: 10px; }
+.whimtex-export-body { flex-grow: 1; }
+.whimtex-export-field { margin-bottom: 6px; }
+.whimtex-export-field > .unity-base-field__label { min-width: 92px; width: 92px; }
+.whimtex-export-description { white-space: normal; margin: 3px 3px 9px 3px; }
+.whimtex-export-actions { flex-direction: row; justify-content: flex-end; margin-top: 8px; flex-shrink: 0; }
+.whimtex-export-actions > Button { min-width: 84px; height: 24px; margin-left: 6px; }

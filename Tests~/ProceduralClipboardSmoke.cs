@@ -112,9 +112,10 @@ public static class ProceduralClipboardSmoke
         }
         using (var badShader = (IDisposable)Build(head + "[{\"type\":\"shaderProcessor\",\"fx\":[{\"code\":\"float4 ApplyFX(float2 uv, float4 color) { return missing_symbol; }\"}]}]}"))
         {
-            bool rejected = false;
-            try { Compile(badShader); } catch (TargetInvocationException) { rejected = true; }
-            Check(rejected, "Invalid shader compiled.");
+            Compile(badShader);
+            var warnings = (IList)badShader.GetType().GetField("Warnings", Hidden).GetValue(badShader);
+            Check(warnings.Count == 1, "Invalid shader must produce a recoverable warning.");
+            Render(Document(badShader));
         }
 
         var destination = ScriptableObject.CreateInstance<TextureCompositor>();

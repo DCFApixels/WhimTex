@@ -1,0 +1,8 @@
+{
+  "format": "whimtex.layers", "version": 1,
+  "layers": [
+    { "type": "shaderProcessor", "name": "Local Swirl", "fx": [
+      { "name": "Swirl", "code": "// @param float _Angle = 90 [-360 .. 360]\n// @param transform2D _Area = (0.5, 0.5, 0.6, 0.6, 0)\nfloat4 ApplyFX(float2 uv, float4 color)\n{\n    float2 p = _Area_ToLocal(uv) - 0.5;\n    float weight = saturate(1 - length(p) * 2);\n    float angle = radians(_Angle) * weight * weight;\n    float s = sin(angle), c = cos(angle);\n    float2 q = float2(c * p.x - s * p.y, s * p.x + c * p.y);\n    return SampleInput(_Area_ToInput(q + 0.5));\n}" }
+    ] }
+  ]
+}

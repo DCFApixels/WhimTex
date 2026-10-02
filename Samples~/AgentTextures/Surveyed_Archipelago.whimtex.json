@@ -1,0 +1,703 @@
+{
+  "format": "whimtex.document",
+  "version": 1,
+  "document": {
+    "colorHistory": [],
+    "layerNameCounters": [
+      {
+        "prefix": "Color Fill",
+        "next": 3
+      },
+      {
+        "prefix": "Noise",
+        "next": 4
+      }
+    ],
+    "nextCopyNumber": 1,
+    "spriteSlices": [],
+    "width": 256,
+    "height": 256,
+    "outputFilter": "Bilinear",
+    "outputPrecision": "Auto",
+    "outputSrgb": true,
+    "uvReferenceMesh": null,
+    "uvReferenceChannel": 0,
+    "uvReferenceSubmesh": -1
+  },
+  "layers": [
+    {
+      "id": "588bb3251e7e4658b62990d32d8a1b45",
+      "layerName": "Survey Routes",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx0",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Survey Routes\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.8 [0 .. 1]\r\n// @param color _Tint = (1, 0.9019608, 0.7058824, 1)\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n float path=.5+.17*sin(uv.x*8)+.055*sin(uv.x*23);\r\n float dash=step(.35,frac(uv.x*65));float route=exp(-abs(uv.y-path)*850)*dash;\r\n float marks=0;\r\n for(int i=0;i<4;i++){float x=.17+i*.21;float y=.5+.17*sin(x*8)+.055*sin(x*23);\r\n float2 p=uv-float2(x,y);float r=length(p);marks+=exp(-abs(r-.009)*1300)+exp(-r*900);\r\n marks+=(1-smoothstep(.0008,.002,abs(p.x)))*step(abs(p.y),.019)+(1-smoothstep(.0008,.002,abs(p.y)))*step(abs(p.x),.019);}\r\n return float4(_Tint.rgb,saturate(route+marks)*_Opacity);}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 0.8,
+              "id": "f85f16769d414760a5d1f819d8614315",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Tint",
+              "type": "Color",
+              "colorValue": [
+                1.0,
+                0.9019608,
+                0.7058824,
+                1.0
+              ],
+              "id": "78f90b208b0441d4be95c956e7aee28b",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "ae50816ac605483bbcf2855b8a9b9a48",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "ColorFillLayerBehaviour",
+        "mode": "Color",
+        "storedColor": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "recoveryId": "290ed3876c354e75b648577dd2a0486a"
+      },
+      "behaviourId": "290ed3876c354e75b648577dd2a0486a",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "2fb0fa1b64f94f7ca700d09c2cdba50e",
+      "layerName": "Map Grid",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx1",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Survey Grid\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.25 [0 .. 1]\r\n// @param float _Grid = 8 [2 .. 32]\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color){\r\n float2 p=abs(frac(uv*_Grid+.5)-.5);float grid=1-smoothstep(.006,.015,min(p.x,p.y));\r\n float cross=(1-smoothstep(.01,.02,p.x))*step(p.y,.07)+(1-smoothstep(.01,.02,p.y))*step(p.x,.07);\r\n float frame=1-smoothstep(.0015,.003,min(abs(uv.x-.035),min(abs(uv.x-.965),min(abs(uv.y-.035),abs(uv.y-.965)))));\r\n return float4(.68,.83,.73,saturate(grid*.35+cross+frame*.6)*_Opacity);}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 0.25,
+              "id": "d54d8e14312d457d8f873ef4d1808990",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Grid",
+              "type": "Float",
+              "floatValue": 8.0,
+              "id": "82fc6098768d467d9752b99c03b4ae33",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "cebf5ea7305248c090722cac09509511",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "ColorFillLayerBehaviour",
+        "mode": "Color",
+        "storedColor": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "recoveryId": "53c1e4cd43fc48b59dccebb9457009d5"
+      },
+      "behaviourId": "53c1e4cd43fc48b59dccebb9457009d5",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "d2501dad5055409dacc39898a5fbf3c0",
+      "layerName": "Paper Grain",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 0.16,
+      "blendMode": "SoftLight",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "NoiseLayerBehaviour",
+        "noiseType": "OpenSimplex2",
+        "dimensions": "TwoD",
+        "seed": 31,
+        "scale": 64.0,
+        "scaleY": 0.0,
+        "linkScale": true,
+        "offset": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "periodic": "None",
+        "fractal": "FBm",
+        "octaves": 2,
+        "lacunarity": 2.0,
+        "gain": 0.5,
+        "weightedStrength": 0.0,
+        "warp": "None",
+        "encoding": "LinearData",
+        "inverted": false,
+        "recoveryId": "1f5caba86a344c9ea288e532ff11bb1d"
+      },
+      "behaviourId": "1f5caba86a344c9ea288e532ff11bb1d",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "a85d798633704d31984e30753c78a605",
+      "layerName": "Contour Lines",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx2",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Brightness Contrast\r\n// @control(_Opacity)\r\n// @group\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original colors and the adjusted result.\r\n// @param float _Brightness = 2 [~-100 .. ~100] // Adjust midtone brightness while retaining black and white. Soft bounds allow stronger values.\r\n// @param float _Contrast = 18 [~-100 .. ~100] // Positive increases tonal separation; negative brings tones toward middle gray. Soft bounds allow stronger values.\r\n// @endgroup\r\n\r\n\r\n// Rational tone curves avoid hard clipping and exponential overflow at extended settings.\r\n// Work in the incoming RGB space, retaining signed/HDR values outside the tonal interval.\r\nfloat AdjustTone(float value, float brightnessGain, float contrastGain)\r\n{\r\n    if (value <= 0.0 || value >= 1.0) return value;\r\n    float low = value;\r\n    float high = 1.0 - value;\r\n    if (_Brightness >= 0.0) high /= brightnessGain;\r\n    else low /= brightnessGain;\r\n    // Carry the unnormalized pair into contrast: normalizing brightness first loses\r\n    // the highlight distance to rounding, which extreme negative contrast amplifies.\r\n    float nearEdge = 2.0 * min(low, high);\r\n    float nearMiddle = abs(high - low);\r\n    if (_Contrast >= 0.0) nearEdge /= contrastGain;\r\n    else nearMiddle /= contrastGain;\r\n    float mapped = 0.5 * (nearEdge / (nearEdge + nearMiddle));\r\n    return low <= high ? mapped : 1.0 - mapped;\r\n}\r\n\r\nfloat4 ApplyFX(float2 uv, float4 color)\r\n{\r\n    if (_Brightness == 0.0 && _Contrast == 0.0) return color;\r\n    float brightnessGain = 1.0 + abs(_Brightness) / 50.0;\r\n    float contrastGain = 1.0 + abs(_Contrast) / 50.0;\r\n\tfloat4 result = color;\r\n\tresult.rgb = float3(AdjustTone(color.r, brightnessGain, contrastGain),\r\n        AdjustTone(color.g, brightnessGain, contrastGain),\r\n        AdjustTone(color.b, brightnessGain, contrastGain));\r\n\treturn lerp(color, result, _Opacity);\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "3b0289dcb3a24d3fbd91e3fa8a2b8d04",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Brightness",
+              "type": "Float",
+              "floatValue": 2.0,
+              "id": "170ea65ec54e4ac785215f20d0f3fff3",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Contrast",
+              "type": "Float",
+              "floatValue": 18.0,
+              "id": "716f0f91d6aa42ec806d53d80d5be233",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "1cd2c5a3f92849e1b260877f5d9bcf5a",
+          "$name": ""
+        },
+        {
+          "$type": "ShaderFX",
+          "$id": "fx3",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Topographic Lines\r\n// @control(_Opacity)\r\n// @param hidden float _Opacity = 0.4 [0 .. 1]\r\n// @group(Contours)\r\n// @param float _Levels = 14 [2 .. 64]\r\n// @param float _Width = 0.025 [0.01 .. 0.3]\r\n// @param color _Ink = (1, 0.905882359, 0.7411765, 1)\r\n// @endgroup\r\n\r\nfloat4 ApplyFX(float2 uv,float4 color) {\r\n float value=color.r*_Levels;\r\n float dist=abs(frac(value+.5)-.5);\r\n float aa=max(fwidth(value),.002);\r\n float cover=1-smoothstep(_Width,_Width+aa,dist);\r\n return float4(_Ink.rgb,cover*_Opacity*_Ink.a);\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 0.4,
+              "id": "4d1c86e89576477baefbc8bf2334c1f5",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Levels",
+              "type": "Float",
+              "floatValue": 14.0,
+              "id": "a284f3db4bfa49b6a17f8feb0d4333fb",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Width",
+              "type": "Float",
+              "floatValue": 0.025,
+              "id": "5885d34210bc47e689c10cea5b71c6c7",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Ink",
+              "type": "Color",
+              "colorValue": [
+                1.0,
+                0.905882359,
+                0.7411765,
+                1.0
+              ],
+              "id": "594bf8d18bf04b2b9ac7611b3260c1f9",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "e09b3e762dec4ba7866dcd9a1144521a",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "NoiseLayerBehaviour",
+        "noiseType": "OpenSimplex2",
+        "dimensions": "TwoD",
+        "seed": 616,
+        "scale": 2.5,
+        "scaleY": 0.0,
+        "linkScale": true,
+        "offset": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "periodic": "None",
+        "fractal": "FBm",
+        "octaves": 3,
+        "lacunarity": 2.0,
+        "gain": 0.5,
+        "weightedStrength": 0.0,
+        "warp": "OpenSimplex2",
+        "warpStrength": 0.55,
+        "warpScale": 1.0,
+        "warpScaleY": 0.0,
+        "linkWarpScale": true,
+        "encoding": "LinearData",
+        "inverted": false,
+        "recoveryId": "36a3ebef169740389f48f7f46be5df79"
+      },
+      "behaviourId": "36a3ebef169740389f48f7f46be5df79",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "aaec44ceff504b74b5d6f70d011c0710",
+      "layerName": "Terrain Colors",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx4",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Brightness Contrast\r\n// @control(_Opacity)\r\n// @group\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original colors and the adjusted result.\r\n// @param float _Brightness = 2 [~-100 .. ~100] // Adjust midtone brightness while retaining black and white. Soft bounds allow stronger values.\r\n// @param float _Contrast = 18 [~-100 .. ~100] // Positive increases tonal separation; negative brings tones toward middle gray. Soft bounds allow stronger values.\r\n// @endgroup\r\n\r\n\r\n// Rational tone curves avoid hard clipping and exponential overflow at extended settings.\r\n// Work in the incoming RGB space, retaining signed/HDR values outside the tonal interval.\r\nfloat AdjustTone(float value, float brightnessGain, float contrastGain)\r\n{\r\n    if (value <= 0.0 || value >= 1.0) return value;\r\n    float low = value;\r\n    float high = 1.0 - value;\r\n    if (_Brightness >= 0.0) high /= brightnessGain;\r\n    else low /= brightnessGain;\r\n    // Carry the unnormalized pair into contrast: normalizing brightness first loses\r\n    // the highlight distance to rounding, which extreme negative contrast amplifies.\r\n    float nearEdge = 2.0 * min(low, high);\r\n    float nearMiddle = abs(high - low);\r\n    if (_Contrast >= 0.0) nearEdge /= contrastGain;\r\n    else nearMiddle /= contrastGain;\r\n    float mapped = 0.5 * (nearEdge / (nearEdge + nearMiddle));\r\n    return low <= high ? mapped : 1.0 - mapped;\r\n}\r\n\r\nfloat4 ApplyFX(float2 uv, float4 color)\r\n{\r\n    if (_Brightness == 0.0 && _Contrast == 0.0) return color;\r\n    float brightnessGain = 1.0 + abs(_Brightness) / 50.0;\r\n    float contrastGain = 1.0 + abs(_Contrast) / 50.0;\r\n\tfloat4 result = color;\r\n\tresult.rgb = float3(AdjustTone(color.r, brightnessGain, contrastGain),\r\n        AdjustTone(color.g, brightnessGain, contrastGain),\r\n        AdjustTone(color.b, brightnessGain, contrastGain));\r\n\treturn lerp(color, result, _Opacity);\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "2fda8955cd0648c98c5bef671a8c2209",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Brightness",
+              "type": "Float",
+              "floatValue": 2.0,
+              "id": "c2f92a4ae9cd4d8b9d0a88d679296bbf",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Contrast",
+              "type": "Float",
+              "floatValue": 18.0,
+              "id": "39ea765490f04c849960336e8ee1c0e9",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "fe8242681fda458fa773f8298eedf6d0",
+          "$name": ""
+        },
+        {
+          "$type": "ShaderFX",
+          "$id": "fx5",
+          "active": true,
+          "code": "// @whimtex-effect Samples/Gradient Map\r\n// @control(_Opacity)\r\n// @group\r\n// @formerlyserializedas(_Amount)\r\n// @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original colors and the gradient map.\r\n// @param gradient _Gradient = (0, 0, 0, 1) -> (1, 1, 1, 1) // Colors from shadows to highlights.\r\n// @param curve _Mapping = keys((0, 0, 0, 1, 0, 0, 0), (1, 1, 1, 0, 0, 0, 0)) // Remap brightness before sampling the gradient; the default is unchanged.\r\n// @param bool _Reverse = false // Map highlights to the beginning of the gradient instead of shadows.\r\n// @endgroup\r\n\r\n\r\n\r\n#ifndef WHIMTEX_HDR_COLOR_INCLUDED\r\n#define WHIMTEX_HDR_COLOR_INCLUDED\r\nfloat3 SpriteEncode(float3 color)\r\n{\r\n    float3 value = abs(color);\r\n    return sign(color) * lerp(value * 12.92, 1.055 * pow(value, 1.0 / 2.4) - .055, step(.0031308, value));\r\n}\r\nfloat3 SpriteDecode(float3 color)\r\n{\r\n    float3 value = abs(color);\r\n    return sign(color) * lerp(value / 12.92, pow((value + .055) / 1.055, 2.4), step(.04045, value));\r\n}\r\n#endif\r\n\r\n\r\nfloat4 ApplyFX(float2 uv, float4 color)\r\n{\r\n    float luminance = saturate(dot(max(color.rgb, 0.0), float3(0.2126, 0.7152, 0.0722)));\r\n    float brightness = SpriteEncode(float3(luminance, luminance, luminance)).r;\r\n    float t = _Reverse > 0.5 ? 1.0 - brightness : brightness;\r\n    float4 mapped = _Gradient_Sample(_Mapping_Sample(t));\r\n\treturn float4(lerp(color.rgb, mapped.rgb, saturate(_Opacity)), color.a);\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Opacity",
+              "type": "Float",
+              "floatValue": 1.0,
+              "id": "6efc032a299b4891b9043131ce0fcb65",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Gradient",
+              "type": "Gradient",
+              "gradientValue": {
+                "colors": [
+                  {
+                    "color": [
+                      0.015,
+                      0.055,
+                      0.12,
+                      1.0
+                    ],
+                    "time": 0.0,
+                    "midpoint": 0.5
+                  },
+                  {
+                    "color": [
+                      0.035,
+                      0.25,
+                      0.32,
+                      1.0
+                    ],
+                    "time": 0.34,
+                    "midpoint": 0.5
+                  },
+                  {
+                    "color": [
+                      0.16,
+                      0.56,
+                      0.54,
+                      1.0
+                    ],
+                    "time": 0.46,
+                    "midpoint": 0.5
+                  },
+                  {
+                    "color": [
+                      0.84,
+                      0.78,
+                      0.5,
+                      1.0
+                    ],
+                    "time": 0.51,
+                    "midpoint": 0.5
+                  },
+                  {
+                    "color": [
+                      0.28,
+                      0.43,
+                      0.24,
+                      1.0
+                    ],
+                    "time": 0.59,
+                    "midpoint": 0.5
+                  },
+                  {
+                    "color": [
+                      0.44,
+                      0.28,
+                      0.2,
+                      1.0
+                    ],
+                    "time": 0.76,
+                    "midpoint": 0.5
+                  },
+                  {
+                    "color": [
+                      0.98,
+                      0.88,
+                      0.68,
+                      1.0
+                    ],
+                    "time": 1.0,
+                    "midpoint": 0.5
+                  }
+                ],
+                "alphas": [
+                  {
+                    "alpha": 1.0,
+                    "time": 0.0,
+                    "midpoint": 0.5
+                  },
+                  {
+                    "alpha": 1.0,
+                    "time": 0.34,
+                    "midpoint": 0.5
+                  },
+                  {
+                    "alpha": 1.0,
+                    "time": 0.46,
+                    "midpoint": 0.5
+                  },
+                  {
+                    "alpha": 1.0,
+                    "time": 0.51,
+                    "midpoint": 0.5
+                  },
+                  {
+                    "alpha": 1.0,
+                    "time": 0.59,
+                    "midpoint": 0.5
+                  },
+                  {
+                    "alpha": 1.0,
+                    "time": 0.76,
+                    "midpoint": 0.5
+                  },
+                  {
+                    "alpha": 1.0,
+                    "time": 1.0,
+                    "midpoint": 0.5
+                  }
+                ],
+                "mode": "Classic",
+                "wrapMode": "Clamp",
+                "colorSpace": "Gamma",
+                "smoothness": 1.0
+              },
+              "id": "54192596c08c4e95b1517349c4a95c8a",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Mapping",
+              "type": "Curve",
+              "curveValue": {
+                "preWrap": "ClampForever",
+                "postWrap": "ClampForever",
+                "keys": [
+                  [
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0,
+                    0.0,
+                    0.0,
+                    "None"
+                  ],
+                  [
+                    1.0,
+                    1.0,
+                    1.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    "None"
+                  ]
+                ]
+              },
+              "id": "f94d2d9017e94bad8f755b0c16dcdfea",
+              "declaredInCode": true
+            },
+            {
+              "name": "_Reverse",
+              "type": "Bool",
+              "floatValue": 0.0,
+              "id": "4b4c750cbef84f50b3e42879a673e822",
+              "declaredInCode": true
+            }
+          ],
+          "shaderKey": "efdf1d90107c47248fe6bf01a87f1624",
+          "$name": ""
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "NoiseLayerBehaviour",
+        "noiseType": "OpenSimplex2",
+        "dimensions": "TwoD",
+        "seed": 616,
+        "scale": 2.5,
+        "scaleY": 0.0,
+        "linkScale": true,
+        "offset": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "periodic": "None",
+        "fractal": "FBm",
+        "octaves": 3,
+        "lacunarity": 2.0,
+        "gain": 0.5,
+        "weightedStrength": 0.0,
+        "warp": "OpenSimplex2",
+        "warpStrength": 0.55,
+        "warpScale": 1.0,
+        "warpScaleY": 0.0,
+        "linkWarpScale": true,
+        "encoding": "LinearData",
+        "inverted": false,
+        "recoveryId": "483b9699a3604b819c76fd5e6fb50fbf"
+      },
+      "behaviourId": "483b9699a3604b819c76fd5e6fb50fbf",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    }
+  ]
+}

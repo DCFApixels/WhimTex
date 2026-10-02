@@ -166,7 +166,7 @@ namespace DCFApixels.WhimTex
         internal bool RequiresInput => Behaviour?.RequiresInput ?? false;
         internal bool IsGroup => group;
         internal Layer AsGroup() => group ? this : null;
-        internal bool HasModifiers => modifiers != null && modifiers.Exists(value => value != null && (!(value is ShaderFX fx) || fx.Active));
+        internal bool HasModifiers => modifiers != null && modifiers.Exists(value => value != null && (!(value is ShaderFX fx) || fx.Active && !fx.IsUnavailable));
         internal bool IsPassThrough => compositing == GroupCompositing.PassThrough && swizzle.IsIdentity && !HasModifiers;
         internal BlendMode EffectiveBlendMode => compositing == GroupCompositing.PassThrough ? BlendMode.Normal : blendMode;
         internal BlendMode CompositeBlendMode => Behaviour is DrawingLayerBehaviour drawing && drawing.UsesPremultipliedOverwrite
@@ -348,6 +348,17 @@ namespace DCFApixels.WhimTex
             }
         }
 
+        internal ShaderFX UnavailableEffect
+        {
+            get
+            {
+                if (modifiers != null)
+                    foreach (var modifier in modifiers)
+                        if (modifier is ShaderFX effect && effect.IsUnavailable) return effect;
+                return null;
+            }
+        }
+
         internal void ApplyModifiers(ref RenderTexture current, in LayerRenderContext context, FilterMode filter = FilterMode.Bilinear,
             int count = int.MaxValue)
         {
@@ -355,7 +366,7 @@ namespace DCFApixels.WhimTex
                 return;
             for (int i = 0; i < modifiers.Count && i < count; i++)
             {
-                if (modifiers[i] is ShaderFX inactive && !inactive.Active) continue;
+                if (modifiers[i] is ShaderFX inactive && (!inactive.Active || inactive.IsUnavailable)) continue;
                 using var textureInputs = modifiers[i] is ShaderFX textureFX
                     ? context.compositor.BindShaderTextureLayers(textureFX, this, context, current) : null;
                 Material modifier = modifiers[i] is ShaderFX shaderFX

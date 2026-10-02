@@ -9,6 +9,7 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const source = readFileSync(path.join(root, 'src/Automation/Pipeline/WhimTexCommands.cs'), 'utf8');
 const registered = [...source.matchAll(/CliCommand\("([^"]+)"/g)].map(match => match[1]);
 const expected = [
+  'whimtex_document_json',
   'whimtex_assistant_begin', 'whimtex_assistant_lock', 'whimtex_assistant_sessions', 'whimtex_assistant_live',
   'whimtex_describe', 'whimtex_assistant_execute', 'whimtex_fx_catalog', 'whimtex_render_probe',
   'whimtex_document_inspect', 'whimtex_batch_execute', 'whimtex_image_import',

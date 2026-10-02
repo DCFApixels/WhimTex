@@ -31,7 +31,7 @@ public static class PortableClipboardSmoke
         var children = copy.layers[0].children;
         Check(children.Count == 3, "Children");
         Check(((TargetedLayerBehaviour)children[0].Behaviour).TargetLayerId == children[1].Id, "Remapped Target");
-        Check(children[1].Id != doc.layers[0].children[1].Id, "New IDs");
+        Check(children[1].Id == doc.layers[0].children[1].Id, "Stored IDs survive reading; paste remaps them");
         Reject(doc, new List<Layer> { doc.layers[0].children[0] });
 
         using var fxData = (IDisposable)Read(prefix + "[{\"type\":\"color\",\"id\":\"source\"},{\"type\":\"color\",\"fx\":[{\"enabled\":false,\"code\":\"// @param float _Gain = 2\\n// @param gradient _Ramp\\n// @param texture2D _Map\\nfloat4 ApplyFX(float2 uv,float4 color){return tex2D(_Map,uv)*_Ramp_Sample(0.5)*_Gain;}\",\"textures\":{\"_Map\":{\"layer\":\"source\"}},\"gradients\":{\"_Ramp\":[{\"time\":0,\"color\":[1,0,0,1]},{\"time\":1,\"color\":[0,1,0,1]}]}}]}]}");
@@ -64,7 +64,7 @@ public static class PortableClipboardSmoke
         Check(Doc(emptyCopy).layers[0].Behaviour is DrawingLayerBehaviour, "Drawing placeholder retained");
         Check(((List<string>)emptyCopy.GetType().GetField("Warnings", F).GetValue(emptyCopy)).Count == 1, "Missing pixels warning");
         revision.SetValue(drawing, (int)revision.GetValue(drawing) - 1);
-        Check(Write(drawingDoc, drawingDoc.layers).Contains("https://example.com/image.png"), "Undo restores provenance");
+        Check(!Write(drawingDoc, drawingDoc.layers).Contains("https://example.com/image.png"), "Unified JSON does not disguise unsupported Drawing pixels as an image URL");
         using var fileData = (IDisposable)Read(prefix + "[{\"type\":\"file\",\"id\":\"file\"},{\"type\":\"sdf\",\"target\":\"file\"}]}");
         var fileDoc = Doc(fileData);
         using var fileCopy = (IDisposable)Read(Write(fileDoc, fileDoc.layers));
