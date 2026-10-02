@@ -59,6 +59,8 @@ for (const forbidden of ['visible to an open WhimTex', 'source-space diameter', 
   assert.ok(!api.includes(forbidden), `Obsolete contract: ${forbidden}`);
 assert.ok(!live.includes('without an initializer'), 'Gradient defaults support an initializer');
 const authoring = read('Documentation~/AI/README.md');
+assert.match(read('Documentation~/AI/BRUSHES.md'), /README\.md#standalone-gradient-json/, 'Brush gradient reference must target the current value contract');
+assert.match(authoring, /^## Standalone gradient JSON\r?$/m, 'The linked gradient section must exist');
 for (const file of ['AI_AUTHORING.md', 'Documentation~/AI/README.md', 'Documentation~/Examples/Clipboard/README.md']) {
   const text = read(file);
   assert.ok(text.includes('whimtex.document') && text.includes('document.schema.json'), `${file}: current authoring contract`);

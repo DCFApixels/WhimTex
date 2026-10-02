@@ -77,7 +77,7 @@ Source-specific root fields:
 | tipChannel | Alpha / Luminance / InvertedLuminance / Color; Alpha |
 | tipSdf | boolean; false |
 | mode | Hardness / Gradient; Hardness; Standard without a texture only |
-| tipGradient, tintGradient | [Shared gradient format](README.md#shape-color-and-gradient), also fully described by brush.schema.json |
+| tipGradient, tintGradient | [Gradient value format](README.md#standalone-gradient-json), with brush-specific limits below; also fully described by brush.schema.json |
 | blend | Color blend names from the schema, default Normal; None and Overwrite are not allowed |
 | blendApplication | Stroke / Stamp; Stroke |
 
