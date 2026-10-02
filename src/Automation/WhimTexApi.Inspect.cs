@@ -29,7 +29,8 @@ namespace DCFApixels.WhimTex
         {
             JObject result = Success();
             result["operations"] = new JArray("add", "set", "transform", "target", "move", "stroke", "compact",
-                "fx", "delete", "duplicate", "merge", "convertToDrawing", "blurStroke", "healStroke");
+                "fx", "delete", "duplicate", "merge", "convertToDrawing", "blurStroke", "healStroke", "resize");
+            result["resize"] = "Document operation: width/height (1..16384, at most 16,777,216 pixels), preserveLayout=true. Preserves normalized layer transforms, not pixel-valued effects or source raster dimensions. Result layerId/name are null.";
             result["fxOperations"] = new JArray("add", "replace", "set", "remove", "move", "copy", "apply", "applyAll");
             result["fxCatalog"] = "whimtex_fx_catalog: query installed presets; pass presetId for parameter details. Use returned id in FX add/replace.";
             result["assistantBatch"] = "whimtex_assistant_execute: sessionId + expectedRevision + operations, same operations as batch/headless; one Undo step, no save. Finish active jobs first.";
@@ -160,9 +161,28 @@ namespace DCFApixels.WhimTex
                 }
                 if (layer.modifiers != null)
                     foreach (UnityEngine.Object modifier in layer.modifiers)
-                        if (modifier != null) text.Append(EditorJsonUtility.ToJson(modifier));
+                        if (modifier != null) text.Append(DocumentModifierRevision(modifier));
             }
             return Convert.ToBase64String(hash.ComputeHash(Encoding.UTF8.GetBytes(text.ToString())));
+        }
+
+        private static string DocumentModifierRevision(UnityEngine.Object modifier)
+        {
+            string json = EditorJsonUtility.ToJson(modifier);
+            if (modifier is not ShaderFX) return json;
+            // Opening/rendering an embedded FX rebuilds these derived fields. They are not
+            // document edits and must not make Inspect disagree with a detached TIFF load.
+            var model = JObject.Parse(json);
+            var fields = model["MonoBehaviour"] as JObject ?? model;
+            fields.Remove("compiledShader"); fields.Remove("appliedCode");
+            fields.Remove("appliedSource"); fields.Remove("appliedParameters");
+            fields.Remove("diagnostics"); fields.Remove("lastApplyFailed");
+            fields.Remove("shaderCreationRecorded"); fields.Remove("embeddedOwner");
+            // Newly discovered declarations receive UI identity IDs on load. API edits
+            // address parameters by name; regenerated IDs do not change their meaning.
+            if (fields["parameters"] is JArray parameters)
+                foreach (JObject parameter in parameters) parameter.Remove("id");
+            return model.ToString(Newtonsoft.Json.Formatting.None);
         }
 
         private static string DocumentAssetPath(TextureCompositor document) =>

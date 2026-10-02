@@ -50,7 +50,7 @@ namespace DCFApixels.WhimTex
             for (int i = 0; i < operations.Count; i++)
             {
                 var layer = ApplyOperation(document, Obj(operations[i], "operation"), aliases, execute);
-                results.Add(new JObject { ["index"] = i, ["layerId"] = layer.Id, ["name"] = layer.layerName });
+                results.Add(new JObject { ["index"] = i, ["layerId"] = layer?.Id, ["name"] = layer?.layerName });
                 document.RefreshTransformHierarchy();
             }
             ValidateTargets(document, documentPath ?? DocumentAssetPath(document));

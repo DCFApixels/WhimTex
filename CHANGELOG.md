@@ -6,6 +6,7 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Agent API `resize` operation for Batch, Headless Live and Assistant, preserving normalized layer placement without flattening sources. Pixel-valued effect settings remain explicit.
 - Gradient Map has a Source Channel selector: Luminance (default), R, G, B or Alpha. The selected input drives the full RGBA gradient; source-alpha preservation is unchanged.
 - Shape layers have SDF-based Feather in canvas pixels, with Inside, Outside and Centered placement for fill and stroke. Zero preserves existing rendering; softened ellipses use contour distance for even falloff.
 - Hue, Saturation, Color and Luminosity blend modes for layers, groups and brushes, with matching PSD blend keys. Blend menus now separate basic, lightening, darkening, contrast, other and color modes with horizontal lines.
@@ -55,6 +56,10 @@ All notable changes to WhimTex are documented in this file.
 - Ordinary preview is limited to 512 pixels and may choose different Quilting patches than export. Full-resolution Tiled preview is available with Pencil selected. Save and export use full resolution.
 
 ### Fixed
+
+- Documentation publishing no longer fails on the build guide's validation-report link; source checks reject relative links to unpublished repository files.
+
+- Detached agent edits restore embedded FX before copying a TIFF; rebuilding FX compilation caches no longer causes false document revision conflicts.
 
 - Noise Random All now samples the linked main Scale's X/Y average instead of X, preserving proportions without pushing asymmetric scales upward. The gentle preference near 8 is unchanged.
 - Document vector fields now accept smaller vectors with zero-filled remaining components, including older Noise Offset values. Integer vectors can also become floating-point vectors when every component remains exact. Saving uses the current field type and retains all components; narrowing and incompatible values still block saving to protect data.

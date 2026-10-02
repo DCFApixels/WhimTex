@@ -12,6 +12,11 @@ namespace DCFApixels.WhimTex
         private static Layer ApplyOperation(TextureCompositor document, JObject operation, Dictionary<string, Layer> aliases, bool execute)
         {
             string op = Text(operation, "op");
+            if (op == "resize")
+            {
+                ResizeCanvas(document, operation);
+                return null; // Document-level operation, including an empty canvas.
+            }
             if (op == "add")
             {
                 Keys(operation, "op", "type", "as", "parent", "index", "settings", "transform");
@@ -115,6 +120,37 @@ namespace DCFApixels.WhimTex
             foreach (Layer child in group.layers)
                 if (child?.AsGroup() is Layer nested && ContainsContainer(nested, candidate)) return true;
             return false;
+        }
+
+        private static void ResizeCanvas(TextureCompositor document, JObject operation)
+        {
+            Keys(operation, "op", "width", "height", "preserveLayout");
+            Require(operation["width"] != null && operation["height"] != null, "resize requires width and height.");
+            int width = Int(operation, "width", 0, 1, 16384);
+            int height = Int(operation, "height", 0, 1, 16384);
+            Require((long)width * height <= MaxCanvasPixels, "resize exceeds 16,777,216 canvas pixels.", "resource_limit");
+            bool preserveLayout = Bool(operation, "preserveLayout", true);
+            if (width == document.width && height == document.height) return;
+            Require(document.width > 0 && document.height > 0, "Current canvas dimensions must be positive.");
+            if (preserveLayout)
+            {
+                bool proportional = (long)width * document.height == (long)height * document.width;
+                foreach (var layer in Enumerate(document.layers))
+                {
+                    var transform = layer.transform;
+                    if (transform.storage == TransformStorage.Projective) continue; // Already normalized UV.
+                    if (proportional)
+                        transform.position = new Double2(transform.position.x * width / document.width,
+                            transform.position.y * height / document.height);
+                    else
+                        Require(transform.TrySetMatrix(transform.ToMatrix(document.width, document.height)),
+                            "Cannot preserve this layer transform while resizing.");
+                    layer.transform = transform;
+                }
+            }
+            document.width = width;
+            document.height = height;
+            document.RefreshTransformHierarchy();
         }
 
         private static Layer Resolve(TextureCompositor document, string reference, Dictionary<string, Layer> aliases)

@@ -195,7 +195,7 @@ namespace DCFApixels.WhimTex
                     {
                         operationIndex = i;
                         Layer layer = ApplyOperation(document, Obj(operations[i], "operation"), aliases, true);
-                        results.Add(new JObject { ["index"] = i, ["layerId"] = layer.Id, ["name"] = layer.layerName });
+                        results.Add(new JObject { ["index"] = i, ["layerId"] = layer?.Id, ["name"] = layer?.layerName });
                     }
                     ValidateTargets(document, path);
                     ValidateAgentBudget(document);

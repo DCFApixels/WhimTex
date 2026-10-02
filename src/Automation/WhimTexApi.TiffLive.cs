@@ -291,13 +291,15 @@ namespace DCFApixels.WhimTex
                 for (int i = 0; i < operations.Count; i++)
                 {
                     Layer layer = ApplyOperation(candidate.Document, Obj(operations[i], "operation"), aliases, true);
-                    applied.Add(new JObject { ["index"] = i, ["layerId"] = layer.Id, ["name"] = layer.layerName });
+                    applied.Add(new JObject { ["index"] = i, ["layerId"] = layer?.Id, ["name"] = layer?.layerName });
                 }
                 ValidateTargets(candidate.Document, session.path);
                 ValidateAgentBudget(candidate.Document);
                 candidate.Document.MarkChanged();
                 session.working?.Dispose();
                 session.working = candidate;
+                session.width = candidate.Document.width;
+                session.height = candidate.Document.height;
                 candidate = null;
                 var result = Success();
                 result["sessionId"] = session.id;

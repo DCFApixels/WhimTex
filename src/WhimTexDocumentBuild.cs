@@ -23,10 +23,11 @@ namespace DCFApixels.WhimTex
             return new WhimTexDocumentBuild(document);
         }
 
-        // Opening restores the editable pixels, but does not compile shaders or render.
+        // Restore applied FX as well as pixels: detached copies reject pending/unapplied FX.
+        // Opening still does not render the composite.
         internal static WhimTexDocumentBuild Open(string path)
         {
-            if (!WhimTexDocumentFile.TryLoad(path, out var document, out string error, false))
+            if (!WhimTexDocumentFile.TryLoad(path, out var document, out string error))
                 throw new WhimTexDocumentException(error);
             return new WhimTexDocumentBuild(document);
         }

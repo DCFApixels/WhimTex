@@ -91,7 +91,14 @@ function checkSource() {
         fail(`${file}: missing repository link target ${link}`);
       if (/^(?:[a-z]+:|#|\/\/)/i.test(link)) continue;
       const pathname = decodeURIComponent(link.split('#')[0]);
-      if (!fs.existsSync(path.resolve(path.dirname(file), pathname))) fail(`${file}: missing source link ${link}`);
+      const target = path.resolve(path.dirname(file), pathname);
+      if (!fs.existsSync(target)) fail(`${file}: missing source link ${link}`);
+      // Repository files exist locally but are not published with Documentation~.
+      // Catch these links before Jekyll, while still allowing repository README links.
+      const page = path.relative(source, file).replaceAll('\\', '/');
+      const relativeTarget = path.relative(source, target);
+      if (pages.has(page) && (relativeTarget === '..' || relativeTarget.startsWith('..' + path.sep) || path.isAbsolute(relativeTarget)))
+        fail(`${page}: source link leaves the published documentation: ${link}; use a repository URL`);
     }
     if (/\b(?:PLACEHOLDER|TODO_TRANSLATE)\b/.test(content)) fail(`${file}: unfinished content`);
   }

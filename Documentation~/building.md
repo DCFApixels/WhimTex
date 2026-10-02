@@ -54,7 +54,7 @@ Make Seamless's contract check compares all fields, enums and numeric bounds wit
 snapshot and generated clipboard schema. `Tests~/MakeSeamlessContractSmoke.cs` (Unity Pipeline
 `run_script`, entry `MakeSeamlessContractSmoke.Main`) also checks runtime defaults, exact endpoints,
 partial updates, invalid values, documented operations and the procedural clipboard recipe using
-temporary models only. See the [validation report](../Tests~/MakeSeamlessContract.md).
+temporary models only. See the [validation report](https://github.com/DCFApixels/WhimTex/blob/main/Tests~/MakeSeamlessContract.md).
 
 The theme's SEO tag supplies titles, descriptions, canonical URLs and Open Graph metadata.
 `head_custom.html` adds reciprocal language links and application metadata on the landing page;

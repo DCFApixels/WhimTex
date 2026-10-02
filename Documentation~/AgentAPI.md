@@ -604,8 +604,32 @@ Colors retain the encoded RGB convention; rendering and EXR/Texture2D output are
 The render command writes a clamped PNG copy. See [HDR behavior](HDR.md).
 Unspecified settings and FX are preserved. The shared operations support Shader FX editing,
 layer deletion, duplication, merging and conversion to Drawing; see [shared editing operations](#shared-editing-operations).
-Resizing an existing canvas and changing gradient geometry are not exposed by these batch operations.
+Changing gradient geometry is not exposed by these batch operations.
 Use `enabled:false` when hiding a layer is preferable to deleting it.
+
+### Resize a document
+
+`{"op":"resize","width":256,"height":128,"preserveLayout":true}` is a document-level
+operation shared by Batch, Headless Live and Assistant. Both integer dimensions are required
+(1..16384; at most 16,777,216 pixels). It also works on an empty document; the operation result
+has `layerId:null` and `name:null`, with the new dimensions in the document snapshot.
+
+`preserveLayout` defaults to true: normalized layer placement is preserved throughout the group
+hierarchy. Proportional resizing scales pixel-valued TRS positions; non-proportional resizing
+stores equivalent normalized projective transforms to retain rotated/sheared placement.
+Existing projective transforms remain unchanged. Set false to change only the canvas dimensions.
+Layer IDs, source Drawing/File pixels, FX links, gradients and all other settings are retained;
+this does not flatten or resample the editable source layers.
+
+Pixel-valued effects are **not** scaled automatically: explicitly adjust blur radii, outline/SDF
+distances, shape feather/strokes, pattern cell sizes and custom FX pixel parameters with `set`
+or `fx` operations in the same batch. UV/normalized values should not be scaled. Compare rendered
+previews: procedural sampling and antialiasing can differ at a smaller resolution.
+Existing revision, dry-run, lock, save and Undo rules apply. Headless status reports the current
+candidate size; a nonempty replay starts from its original baseline as usual.
+Document revisions ignore rebuilt Shader FX compilation caches, but still include editable code,
+parameters and activation state. Opening a detached TIFF restores its existing applied FX before
+copying it; dry-run does not compile newly submitted shader code.
 
 `shaderProcessor` processes the already-composited lower stack, with HDR ranges by default.
 Normal + Opacity interpolates before/after without accumulating alpha twice. Pass Through includes
