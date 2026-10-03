@@ -220,6 +220,13 @@ The mask describes rendered data, not a separate history of input colors. Paint 
 does not add diagnostic marks. Disabled channels explicitly zero their values rather than multiply
 NaN by zero.
 
+### Layer mini preview
+
+When available, the mini preview uses the cached layer result from the main preview, before
+blending with other layers. This avoids differences caused by a separate lower-resolution render.
+Otherwise it renders independently; clipped layers and pass-through groups use this fallback.
+A group shows only its own colored content against transparency.
+
 ## Save and export
 
 Saved compositor output and standalone Texture2D assets use linear RGBAHalf. Owned Drawing formats,

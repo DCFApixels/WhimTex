@@ -1128,6 +1128,9 @@ selection in the second. Higher Search Quality costs more and does not guarantee
   full-resolution UI check, or render/export at the actual intended resolution through the API.
 - Poisson-only changes can reuse the pre-correction quilting cache. Source/search settings and
   resolution changes require a new search; synchronous readback/job completion can still block the editor.
+- Quilting evaluates duplicate candidate strips only once, without changing the same-seed result or
+  selected Search Quality; the benefit can be larger for wider strips. With Contrast Compensation, the first calculation
+  after a long idle period or a resolution change can take longer than subsequent updates.
 
 ### Normal Map settings
 

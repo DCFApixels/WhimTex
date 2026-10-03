@@ -47,7 +47,7 @@ OpenSimplex2、OpenSimplex2S、Cellular、Perlin、ValueCubic 和 Value 支持 *
 
 使用方形 **Seamless** 控件让噪声本身重复，而不是混合边缘。
 左右边缘一起切换 X 轴，上下边缘一起切换 Y 轴。选中四边启用 XY，取消两对边缘则关闭周期性。
-悬停一条边会同时高亮相连的另一条边；点击中央图标可反转两对边缘的选择。
+点击中央图标可反转两对边缘的选择。
 每个分形八度及 Warp 均保持周期性；Z 从不循环。周期必须容纳完整的晶格单元，
 因此 Scale 会分段变化，尤其是在较小的 OpenSimplex 尺度下。任意变换和 FX 仍可能
 在画布上产生接缝。White/Blue Noise 不提供该选项。
@@ -133,7 +133,5 @@ Noise Type 只会在当前组内切换：**White Noise / Blue Noise** 为一组�
 
 ### Random All 的 Scale 分布
 
-Random All 会略微偏向主 Scale 平均值 `(X + Y) / 2` 接近 **8** 的结果。
-平滑钟形权重从 1 到 2，因此较远的尺度仍然常见。链接轴时，1–64 的随机范围
-应用于两轴的平均值而非 X，并保留原有比例。极端比例会因每轴 0.01–1000 的限制
-而缩小可用平均值范围。未链接时 X/Y 仍分别从 1–64 取样。Warp Scale 的随机分布不变。
+Random All 略微偏向 X/Y 平均 Scale 接近 **8** 的结果，但仍会生成大、小图案。
+链接轴保持比例。分布公式与范围见[技术参考](../AgentAPI.md#noise-settings)。

@@ -34,9 +34,7 @@ Assigning an HDR texture to a File layer sets **Color Range** and **Blend Range*
 You can change both afterwards in **Color & Blending**.
 
 File layers linked to another WhimTex document have a thin orange line along the left edge of their row.
-Double-click the thumbnail or row background to open that document without replacing the current one. An already open document is focused;
-otherwise Unity attempts to add a WhimTex tab beside an existing WhimTex window, falling back to a separate window.
-Double-clicking text or number fields still edits those fields.
+Double-click its thumbnail or row background to open or focus that document without replacing the current one.
 
 Effect layers also show thumbnails of their results. Animated Shader FX use still thumbnails.
 
@@ -45,15 +43,11 @@ Effect layers also show thumbnails of their results. Animated Shader FX use stil
 Click a row to select it. Hold `Ctrl` to select several layers or `Shift` to select a range.
 The **last selected layer is active**: this is the layer you paint on and edit in Layer Settings.
 
-Drag a row's thumbnail, empty space, name, opacity field or eye to move the selected layers.
-Hold the layers near the top or bottom edge of the list to scroll.
-In the name and opacity fields, drag up or down to move layers; drag left or right to select text.
-While a field is focused for editing, dragging only selects text; leave the field to move layers from it again.
-Dragging from a field cancels its unconfirmed input; dragging the eye does not toggle visibility.
+Drag a row to move the selected layers; hold near the list's top or bottom edge to scroll.
+Finish editing a text field before dragging from it. Dragging from a field cancels unconfirmed input.
 Confirm name and opacity edits with `Enter` or by leaving the field.
 Edit the name directly in the row. **Opacity** controls how much the layer shows;
-**Blend** controls how it combines with the image below.
-Changing either on a selected row updates all selected layers.
+**Blend** controls how it combines with the image below. Changing either updates all selected layers.
 
 Use the eye to hide a layer. The eye in the column header reveals all layers.
 
@@ -143,8 +137,6 @@ not arbitrary FX applied afterwards or other layers in the composite.
 
 Choose **Shape** (`U`), pick a shape in the Preview header, then drag to create it.
 New layers are named after the figure, such as **Rectangle 1**, **Line 2**, or **Star 3**, with one shared numbering sequence for all shapes.
-You can also hold the Shape tool button briefly, or drag from it, to open an icon list on its right.
-Move over a figure and release to select it. Releasing outside the list cancels the choice.
 Each drag adds a separate Shape layer, including in an empty document.
 Hold `Shift` for equal proportions or a line angle in 45° steps; `Ctrl` bypasses guide snapping.
 Press `Escape` before releasing to cancel.
@@ -152,7 +144,6 @@ Press `Escape` before releasing to cancel.
 Use **Transform** to move, resize or rotate an existing figure. In **Properties (Shape)**,
 change its type, fill and stroke colors, rectangle roundness, polygon sides or star points and inner radius.
 For a rectangle, **Roundness (%)** has four fields around a square, one per corner.
-Drag their **TL / TR / BR / BL** labels to adjust values without typing.
 The chain links proportional changes; the crossed-out chain lets you edit each corner independently.
 Linking keeps existing values. Linked changes stop when a corner reaches 100%; editing a zero corner
 adds the same amount to all four. The diagram shows the shape before its Transform rotation.

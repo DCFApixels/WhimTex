@@ -47,7 +47,7 @@ Cellular slices have a different character from 2D cells. Fractal and Domain War
 
 Use the square **Seamless** control to make the source repeat without blending edges.
 Left/right edges toggle together for X; top/bottom toggle together for Y. Select all four for XY,
-or clear both pairs to disable periodicity. Hovering either edge highlights its pair.
+or clear both pairs to disable periodicity.
 Click the center image to invert the selected pairs.
 Fractal octaves and Domain Warp remain periodic; Z never repeats. Complete lattice cells must fit the tile,
 so Scale changes in steps, especially with small OpenSimplex scales. Arbitrary transforms and FX can
@@ -138,8 +138,5 @@ Noise Type stays within the selected group: **White Noise / Blue Noise**, or all
 
 ### How Random All distributes Scale
 
-Random All gently favors a main Scale average `(X + Y) / 2` near **8**. A smooth bell-shaped
-weight ranges from 1 to 2, so distant scales remain common. With linked axes, the random
-1–64 range applies to their average, not X; the existing proportions are retained. Extreme
-ratios can restrict the reachable average because each axis must stay within 0.01–1000.
-Unlinked axes keep independent 1–64 candidates. Warp Scale randomization is unchanged.
+Random All gently favors an average X/Y Scale near **8**, without excluding small or large patterns.
+Linked axes keep their proportions. See the [technical sampling rules](../AgentAPI.md#noise-settings) for the distribution and limits.

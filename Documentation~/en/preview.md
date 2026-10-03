@@ -22,15 +22,13 @@ and hints for the active tool.
 
 Drag the **Preview** strip at the bottom of **Layer Settings** upward to inspect the selected layer; drag it down to hide the image. The separate **Properties** window has the same mini preview and opens with it visible. The block stays below the scrolling settings and is at most 256 px high, including the strip, or less if space is limited. Its chosen height stays unchanged when switching layers or image resolutions. Small images enlarge proportionally to fit; large images shrink without cropping.
 
-The mini preview follows the layer result used by the main preview when available, before blending it with the other layers. This avoids differences caused by generating a separate lower-resolution image. If that result is unavailable, the mini preview renders independently; clipped layers and pass-through groups use this fallback. A group's mini preview shows its own colored content against transparency.
+The mini preview shows the layer before blending with other layers. A group shows its own colored content against transparency.
 
 The compact, neutral **R / G / B / A** buttons toggle channels independently, like the main preview footer. One RGB channel is displayed in grayscale; **A** controls transparency. Enable only **A** to inspect alpha in grayscale, or turn all four off to show black. Transparent areas use a checkerboard. This selection belongs to the mini preview only: it does not change the main preview, painting, the layer or saved output.
 
+In either preview, hold the left mouse button and drag across **R / G / B / A** to switch several channels together.
 
-In both the main and mini previews, press and hold the left mouse button on **R / G / B / A**, then drag across the other channel buttons. The first button toggles immediately; every button crossed takes that same on/off state until release. Passing over a button again does not invert it. This gesture is limited to the channel group where it started and does not affect other controls.
 ## Context tools
-
-The tool settings bar always reserves one row, even for tools without settings. In a narrow pane, settings wrap onto additional rows over the preview without moving or resizing it. The guide creation strip stays below the settings and remains accessible.
 
 Tools below the toolbar separator appear when they are relevant. Selecting a Gradient layer automatically selects **Gradient Handles** (the hand icon). You can switch back to a basic tool; it stays selected until you activate another layer. With multiple layers selected, context tools use the active, last-selected layer.
 

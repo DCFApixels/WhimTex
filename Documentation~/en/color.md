@@ -61,9 +61,6 @@ the picker stays open and retains its current color. If your Editor cannot show 
 Alt sampling in WhimTex also updates that window's open **primary brush color** picker, including numbers and markers.
 Layer, gradient and secondary-color pickers are unaffected. Without a matching picker, Alt still changes the primary brush color.
 
-The ring and marker edges are smoothed at different interface scales. Both selection markers are white circles
-with a thin, subtle black outer outline.
-
 ### Reuse colors from History
 
 **History** stores colors with the document. Confirmed colors go to the front; intermediate slider values are not recorded.
@@ -80,7 +77,6 @@ Matching includes alpha and HDR intensity. Fields outside a document have no His
 
 Removing a swatch does not change layers that use that color. Explicit History actions remain even if you later
 cancel color selection with Escape; canceled manual color edits are not recorded.
-Hovering a swatch shows the outlined eyedropper cursor used by Alt sampling.
 
 With **HDR off**, History hides colors with RGB outside 0–1 without deleting them.
 In the gradient editor, filtering follows the selected color key's HDR mode; alpha does not affect filtering.
@@ -89,7 +85,7 @@ The gradient editor's History sits above **Presets**, without **+**.
 Select a color key, then click a swatch to apply RGB and HDR intensity; opacity keys and the key's position stay unchanged.
 The palette is unavailable for opacity keys and midpoints. Drag sorting and removal work as in the picker.
 
-History in both windows and gradient Presets share dark foldout headers. Each remembers its expanded state between sessions.
+History and gradient Presets remember their expanded state between sessions.
 
 ## Inspect a channel
 

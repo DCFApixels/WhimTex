@@ -49,17 +49,12 @@ With **Brush** selected, open the upper arrow on the right edge of the preview t
 All brush preset controls are available here: **Size** is in **Tip**, and **Opacity / Flow**
 are in **Color**. The preview header provides shortcuts to the same settings.
 
-The wavy stroke at the bottom previews your current brush as you adjust it. Large tips
-are scaled down to fit; Eraser shows its effect on gray paint. The sample does not include
-the selected layer's effects or symmetry.
-Scatter spreads the stamps without shrinking them; wide scatter may extend beyond the sample's edges.
-Use **Preview Scale (%)** below the sample to manually shrink it and fit more scatter.
-This changes only the sample, not the brush size you paint with.
+The brush sample previews the current tip without layer FX or symmetry; Eraser previews on gray paint.
+Use **Preview Scale (%)** to fit a large tip or wide scatter. It changes only the sample, not the painted brush size.
 
 Use **↺** in the **Tip**, **Stamps** or **Color** header to reset that section,
 preserving **Size, Hardness, Spacing, Opacity and Flow**. The Hardness/Gradient mode can still change.
-Palette colors are not reset. The small button beside **Tint** resets only its gradient to opaque white,
-which leaves the brush color unchanged.
+Palette colors are not reset.
 
 | Setting | What it changes |
 | :--- | :--- |

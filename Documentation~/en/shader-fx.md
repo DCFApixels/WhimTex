@@ -55,8 +55,6 @@ Hover over a parameter to read its description, if the effect's author supplied 
 
 Numeric FX header fields have a **↔** handle: drag left or right to change the value. Shift gives finer adjustment; Ctrl makes it faster.
 
-For parameter names containing `Opacity` or `Alpha`, regardless of case, the header drag handle uses the Layers alpha icon instead of arrows.
-
 An effect can offer a slider and a dropdown for the same setting: changing either updates the shared
 value. **Custom** means the current number is not one of the dropdown's predefined choices.
 

@@ -30,10 +30,8 @@ File layers keep their links to source textures; keep those sources in the proje
 
 ## Choose an export format
 
-Use **Export** in the window header to open the export window. Choose **Format** and its settings,
-then press **Export…** to choose a path. **Cancel** closes the window without exporting.
-Canceling the path dialog keeps the export window and your settings. Successful export closes it;
-an error stays visible so you can retry. **Save As** always saves TIFF and has no format submenu.
+Use **Export** in the window header, choose **Format** and its settings, then **Export…** to choose a path.
+Canceling does not export; errors leave the settings available for retry. **Save As** always saves TIFF.
 
 | Format | Best for |
 | :--- | :--- |

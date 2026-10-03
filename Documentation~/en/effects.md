@@ -254,11 +254,8 @@ With both axes enabled, the second search uses the first corrected result and ca
 ### Preview and calculation
 
 - Sources remain editable: changes update the result; the layer does not bake them.
-- Patch Width and Feather apply after releasing their sliders. A smaller preview can choose different patches and cuts.
-- Ordinary preview is limited to 512 pixels. **Live Quality 100%** does not change that outside painting. Select **Pencil** without painting and enable **Tiled** to check full resolution before export.
-- Along-Seam Search shares the existing candidate budget between straight and shifted strips; it adds work without guaranteeing improvement.
-- Poisson-only adjustments reuse the patch search; source or Quilting changes require a new search. Duplicate candidates are evaluated once without changing the same-seed result or the selected Search Quality. Calculation still blocks editing; the benefit can be larger for wider strips.
-- Contrast compensation adds work; the first calculation after a long idle period or size change can take longer.
+- Patch Width and Feather apply after releasing their sliders. Quilting calculation can temporarily block editing; higher quality and wider searches can take longer.
+- A smaller preview can choose different patches and cuts. Ordinary preview is limited to 512 pixels; **Live Quality 100%** does not remove that limit outside painting. Select **Pencil** without painting and enable **Tiled** to check full resolution before export.
 
 **Older documents:** saved Feather values are now percentages without migration (16 means 16%), so the result may differ.
 Loading does not automatically rewrite files.
