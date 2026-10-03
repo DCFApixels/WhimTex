@@ -27,11 +27,6 @@ The optional envelope field `writeMode` uses these exact names; absence means `F
 Full and Compact exports include it; FullOptimized may omit it. Opening restores the mode for
 subsequent Save/Ctrl+S. `SaveJson` without options uses the document's `JsonWriteMode`.
 Explicit export/serialization options do not change the source document's mode.
-The window's Export button opens a shared export dialog: choose WhimTex JSON, set Mode, then Export…
-to select a project path. Canceling path selection retains the dialog; only a successful export closes it.
-Drawing omission is warned before path selection and still requires confirmation. Save As always selects a TIFF path;
-new JSON copies are created through Export. Ctrl+S on an already open JSON document still saves its JSON file.
-
 Disabled layers and disabled FX remain in all three modes. Collapsed UI panels and visibility-only
 shader controls do not determine whether a value is active. Optimizations include unused Noise
 warp/fractal/gradient settings, unused Make Seamless modes, disabled correction options, and unused
@@ -56,6 +51,8 @@ it are optional. If present, `document` must be an object, not null; `{}` is val
   destination axis on insert/paste. Explicit values still undergo normal validation.
 - API insert/replace never resizes the destination. Clipboard paste can offer to adopt explicitly
   supplied dimensions; accepting keeps any unspecified axis at its current size.
+
+### Canvas context on export
 
 All writer modes keep `document.width` and `document.height` explicit, even when they equal defaults.
 This preserves source-canvas context when the same export is pasted elsewhere. Other settings continue
@@ -98,6 +95,8 @@ Use the schema's exact component count; binary TIFF vector widening is not a JSO
 Shader FX have `$type: "ShaderFX"`, source `code`, `parameters`, `active` and optional
 `$name`. Shared FX use `$id`/`$ref`; these IDs are distinct from layer IDs.
 
+### Open, insert and replace
+
 There is no document/fragment discriminator. Exporting selected layers produces a document containing
 only those layers, with source-canvas settings. The caller's operation determines how the content is used:
 
@@ -127,10 +126,14 @@ The low-level `SaveJson` API does not erase live pixels: when omission is explic
 it leaves the source marked dirty. Prefer `ExportJson` to retain a pixel-bearing source unchanged.
 Empty placeholders can subsequently be saved normally. No URL download substitutes for saved pixels.
 
+### Asset references
+
 An external Texture, Material or mesh reference is an object containing `$asset` with `guid`, `path`,
 string `localId` and expected `type`. Resolve the GUID first; if the GUID is absent from AssetDatabase,
 try the path. The local ID and type must still match. If unresolved, open with warnings and a null
 reference; retain its identity when saving again, including across Unity serialization.
+### Failed or unavailable Shader FX
+
 Shader FX source is embedded with project includes expanded. Engine includes remain engine dependencies.
 If includes cannot be expanded, the original source is preserved instead; those external dependencies
 must be restored before the FX can compile. Failed HLSL or parameter-declaration compilation does not
@@ -146,6 +149,8 @@ included in the paste warning; continuing preserves code, values and enabled sta
 their rendering. Canceling leaves the destination untouched. Structural/reference validation remains
 strict; a failed shader does not excuse an invalid layer or texture dependency.
 
+## Validation and limits
+
 Unknown fields, incompatible types, unsupported versions and broken internal layer IDs fail explicitly.
 Numbers and booleans must use JSON numbers and booleans, not quoted strings. Enum values must be exact,
 case-sensitive declared names, never integer IDs or numeric strings. Numeric values must be finite and
@@ -159,6 +164,15 @@ combined canvas pixel budget additionally require the reader/API validator.
 The reader does not silently discard invalid data. JSON limits are 64 MiB characters, depth 128,
 one million model values and 1024 layers including group children; canvas limits are 16384 per axis
 and 16,777,216 pixels. Drawing pixels are not in that budget.
+
+## Saving and exporting from the editor
+
+The window's Export button opens a shared export dialog: choose WhimTex JSON, set Mode, then Export…
+to select a project path. Canceling path selection retains the dialog; only a successful export closes it.
+Drawing omission is warned before path selection and still requires confirmation. Save As always selects a TIFF path;
+new JSON copies are created through Export. Ctrl+S on an already open JSON document still saves its JSON file.
+
+For the artist workflow, see [Save and export](en/saving.md).
 
 ## C# and agents
 

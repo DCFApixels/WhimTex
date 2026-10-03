@@ -41,18 +41,6 @@ Pencil 没有硬度或间距控件。可为它的笔尖选择 **Circle**、**Squ
 
 ## 自定义画笔
 
-在 **Brushes → Tip → Source** 中选择 **Standard** 或 **HLSL**。
-Standard 在 **Texture** 为空时使用程序化圆形笔尖；指定图像后使用纹理笔尖。
-HLSL 用脚本生成笔尖，与带纹理的 Standard 使用相同的 Tip Channel、SDF/Gradient、旋转和翻转设置。
-选择 **HLSL Presets**，或打开 **Edit Code…** 编辑脚本并点击 **Apply**。
-**Tip Resolution** 控制笔尖细节，**Size** 控制笔触大小。
-代码窗口可将 HLSL 预设保存到项目或用户预设文件夹。
-项目中的文件与用户预设 **Brushes/HLSL** 子文件夹中的文件会出现在菜单中。
-普通画笔的 **Save As…** 也会保留 HLSL 代码和设置。
-
-浏览器 AI 可以生成画笔 JSON。在文本输入框外按 **Ctrl+V** 粘贴，
-即可替换当前画笔，不改变图层。参见[画笔格式与示例](../AI/BRUSHES.md)。
-
 在选中 **Brush** 的情况下，打开预览右边缘上方的箭头以显示
 **Brushes**。它与 Post FX 共用抽屉：打开一个会关闭另一个。
 
@@ -106,6 +94,20 @@ HLSL 用脚本生成笔尖，与带纹理的 Standard 使用相同的 Tip Channe
 来制作中空形状，或添加颜色色带来制作多色笔尖。该场应使用 0–1 范围，
 内部值更高（或选择 Inverted Luminance）。普通图像
 笔尖请保持 SDF 关闭。保存画笔预设时会包含 Gradient。
+
+### 脚本笔尖与画笔 JSON
+
+在 **Brushes → Tip → Source** 中选择 **Standard** 或 **HLSL**。
+Standard 在 **Texture** 为空时使用程序化圆形笔尖；指定图像后使用纹理笔尖。
+HLSL 用脚本生成笔尖，与带纹理的 Standard 使用相同的 Tip Channel、SDF/Gradient、旋转和翻转设置。
+选择 **HLSL Presets**，或打开 **Edit Code…** 编辑脚本并点击 **Apply**。
+**Tip Resolution** 控制笔尖细节，**Size** 控制笔触大小。
+代码窗口可将 HLSL 预设保存到项目或用户预设文件夹。
+项目中的文件与用户预设 **Brushes/HLSL** 子文件夹中的文件会出现在菜单中。
+普通画笔的 **Save As…** 也会保留 HLSL 代码和设置。
+
+浏览器 AI 可以生成画笔 JSON。在文本输入框外按 **Ctrl+V** 粘贴，
+即可替换当前画笔，不改变图层。参见[画笔格式与示例](../AI/BRUSHES.md)。
 
 ### 画笔预设
 

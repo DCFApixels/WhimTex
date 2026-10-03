@@ -80,6 +80,9 @@ function checkSource() {
   for (const file of [...markdown, ...['README.md', 'README-RU.md', 'README-ZH.md'].map(name => path.join(repository, name))]) {
     const content = text(file).replace(/^```[^\n]*\n[\s\S]*?^```\s*$/gm, '');
     if (/^```/m.test(content)) fail(`${file}: unclosed code fence`);
+    const pageName = path.relative(source, file).replaceAll('\\', '/');
+    if (pages.has(pageName) && [...content.matchAll(/^#\s+.+$/gm)].length !== 1)
+      fail(`${pageName}: published pages must contain exactly one H1`);
     const links = [
       ...[...content.matchAll(/\]\(([^\s)]+)(?:\s+"[^"]*")?\)/g)].map(m => m[1]),
       ...[...content.matchAll(/\b(?:href|src)="([^"]+)"/g)].map(m => m[1])

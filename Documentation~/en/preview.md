@@ -20,14 +20,14 @@ and hints for the active tool.
 
 ## Layer mini preview
 
-In both the main and mini previews, press and hold the left mouse button on **R / G / B / A**, then drag across the other channel buttons. The first button toggles immediately; every button crossed takes that same on/off state until release. Passing over a button again does not invert it. This gesture is limited to the channel group where it started and does not affect other controls.
-
 Drag the **Preview** strip at the bottom of **Layer Settings** upward to inspect the selected layer; drag it down to hide the image. The separate **Properties** window has the same mini preview and opens with it visible. The block stays below the scrolling settings and is at most 256 px high, including the strip, or less if space is limited. Its chosen height stays unchanged when switching layers or image resolutions. Small images enlarge proportionally to fit; large images shrink without cropping.
 
 The mini preview follows the layer result used by the main preview when available, before blending it with the other layers. This avoids differences caused by generating a separate lower-resolution image. If that result is unavailable, the mini preview renders independently; clipped layers and pass-through groups use this fallback. A group's mini preview shows its own colored content against transparency.
 
 The compact, neutral **R / G / B / A** buttons toggle channels independently, like the main preview footer. One RGB channel is displayed in grayscale; **A** controls transparency. Enable only **A** to inspect alpha in grayscale, or turn all four off to show black. Transparent areas use a checkerboard. This selection belongs to the mini preview only: it does not change the main preview, painting, the layer or saved output.
 
+
+In both the main and mini previews, press and hold the left mouse button on **R / G / B / A**, then drag across the other channel buttons. The first button toggles immediately; every button crossed takes that same on/off state until release. Passing over a button again does not invert it. This gesture is limited to the channel group where it started and does not affect other controls.
 ## Context tools
 
 The tool settings bar always reserves one row, even for tools without settings. In a narrow pane, settings wrap onto additional rows over the preview without moving or resizing it. The guide creation strip stays below the settings and remains accessible.
@@ -76,13 +76,10 @@ See [seamless painting](symmetry.md).
 
 ## Guides
 
+### Create and edit guides
+
 Drag from the thin strip on the left of Preview to create a vertical guide, or from the top strip for a horizontal one.
 The new line is parallel to the strip even on a rotated canvas; afterwards it moves, zooms and rotates with the canvas.
-
-Guides that are horizontal or vertical in the current preview appear bright cyan; angled guides use a softer blue-gray. The colors update as you rotate the view, without changing snapping.
-
-In **User Settings → Guides & Snapping**, choose colors for **Aligned Guides**, **Angled Guides** and the **Active Guide** (hovered, selected or dragged). A guide about to be deleted stays red.
-**Snap Radius (px)** sets the attraction distance for guides, intersections, canvas edges and pivot anchors: 1–64 UI pixels, default 8, independent of zoom. Angular snapping is unchanged. These preferences apply across windows and are saved between sessions; **Reset Guides & Snapping** restores their defaults.
 
 Drag an existing line to reposition it. Drop it back on either strip or outside Preview to remove it; `Esc` cancels the drag.
 You can create guides from the edge strips with any tool. Only **Zoom**, **Transform** and **Layer Select** can grab existing lines to move or drag-delete them. Painting, filling and area-selection tools ignore existing guides; the lines stay visible.
@@ -96,17 +93,30 @@ Right-click a guide to **Edit**, **Duplicate** or **Delete** it. Right-click eit
 - **Undo Guide Change / Redo Guide Change** — undo or redo guide edits without affecting painting.
 - **Clear Guides** — remove all guides.
 
+### Snap tools to guides
+
 Moving or resizing a layer (including a Shader FX Transform 2D area) snaps its edges to parallel guides. Moving also snaps its center lines. Edges ignore oblique guides; rotating a transform can align it parallel or perpendicular to a guide. `Shift` retains its usual rotation and resize constraints.
 
 Nearby guide intersections take priority over individual lines, with the same snap radius regardless of zoom. They attract the brush/pencil center, selection and shape points, the pivot, and a transform's center, corners and edge midpoints. When movement is constrained, only intersections on the allowed path attract the point. Holding `Ctrl` bypasses snapping.
 
 The pivot and polygonal lasso vertices can also snap to a single guide at any angle. Rectangle selection snaps to individual lines only when they are parallel to the canvas axes; intersections work at any angle.
 
+### Paint along a guide
+
 **Brush** and **Pencil** also snap their stroke center to guides at any angle and to intersections, including while erasing. The cursor shows the snapped position. If you start a stroke snapped to a guide, holding `Shift` keeps it on that same line no matter how far the pointer moves away. Release `Shift` for ordinary nearby snapping; press it again during the same stroke to return to the original guide. At an intersection, the guide closest to the starting pointer is used. If you start away from guides, `Shift` keeps its usual horizontal or vertical screen direction. Hold `Ctrl` to bypass guide snapping and locking. Pencil strokes still follow the pixel grid; brush Scatter is applied after snapping the stroke path.
+
+### Position a guide with snapping
 
 Dragging a guide snaps it to parallel canvas edges, the canvas center, and the selected layer's parallel edges and center lines, but not to other guides. It can also snap to guide intersections, unless a guide parallel to the dragged one passes through that intersection. Hold `Ctrl` for free placement.
 
 Guides are not exported and are cleared when switching documents.
+
+### Appearance and snap distance
+
+Guides that are horizontal or vertical in the current preview appear bright cyan; angled guides use a softer blue-gray. The colors update as you rotate the view, without changing snapping.
+
+In **User Settings → Guides & Snapping**, choose colors for **Aligned Guides**, **Angled Guides** and the **Active Guide** (hovered, selected or dragged). A guide about to be deleted stays red.
+**Snap Radius (px)** sets the attraction distance for guides, intersections, canvas edges and pivot anchors: 1–64 UI pixels, default 8, independent of zoom. Angular snapping is unchanged. These preferences apply across windows and are saved between sessions; **Reset Guides & Snapping** restores their defaults.
 
 ## Balance detail and responsiveness
 

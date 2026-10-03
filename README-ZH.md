@@ -50,7 +50,7 @@ Brush JSON examples: Documentation~/Examples/Brushes/README.md. Format: whimtex.
 这些原本需要打开图像编辑器的小任务，都可以直接在 Unity 中完成。
 
 可编辑的合成文档和可直接使用的纹理保存在同一个 TIFF 文档中。图层、效果和变换仍可调整，
-该 TIFF 可以直接指定给材质。只有需要独立图像文件时才需要导出。
+该 TIFF 可以直接指定给材质。**Export** 可创建独立图像，或不含 Drawing 像素的可编辑 JSON 副本。
 
 <p align="center">
   <a href="Documentation~/Images/whimtex-heart.png"><img src="Documentation~/Images/whimtex-heart.png" alt="WhimTex 中由渐变、描边、高光和 SDF 边缘光组成的分层爱心" width="720"></a>
@@ -104,7 +104,7 @@ https://github.com/DCFApixels/WhimTex.git
 4. 按 `Ctrl+S`。可编辑文档和完整分辨率纹理会保存在同一个 `.tiff` 文件中。
 5. 将 TIFF 指定给纹理字段。需要精灵时，在其 Inspector 中选择 **Texture Type → Sprite (2D and UI)**，点击 **Apply**，然后在 Project 中展开资源。
 
-双击保存的 TIFF 即可再次编辑。通过 **Export** 可导出 PNG、TGA、JPEG、EXR、多图层 PSD 或 Texture2D。
+双击保存的 TIFF 即可再次编辑。通过 **Export** 可导出 PNG、TGA、JPEG、EXR、多图层 PSD、Texture2D，或不含 Drawing 像素的可编辑 JSON。
 
 <a id="workspace"></a>
 <a id="layers"></a>

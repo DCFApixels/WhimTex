@@ -10,79 +10,18 @@ permalink: /reference/agentapi/
 
 # WhimTex: agent API v1
 
-## Unified JSON documents
+Use this reference for document files and batch operations. For a document already open in WhimTex,
+use [LiveAgentAPI](LiveAgentAPI.md) so edits participate in that window's revision and Undo workflow.
+For clipboard content without a connected Editor, use the self-contained [authoring contract](AI/README.md).
 
-`whimtex_document_json` takes an absolute `requestPath`. Equivalent C# methods are
-`WhimTexApi.DocumentJsonFile(path)` and `WhimTexApi.DocumentJson(requestJson)`.
-Content uses the [shared document format](JSON_FORMAT.md); commands are only an operation envelope.
-There is no required `kind`: the same content can be opened, written, inserted or used for an explicit
-layer replacement. Earlier exports' optional string `kind` is ignored and never returned or written.
-The `document` object and its fields are optional. Open/write use version-1 defaults for missing
-settings (512 × 512 canvas). Insert/replace use destination dimensions for each omitted source axis,
-without resizing or changing destination output settings. Standalone validate uses format defaults.
-Writers always include both canvas dimensions, including in Compact mode, to preserve placement context.
+| Task | Start here |
+| :--- | :--- |
+| Connect and discover commands | [Connecting](#connecting) |
+| Read or write document/layer JSON | [Unified JSON documents](#unified-json-documents) |
+| Change settings or build a layer stack | [Batch contract](#batch-contract) |
+| Validate, recover or retry | [Validation, Undo and recovery](#validation-undo-and-recovery) |
+| Work directly with C# layer objects | [Layer identity and behaviour](#layer-identity-and-behaviour) |
 
-```json
-{"apiVersion":1,"action":"serialize","assetPath":"Assets/Art/Icon.tiff","mode":"FullOptimized","allowDrawingOmission":false}
-```
-
-| Action | Inputs and result |
-| --- | --- |
-| `serialize` | `assetPath`, optional `layerIds` array, `mode`, `allowDrawingOmission`. Returns `json` containing all or selected layers plus `warnings`, in the same document format. |
-| `export` | Same options without `layerIds`, plus a new `destinationPath` ending in `.json`. Does not modify the source. |
-| `validate` | Exactly one `json` object or `sourcePath`; optional `compile` (default false). Detached parsing, no save. |
-| `write` | `json` or `sourcePath`, destination TIFF or JSON `assetPath`, optional `save` (default true). Accepts whole-document or selected-layer exports; existing files require `expectedRevision`, including when `save:false`. |
-| `insert` | `json` or `sourcePath`, existing `assetPath`, `expectedRevision`, optional `save` (default true). Adds remapped roots at the top without changing output settings. |
-| `replace` | Same as insert plus `layerId`; exactly one incoming root. Keeps the target wrapper's ID, name, enabled state and placement in the stack. |
-| `open` | `assetPath` of a JSON document. Opens/focuses its WhimTex window. |
-
-`mode` is `Full`, `FullOptimized` (default), or `Compact`. Nonempty Drawing pixels require
-`allowDrawingOmission: true` when serializing/exporting. Empty Drawing nodes remain. `write`, `insert`
-and `replace` compile by default; `compile:false` only postpones compilation and does not make shader code trusted.
-Failed FX compilation is reported in `warnings`; the JSON document still loads and retains the skipped
-FX for repair. Structural JSON/reference errors still reject the request. `write` without `mode` preserves
-the optional envelope `writeMode` (or uses FullOptimized when absent). Ordinary JSON saves retain that mode;
-one-off exports do not change it. Insert/replace use the request's `mode` (FullOptimized if omitted)
-when saving to JSON. A TIFF destination still uses TIFF save validation and may reject broken FX;
-the soft JSON storage rule is not a bypass for TIFF validation.
-Path edits refuse a conflicting open document. For `write`, `insert` and `replace`, `save:false` returns
-`saved:false` and the prospective snapshot, then discards the transient model. It neither creates nor
-overwrites the destination or its importer metadata; existing-file revision checks still apply.
-Insert/replace do not overwrite the destination's dimensions, encoding, filtering or History.
-Revisions include current Drawing pixels even for JSON-backed documents, including pending paint-surface
-changes; this conflict-detection fingerprint does not imply that JSON can store Drawing pixels.
-The regular batch, inspect and render APIs also support `.json` (including earlier `.whimtex.json` names). Independent Headless Live sessions
-and TIFF storage diagnostics remain TIFF-specific. `json` is content, never an `ExecuteJson` request.
-`Status` reports `format:"whimtex.document"` for JSON paths. JSON `open` reports `success:false` with
-`errorCode:"open_failed"` and the load error when a recognized document cannot load; it does not show a modal
-error dialog. An already open document is focused without reloading it.
-Regular `Validate` returns JSON load warnings (including missing assets, omitted Drawing content and failed
-FX) in `warnings`. Structural errors make `valid:false`; unavailable FX also fail the readiness check while
-remaining loadable/editable. Check both the response `success` and `valid`, not just transport success.
-JSON document fields use strict types, named enums and finite representable numbers, with field paths in errors.
-They retain native storage semantics rather than imposing every UI/patch range; see the shared format reference.
-
-For a browser AI without a Unity connection, use the separate [clipboard JSON/HLSL contract](AI/README.md).
-Clipboard paste does not execute the operations described on this page.
-
-The installed package also contains `Samples~/AgentTextures/manifest.json`: 38 procedural reference
-recipes with individual PNG previews, descriptions and tags. The longest canvas axis is 256 pixels;
-rectangular samples retain their aspect ratio. Read that folder's README before reuse. There are no
-bundled TIFF duplicates or overview atlas. The `.whimtex.json` files are complete editable documents,
-**not** requests for `ExecuteJson`: use the shared JSON API above, open a copy in an authorized folder,
-or paste their layers. Do not modify bundled references in place.
-Output encoding is stored in each JSON document. The three packed-data previews store raw linear values and
-must be imported with sRGB disabled; generic diagnostic PNG renders instead use sRGB preview encoding.
-
-WhimTex is installed as `com.dcfapixels.whimtex`, its namespace is `DCFApixels.WhimTex` and its
-assemblies are `DCFApixels.WhimTex*` (previously `com.dcfa_pixels.sprite-editor` and
-`DCFApixels.SpriteEditor`). The 0.10.0 rename preserves documents from the preceding
-Layer/Behaviour format through `MovedFrom` markers. It does not migrate documents from before
-that redesign. Update integrations to the `WhimTexApi` type and `whimtex_*` commands;
-the JSON command contract remains v1.
-Preference keys were renamed to `DCFApixels.WhimTex.*` without migrating old values, so user
-settings revert to defaults. Presets in the old default folder remain discoverable while the
-new default folder does not exist; a custom preset-folder path must be selected again.
 {: .no_toc }
 
 <details markdown="1">
@@ -92,211 +31,6 @@ new default folder does not exist; a custom preset-folder path must be selected 
 {:toc}
 
 </details>
-
-The API edits the same model and uses the same renderer, brush and save path as the window.
-For reservations, generation and selected-region edits in an open (possibly unsaved) document,
-use the [live editing API](LiveAgentAPI.md). The path-based batch contract below remains unchanged.
-No WhimTex window or active selection is required. New agent documents may use a TIFF or JSON
-`assetPath`, such as `Assets/Art/Icon.tiff` or `Assets/Art/Icon.json`. A legacy `.asset` may still be inspected or
-passed to the explicit migration command, but agents should not create new `.asset` documents.
-The retired ScriptableObject writer is kept only as an internal migration/regression fixture; it is
-not reachable from the window or agent API.
-TIFF batches use a transient `WhimTexDocumentBuild` and the common TIFF writer; they do not create
-or select a WhimTex window.
-
-| Editing mode | Working state | Persistence and Undo |
-| --- | --- | --- |
-| Batch | Independent copy for one request | `save:true` writes TIFF or JSON according to the path; `save:false` discards edits after returning. No user Undo of the file |
-| Headless Live | Independent candidate between requests | `complete` saves; `cancel`/reload discard. No user Undo |
-| Assistant | The user's open document | Undo in the window; no automatic save |
-
-### Output encoding (C#)
-
-`WhimTexDocumentFile.GetOutputSrgb(document)` reads the pending output encoding;
-`SetOutputSrgb(document, bool)` changes it on the Editor main thread and marks the document changed.
-It does **not** write the TIFF or importer: call `Save` to apply it together with other pending edits.
-`TextureCompositor.outputSrgb` defaults to true. TIFF opening initializes it from the importer/carrier;
-JSON restores `document.outputSrgb`, or the format default if omitted.
-The UI supplies Undo; C# callers manage their own Undo records.
-Inspector Apply instead queues a conversion of the **saved** model after import, without saving current
-layer edits, then synchronizes the open document's encoding. This external reimport stops Live Update.
-Float32 output always remains Linear; alpha is unchanged. This is not a working-space or source-pixel
-conversion. These are C# methods, not batch operation names. The unified JSON storage field
-`document.outputSrgb` is separate from this importer-conversion workflow.
-
-Path-based inspection/rendering reads the disk document. To inspect unsaved window changes use
-Assistant; to inspect an unsaved Headless candidate use its session. These states are not interchangeable.
-
-The window's optional **Live Update** publishes preview pixels to the existing output texture on the GPU
-without changing its asset reference or CPU pixel data. It is not an API autosave mode: save the open
-document through its window, and use Assistant rendering to obtain current pixels rather than reading `OutputTexture.GetPixels()` during live
-preview. Disabling live output restores the saved image; preview EV, channel display and Post FX are excluded.
-
-## Shared editing operations
-
-The operations below work in `whimtex_batch_execute`, the `operations` array of
-`whimtex_headless_live` preview/render/complete requests, and `whimtex_assistant_execute`.
-Headless preview retains its existing **replay from baseline** semantics: send the complete
-candidate operation list, not an incremental patch to the previous preview.
-
-For the open window, inspect with `whimtex_assistant_live` (`op:inspect`) first, then call
-`whimtex_assistant_execute` with an absolute `requestPath` containing:
-
-```json
-{"apiVersion":1,"sessionId":"OPEN-SESSION","expectedRevision":"DOCUMENT-REVISION","dryRun":false,
- "operations":[{"op":"fx","layer":"LAYER-ID","edits":[
-   {"op":"set","index":0,"parameters":{"_Opacity":0.5},"enabled":true}
- ]}]}
-```
-
-This synchronous batch forms one Undo step and does not save. It requires an idle document
-without pending reservations/edit locks; it never cancels another job. After a timeout inspect
-before retrying: operations such as duplicate and paint are not idempotent. A stale revision
-is rejected. Use the reservation/lock workflow for longer generation tasks; its `changes.fx`
-schema remains separate from this batch's `edits` schema. `dryRun` validates on an independent
-copy; it does not compile new HLSL, render or calculate healing.
-
-### FX edits and presets
-
-`whimtex_fx_catalog` accepts an optional `query` category/name substring. It discovers presets
-in Assets, installed packages and the user preset library. Each result has `id`, `path`, `name`,
-`kind` and `error`. Pass an exact returned `presetId` to obtain `effect` with code and parameter
-types, current defaults, hard/soft bounds and enum options. Use IDs, not display names; invalid
-presets remain visible with an error. This command does not insert anything into a document.
-
-`{"op":"fx","layer":"ID-or-@alias","edits":[...]}` supports:
-
-| Edit | Fields and behavior |
-|---|---|
-| `add` | Exactly one of `code` or `presetId`; optional insertion `index` (default append), `parameters`, `enabled`. Raw code supports optional `includeBasePath`, required for relative includes |
-| `replace` | Existing `index`, otherwise the same fields as add |
-| `set` | Existing `index`, optional `parameters` and `enabled`; preserves code and does not recompile HLSL |
-| `remove` | Existing `index` |
-| `move` | Existing `index` and `toIndex`, the final index after removal |
-| `copy` | `sourceLayer` ID or alias, `sourceIndex`; optional destination insertion `index`, `parameters`, `enabled`. Independent copy in the destination layer |
-| `apply` | Existing `index`; bake that FX and all preceding entries, including disabled entries (removed without rendering). Later FX remain |
-| `applyAll` | Bake the complete nonempty stack |
-
-`parameters` is a **name/value object**, not a replacement list. Types are inferred from existing
-declarations; unknown names, invalid enum values and hard-range violations fail. Use numbers for
-enums, booleans for bools, RGBA arrays for colors, component arrays for vectors and the existing
-live FX value formats for textures, gradients, curves and Transform2D. Unmentioned values remain.
-Indices refer to the latest inspected stack and change after each edit. Limits: 32 edits per
-operation, 32 FX per layer, 128 parameters per effect, 65,536 characters of raw HLSL.
-
-Set/copy use independent document-owned values rather than modifying a shared external asset.
-Project/package HLSL presets retain their source link; user-library files are embedded. Shader FX
-supports all edits; Material entries support remove/move/baking, not parameter editing or copying.
-
-Prefer `presetId` for existing built-in/project effects, with parameter overrides for the desired look.
-Do not copy their unchanged HLSL into `code`: that creates an independent inline effect and loses
-the catalog link. Use `set` for parameter-only changes. Raw `code` is for custom algorithms or
-intentionally independent variants, not the default way to reuse a preset.
-
-The built-in `Color/Gradient Map` samples full gradient RGBA from `_SourceChannel`: Luminance=0
-(default, unchanged), R=1, G=2, B=3, Alpha=4. Luminance uses nonnegative linear RGB weights
-0.2126/0.7152/0.0722; it and individual RGB sources clamp to 0..1 and use sRGB encoding before
-lookup. Alpha clamps to 0..1 without sRGB conversion. `_Reverse` precedes `_Mapping`, then the
-result samples the gradient. This selects one source, not independent per-channel remapping. Output alpha is
-`sourceAlpha * lerp(1, gradientAlpha, saturate(_Opacity))`; an opaque gradient preserves source alpha,
-zero strength bypasses the effect, and transparent input stays transparent. `_Mapping` and `_Reverse`
-affect the lookup for both RGB and alpha.
-
-Applying to a non-Drawing layer requires `allowRasterize:true` **inside the apply edit**.
-This consents to rasterization, including flattening a group. Logical transforms remain editable.
-Shader Processor captures its backdrop and maps Normal to Overwrite with its original opacity
-blending; lower layers remain separate. See [baking details](ShaderFX.md#shader-fx-a-first-snippet-parameters-and-reusable-code).
-
-### Layer structure
-
-- `{"op":"delete","layer":"ID"}` removes a layer or group subtree, not its external source assets.
-- `{"op":"duplicate","layer":"ID","as":"copy"}` inserts an independent copy using normal layer duplication, including owned pixels/FX and internal reference remapping.
-- `{"op":"merge","layer":"ID","others":["OTHER-ID"],"keepSources":false,"as":"merged"}` uses normal merge rendering and returns the new Drawing layer. `keepSources:true` retains originals. Merge is explicitly rasterizing; its composite placement follows the normal merge operation.
-- `{"op":"convertToDrawing","layer":"ID","as":"drawing"}` uses Keep Transform conversion, preserving ordinary layer FX. Groups are flattened using the normal group conversion rules. Shader Processor must use FX apply/applyAll to capture its lower input instead.
-
-`as` is optional for duplicate/merge/conversion; subsequent operations may use `@alias`.
-Removed aliases cannot address detached layers. Existing dependency validation still applies:
-do not delete an input while leaving an invalid explicit target reference.
-
-### Blur and healing strokes
-
-Both require Drawing; convert explicitly when appropriate. Points are canvas pixels with a
-**top-left origin**. They do not implicitly use the window's area selection or brush settings.
-`tiled:true` wraps the canvas boundary; repeating layer transforms are not supported (Clip and
-Unbounded are accepted). Size is 1..512 px, hardness 0..1, up to 4096 points.
-
-```json
-{"op":"blurStroke","layer":"DRAWING-ID","points":[[10,20],[40,20]],
- "size":24,"hardness":0.5,"strength":0.7,"flow":1,"source":"CurrentAndBelow","tiled":true}
-```
-
-Blur source is `CurrentLayer` (default), `CurrentAndBelow` (includes current), or `AllLayers`.
-It is frozen at stroke start. Strength and flow are each 0..1, default 1. Work is limited to
-67,108,864 canvas-pixel × input-point passes; simplify a path rather than repeating thousands of points.
-
-```json
-{"op":"healStroke","layer":"DRAWING-ID","points":[[10,20],[40,20]],
- "size":24,"hardness":0.8,"source":"CurrentLayer","search":64,
- "quality":"Balanced","seed":1,"transparentOnly":false,"tiled":true}
-```
-
-Healing sources are `CurrentLayer` (raw pixels before FX) and `CurrentAndBelow`. Search is 8..512
-canvas pixels; quality is Fast/Balanced/High. Instead of points, `maskPath` accepts an imported
-project/package texture mapped over the canvas: linear red is repair coverage (white repairs).
-Use linear-data import settings for an exact grayscale mask. Alpha is not used as coverage.
-The API uses the same buffered stroke mask, tiled recentering and fill algorithm as the tool.
-Healing currently limits the full canvas to 1,048,576 pixels and cancels computation after
-20 seconds; cancellation fails the operation without applying a patch. It is synchronous,
-not a background job. Both tools also limit total generated stroke stamps to 32,768.
-
-### Diagnostic rendering
-
-`whimtex_render_probe` takes an absolute `requestPath`. C# equivalents are
-`WhimTexApi.RenderProbeJson/File`, `AssistantExecuteJson/File` and `FxCatalog(query, presetId)`.
-
-```json
-{"apiVersion":1,"assistantSessionId":"OPEN-SESSION","layer":"LAYER-ID",
- "stage":"afterFx","index":0,"channel":"a","maxSize":1024}
-```
-
-Choose exactly one source: TIFF `assetPath`, `assistantSessionId`, or `headlessSessionId`.
-Stages are `composite` (no layer/index), `layer` (all its FX), `beforeFx` and `afterFx` (layer + index).
-Layer/FX stages capture the canvas-sized input pipeline before outer opacity, blending, swizzle
-and clipping; a Shader Processor uses its actual stack-position backdrop. They are not a solo
-view of the final composited layer. Disabled FX have identical before/after images.
-Channels: `rgba` (default), `r`, `g`, `b`, `a` (opaque grayscale). `maxSize` is 1..4096, default 1024.
-Optional `outputPath` must be a new `Temp/WhimTex/*.png`; otherwise a unique path is generated.
-The response includes the PNG path, dimensions, full-resolution linear per-channel minima/maxima
-and nonfinite-component count. PNG is a display preview, not lossless HDR data. Rendering uses an
-independent document copy and never edits or saves the source.
-
-## Layer identity and behaviour
-
-`TextureCompositor.layers` contains stable `Layer` objects. Common settings, GUIDs, FX references,
-group compositing and `children` belong to `Layer`; only the type-specific `LayerBehaviour` is
-polymorphic. Use `layer.Behaviour is DrawingLayerBehaviour drawing` to access owned pixels or
-other behaviour-specific methods. `layer.SetBehaviour(new NoiseLayerBehaviour())` replaces the
-behaviour without replacing the layer or changing its common settings. Document changes still
-need the normal Undo/`MarkChanged` workflow; use the JSON API for agent authoring.
-
-A behaviour can belong to only one layer. Do not share one behaviour between wrappers.
-Swapping behaviours releases transient rendering resources but does not destroy the old
-Drawing texture: Undo or the caller may still own it. Finish/synchronize an active stroke
-before recording the structural Undo snapshot, and use the existing document removal or
-conversion workflow when the old owned assets should also be deleted.
-Replacing a populated group with a non-group is rejected; use the editor's explicit conversion
-to Drawing or ungroup it first. Conversion and live-generation completion retain the layer wrapper.
-
-Snapshots include `behaviourMissing`. A missing behaviour does not remove the layer's name, GUID,
-common settings or group children. It does not render. Its `type` is `missing`, or `group` when the
-saved node still contains a group. Type-specific commands require an available behaviour.
-The Layer Settings recovery action can transfer compatible saved behaviour fields; common fields
-are retained directly, not reconstructed from missing-type metadata. Recovery matches a separate
-behaviour identifier rather than list positions or names.
-
-Earlier inheritance-based documents are intentionally incompatible. Keep their originals and use
-the earlier package revision to render/export them. No automatic colour, naming or repeat-mode
-migrations are applied to the new document model.
 
 ## Connecting
 
@@ -457,6 +191,287 @@ The existing `whimtex_assistant_live` remains the open-window API.
   `cancel` discards it without saving. On failed completion inspect disk/status and the still-active
   session before retrying: a post-commit import error is not proof that the TIFF was unchanged.
   Headless sessions do not publish the window's GPU Live Update output.
+
+
+## Unified JSON documents
+
+`whimtex_document_json` takes an absolute `requestPath`. Equivalent C# methods are
+`WhimTexApi.DocumentJsonFile(path)` and `WhimTexApi.DocumentJson(requestJson)`.
+Content uses the [shared document format](JSON_FORMAT.md); commands are only an operation envelope.
+There is no required `kind`: the same content can be opened, written, inserted or used for an explicit
+layer replacement. Earlier exports' optional string `kind` is ignored and never returned or written.
+The `document` object and its fields are optional. Open/write use version-1 defaults for missing
+settings (512 × 512 canvas). Insert/replace use destination dimensions for each omitted source axis,
+without resizing or changing destination output settings. Standalone validate uses format defaults.
+Writers always include both canvas dimensions, including in Compact mode, to preserve placement context.
+
+```json
+{"apiVersion":1,"action":"serialize","assetPath":"Assets/Art/Icon.tiff","mode":"FullOptimized","allowDrawingOmission":false}
+```
+
+| Action | Inputs and result |
+| --- | --- |
+| `serialize` | `assetPath`, optional `layerIds` array, `mode`, `allowDrawingOmission`. Returns `json` containing all or selected layers plus `warnings`, in the same document format. |
+| `export` | Same options without `layerIds`, plus a new `destinationPath` ending in `.json`. Does not modify the source. |
+| `validate` | Exactly one `json` object or `sourcePath`; optional `compile` (default false). Detached parsing, no save. |
+| `write` | `json` or `sourcePath`, destination TIFF or JSON `assetPath`, optional `save` (default true). Accepts whole-document or selected-layer exports; existing files require `expectedRevision`, including when `save:false`. |
+| `insert` | `json` or `sourcePath`, existing `assetPath`, `expectedRevision`, optional `save` (default true). Adds remapped roots at the top without changing output settings. |
+| `replace` | Same as insert plus `layerId`; exactly one incoming root. Keeps the target wrapper's ID, name, enabled state and placement in the stack. |
+| `open` | `assetPath` of a JSON document. Opens/focuses its WhimTex window. |
+
+`mode` is `Full`, `FullOptimized` (default), or `Compact`. Nonempty Drawing pixels require
+`allowDrawingOmission: true` when serializing/exporting. Empty Drawing nodes remain. `write`, `insert`
+and `replace` compile by default; `compile:false` only postpones compilation and does not make shader code trusted.
+Failed FX compilation is reported in `warnings`; the JSON document still loads and retains the skipped
+FX for repair. Structural JSON/reference errors still reject the request. `write` without `mode` preserves
+the optional envelope `writeMode` (or uses FullOptimized when absent). Ordinary JSON saves retain that mode;
+one-off exports do not change it. Insert/replace use the request's `mode` (FullOptimized if omitted)
+when saving to JSON. A TIFF destination still uses TIFF save validation and may reject broken FX;
+the soft JSON storage rule is not a bypass for TIFF validation.
+Path edits refuse a conflicting open document. For `write`, `insert` and `replace`, `save:false` returns
+`saved:false` and the prospective snapshot, then discards the transient model. It neither creates nor
+overwrites the destination or its importer metadata; existing-file revision checks still apply.
+Insert/replace do not overwrite the destination's dimensions, encoding, filtering or History.
+Revisions include current Drawing pixels even for JSON-backed documents, including pending paint-surface
+changes; this conflict-detection fingerprint does not imply that JSON can store Drawing pixels.
+The regular batch, inspect and render APIs also support `.json` (including earlier `.whimtex.json` names). Independent Headless Live sessions
+and TIFF storage diagnostics remain TIFF-specific. `json` is content, never an `ExecuteJson` request.
+`Status` reports `format:"whimtex.document"` for JSON paths. JSON `open` reports `success:false` with
+`errorCode:"open_failed"` and the load error when a recognized document cannot load; it does not show a modal
+error dialog. An already open document is focused without reloading it.
+Regular `Validate` returns JSON load warnings (including missing assets, omitted Drawing content and failed
+FX) in `warnings`. Structural errors make `valid:false`; unavailable FX also fail the readiness check while
+remaining loadable/editable. Check both the response `success` and `valid`, not just transport success.
+JSON document fields use strict types, named enums and finite representable numbers, with field paths in errors.
+They retain native storage semantics rather than imposing every UI/patch range; see the shared format reference.
+
+For a browser AI without a Unity connection, use the separate [clipboard JSON/HLSL contract](AI/README.md).
+Clipboard paste does not execute the operations described on this page.
+
+The installed package also contains `Samples~/AgentTextures/manifest.json`: 38 procedural reference
+recipes with individual PNG previews, descriptions and tags. The longest canvas axis is 256 pixels;
+rectangular samples retain their aspect ratio. Read that folder's README before reuse. There are no
+bundled TIFF duplicates or overview atlas. The `.whimtex.json` files are complete editable documents,
+**not** requests for `ExecuteJson`: use the shared JSON API above, open a copy in an authorized folder,
+or paste their layers. Do not modify bundled references in place.
+Output encoding is stored in each JSON document. The three packed-data previews store raw linear values and
+must be imported with sRGB disabled; generic diagnostic PNG renders instead use sRGB preview encoding.
+
+WhimTex is installed as `com.dcfapixels.whimtex`, its namespace is `DCFApixels.WhimTex` and its
+assemblies are `DCFApixels.WhimTex*` (previously `com.dcfa_pixels.sprite-editor` and
+`DCFApixels.SpriteEditor`). The 0.10.0 rename preserves documents from the preceding
+Layer/Behaviour format through `MovedFrom` markers. It does not migrate documents from before
+that redesign. Update integrations to the `WhimTexApi` type and `whimtex_*` commands;
+the JSON command contract remains v1.
+Preference keys were renamed to `DCFApixels.WhimTex.*` without migrating old values, so user
+settings revert to defaults. Presets in the old default folder remain discoverable while the
+new default folder does not exist; a custom preset-folder path must be selected again.
+
+
+The API edits the same model and uses the same renderer, brush and save path as the window.
+For reservations, generation and selected-region edits in an open (possibly unsaved) document,
+use the [live editing API](LiveAgentAPI.md). The path-based batch contract below remains unchanged.
+No WhimTex window or active selection is required. New agent documents may use a TIFF or JSON
+`assetPath`, such as `Assets/Art/Icon.tiff` or `Assets/Art/Icon.json`. A legacy `.asset` may still be inspected or
+passed to the explicit migration command, but agents should not create new `.asset` documents.
+The retired ScriptableObject writer is kept only as an internal migration/regression fixture; it is
+not reachable from the window or agent API.
+TIFF batches use a transient `WhimTexDocumentBuild` and the common TIFF writer; they do not create
+or select a WhimTex window.
+
+| Editing mode | Working state | Persistence and Undo |
+| --- | --- | --- |
+| Batch | Independent copy for one request | `save:true` writes TIFF or JSON according to the path; `save:false` discards edits after returning. No user Undo of the file |
+| Headless Live | Independent candidate between requests | `complete` saves; `cancel`/reload discard. No user Undo |
+| Assistant | The user's open document | Undo in the window; no automatic save |
+
+### Output encoding (C#)
+
+`WhimTexDocumentFile.GetOutputSrgb(document)` reads the pending output encoding;
+`SetOutputSrgb(document, bool)` changes it on the Editor main thread and marks the document changed.
+It does **not** write the TIFF or importer: call `Save` to apply it together with other pending edits.
+`TextureCompositor.outputSrgb` defaults to true. TIFF opening initializes it from the importer/carrier;
+JSON restores `document.outputSrgb`, or the format default if omitted.
+The UI supplies Undo; C# callers manage their own Undo records.
+Inspector Apply instead queues a conversion of the **saved** model after import, without saving current
+layer edits, then synchronizes the open document's encoding. This external reimport stops Live Update.
+Float32 output always remains Linear; alpha is unchanged. This is not a working-space or source-pixel
+conversion. These are C# methods, not batch operation names. The unified JSON storage field
+`document.outputSrgb` is separate from this importer-conversion workflow.
+
+Path-based inspection/rendering reads the disk document. To inspect unsaved window changes use
+Assistant; to inspect an unsaved Headless candidate use its session. These states are not interchangeable.
+
+The window's optional **Live Update** publishes preview pixels to the existing output texture on the GPU
+without changing its asset reference or CPU pixel data. It is not an API autosave mode: save the open
+document through its window, and use Assistant rendering to obtain current pixels rather than reading `OutputTexture.GetPixels()` during live
+preview. Disabling live output restores the saved image; preview EV, channel display and Post FX are excluded.
+
+## Shared editing operations
+
+The operations below work in `whimtex_batch_execute`, the `operations` array of
+`whimtex_headless_live` preview/render/complete requests, and `whimtex_assistant_execute`.
+Headless preview retains its existing **replay from baseline** semantics: send the complete
+candidate operation list, not an incremental patch to the previous preview.
+
+For the open window, inspect with `whimtex_assistant_live` (`op:inspect`) first, then call
+`whimtex_assistant_execute` with an absolute `requestPath` containing:
+
+```json
+{"apiVersion":1,"sessionId":"OPEN-SESSION","expectedRevision":"DOCUMENT-REVISION","dryRun":false,
+ "operations":[{"op":"fx","layer":"LAYER-ID","edits":[
+   {"op":"set","index":0,"parameters":{"_Opacity":0.5},"enabled":true}
+ ]}]}
+```
+
+This synchronous batch forms one Undo step and does not save. It requires an idle document
+without pending reservations/edit locks; it never cancels another job. After a timeout inspect
+before retrying: operations such as duplicate and paint are not idempotent. A stale revision
+is rejected. Use the reservation/lock workflow for longer generation tasks; its `changes.fx`
+schema remains separate from this batch's `edits` schema. `dryRun` validates on an independent
+copy; it does not compile new HLSL, render or calculate healing.
+
+### FX edits and presets
+
+`whimtex_fx_catalog` accepts an optional `query` category/name substring. It discovers presets
+in Assets, installed packages and the user preset library. Each result has `id`, `path`, `name`,
+`kind` and `error`. Pass an exact returned `presetId` to obtain `effect` with code and parameter
+types, current defaults, hard/soft bounds and enum options. Use IDs, not display names; invalid
+presets remain visible with an error. This command does not insert anything into a document.
+
+`{"op":"fx","layer":"ID-or-@alias","edits":[...]}` supports:
+
+| Edit | Fields and behavior |
+|---|---|
+| `add` | Exactly one of `code` or `presetId`; optional insertion `index` (default append), `parameters`, `enabled`. Raw code supports optional `includeBasePath`, required for relative includes |
+| `replace` | Existing `index`, otherwise the same fields as add |
+| `set` | Existing `index`, optional `parameters` and `enabled`; preserves code and does not recompile HLSL |
+| `remove` | Existing `index` |
+| `move` | Existing `index` and `toIndex`, the final index after removal |
+| `copy` | `sourceLayer` ID or alias, `sourceIndex`; optional destination insertion `index`, `parameters`, `enabled`. Independent copy in the destination layer |
+| `apply` | Existing `index`; bake that FX and all preceding entries, including disabled entries (removed without rendering). Later FX remain |
+| `applyAll` | Bake the complete nonempty stack |
+
+`parameters` is a **name/value object**, not a replacement list. Types are inferred from existing
+declarations; unknown names, invalid enum values and hard-range violations fail. Use numbers for
+enums, booleans for bools, RGBA arrays for colors, component arrays for vectors and the existing
+live FX value formats for textures, gradients, curves and Transform2D. Unmentioned values remain.
+Indices refer to the latest inspected stack and change after each edit. Limits: 32 edits per
+operation, 32 FX per layer, 128 parameters per effect, 65,536 characters of raw HLSL.
+
+Set/copy use independent document-owned values rather than modifying a shared external asset.
+Project/package HLSL presets retain their source link; user-library files are embedded. Shader FX
+supports all edits; Material entries support remove/move/baking, not parameter editing or copying.
+
+Prefer `presetId` for existing built-in/project effects, with parameter overrides for the desired look.
+Do not copy their unchanged HLSL into `code`: that creates an independent inline effect and loses
+the catalog link. Use `set` for parameter-only changes. Raw `code` is for custom algorithms or
+intentionally independent variants, not the default way to reuse a preset.
+
+The built-in `Color/Gradient Map` samples full gradient RGBA from `_SourceChannel`: Luminance=0
+(default, unchanged), R=1, G=2, B=3, Alpha=4. Luminance uses nonnegative linear RGB weights
+0.2126/0.7152/0.0722; it and individual RGB sources clamp to 0..1 and use sRGB encoding before
+lookup. Alpha clamps to 0..1 without sRGB conversion. `_Reverse` precedes `_Mapping`, then the
+result samples the gradient. This selects one source, not independent per-channel remapping. Output alpha is
+`sourceAlpha * lerp(1, gradientAlpha, saturate(_Opacity))`; an opaque gradient preserves source alpha,
+zero strength bypasses the effect, and transparent input stays transparent. `_Mapping` and `_Reverse`
+affect the lookup for both RGB and alpha.
+
+Applying to a non-Drawing layer requires `allowRasterize:true` **inside the apply edit**.
+This consents to rasterization, including flattening a group. Logical transforms remain editable.
+Shader Processor captures its backdrop and maps Normal to Overwrite with its original opacity
+blending; lower layers remain separate. See [baking details](ShaderFX.md#baking-implementation).
+
+### Layer structure
+
+- `{"op":"delete","layer":"ID"}` removes a layer or group subtree, not its external source assets.
+- `{"op":"duplicate","layer":"ID","as":"copy"}` inserts an independent copy using normal layer duplication, including owned pixels/FX and internal reference remapping.
+- `{"op":"merge","layer":"ID","others":["OTHER-ID"],"keepSources":false,"as":"merged"}` uses normal merge rendering and returns the new Drawing layer. `keepSources:true` retains originals. Merge is explicitly rasterizing; its composite placement follows the normal merge operation.
+- `{"op":"convertToDrawing","layer":"ID","as":"drawing"}` uses Keep Transform conversion, preserving ordinary layer FX. Groups are flattened using the normal group conversion rules. Shader Processor must use FX apply/applyAll to capture its lower input instead.
+
+`as` is optional for duplicate/merge/conversion; subsequent operations may use `@alias`.
+Removed aliases cannot address detached layers. Existing dependency validation still applies:
+do not delete an input while leaving an invalid explicit target reference.
+
+### Blur and healing strokes
+
+Both require Drawing; convert explicitly when appropriate. Points are canvas pixels with a
+**top-left origin**. They do not implicitly use the window's area selection or brush settings.
+`tiled:true` wraps the canvas boundary; repeating layer transforms are not supported (Clip and
+Unbounded are accepted). Size is 1..512 px, hardness 0..1, up to 4096 points.
+
+```json
+{"op":"blurStroke","layer":"DRAWING-ID","points":[[10,20],[40,20]],
+ "size":24,"hardness":0.5,"strength":0.7,"flow":1,"source":"CurrentAndBelow","tiled":true}
+```
+
+Blur source is `CurrentLayer` (default), `CurrentAndBelow` (includes current), or `AllLayers`.
+It is frozen at stroke start. Strength and flow are each 0..1, default 1. Work is limited to
+67,108,864 canvas-pixel × input-point passes; simplify a path rather than repeating thousands of points.
+
+```json
+{"op":"healStroke","layer":"DRAWING-ID","points":[[10,20],[40,20]],
+ "size":24,"hardness":0.8,"source":"CurrentLayer","search":64,
+ "quality":"Balanced","seed":1,"transparentOnly":false,"tiled":true}
+```
+
+Healing sources are `CurrentLayer` (raw pixels before FX) and `CurrentAndBelow`. Search is 8..512
+canvas pixels; quality is Fast/Balanced/High. Instead of points, `maskPath` accepts an imported
+project/package texture mapped over the canvas: linear red is repair coverage (white repairs).
+Use linear-data import settings for an exact grayscale mask. Alpha is not used as coverage.
+The API uses the same buffered stroke mask, tiled recentering and fill algorithm as the tool.
+Healing currently limits the full canvas to 1,048,576 pixels and cancels computation after
+20 seconds; cancellation fails the operation without applying a patch. It is synchronous,
+not a background job. Both tools also limit total generated stroke stamps to 32,768.
+
+### Diagnostic rendering
+
+`whimtex_render_probe` takes an absolute `requestPath`. C# equivalents are
+`WhimTexApi.RenderProbeJson/File`, `AssistantExecuteJson/File` and `FxCatalog(query, presetId)`.
+
+```json
+{"apiVersion":1,"assistantSessionId":"OPEN-SESSION","layer":"LAYER-ID",
+ "stage":"afterFx","index":0,"channel":"a","maxSize":1024}
+```
+
+Choose exactly one source: TIFF `assetPath`, `assistantSessionId`, or `headlessSessionId`.
+Stages are `composite` (no layer/index), `layer` (all its FX), `beforeFx` and `afterFx` (layer + index).
+Layer/FX stages capture the canvas-sized input pipeline before outer opacity, blending, swizzle
+and clipping; a Shader Processor uses its actual stack-position backdrop. They are not a solo
+view of the final composited layer. Disabled FX have identical before/after images.
+Channels: `rgba` (default), `r`, `g`, `b`, `a` (opaque grayscale). `maxSize` is 1..4096, default 1024.
+Optional `outputPath` must be a new `Temp/WhimTex/*.png`; otherwise a unique path is generated.
+The response includes the PNG path, dimensions, full-resolution linear per-channel minima/maxima
+and nonfinite-component count. PNG is a display preview, not lossless HDR data. Rendering uses an
+independent document copy and never edits or saves the source.
+
+## Layer identity and behaviour
+
+`TextureCompositor.layers` contains stable `Layer` objects. Common settings, GUIDs, FX references,
+group compositing and `children` belong to `Layer`; only the type-specific `LayerBehaviour` is
+polymorphic. Use `layer.Behaviour is DrawingLayerBehaviour drawing` to access owned pixels or
+other behaviour-specific methods. `layer.SetBehaviour(new NoiseLayerBehaviour())` replaces the
+behaviour without replacing the layer or changing its common settings. Document changes still
+need the normal Undo/`MarkChanged` workflow; use the JSON API for agent authoring.
+
+A behaviour can belong to only one layer. Do not share one behaviour between wrappers.
+Swapping behaviours releases transient rendering resources but does not destroy the old
+Drawing texture: Undo or the caller may still own it. Finish/synchronize an active stroke
+before recording the structural Undo snapshot, and use the existing document removal or
+conversion workflow when the old owned assets should also be deleted.
+Replacing a populated group with a non-group is rejected; use the editor's explicit conversion
+to Drawing or ungroup it first. Conversion and live-generation completion retain the layer wrapper.
+
+Snapshots include `behaviourMissing`. A missing behaviour does not remove the layer's name, GUID,
+common settings or group children. It does not render. Its `type` is `missing`, or `group` when the
+saved node still contains a group. Type-specific commands require an available behaviour.
+The Layer Settings recovery action can transfer compatible saved behaviour fields; common fields
+are retained directly, not reconstructed from missing-type metadata. Recovery matches a separate
+behaviour identifier rather than list positions or names.
+
+Earlier inheritance-based documents are intentionally incompatible. Keep their originals and use
+the earlier package revision to render/export them. No automatic colour, naming or repeat-mode
+migrations are applied to the new document model.
 
 ## Generated image → compositor
 

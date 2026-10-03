@@ -40,73 +40,6 @@ Double-clicking text or number fields still edits those fields.
 
 Effect layers also show thumbnails of their results. Animated Shader FX use still thumbnails.
 
-## Pattern fill
-
-In **Color Fill**, choose **Mode → Pattern**. **Shape** offers Triangles, Squares,
-Hexagons and Circles. Circles use **Square** or **Dense** packing; Dense offsets
-alternate rows and reduces their spacing. The field is calculated directly from
-the geometry, including distances in gaps, without a separate SDF layer.
-
-- **Size (px)** sets the X/Y grid scale before transforms. The chain button links proportional changes; unlink it to edit each axis independently. Linking preserves the current proportions. **Offset (px)** and **Rotation** move the pattern.
-- **Gap** shrinks each figure (0–0.99). **Roundness** rounds polygon corners inward; zero keeps sharp corners. Rounding opens gaps at shared vertices even when Gap is zero.
-- **Bulge** rounds the interior distance profile without moving the contour. At zero the field is a geometric distance; nonzero values are an artistic remapping.
-- **Distance** selects Signed, Inside, Outside or Center (absolute distance). **Distance Range** is measured in figure inradii. Signed maps the contour to the middle of the gradient.
-- **Inverted**, **Profile** and **Gradient** control the final colors and alpha.
-- **Cell Color** adds per-figure coloring: **Uniform** keeps the distance gradient, **Random** samples **Palette** using **Seed**, and **Pattern** alternates two colors for squares/triangles or three for hexagons. Circles follow their packing grid.
-- **Variation** controls Random's palette range: zero uses the midpoint, one uses the whole gradient. Use a Fixed palette for discrete colors. **Color Blend → Multiply** keeps the distance shading; **Replace RGB** gives flat cell colors. Both preserve the distance gradient's alpha and ignore palette alpha. Gaps use the nearest figure's color.
-- Colors follow the figures through offset and rotation. With Seamless, Random repeats across the canvas and Pattern fits cell counts to its color cycle (even counts for checkerboards, multiples of three horizontally for hexagons/dense circles).
-
-**Seamless** fits whole rectangular repeats to the canvas, including complete pairs of
-staggered rows. The combined layer/group rotation snaps to quarter turns; scale is fitted
-independently on each axis. Shear and perspective are replaced by an axis-aligned fit
-at the canvas center. The requested settings remain stored; the inspector shows the fitted
-grid after rendering. Switching Seamless off restores free transforms.
-Polygons can stretch slightly; circles stay circular and may leave extra space on one axis.
-Seamless takes precedence over layer tiling. It guarantees the generated pattern's periodicity,
-not arbitrary FX applied afterwards or other layers in the composite.
-
-## Create textures for VFX
-
-Procedural layers are useful for energy rings, bursts and particle masks. In this example,
-a bright rim is combined with fine radial streaks.
-
-<a href="{{ '/Images/vfx-energy-ring.png' | relative_url }}"><img src="{{ '/Images/vfx-energy-ring.png' | relative_url }}" alt="A VFX energy-ring texture in WhimTex, with gradient and noise layers, a Shader Processor and a circular gradient preview" width="720"></a>
-
-Use a **Gradient** layer for the main silhouette, [Noise](noise.md) for surface detail and
-[Shader FX](shader-fx.md) for distortion or finishing. Keep these in separate layers so that
-changing the texture detail does not require rebuilding the shape. Adjust color keys and falloff
-in the [gradient editor](color.md#edit-a-gradient), then check the result against the background
-used by your particle effect.
-
-## Draw a shape
-
-Choose **Shape** (`U`), pick a shape in the Preview header, then drag to create it.
-New layers are named after the figure, such as **Rectangle 1**, **Line 2**, or **Star 3**, with one shared numbering sequence for all shapes.
-You can also hold the Shape tool button briefly, or drag from it, to open an icon list on its right.
-Move over a figure and release to select it. Releasing outside the list cancels the choice.
-Each drag adds a separate Shape layer, including in an empty document.
-Hold `Shift` for equal proportions or a line angle in 45° steps; `Ctrl` bypasses guide snapping.
-Press `Escape` before releasing to cancel.
-
-Use **Transform** to move, resize or rotate an existing figure. In **Properties (Shape)**,
-change its type, fill and stroke colors, rectangle roundness, polygon sides or star points and inner radius.
-For a rectangle, **Roundness (%)** has four fields around a square, one per corner.
-Drag their **TL / TR / BR / BL** labels to adjust values without typing.
-The chain links proportional changes; the crossed-out chain lets you edit each corner independently.
-Linking keeps existing values. Linked changes stop when a corner reaches 100%; editing a zero corner
-adds the same amount to all four. The diagram shows the shape before its Transform rotation.
-The stroke sits inside the edge, and its width is measured in canvas pixels.
-**Feather (px)** softens the contour without blurring the whole image. **Feather Position**
-selects Inside, Outside or Centered; it also affects both edges of a hollow stroke.
-The value is the total transition width in canvas pixels. Zero keeps the original edge.
-Wide Inside/Centered feather can fade away thin strokes or small details; Outside expands into gaps.
-For a line, adjust its length and thickness with Transform.
-You can also create a centered shape through **+ → Shape**.
-
-A Shape stays editable: it works with clipping masks, blending and FX, just like other layers.
-For example, put a Gradient above it and enable the gradient's clipping mask to color the figure.
-Convert it to Drawing only when you want to paint directly on it.
-
 ## Select and arrange
 
 Click a row to select it. Hold `Ctrl` to select several layers or `Shift` to select a range.
@@ -180,6 +113,73 @@ missing assets produce warnings and empty inputs until restored.
 Custom FX source is retained. Includes are expanded where possible; unavailable dependencies may
 leave an FX unable to compile on the receiving machine. Check the warnings and preview after importing.
 See the [shared JSON format](../JSON_FORMAT.md) for technical details.
+
+## Pattern fill
+
+In **Color Fill**, choose **Mode → Pattern**. **Shape** offers Triangles, Squares,
+Hexagons and Circles. Circles use **Square** or **Dense** packing; Dense offsets
+alternate rows and reduces their spacing. The field is calculated directly from
+the geometry, including distances in gaps, without a separate SDF layer.
+
+- **Size (px)** sets the X/Y grid scale before transforms. The chain button links proportional changes; unlink it to edit each axis independently. Linking preserves the current proportions. **Offset (px)** and **Rotation** move the pattern.
+- **Gap** shrinks each figure (0–0.99). **Roundness** rounds polygon corners inward; zero keeps sharp corners. Rounding opens gaps at shared vertices even when Gap is zero.
+- **Bulge** rounds the interior distance profile without moving the contour. At zero the field is a geometric distance; nonzero values are an artistic remapping.
+- **Distance** selects Signed, Inside, Outside or Center (absolute distance). **Distance Range** is measured in figure inradii. Signed maps the contour to the middle of the gradient.
+- **Inverted**, **Profile** and **Gradient** control the final colors and alpha.
+- **Cell Color** adds per-figure coloring: **Uniform** keeps the distance gradient, **Random** samples **Palette** using **Seed**, and **Pattern** alternates two colors for squares/triangles or three for hexagons. Circles follow their packing grid.
+- **Variation** controls Random's palette range: zero uses the midpoint, one uses the whole gradient. Use a Fixed palette for discrete colors. **Color Blend → Multiply** keeps the distance shading; **Replace RGB** gives flat cell colors. Both preserve the distance gradient's alpha and ignore palette alpha. Gaps use the nearest figure's color.
+- Colors follow the figures through offset and rotation. With Seamless, Random repeats across the canvas and Pattern fits cell counts to its color cycle (even counts for checkerboards, multiples of three horizontally for hexagons/dense circles).
+
+**Seamless** fits whole rectangular repeats to the canvas, including complete pairs of
+staggered rows. The combined layer/group rotation snaps to quarter turns; scale is fitted
+independently on each axis. Shear and perspective are replaced by an axis-aligned fit
+at the canvas center. The requested settings remain stored; the inspector shows the fitted
+grid after rendering. Switching Seamless off restores free transforms.
+Polygons can stretch slightly; circles stay circular and may leave extra space on one axis.
+Seamless takes precedence over layer tiling. It guarantees the generated pattern's periodicity,
+not arbitrary FX applied afterwards or other layers in the composite.
+
+## Draw a shape
+
+Choose **Shape** (`U`), pick a shape in the Preview header, then drag to create it.
+New layers are named after the figure, such as **Rectangle 1**, **Line 2**, or **Star 3**, with one shared numbering sequence for all shapes.
+You can also hold the Shape tool button briefly, or drag from it, to open an icon list on its right.
+Move over a figure and release to select it. Releasing outside the list cancels the choice.
+Each drag adds a separate Shape layer, including in an empty document.
+Hold `Shift` for equal proportions or a line angle in 45° steps; `Ctrl` bypasses guide snapping.
+Press `Escape` before releasing to cancel.
+
+Use **Transform** to move, resize or rotate an existing figure. In **Properties (Shape)**,
+change its type, fill and stroke colors, rectangle roundness, polygon sides or star points and inner radius.
+For a rectangle, **Roundness (%)** has four fields around a square, one per corner.
+Drag their **TL / TR / BR / BL** labels to adjust values without typing.
+The chain links proportional changes; the crossed-out chain lets you edit each corner independently.
+Linking keeps existing values. Linked changes stop when a corner reaches 100%; editing a zero corner
+adds the same amount to all four. The diagram shows the shape before its Transform rotation.
+The stroke sits inside the edge, and its width is measured in canvas pixels.
+**Feather (px)** softens the contour without blurring the whole image. **Feather Position**
+selects Inside, Outside or Centered; it also affects both edges of a hollow stroke.
+The value is the total transition width in canvas pixels. Zero keeps the original edge.
+Wide Inside/Centered feather can fade away thin strokes or small details; Outside expands into gaps.
+For a line, adjust its length and thickness with Transform.
+You can also create a centered shape through **+ → Shape**.
+
+A Shape stays editable: it works with clipping masks, blending and FX, just like other layers.
+For example, put a Gradient above it and enable the gradient's clipping mask to color the figure.
+Convert it to Drawing only when you want to paint directly on it.
+
+## Create textures for VFX
+
+Procedural layers are useful for energy rings, bursts and particle masks. In this example,
+a bright rim is combined with fine radial streaks.
+
+<a href="{{ '/Images/vfx-energy-ring.png' | relative_url }}"><img src="{{ '/Images/vfx-energy-ring.png' | relative_url }}" alt="A VFX energy-ring texture in WhimTex, with gradient and noise layers, a Shader Processor and a circular gradient preview" width="720"></a>
+
+Use a **Gradient** layer for the main silhouette, [Noise](noise.md) for surface detail and
+[Shader FX](shader-fx.md) for distortion or finishing. Keep these in separate layers so that
+changing the texture detail does not require rebuilding the shape. Adjust color keys and falloff
+in the [gradient editor](color.md#edit-a-gradient), then check the result against the background
+used by your particle effect.
 
 ## Repair a missing layer
 

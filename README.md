@@ -50,8 +50,7 @@ It handles the small tasks that would otherwise send you to a graphics editor: t
 painting a particle mask, generating noise for VFX or combining layers into a sprite.
 
 The editable composition and ready-to-use texture live in one TIFF document. Layers, effects and transforms
-stay editable, while the TIFF can be assigned directly to a material. Export only when you need
-a separate image file.
+stay editable, while the TIFF can be assigned directly to a material. Use **Export** for a separate image or an editable JSON copy without Drawing pixels.
 
 <p align="center">
   <a href="Documentation~/Images/whimtex-heart.png"><img src="Documentation~/Images/whimtex-heart.png" alt="WhimTex showing a layered heart with a gradient, outline, highlight and SDF rim light" width="720"></a>
@@ -105,8 +104,7 @@ https://github.com/DCFApixels/WhimTex.git
 4. Press `Ctrl+S`. The editable document and full-resolution texture are saved in one `.tiff` file.
 5. Assign the TIFF to a texture field. For sprites, set **Texture Type → Sprite (2D and UI)** in its Inspector, click **Apply** and expand the asset in Project.
 
-Double-click the saved TIFF to reopen it. PNG, TGA, JPEG, EXR, layered PSD and Texture2D
-are available through **Export**.
+Double-click the saved TIFF to reopen it. **Export** offers PNG, TGA, JPEG, EXR, layered PSD, Texture2D and editable JSON without Drawing pixels.
 
 <a id="workspace"></a>
 <a id="layers"></a>

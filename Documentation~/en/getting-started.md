@@ -59,10 +59,29 @@ Pan by holding the mouse wheel and dragging. Scroll to zoom; **Fit** shows the w
 
 ## Make the workspace comfortable
 
-In **User Settings → Open Images**, **Double Click** chooses between **Tiff Documents Only** and **All Supported Images** (default) in the Project window. The latter also opens PNG, JPEG, BMP, TGA, EXR, ordinary TIFF and Texture2D `.asset` files, but not PSD. **Open As** chooses **Drawing** (editable copy of imported pixels) or **File** (reference to the imported texture). For PNG, JPEG, BMP, TGA and EXR, canvas and source sizing use the original file dimensions; other formats follow the imported texture. File layers backed by PNG, JPEG, BMP, TGA or EXR use a cached decode of the original source bytes for rendering, so Unity's import resizing and compression do not reduce their working resolution. Layered WhimTex TIFFs always open with their layers. Ordinary images open as new documents: with one layer, **Save** updates PNG, JPEG, TGA, EXR or Texture2D `.asset` sources; **Save As** creates a TIFF without changing the source import settings. Other formats use Save As. Opening PNG, JPEG, BMP, EXR or TGA as Drawing and converting these File layers to Drawing also reads the source bytes directly. Unity's EXR byte decoder is available in the Editor on Windows, macOS and Linux.
-
 The **gear button to the right of Export** opens User Settings, where you can change the transparency checkerboard's colors
 and size, or enable **Clean Preview Background** to hide the background logo and shadow. At the bottom of this settings window,
 **Reset WhimTex Settings…** restores the workspace preferences after confirmation, without deleting your documents or preset files.
 
 To keep a layer's settings in a separate window, use **layer ⋮ → Properties**.
+
+## Open an existing image
+
+In **User Settings → Open Images**, choose what a double-click in Project opens:
+
+- **Tiff Documents Only:** WhimTex TIFF documents.
+- **All Supported Images** (default): also PNG, JPEG, BMP, TGA, EXR, ordinary TIFF and Texture2D `.asset`; not PSD.
+
+WhimTex TIFF documents reopen with their layers. For ordinary images, **Open As** chooses the source:
+
+| Mode | Use it when… |
+| --- | --- |
+| **Drawing** | You want an editable copy that you can paint on. |
+| **File** | You want a layer linked to the source texture. |
+
+**Saving over the original.** An ordinary image opens as a new document. While it has one layer, **Save** updates a PNG, JPEG, TGA, EXR or Texture2D `.asset` source.
+Use **Save As** to create a layered TIFF without changing the source or its import settings. Other formats require Save As.
+
+**Source resolution.** PNG, JPEG, BMP, TGA and EXR use the original file dimensions and pixels, even if Unity imports a smaller or compressed texture.
+This applies to File rendering, opening as Drawing, and converting File to Drawing. Other formats use the imported texture.
+EXR decoding is supported in the Windows, macOS and Linux Editor.

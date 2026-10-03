@@ -50,8 +50,7 @@ Brush JSON examples: Documentation~/Examples/Brushes/README.md. Format: whimtex.
 текстуру, нарисовать маску для частиц, сгенерировать шум для VFX, собрать спрайт из нескольких слоёв.
 
 Редактируемая композиция и готовая текстура хранятся в одном TIFF-документе. Слои, эффекты и трансформы
-остаются доступными, а TIFF можно сразу назначить материалу. Экспорт нужен только для
-отдельного файла изображения.
+остаются доступными, а TIFF можно сразу назначить материалу. **Export** создаёт отдельное изображение или редактируемую JSON-копию без пикселей Drawing.
 
 <p align="center">
   <a href="Documentation~/Images/whimtex-heart.png"><img src="Documentation~/Images/whimtex-heart.png" alt="WhimTex: сердечко из слоёв с градиентом, обводкой, бликом и краевой подсветкой через SDF" width="720"></a>
@@ -105,8 +104,7 @@ https://github.com/DCFApixels/WhimTex.git
 4. Нажми `Ctrl+S`. Редактируемый документ и полноразмерная текстура сохранятся в одном `.tiff`.
 5. Назначь TIFF в текстурное поле. Для спрайтов выбери **Texture Type → Sprite (2D and UI)** в его Inspector, нажми **Apply** и разверни ассет в Project.
 
-Двойной клик по сохранённому TIFF открывает его снова. PNG, TGA, JPEG, EXR, многослойный PSD
-и Texture2D доступны через **Export**.
+Двойной клик по сохранённому TIFF открывает его снова. Через **Export** доступны PNG, TGA, JPEG, EXR, многослойный PSD, Texture2D и редактируемый JSON без пикселей Drawing.
 
 <a id="workspace"></a>
 <a id="layers"></a>

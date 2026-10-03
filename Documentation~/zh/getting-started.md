@@ -59,10 +59,29 @@ https://github.com/DCFApixels/WhimTex.git
 
 ## 让工作区更顺手
 
-在 **User Settings → Open Images** 中，**Double Click** 可选择在 Project 窗口双击时仅打开 **Tiff Documents Only**，或打开 **All Supported Images**（默认）。后者还支持 PNG、JPEG、BMP、TGA、EXR、普通 TIFF 和 Texture2D `.asset`，不包括 PSD。**Open As** 可选 **Drawing**（导入像素的可编辑副本）或 **File**（引用导入的纹理）。对于 PNG、JPEG、BMP、TGA 和 EXR，画布与源图层尺寸取自原始文件；其他格式使用导入纹理。基于 PNG、JPEG、BMP、TGA 或 EXR 的 File 图层在渲染时使用原始字节的缓存解码，因此 Unity 的导入缩放和压缩不会降低工作分辨率。WhimTex TIFF 文档始终保留其图层。普通图像作为新文档打开，且只有一个图层时，**Save** 会更新 PNG、JPEG、TGA、EXR 或 Texture2D `.asset` 源文件；**Save As** 会创建 TIFF，不更改源文件的导入设置。其他格式使用 Save As。将 PNG、JPEG、BMP、EXR 或 TGA 作为 Drawing 打开，或将这些 File 图层转换为 Drawing 时也会直接读取源字节。Unity 的 EXR 字节解码器可在 Windows、macOS 和 Linux 编辑器中使用。
-
 **Export 右侧的齿轮按钮**会打开 User Settings，你可以在其中更改透明棋盘格的颜色
 和尺寸，或启用 **Clean Preview Background** 来隐藏背景标志和阴影。在此设置窗口的底部，
 **Reset WhimTex Settings…** 会在确认后恢复工作区首选项，而不会删除你的文档或预设文件。
 
 要将图层的设置保留在单独的窗口中，请使用 **layer ⋮ → Properties**。
+
+## 打开已有图像
+
+在 **User Settings → Open Images** 中选择双击 Project 资源时的行为：
+
+- **Tiff Documents Only：**打开 WhimTex TIFF 文档。
+- **All Supported Images**（默认）：还支持 PNG、JPEG、BMP、TGA、EXR、普通 TIFF 和 Texture2D `.asset`，不包括 PSD。
+
+WhimTex TIFF 文档恢复原有图层。对于普通图像，**Open As** 决定来源类型：
+
+| 模式 | 适用情况 |
+| --- | --- |
+| **Drawing** | 需要可直接绘画的独立像素副本。 |
+| **File** | 需要链接到源纹理的图层。 |
+
+**覆盖源文件。** 普通图像作为新文档打开。文档只有一个图层时，**Save** 会更新 PNG、JPEG、TGA、EXR 或 Texture2D `.asset` 源文件。
+**Save As** 创建多图层 TIFF，不修改源文件及其导入设置。其他格式需要使用 Save As。
+
+**源分辨率。** PNG、JPEG、BMP、TGA 和 EXR 使用原始文件的尺寸和像素，不受 Unity 导入缩小或压缩影响。
+这适用于 File 渲染、作为 Drawing 打开，以及将 File 转为 Drawing。其他格式使用导入纹理。
+EXR 解码支持 Windows、macOS 和 Linux Editor。

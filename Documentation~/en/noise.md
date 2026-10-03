@@ -14,17 +14,6 @@ translations: "en/noise.md,ru/noise.md,zh/noise.md"
 Use Noise for clouds, grain, stone-like patterns or a starting point for a height map.
 Add **Noise** through **+ → Noise** at the bottom of Layers and adjust the settings while watching the image.
 
-**Random All** at the top of the noise settings explores a new combination of generator parameters,
-including inactive generator options and **Inverted**. Output varies between Color Values and Linear Data, but stays Gradient if selected. The gradient palette, **Dimensions**, **Direction**, **Seamless**, linked Scale and Warp Scale ratios, **Offset X/Y/Z**, layer transforms, blending and FX
-stay unchanged. One Undo restores the previous combination. **Random** beside **Seed** changes only the seed.
-Noise Type stays within the selected group: **White Noise / Blue Noise**, or all other noise types.
-
-Random All gently favors a main Scale average `(X + Y) / 2` near **8**. A smooth bell-shaped
-weight ranges from 1 to 2, so distant scales remain common. With linked axes, the random
-1–64 range applies to their average, not X; the existing proportions are retained. Extreme
-ratios can restrict the reachable average because each axis must stay within 0.01–1000.
-Unlinked axes keep independent 1–64 candidates. Warp Scale randomization is unchanged.
-
 ## Start with the pattern
 
 | Setting | What to try |
@@ -42,14 +31,19 @@ For finer control, **Lacunarity** changes the spacing between detail scales and 
 changes how strongly the smaller details show.
 With Cellular, try **Distance**, **Return** and **Jitter** to change the shape and regularity of the cells.
 
+
 ## Scale, 3D slices and seamless noise
 
 **Scale X/Y** controls detail independently on each axis. The chain button changes both
 proportionally; linking retains the current proportions. Scale is measured across the shorter canvas side.
 
+### 3D slices
+
 For OpenSimplex2, OpenSimplex2S, Cellular, Perlin, ValueCubic and Value, choose **Dimensions → 3D**
 to see a slice of a volume. **Offset** gains a **Z** component: move it to explore adjacent slices.
 Cellular slices have a different character from 2D cells. Fractal and Domain Warp work in both 2D and 3D.
+
+### Repeat without a seam
 
 Use the square **Seamless** control to make the source repeat without blending edges.
 Left/right edges toggle together for X; top/bottom toggle together for Y. Select all four for XY,
@@ -70,12 +64,12 @@ fits its own period from the requested Scale. Changes remain stepped, with at le
 per octave. With Fractal None, the minimum-cell limit remains. Existing 2D seamless simplex
 patterns may change, including at Scale above 1; other noise types and 3D are unchanged.
 
+
 Warp Scale applies in 1D, 2D and 3D; Z frequency is unchanged. With Seamless, each selected
 warp axis fits complete cells from its final scale. BasicGrid with only one cell on both axes
 becomes a uniform shift: increase the Warp Scale multipliers to get distortion without
 increasing Noise Scale. For example, Scale 0.5 × Warp Scale 6 requests a warp scale of 3.
 White/Blue Noise ignore Warp Scale.
-
 ## White noise
 
 Choose **Noise Type → White Noise** for random grain without smooth transitions.
@@ -109,10 +103,20 @@ Switch back to **2D** for the usual pattern without losing the direction setting
 
 ## Color texture or height map?
 
-**Output → Gradient** maps monochrome noise through the selected palette, including its alpha and HDR colors. The default output is **Linear Data**; the default gradient is black-to-white **Perceptual**. **Inverted** is available in every output mode and reverses noise values before gradient sampling. Switching Output keeps the palette. Color White/Blue Noise offers only Color Values and Linear Data; a previously selected Gradient temporarily uses Color Values until you return to Monochrome. Random All keeps Gradient output and the palette; otherwise it randomizes Output between Color Values and Linear Data. Inverted can change.
+**Output** determines how noise values become pixels:
 
-Choose **Output → Color Values** to display the original noise as colors, with **Inverted** available.
-Choose **Output → Linear Data** when using it as a height map or packing it into texture channels.
+| Output | Use |
+| :--- | :--- |
+| Linear Data (default) | Height maps and packed texture data. |
+| Color Values | Display the original noise as colors. |
+| Gradient | Map monochrome values through a palette, including its alpha and HDR colors. |
+
+**Inverted** reverses values before gradient sampling and works in every output mode.
+The default palette is black-to-white **Perceptual**; switching Output keeps it.
+
+Color White/Blue Noise supports only Color Values and Linear Data.
+A stored Gradient selection temporarily uses Color Values until you return to Monochrome.
+For which settings change with Random All, see [Random variations](#random-variations).
 
 To create surface relief:
 
@@ -124,3 +128,18 @@ To create surface relief:
 
 **Tiled** preview helps inspect seams; use **Seamless** to make the source repeat.
 For the next step, see [Normal Map](normal-map.md).
+
+## Random variations
+
+**Random All** at the top of the noise settings explores a new combination of generator parameters,
+including inactive generator options and **Inverted**. Output varies between Color Values and Linear Data, but stays Gradient if selected. The gradient palette, **Dimensions**, **Direction**, **Seamless**, linked Scale and Warp Scale ratios, **Offset X/Y/Z**, layer transforms, blending and FX
+stay unchanged. One Undo restores the previous combination. **Random** beside **Seed** changes only the seed.
+Noise Type stays within the selected group: **White Noise / Blue Noise**, or all other noise types.
+
+### How Random All distributes Scale
+
+Random All gently favors a main Scale average `(X + Y) / 2` near **8**. A smooth bell-shaped
+weight ranges from 1 to 2, so distant scales remain common. With linked axes, the random
+1–64 range applies to their average, not X; the existing proportions are retained. Extreme
+ratios can restrict the reachable average because each axis must stay within 0.01–1000.
+Unlinked axes keep independent 1–64 candidates. Warp Scale randomization is unchanged.

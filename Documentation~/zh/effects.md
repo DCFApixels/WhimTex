@@ -32,51 +32,87 @@ next_page: "zh/blending.md"
 
 ## 选择效果使用的对象
 
-**Input → Previous** 使用同一组中效果正下方的图层。
-选择 **Specific** 可指定另一个图层或组。点击 **Target** 从列表中选择，或将图层直接拖入字段。
-**None (Layer)** 表示尚未选择来源。
-拖动多个选中的图层时，活动图层会成为目标。
+| Input | 来源 |
+| :--- | :--- |
+| Previous | 同一组中效果正下方的图层。 |
+| Specific | 在 **Target** 中指定的图层或组。 |
+| All Below | 效果下方可见图层的合成结果，包含透明度、混合和 FX。 |
 
-**All Below** 使用效果下方所有可见图层的合成结果，包含透明度、混合和效果。范围仅限当前组，即使该组为 Pass Through；在文档顶层则使用下方的文档图层。空堆栈为透明，此模式隐藏 Target 字段。不透明背景会使合成 Alpha 完全不透明，因此基于 Alpha 的 Outline/SDF 无法识别背景上各对象的轮廓。需要这些轮廓时请选择 Specific，或将来源放在单独的组中。
+使用 **Specific** 时，从列表选择 Target 或将图层拖入字段。
+拖动多个选中图层时使用活动图层。**None (Layer)** 表示尚未指定来源。
 
-使用 Previous 或 Specific 时，你可以隐藏源并仍然看到效果。对于组，请隐藏组本身，
-而不是你想包含的子级。效果只使用该组的内容，而不使用其背后的背景。
+Previous 和 Specific 可使用隐藏来源。对于组，隐藏组本身，不要隐藏需要保留的子图层。
+只读取组内容，不包含其后方背景。
+
+**All Below** 限于当前组，即使组为 Pass Through；在顶层则使用文档下方图层。
+空堆栈透明，Target 字段隐藏。
+不透明背景也会让合成 Alpha 完全不透明，基于 Alpha 的 Outline/SDF 因此无法分离背景上的轮廓。
+需要这些轮廓时使用 Specific 或单独的来源组。
 
 ## Outline 和 SDF
 
-使用 **Outline** 在形状周围添加边框。调整其宽度和柔和度，
+**Outline** 添加边框。**SDF** 将到轮廓的距离转为渐变，可用于遮罩、发光或高度轮廓。
+两者都保持来源可编辑。
+
+### Outline：描边与填充
+
 选择 **Source Channel**（默认 Alpha，也可选 Red、Green、Blue 或 Luminance），
-然后选择它位于边缘内侧、外侧还是跨越边缘。
+然后将描边放在边缘内侧、外侧或两侧。
 
-当你需要基于到形状距离的渐变过渡时，使用 **SDF**。
-在 Gradient 输出中，渐变同时决定颜色（包括 HDR）和透明度，不保留源图像的 Alpha。
-**Output → Gradient** 是默认模式，渐变从 0 处的黑色到 1 处的白色，插值为 **Perceptual**。**Inverted** 保持可用，在 Profile 和渐变采样前反转归一化距离。**Output → Linear Data** 输出归一化的原始 RGB 0–1 值和不透明 Alpha，不进行颜色伽马转换。Inverted 和 Profile 对两种模式均生效。切换 Output 会保留渐变和反相设置。Signed 内部值较低、外部值较高；使用默认渐变时，两种输出的亮度方向相同。
-**Threshold** 设置确定轮廓的阈值，**Max Distance (px, 0 = auto)** 设置过渡距离；0 表示自动选择距离。
-**Position** 决定渐变覆盖轮廓的哪一侧：Outside 为外侧，Inside 为内侧，Center 为两侧。
-默认的 **Signed** 覆盖轮廓两侧。在两种输出模式中，**Inverted** 在 Profile 之前反转归一化距离。
+| 设置 | 可见效果 |
+| :--- | :--- |
+| Width (px) | 描边宽度，支持小数。 |
+| Softness (px) | 羽化两侧，不改变 Width。零保留清晰、抗锯齿的边缘。 |
+| Offset (px) | 负值向内、正值向外移动描边，不改变宽度。 |
+| Color | 描边颜色。 |
+| Fill Center / Fill Color | 用独立颜色和透明度填充中心。 |
 
-**Source Offset (px)** 沿 X/Y 移动输入，保留移出画布的轮廓对距离的影响。**Source Edges** 可选 Transparent（默认，透明）、Clamp（延伸边缘像素）、Repeat（重复并计算跨接缝距离）或 Mirror（镜像）。无法恢复已被源图层裁掉的内容。
+如果描边与柔和来源脱节，可尝试小幅负 Offset。
+要用实心轮廓衬托绘图，将 Outline 放在下方并以 Specific 指定该绘图。
+放在上方时填充会覆盖绘图。填充跟随轮廓，而非来源的柔和 Alpha；孔洞保持不变。
 
-**Contour Offset (px)** 为正时扩张轮廓，为负时收缩。在 **Signed** 模式下，**Inside Distance** 和 **Outside Distance** 分别控制内外距离；0 使用 Max Distance 或自动范围。应用 Profile 前，轮廓映射到 0.5。**Profile** 在两种模式中均调整过渡形状：位于 Inverted 之后、渐变采样之前；线性曲线保持原样。制作浮雕时，可使用 Linear Data 或灰度渐变，在此调整高度轮廓。
+### SDF：距离渐变或数据
 
-大偏移和 Repeat 需要更多内存。扩展计算区域超过 6400 万像素时会报错而非静默裁切，请减小偏移或分辨率。
-距离算法会改变转角和对角线的特征：
-Euclidean 给出圆润的距离，而 Manhattan 和 Chebyshev 给出更棱角分明的结果。
+选择 **Source Channel**：Alpha、RGB 通道或 Luminance，组也支持这些选项。
+**Threshold** 确定轮廓，**Max Distance (px)** 确定过渡距离。零表示自动选择距离。
 
-对于具有平滑、部分透明边缘的源，请在 SDF 或 Outline 中选择 **Distance Algorithm → Euclidean Antialiased**。Outline 会跟随所选 **Source Channel** 的 50% 阈值边缘，即使跨越宽泛的柔和过渡也是如此；
-SDF 则使用其 **Threshold** 设置。永远达不到该阈值的区域不会形成轮廓。
-对于硬阈值轮廓或像素遮罩，请保留 **Euclidean Exact**。
+| Output | 结果 |
+| :--- | :--- |
+| Gradient（默认） | 调色板提供 RGB、HDR 强度及 Alpha，不保留来源 Alpha。 |
+| Linear Data | 原始 RGB 0–1 归一化距离，不透明 Alpha，不进行颜色伽马转换。 |
 
-Outline 的 **Width (px)** 支持小数。**Softness (px) = 0** 保持清晰而平滑的边缘；
-增大 **Softness (px)** 会羽化两侧，而不改变 **Width (px)**。
-**Offset (px)** 会移动边框而不改变其宽度：负值向内移动，正值向外移动。
-如果边框看起来与柔和的源脱节，可以尝试一个小的负偏移。
+默认调色板在 0 为黑、1 为白，使用 **Perceptual** 插值。
+**Inverted** 先反转归一化距离，**Profile** 随后调整其形状，再进行调色板采样。
+两者适用于两种输出。线性 Profile 保持原样，切换 Output 保留调色板和反相设置。
 
-启用 **Fill Center** 可获得实心形状而不是空心边框。**Color** 设置边框颜色；
-**Fill Color** 独立设置中心颜色和不透明度。要用实心轮廓衬托柔和的绘图，
-请将 Outline 放在绘图下方，并将其 Input 设为该特定图层。放在绘图上方时，填充会覆盖它。
-填充会跟随轮廓，而不是源原本的柔和透明通道。源中的孔洞仍保持为孔洞。
-对于 SDF，**Source Channel** 可以使用 Alpha、单个 RGB 通道或 Luminance，源是组时也是如此。
+**Position** 选择距离区域：Outside、Inside、Center（两侧）或 **Signed**（默认）。
+Signed 内部值低、外部值高；Profile 前轮廓对应 0.5。
+**Inside Distance** 与 **Outside Distance** 分别控制两侧范围，零继承 Max Distance 或自动范围。
+**Contour Offset (px)** 为正时扩张形状，为负时收缩。
+
+制作浮雕时使用 Linear Data 或灰度渐变，并用 Profile 调整高度。
+默认调色板下，两种 Output 从内到外的亮度方向一致。
+
+### 来源边缘与距离质量
+
+**Source Offset (px)** 移动 SDF 来源，同时保留画布外轮廓的影响。
+**Source Edges** 可选 Transparent（默认）、Clamp、Repeat（包括跨接缝距离）或 Mirror。
+它无法恢复已被来源图层裁切的内容。
+
+大偏移和 Repeat 需要更多内存。扩展计算区域超过 6400 万像素时，
+请减小偏移或分辨率；WhimTex 会报错而非静默裁切。
+
+距离算法影响拐角和对角线：
+
+| 算法 | 结果 |
+| :--- | :--- |
+| Euclidean | 圆润的等距轮廓。 |
+| Manhattan / Chebyshev | 更棱角分明的轮廓。 |
+| Euclidean Antialiased | 考虑来源平滑、部分透明的边缘。 |
+| Euclidean Exact | 硬阈值轮廓，适合像素遮罩。 |
+
+Euclidean Antialiased 下，Outline 使用 Source Channel 的 50% 阈值，SDF 使用 Threshold。
+未达到阈值的区域不会形成轮廓。
 
 ## Blur
 
@@ -99,6 +135,15 @@ Outline 的 **Width (px)** 支持小数。**Softness (px) = 0** 保持清晰而�
 3. 隐藏组本身，只显示模糊结果。
 4. 调整 Radius 和 Strength。
 
+### Linear 和 Circular
+
+选择 **Linear** 可获得直线拖尾。**Distance (px)** 设置长度，**Angle (deg)** 设置方向。
+选择 **Circular** 可获得旋转拖尾，然后设置 **Center** 和 **Arc**。
+
+**Direction** 决定拖尾相对于源的位置：围绕它、在它之前或在它之后。
+**Strength** 低于 100% 会恢复更多清晰的原始图像。
+高于 100% 会让半透明拖尾更浓密，但不会让它们更长。
+
 ## Sharpen
 
 添加 **Sharpen** 可增强局部边缘对比度，同时保持源图层的 Alpha 不变。
@@ -109,112 +154,115 @@ Outline 的 **Width (px)** 支持小数。**Softness (px) = 0** 保持清晰而�
 该操作会保留 HDR 颜色值。
 编辑过程中 WhimTex 使用更快的近似计算；操作结束后会重新计算更高质量的 Gaussian 加权结果。
 
-### Linear 和 Circular
-
-选择 **Linear** 可获得直线拖尾。**Distance (px)** 设置长度，**Angle (deg)** 设置方向。
-选择 **Circular** 可获得旋转拖尾，然后设置 **Center** 和 **Arc**。
-
-**Direction** 决定拖尾相对于源的位置：围绕它、在它之前或在它之后。
-**Strength** 低于 100% 会恢复更多清晰的原始图像。
-高于 100% 会让半透明拖尾更浓密，但不会让它们更长。
-
 ## Make Seamless
 
-在纹理或组上方添加 **+ → Make Seamless**。用 **Input** 选择源，
-然后如果你想只看到处理后的结果，就隐藏源本身。
+在纹理或组上方添加 **+ → Make Seamless**，选择 **Input**；若只需要处理结果，可隐藏来源。
+启用 **Tiled** 比较重复图像的边缘。
 
-**Method** 提供 **Offset Blend**（新图层的默认值）、**Mirror**、**Screened Poisson** 和 **Patch Quilting**。现有图层保留已保存的模式。
-新图层的 Offset Blend 和 Mirror 均使用 **Blend Width 20%**、**Transition Start −25%**，
-并启用 **Poisson Correction → All Edges**。Offset 的所有复制边和 Mirror 的两个镜像轴均启用。
-现有图层保留设置，切换方法不会重置参数。
+| 方法 | 连接方式 | 主要取舍 |
+| --- | --- | --- |
+| **Offset Blend** | 混合偏移半个周期的副本。 | 适合作为噪声和表面纹理的起点；颜色和重复细节可能改变。 |
+| **Mirror** | 将对边反射到过渡条带中。 | 容易调整，但可辨认的细节可能显得镜像对称。 |
+| **Screened Poisson** | 平滑校正对边的不匹配。 | 也可能改变中心和其他边缘；不负责重建连续细节。 |
+| **Patch Quilting** | 从源图寻找条带，沿差异较小的路径拼接。 | 可能保留更清晰的细节，但会重复图案，平滑噪声上仍可能看到拼接线。 |
 
-**Copy Edges**、**Mirror Direction** 和 **Patch Edges** 选择主要处理的边，**Poisson Edges** 选择独立校正的边。取消某个处理的全部边时，仅禁用其相关参数，选择器与另一处理仍可使用，参数值保留。Quilting 在 **Feather 0%** 时无法使用对比度补偿；增大 Feather 即可恢复。
+新图层使用 **Offset Blend**。Offset Blend 和 Mirror 初始为 **Blend Width 20%**、**Transition Start −25%**，并启用 **Poisson Correction → All Edges**。
+所有复制边缘和两个镜像轴初始开启。切换方法保留各自设置；已有图层沿用保存值。
 
-相连的对边会在悬停时一起高亮。点击中央图标可反转选择。
-**Mirror Direction** 的中央按钮在任一轴开启时关闭两轴；再次点击按 Left To Right 和 Bottom To Top 开启两轴。
+### 边缘与通道
 
-**Contrast Compensation** 会增加计算量。长时间闲置或尺寸变化后的首次计算可能比后续更新慢。
+**Channels → R / G / B / A** 选择接收结果的通道，初始全部开启。
+关闭 A 可保留原透明度；关闭全部通道则跳过接缝处理。
+后续 FX、Swizzle 和图层混合仍可能改变图像。
 
-**Channels — R / G / B / A** 选择参与接缝处理的通道，适用于所有模式及 Mirror 的可选补偿与校正。
-默认四个通道都启用。未勾选通道保留输入值；关闭 **A** 可保留原始透明度，全部关闭则跳过接缝处理。
-后续图层 FX、Swizzle 和混合仍可改变最终外观。
+方形控件选择当前步骤处理的边缘：
 
-**Screened Poisson** 全局平滑所选的成对边缘。**Poisson Edges** 提供 **All Edges**（默认）、
-**Top & Bottom**（垂直平铺）和 **Left & Right**（水平平铺）。
-点击方形的边可同时切换一对相对边。可以取消全部边以跳过对应处理，选择器仍可操作。Patch Quilting 和所有 Poisson Correction 的成对选择器均支持此行为，各自独立。
-**Radius (%)**（0.5–25，默认 5）设置相对较短边的校正距离，没有硬性条带边界。
-内部亮度仅近似保持，未选边缘也可能变化，但不会被接合。不使用 Mirror 控件，图层随源内容更新。
-高光仍可能超出输出范围并被截断，细节连续性无法保证。请检查 **Tiled** 预览。
-不会迁移文档或自动重写文件。
+- **Copy Edges：**Offset Blend 的四条边独立选择。
+- **Mirror Direction：**所选边接收对边的反射。再次点击关闭该轴，点击对边反转方向。两个轴都开启时也连接角落。
+- **Patch Edges / Poisson Edges：**对边成对切换。**Top & Bottom** 垂直重复，**Left & Right** 水平重复，**All Edges** 启用两个方向。两对都可以关闭。
 
-**Offset Blend** 混合偏移半个周期的副本，不使用镜像。
-**Blend Width (%)**（2–50，默认 20）控制边带宽度。
-**Transition Start (%)**（−100…95，新图层默认 −25）指定混合在边带内的起点，而非相对整个画布。
-起点之前完全使用副本。较小值扩大平滑过渡，0 从边缘开始；较大值缩短过渡。
-负值把起点放到画布外，可能重新出现接缝。必要时开启 **Poisson Correction** 并选择相应的边缘对。新图层默认开启校正，但修改 Transition Start 不会切换此开关。
-可选校正：
+关联边一起高亮；点击中心反转选择。
+Mirror 的中心在任一轴开启时关闭两轴，再次点击启用 Left To Right 和 Bottom To Top。
+关闭某步骤会使其依赖字段变灰，但不禁用方形控件或另一处理步骤；数值保留。
 
-- **Contrast Compensation** 默认开启；**Strength (%)**（0–100，默认 100）控制补偿强度。
-  关闭或设为零可跳过直方图分析。
-- **Poisson Correction** 默认开启，增加全局 Screened Poisson 求解，其 **Poisson Edges** 独立于复制边缘。
-  校正可能改变混合条带之外的像素。
-  **Automatic Radius** 默认开启，使用 Blend Width 的四分之一，最小 0.5%。
-  关闭后可手动设置 **Radius (%)**（0.5–25），相对于较短边。
-  此步骤增加计算成本，且可能超出颜色范围。
+**Poisson Correction 有独立的边缘选择。** 即使复制、镜像或条带匹配关闭，校正仍可运行。
 
-重复图案和颜色可能变化，尤其是非噪声图像。
-分布保持只是近似，请检查 **Tiled**。图层随源内容更新，不会烘焙结果。
+### Offset Blend
 
-Offset Blend 可独立点击图标四边来选择复制条带，默认全部启用。Poisson Correction 关闭时，
-条带外像素保持不变（浮点及透明度舍入除外）。条带最小为两像素，在角部重叠。
-关闭全部复制边缘仅跳过复制，已启用的 Poisson Correction 仍会运行。
+| 控件 | 作用 |
+| --- | --- |
+| **Blend Width (%)** | 复制条带宽度：2–50%，默认 20。 |
+| **Transition Start (%)** | 条带内的淡出起点，而非相对整个画布：−100…95%，默认 −25。此前副本完全生效。 |
+| **Contrast Compensation / Strength (%)** | 减少混合造成的对比度损失。默认开启；Strength 0–100%，默认 100。 |
 
-**Patch Quilting** 从源图像搜索平移条带，并沿误差较小的路径拼接，仅修补边界而不重新合成整张纹理。
-它可以保留清晰细节，但也可能重复图案，或在柔和噪声中产生可见拼接线。请检查 **Tiled** 预览。
+降低 Transition Start 会加宽过渡，0 从边缘开始，正值收窄过渡。
+负值把过渡延伸到画布外，可能重新出现接缝。**Poisson Correction** 可减轻接缝，但改变 Transition Start 不会自动切换校正。
 
-- **Patch Edges：** All Edges、Top & Bottom 或 Left & Right；方形图标的相对边一起切换。
-- **Patch Width (%)**（2–45，默认 20）：每侧修补条带的宽度。加宽可提供更多切割空间，但改变更多像素。
-- **Feather (%)**（0–100，默认 50）：分别使用每条切割路径可用过渡宽度的百分比。0 为硬切割；100 使用不越过条带边界、不重新暴露拼接缝的最宽对称过渡。这是条带混合，不是纹理模糊，也不是 Patch Width 的百分比。
-- **Contrast Compensation**（默认关闭）减少 Feather 过渡中的对比度损失。**Strength (%)** 控制强度（0–100），并考虑原图与所选区块的相似程度；颜色可能改变。启用后会增加计算时间，但强度或 Feather 为 0% 时不计算补偿。处理两组边缘时，第二次处理使用第一次补偿后的结果，可能选择不同区块。
-- **Search Quality：** Draft、Normal（默认）、High。较高质量搜索更多候选并提高分析分辨率，计算更慢，不保证视觉效果更好。
-- **Along-Seam Search (%)：** 0–25%，默认 0（原有搜索）。沿接缝移动供体条带，百分比以可用条带长度为基准。位移在两端平滑归零，不循环回绕，但可能拉伸细节。非零值将原有候选数量分配给未移动和移动条带，计算更慢，不保证视觉改善。
-- **Seed / Random：** 尝试另一种可重复的供体选择；某些种子可能产生相同结果。
-- **Channel Matching：** Linked（默认）让选中颜色通道共用供体和路径；Independent 分别搜索每个选中通道，适合打包遮罩/噪声，不适合保持颜色关系或透明彩色边缘。
-- **Poisson Correction**（默认关闭）：可选全局校正，具有独立的 **Poisson Edges** 和 **Radius (%)**（0.5–25，默认 5），可能改变中心、对比度及 HDR 范围。
+条带在角落重叠，最少宽两像素。关闭 Poisson Correction 时，条带外像素保持不变，仅有浮点与透明度舍入差异。
+对比度补偿近似保留分布，并非完全一致。关闭它或设 Strength 为 0 会跳过直方图分析。
 
-关闭校正时，条带外像素除浮点舍入外保持原样。Patch Width 和 Feather 在松开滑块后更新。
-分析图中的窄条带使用居中切割，Feather 仍然生效。仅一个输出像素宽的条带没有平滑空间；输出像素很少时，不同百分比可能看起来相同。
-旧 Feather 数值不迁移，直接作为百分比读取：保存的 16 变为 16%，因此旧效果可能改变。低分辨率预览可能选择不同片段和路径。普通预览限制为 512 像素；**Live Quality 100%** 不会将非绘画预览切换为完整分辨率。选择 **Pencil**（无需绘画）并启用 **Tiled**，在保存或导出前检查完整分辨率结果。
-搜索已加速而不降低选定的 Search Quality。调整 Poisson Correction 不会重新搜索供体；更改源图像或 Quilting 参数仍需重新搜索。
-High 搜索还会避免重复计算相同候选条带，同时保持相同 seed 的结果不变。宽条带可能受益更多；重新计算仍会阻塞编辑器。
+### Mirror
 
-在 **Mirror** 模式下，点击方形图像控件的一条边，选择对侧边缘镜像复制的目标。
-再次点击高亮的那条边会关闭该轴；选择其对侧则会切换方向。
-没有高亮边缘的轴保持不变。复制的条带会被镜像并淡入原始图像；
-两个轴都启用时，角也会被接合。
+**Blend Width (%)** 设置过渡宽度。**Falloff** 越大，反射越集中于目标边缘。
+镜像条带逐渐淡入原图；没有选中边缘的轴保持不变。
 
-**Blend Width (%)** 会加宽过渡。**Falloff** 控制其形状：较高的值会让
-反射更接近目标边缘。启用 **Tiled** 可在调整时检查接合处。
-**Transition Start (%)**（−100…95，新图层默认 −25）设置镜像在 Blend Width 内开始淡出的地点。
-0 保留原有过渡；正值延迟并缩短过渡，负值将过渡扩展到画布外，可能重新出现接缝。
-必要时启用 **Poisson Correction**。开启或关闭 Contrast Compensation 时均有效，与 Offset Blend 的设置独立。
+**Transition Start (%)** 相对 Blend Width，范围 −100…95%，默认 −25。
+0 保留原淡出曲线；正值推迟并收窄过渡，负值把过渡扩展到画布外，可能重新产生接缝。
+它与 Contrast Compensation 可独立使用，也独立于 Offset Blend 的同名设置。
 
-通过脚本或 AI 设置图层时，请参阅 [Make Seamless 参数参考](../AgentAPI.md#make-seamless-settings)
-和[完整剪贴板示例](../Examples/Clipboard/seamless-noise.json)。
+**Contrast Compensation** 默认关闭。直方图补偿可减少镜像过渡的对比度损失，但可能改变颜色，且不能去除镜像图案。
+**Strength (%)** 为 0–100；0 使用普通镜像。
 
-Mirror 有两个独立选项：新图层默认关闭 Contrast Compensation、开启 Poisson Correction：
+### Screened Poisson 与 Poisson Correction
 
-- **Contrast Compensation** 使用直方图补偿混合反射像素。**Strength (%)**（0–100）控制强度，
-  0 保留普通 Mirror。可减少过渡区的对比度损失，但可能改变颜色，不会消除镜像图案。
-- **Poisson Correction** 执行全局 Screened Poisson 校正，带有独立的 **Poisson Edges** 选择。
-  **Automatic Radius** 默认开启，使用 **Blend Width** 的四分之一，最小 0.5%。Radius 以只读方式显示计算值。
-  关闭 Automatic Radius 即可恢复并编辑已保存的手动半径。
-  **Radius (%)**（0.5–25，默认 5）相对较短边控制校正距离，不受 **Blend Width** 限制。
-  内部和其他边缘可能变化；两个镜像方向都 Off 时仍运行。高光可能被截断，计算成本明显增加。
+**Radius (%)** 设置校正范围，相对图像短边为 0.5–25%，默认 5。
+校正没有硬条带边界。中心亮度仅近似保留；中心和未选择的边缘也可能改变，但只连接选中的边缘对。
+亮值可能超出允许范围并被裁剪。Mirror 控件不影响此方法。
 
-这对噪声和表面纹理很有用，但可识别的形状在接合处附近可能看起来被镜像了。
-进一步的变换或效果可能会改变匹配的边缘，因此也要检查最终的平铺结果。
-如果需要用周围细节修复一块区域，而不是接合相对边缘，请使用[内容识别填充](selection.md#根据现有纹理细节填充)。
+Offset Blend、Mirror 和 Patch Quilting 通过 **Poisson Correction** 提供同一种校正：
+
+- 各自拥有独立的 **Poisson Edges**，作用范围不限于复制或匹配条带。
+- Offset Blend 和 Mirror 默认开启校正，Patch Quilting 默认关闭。
+- Offset Blend 和 Mirror 的 **Automatic Radius** 默认开启：Blend Width 的四分之一，最小 0.5%。Radius 显示计算值；关闭自动模式可恢复并编辑保存的手动半径。
+- 校正增加计算时间；在 Tiled 中同时检查对比度与接缝。
+
+### Patch Quilting
+
+仅重建边缘条带，不重新生成整张纹理。
+
+| 控件 | 作用 |
+| --- | --- |
+| **Patch Width (%)** | 每条处理区域的宽度：2–45%，默认 20。更宽允许更多切线位置，也会修改更多图像。 |
+| **Feather (%)** | 每条切线两侧可用对称过渡的比例：0–100%，默认 50。它混合片段，不模糊纹理，也不是 Patch Width 的百分比。 |
+| **Search Quality** | Draft、Normal（默认）、High。更高档增加候选数与分析分辨率，计算更慢，但不保证视觉改善。 |
+| **Along-Seam Search (%)** | 沿接缝移动来源条带：0–25%，默认 0。0 不移动候选；位移在端点渐隐而不循环，细节可能拉伸。 |
+| **Seed / Random** | 选择另一个可复现的匹配；不同种子可能得到相同结果。 |
+| **Channel Matching** | **Linked**（默认）为所选通道共用片段与切线；**Independent** 分通道匹配，适合打包数据，不适合保留颜色和透明彩边。 |
+
+Feather 0 保留硬切线，100 使用不会越出条带或打开接缝的最大对称过渡。
+极窄条带中不同百分比可能看不出差别；只有一个输出像素时没有羽化空间，分析条带过窄时使用居中切线。
+关闭 Poisson Correction 时，条带外像素保留，只有舍入差异。
+
+**Contrast Compensation** 默认关闭。Feather 大于 0 时，它可减轻过渡中的对比度损失。
+**Strength (%)** 为 0–100。校正考虑源与候选的相似性，可能改变颜色。
+Strength 或 Feather 为 0 时不计算；Feather 为 0 时该控件不可用。
+两轴都开启时，第二次搜索使用第一次校正后的结果，因此可能选择不同片段。
+
+### 预览与计算
+
+- 来源保持可编辑，修改会更新结果，不会被该图层烘焙。
+- Patch Width 与 Feather 在松开滑块后应用。小尺寸预览可能选到不同片段和切线。
+- 普通预览限制为 512 像素；**Live Quality 100%** 不改变非绘画预览。选择 **Pencil** 但不要绘画，启用 **Tiled**，可在导出前检查完整分辨率。
+- Along-Seam Search 将现有候选预算分给直接和偏移条带；增加计算但不保证改善。
+- 只调整 Poisson Correction 会复用条带搜索；改变来源或 Quilting 参数需要重新搜索。相同候选只计算一次，不改变同种子结果或 Search Quality；计算仍会阻塞编辑，宽条带可能受益更多。
+- 对比度补偿增加计算；长时间闲置或改变尺寸后的首次计算可能更慢。
+
+**旧文档：**Feather 保存值直接按百分比读取，不迁移（16 即 16%），外观可能改变。
+打开不会自动重写文件。
+后续变换与 FX 可能破坏无缝性，还应检查最终合成。
+
+脚本与代理参见 [Make Seamless 参数参考](../AgentAPI.md#make-seamless-settings)和 [clipboard 示例](../Examples/Clipboard/seamless-noise.json)。
+若要修复区域而非连接对边，使用[内容感知填充](selection.md#根据现有纹理细节填充)。
 
 ## 正确保持边缘
 

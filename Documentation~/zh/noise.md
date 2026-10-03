@@ -14,24 +14,36 @@ translations: "en/noise.md,ru/noise.md,zh/noise.md"
 使用噪声来制作云层、颗粒、类似石头的图案，或作为高度贴图的起点。
 通过 Layers 底部的 **+ → Noise** 添加噪声图层，边观察图像边调整设置。
 
-噪声设置顶部的 **Random All** 会随机组合生成器参数，包括当前未启用的选项、
-以及 **Inverted**。Output 仅在 Color Values 和 Linear Data 之间随机切换；选定的 Gradient 保持不变。渐变配色、**Dimensions**、**Direction**、**Seamless**、链接的 Scale 和 Warp Scale 比例、**Offset X/Y/Z**、图层变换、混合和 FX 保持不变。
-一次撤销即可恢复上一个组合。**Seed** 旁的 **Random** 只改变种子。
-Noise Type 只会在当前组内切换：**White Noise / Blue Noise** 为一组，其余噪声类型为另一组。
+## 从图案开始
 
-Random All 会略微偏向主 Scale 平均值 `(X + Y) / 2` 接近 **8** 的结果。
-平滑钟形权重从 1 到 2，因此较远的尺度仍然常见。链接轴时，1–64 的随机范围
-应用于两轴的平均值而非 X，并保留原有比例。极端比例会因每轴 0.01–1000 的限制
-而缩小可用平均值范围。未链接时 X/Y 仍分别从 1–64 取样。Warp Scale 的随机分布不变。
+| 设置 | 可以尝试什么 |
+| :--- | :--- |
+| Noise Type | OpenSimplex2 或 Perlin 适合平滑变化；OpenSimplex2S 是更平滑的 OpenSimplex2；Cellular 生成单元格；Value 生成简单随机图案；ValueCubic 是平滑的 Value。 |
+| Seed | 在不改变图案特征的情况下改变图案。 |
+| Scale | 增大可获得更精细的细节，减小可获得更大的形状。 |
+| Offset | 移动图案。 |
+| Fractal | FBm 添加细节；Ridged 强调脊线；PingPong 创建重复条带；None 关闭分形。 |
+| Octaves | 添加更多细节层次。 |
+| Domain Warp | 弯曲并扭曲图案；**Warp Strength** 控制程度，None 关闭扭曲。 |
+| Warp Scale | Noise Scale 的 X/Y 倍率：每轴最终扭曲尺度为 `Scale × Warp Scale`。默认 [1,1]，每轴范围 0.01–1000。链条保持比例；断开后分别编辑。Random All 在 0.25–4 中选择并保持链接比例。 |
+
+如需更精细的控制，**Lacunarity** 会改变细节层次之间的间距，**Gain**
+会改变较小细节的显著程度。
+使用 Cellular 时，可以尝试 **Distance**、**Return** 和 **Jitter** 来改变细胞的形状和规律性。
+
 
 ## 轴向缩放、3D 切片与无缝噪声
 
 **Scale X/Y** 可分别调整两个方向的细节尺度。链条按钮按当前比例联动两个值；
 启用链接不会改变已有比例。尺度以画布较短边为基准。
 
+### 3D 切片
+
 OpenSimplex2、OpenSimplex2S、Cellular、Perlin、ValueCubic 和 Value 支持 **Dimensions → 3D**。
 此时 **Offset** 增加 **Z** 分量，用来选择体积噪声的二维切片。Cellular 的 3D 切片
 与普通 2D 单元格外观不同。Fractal 和 Domain Warp 在 2D、3D 中均可使用。
+
+### 无缝重复
 
 使用方形 **Seamless** 控件让噪声本身重复，而不是混合边缘。
 左右边缘一起切换 X 轴，上下边缘一起切换 Y 轴。选中四边启用 XY，取消两对边缘则关闭周期性。
@@ -50,28 +62,11 @@ Direction 为 0 时连接左右边缘，为 90 时连接上下边缘。任意角
 Fractal None 仍受最小单元限制。现有 2D 无缝 Simplex 图案可能改变，包括 Scale 大于 1
 的情况；其他噪声类型及 3D 保持不变。
 
-## 从图案开始
-
-| 设置 | 可以尝试什么 |
-| :--- | :--- |
-| Noise Type | OpenSimplex2 或 Perlin 适合平滑变化；OpenSimplex2S 是更平滑的 OpenSimplex2；Cellular 生成单元格；Value 生成简单随机图案；ValueCubic 是平滑的 Value。 |
-| Seed | 在不改变图案特征的情况下改变图案。 |
-| Scale | 增大可获得更精细的细节，减小可获得更大的形状。 |
-| Offset | 移动图案。 |
-| Fractal | FBm 添加细节；Ridged 强调脊线；PingPong 创建重复条带；None 关闭分形。 |
-| Octaves | 添加更多细节层次。 |
-| Domain Warp | 弯曲并扭曲图案；**Warp Strength** 控制程度，None 关闭扭曲。 |
-| Warp Scale | Noise Scale 的 X/Y 倍率：每轴最终扭曲尺度为 `Scale × Warp Scale`。默认 [1,1]，每轴范围 0.01–1000。链条保持比例；断开后分别编辑。Random All 在 0.25–4 中选择并保持链接比例。 |
-
-如需更精细的控制，**Lacunarity** 会改变细节层次之间的间距，**Gain**
-会改变较小细节的显著程度。
-使用 Cellular 时，可以尝试 **Distance**、**Return** 和 **Jitter** 来改变细胞的形状和规律性。
 
 Warp Scale 适用于 1D、2D 和 3D；Z 频率不变。启用 Seamless 时，根据相乘后的最终尺度
 为所选轴匹配完整晶格单元。当 BasicGrid 两个轴都只有一个单元时，扭曲变成均匀平移：
 增大 Warp Scale 倍率即可获得变化的扭曲，而无需增大噪声 Scale。
 例如 Scale 0.5 × Warp Scale 6 得到扭曲尺度 3。White/Blue Noise 忽略 Warp Scale。
-
 ## 白噪声
 
 选择 **Noise Type → White Noise** 可获得没有平滑过渡的随机颗粒。
@@ -103,10 +98,20 @@ White Noise 还支持 **Dimensions → 1D** 随机条带，详见[条纹噪声](
 
 ## 彩色纹理还是高度贴图？
 
-**Output → Gradient** 用选定的渐变为单色噪声着色，包括 Alpha 和 HDR 颜色。默认输出模式为 **Linear Data**；默认渐变为黑到白，插值为 **Perceptual**。**Inverted** 在所有输出模式中均可用，在渐变采样前反转噪声值。切换 Output 会保留渐变。彩色 White/Blue Noise 仅提供 Color Values 和 Linear Data；先前选定的 Gradient 暂时使用 Color Values，切回 Monochrome 后恢复。Random All 保留选定的 Gradient 模式和渐变配色；否则 Output 在 Color Values 和 Linear Data 之间随机切换。Inverted 仍可改变。
+**Output** 决定如何将噪声值转换为像素：
 
-选择 **Output → Color Values** 可显示原始噪声颜色，并使用 **Inverted**。
-当把它用作高度贴图或打包进纹理通道时，选择 **Output → Linear Data**。
+| Output | 用途 |
+| :--- | :--- |
+| Linear Data（默认） | 高度贴图及打包到通道的纹理数据。 |
+| Color Values | 将原始噪声显示为颜色。 |
+| Gradient | 用调色板映射单色值，包括其透明度和 HDR 颜色。 |
+
+**Inverted** 在渐变采样前反转数值，适用于所有输出模式。
+默认调色板是黑到白的 **Perceptual** 渐变；切换 Output 会保留它。
+
+彩色 White/Blue Noise 仅支持 Color Values 和 Linear Data。
+已保存的 Gradient 选择会暂时使用 Color Values，直到切回 Monochrome。
+Random All 会改变哪些设置，参见[随机变化](#随机变化)。
 
 要创建表面起伏：
 
@@ -118,3 +123,17 @@ White Noise 还支持 **Dimensions → 1D** 随机条带，详见[条纹噪声](
 
 **Tiled** 预览有助于检查接缝；使用 **Seamless** 使源噪声重复。
 关于下一步，请参见 [Normal Map](normal-map.md)。
+
+## 随机变化
+
+噪声设置顶部的 **Random All** 会随机组合生成器参数，包括当前未启用的选项、
+以及 **Inverted**。Output 仅在 Color Values 和 Linear Data 之间随机切换；选定的 Gradient 保持不变。渐变配色、**Dimensions**、**Direction**、**Seamless**、链接的 Scale 和 Warp Scale 比例、**Offset X/Y/Z**、图层变换、混合和 FX 保持不变。
+一次撤销即可恢复上一个组合。**Seed** 旁的 **Random** 只改变种子。
+Noise Type 只会在当前组内切换：**White Noise / Blue Noise** 为一组，其余噪声类型为另一组。
+
+### Random All 的 Scale 分布
+
+Random All 会略微偏向主 Scale 平均值 `(X + Y) / 2` 接近 **8** 的结果。
+平滑钟形权重从 1 到 2，因此较远的尺度仍然常见。链接轴时，1–64 的随机范围
+应用于两轴的平均值而非 X，并保留原有比例。极端比例会因每轴 0.01–1000 的限制
+而缩小可用平均值范围。未链接时 X/Y 仍分别从 1–64 取样。Warp Scale 的随机分布不变。

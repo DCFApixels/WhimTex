@@ -12,28 +12,40 @@ next_page: "zh/getting-started.md"
 
 # WhimTex 用户指南
 
-从第一份文档读到最终导出，或直接跳到你需要的工具。
+用 WhimTex 直接在 Unity 中绘制纹理、制作程序化 VFX 遮罩，并将图层组合为精灵。
+从第一张图像开始，或选择下方的工作流程。控件名称与编辑器一致。
 
-将 WhimTex 用作 Unity 纹理编辑器，进行快速修复和制作 VFX 纹理；或用作精灵编辑器，
-处理小型游戏图形。从一张图像开始，排列其图层，绘制细节并保存结果。
-本指南中的控件名称与编辑器中的标签一致。
+## 开始与组织
 
-- [从这里开始](getting-started.md)
-- [图层和组](layers.md)
-- [变换和栅格化](transform.md)
-- [画笔、铅笔和填充](painting.md)
-- [区域选区](selection.md)
-- [对称和无缝绘制](symmetry.md)
-- [效果图层](effects.md)
-- [混合和剪贴](blending.md)
-- [Shader FX 和 Processor](shader-fx.md)
-- [预览和导航](preview.md)
-- [颜色、HDR 和通道](color.md)
+- [入门](getting-started.md)：安装、第一张图像及工作区。
+- [图层与组](layers.md)：图像组成、来源和程序化形状。
+- [变换与栅格化](transform.md)：放置内容，并决定何时转换为像素。
+
+## 绘制与选择
+
+- [画笔、铅笔与填充](painting.md)
+- [区域选择](selection.md)
+- [对称与无缝绘制](symmetry.md)
+
+## 构建程序化效果
+
+- [噪声](noise.md)：图案、扭曲和无缝重复。
+- [效果图层](effects.md)：Outline、SDF、Blur 与 Make Seamless。
+- [Normal Map](normal-map.md)：从图像创建表面起伏。
+- [混合与剪贴](blending.md)：组合图层、约束覆盖范围。
+- [Shader FX 与处理器](shader-fx.md)：使用预设或自定义 HLSL。
+- [着色器参数控件](shader-controls.md)：自定义效果的可选语法参考。
+
+## 检查与交付
+
+- [预览与导航](preview.md)
+- [颜色、HDR 与通道](color.md)
 - [游戏后处理](post-fx.md)
-- [保存和导出](saving.md)
+- [保存与导出](saving.md)
 - [TIFF 文档](tiff-format.md)
+
+## 获取帮助或自动化
+
 - [键盘快捷键](shortcuts.md)
 - [自动化](automation.md)
-- [疑难解答](troubleshooting.md)
-
-对于生成的纹理，另请参见[噪声](noise.md)和[法线贴图](normal-map.md)。
+- [故障排查](troubleshooting.md)

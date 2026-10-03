@@ -12,28 +12,40 @@ next_page: "en/getting-started.md"
 
 # WhimTex user guide
 
-Read from first document to final export, or jump directly to the tool you need.
+Use WhimTex to paint textures, build procedural VFX masks and combine layers into sprites, directly in Unity.
+Start with a first image, or choose a workflow below. Control names match the editor.
 
-Use WhimTex as a Unity texture editor for quick fixes and VFX textures, or as a sprite editor
-for small game graphics. Start with an image, arrange its layers, paint the details and save the result.
-Control names in this guide match the labels in the editor.
+## Start and arrange
 
-- [Start here](getting-started.md)
-- [Layers and groups](layers.md)
-- [Transform and rasterize](transform.md)
+- [Start here](getting-started.md): installation, the first image and the workspace.
+- [Layers and groups](layers.md): separate parts, sources and procedural shapes.
+- [Transform and rasterize](transform.md): position content and decide when to turn it into pixels.
+
+## Paint and select
+
 - [Brush, Pencil and Fill](painting.md)
 - [Area selections](selection.md)
 - [Symmetry and seamless painting](symmetry.md)
-- [Effect layers](effects.md)
-- [Blending and clipping](blending.md)
-- [Shader FX and Processor](shader-fx.md)
+
+## Build procedural effects
+
+- [Noise](noise.md): patterns, distortion and seamless repetition.
+- [Effect layers](effects.md): Outline, SDF, Blur and Make Seamless.
+- [Normal Map](normal-map.md): surface relief from images.
+- [Blending and clipping](blending.md): combine layers and constrain their coverage.
+- [Shader FX and Processor](shader-fx.md): ready-made effects or custom HLSL.
+- [Shader parameter controls](shader-controls.md): optional authoring syntax for your own effects.
+
+## Inspect and deliver
+
 - [Preview and navigation](preview.md)
 - [Color, HDR and channels](color.md)
 - [Game post-processing](post-fx.md)
 - [Save and export](saving.md)
 - [TIFF document](tiff-format.md)
+
+## Get help or automate
+
 - [Keyboard shortcuts](shortcuts.md)
 - [Automation](automation.md)
 - [Troubleshooting](troubleshooting.md)
-
-For generated textures, also see [Noise](noise.md) and [Normal Map](normal-map.md).

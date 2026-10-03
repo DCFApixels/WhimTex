@@ -32,53 +32,87 @@ Use **+** at the bottom of Layers:
 
 ## Choose what the effect uses
 
-**Input → Previous** uses the layer directly below the effect in the same group.
-Choose **Specific** to use another layer or group. Click **Target** to choose from the list,
-or drag a layer into the field. **None (Layer)** means no source is selected.
-When dragging several selected layers, the active one becomes the target.
+| Input | Source |
+| :--- | :--- |
+| Previous | The layer directly below the effect, in the same group. |
+| Specific | The layer or group selected in **Target**. |
+| All Below | The combined visible layers below the effect, including opacity, blending and FX. |
 
-**All Below** uses the combined visible layers below the effect, with their opacity, blending and effects. It stays within the current group, even for Pass Through; at the root it uses the lower document stack. An empty stack is transparent. Target selection is hidden in this mode. An opaque background makes the combined alpha opaque, so Outline/SDF using Alpha cannot detect the separate silhouettes above that background. Choose Specific or place the sources in a separate group when you need those silhouettes.
+For **Specific**, choose Target from the list or drag a layer into the field.
+When dragging several selected layers, the active layer becomes the target. **None (Layer)** means no source is assigned.
 
-With Previous or Specific, you can hide the source and still see the effect. For a group, hide the group itself,
-not the children you want included. The effect uses only that group's contents, not the background behind it.
+Previous and Specific can use a hidden source. For a group, hide the group itself, not the children needed in the result.
+Only its contents are used, without the background behind it.
+
+**All Below** stays within the current group, even in Pass Through; at the root it uses the lower document stack.
+An empty stack is transparent, and Target is hidden.
+An opaque background also makes the combined alpha opaque: Outline/SDF using Alpha cannot separate silhouettes above it.
+Use Specific or a separate source group for those silhouettes.
 
 ## Outline and SDF
 
-Use **Outline** for a border around a shape. Adjust its width and softness,
-choose **Source Channel** (Alpha by default, or Red, Green, Blue or Luminance),
-then choose whether it sits inside, outside or across the edge.
+**Outline** adds a border. **SDF** turns distance from a contour into a gradual transition,
+useful for masks, glows or a height profile. Both keep the source editable.
 
-Use **SDF** when you want a gradual transition based on distance from the shape.
-In Gradient output, the palette supplies both color (including HDR) and transparency; it does not retain the source alpha.
-**Output → Gradient** is the default, with a black-to-white **Perceptual** gradient (black at 0, white at 1). **Inverted** remains available and reverses normalized distance before Profile and palette sampling. Choose **Output → Linear Data** for normalized distance as raw 0–1 RGB with opaque alpha and no color gamma conversion. Inverted and Profile apply in both modes. Switching Output preserves the palette and inversion setting. Signed values are low inside and high outside; both outputs therefore have the same brightness direction with the default palette.
-**Threshold** sets the contour threshold; **Max Distance (px, 0 = auto)** sets the transition distance.
-At 0, the distance is chosen automatically. **Position** selects which side receives the gradient:
-Outside covers the outside, Inside the inside, and Center both sides.
-The default, **Signed**, covers both sides of the contour. In both output modes, **Inverted** reverses normalized distance before Profile.
+### Outline: border and fill
 
-**Source Offset (px)** shifts the input while retaining the influence of contours moved outside the canvas. **Source Edges** extends the image as Transparent (default), Clamp, Repeat (including distances across seams), or Mirror. It cannot recover details already clipped by the source layer.
+Choose **Source Channel** (Alpha by default, or Red, Green, Blue or Luminance),
+then place the border inside, outside or across the edge.
 
-**Contour Offset (px)** expands the contour when positive and shrinks it when negative. In **Signed**, **Inside Distance** and **Outside Distance** independently set the interior/exterior range; 0 inherits Max Distance or auto. Before Profile, the contour maps to 0.5. **Profile** remaps the transition in both modes, after Inverted and before any palette sampling; linear leaves it unchanged. For bevel lighting, use Linear Data or a grayscale gradient and shape the height profile here.
+| Setting | Visible effect |
+| :--- | :--- |
+| Width (px) | Border width; fractional values are supported. |
+| Softness (px) | Feathers both sides without changing Width. Zero keeps a crisp, antialiased edge. |
+| Offset (px) | Moves the border inward when negative, outward when positive, without changing its width. |
+| Color | Border color. |
+| Fill Center / Fill Color | Adds a filled center with its own color and opacity. |
 
-Large offsets and Repeat use more memory. Extended domains above 64 million pixels report an error rather than silently cropping; reduce offset or resolution if needed.
-The distance algorithm changes the character of corners and diagonals:
-Euclidean gives rounded distances, while Manhattan and Chebyshev give more angular results.
+Try a small negative Offset if a border looks detached from a soft source.
+To back a drawing with a solid silhouette, place Outline below it and select that drawing as Specific input.
+Above the drawing, the fill covers it. Fill follows the contour, not the source's soft alpha; holes remain holes.
 
-For a source with smooth, partially transparent edges, choose **Distance Algorithm → Euclidean Antialiased**
-in either SDF or Outline. Outline follows the 50% threshold of its selected **Source Channel**, even across a broad soft transition;
-SDF uses its **Threshold** setting. Areas that never reach that threshold do not form a silhouette.
-Keep **Euclidean Exact** for a hard-threshold silhouette or pixel masks.
+### SDF: distance as a gradient or data
 
-Outline supports fractional **Width (px)** values. **Softness (px) = 0** keeps a crisp, smoothed edge;
-increasing **Softness (px)** feathers both sides without changing **Width (px)**.
-**Offset (px)** moves the border without changing its width: negative moves inward, positive outward.
-Try a small negative offset if the border looks detached from a soft source.
+Choose **Source Channel**: Alpha, an RGB channel or Luminance, including for groups.
+**Threshold** determines the contour; **Max Distance (px)** determines how far the transition extends. Zero selects the distance automatically.
 
-Enable **Fill Center** for a solid shape instead of a hollow border. **Color** sets the border color;
-**Fill Color** sets the center color and opacity independently. To back a soft drawing with a solid silhouette,
-place Outline below the drawing and set its Input to that specific layer. Above the drawing, the fill covers it.
-The fill follows the contour, not the source's original soft transparency. Holes in the source remain holes.
-For SDF, **Source Channel** can use Alpha, an individual RGB channel or Luminance, including when the source is a group.
+| Output | Result |
+| :--- | :--- |
+| Gradient (default) | The palette supplies RGB, HDR intensity and alpha. Source alpha is not retained. |
+| Linear Data | Normalized distance in raw 0–1 RGB, opaque alpha, without color gamma conversion. |
+
+The default palette is black at 0, white at 1, with **Perceptual** interpolation.
+**Inverted** reverses normalized distance; **Profile** then reshapes it before palette sampling.
+Both apply to both outputs. A linear Profile leaves the transition unchanged; changing Output preserves the palette and inversion.
+
+**Position** chooses the distance region: Outside, Inside, Center (both sides), or **Signed** (default).
+Signed is low inside and high outside; the contour maps to 0.5 before Profile.
+**Inside Distance** and **Outside Distance** set its two ranges independently; zero inherits Max Distance or auto.
+**Contour Offset (px)** expands the shape when positive and shrinks it when negative.
+
+For bevel lighting, use Linear Data or a grayscale gradient and shape the height with Profile.
+With the default palette, both outputs have the same inside-to-outside brightness direction.
+
+### Source edges and distance quality
+
+**Source Offset (px)** moves the SDF input while retaining the influence of contours beyond the canvas.
+**Source Edges** extends it as Transparent (default), Clamp, Repeat (including distance across seams) or Mirror.
+It cannot recover details already clipped by the source layer.
+
+Large offsets and Repeat need more memory. If the extended calculation exceeds 64 million pixels,
+reduce the offset or resolution; WhimTex reports an error instead of silently cropping.
+
+The distance algorithm changes corners and diagonals:
+
+| Algorithm | Result |
+| :--- | :--- |
+| Euclidean | Rounded distance contours. |
+| Manhattan / Chebyshev | More angular contours. |
+| Euclidean Antialiased | Follows a smooth, partially transparent source edge. |
+| Euclidean Exact | Hard-threshold silhouette, useful for pixel masks. |
+
+With Euclidean Antialiased, Outline follows 50% of the selected Source Channel; SDF uses Threshold.
+Regions that never reach that threshold do not form a silhouette.
 
 ## Blur
 
@@ -93,19 +127,6 @@ use a larger radius for broad, soft shapes.
 **Strength (%)** controls intensity: 0% shows the original, 100% gives normal blur,
 and up to 400% makes translucent areas denser without changing the radius or brightening the colors.
 Values above 100% do not change fully opaque areas.
-
-## Sharpen
-
-Add **Sharpen** to restore local edge contrast without changing the source alpha.
-Choose **Gaussian** for conventional unsharp masking or **Adaptive** to favor coherent edges
-over weak, directionless detail using a local edge-coherence mask. **Strength (%)** controls the
-amount (0–400%) and **Radius (px)** controls the comparison distance in canvas pixels.
-**Threshold** sets the minimum detail to sharpen. **Noise Reduction** further suppresses irregular
-detail in Adaptive mode only; it does not remove noise already in the source. **Halo Suppression**
-limits edge overshoot. **Channels** can process RGB or luminance. **Edges** chooses
-Transparent, Clamp, Repeat or Mirror sampling outside the source. The operation preserves HDR color values.
-During an active edit WhimTex uses a faster approximation; the wider Gaussian-weighted result
-is calculated when the interaction settles.
 
 To blur several layers together:
 
@@ -123,119 +144,128 @@ Choose **Circular** for a rotating trail, then set **Center** and **Arc**.
 **Strength** below 100% brings back more of the sharp original.
 Above 100%, it makes translucent trails denser without making them longer.
 
+## Sharpen
+
+Add **Sharpen** to restore local edge contrast without changing the source alpha.
+Choose **Gaussian** for conventional unsharp masking or **Adaptive** to favor coherent edges
+over weak, directionless detail using a local edge-coherence mask. **Strength (%)** controls the
+amount (0–400%) and **Radius (px)** controls the comparison distance in canvas pixels.
+**Threshold** sets the minimum detail to sharpen. **Noise Reduction** further suppresses irregular
+detail in Adaptive mode only; it does not remove noise already in the source. **Halo Suppression**
+limits edge overshoot. **Channels** can process RGB or luminance. **Edges** chooses
+Transparent, Clamp, Repeat or Mirror sampling outside the source. The operation preserves HDR color values.
+During an active edit WhimTex uses a faster approximation; the wider Gaussian-weighted result
+is calculated when the interaction settles.
+
 ## Make Seamless
 
-Add **+ → Make Seamless** above a texture or group. Select the source with **Input**,
-then hide the source itself if you want to see only the processed result.
+Add **+ → Make Seamless** above a texture or group, choose **Input**, and hide the source if you want to see only the processed result.
+Enable **Tiled** to compare the repeated edges.
 
-**Method** offers **Offset Blend** (the default for new layers), **Mirror**, **Screened Poisson**, and **Patch Quilting**.
-Existing layers keep their saved mode.
-New layers use **Blend Width 20%**, **Transition Start -25%** and enabled **Poisson Correction → All Edges**
-for both Offset Blend and Mirror. All Offset copy edges and both Mirror reflection axes are enabled.
-Existing layers retain their settings; switching methods does not reset them.
+| Method | How it joins edges | Main trade-off |
+| --- | --- | --- |
+| **Offset Blend** | Blends copies shifted by half a period. | A useful starting point for noise and surfaces; colors and repeated details can change. |
+| **Mirror** | Reflects the opposite edge into a transition strip. | Fast to adjust, but recognizable details may look mirrored. |
+| **Screened Poisson** | Applies a smooth correction to opposing edges. | Can also change the center and other edges; it does not reconstruct matching details. |
+| **Patch Quilting** | Finds strips in the source and joins them along a low-error cut. | Can retain sharper detail, but may repeat features or leave visible joins in smooth noise. |
 
-**Copy Edges**, **Mirror Direction** and **Patch Edges** select the main pass; **Poisson Edges** selects the independent correction pass. Clearing a pass's edges disables its dependent settings, not the selectors or another pass. Values are retained. Quilting's Contrast Compensation is unavailable at **Feather 0%**; raise Feather to use it again.
+New layers use **Offset Blend**. Offset Blend and Mirror start with **Blend Width 20%**, **Transition Start −25%**, and **Poisson Correction → All Edges** enabled.
+All copy edges and both mirror axes start enabled. Switching methods retains each method's settings; existing layers keep their saved values.
 
-Linked opposite edges highlight together on hover. Click the center image to invert the selection.
-For **Mirror Direction**, the center instead turns both axes off if either is active; clicking again
-enables both, Left To Right and Bottom To Top.
+### Edges and channels
 
-**Contrast Compensation** adds computation. The first evaluation after a long idle period or a size change can take longer than subsequent updates.
+**Channels → R / G / B / A** chooses which channels receive the result; all start enabled.
+Turn off A to retain source transparency. With all channels off, seam processing is bypassed.
+Later FX, Swizzle and layer blending can still change the image.
 
-**Channels — R / G / B / A** selects which channels receive seam processing in every mode,
-including Mirror's optional compensation and correction. All four are enabled by default.
-Unchecked channels retain their input values. Disable **A** to keep the original transparency;
-disable all four to bypass seam processing. Subsequent layer FX, Swizzle and blending can still change the final appearance.
+The square selects edges of the current pass:
 
-**Screened Poisson** globally smooths selected pairs of opposite edges. **Poisson Edges** offers
-**All Edges** (default), **Top & Bottom** (vertical tiling), and **Left & Right** (horizontal tiling).
-Click edges of the square to toggle opposite edges together. Both pairs can be cleared to skip this pass; the selector stays interactive.
-This also applies to Patch Quilting edges and every Poisson Correction selector. Their selections are independent.
-**Radius (%)** (0.5–25, default 5) controls the correction distance relative to the smaller dimension.
-There is no hard edge-band boundary. Interior brightness is preserved approximately, and unselected
-edges may also change, but are not joined. The layer updates with its source; Mirror controls do not apply.
-Highlights can exceed the output range and clip; continuous details are not guaranteed.
-Check **Tiled** preview. No document migration or automatic file rewrite is performed.
+- **Copy Edges:** four independent edges for Offset Blend.
+- **Mirror Direction:** an edge is the destination for a reflection of the opposite edge. Click it again to disable the axis, or click the opposite edge to reverse direction. Two enabled axes also join the corners.
+- **Patch Edges / Poisson Edges:** opposing edges toggle together. **Top & Bottom** repeats vertically; **Left & Right** horizontally; **All Edges** enables both. Both pairs can be off.
 
-**Offset Blend** blends half-period-shifted copies instead of reflections.
-**Blend Width (%)** (2–50, default 20) controls the bands.
-**Transition Start (%)** (-100–95, new-layer default -25) sets where fading starts within each band,
-not across the canvas. Before that point the strip is fully copied. Lower values spread the
-transition over more of the band; 0 starts at the edge. Higher values narrow the transition.
-Negative values start outside the canvas and can bring back the seam. Enable **Poisson Correction**
-and select the required edge pairs if needed. It is on for new layers, but changing Transition Start does not toggle it.
-Optional corrections:
+Linked edges highlight together. Clicking the center inverts the selection.
+For Mirror, it disables both axes if either is active; the next click enables Left To Right and Bottom To Top.
+Disabling a pass greys out its dependent fields, not the square or the other pass, and retains its values.
 
-- **Contrast Compensation** (on by default) reduces contrast loss; **Strength (%)**
-  (0–100, default 100) sets its strength. Off or zero skips histogram analysis.
-- **Poisson Correction** (on by default) adds a global Screened Poisson pass with its own
-  **Poisson Edges** choice, independent of the copy edges. It can change pixels outside the blend bands.
-  **Automatic Radius** defaults on, using one quarter of
-  Blend Width, minimum 0.5%. Disable it to set **Radius (%)** (0.5–25) manually.
-  Radius is relative to the smaller dimension. This pass costs more and can exceed the color range.
+**Poisson Correction has its own edges.** It can run even when copying, mirroring or patching is disabled.
 
-Repeated details and colors can change, especially on non-noise images.
-Distribution preservation is approximate; check **Tiled**.
-The layer updates with its source and does not bake the result.
+### Offset Blend
 
-In Offset Blend, click the four edges around the image icon to select copy bands independently.
-All are enabled by default. With Poisson Correction off, pixels outside the bands stay unchanged
-(apart from float/alpha roundoff); overlapping bands share corners. Bands have a minimum of two pixels.
-Turning all copy edges off skips copying, but an enabled Poisson Correction still runs.
+| Control | Effect |
+| --- | --- |
+| **Blend Width (%)** | Width of the copied strips: 2–50%, default 20. |
+| **Transition Start (%)** | Start of fading within the strip, not the whole canvas: −100…95%, default −25. Before this point, the copy has full influence. |
+| **Contrast Compensation / Strength (%)** | Reduce contrast lost through blending. Enabled by default; Strength 0–100%, default 100. |
 
-**Patch Quilting** searches for translated strips from the source and joins them along low-error cuts.
-It repairs boundary bands without resynthesizing the whole image. It can retain sharp details,
-but may duplicate motifs or leave visible cut lines on soft noise. Compare in **Tiled** preview.
+A lower Transition Start widens the fade; 0 starts at the edge. Positive values narrow it.
+Negative values extend the fade beyond the canvas and may bring back a seam. **Poisson Correction** can reduce that seam; changing Transition Start does not toggle it.
 
-- **Patch Edges:** All Edges, Top & Bottom, or Left & Right; opposite edges toggle together on the square.
-- **Patch Width (%)** (2–45, default 20): width of each repaired edge band. Wider bands allow more room for cuts but change more of the image.
-- **Feather (%)** (0–100, default 50): share of the available transition width, independently for each cut. 0 keeps a hard cut; 100 uses the widest safe centered transition without leaving the band or reopening the tile join. Blends patches, not a texture blur. It is not a percentage of Patch Width.
-- **Contrast Compensation** (off by default) reduces contrast loss inside Feather transitions. **Strength (%)** controls its strength (0–100). It considers how similar the source and selected patch are; colors can change. It adds processing cost when enabled, but does nothing at zero strength or Feather 0%. With both edge pairs selected, the second pass uses the compensated first pass and may choose a different patch.
-- **Search Quality:** Draft, Normal (default), High. Higher quality searches more candidates on a finer analysis grid and is slower; it does not guarantee a better-looking result.
-- **Along-Seam Search (%):** 0–25%, default 0 (original search). Adds donor displacement along the seam, measured against usable strip length. Displacement tapers to zero at the ends without wrapping; details can stretch. Nonzero values divide the same candidate budget between straight and shifted strips and cost more to evaluate; improvement is not guaranteed.
-- **Seed / Random:** try another repeatable donor selection. Some seeds can produce the same result.
-- **Channel Matching:** Linked (default) keeps one patch/cut for the selected color channels; Independent searches each checked channel separately, useful for packed masks/noise but not for preserving color relationships or transparent color edges.
-- **Poisson Correction** (off by default): optional global correction, with independent **Poisson Edges** and **Radius (%)** (0.5–25, default 5). It can change the center, contrast and HDR range.
+Strips overlap at corners and are at least two pixels wide. Without Poisson Correction, pixels outside them remain unchanged apart from floating-point/alpha rounding.
+Contrast compensation preserves the distribution approximately, not exactly. Disabling it or setting Strength to 0 skips histogram analysis.
 
-With correction off, pixels outside the repaired bands stay unchanged apart from floating-point rounding.
-Patch Width and Feather update after releasing the slider. Narrow analysis bands use centered cuts with Feather still active. A one-pixel output band has no room for smoothing; with very few pixels, different percentages can look identical.
-Existing Feather numbers are now percentages without migration: a saved 16 becomes 16%, so old results can change.
-Reduced-resolution previews can choose different patches and cuts. Ordinary preview is limited to 512 pixels; **Live Quality 100%** is not a full-resolution switch for non-painting preview. Select **Pencil** without painting and enable **Tiled** to check the full-resolution result before saving or exporting.
-Patch search is accelerated without reducing the chosen Search Quality. Adjusting Poisson Correction
-does not repeat the patch search; changing the source or quilting controls still requires a new search.
-High search also avoids evaluating identical candidate patches repeatedly, without changing the chosen
-result for the same seed. This can help more with wide patch bands; recalculation still blocks the editor.
+### Mirror
 
-In **Mirror**, click an edge of the square image control to choose the destination for the reflected opposite edge.
-Click the highlighted edge again to turn that axis off; choosing its opposite switches direction.
-An axis with no highlighted edge remains unchanged. The copied strip is mirrored and fades into the original;
-when both axes are enabled, the corners are joined too.
+**Blend Width (%)** sets the transition width. **Falloff** concentrates reflection closer to the destination edge as it increases.
+The reflected strip fades into the original; an axis with no selected edge is unchanged.
 
-**Blend Width (%)** widens the transition. **Falloff** controls its shape: higher values keep
-the reflection closer to the destination edge. Enable **Tiled** to inspect the joins while adjusting.
-**Transition Start (%)** (-100–95, new-layer default -25) sets where reflection starts fading within Blend Width.
-Zero keeps the original transition; positive values delay and narrow it. Negative values extend the
-transition beyond the canvas and may expose a seam; enable **Poisson Correction** if needed.
-It works with and without Contrast Compensation, independently of Offset Blend's setting.
+**Transition Start (%)** uses −100…95%, default −25, within Blend Width.
+Zero keeps the original fade profile; positive values delay and narrow it, negative values broaden it beyond the canvas and may reintroduce a seam.
+It works with or without Contrast Compensation and is independent of Offset Blend's setting.
 
-For scripted or AI-authored layers, see the [Make Seamless parameter reference](../AgentAPI.md#make-seamless-settings)
-and [clipboard recipe](../Examples/Clipboard/seamless-noise.json).
+**Contrast Compensation** is off by default. It blends reflected pixels with histogram-based compensation to reduce contrast loss, but can change colors and does not remove mirrored motifs.
+**Strength (%)** is 0–100; 0 uses ordinary Mirror.
 
-Mirror offers two independent options: Contrast Compensation is off and Poisson Correction is on for new layers:
+### Screened Poisson and Poisson Correction
 
-- **Contrast Compensation** enables histogram-based mixing of reflected pixels. **Strength (%)**
-  controls its strength (0–100); 0 keeps ordinary Mirror. It reduces contrast loss in the fade,
-  but may change colors and does not remove mirrored motifs.
-- **Poisson Correction** adds a global Screened Poisson pass with an independent **Poisson Edges** choice.
-  **Automatic Radius** defaults on: one quarter of **Blend Width**, minimum 0.5%. The Radius field
-  displays this value read-only. Disable Automatic Radius to restore and edit the saved manual radius.
-  **Radius (%)** (0.5–25, default 5) controls its reach relative to the smaller dimension,
-  without confinement to **Blend Width**. It can change the interior and other edges, and runs even
-  when both reflection axes are Off. Highlights may clip. This option increases render cost substantially.
+**Radius (%)** controls the correction's reach relative to the shorter image side: 0.5–25%, default 5.
+The correction has no hard strip boundary. It approximately preserves central brightness, but may change the center and unselected edges; only selected edge pairs are joined.
+Bright values may leave the permitted range and clip. Mirror controls do not affect this method.
 
-This is useful for noise and surface textures, but recognizable shapes may look mirrored near a join.
-Further transforms or effects can change the matching edges, so check the final tiled result as well.
-To repair a region using nearby detail rather than join opposite edges, use [content-aware fill](selection.md#fill-from-existing-texture-details).
+Offset Blend, Mirror and Patch Quilting offer the same operation as **Poisson Correction**:
+
+- Each has an independent **Poisson Edges** selection. Its reach is not restricted to the copy/patch strip.
+- Correction is on by default for Offset Blend and Mirror, off for Patch Quilting.
+- Offset Blend and Mirror also have **Automatic Radius**, on by default: one quarter of Blend Width, with a minimum of 0.5%. The Radius field shows the calculated value; turn Automatic Radius off to restore and edit the saved manual radius.
+- Correction adds calculation time. Check both contrast and seams in Tiled view.
+
+### Patch Quilting
+
+Only edge strips are reconstructed, not the whole image.
+
+| Control | Effect |
+| --- | --- |
+| **Patch Width (%)** | Width of each strip: 2–45%, default 20. Wider strips allow more cut placement but change more of the image. |
+| **Feather (%)** | Share of the available symmetric blend around each cut: 0–100%, default 50. This blends patches, not a texture blur or a percentage of Patch Width. |
+| **Search Quality** | Draft, Normal (default), High. Higher settings test more candidates at higher analysis resolution; they cost more and do not guarantee a better-looking result. |
+| **Along-Seam Search (%)** | Shift donor strips along the seam: 0–25%, default 0. Zero uses unshifted candidates. Shifts fade at strip ends without wrapping and may stretch detail. |
+| **Seed / Random** | Choose another reproducible match. Different seeds can select the same result. |
+| **Channel Matching** | **Linked** (default) shares the donor and cut across selected channels. **Independent** matches each channel separately: useful for packed maps, not for preserving color and transparent colored edges. |
+
+Feather 0 leaves a hard cut; 100 uses the widest symmetric transition available without leaving the strip or opening the seam.
+Very narrow strips may show little difference between percentages. At one output pixel there is no room for feathering; a tiny analysis strip uses centered cuts.
+Without Poisson Correction, pixels outside the strips are retained apart from rounding.
+
+**Contrast Compensation** is off by default. With Feather above 0, it can reduce contrast loss inside the fade.
+**Strength (%)** is 0–100. The correction considers the similarity of the source and donor and may change colors.
+At Strength 0 or Feather 0 it does no work; the control is unavailable at Feather 0.
+With both axes enabled, the second search uses the first corrected result and can choose a different patch.
+
+### Preview and calculation
+
+- Sources remain editable: changes update the result; the layer does not bake them.
+- Patch Width and Feather apply after releasing their sliders. A smaller preview can choose different patches and cuts.
+- Ordinary preview is limited to 512 pixels. **Live Quality 100%** does not change that outside painting. Select **Pencil** without painting and enable **Tiled** to check full resolution before export.
+- Along-Seam Search shares the existing candidate budget between straight and shifted strips; it adds work without guaranteeing improvement.
+- Poisson-only adjustments reuse the patch search; source or Quilting changes require a new search. Duplicate candidates are evaluated once without changing the same-seed result or the selected Search Quality. Calculation still blocks editing; the benefit can be larger for wider strips.
+- Contrast compensation adds work; the first calculation after a long idle period or size change can take longer.
+
+**Older documents:** saved Feather values are now percentages without migration (16 means 16%), so the result may differ.
+Loading does not automatically rewrite files.
+Later transforms and FX may break seamlessness; check the final composite as well.
+
+For scripts and agents, see the [Make Seamless parameter reference](../AgentAPI.md#make-seamless-settings) and [clipboard recipe](../Examples/Clipboard/seamless-noise.json).
+To repair an area rather than join opposite edges, use [Content-Aware Fill](selection.md#fill-from-existing-texture-details).
 
 ## Keep the edges right
 

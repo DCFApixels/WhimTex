@@ -9,30 +9,6 @@ search_exclude: true
 
 # Shader authoring
 
-### Height-based lighting
-
-Normal Lighting and Bevel Emboss share `SurfaceLighting.cginc`. `_BaseColor.a` blends transparent lighting (0) into a filled surface (1), using premultiplied interpolation and returning straight alpha. Surface RGB uses `_BaseColor.rgb`, Lambert lighting, `_LightColor`, `_ShadowColor`, `_Intensity` and `_Ambient`; its coverage is the host input alpha, without another Base Color alpha multiplication. Transparent lighting subtracts flat-normal lighting and ignores host alpha/Base Color RGB/Ambient. `_Output` selects Both (0), HighlightOnly (1), ShadowOnly (2) for that component only; tint alpha scales its strength. Both effects default to Base Color alpha 0. There is no Render Mode parameter. Identical normals and common parameters produce identical output. The common include is expanded by Copy as JSON.
-
-Lighting/Bevel Emboss is a regular FX over a `texture2D _HeightMap = self` input. It works on any layer, without raw SDF access or layer-specific outputs. Height Channel selects luminance, R, G, B or alpha; RGB channels are multiplied by image alpha before the 0–1 input is mapped through Profile. Depth controls relief strength/sign; Smoothing is the normal sampling radius in document pixels. Output selects Both, Highlight Only or Shadow Only. Output RGB is the light/shadow tint; straight alpha is lighting strength times tint alpha, independent of host alpha. Flat areas are transparent. Choose compositing through the layer blend mode; use separate light/shadow layers for independent modes. SDF bevel width comes from the visible height gradient and Max Distance, not an FX width parameter. The former raw-distance helpers are no longer provided; re-add the preset to replace an older embedded version.
-
-### Texture sources
-
-`// @param texture2D _Source = self` samples the image immediately before this FX, including earlier effects but excluding this and later effects. It reuses the existing input texture without recursively rendering the layer. On groups it reads the composed group input. `// @param texture2D _Source = none` samples transparent black. Both defaults survive HLSL preset export and copying; Self stores no layer ID. Without a default, the existing Texture mode uses white when no asset is assigned. The UI offers Texture, Layer, None and Self. Live FX parameter values also accept the strings `"self"` and `"none"`.
-
-### Layer-backed texture parameters
-
-The `texture2D` declaration and `tex2D` sampling syntax are unchanged. In the editor, choose Texture or Layer. Layer references store a same-document layer ID and resolve the standalone rendered result, including transforms and FX, without its lower backdrop. Disabled sources are allowed as with SDF Target; a disabled Shader Processor retains its bypass semantics. Groups supply full-color contents. Missing or cyclic sources bind transparent pixels.
-
-Layer inputs use the shared effect-render cache for deterministic sources. Shader FX and Shader Processor
-results are cached when their inputs and serialized parameters are unchanged; the cache also tracks
-external texture updates and referenced layer stamps. Switching sources does not recompile HLSL.
-HLSL preset export omits document-local layer bindings. Unified document/clipboard JSON stores them
-in `modifiers[].parameters[]` as `textureSource: "Layer"` and `textureLayerId`; include the source layer
-in the exported tree. Copy as JSON rejects missing required dependencies, and insertion remaps their IDs.
-The live FX API instead accepts a texture parameter value `{ "layer": "layer-id" }`.
-Ordinary Ctrl+C and cross-window dragging remap copied sources and clear uncopied external sources
-when pasting into another document; they are not the JSON export path.
-
 For browser AI generation, start with the [JSON layers and HLSL authoring guide](AI/README.md).
 It is self-contained and includes clipboard-ready examples.
 
@@ -41,10 +17,6 @@ Code and parameters can live inside the document. For an effect on the already-c
 stack below a position, add a **Shader Processor** layer instead.
 
 ## Shader FX: a first snippet, parameters and reusable code
-
-The stack's **Apply All** and **⋮ → Apply** bake rendered pixels; they are distinct from compiling code with **Code → Apply**. A per-FX bake consumes the inclusive prefix, preserving the remaining stack. The result is Drawing with unchanged logical Transform; serialized pixel-frame compensation prevents double-transforming the snapshot, and converted groups retain their FX coordinate frame. Painting uses the pixel frame, while Transform editing uses the logical frame. The snapshot is canvas-sized linear half-float, before layer opacity/blending/swizzle/clipping.
-
-Shader Processor baking reconstructs its stack-position backdrop, inheriting external input through Pass Through ancestors and starting transparent inside isolated/clipped groups. Its Normal becomes Overwrite; Drawing stores `processorSnapshot` and `processorNormalBlend` to retain premultiplied before/after opacity interpolation instead of ordinary straight-RGBA Overwrite. Other blend modes retain their ordinary behavior. Processor snapshots remain clipping boundaries so existing orphan clipping layers do not acquire a new base; explicitly enabling clipping on the Drawing opts into ordinary clipping semantics. The lower layers are unchanged, but their future edits no longer regenerate the snapshot. Flags survive repeated Apply, native clipboard, TIFF and Undo/Redo.
 
 Declare the parameter in the code, then click **Apply**:
 
@@ -77,6 +49,32 @@ after Save As to another folder, check relative paths. Libraries must suit the f
 **+ Reference** links an external FX shared by its users; **Embed** makes an independent document-owned
 copy. Save As and layer duplication copy embedded FX independently. FX run in order after Transform;
 changing parameter values does not regenerate shaders.
+
+## Texture inputs and lighting
+
+### Height-based lighting
+
+Normal Lighting and Bevel Emboss share `SurfaceLighting.cginc`. `_BaseColor.a` blends transparent lighting (0) into a filled surface (1), using premultiplied interpolation and returning straight alpha. Surface RGB uses `_BaseColor.rgb`, Lambert lighting, `_LightColor`, `_ShadowColor`, `_Intensity` and `_Ambient`; its coverage is the host input alpha, without another Base Color alpha multiplication. Transparent lighting subtracts flat-normal lighting and ignores host alpha/Base Color RGB/Ambient. `_Output` selects Both (0), HighlightOnly (1), ShadowOnly (2) for that component only; tint alpha scales its strength. Both effects default to Base Color alpha 0. There is no Render Mode parameter. Identical normals and common parameters produce identical output. The common include is expanded by Copy as JSON.
+
+Lighting/Bevel Emboss is a regular FX over a `texture2D _HeightMap = self` input. It works on any layer, without raw SDF access or layer-specific outputs. Height Channel selects luminance, R, G, B or alpha; RGB channels are multiplied by image alpha before the 0–1 input is mapped through Profile. Depth controls relief strength/sign; Smoothing is the normal sampling radius in document pixels. Output selects Both, Highlight Only or Shadow Only. Output RGB is the light/shadow tint; straight alpha is lighting strength times tint alpha, independent of host alpha. Flat areas are transparent. Choose compositing through the layer blend mode; use separate light/shadow layers for independent modes. SDF bevel width comes from the visible height gradient and Max Distance, not an FX width parameter. The former raw-distance helpers are no longer provided; re-add the preset to replace an older embedded version.
+
+### Texture sources
+
+`// @param texture2D _Source = self` samples the image immediately before this FX, including earlier effects but excluding this and later effects. It reuses the existing input texture without recursively rendering the layer. On groups it reads the composed group input. `// @param texture2D _Source = none` samples transparent black. Both defaults survive HLSL preset export and copying; Self stores no layer ID. Without a default, the existing Texture mode uses white when no asset is assigned. The UI offers Texture, Layer, None and Self. Live FX parameter values also accept the strings `"self"` and `"none"`.
+
+### Layer-backed texture parameters
+
+The `texture2D` declaration and `tex2D` sampling syntax are unchanged. In the editor, choose Texture or Layer. Layer references store a same-document layer ID and resolve the standalone rendered result, including transforms and FX, without its lower backdrop. Disabled sources are allowed as with SDF Target; a disabled Shader Processor retains its bypass semantics. Groups supply full-color contents. Missing or cyclic sources bind transparent pixels.
+
+Layer inputs use the shared effect-render cache for deterministic sources. Shader FX and Shader Processor
+results are cached when their inputs and serialized parameters are unchanged; the cache also tracks
+external texture updates and referenced layer stamps. Switching sources does not recompile HLSL.
+HLSL preset export omits document-local layer bindings. Unified document/clipboard JSON stores them
+in `modifiers[].parameters[]` as `textureSource: "Layer"` and `textureLayerId`; include the source layer
+in the exported tree. Copy as JSON rejects missing required dependencies, and insertion remaps their IDs.
+The live FX API instead accepts a texture parameter value `{ "layer": "layer-id" }`.
+Ordinary Ctrl+C and cross-window dragging remap copied sources and clear uncopied external sources
+when pasting into another document; they are not the JSON export path.
 
 ## External code editors
 
@@ -399,3 +397,9 @@ In Pass Through groups it also sees the external backdrop; isolated groups restr
 children. Standalone previews and rasterization evaluate lower siblings against transparency.
 Processors are clipping-chain boundaries, not clipping layers or bases. PSD bakes the composite
 and retains the original layers in a hidden Source Layers folder.
+
+## Baking implementation
+
+The stack's **Apply All** and **⋮ → Apply** bake rendered pixels; they are distinct from compiling code with **Code → Apply**. A per-FX bake consumes the inclusive prefix, preserving the remaining stack. The result is Drawing with unchanged logical Transform; serialized pixel-frame compensation prevents double-transforming the snapshot, and converted groups retain their FX coordinate frame. Painting uses the pixel frame, while Transform editing uses the logical frame. The snapshot is canvas-sized linear half-float, before layer opacity/blending/swizzle/clipping.
+
+Shader Processor baking reconstructs its stack-position backdrop, inheriting external input through Pass Through ancestors and starting transparent inside isolated/clipped groups. Its Normal becomes Overwrite; Drawing stores `processorSnapshot` and `processorNormalBlend` to retain premultiplied before/after opacity interpolation instead of ordinary straight-RGBA Overwrite. Other blend modes retain their ordinary behavior. Processor snapshots remain clipping boundaries so existing orphan clipping layers do not acquire a new base; explicitly enabling clipping on the Drawing opts into ordinary clipping semantics. The lower layers are unchanged, but their future edits no longer regenerate the snapshot. Flags survive repeated Apply, native clipboard, TIFF and Undo/Redo.
