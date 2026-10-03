@@ -4,8 +4,15 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+## [0.12.5] - 2026-10-03
+
 ### Added
 
+- TIFF output has an sRGB/Linear encoding switch. Switching preserves apparent colors and alpha; saving applies the chosen encoding. The Texture Importer's sRGB setting stays synchronized, and Float32 output remains Linear.
+- Drag selected layers between WhimTex windows to copy them with their settings, FX and original Drawing pixels, without removing the source layers.
+- Noise supports 3D slices for all six lattice types, with a Z Offset and seamless X/Y repetition through Fractal and Domain Warp. Noise Scale has independent, proportionally linkable X/Y axes; paired edge controls select seamless axes without blending the borders.
+- Noise offers Linear Data (default), Color Values and Gradient output; SDF offers Gradient (default) and Linear Data. Gradient output includes palette alpha and HDR colors, with Perceptual defaults for Noise and SDF palettes. Switching output preserves the palette; Inverted works before palette sampling.
+- Noise Warp Scale has independent, proportionally linkable X/Y multipliers of Noise Scale, including in 1D and 3D. Random All preserves linked proportions and chooses multipliers from 0.25 to 4; seamless warp fits whole cells to selected axes.
 - A unified Export window with format-specific settings and a separate final path selection. JSON defaults to Full Optimized and warns before omitting Drawing pixels; JPEG exposes quality, and EXR exposes precision and lossless compression. Canceling path selection retains settings; errors leave the window open. Save As remains separate.
 - Failed or uncompiled Shader FX have warning markers in Layers and both FX headers. JSON retains broken source and parameters while skipping the effect; repeated identical failures are not logged again for the same effect instance. Successful Apply restores the effect. Optional JSON write mode survives reopening and ordinary saves without changing on one-off export.
 
@@ -37,6 +44,11 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Canvas now names the editable image area; Canvas View names the panel that displays it; Layer Preview names the separate layer result. Matching UI/source names and EN/RU/ZH guides are aligned while existing guide URLs, saved preferences and compatibility aliases remain available.
+- Artist guides are organized around practical results and controls, with Shader FX authoring details in a separate technical reference. JSON workflows and warnings are consistent across the localized guides and AI contracts.
+- Gradients use Rounded smoothing for both new and existing artwork, with smoother transitions into held colors and reduced opposing-chroma saturation in Perceptual mode. Key positions and midpoints are retained; Fixed remains stepped and ignores smoothing.
+- History and gradient Presets share foldout behavior and remember their expanded state between sessions.
+- Seamless 2D OpenSimplex2/2S fractals fit a separate period for each octave, allowing coarser detail below Scale 1 while retaining whole-cell steps.
 - JSON paste now preserves FX with compilation failures, matching document opening: warnings identify skipped effects, while source, parameter values and enabled state remain available for repair. Invalid document structure and dependencies still block insertion.
 - Layers now labels its shared-format clipboard export Copy as JSON. Browser-AI instructions and nine procedural recipes use the unified document contract; legacy input syntax and URL-image support are documented separately without removing compatibility.
 - JSON Export uses the plain `.json` extension; existing `.whimtex.json` files remain readable. Save As saves TIFF directly, without a format submenu; Ctrl+S still saves an opened JSON document in place.
@@ -47,10 +59,10 @@ All notable changes to WhimTex are documented in this file.
 - Noise Random All preserves the 1D Direction setting as well as Offset and Seamless.
 
 - Gradient Map FX now applies gradient alpha, multiplied by source alpha and blended by FX strength. Opaque gradients retain the previous appearance.
-- New brush-tip gradients now default to Perceptual, matching brush tint, agent settings/strokes and brush clipboard import without an explicit mode. Existing gradients and explicit modes are preserved; SDF and Pattern defaults remain Linear.
+- New brush-tip gradients now default to Perceptual, matching brush tint, agent settings/strokes and brush clipboard import without an explicit mode. Existing gradients and explicit modes are preserved; Pattern defaults remain Linear.
 
 - History hides HDR colors while HDR is disabled in the color picker or selected gradient key, without removing saved colors. Re-enabling HDR restores them.
-- New general-purpose gradients default to Perceptual, including FX, API input and clipboard gradients without an explicit mode. Saved and explicitly assigned modes remain unchanged; SDF and Pattern Linear defaults are preserved.
+- New general-purpose gradients default to Perceptual, including FX, API input and clipboard gradients without an explicit mode. Saved and explicitly assigned modes remain unchanged; Pattern Linear defaults are preserved.
 - The color picker remembers the last RGB 0–255, RGB 0–1 or HSV entry mode across openings and Unity restarts, without modifying the selected color.
 - Confirming a color already in History moves that exact RGBA color to the front without duplicating it, even when it was entered manually in the picker. Intermediate edits and canceled selections do not reorder history.
 
@@ -69,6 +81,11 @@ All notable changes to WhimTex are documented in this file.
 
 ### Fixed
 
+- A constant white brush Tint remains exactly neutral in every interpolation mode and color space; near-white tints still apply normally.
+- HLSL preset export and reimport preserve explicitly declared two-color Classic gradients. Shared SoftRange values are initialized through a compatible control instead of producing an out-of-range default; unrepresentable defaults report an export error.
+- Canvas View's footer adapts to the measured width of its controls instead of a fixed threshold, preventing overlap at intermediate and narrow window widths.
+- Fixed gradients with Mirror wrapping retain exact key-boundary behavior on the GPU, matching CPU evaluation without changing color tolerances.
+- Opening Properties without editing no longer falsely marks the document changed when normalizing supported field values.
 - JSON-backed document revisions now include current Drawing pixels. Agent JSON `write` honors `save:false` without creating or overwriting files. Shared-format clipboard paste preserves the destination output filter, including when adopting source canvas dimensions.
 
 - Documentation publishing no longer fails on the build guide's validation-report link; source checks reject relative links to unpublished repository files.
@@ -93,6 +110,10 @@ All notable changes to WhimTex are documented in this file.
 
 ### Upgrade notes
 
+- JSON does not store Drawing pixels. Keep TIFF originals for painted work; confirm JSON omission warnings only when empty Drawing placeholders are acceptable.
+- Rounded smoothing applies to existing gradients without a migration or automatic file rewrite and can change their appearance, especially around interior held colors. Review saved artwork before resaving or exporting.
+- Existing seamless 2D OpenSimplex2/2S fractal patterns can change after the per-octave period correction, including at Scale above 1. Other noise types and 3D are unchanged by that correction.
+- Existing asset GUIDs, serialized-name migration markers, saved preferences and deprecated public/protected aliases are retained during the Canvas rename. Custom integrations using renamed internal file paths or `Hidden/TextureCompositor/PreviewChannels` must use the current paths and `Hidden/TextureCompositor/DisplayChannels`; that hidden shader name has no compatibility alias.
 - Mirror layers without an Automatic Radius setting use automatic sizing; disable it to use their stored manual radius. No migration is performed.
 - No document migration or automatic rewrite is performed. Existing saved fields are retained; new-layer defaults do not reset existing layers.
 - Feather retains its stored field but now means 0–100% of each cut's available transition width, not pixels: an old value of 16 means 16%. Existing appearance can change.
