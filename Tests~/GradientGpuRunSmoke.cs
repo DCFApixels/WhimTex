@@ -117,7 +117,8 @@ try
     layer.circularRepetitions = 0; Compare("Zero repetitions");
     layer.gradientType = DCFApixels.WhimTex.GradientLayerBehaviour.GradientType.Radial;
     layer.gradient = null; Compare("Null fallback");
-    layer.gradient = new DCFApixels.WhimTex.WhimTexGradient();
+    // The strict signed-HDR case tests Classic; all modes are covered above.
+    layer.gradient = new DCFApixels.WhimTex.WhimTexGradient { Mode = DCFApixels.WhimTex.WhimTexGradientMode.Classic };
     layer.gradient.SetKeys(new[] {new UnityEngine.GradientColorKey(new UnityEngine.Color(-.5f, 2f, .2f), 0),
         new UnityEngine.GradientColorKey(new UnityEngine.Color(3f, -.2f, 1.2f), 1)},
         new[] {new UnityEngine.GradientAlphaKey(.2f, 0), new UnityEngine.GradientAlphaKey(.8f, 1)});

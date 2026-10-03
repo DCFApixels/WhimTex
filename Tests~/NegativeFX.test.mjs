@@ -6,7 +6,10 @@ const source = readFileSync(new URL('../src/FXPresets/Negative.hlsl', import.met
 
 test('negative preset is catalogued with blend strength and optional alpha inversion', () => {
     assert.equal(source.split('\n')[0], '// @whimtex-effect Color/Negative');
-    assert.match(source, /@param float _Amount = 1 \[0 \.\. 1\]/);
+    assert.match(source, /@control\(_Opacity\)/);
+    assert.match(source, /@formerlyserializedas\(_Amount\)/);
+    assert.match(source, /@param hidden float _Opacity = 1 \[0 \.\. 1\]/);
+    assert.match(source, /float amount = saturate\(_Opacity\)/);
     assert.match(source, /@param bool _InvertAlpha = false/);
     assert.match(source, /color\.rgb = lerp\(color\.rgb, 1\.0 - color\.rgb, amount\)/);
     assert.match(source, /float invertAlpha = step\(0\.5001, _InvertAlpha\)/);

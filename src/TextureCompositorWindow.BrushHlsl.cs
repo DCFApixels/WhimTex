@@ -105,7 +105,7 @@ namespace DCFApixels.WhimTex
                     }
                     else if(definition.type==ShaderFXParameterType.Color)
                     {
-                        var field=new ColorField(label){value=definition.colorValue,hdr=true,Range=WhimTexColorRange.HdrOnly,UsePreviewChannels=true};
+                        var field=new ColorField(label){value=definition.colorValue,hdr=true,Range=WhimTexColorRange.HdrOnly,UseCanvasChannels=true};
                         field.RegisterValueChangedCallback(e=>Change(p=>p.colorValue=e.newValue));parameters.Add(field);
                         refresh.Add(()=>field.SetValueWithoutNotify(Current().colorValue));
                     }

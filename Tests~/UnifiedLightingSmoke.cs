@@ -15,7 +15,7 @@ public static class UnifiedLightingSmoke
         void Check(bool value,string message){if(!value)throw new Exception(message);checks++;}
         ShaderFX FX(string code)
         {
-            var fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft",F).Invoke(null,new object[]{doc,code,new List<ShaderFXParameter>()});
+            var fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.TextureCompositor), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null,new object[]{doc,code,new List<ShaderFXParameter>()});
             effects.Add(fx);
             try { typeof(ShaderFX).GetMethod("ApplyAgentDraft",F).Invoke(fx,null); }
             catch(TargetInvocationException e) { throw new Exception(e.InnerException?.ToString() ?? e.ToString()); }

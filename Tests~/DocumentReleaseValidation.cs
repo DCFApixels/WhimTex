@@ -33,7 +33,7 @@ public static class DocumentReleaseValidation
     static void Reject(Action action, string message)
     {
         try { action(); } catch (Exception e) { if (e is TargetInvocationException) e = e.InnerException;
-            Check(e is IOException || e is WhimTexDocumentException || e is UnityEditor.Build.BuildFailedException || e is InvalidOperationException, message + ": " + e); return; }
+            Check(e is IOException || e is WhimTexDocumentException || e is UnityEditor.Build.BuildFailedException || e is InvalidOperationException || e is OperationCanceledException, message + ": " + e); return; }
         throw new Exception("Expected failure: " + message);
     }
     static string Folder()

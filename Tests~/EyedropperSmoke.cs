@@ -1,8 +1,8 @@
 // Opt-in after manual compilation. Pure CPU helpers only; no screen capture, windows, preferences or asset writes.
 var windowType = typeof(DCFApixels.WhimTex.TextureCompositorWindow);
 const System.Reflection.BindingFlags Hidden = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic;
-var sample = windowType.GetMethod("PreviewScreenSample", Hidden);
-var place = windowType.GetMethod("PreviewEyedropperLensRect", Hidden);
+var sample = windowType.GetMethod("CanvasScreenSample", Hidden);
+var place = windowType.GetMethod("CanvasEyedropperLensRect", Hidden);
 int checks = 0;
 void Check(bool value, string message)
 {

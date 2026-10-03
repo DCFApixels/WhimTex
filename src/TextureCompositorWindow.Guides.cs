@@ -8,46 +8,48 @@ namespace DCFApixels.WhimTex
     public sealed partial class TextureCompositorWindow
     {
         [Serializable]
-        private struct PreviewGuide
+        [UnityEngine.Scripting.APIUpdating.MovedFrom(true, sourceNamespace: "DCFApixels.WhimTex", sourceAssembly: null, sourceClassName: "TextureCompositorWindow+PreviewGuide")]
+        private struct CanvasGuide
         {
             public Vector2 normal;
             public float position;
         }
 
-        [SerializeField] private List<PreviewGuide> previewGuides = new List<PreviewGuide>();
-        [NonSerialized] private TextureCompositor previewGuidesDocument;
-        private PreviewGuideManipulator previewGuideManipulator;
-        private VisualElement previewGuideOverlay;
-        private VisualElement previewGuideTopRail;
-        private VisualElement previewGuideLeftRail;
+        [UnityEngine.Serialization.FormerlySerializedAs("previewGuides")]
+        [SerializeField] private List<CanvasGuide> canvasGuides = new List<CanvasGuide>();
+        [NonSerialized] private TextureCompositor canvasGuidesDocument;
+        private CanvasGuideManipulator canvasGuideManipulator;
+        private VisualElement canvasGuideOverlay;
+        private VisualElement canvasGuideTopRail;
+        private VisualElement canvasGuideLeftRail;
 
-        private bool CanMovePreviewGuides => previewTool == PreviewTool.None ||
-            previewTool == PreviewTool.Transform || previewTool == PreviewTool.Zoom;
+        private bool CanMoveCanvasGuides => canvasTool == CanvasTool.None ||
+            canvasTool == CanvasTool.Transform || canvasTool == CanvasTool.Zoom;
 
-        private void BuildPreviewGuides()
+        private void BuildCanvasGuides()
         {
-            previewGuides ??= new List<PreviewGuide>();
-            previewGuidesDocument = compositor;
-            previewGuideOverlay = new VisualElement { pickingMode = PickingMode.Ignore };
-            previewGuideOverlay.AddToClassList("whimtex-guides-overlay");
-            previewGuideOverlay.AddToClassList("whimtex-preview-surface");
-            previewGuideManipulator = new PreviewGuideManipulator(this);
-            toolkitPreviewCanvas.AddManipulator(previewGuideManipulator);
-            previewGuideOverlay.generateVisualContent += previewGuideManipulator.Draw;
-            toolkitPreviewCanvas.Add(previewGuideOverlay);
+            canvasGuides ??= new List<CanvasGuide>();
+            canvasGuidesDocument = compositor;
+            canvasGuideOverlay = new VisualElement { pickingMode = PickingMode.Ignore };
+            canvasGuideOverlay.AddToClassList("whimtex-guides-overlay");
+            canvasGuideOverlay.AddToClassList("whimtex-canvas-surface");
+            canvasGuideManipulator = new CanvasGuideManipulator(this);
+            toolkitCanvas.AddManipulator(canvasGuideManipulator);
+            canvasGuideOverlay.generateVisualContent += canvasGuideManipulator.Draw;
+            toolkitCanvas.Add(canvasGuideOverlay);
             AddGuideRail(true);
             AddGuideRail(false);
-            toolkitPreviewHeader.RegisterCallback<GeometryChangedEvent>(UpdatePreviewGuideRails);
-            toolkitPreviewCanvas.RegisterCallback<GeometryChangedEvent>(UpdatePreviewGuideRails);
-            toolkitPreviewCanvas.ViewChanged += previewGuideOverlay.MarkDirtyRepaint;
+            toolkitCanvasViewHeader.RegisterCallback<GeometryChangedEvent>(UpdateCanvasGuideRails);
+            toolkitCanvas.RegisterCallback<GeometryChangedEvent>(UpdateCanvasGuideRails);
+            toolkitCanvas.ViewChanged += canvasGuideOverlay.MarkDirtyRepaint;
         }
 
-        private void UpdatePreviewGuideRails(GeometryChangedEvent evt)
+        private void UpdateCanvasGuideRails(GeometryChangedEvent evt)
         {
-            float top = Mathf.Max(0f, toolkitPreviewHeader.worldBound.yMax - toolkitPreviewCanvas.worldBound.yMin);
+            float top = Mathf.Max(0f, toolkitCanvasViewHeader.worldBound.yMax - toolkitCanvas.worldBound.yMin);
             if (float.IsNaN(top) || float.IsInfinity(top)) return;
-            previewGuideTopRail.style.top = top;
-            previewGuideLeftRail.style.top = top + previewGuideTopRail.resolvedStyle.height;
+            canvasGuideTopRail.style.top = top;
+            canvasGuideLeftRail.style.top = top + canvasGuideTopRail.resolvedStyle.height;
         }
 
         private void AddGuideRail(bool vertical)
@@ -62,29 +64,29 @@ namespace DCFApixels.WhimTex
             var grip = new VisualElement { pickingMode = PickingMode.Ignore };
             grip.AddToClassList("whimtex-guide-grip");
             rail.Add(grip);
-            previewGuideOverlay.Add(rail);
-            if (vertical) previewGuideLeftRail = rail;
-            else previewGuideTopRail = rail;
+            canvasGuideOverlay.Add(rail);
+            if (vertical) canvasGuideLeftRail = rail;
+            else canvasGuideTopRail = rail;
         }
 
-        private void ClearPreviewGuides()
+        private void ClearCanvasGuides()
         {
-            previewGuideManipulator?.Cancel();
-            previewGuides?.Clear();
-            previewGuideUndo.Clear();
-            previewGuideRedo.Clear();
-            selectedPreviewGuide = -1;
-            previewGuidesRevision++;
-            previewGuideOverlay?.MarkDirtyRepaint();
-            RefreshPreviewPointerCursor();
+            canvasGuideManipulator?.Cancel();
+            canvasGuides?.Clear();
+            canvasGuideUndo.Clear();
+            canvasGuideRedo.Clear();
+            selectedCanvasGuide = -1;
+            canvasGuidesRevision++;
+            canvasGuideOverlay?.MarkDirtyRepaint();
+            RefreshCanvasPointerCursor();
         }
 
-        private sealed class PreviewGuideManipulator : PointerManipulator
+        private sealed class CanvasGuideManipulator : PointerManipulator
         {
             private const float GrabDistance = 4f;
             private readonly TextureCompositorWindow owner;
             private int pointer = -1, movingIndex = -1, hovered = -1;
-            private PreviewGuide pending;
+            private CanvasGuide pending;
             private float grabOffset;
             private bool discard;
             private bool controlHeld;
@@ -93,9 +95,9 @@ namespace DCFApixels.WhimTex
             private bool moved;
             internal bool IsDragging => pointer >= 0;
             private bool CanContinueDrag => Ready && (movingIndex < 0 ||
-                (owner.CanMovePreviewGuides && !owner.previewGuidesLocked && !owner.previewGuidesHidden));
+                (owner.CanMoveCanvasGuides && !owner.canvasGuidesLocked && !owner.canvasGuidesHidden));
 
-            internal PreviewGuideManipulator(TextureCompositorWindow owner) { this.owner = owner; }
+            internal CanvasGuideManipulator(TextureCompositorWindow owner) { this.owner = owner; }
 
             protected override void RegisterCallbacksOnTarget()
             {
@@ -130,42 +132,42 @@ namespace DCFApixels.WhimTex
                 target.UnregisterCallback<WheelEvent>(Wheel, TrickleDown.TrickleDown);
             }
 
-            private bool Ready => owner.HasPreviewLayers && owner.previewGuidesDocument == owner.compositor &&
-                owner.toolkitPreviewCanvas.PixelScale > 0f;
+            private bool Ready => owner.HasCanvasLayers && owner.canvasGuidesDocument == owner.compositor &&
+                owner.toolkitCanvas.PixelScale > 0f;
 
             private int RailAt(Vector2 point)
             {
                 Rect rect = target.contentRect;
                 if (!rect.Contains(point)) return -1;
                 Vector2 worldPoint = target.LocalToWorld(point);
-                if (owner.previewGuideTopRail.worldBound.Contains(worldPoint)) return 1;
-                if (owner.previewGuideLeftRail.worldBound.Contains(worldPoint)) return 0;
+                if (owner.canvasGuideTopRail.worldBound.Contains(worldPoint)) return 1;
+                if (owner.canvasGuideLeftRail.worldBound.Contains(worldPoint)) return 0;
                 return -1;
             }
 
             private bool CanGrab(bool control, bool alt) => Ready && !control && !alt &&
-                owner.paintingLayer == null && !(owner.previewZoomManipulator?.IsDragging ?? false) &&
-                !(owner.previewTransformManipulator?.IsDragging ?? false) &&
+                owner.paintingLayer == null && !(owner.canvasZoomManipulator?.IsDragging ?? false) &&
+                !(owner.canvasTransformManipulator?.IsDragging ?? false) &&
                 !(owner.shapeManipulator?.IsDragging ?? false) &&
                 !(owner.areaSelectionManipulator?.HasGesture ?? false);
 
             private float PositionAt(Vector2 point, Vector2 normal)
             {
-                SpritePreviewElement canvas = owner.toolkitPreviewCanvas;
+                CanvasElement canvas = owner.toolkitCanvas;
                 point = canvas.ToCanvas(point);
                 return Vector2.Dot((point - canvas.ImageRect.position) / canvas.PixelScale, normal);
             }
 
             private int Hit(Vector2 point)
             {
-                if (!owner.CanMovePreviewGuides || owner.previewGuidesHidden || owner.previewGuidesLocked ||
+                if (!owner.CanMoveCanvasGuides || owner.canvasGuidesHidden || owner.canvasGuidesLocked ||
                     !target.contentRect.Contains(point)) return -1;
                 int result = -1;
                 float best = GrabDistance;
-                for (int i = owner.previewGuides.Count - 1; i >= 0; i--)
+                for (int i = owner.canvasGuides.Count - 1; i >= 0; i--)
                 {
-                    PreviewGuide guide = owner.previewGuides[i];
-                    float distance = Mathf.Abs(PositionAt(point, guide.normal) - guide.position) * owner.toolkitPreviewCanvas.PixelScale;
+                    CanvasGuide guide = owner.canvasGuides[i];
+                    float distance = Mathf.Abs(PositionAt(point, guide.normal) - guide.position) * owner.toolkitCanvas.PixelScale;
                     if (distance <= best) { best = distance; result = i; }
                 }
                 return result;
@@ -179,38 +181,38 @@ namespace DCFApixels.WhimTex
                 controlHeld = evt.ctrlKey;
                 if (IsDragging) { WhimTexUI.ConsumeEvent(evt); return; }
                 if (evt.button != 0 && evt.button != 1) return;
-                if (!CanGrab(evt.ctrlKey, evt.altKey)) { owner.selectedPreviewGuide = -1; return; }
+                if (!CanGrab(evt.ctrlKey, evt.altKey)) { owner.selectedCanvasGuide = -1; return; }
                 Vector2 point = evt.localPosition;
                 int rail = RailAt(point);
                 int hit = rail < 0 ? Hit(point) : -1;
-                owner.selectedPreviewGuide = hit;
+                owner.selectedCanvasGuide = hit;
                 if (rail < 0 && hit < 0) return;
-                owner.CancelPreviewEyedropper();
+                owner.CancelCanvasEyedropper();
                 owner.Focus();
                 target.Focus();
                 if (evt.button == 1)
                 {
-                    owner.ShowPreviewGuideMenu(hit);
+                    owner.ShowCanvasGuideMenu(hit);
                     WhimTexUI.ConsumeEvent(evt);
                     return;
                 }
                 if (hit >= 0 && evt.clickCount > 1)
                 {
-                    PreviewGuideSettingsWindow.Open(owner, hit);
+                    CanvasGuideSettingsWindow.Open(owner, hit);
                     WhimTexUI.ConsumeEvent(evt);
                     return;
                 }
-                if (rail >= 0 && owner.previewGuides.Count >= MaxPreviewGuides)
+                if (rail >= 0 && owner.canvasGuides.Count >= MaxCanvasGuides)
                 {
                     owner.ShowNotification(new GUIContent("Guide limit reached (256)."));
                     WhimTexUI.ConsumeEvent(evt);
                     return;
                 }
-                owner.SetPreviewGuidesHidden(false);
+                owner.SetCanvasGuidesHidden(false);
                 movingIndex = hit;
-                pending = hit >= 0 ? owner.previewGuides[hit] : new PreviewGuide
+                pending = hit >= 0 ? owner.canvasGuides[hit] : new CanvasGuide
                 {
-                    normal = owner.previewViewport.ToCanvasDelta(rail == 0 ? Vector2.right : Vector2.up).normalized
+                    normal = owner.canvasViewport.ToCanvasDelta(rail == 0 ? Vector2.right : Vector2.up).normalized
                 };
                 grabOffset = hit >= 0 ? pending.position - PositionAt(point, pending.normal) : 0f;
                 pointer = evt.pointerId;
@@ -218,8 +220,8 @@ namespace DCFApixels.WhimTex
                 moved = false;
                 target.CapturePointer(pointer);
                 Update(point);
-                owner.previewGuideOverlay.MarkDirtyRepaint();
-                owner.UpdatePreviewCursor(point, false);
+                owner.canvasGuideOverlay.MarkDirtyRepaint();
+                owner.UpdateCanvasCursor(point, false);
                 WhimTexUI.ConsumeEvent(evt);
             }
 
@@ -229,10 +231,10 @@ namespace DCFApixels.WhimTex
                 moved |= (point - startPoint).sqrMagnitude >= 9f;
                 if (movingIndex >= 0 && !moved) return;
                 pending.position = PositionAt(point, pending.normal) + grabOffset;
-                if (!controlHeld) pending.position = owner.SnapPreviewGuidePosition(pending, movingIndex);
+                if (!controlHeld) pending.position = owner.SnapCanvasGuidePosition(pending, movingIndex);
                 discard = !target.contentRect.Contains(point) || RailAt(point) >= 0 ||
                     float.IsNaN(pending.position) || float.IsInfinity(pending.position);
-                owner.previewGuideOverlay.MarkDirtyRepaint();
+                owner.canvasGuideOverlay.MarkDirtyRepaint();
             }
 
             private void Move(PointerMoveEvent evt)
@@ -243,12 +245,12 @@ namespace DCFApixels.WhimTex
                     if (evt.pointerId != pointer) return;
                     if (!CanContinueDrag || (evt.pressedButtons & 1) == 0) Cancel();
                     else Update(evt.localPosition);
-                    owner.UpdatePreviewCursor(evt.localPosition, evt.altKey);
+                    owner.UpdateCanvasCursor(evt.localPosition, evt.altKey);
                     evt.StopImmediatePropagation();
                     return;
                 }
                 int next = evt.pressedButtons == 0 && CanGrab(evt.ctrlKey, evt.altKey) ? Hit(evt.localPosition) : -1;
-                if (next != hovered) { hovered = next; owner.previewGuideOverlay.MarkDirtyRepaint(); }
+                if (next != hovered) { hovered = next; owner.canvasGuideOverlay.MarkDirtyRepaint(); }
             }
 
             private void Up(PointerUpEvent evt)
@@ -258,29 +260,29 @@ namespace DCFApixels.WhimTex
                 if (CanContinueDrag)
                 {
                     Update(evt.localPosition);
-                    if (movingIndex >= 0 && movingIndex < owner.previewGuides.Count)
+                    if (movingIndex >= 0 && movingIndex < owner.canvasGuides.Count)
                     {
                         if (discard)
                         {
-                            owner.RememberPreviewGuides();
-                            owner.previewGuides.RemoveAt(movingIndex);
-                            owner.selectedPreviewGuide = -1;
+                            owner.RememberCanvasGuides();
+                            owner.canvasGuides.RemoveAt(movingIndex);
+                            owner.selectedCanvasGuide = -1;
                         }
-                        else if (pending.position != owner.previewGuides[movingIndex].position)
+                        else if (pending.position != owner.canvasGuides[movingIndex].position)
                         {
-                            owner.RememberPreviewGuides();
-                            owner.previewGuides[movingIndex] = pending;
+                            owner.RememberCanvasGuides();
+                            owner.canvasGuides[movingIndex] = pending;
                         }
                     }
-                    else if (!discard && owner.previewGuides.Count < MaxPreviewGuides)
+                    else if (!discard && owner.canvasGuides.Count < MaxCanvasGuides)
                     {
-                        owner.RememberPreviewGuides();
-                        owner.previewGuides.Add(pending);
-                        owner.selectedPreviewGuide = owner.previewGuides.Count - 1;
+                        owner.RememberCanvasGuides();
+                        owner.canvasGuides.Add(pending);
+                        owner.selectedCanvasGuide = owner.canvasGuides.Count - 1;
                     }
                 }
                 Cancel();
-                owner.UpdatePreviewCursor(evt.localPosition, evt.altKey);
+                owner.UpdateCanvasCursor(evt.localPosition, evt.altKey);
                 WhimTexUI.ConsumeEvent(evt);
             }
 
@@ -291,15 +293,15 @@ namespace DCFApixels.WhimTex
                 movingIndex = hovered = -1;
                 discard = false;
                 if (captured >= 0 && target != null && target.HasPointerCapture(captured)) target.ReleasePointer(captured);
-                owner.previewGuideOverlay?.MarkDirtyRepaint();
-                if (captured >= 0) owner.RefreshPreviewPointerCursor();
+                owner.canvasGuideOverlay?.MarkDirtyRepaint();
+                if (captured >= 0) owner.RefreshCanvasPointerCursor();
             }
 
             private void Leave(PointerLeaveEvent evt)
             {
                 if (hovered < 0) return;
                 hovered = -1;
-                owner.previewGuideOverlay.MarkDirtyRepaint();
+                owner.canvasGuideOverlay.MarkDirtyRepaint();
             }
             private void Enter(PointerEnterEvent evt) => UpdateControl(evt.ctrlKey);
             private void ModifierDown(KeyDownEvent evt) => UpdateControl(evt.ctrlKey);
@@ -310,8 +312,8 @@ namespace DCFApixels.WhimTex
                 controlHeld = held;
                 hovered = -1;
                 if (IsDragging) Update(lastPoint);
-                owner.previewGuideOverlay?.MarkDirtyRepaint();
-                owner.RefreshPreviewPointerCursor();
+                owner.canvasGuideOverlay?.MarkDirtyRepaint();
+                owner.RefreshCanvasPointerCursor();
             }
             private void Lost(PointerCaptureOutEvent evt) { if (evt.pointerId == pointer) Cancel(); }
             private void Interrupted(PointerCancelEvent evt) => Cancel();
@@ -321,21 +323,21 @@ namespace DCFApixels.WhimTex
 
             internal void Draw(MeshGenerationContext context)
             {
-                if (!Ready || owner.previewGuidesHidden) return;
+                if (!Ready || owner.canvasGuidesHidden) return;
                 Rect bounds = target.contentRect;
                 Painter2D painter = context.painter2D;
-                for (int i = 0; i < owner.previewGuides.Count; i++)
+                for (int i = 0; i < owner.canvasGuides.Count; i++)
                     if (!IsDragging || i != movingIndex)
-                        DrawGuide(painter, owner.previewGuides[i], bounds, owner.CanMovePreviewGuides && !owner.previewGuidesLocked &&
-                            (i == hovered || i == owner.selectedPreviewGuide), false);
+                        DrawGuide(painter, owner.canvasGuides[i], bounds, owner.CanMoveCanvasGuides && !owner.canvasGuidesLocked &&
+                            (i == hovered || i == owner.selectedCanvasGuide), false);
                 if (IsDragging) DrawGuide(painter, pending, bounds, true, discard);
             }
 
-            private void DrawGuide(Painter2D painter, PreviewGuide guide, Rect bounds, bool highlight, bool deleting)
+            private void DrawGuide(Painter2D painter, CanvasGuide guide, Rect bounds, bool highlight, bool deleting)
             {
-                SpritePreviewElement canvas = owner.toolkitPreviewCanvas;
+                CanvasElement canvas = owner.toolkitCanvas;
                 Vector2 point = canvas.ToView(canvas.ImageRect.position + guide.normal * (guide.position * canvas.PixelScale));
-                Vector2 direction = owner.previewViewport.ToViewDelta(new Vector2(-guide.normal.y, guide.normal.x));
+                Vector2 direction = owner.canvasViewport.ToViewDelta(new Vector2(-guide.normal.y, guide.normal.x));
                 if (!ClipLine(bounds, point, direction, out Vector2 a, out Vector2 b)) return;
                 bool aligned = Mathf.Min(Mathf.Abs(direction.x), Mathf.Abs(direction.y)) <= .0001f;
                 Color lineColor = highlight ? WhimTexUserSettings.GuideActiveColor :

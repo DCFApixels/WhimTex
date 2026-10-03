@@ -157,14 +157,15 @@ public static class MakeSeamlessIntegration
             typeof(MakeSeamlessLayerEditorWindow).GetMethod("BuildFields",all).Invoke(null,new object[]{root,effect,document,apply,bindings,new Action<VisualElement,TargetedLayerBehaviour>((r,l)=>{})});
             var dropdown=root.Q<PopupField<MakeSeamlessLayerBehaviour.SeamlessMode>>("seamlessMethod");var edges=root.Q("seamlessEdges").parent;
             Check(dropdown.label=="Method","Method label");
-            Check(edges.ClassListContains("whimtex-hidden"),"Mirror controls visible in Screened Poisson");
+            bool Hidden(VisualElement element) { for (; element != null; element = element.parent) if (element.ClassListContains("whimtex-hidden")) return true; return false; }
+            Check(Hidden(edges),"Mirror controls visible in Screened Poisson");
             Check((MakeSeamlessLayerBehaviour.SeamlessMode)dropdown.value==MakeSeamlessLayerBehaviour.SeamlessMode.ScreenedPoisson,"UI resolves removed value");
             Call(bindings,"Refresh",true);
             Check((int)effect.mode==1,"UI does not migrate");
             effect.mode=testedMode;Call(bindings,"Refresh",true);
             var processing=root.Q("seamlessProcessingEdges");
-            Check(processing!=null&&!processing.parent.ClassListContains("whimtex-hidden"),"Processing controls visible");
-            Check(processing.ClassListContains("whimtex-hidden")== (testedMode==MakeSeamlessLayerBehaviour.SeamlessMode.ScreenedPoisson),"Blend edge selector only for Offset");
+            Check(processing!=null&&!Hidden(processing.parent.parent),"Processing controls visible");
+            Check(Hidden(processing)== (testedMode==MakeSeamlessLayerBehaviour.SeamlessMode.ScreenedPoisson),"Copy edge selector only for Offset");
             var left=processing.Q<Button>("seamlessProcessing-left");
             left.clickable.GetType().GetMethod("Invoke",all).Invoke(left.clickable,new object[]{null});
             Check(!effect.leftEdge,"Edge button toggles model");
@@ -205,14 +206,15 @@ public static class MakeSeamlessIntegration
             Check(effect.mode==testedMode,"Undo mode");
             Undo.PerformRedo();effect=(MakeSeamlessLayerBehaviour)document.layers[0].Behaviour;
             Check(effect.mode==MakeSeamlessLayerBehaviour.SeamlessMode.Mirror,"Redo mode");
+            // Remaining checks concern settings, not pixels. Preserve the referenced layer ID.
+            source.Owner.SetBehaviour(new ColorFillLayerBehaviour());
             foreach(var mode in new[]{MakeSeamlessLayerBehaviour.SeamlessMode.Mirror,MakeSeamlessLayerBehaviour.SeamlessMode.ScreenedPoisson,MakeSeamlessLayerBehaviour.SeamlessMode.OffsetBlend})
             {
                 effect.mode=mode;
-                var json=(string)typeof(WhimTexApi).GetMethod("WritePortableClipboard",all).Invoke(null,new object[]{document,document.layers});
-                var clipboard=typeof(WhimTexApi).GetMethod("ReadProceduralClipboard",all).Invoke(null,new object[]{json,32,16});
+                var clipboard=WhimTexDocumentJson.Read(WhimTexDocumentJson.Write(document,new WhimTexJsonWriteOptions {Mode=WhimTexJsonWriteMode.Full}).Json);
                 try
                 {
-                    var decoded=(TextureCompositor)clipboard.GetType().GetField("Document",all).GetValue(clipboard);
+                    var decoded=clipboard.Document;
                     Check(((MakeSeamlessLayerBehaviour)decoded.layers[0].Behaviour).mode==mode,"Portable mode roundtrip");
                     var saved=(MakeSeamlessLayerBehaviour)decoded.layers[0].Behaviour;
                     Check(saved.leftEdge==effect.leftEdge&&saved.rightEdge==effect.rightEdge&&saved.bottomEdge==effect.bottomEdge&&saved.topEdge==effect.topEdge,"Portable edges");

@@ -20,7 +20,7 @@ Set("{\"mode\":\"Texture\",\"sourceChannel\":\"Alpha\",\"inputSpace\":\"Linear\"
 Check(normal.mode == DCFApixels.WhimTex.NormalMapLayerBehaviour.GenerationMode.Texture && normal.flipY && normal.strength == 12, "Apply settings");
 var copy = new DCFApixels.WhimTex.NormalMapLayerBehaviour();
 setter.Invoke(null, new object[] { copy, snapshot.Invoke(null, new object[] { normal }) });
-Check(UnityEngine.JsonUtility.ToJson(normal) == UnityEngine.JsonUtility.ToJson(copy), "Complete API settings round-trip");
+Check(snapshot.Invoke(null, new object[]{normal}).ToString() == snapshot.Invoke(null, new object[]{copy}).ToString(), "Complete API settings round-trip (wrapper identity is not a normal-map setting)");
 Reject("{\"strength\":-1}"); Reject("{\"edges\":\"Unknown\"}"); Reject("{\"unused\":1}");
 Reject("{\"blackLevel\":1,\"whiteLevel\":0.5}"); Set("{\"blackLevel\":0,\"whiteLevel\":1}");
 Reject("{\"mediumRadius\":32,\"largeRadius\":2}"); Set("{\"mediumRadius\":4,\"largeRadius\":32}");

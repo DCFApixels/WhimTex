@@ -25,7 +25,7 @@ namespace DCFApixels.WhimTex
             internal Vector2Int canvas;
             internal uint systemRevision;
         }
-        private bool IsAreaSelectionTool => previewTool == PreviewTool.RectangleSelect || previewTool == PreviewTool.PolygonSelect || IsUvSelectionTool;
+        private bool IsAreaSelectionTool => canvasTool == CanvasTool.RectangleSelect || canvasTool == CanvasTool.PolygonSelect || IsUvSelectionTool;
 
         private CanvasSelection GetAreaSelection()
         {
@@ -74,10 +74,10 @@ namespace DCFApixels.WhimTex
         }
         private void ChangeAreaSelection(Action<CanvasSelection> action)
         {
-            if (!HasPreviewLayers) return;
+            if (!HasCanvasLayers) return;
             areaSelectionManipulator?.Cancel();
             FinishPaintingStroke();
-            FinishPreviewTransform();
+            FinishCanvasTransform();
             try { action(GetAreaSelection()); }
             catch (Exception exception) { ShowNotification(new GUIContent(exception.Message)); }
             if (areaSelection != null && !areaSelection.Active && areaSelectionTexture != null)
@@ -88,15 +88,15 @@ namespace DCFApixels.WhimTex
             }
             areaSelectionOverlay?.Invalidate();
             toolkitHeaderBindings.Refresh();
-            toolkitPreviewCanvas?.Focus();
+            toolkitCanvas?.Focus();
         }
         private void BuildAreaSelectionTools()
         {
             areaSelectionOverlay = new AreaSelectionOverlay(this);
-            toolkitPreviewCanvas.Add(areaSelectionOverlay);
+            toolkitCanvas.Add(areaSelectionOverlay);
             areaSelectionManipulator = new AreaSelectionManipulator(this);
-            toolkitPreviewCanvas.AddManipulator(areaSelectionManipulator);
-            toolkitPreviewCanvas.ViewChanged += areaSelectionOverlay.MarkDirtyRepaint;
+            toolkitCanvas.AddManipulator(areaSelectionManipulator);
+            toolkitCanvas.ViewChanged += areaSelectionOverlay.MarkDirtyRepaint;
         }
         private void RegisterAreaSelectionCommands(VisualElement root)
         {
@@ -123,11 +123,11 @@ namespace DCFApixels.WhimTex
             else if (evt.commandName == "Paste") PasteAreaSelection();
             else ChangeAreaSelection(s => s.All());
         }
-        private void AddAreaSelectionSettings(PreviewTool tool)
+        private void AddAreaSelectionSettings(CanvasTool tool)
         {
-            var row = CreatePreviewSettingsRow();
+            var row = CreateCanvasSettingsRow();
             row.AddToClassList("whimtex-area-settings");
-            BindPreviewSettingsRow(row, tool);
+            BindCanvasSettingsRow(row, tool);
             var mode = new EnumField(areaSelectionMode);
             TwoChoiceDropdown.Attach(mode);
             mode.AddToClassList("whimtex-area-mode");
@@ -146,7 +146,7 @@ namespace DCFApixels.WhimTex
             toolkitHeaderBindings.Add(() => contentFill.SetEnabled(GetAreaSelection() is CanvasSelection s &&
                 s.Active && s.Bounds.width > 0 && s.Bounds.height > 0));
             row.Add(contentFill);
-            if (tool == PreviewTool.PolygonSelect)
+            if (tool == CanvasTool.PolygonSelect)
                 row.Add(WhimTexUI.CreateButton("Close", () => areaSelectionManipulator?.CompletePolygon()));
             var status = new Label();
             status.AddToClassList("whimtex-area-status");
@@ -157,7 +157,7 @@ namespace DCFApixels.WhimTex
                     ? $"{selected.Bounds.width} × {selected.Bounds.height}" : "No selection";
             });
             row.Add(status);
-            toolkitPreviewHeader.Add(row);
+            toolkitCanvasViewHeader.Add(row);
         }
         private bool HandleAreaSelectionKey(KeyDownEvent evt)
         {
@@ -217,7 +217,7 @@ namespace DCFApixels.WhimTex
                 return;
             }
             areaSelectionManipulator?.Cancel();
-            FinishPaintingStroke(); FinishPreviewTransform();
+            FinishPaintingStroke(); FinishCanvasTransform();
             try
             {
                 NormalizeLayerSelection();
@@ -231,9 +231,9 @@ namespace DCFApixels.WhimTex
 
         private void CopyAreaSelection(bool merged)
         {
-            if (!HasPreviewLayers) return;
+            if (!HasCanvasLayers) return;
             areaSelectionManipulator?.Cancel();
-            FinishPaintingStroke(); FinishPreviewTransform();
+            FinishPaintingStroke(); FinishCanvasTransform();
             Texture2D rendered = null;
             try
             {
@@ -266,7 +266,7 @@ namespace DCFApixels.WhimTex
         {
             if (compositor == null) return;
             areaSelectionManipulator?.Cancel();
-            FinishPaintingStroke(); FinishPreviewTransform();
+            FinishPaintingStroke(); FinishCanvasTransform();
             Texture2D texture = null;
             try
             {
@@ -280,7 +280,7 @@ namespace DCFApixels.WhimTex
                     try
                     {
                         bool resize = generated.HasCanvas && (compositor.width != generated.Document.width || compositor.height != generated.Document.height);
-                        if (resize && HasPreviewLayers)
+                        if (resize && HasCanvasLayers)
                             resize = EditorUtility.DisplayDialog("Canvas size from JSON",
                                 $"Change canvas from {compositor.width} × {compositor.height} to {generated.Document.width} × {generated.Document.height}?\n\nKeep Current still pastes the layers without resizing the canvas.",
                                 "Apply Size", "Keep Current");
@@ -308,7 +308,7 @@ namespace DCFApixels.WhimTex
                     bool insertedImage = false;
                     ExecuteContextChange("Paste Clipboard Image", () =>
                     {
-                        if (!HasPreviewLayers) { compositor.width = source.width; compositor.height = source.height; }
+                        if (!HasCanvasLayers) { compositor.width = source.width; compositor.height = source.height; }
                         var layer = DrawingLayerBehaviour.FromMergedTexture(source);
                         layer.colorRange = LayerColorRange.Standard;
                         layer.blendRange = LayerBlendRange.Standard;
@@ -374,7 +374,7 @@ namespace DCFApixels.WhimTex
             Vector2 dy = (MapLayerToDocumentUv(Vector2.up, layer) - origin) / height;
             for (int y = 0, i = 0; y < height; y++)
             for (int x = 0; x < width; x++, i++)
-                if (selection.Sample(origin + (x + .5f) * dx + (y + .5f) * dy, tiledPreview) <= 0f)
+                if (selection.Sample(origin + (x + .5f) * dx + (y + .5f) * dy, tiledCanvas) <= 0f)
                     valid[i] = 0;
         }
         private void MaskFillToArea(DrawingLayerBehaviour layer, NativeArray<Color> source, NativeArray<Color> output, int width, int height)
@@ -387,7 +387,7 @@ namespace DCFApixels.WhimTex
             for (int y = 0, i = 0; y < height; y++)
             for (int x = 0; x < width; x++, i++)
             {
-                float coverage = selection.Sample(origin + (x + .5f) * dx + (y + .5f) * dy, tiledPreview);
+                float coverage = selection.Sample(origin + (x + .5f) * dx + (y + .5f) * dy, tiledCanvas);
                 Color before = source[i], after = output[i];
                 if (coverage <= 0f) { output[i] = before; continue; }
                 if (coverage >= 1f) continue;

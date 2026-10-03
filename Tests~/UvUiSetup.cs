@@ -21,7 +21,7 @@ type.GetField("uvEnabled",flags).SetValue(window,true);
 type.GetField("uvExpanded",flags).SetValue(window,true);
 type.GetField("postFxExpanded",flags).SetValue(window,false);
 type.GetField("brushesExpanded",flags).SetValue(window,false);
-type.GetField("previewTool",flags).SetValue(window,System.Enum.Parse(type.GetNestedType("PreviewTool",flags),"RectangleSelect"));
+type.GetField("canvasTool",flags).SetValue(window,System.Enum.Parse(type.GetNestedType("CanvasTool",flags),"RectangleSelect"));
 type.GetField("marqueeShape",flags).SetValue(window,System.Enum.Parse(type.GetNestedType("MarqueeShape",flags),"UvIsland"));
 window.position=new UnityEngine.Rect(180,150,1100,760);
 window.ShowUtility(); window.CreateGUI();

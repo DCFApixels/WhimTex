@@ -312,11 +312,12 @@ public static class PatchQuiltingSmoke
                 for(int i=0;i<a.Length;i++)for(int c=0;c<4;c++)if((mask&(1<<c))==0)Check(Math.Abs(a[i][c]-input[i][c])<.005,"Channel bypass");
             }
             effect.processRed=effect.processGreen=effect.processBlue=effect.processAlpha=true;
-            string json=(string)typeof(WhimTexApi).GetMethod("WritePortableClipboard",F).Invoke(null,new object[]{doc,doc.layers});
-            var clipboard=(IDisposable)typeof(WhimTexApi).GetMethod("ReadProceduralClipboard",F).Invoke(null,new object[]{json,64,48});
+            // Full JSON retains inactive compensation strength; avoid an unsaved File asset reference.
+            source.Owner.SetBehaviour(new ColorFillLayerBehaviour());
+            var clipboard=WhimTexDocumentJson.Read(WhimTexDocumentJson.Write(doc,new WhimTexJsonWriteOptions {Mode=WhimTexJsonWriteMode.Full}).Json);
             using(clipboard)
             {
-                var decoded=(TextureCompositor)clipboard.GetType().GetField("Document",F).GetValue(clipboard);
+                var decoded=clipboard.Document;
                 var saved=(MakeSeamlessLayerBehaviour)decoded.layers[0].Behaviour;
                 Check(saved.mode==effect.mode&&saved.quiltingWidth==effect.quiltingWidth&&saved.quiltingSeed==effect.quiltingSeed&&saved.quiltingChannels==effect.quiltingChannels,"Portable roundtrip");
                 Check(saved.quiltingContrastCompensation==compensate&&Math.Abs(saved.quiltingContrast-.37f)<1e-6f,"Contrast portable roundtrip");
@@ -335,7 +336,8 @@ public static class PatchQuiltingSmoke
             root.Q<Toggle>("quiltingContrastCompensation").value=true;
             Check(!compensation.ClassListContains("whimtex-hidden"),"Contrast enabled visibility");
             compensation.value=63;Check(Math.Abs(effect.quiltingContrast-.63f)<1e-6,"Contrast percentage UI");
-            Check(!root.Q("quiltingOptions").ClassListContains("whimtex-hidden")&&root.Q("seamlessProcessingEdges").parent.ClassListContains("whimtex-hidden"),"Mode panels");
+            bool Hidden(VisualElement element) { for (; element != null; element = element.parent) if (element.ClassListContains("whimtex-hidden")) return true; return false; }
+            Check(!Hidden(root.Q("quiltingOptions"))&&Hidden(root.Q("seamlessProcessingEdges")),"Mode panels");
             var slider=root.Q<Slider>("quiltingFeather");float initial=effect.quiltingFeather;
             Check(slider.label=="Feather (%)"&&slider.lowValue==0&&slider.highValue==100,"Percentage Feather UI contract");
             using(var evt=PointerCaptureEvent.GetPooled(slider,null,PointerId.mousePointerId)){slider.SendEvent(evt);}

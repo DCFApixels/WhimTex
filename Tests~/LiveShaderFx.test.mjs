@@ -4,9 +4,11 @@ import {readFileSync} from 'node:fs';
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const source=read('src/Automation/WhimTexApi.LiveFx.cs');
 function body(text,signature) {
-  const start=text.indexOf('{',text.indexOf(signature)); assert.ok(start>=0);
+  const signatureStart=text.indexOf(signature); assert.ok(signatureStart>=0, `Missing method: ${signature}`);
+  const start=text.indexOf('{',signatureStart); assert.ok(start>=0);
   let depth=1,end=start+1;
-  while(depth) {if(text[end]==='{')depth++;if(text[end]==='}')depth--;end++;}
+  while(depth && end<text.length) {if(text[end]==='{')depth++;if(text[end]==='}')depth--;end++;}
+  assert.equal(depth,0,`Unclosed method: ${signature}`);
   return text.slice(start+1,end-1);
 }
 const jobs=[];
@@ -48,8 +50,14 @@ let code=body(source,'private static void ApplyLiveFx(')
   .replaceAll('(string)spec["code"]','spec["code"]')
   .replace('catch (Exception error)','catch (error)').replaceAll('error.Message','error.message');
 const create=(owner,code,parameters)=>({owner,code,parameters,Parameters:new List(parameters),TextureLayerParameters(){return [];},ApplyAgentDraft(){if(code==='INVALID')throw Error('bad shader');}});
-const mutate=new Function('Require','Text','Int','Keys','Obj','List','ReadLiveFxParameters','RequireGraphics','ShaderFX','WhimTexApiException',
-  `return (layer,token,owner,created)=>{${code}}`)(Require,Text,Int,Keys,v=>v,List,v=>v??[],()=>{}, {CreateAgentDraft:create},class extends Error{});
+const parameterLimit=read('src/Automation/WhimTexApi.cs').match(/const int MaxFxParameters = (\d+);/);
+assert.ok(parameterLimit, 'The FX parameter resource limit must exist');
+const MaxFxParameters=Number(parameterLimit[1]);
+assert.equal(MaxFxParameters,128, 'Public live-authoring parameter budget');
+assert.match(body(source,'private static List<ShaderFXParameter> ReadLiveFxParameters('),/array.Count <= MaxFxParameters/);
+const readParameters=v=>{if(v==null)return [];Require(Array.isArray(v)&&v.length<=MaxFxParameters,'parameter limit');return v;};
+const mutate=new Function('Require','Text','Int','Keys','Obj','List','ReadLiveFxParameters','RequireGraphics','ShaderFX','WhimTexApiException','MaxFxParameters',
+  `return (layer,token,owner,created)=>{${code}}`)(Require,Text,Int,Keys,v=>v,List,readParameters,()=>{}, {CreateAgentDraft:create},class extends Error{},MaxFxParameters);
 const a={},b={}; const make=()=>({modifiers:new List([a,b]),IsGroup:false});
 let target=make(), created=new List();
 mutate(target,[{code:'A'},{op:'replace',index:0,code:'B'},{op:'remove',index:1}],doc,created);
@@ -60,8 +68,11 @@ assert.equal(target.modifiers[0],a); assert.equal(target.modifiers[2],b); assert
 for(const operations of [
   [{op:'replace',code:'A'}],[{op:'remove',index:7}],[{op:'remove',index:0,code:'A'}],
   [{op:'unknown'}],[{code:''}],[{code:'X'.repeat(65537)}],[{code:'A',typo:1}],Array.from({length:17},()=>({code:'A'})),
-  [{code:'A',parameters:Array.from({length:33},()=>({}))}]
+  [{code:'A',parameters:Array.from({length:MaxFxParameters+1},()=>({}))}]
 ]) assert.throws(()=>mutate(make(),operations,doc,new List()));
+target=make();
+mutate(target,[{code:'A',parameters:Array.from({length:MaxFxParameters},()=>({}))}],doc,new List());
+assert.equal(target.modifiers.at(-1).Parameters.Count,MaxFxParameters,'The inclusive boundary remains accepted');
 target=make(); assert.throws(()=>mutate(target,[{op:'replace',index:0,code:'INVALID'}],doc,new List()));
 assert.equal(target.modifiers[0],a); // Failed compilation cannot publish the failing effect.
 assert.throws(()=>mutate({modifiers:new List(),IsGroup:false},[{op:'remove',index:0}],doc,new List()));

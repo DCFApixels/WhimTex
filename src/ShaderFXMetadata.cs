@@ -561,9 +561,12 @@ namespace DCFApixels.WhimTex
                 throw new FormatException("Expected two colors separated by ->, for example #FF0000 -> #0000FFFF.");
             Color start = ParseDefaultColor(value.Substring(0, separator));
             Color end = ParseDefaultColor(value.Substring(separator + 2));
-            return GradientUtility.Create(
+            var gradient = GradientUtility.Create(
                 new[] { new GradientColorKey(start, 0f), new GradientColorKey(end, 1f) },
                 new[] { new GradientAlphaKey(start.a, 0f), new GradientAlphaKey(end.a, 1f) });
+            // The endpoint-only syntax predates the Perceptual default and represents Classic.
+            gradient.Mode = WhimTexGradientMode.Classic;
+            return gradient;
         }
 
         private static Color ParseDefaultColor(string value) => value.TrimStart().StartsWith("#", StringComparison.Ordinal)

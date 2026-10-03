@@ -12,8 +12,8 @@ public static class ToolIconCompatibilitySmoke
     public static async Task<string> Main()
     {
         const BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
-        Type iconType = typeof(TextureCompositorWindow).GetNestedType("PreviewToolIcon", flags);
-        Type toolType = typeof(TextureCompositorWindow).GetNestedType("PreviewTool", flags);
+        Type iconType = typeof(TextureCompositorWindow).GetNestedType("CanvasToolIcon", flags);
+        Type toolType = typeof(TextureCompositorWindow).GetNestedType("CanvasTool", flags);
         var points = (Vector2[])iconType.GetField("BlurBrushOutline", flags).GetValue(null);
         int checks = 0;
         void Check(bool valid, string message) { if (!valid) throw new Exception(message); checks++; }
@@ -32,7 +32,7 @@ public static class ToolIconCompatibilitySmoke
         void Log(string message, string stack, LogType type)
         {
             if ((type == LogType.Exception || type == LogType.Error || type == LogType.Assert)
-                && (stack.Contains("PreviewToolIcon") || stack.Contains("UIElements")))
+                && (stack.Contains("CanvasToolIcon") || stack.Contains("UIElements")))
                 drawError = message;
         }
         Application.logMessageReceived += Log;

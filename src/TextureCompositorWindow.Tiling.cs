@@ -5,37 +5,38 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
-        [SerializeField] private bool tiledPreview;
-        [System.NonSerialized] private Button tiledPreviewButton;
+        [UnityEngine.Serialization.FormerlySerializedAs("tiledPreview")]
+        [SerializeField] private bool tiledCanvas;
+        [System.NonSerialized] private Button tiledCanvasButton;
 
-        private Button BuildTiledPreviewButton()
+        private Button BuildTiledCanvasButton()
         {
-            tiledPreviewButton = new Button(() => SetTiledPreview(!tiledPreview))
+            tiledCanvasButton = new Button(() => SetTiledCanvas(!tiledCanvas))
             {
-                name = "tiledPreviewButton",
+                name = "tiledCanvasButton",
                 text = "Tiled",
-                tooltip = "Repeat the canvas across Preview. Brush and eraser wrap across canvas edges without changing layer transforms or export size."
+                tooltip = "Repeat the canvas across Canvas View. Brush and eraser wrap across canvas edges without changing layer transforms or export size."
             };
-            tiledPreviewButton.AddToClassList("whimtex-channel-button");
-            tiledPreviewButton.AddToClassList("whimtex-tiled-button");
-            tiledPreviewButton.EnableInClassList("whimtex-channel-button--enabled", tiledPreview);
-            return tiledPreviewButton;
+            tiledCanvasButton.AddToClassList("whimtex-channel-button");
+            tiledCanvasButton.AddToClassList("whimtex-tiled-button");
+            tiledCanvasButton.EnableInClassList("whimtex-channel-button--enabled", tiledCanvas);
+            return tiledCanvasButton;
         }
 
-        private void SetTiledPreview(bool enabled)
+        private void SetTiledCanvas(bool enabled)
         {
-            if (tiledPreview == enabled) return;
+            if (tiledCanvas == enabled) return;
             FinishPaintingStroke();
-            FinishPreviewTransform();
-            CancelPreviewZoomGesture();
-            tiledPreview = enabled;
-            tiledPreviewButton?.EnableInClassList("whimtex-channel-button--enabled", tiledPreview);
+            FinishCanvasTransform();
+            CancelCanvasZoomGesture();
+            tiledCanvas = enabled;
+            tiledCanvasButton?.EnableInClassList("whimtex-channel-button--enabled", tiledCanvas);
             lineAnchorLayer = null;
-            UpdateToolkitPreviewPresentation();
+            UpdateToolkitCanvasPresentation();
         }
 
-        private bool PreviewContainsPaintPoint(Vector2 position) => toolkitPreviewCanvas != null &&
-            toolkitPreviewCanvas.contentRect.Contains(position) &&
-            (tiledPreview || toolkitPreviewCanvas.ImageRect.Contains(toolkitPreviewCanvas.ToCanvas(position)));
+        private bool CanvasContainsPaintPoint(Vector2 position) => toolkitCanvas != null &&
+            toolkitCanvas.contentRect.Contains(position) &&
+            (tiledCanvas || toolkitCanvas.ImageRect.Contains(toolkitCanvas.ToCanvas(position)));
     }
 }

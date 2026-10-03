@@ -43,7 +43,7 @@ namespace DCFApixels.WhimTex
             var size = WhimTexUI.ConfigureField(new FloatField("Size")
             {
                 value = paintSettings.brushSize,
-                tooltip = "Brush diameter in canvas pixels. Drag the label to adjust. Shared with Size in the preview header."
+                tooltip = "Brush diameter in canvas pixels. Drag the label to adjust. Shared with Size in the Canvas View header."
             });
             size.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() =>
                 paintSettings.brushSize = Mathf.Max(1f, evt.newValue)));
@@ -184,9 +184,9 @@ namespace DCFApixels.WhimTex
             scroll.Add(CreateBrushSectionHeader("Color", () => paintSettings.ResetBrushColor(),
                 "Reset Color: opaque white Tint, Normal blending applied per stroke. Palette colors, Opacity and Flow are unchanged."));
             AddBrushPercent(scroll, "Opacity", () => paintSettings.dynamics.opacity, v => paintSettings.dynamics.opacity = v,
-                "Maximum strength of one stroke. Release and start a new stroke to build up further. Shared with the preview header.");
+                "Maximum strength of one stroke. Release and start a new stroke to build up further. Shared with the Canvas View header.");
             AddBrushPercent(scroll, "Flow", () => paintSettings.dynamics.flow, v => paintSettings.dynamics.flow = v,
-                "Strength of each stamp. Overlapping stamps build up within the stroke. Shared with the preview header.");
+                "Strength of each stamp. Overlapping stamps build up within the stroke. Shared with the Canvas View header.");
             var pressure = WhimTexUI.ConfigureField(new Toggle("Pressure")
             {
                 value = paintSettings.dynamics.pressure,

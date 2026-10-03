@@ -15,7 +15,7 @@ public static class BuiltinFXFieldsSmoke
         void Check(bool ok, string why) { if (!ok) throw new Exception(why); checks++; }
         ShaderFX FX(string source)
         {
-            var fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft",F).Invoke(null,new object[]{doc,source,new List<ShaderFXParameter>()});
+            var fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.TextureCompositor), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null,new object[]{doc,source,new List<ShaderFXParameter>()});
             effects.Add(fx); typeof(ShaderFX).GetMethod("ApplyAgentDraft",F).Invoke(fx,null); return fx;
         }
         ShaderFX Preset(string file) => FX(File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/"+file+".hlsl"));

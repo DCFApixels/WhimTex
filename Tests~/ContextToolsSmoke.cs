@@ -13,7 +13,7 @@ public static class ContextToolsSmoke
 {
     const BindingFlags Instance = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
     static readonly Type WindowType = typeof(TextureCompositorWindow);
-    static object Tool(string name) => Enum.Parse(WindowType.GetNestedType("PreviewTool", BindingFlags.NonPublic), name);
+    static object Tool(string name) => Enum.Parse(WindowType.GetNestedType("CanvasTool", BindingFlags.NonPublic), name);
     static object Read(object target, string field) => target.GetType().GetField(field, Instance).GetValue(target);
     static void Write(object target, string field, object value) => target.GetType().GetField(field, Instance).SetValue(target, value);
     static object Call(object target, string method, params object[] args)
@@ -61,8 +61,8 @@ public static class ContextToolsSmoke
                     layer == null ? new List<string>() : new List<string> { layer.Id });
                 Refresh();
             }
-            void SetTool(string name) => Call(window, "SetPreviewTool", Tool(name));
-            void IsTool(string name, string message) => Check(Read(window, "previewTool").ToString() == name, message);
+            void SetTool(string name) => Call(window, "SetCanvasTool", Tool(name));
+            void IsTool(string name, string message) => Check(Read(window, "canvasTool").ToString() == name, message);
             void Escape()
             {
                 using var key = KeyDownEvent.GetPooled(new Event { type = EventType.KeyDown, keyCode = KeyCode.Escape });
@@ -75,7 +75,7 @@ public static class ContextToolsSmoke
             Select(first.Owner);
             IsTool("GradientHandles", "Gradient auto-selected");
             Check(Visible("gradientHandlesTool") && Property(window, "IsGradientCanvasEnabled"), "Gradient button and handles visible");
-            Check(!Property(window, "IsPreviewPaintTool"), "Base brush does not receive contextual clicks");
+            Check(!Property(window, "IsCanvasPaintTool"), "Base brush does not receive contextual clicks");
             Check(EditorPrefs.GetString(prefs[0]) == "Brush", "Context does not replace base preference");
             SetTool("Pencil"); Refresh(); Call(window, "Update");
             IsTool("Pencil", "Explicit base choice survives refresh and update");
@@ -104,24 +104,24 @@ public static class ContextToolsSmoke
             void Activate(string kind, ShaderFXParameter parameter) => Call(window, "ActivateTemporaryTool", Tool(kind), fx, parameter.id);
             SetTool("Brush");
             await Task.Delay(100);
-            var previewCanvas = (VisualElement)Read(window, "toolkitPreviewCanvas");
+            var previewCanvas = (VisualElement)Read(window, "toolkitCanvas");
             Rect stableCanvas = previewCanvas.worldBound;
             async Task CheckCanvasLayout(string name)
             {
                 await Task.Delay(100);
-                var settingsPanel = window.rootVisualElement.Q<VisualElement>("previewToolSettings");
-                Check(Mathf.Abs(window.rootVisualElement.Q("previewToolSettingsSpace").resolvedStyle.height - 28f) < .1f,
+                var settingsPanel = window.rootVisualElement.Q<VisualElement>("canvasToolSettings");
+                Check(Mathf.Abs(window.rootVisualElement.Q("canvasToolSettingsSpace").resolvedStyle.height - 28f) < .1f,
                     name + " reserves a fixed 28px settings row");
                 Check(settingsPanel.resolvedStyle.height >= 28f, name + " settings panel remains visible");
-                var topRail = (VisualElement)Read(window, "previewGuideTopRail");
-                var leftRail = (VisualElement)Read(window, "previewGuideLeftRail");
+                var topRail = (VisualElement)Read(window, "canvasGuideTopRail");
+                var leftRail = (VisualElement)Read(window, "canvasGuideLeftRail");
                 Check(Mathf.Abs(topRail.worldBound.yMin - Mathf.Max(settingsPanel.worldBound.yMax, previewCanvas.worldBound.yMin)) < .1f,
                     name + " guide rail follows settings bottom");
                 Check(Mathf.Abs(leftRail.worldBound.yMin - topRail.worldBound.yMax) < .1f,
                     name + " left guide rail starts below top rail");
                 Check(window.rootVisualElement.panel.Pick(topRail.worldBound.center) == topRail,
                     name + " guide rail is not covered by settings");
-                var guideManipulator = Read(window, "previewGuideManipulator");
+                var guideManipulator = Read(window, "canvasGuideManipulator");
                 Check((int)Call(guideManipulator, "RailAt", previewCanvas.WorldToLocal(topRail.worldBound.center)) == 1,
                     name + " moved horizontal rail hit-test follows its visual");
                 Check((int)Call(guideManipulator, "RailAt", previewCanvas.WorldToLocal(leftRail.worldBound.center)) == 0,
@@ -147,7 +147,7 @@ public static class ContextToolsSmoke
             await CheckCanvasLayout("UV Island Select");
             Write(window, "uvEnabled", false); Refresh();
             SetTool("GradientHandles"); await CheckCanvasLayout("Gradient Handles");
-            Check(window.rootVisualElement.Q("previewToolSettings").Children()
+            Check(window.rootVisualElement.Q("canvasToolSettings").Children()
                 .All(row => row.resolvedStyle.display == DisplayStyle.None), "Parameterless tool leaves the fixed panel empty");
             Activate("FXPoint", point); await CheckCanvasLayout("FX Point");
             Activate("FXNormal", normal); await CheckCanvasLayout("FX Normal");
@@ -156,12 +156,12 @@ public static class ContextToolsSmoke
             Activate("FXPoint", point);
             IsTool("FXPoint", "Edit on Canvas selects temporary point");
             Check(Visible("temporaryCanvasTool"), "Temporary button appears only after activation");
-            Check(!Property(window, "IsGradientCanvasEnabled") && !Property(window, "IsPreviewTransformEnabled"), "No competing manipulator active");
+            Check(!Property(window, "IsGradientCanvasEnabled") && !Property(window, "IsCanvasTransformEnabled"), "No competing manipulator active");
             Check(window.rootVisualElement.Q<Button>("temporaryCanvasTool").tooltip.Contains("_Point"), "Temporary description identifies parameter");
             var toolbar = window.rootVisualElement.Q<Button>("temporaryCanvasTool").parent;
             Check(toolbar[toolbar.childCount - 1].name == "temporaryCanvasTool", "Temporary slot is always last");
             Activate("FXNormal", normal); Activate("FXTransform", transform);
-            Check(Property(window, "IsPreviewTransformEnabled"), "Temporary transform is enabled for active layer in multiple selection");
+            Check(Property(window, "IsCanvasTransformEnabled"), "Temporary transform is enabled for active layer in multiple selection");
             Escape(); IsTool("GradientHandles", "Replacing temporary target preserves original return tool");
             Check(!Visible("temporaryCanvasTool"), "Temporary slot disappears on exit");
             Activate("FXPoint", point); Activate("FXPoint", point);
@@ -192,7 +192,7 @@ public static class ContextToolsSmoke
             {
                 Activate(pair.Item1, pair.Item3);
                 var manipulator = Read(window, pair.Item2);
-                var canvas = (VisualElement)Read(window, "toolkitPreviewCanvas");
+                var canvas = (VisualElement)Read(window, "toolkitCanvas");
                 Vector4 original = pair.Item3.vectorValue;
                 Undo.IncrementCurrentGroup();
                 Write(manipulator, "undoGroup", Undo.GetCurrentGroup());
@@ -245,9 +245,9 @@ public static class ContextToolsSmoke
             Escape();
             SetTool("Fill");
             await Task.Delay(100);
-            var narrowSettings = window.rootVisualElement.Q("previewToolSettings");
+            var narrowSettings = window.rootVisualElement.Q("canvasToolSettings");
             Check(narrowSettings.resolvedStyle.height > 28f, "Narrow settings wrap onto additional rows");
-            Rect narrowCanvas = ((VisualElement)Read(window, "toolkitPreviewCanvas")).worldBound;
+            Rect narrowCanvas = ((VisualElement)Read(window, "toolkitCanvas")).worldBound;
             var lastField = narrowSettings.Q<IntegerField>(className: "whimtex-fill-expand");
             Check(lastField.worldBound.xMin >= narrowSettings.worldBound.xMin - .1f &&
                 lastField.worldBound.xMax <= narrowSettings.worldBound.xMax + .1f &&
@@ -258,14 +258,14 @@ public static class ContextToolsSmoke
             Check(picked == lastField || lastField.Contains(picked), "Overlapping settings receive input instead of the canvas");
             SetTool("GradientHandles"); await Task.Delay(100);
             Check(Mathf.Abs(narrowSettings.resolvedStyle.height - 28f) < .1f, "Empty panel collapses to one row");
-            Check(((VisualElement)Read(window, "toolkitPreviewCanvas")).worldBound == narrowCanvas,
+            Check(((VisualElement)Read(window, "toolkitCanvas")).worldBound == narrowCanvas,
                 "Collapsing wrapped settings does not move or resize the preview");
             // Repeat actual window resizes and tool switches after rebuilding the view.
             foreach (float width in new[] { 1280f, 640f, 900f, 640f })
             {
                 window.position = new Rect(120, 120, width, 650);
                 SetTool("Brush"); await Task.Delay(100);
-                previewCanvas = (VisualElement)Read(window, "toolkitPreviewCanvas");
+                previewCanvas = (VisualElement)Read(window, "toolkitCanvas");
                 stableCanvas = previewCanvas.worldBound;
                 foreach (string name in new[] { "Fill", "Zoom", "Transform", "Pencil", "BlurBrush", "HealingBrush", "GradientHandles", "Brush" })
                 {

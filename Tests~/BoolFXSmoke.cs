@@ -36,12 +36,12 @@ public static class BoolFXSmoke
         try
         {
             string source = "// @param bool _Flag = false\nfloat4 ApplyFX(float2 uv, float4 color) { return float4(_Flag, 0, 0, 1); }";
-            fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", hidden).Invoke(null, new object[] { document, source, new List<ShaderFXParameter>() });
+            fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", hidden, null, new[] { typeof(DCFApixels.WhimTex.TextureCompositor), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { document, source, new List<ShaderFXParameter>() });
             typeof(ShaderFX).GetMethod("ApplyAgentDraft", hidden).Invoke(fx, null);
             var list = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", hidden).GetValue(fx);
             var shaderField = typeof(ShaderFX).GetField("compiledShader", hidden);
             var shader = shaderField.GetValue(fx);
-            var context = Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.LayerRenderContext"), document, null, 4, 4, 1f, true, true);
+            var context = Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.LayerRenderContext"), document, null, 4, 4, 1f, true, true, null);
             Color Render()
             {
                 var material = (Material)typeof(ShaderFX).GetMethod("GetMaterial", hidden).Invoke(fx, new[] { context });

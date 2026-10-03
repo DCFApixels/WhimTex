@@ -6,16 +6,16 @@ namespace DCFApixels.WhimTex
     internal static class WhimTexBranding
     {
         private static Texture2D icon;
-        private static Texture2D previewBackdrop;
+        private static Texture2D canvasViewBackdrop;
 
-        internal static Texture2D PreviewBackdrop
+        internal static Texture2D CanvasViewBackdrop
         {
             get
             {
-                if (previewBackdrop == null)
-                    previewBackdrop = AssetDatabase.LoadAssetAtPath<Texture2D>(
+                if (canvasViewBackdrop == null)
+                    canvasViewBackdrop = AssetDatabase.LoadAssetAtPath<Texture2D>(
                         AssetDatabase.GUIDToAssetPath("a693463e898e46f089f96a27a27c7451"));
-                return previewBackdrop;
+                return canvasViewBackdrop;
             }
         }
 

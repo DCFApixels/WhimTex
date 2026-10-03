@@ -28,7 +28,7 @@ Use **+** at the bottom of Layers to choose a type:
 | Noise | A generated pattern. See [Noise](noise.md). |
 | Shape | An editable rectangle, ellipse, polygon, star or line. |
 
-You can also drag a Project texture onto the Preview to add it at the top,
+You can also drag a Project texture onto Canvas View to add it at the top,
 or drop it between rows to choose its position. A newly assigned image keeps its original proportions.
 Assigning an HDR texture to a File layer sets **Color Range** and **Blend Range** to **HDR**.
 You can change both afterwards in **Color & Blending**.
@@ -135,7 +135,7 @@ not arbitrary FX applied afterwards or other layers in the composite.
 
 ## Draw a shape
 
-Choose **Shape** (`U`), pick a shape in the Preview header, then drag to create it.
+Choose **Shape** (`U`), pick a shape in the Canvas View header, then drag to create it.
 New layers are named after the figure, such as **Rectangle 1**, **Line 2**, or **Star 3**, with one shared numbering sequence for all shapes.
 Each drag adds a separate Shape layer, including in an empty document.
 Hold `Shift` for equal proportions or a line angle in 45° steps; `Ctrl` bypasses guide snapping.

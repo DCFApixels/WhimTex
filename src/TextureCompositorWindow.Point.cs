@@ -16,7 +16,7 @@ namespace DCFApixels.WhimTex
         {
             get
             {
-                if (previewTool != PreviewTool.FXPoint || pointFX == null || compositor == null || GetSelectedLayer() is not Layer layer ||
+                if (canvasTool != CanvasTool.FXPoint || pointFX == null || compositor == null || GetSelectedLayer() is not Layer layer ||
                     !layer.modifiers.Contains(pointFX) || WhimTexApi.IsLayerContentLocked(compositor, layer) ||
                     WhimTexApi.IsShaderFXContentLocked(pointFX)) return null;
                 foreach (var p in pointFX.Parameters)
@@ -38,19 +38,19 @@ namespace DCFApixels.WhimTex
                     !WhimTexApi.IsLayerContentLocked(w.compositor, layer) &&
                     (best == null || w == focusedWindow || best != focusedWindow && w.AgentFocusOrder > best.AgentFocusOrder)) best = w;
             if (best == null) return;
-            best.ActivateTemporaryTool(PreviewTool.FXPoint, effect, id);
+            best.ActivateTemporaryTool(CanvasTool.FXPoint, effect, id);
         }
 
         private void BuildPointTool()
         {
             pointOverlay = new VisualElement { pickingMode = PickingMode.Ignore };
             pointOverlay.StretchToParentSize();
-            toolkitPreviewCanvas.Add(pointOverlay);
+            toolkitCanvas.Add(pointOverlay);
             var manipulator = pointManipulator = new PointManipulator(this);
-            toolkitPreviewCanvas.AddManipulator(manipulator);
+            toolkitCanvas.AddManipulator(manipulator);
             pointOverlay.generateVisualContent += manipulator.Draw;
-            toolkitPreviewCanvas.RegisterCallback<GeometryChangedEvent>(_ => pointOverlay.MarkDirtyRepaint());
-            toolkitPreviewCanvas.ViewChanged += pointOverlay.MarkDirtyRepaint;
+            toolkitCanvas.RegisterCallback<GeometryChangedEvent>(_ => pointOverlay.MarkDirtyRepaint());
+            toolkitCanvas.ViewChanged += pointOverlay.MarkDirtyRepaint;
             bool wasActive = false;
             pointOverlay.schedule.Execute(() =>
             {
@@ -75,10 +75,10 @@ namespace DCFApixels.WhimTex
 
             private Vector2 Handle(ShaderFXParameter value)
             {
-                Rect image = owner.toolkitPreviewCanvas.ImageRect;
+                Rect image = owner.toolkitCanvas.ImageRect;
                 Vector2 uv = new Vector2(value.vectorValue.x, value.vectorValue.y);
                 Vector2 position = new Vector2(image.xMin + uv.x * image.width, image.yMax - uv.y * image.height);
-                return owner.toolkitPreviewCanvas.ToView(position);
+                return owner.toolkitCanvas.ToView(position);
             }
 
             protected override void RegisterCallbacksOnTarget()
@@ -105,7 +105,7 @@ namespace DCFApixels.WhimTex
             private void Down(PointerDownEvent e)
             {
                 var value = owner.PointParameter;
-                if (pointer >= 0 || value == null || e.button != 0 || e.altKey || owner.toolkitPreviewCanvas.ImageRect.width <= 0 ||
+                if (pointer >= 0 || value == null || e.button != 0 || e.altKey || owner.toolkitCanvas.ImageRect.width <= 0 ||
                     Vector2.Distance(e.localPosition, Handle(value)) > 11) return;
                 owner.Focus(); target.Focus();
                 parameter = value; effect = owner.pointFX; pointer = e.pointerId;
@@ -133,8 +133,8 @@ namespace DCFApixels.WhimTex
                 if (owner.PointParameter != parameter || effect == null || (e.pressedButtons & 1) == 0) { Finish(); return; }
                 moved |= Vector2.Distance(start, e.localPosition) > 3;
                 if (!moved) return;
-                Rect image = owner.toolkitPreviewCanvas.ImageRect;
-                Vector2 canvas = owner.toolkitPreviewCanvas.ToCanvas((Vector2)e.localPosition + offset);
+                Rect image = owner.toolkitCanvas.ImageRect;
+                Vector2 canvas = owner.toolkitCanvas.ToCanvas((Vector2)e.localPosition + offset);
                 var uv = new Vector2(Mathf.Clamp01((canvas.x - image.xMin) / image.width),
                     Mathf.Clamp01(1f - (canvas.y - image.yMin) / image.height));
                 Set(uv);

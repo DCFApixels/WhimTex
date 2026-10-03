@@ -103,6 +103,15 @@ namespace DCFApixels.WhimTex
             var alphas = tintGradient.AlphaKeys;
             for (int i = 1; i < alphas.Length; i++)
                 if (alphas[0].alpha != alphas[i].alpha) tintVaries = true;
+            if (!tintVaries)
+            {
+                // Constant keys need no interpolation/color-space round trip. Keep neutral white exact.
+                constantTint = colors[0].color;
+                constantTint.a = alphas[0].alpha;
+                if (tintGradient.ColorSpace == ColorSpace.Linear &&
+                    (constantTint.r != 1f || constantTint.g != 1f || constantTint.b != 1f))
+                    constantTint = HdrUtility.Encode(constantTint);
+            }
         }
 
         internal Color SampleTint(ref uint state, uint stampIndex) => tintVaries

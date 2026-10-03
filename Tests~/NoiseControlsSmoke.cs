@@ -111,7 +111,10 @@ public static class NoiseControlsSmoke
             using var pasted=(IDisposable)typeof(WhimTexApi).GetMethod("ReadProceduralClipboard",flags).Invoke(null,new object[]{portable,32,32});
             var pastedDoc=(TextureCompositor)pasted.GetType().GetField("Document",flags).GetValue(pasted);
             var pastedNoise=(NoiseLayerBehaviour)pastedDoc.layers[0].Behaviour;
-            Check(pastedNoise.periodic1D&&pastedNoise.periodic==noise.periodic&&pastedNoise.dimensions==noise.dimensions,"Portable clipboard retains both Seamless settings");
+            Check(pastedNoise.periodic1D&&pastedNoise.dimensions==noise.dimensions,"Optimized clipboard retains active 1D Seamless settings");
+            using var full = WhimTexDocumentJson.Read(WhimTexDocumentJson.Write(document, new WhimTexJsonWriteOptions {Mode = WhimTexJsonWriteMode.Full}).Json);
+            var fullNoise = (NoiseLayerBehaviour)full.Document.layers[0].Behaviour;
+            Check(fullNoise.periodic1D&&fullNoise.periodic==noise.periodic&&fullNoise.dimensions==noise.dimensions,"Full JSON retains both active and inactive Seamless settings");
             return "PASS Noise controls, Z slices and cache: "+checks;
         }
         finally {if(window!=null)window.Close();bindingsType.GetMethod("Clear").Invoke(bindings,null);UnityEngine.Object.DestroyImmediate(document);}

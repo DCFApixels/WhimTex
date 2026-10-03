@@ -16,7 +16,7 @@ DCFApixels.WhimTex.TextureCompositorWindow created = null;
 DCFApixels.WhimTex.TextureCompositorWindow secondWindow = null;
 DCFApixels.WhimTex.TextureCompositor secondDocument = null;
 int checks = 0;
-void Check(bool condition) { if (!condition) throw new System.Exception("File navigation check failed: " + checks); checks++; }
+void Check(bool condition, string reason = null) { if (!condition) throw new System.Exception("File navigation check failed: " + checks + "; " + reason); checks++; }
 try
 {
     Check(open.Invoke(null, new object[] { null }) == null);
@@ -55,13 +55,15 @@ try
     if (parentField != null)
         foreach (var item in originals)
         {
+            // Floating tab containers also use DockArea; only a docked window is a docking target.
+            if (!item.docked) continue;
             var parent = parentField.GetValue(item);
             if (parent?.GetType().FullName != "UnityEditor.DockArea") continue;
             dockAvailable = true;
             sharesTabs |= parent == parentField.GetValue(created);
         }
-    if (dockAvailable) Check(sharesTabs);
-    foreach (var item in originals) Check(field.GetValue(item) == documents[item]);
+    if (dockAvailable) Check(sharesTabs, "Existing docked window was not reused as a tab host; new parent=" + parentField.GetValue(created));
+    foreach (var item in originals) Check(field.GetValue(item) == documents[item], "Original document changed in " + item.name);
     return "File navigation: " + checks + " Unity checks passed; new window and reuse verified; shared tab group: " + sharesTabs;
 }
 finally

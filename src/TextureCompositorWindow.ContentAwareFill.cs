@@ -13,7 +13,7 @@ namespace DCFApixels.WhimTex
         private void OpenContentAwareFill()
         {
             FinishPaintingStroke();
-            FinishPreviewTransform();
+            FinishCanvasTransform();
             CanvasSelection selection = GetAreaSelection();
             if (selection == null || !selection.Active || selection.Bounds.width == 0 || selection.Bounds.height == 0) return;
             foreach (var existing in Resources.FindObjectsOfTypeAll<ContentFillWindow>())
@@ -205,7 +205,7 @@ namespace DCFApixels.WhimTex
                 ReleasePreview();
                 try
                 {
-                    owner.FinishPaintingStroke(); owner.FinishPreviewTransform();
+                    owner.FinishPaintingStroke(); owner.FinishCanvasTransform();
                     if (!Valid) throw new InvalidOperationException("The source document changed. Reopen Content-Aware Fill.");
                     Layer layer = source == Source.SelectedLayer ? document.FindLayer(sourceLayerId) : null;
                     if (source == Source.SelectedLayer && (layer == null || layer.Behaviour == null))
@@ -328,7 +328,7 @@ namespace DCFApixels.WhimTex
             private void Apply()
             {
                 if (!Valid || task != null || result == null) return;
-                owner.FinishPaintingStroke(); owner.FinishPreviewTransform();
+                owner.FinishPaintingStroke(); owner.FinishCanvasTransform();
                 if (!Valid || result == null) return;
                 Texture2D texture = null;
                 try

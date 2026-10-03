@@ -159,7 +159,7 @@ namespace DCFApixels.WhimTex
                         properties.AppendLine($"{gradientWrap} (\"{name} Wrap Mode\", Float) = 0");
                         uniforms.AppendLine($"sampler2D {gradientTexture};");
                         uniforms.AppendLine($"float {gradientWrap};");
-                        uniforms.AppendLine($"float4 {name}_Sample(float t) {{ if ({gradientWrap} < 0.5) t = saturate(t); else if ({gradientWrap} < 1.5) t = frac(t); else t = 1.0 - abs(frac(t * 0.5) * 2.0 - 1.0); return tex2Dlod({gradientTexture}, float4((saturate(t) * 511.0 + 0.5) / 512.0, 0.5, 0.0, 0.0)); }}");
+                        uniforms.AppendLine($"float4 {name}_Sample(float t) {{ if ({gradientWrap} < 0.5) t = saturate(t); else if ({gradientWrap} < 1.5) t = frac(t); else {{ t -= floor(t * 0.5) * 2.0; t = t <= 1.0 ? t : 2.0 - t; }} return tex2Dlod({gradientTexture}, float4((saturate(t) * 511.0 + 0.5) / 512.0, 0.5, 0.0, 0.0)); }}");
                         break;
                     default: throw new InvalidOperationException($"Unsupported parameter type: {parameter.type}.");
                 }

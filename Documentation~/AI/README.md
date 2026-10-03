@@ -408,7 +408,9 @@ for sampling precision and preset persistence. This is not a layer property or a
 FX-only `gradient` is declared as `// @param gradient _Ramp`, optionally with two endpoint colors:
 `// @param gradient _Ramp = #FF0000FF -> #0000FF`. Each endpoint may be `#RRGGBB` (opaque),
 `#RRGGBBAA` (RGBA), or a numeric `(r, g, b, a)` tuple. Without an initializer it starts opaque
-black-to-white (Perceptual). The user can edit colors, HDR, alpha and interpolation in the gradient field.
+black-to-white (Perceptual). Explicit two-endpoint defaults use Classic/Gamma/Clamp,
+Smoothness 1 and midpoint .5 to preserve the endpoint-only HLSL export contract.
+The user can edit colors, HDR, alpha and interpolation in the gradient field.
 The same hex forms are accepted for `color` defaults; color defaults also accept numeric RGBA tuples.
 Call `_Ramp_Sample(t)` for straight linear RGBA; `t` is clamped to 0..1.
 For example, `return _Ramp_Sample(uv.x);`. Do not declare a sampler yourself. A cached 512×2

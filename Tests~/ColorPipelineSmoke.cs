@@ -51,9 +51,9 @@ Texture2D Texture(Color value, bool linear)
     texture.SetPixels(pixels); texture.Apply(false, false);
     return texture;
 }
-Gradient Constant(Color value)
+DCFApixels.WhimTex.WhimTexGradient Constant(Color value)
 {
-    var gradient = new Gradient();
+    var gradient = new DCFApixels.WhimTex.WhimTexGradient();
     gradient.SetKeys(new[] { new GradientColorKey(value, 0), new GradientColorKey(value, 1) },
         new[] { new GradientAlphaKey(value.a, 0), new GradientAlphaKey(value.a, 1) });
     return gradient;
@@ -90,7 +90,7 @@ try
         Near(ldr.GetPixel(4, 4), color, "LDR export encoding");
         var png = new Texture2D(2, 2); objects.Add(png);
         png.LoadImage(ldr.EncodeToPNG()); Near(png.GetPixel(4, 4), color, "PNG memory round-trip");
-        var previewMaterial = new Material(Shader.Find("Hidden/TextureCompositor/PreviewChannels")); objects.Add(previewMaterial);
+        var previewMaterial = new Material(Shader.Find("Hidden/TextureCompositor/DisplayChannels")); objects.Add(previewMaterial);
         previewMaterial.SetVector("_Channels", Vector4.one); previewMaterial.SetFloat("_Exposure", 1);
         var preview = RenderTexture.GetTemporary(8, 8, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Default);
         var previewRead = new Texture2D(8, 8, TextureFormat.RGBA32, false); objects.Add(previewRead);
@@ -165,7 +165,12 @@ try
         { name = "_Color", type = DCFApixels.WhimTex.ShaderFXParameterType.Color, colorValue = new Color(.463f, .23f, .71f, 1) };
         Call(parameter, "SetValue", material, parameter, new Vector2(8, 8));
         if (shader == brushShader)
-        { material.SetFloat("_Hardness", 1); material.SetFloat("_SrcBlend", 1); material.SetFloat("_DstBlend", 0); }
+        {
+            material.SetFloat("_Hardness", 1); material.SetFloat("_SrcBlend", 1); material.SetFloat("_DstBlend", 0);
+            material.SetVector("_PaintRow0", new Vector4(1,0,0,0));
+            material.SetVector("_PaintRow1", new Vector4(0,1,0,0));
+            material.SetVector("_PaintRow2", new Vector4(0,0,1,0));
+        }
         var target = RenderTexture.GetTemporary(8, 8, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
         var read = new Texture2D(8, 8, TextureFormat.RGBAFloat, false, true); objects.Add(read);
         try
@@ -178,6 +183,12 @@ try
                 GL.Begin(GL.QUADS);
                 try
                 {
+                    if (shader == brushShader)
+                    {
+                        for (int channel = 1; channel <= 4; channel++) GL.MultiTexCoord3(channel,0,0,0);
+                        GL.MultiTexCoord3(5,1,1,1);
+                        GL.MultiTexCoord3(6,8,1,0);
+                    }
                     GL.TexCoord2(0, 0); GL.Vertex3(0, 0, 0);
                     GL.TexCoord2(0, 1); GL.Vertex3(0, 1, 0);
                     GL.TexCoord2(1, 1); GL.Vertex3(1, 1, 0);

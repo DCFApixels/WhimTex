@@ -29,6 +29,7 @@ public static class LayerTransferSmoke
     }
     public static string Setup()
     {
+        Check(!Resources.FindObjectsOfTypeAll<TextureCompositorWindow>().Any(w => w.name == SourceName || w.name == TargetName), "Clean up the previous owned transfer fixture first");
         SessionState.SetInt("WhimTex.LayerTransferSmoke.Focus", EditorWindow.focusedWindow != null ? EditorWindow.focusedWindow.GetHashCode() : 0);
         Undo.IncrementCurrentGroup();SessionState.SetInt("WhimTex.LayerTransferSmoke.Undo",Undo.GetCurrentGroup());
         var source = ScriptableObject.CreateInstance<TextureCompositorWindow>(); source.name = SourceName;
@@ -55,7 +56,7 @@ public static class LayerTransferSmoke
         seamless.TargetLayerId=group.Id;
         target.titleContent = new GUIContent(TargetName);
         target.position = new Rect(100, 100, 1100, 720); target.ShowUtility();
-        return "Ready: run Drop with top, before, after, group, end, footer, then Cleanup.";
+        return "Ready: run one Drop variant (top, before, after, group, end or footer), then Cleanup. Use a fresh Setup per variant.";
     }
     public static string Drop(string mode)
     {
@@ -63,7 +64,7 @@ public static class LayerTransferSmoke
         var a = Document(source); var b = Document(target);
         var roots = new List<Layer> { a.layers[0], a.layers[1], a.layers[1].children[0] };
         var scroll = (ScrollView)Get(target, "toolkitSettingsScroll");
-        VisualElement element = (VisualElement)Get(target, "toolkitPreviewPane");
+        VisualElement element = (VisualElement)Get(target, "toolkitCanvasView");
         Vector2 point = element.worldBound.center;
         List<Layer> destination = b.layers;
         int index = 0;
@@ -148,7 +149,7 @@ public static class LayerTransferSmoke
         Call(autoScroll, "UpdatePointer", new Vector2(viewport.center.x, viewport.yMin + 1));
         Check((bool)Get(autoScroll, "running"), "Cross-window drag starts edge autoscroll");
         Call(autoScroll, "Stop");
-        var element = (VisualElement)Get(target, "toolkitPreviewPane");
+        var element = (VisualElement)Get(target, "toolkitCanvasView");
         var point = element.worldBound.center;
         using (var perform = DragPerformEvent.GetPooled(new Event { type = EventType.DragPerform, mousePosition = point }))
         { perform.target = element; element.SendEvent(perform); }

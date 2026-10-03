@@ -38,10 +38,10 @@ const tick = screenWindow.split('private void Tick()')[1].split('private void Re
 assert.ok(tick.indexOf('MoveSample()') < tick.indexOf('MoveLens()'), 'Refresh the actual pointer even without a pointer event');
 assert.ok(tick.indexOf('MoveLens()') < tick.indexOf('ReadSample(false)'), 'Move the lens before deferred sampling');
 assert.ok(!screenWindow.includes('ReadPixels'), 'Screen samples still use the desktop reader, not texture readback');
-const cursorFactory = eye.split('private static Texture2D CreateScreenEyedropperCursor')[1].split('private sealed class PreviewEyedropperManipulator')[0];
+const cursorFactory = eye.split('private static Texture2D CreateScreenEyedropperCursor')[1].split('private sealed class CanvasEyedropperManipulator')[0];
 for (const check of [
     'TextureFormat.RGBA32, false, !source.isDataSRGB', 'alphaIsTransparency = true',
-    'if (source.isReadable)', 'copy.SetPixels32(source.GetPixels32())', 'Graphics.Blit(source, temporary)',
+    'if (source.isReadable)', 'copy.SetPixels32(1, 1, source.width, source.height, source.GetPixels32())', 'Graphics.Blit(source, temporary)',
     'copy.ReadPixels(', 'copy.Apply(false, false)', 'UnityEngine.Object.DestroyImmediate(copy)',
     'GL.sRGBWrite = previousSrgb', 'RenderTexture.active = previous', 'RenderTexture.ReleaseTemporary(temporary)'
 ]) assert.ok(cursorFactory.includes(check), check);
@@ -52,7 +52,7 @@ assert.ok(!screenWindow.includes('Texture2D cursorTexture = EditorGUIUtility.Fin
 assert.ok(!screenWindow.includes('contentRect.Contains'), 'No preview or popup bounds restriction after activation');
 assert.ok(!screenWindow.includes('PointerLeaveEvent'), 'Leaving a view must not end desktop sampling');
 assert.ok(eye.includes('focusedWindow != owner'), 'Alt hover must not steal focus from another application');
-assert.ok(window.includes('if (!OwnsScreenEyedropper) CancelPreviewEyedropper()'));
+assert.ok(window.includes('if (!OwnsScreenEyedropper) CancelCanvasEyedropper()'));
 assert.ok(eye.includes('focusedWindow != this'), 'External focus loss ends the session');
 assert.ok(eye.includes('private void OnLostFocus() { if (!starting) Finish(false); }'));
 assert.ok(eye.includes('private sealed class ScreenEyedropperLensWindow : EditorWindow { }'));
@@ -122,7 +122,7 @@ assert.ok(eye.includes('commitPick ? pendingPickAlpha : owner.paintSettings.brus
 assert.ok(!eye.includes('if (pendingPick) ApplySample(color)'), 'Magnifier updates cannot commit a different pixel');
 const sample = screenWindow.split('private void ReadSample(')[1].split('private void ApplySample(')[0];
 assert.ok(sample.includes('Vector2 point = commitPick ? pendingPickPosition : screenPosition'));
-assert.ok(sample.includes('Color color = PreviewScreenSample(pixels, SampleSide,'));
+assert.ok(sample.includes('Color color = CanvasScreenSample(pixels, SampleSide,'));
 assert.ok(sample.includes('displayedSampleColor = color') && sample.includes('if (commitPick) ApplySample(color)'));
 assert.ok(sample.indexOf('sampleTexture.SetPixels(pixels)') < sample.indexOf('if (commitPick) ApplySample(color)'));
 assert.ok(sample.indexOf('ApplySample(pendingPickColor)') < sample.indexOf('ReadScreenPixelUnderCursor('),

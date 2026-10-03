@@ -75,13 +75,20 @@ public static class WhimTexGradientContractSmoke
         Check(((WhimTexGradient)clipboard.GetMethod("Read", Flags).Invoke(null, new object[] {json})).Equals(g), "Clipboard/API roundtrip");
         string raw = JsonUtility.ToJson(g);
         Check(((WhimTexGradient)clipboard.GetMethod("Read", Flags).Invoke(null, new object[] {raw})).Equals(g), "Serialized clipboard enum");
-        var snapshotMethod = typeof(WhimTexApi).GetMethod("GradientSnapshot", Flags);
-        var compactMethod = typeof(WhimTexApi).GetMethod("CompactPortableGradient", Flags);
-        var compact = compactMethod.Invoke(null, new object[] {snapshotMethod.Invoke(null, new object[] {g}), WhimTexGradientMode.Classic});
-        Check(!compact.ToString().Contains("transition"), "Portable compaction retained default transition");
-        Check(((WhimTexGradient)clipboard.GetMethod("Read", Flags).Invoke(null, new object[] {compact.ToString()})).Equals(g), "Compact portable roundtrip");
-        var defaultCompact = compactMethod.Invoke(null, new object[] {snapshotMethod.Invoke(null, new object[] {new WhimTexGradient()}), WhimTexGradientMode.Classic});
-        Check(!defaultCompact.ToString().Contains("transition"), "Portable compaction retained Rounded default");
+        foreach (var value in new[] {g, new WhimTexGradient()})
+        {
+            var document = ScriptableObject.CreateInstance<TextureCompositor>();
+            try
+            {
+                document.layers.Add(new GradientLayerBehaviour {gradient = value.Clone()});
+                typeof(TextureCompositor).GetMethod("NormalizeModel", Flags).Invoke(document, null);
+                string compact = WhimTexDocumentJson.Write(document, new WhimTexJsonWriteOptions {Mode = WhimTexJsonWriteMode.Compact}).Json;
+                Check(!compact.Contains("transition"), "Compact document retains retired transition");
+                using var restored = WhimTexDocumentJson.Read(compact);
+                Check(((GradientLayerBehaviour)restored.Document.layers[0].Behaviour).gradient.Equals(value), "Compact document gradient roundtrip");
+            }
+            finally { UnityEngine.Object.DestroyImmediate(document); }
+        }
         var setOptions = typeof(WhimTexApi).GetMethod("SetClipboardGradient", Flags);
         var parseObject = setOptions.GetParameters()[1].ParameterType.GetMethod("Parse", new[] {typeof(string)});
         foreach (string value in new[] {"0","1","2","3","4","5","999","null","\"Standard\"","\"Soft\"","\"Soft2\"","\"Soft3\"","\"Rational\"","\"Rounded\""})

@@ -163,7 +163,7 @@ try
     var storedProperty=typeof(DCFApixels.WhimTex.DrawingLayerBehaviour).GetProperty("StoredTexture",instance);
     UnityEngine.Texture2D Stored() => (UnityEngine.Texture2D)storedProperty.GetValue(drawing);
     Check(Stored().width==4 && Stored().height==4 && drawing.colorRange==DCFApixels.WhimTex.LayerColorRange.Standard,"PNG keeps its original Drawing resolution");
-    Check(drawing.transform.scale==UnityEngine.Vector2.one && drawing.transform.position==UnityEngine.Vector2.zero,"Full-canvas stretch uses identity transform");
+    Check(((UnityEngine.Vector2)drawing.transform.scale)==UnityEngine.Vector2.one && ((UnityEngine.Vector2)drawing.transform.position)==UnityEngine.Vector2.zero,"Full-canvas stretch uses identity transform");
     Check(UnityEngine.Mathf.Abs(Stored().GetPixel(3,3).r-.5f)<.01f,"sRGB round trip does not darken image");
     var originalPixels=Stored().GetRawTextureData();
     string originalJson=UnityEditor.EditorJsonUtility.ToJson(document);
@@ -198,7 +198,7 @@ try
     var regionalDrawing=(DCFApixels.WhimTex.DrawingLayerBehaviour)Find(Text(regional,"layerId"));
     var regionalPixels=(UnityEngine.Texture2D)storedProperty.GetValue(regionalDrawing);
     Check(regionalPixels.width==4 && regionalPixels.height==4,"Regional image keeps source dimensions");
-    Check(regionalDrawing.transform.scale==new UnityEngine.Vector2(.5f,.375f) && regionalDrawing.transform.position==new UnityEngine.Vector2(0,-.5f),"Transform places context crop on canvas");
+    Check(((UnityEngine.Vector2)regionalDrawing.transform.scale)==new UnityEngine.Vector2(.5f,.375f) && ((UnityEngine.Vector2)regionalDrawing.transform.position)==new UnityEngine.Vector2(0,-.5f),"Transform places context crop on canvas");
     Check(regionalPixels.GetPixel(1,1).a>.99f && UnityEngine.Mathf.Abs(regionalPixels.GetPixel(2,1).a-128f/255)<.01f,"Frozen soft selection is mapped to source pixels");
     Check(regionalPixels.GetPixel(0,1).a==0 && regionalPixels.GetPixel(0,0).a==0,"Context outside mask remains transparent");
 

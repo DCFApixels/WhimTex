@@ -52,7 +52,7 @@ public static class ProjectiveTransformSmoke
     static void Gestures()
     {
         const BindingFlags f=BindingFlags.Instance|BindingFlags.NonPublic;
-        var type=typeof(TextureCompositorWindow).GetNestedType("PreviewTransformManipulator",BindingFlags.NonPublic);
+        var type=typeof(TextureCompositorWindow).GetNestedType("CanvasTransformManipulator",BindingFlags.NonPublic);
         var manip=Activator.CreateInstance(type,BindingFlags.Instance|BindingFlags.Public|BindingFlags.NonPublic,null,new object[]{null},null);
         void Set(string name,object value)=>type.GetField(name,f).SetValue(manip,value);
         Set("original",TextureTransform.Default);Set("size",new Vector2(128,128));Set("pointerStart",Vector2.zero);

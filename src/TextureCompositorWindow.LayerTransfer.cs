@@ -89,9 +89,9 @@ namespace DCFApixels.WhimTex
             {
                 if (!TryGetCrossWindowLayers(out var source, out var roots)) return;
                 ResolveCrossWindowLayerDrop(evt.mousePosition, out var destination, out int index, out var expand, out _, out _, out _);
-                sourceWindow?.FinishPreviewTransform();
+                sourceWindow?.FinishCanvasTransform();
                 sourceWindow?.FinishPaintingStroke();
-                FinishPreviewTransform(); FinishPaintingStroke();
+                FinishCanvasTransform(); FinishPaintingStroke();
                 snapshot = source.CaptureLayerClipboard(roots);
                 DragAndDrop.AcceptDrag();
                 PasteCopiedLayersAt(snapshot, destination, index, expand);

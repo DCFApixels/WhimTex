@@ -8,7 +8,7 @@ namespace DCFApixels.WhimTex
     public sealed class NoiseLayerEditorWindow : LayerEditorWindowBase
     {
         protected override Type EditedLayerType => typeof(NoiseLayerBehaviour);
-        protected override bool ImmediatePreviewUpdates => true;
+        protected override bool ImmediateLayerPreviewUpdates => true;
         public static void Open(NoiseLayerBehaviour layer, TextureCompositor compositor) =>
             OpenPropertiesWindow<NoiseLayerEditorWindow>(layer, compositor);
         protected override void BuildSettings(VisualElement root, Layer source) =>

@@ -8,14 +8,14 @@ var mode = inputs.GetField("hdr", flags);
 bool originalMode = (bool)mode.GetValue(null);
 Color primary = new Color(16, 8, 4, .4f), secondary = new Color(2, 4, 1, .7f);
 Color originalPrimary = primary;
-var colorField = new UnityEditor.UIElements.ColorField();
-var gradientField = new UnityEditor.UIElements.GradientField();
-var sourceGradient = new Gradient { mode = GradientMode.Fixed, colorSpace = ColorSpace.Linear };
+var colorField = new DCFApixels.WhimTex.WhimTexColorField();
+var gradientField = new DCFApixels.WhimTex.WhimTexGradientValueField(null);
+var sourceGradient = new DCFApixels.WhimTex.WhimTexGradient { Mode = DCFApixels.WhimTex.WhimTexGradientMode.Fixed, ColorSpace = ColorSpace.Linear };
 sourceGradient.SetKeys(new[] { new GradientColorKey(primary, 0), new GradientColorKey(secondary, 1) },
     new[] { new GradientAlphaKey(.2f, 0), new GradientAlphaKey(.8f, 1) });
 int checks = 0, events = 0;
-colorField.RegisterValueChangedCallback(_ => events++);
-gradientField.RegisterValueChangedCallback(_ => events++);
+UnityEngine.UIElements.INotifyValueChangedExtensions.RegisterValueChangedCallback<Color>(colorField, _ => events++);
+UnityEngine.UIElements.INotifyValueChangedExtensions.RegisterValueChangedCallback<DCFApixels.WhimTex.WhimTexGradient>(gradientField, _ => events++);
 void Check(bool condition, string label) { checks++; if (!condition) throw new Exception(label); }
 void Near(Color a, Color b, string label) => Check(
     Mathf.Abs(a.r - b.r) < .0001f && Mathf.Abs(a.g - b.g) < .0001f &&
@@ -31,11 +31,11 @@ try
 {
     mode.SetValue(null, true);
     inputs.GetMethod("Bind", flags, null,
-        new[] { typeof(UnityEditor.UIElements.ColorField), bindingsType, typeof(Func<Color>) }, null)
+        new[] { typeof(DCFApixels.WhimTex.WhimTexColorField), bindingsType, typeof(Func<Color>) }, null)
         .Invoke(null, new object[] { colorField, bindings, (Func<Color>)(() => primary) });
     inputs.GetMethod("Bind", flags, null,
-        new[] { typeof(UnityEditor.UIElements.GradientField), bindingsType, typeof(Func<Gradient>) }, null)
-        .Invoke(null, new object[] { gradientField, bindings, (Func<Gradient>)(() => sourceGradient) });
+        new[] { typeof(DCFApixels.WhimTex.WhimTexGradientValueField), bindingsType, typeof(Func<DCFApixels.WhimTex.WhimTexGradient>) }, null)
+        .Invoke(null, new object[] { gradientField, bindings, (Func<DCFApixels.WhimTex.WhimTexGradient>)(() => sourceGradient) });
     Near(colorField.value, primary, "HDR field retains intensity");
     Refresh(false);
     Near(colorField.value, new Color(1, .5f, .25f, .4f), "Standard field removes excessive intensity");
@@ -43,12 +43,12 @@ try
     Near(primary, originalPrimary, "Display refresh must not rewrite source");
     Near(Display(new Color(.3f, .5f, .1f, .6f)), new Color(.3f, .5f, .1f, .6f), "Ordinary color is unchanged");
     Near(Display(new Color(float.MaxValue, float.MaxValue / 2, 0, .5f)), new Color(1, .5f, 0, .5f), "Extreme finite intensity stays colored");
-    Near(gradientField.value.colorKeys[0].color,
-        new Color(1, .5f, .25f, sourceGradient.colorKeys[0].color.a), "Gradient key is bounded");
-    Check(sourceGradient.colorKeys[0].color.r == 16, "Gradient source is not mutated");
-    Check(gradientField.value.mode == sourceGradient.mode && gradientField.value.colorSpace == sourceGradient.colorSpace,
+    Near(gradientField.value.ColorKeys[0].color,
+        sourceGradient.ColorKeys[0].color, "Gradient model retains HDR keys while its UI displays a bounded preview");
+    Check(sourceGradient.ColorKeys[0].color.r == 16, "Gradient source is not mutated");
+    Check(gradientField.value.Mode == sourceGradient.Mode && gradientField.value.ColorSpace == sourceGradient.ColorSpace,
         "Gradient metadata is preserved");
-    Check(gradientField.value.alphaKeys[0].alpha == .2f, "Gradient alpha is preserved");
+    Check(gradientField.value.AlphaKeys[0].alpha == .2f, "Gradient alpha is preserved");
     var swap = primary; primary = secondary; secondary = swap;
     Refresh(false);
     Near(colorField.value, new Color(.5f, 1, .25f, .7f), "Color swap uses Standard display");

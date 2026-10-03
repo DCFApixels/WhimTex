@@ -221,11 +221,13 @@ public static class ShaderFXGroupSmoke
             }
             CheckCondition("ColorBalance", "_Shadows", "_ShadowRange");
             CheckCondition("ColorBalance", "_Highlights", "_HighlightRange");
-            CheckCondition("ColorFilter", "_FilterColor", "_Density");
-            CheckCondition("ColorFilter", "_PreserveLuminosity", "_Density");
-            CheckCondition("HSV", "_Hue", "_Amount");
-            CheckCondition("HSV", "_Saturation", "_Amount");
-            CheckCondition("HSV", "_Value", "_Amount");
+            foreach (var presetName in new[] {"ColorFilter", "HSV"})
+            {
+                var presetControls = PresetParameters(presetName);
+                Check(Control(presetControls, "_Opacity").hidden, presetName + " keeps opacity as the shared control");
+                foreach (var parameterName in presetName == "ColorFilter" ? new[] {"_FilterColor", "_PreserveLuminosity"} : new[] {"_Hue", "_Saturation", "_Value"})
+                    Check(string.IsNullOrEmpty(Control(presetControls, parameterName).visibleIfParameter), presetName + " keeps " + parameterName + " editable at zero opacity");
+            }
             CheckCondition("Twirl", "_Area", "_Angle");
             CheckCondition("RadialShear", "_Center", "_Strength");
             Check(Control(PresetParameters("Halftone"), "_PaperColor").inGroup &&
@@ -237,7 +239,7 @@ public static class ShaderFXGroupSmoke
             CheckTitle("DisplacementMap", "_Mode", "Displacement Mode");
             CheckTitle("DisplacementMap", "_MaskSource", "Strength Mask Source");
             CheckTitle("DisplacementMap", "_Mix", "Output Mix");
-            CheckTitle("GradientMap", "_Amount", "Map Amount");
+            Check(Control(PresetParameters("GradientMap"), "_Opacity").hidden, "GradientMap uses the shared opacity control");
             CheckTitle("Halftone", "_Mode", "Screen Mode");
             CheckTitle("NormalLighting", "_Output", "Lighting Output");
             CheckTitle("Mask", "_MaskChannel", "Mask Channel");
@@ -255,11 +257,12 @@ public static class ShaderFXGroupSmoke
                 Control(maskParameters, "_ApplyRed").visibleIfValue == 0f &&
                 Control(maskParameters, "_ApplyColor").visibleIfParameter == "_ApplyMode" &&
                 Control(maskParameters, "_ApplyColor").visibleIfValue == 1f &&
-                Control(maskParameters, "_Amount").visibleIfParameter == null,
+                Control(maskParameters, "_Opacity").hidden && Control(maskParameters, "_Opacity").visibleIfParameter == null,
                 "Mask switches between channel toggles and the color blend field");
             string maskSource = File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/Mask.hlsl");
             Check(maskSource.Contains("float4 applyWeights = lerp(channelMask, 1 - _ApplyColor, _ApplyMode);") &&
-                maskSource.Contains("color *= lerp(float4(1.0, 1.0, 1.0, 1.0), float4(multiplier, multiplier, multiplier, multiplier), applyWeights);") &&
+                maskSource.Contains("result *= lerp(float4(1.0, 1.0, 1.0, 1.0), float4(multiplier, multiplier, multiplier, multiplier), applyWeights);") &&
+                maskSource.Contains("return lerp(color, result, _Opacity);") &&
                 !maskSource.Contains("color = lerp(color, _ApplyColor"),
                 "Mask inverts the selected color into per-channel mask application weights");
             CheckTitle("Step", "_ApplyMode", "Apply To");
@@ -287,7 +290,7 @@ public static class ShaderFXGroupSmoke
             CheckLabel("ChromaticAberration", "_Amount", "Channel Offset (px)");
             CheckLabel("Threshold", "_Smooth", "Transition Width");
             CheckLabel("SdfBevel", "_Smoothing", "Normal Radius (px)");
-            CheckLabel("Mask", "_Amount", "Amount");
+            Check(Control(maskParameters, "_Opacity").hidden, "Mask uses shared opacity instead of a duplicate Amount field");
             CheckLabel("Mask", "_Invert", "Invert");
             return "PASS: group parsing/validation, all 27 built-in FX metadata/shaders, linked-header labels, conditional rows and preset roundtrips.";
         }

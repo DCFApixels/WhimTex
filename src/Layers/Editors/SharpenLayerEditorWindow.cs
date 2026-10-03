@@ -7,7 +7,7 @@ namespace DCFApixels.WhimTex
     public sealed class SharpenLayerEditorWindow : LayerEditorWindowBase
     {
         protected override Type EditedLayerType => typeof(SharpenLayerBehaviour);
-        protected override string PreviewTitle => "Preview (Sharpen)";
+        protected override string LayerPreviewTitle => "Layer Preview (Sharpen)";
         public static void Open(SharpenLayerBehaviour layer, TextureCompositor compositor) =>
             OpenPropertiesWindow<SharpenLayerEditorWindow>(layer, compositor);
         protected override void BuildSettings(VisualElement root, Layer source) =>

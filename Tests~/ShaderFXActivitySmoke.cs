@@ -13,7 +13,7 @@ public static class ShaderFXActivitySmoke
         ShaderFX fx = null, copy = null;
         try
         {
-            fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F).Invoke(null, new object[] { doc,
+            fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.TextureCompositor), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { doc,
                 "float4 ApplyFX(float2 uv,float4 c){return float4(0,0,0,1);}", new List<ShaderFXParameter>() });
             typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(fx, null);
             Layer layer = new ColorFillLayerBehaviour();

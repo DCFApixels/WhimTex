@@ -19,8 +19,13 @@ public static class GradientFXSmoke
         const string code = "// @param gradient _Ramp // Color mapping\n// @param gradient _Ramp // Linked gradient\nfloat4 ApplyFX(float2 uv, float4 color) { return _Ramp_Sample(uv.x * 2 - 0.5); }";
         var parsed = Parse(code);
         Check(parsed.Count == 1 && parsed[0].type == ShaderFXParameterType.Gradient, "Gradient parsing");
+        Check(parsed[0].gradientValue.Mode == WhimTexGradientMode.Perceptual, "Implicit gradient keeps the new Perceptual default");
+        var endpointDefault = Parse("// @param gradient _Ramp = #FF0000FF -> #0000FF")[0].gradientValue;
+        Check(endpointDefault.Mode == WhimTexGradientMode.Classic && endpointDefault.ColorSpace == ColorSpace.Gamma &&
+            endpointDefault.WrapMode == WhimTexGradientWrapMode.Clamp && endpointDefault.Smoothness == 1f,
+            "Endpoint-only HLSL defaults preserve their Classic/Gamma/Clamp contract");
         Check(parsed[0].gradientValue.Evaluate(0) == Color.black && parsed[0].gradientValue.Evaluate(1) == Color.white, "Opaque black-white default");
-        var wrapped = new WhimTexGradient { Mode = WhimTexGradientMode.Linear };
+        var wrapped = new WhimTexGradient { Mode = WhimTexGradientMode.Linear, ColorSpace = ColorSpace.Linear, Smoothness = 0 };
         Check(wrapped.WrapMode == WhimTexGradientWrapMode.Clamp && Mathf.Approximately(wrapped.Evaluate(1.25f).r, 1f), "Default gradient clamp");
         wrapped.WrapMode = WhimTexGradientWrapMode.Repeat;
         Check(Mathf.Approximately(wrapped.Evaluate(1.25f).r, .25f) && Mathf.Approximately(wrapped.Evaluate(-.25f).r, .75f), "Gradient repeat wrap");
@@ -43,10 +48,10 @@ public static class GradientFXSmoke
         bool srgb = GL.sRGBWrite;
         try
         {
-            fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", flags).Invoke(null, new object[] { document, code, new List<ShaderFXParameter>() });
+            fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", flags, null, new[] { typeof(DCFApixels.WhimTex.TextureCompositor), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { document, code, new List<ShaderFXParameter>() });
             typeof(ShaderFX).GetMethod("ApplyAgentDraft", flags).Invoke(fx, null);
             var values = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", flags).GetValue(fx);
-            var context = Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.LayerRenderContext"), document, null, 8, 2, 1f, true, true);
+            var context = Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.LayerRenderContext"), document, null, 8, 2, 1f, true, true, null);
             Material Get() => (Material)typeof(ShaderFX).GetMethod("GetMaterial", flags).Invoke(fx, new[] { context });
             var material = Get();
             var shader = material.shader;
@@ -107,9 +112,22 @@ public static class GradientFXSmoke
             var next = Parse(code);
             metadata.GetMethod("PreserveValues", flags).Invoke(null, new object[] { next, values });
             Check(next[0].gradientValue.Equals(gradient) && !ReferenceEquals(next[0].gradientValue, gradient), "Apply preserves independent keys");
-            string exported = (string)assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetWriter").GetMethod("BuildSource", flags).Invoke(null, new object[] { fx, "Test/Gradient" });
-            Check(exported.Contains("// @param gradient _Ramp // Color mapping") && !exported.Contains("gradient _Ramp ="), "Defaultless export and tooltip");
-            Check(Parse(exported)[0].gradientValue.Evaluate(0) == Color.black, "HLSL defaults remain black-white");
+            var buildSource = assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetWriter").GetMethod("BuildSource", flags);
+            bool rejectedLossyExport = false;
+            try { buildSource.Invoke(null, new object[] { fx, "Test/Gradient" }); }
+            catch (TargetInvocationException e) when (e.GetBaseException() is FormatException) { rejectedLossyExport = true; }
+            Check(rejectedLossyExport && values[0].gradientValue.Equals(gradient), "Export must reject an unrepresentable gradient without changing it");
+            var exportable = new WhimTexGradient { Mode = WhimTexGradientMode.Classic, ColorSpace = ColorSpace.Gamma, WrapMode = WhimTexGradientWrapMode.Clamp, Smoothness = 1 };
+            exportable.SetKeys(new[] { new GradientColorKey(new Color(.2f, .3f, .4f, .25f), 0), new GradientColorKey(new Color(.6f, .7f, .8f, .75f), 1) },
+                new[] { new GradientAlphaKey(.25f, 0), new GradientAlphaKey(.75f, 1) });
+            values[0].gradientValue = exportable;
+            try
+            {
+                string exported = (string)buildSource.Invoke(null, new object[] { fx, "Test/Gradient" });
+                Check(exported.Contains("gradient _Ramp =") && exported.Contains("Color mapping"), "Representable defaults and tooltip export");
+                Check(Parse(exported)[0].gradientValue.Equals(exportable), "HLSL gradient defaults round-trip without loss: " + JsonUtility.ToJson(exportable) + " -> " + JsonUtility.ToJson(Parse(exported)[0].gradientValue));
+            }
+            finally { values[0].gradientValue = gradient; }
             var viewType = assembly.GetType("DCFApixels.WhimTex.ShaderFXParameterView");
             view = (VisualElement)Activator.CreateInstance(viewType, flags, null, new object[] { fx }, null);
             var fields = view.Query<WhimTexGradientValueField>().ToList();
@@ -123,6 +141,7 @@ public static class GradientFXSmoke
             Check(Get() != null, "Lazy restore");
             return "PASS: declaration validation, black-white defaults, linked controls, HDR/alpha GPU sampling, clamping, LUT reuse/invalidation, Fixed filtering, independent copy, serialization, Apply preservation, export and disposal.";
         }
+        catch (TargetInvocationException e) { throw new Exception(e.GetBaseException().ToString()); }
         finally
         {
             RenderTexture.active = previous; GL.sRGBWrite = srgb;

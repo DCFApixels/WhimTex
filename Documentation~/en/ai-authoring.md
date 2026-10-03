@@ -14,7 +14,7 @@ No connection to Unity is needed. These instructions describe the current unifie
 
 1. Give the AI the [authoring guide](../AI/README.md) and describe your texture. Ask for **WhimTex clipboard JSON**, with useful parts on named layers.
 2. Copy the returned JSON code block.
-3. Focus the preview or Layers panel, leave text editing and press **Ctrl+V** (Cmd+V on macOS).
+3. Focus Canvas View or the Layers panel, leave text editing and press **Ctrl+V** (Cmd+V on macOS).
 4. Adjust the new layers normally. **Ctrl+Z** undoes the whole insertion.
 
 For example: “Create a blue magical ring on a transparent background, with an editable rim and a

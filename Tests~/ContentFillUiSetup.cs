@@ -10,7 +10,7 @@ var doc=(DCFApixels.WhimTex.TextureCompositor)type.GetField("compositor",f).GetV
 doc.width=128;doc.height=96;
 doc.layers.Add(new DCFApixels.WhimTex.Layer(new DCFApixels.WhimTex.ColorFillLayerBehaviour{color=new UnityEngine.Color(.125f,.5f,.25f,1)}));
 type.GetMethod("SelectOnlyLayer",f).Invoke(window,new object[]{doc.layers[0].Id});
-type.GetField("previewTool",f).SetValue(window,System.Enum.Parse(type.GetNestedType("PreviewTool",f),"RectangleSelect"));
+type.GetField("canvasTool",f).SetValue(window,System.Enum.Parse(type.GetNestedType("CanvasTool",f),"RectangleSelect"));
 window.position=new UnityEngine.Rect(80,100,1100,700);window.ShowUtility();window.CreateGUI();window.rootVisualElement.userData=previous;
 var selection=type.GetMethod("GetAreaSelection",f).Invoke(window,null);
 byte[] mask=new byte[128*96];

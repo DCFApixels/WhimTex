@@ -8,7 +8,7 @@ namespace DCFApixels.WhimTex
     public sealed class MakeSeamlessLayerEditorWindow : LayerEditorWindowBase
     {
         protected override Type EditedLayerType => typeof(MakeSeamlessLayerBehaviour);
-        protected override string PreviewTitle => "Preview (Make Seamless)";
+        protected override string LayerPreviewTitle => "Layer Preview (Make Seamless)";
         public static void Open(MakeSeamlessLayerBehaviour layer, TextureCompositor compositor) =>
             OpenPropertiesWindow<MakeSeamlessLayerEditorWindow>(layer, compositor);
         protected override void BuildSettings(VisualElement root, Layer source) =>

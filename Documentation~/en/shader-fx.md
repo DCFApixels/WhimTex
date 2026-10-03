@@ -35,7 +35,7 @@ Unlike [Post FX preview](post-fx.md), both are included in the saved image.
 3. Adjust its sliders, colors, textures, toggles and dropdowns. Changes appear immediately.
 
 Alternatively, drag a WhimTex effect `.hlsl` from Project onto a row in **Layers**.
-Dropping it onto the preview or empty space in the list creates a **Shader Processor** at the top of the composition.
+Dropping it onto Canvas View or empty space in the list creates a **Shader Processor** at the top of the composition.
 HLSL brush presets and files without the effect marker are not accepted.
 
 If a preset contains invalid code or parameters, selecting it reports an error in Console and leaves the layer unchanged.
@@ -84,6 +84,7 @@ Saving an HLSL preset preserves the edited curve.
 Effects can also offer a gradient field. Click its strip to edit colors, transparency and interpolation,
 including HDR colors. New gradients start black-to-white unless the HLSL declaration supplies two endpoint colors,
 for example `// @param gradient _Ramp = #FF0000FF -> #0000FF`. Hex colors use RGBA order; six digits imply full opacity.
+Without an explicit default, interpolation is Perceptual; the two-color HLSL form uses Classic.
 Changes update the effect immediately.
 
 In the gradient editor, **Wrap** chooses what happens outside 0–1: **Clamp** holds the endpoint colors, **Repeat** repeats the gradient, and **Mirror** alternates its direction. An effect that clamps its own input may never reach the repeated range.
@@ -99,7 +100,7 @@ for paired perspective adjustment. Alt with Ctrl/Cmd moves the opposite corner s
 Position, Size and Rotation preserve the deformation; **Reset Transform** removes it.
 **Edit on Canvas** activates one temporary hand tool below the context tools, also used for Point and Normal parameters. Its tooltip identifies the parameter. Click its toolbar button, click **Edit on Canvas** again or press Escape to return to the previous tool. During a drag, the first Escape only cancels that drag. Editing another parameter replaces the temporary tool without changing the return tool. See [context tools](preview.md#context-tools).
 
-<a href="{{ '/Images/shader-processor-transform.png' | relative_url }}"><img src="{{ '/Images/shader-processor-transform.png' | relative_url }}" alt="WhimTex Shader Processor using a Spherize preset with a green Transform 2D frame on the preview" width="720"></a>
+<a href="{{ '/Images/shader-processor-transform.png' | relative_url }}"><img src="{{ '/Images/shader-processor-transform.png' | relative_url }}" alt="WhimTex Shader Processor using a Spherize preset with a green Transform 2D frame on the canvas" width="720"></a>
 
 The frame edits the effect, not the layer transform. Its purpose depends on the effect:
 it may place an image, change a pattern's scale, or define a local area. It is not automatically a mask,
@@ -132,7 +133,9 @@ editing its file updates the effects linked to it. Saving a preset does not reli
 Texture defaults are references, not embedded images. To use them in another project,
 also transfer the referenced texture assets with their `.meta` files, or assign replacements.
 
-Edited gradients are saved in the document. A simple two-endpoint gradient can also be exported as an HLSL default. Extra stops or non-default interpolation, smoothness or wrapping must be simplified before HLSL export.
+Edited gradients are saved in the document. HLSL defaults support two endpoints, Classic interpolation,
+Gamma color space, Clamp wrapping, Smoothness 100% and centered midpoints. Other gradients must be
+simplified before this export; unsupported settings are not silently discarded.
 
 ## Bake effects into a layer
 

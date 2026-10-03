@@ -39,7 +39,7 @@ The selection survives tool and layer changes, but is not saved with the documen
 
 Use a model's UV layout to paint individual parts of its texture:
 
-1. Enable **UV** in the preview footer and assign a mesh or model from Project to **Mesh**. Models automatically use the first mesh in their hierarchy, including inactive nodes. To choose another mesh, expand the model and assign that mesh directly.
+1. Enable **UV** in the Canvas View footer and assign a mesh or model from Project to **Mesh**. Models automatically use the first mesh in their hierarchy, including inactive nodes. To choose another mesh, expand the model and assign that mesh directly.
 2. Choose **UV Channel** (usually **UV0**) and optionally a **Submesh** to show one material slot.
 3. Select **UV Island Select** below the toolbar separator, or click **Select UV Islands** in the UV panel. Enabling UV makes the tool available without selecting it.
 4. Click anywhere inside an island. `Shift` adds islands, `Alt` subtracts, and `Shift+Alt` intersects.
@@ -78,7 +78,7 @@ This is a flat-texture operation: it does not match corresponding edges across a
 
 Choose **Layer Select** (`V`) and click the image. The topmost layer whose alpha
 meets **Alpha ≥ %** is selected; transparent areas let you pick layers below. The default threshold is **10%**.
-Change it in the tool's preview toolbar or **User Settings → Layer Select**; both controls share the same preference.
+Change it in the tool settings in Canvas View or **User Settings → Layer Select**; both controls share the same preference.
 Even at 0%, fully transparent pixels are ignored.
 
 - `Shift+click` toggles a layer in the selection. `Shift+click` on empty space leaves the selection unchanged.
@@ -113,7 +113,7 @@ With an area selection, only its pixels are copied. On a canvas of the same size
 on a different-sized canvas, they are centered. `Ctrl+Shift+C` without an area selection copies the whole visible canvas as pixels.
 
 On Windows, you can also copy an image in another application or take a screenshot with `Win+Shift+S`,
-then click the WhimTex preview and press `Ctrl+V`. It becomes a new Drawing layer, centered at its original
+then click Canvas View and press `Ctrl+V`. It becomes a new Drawing layer, centered at its original
 pixel size without cropping the stored image. In an empty document, the canvas takes the image's dimensions.
 PNG transparency is preserved. System image paste supports images up to 16 megapixels and your GPU's texture-size limit.
 Copying inside WhimTex takes priority until you copy something else to the system clipboard.
@@ -121,7 +121,7 @@ You can also copy a direct HTTP(S) image link and press `Ctrl+V`: WhimTex downlo
 as an independent Drawing layer, keeping its original pixels and transparency. It fits inside the canvas,
 centered with its proportions preserved, using the layer transform rather than resizing the image. The same size limits apply;
 downloads are limited to 64 MB. Links to web pages are not supported. Closing the window or switching documents
-cancels the download. For a local file, first drag it into Project, then onto the preview.
+cancels the download. For a local file, first drag it into Project, then into Canvas View.
 Old `whimtex.layers` JSON also supports image links through the [compatibility reader](../AI/LEGACY_LAYERS.md).
 After download confirmation, it adds all layers and images together; a failed download cancels insertion.
 Current `whimtex.document` JSON does not download images or store Drawing pixels. Paste an image link

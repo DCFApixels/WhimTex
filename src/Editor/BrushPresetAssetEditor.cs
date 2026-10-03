@@ -56,7 +56,7 @@ namespace DCFApixels.WhimTex
             {
                 int outputHeight = height;
                 if (projectThumbnail) height = Mathf.Max(8, Mathf.RoundToInt(width * .375f));
-                var source = WhimTexMaterials.PreviewChannels;
+                var source = WhimTexMaterials.DisplayChannels;
                 if (source == null || !source.shader.isSupported) return null;
                 display = new Material(source) { hideFlags = HideFlags.HideAndDontSave };
                 display.SetVector("_Channels", Vector4.one);

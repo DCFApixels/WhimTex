@@ -16,8 +16,6 @@ public static class GradientDefaultsSmoke
         var clipboard = assembly.GetType("DCFApixels.WhimTex.WhimTexGradientClipboard");
         WhimTexGradient Read(string json) => (WhimTexGradient)clipboard.GetMethod("Read", F).Invoke(null, new object[] { json });
         var read = typeof(WhimTexApi).GetMethod("ReadGradient", F);
-        var compact = typeof(WhimTexApi).GetMethod("CompactPortableGradient", F);
-        var snapshot = typeof(WhimTexApi).GetMethod("GradientSnapshot", F);
         Check((WhimTexGradientMode)read.GetParameters()[1].DefaultValue == WhimTexGradientMode.Perceptual, "API default");
         Check(new WhimTexGradient().Mode == WhimTexGradientMode.Perceptual, "Constructor default");
         Check(GradientUtility.WhiteToBlack.Mode == WhimTexGradientMode.Perceptual, "Shared ramp default");
@@ -59,8 +57,16 @@ public static class GradientDefaultsSmoke
             Check(gradient.Mode == mode, "Explicit clipboard mode preserved: " + mode);
             Check(gradient.Clone().Mode == mode, "Clone preserves mode");
             Check(JsonUtility.FromJson<WhimTexGradient>(JsonUtility.ToJson(gradient)).Mode == mode, "Serialized mode preserved");
-            var portable = compact.Invoke(null, new object[] { snapshot.Invoke(null, new object[] { gradient }), WhimTexGradientMode.Perceptual });
-            Check(Read(portable.ToString()).Equals(gradient), "Portable roundtrip: " + mode);
+            var document = ScriptableObject.CreateInstance<TextureCompositor>();
+            try
+            {
+                document.layers.Add(new GradientLayerBehaviour { gradient = gradient.Clone() });
+                typeof(TextureCompositor).GetMethod("NormalizeModel", F).Invoke(document, null);
+                var json = WhimTexDocumentJson.Write(document, new WhimTexJsonWriteOptions { Mode = WhimTexJsonWriteMode.Compact }).Json;
+                using var restored = WhimTexDocumentJson.Read(json);
+                Check(((GradientLayerBehaviour)restored.Document.layers[0].Behaviour).gradient.Equals(gradient), "Compact document roundtrip: " + mode);
+            }
+            finally { UnityEngine.Object.DestroyImmediate(document); }
         }
         return "PASS: " + checks + " gradient defaults, explicit overrides and roundtrip checks.";
     }

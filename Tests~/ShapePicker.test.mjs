@@ -36,7 +36,7 @@ assert.match(source,/sqrMagnitude >= DragDistance \* DragDistance\) Open\(\)/);
 assert.match(source,/evt.pressedButtons & 1\) == 0\) Cancel\(\)/);
 assert.match(source,/target.HasPointerCapture\(pointer\)/);
 assert.match(source,/Cancel\(\);\s*if \(selection >= 0\)/);
-assert.match(source,/if \(selection >= 0 \|\| click\) owner.SetPreviewTool/);
+assert.match(source,/if \(selection >= 0 \|\| click\) owner.SetCanvasTool/);
 assert.match(source,/bool click = menu == null && target.worldBound.Contains\(current\)/);
 assert.match(source,/root.WorldToLocal\(current\) - menuPosition/);
 for (const event of ['PointerDown','PointerMove','PointerUp','PointerCaptureOut','PointerCancel','DetachFromPanel','GeometryChanged','KeyDown']) {

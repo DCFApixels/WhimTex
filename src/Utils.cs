@@ -268,7 +268,7 @@ namespace DCFApixels.WhimTex
         private static Material transformMaterial;
         private static Material paintBrushMaterial;
         private static Material alphaConversionMaterial;
-        private static Material previewChannelsMaterial;
+        private static Material displayChannelsMaterial;
         private static Material hdrMaterial;
         private static Material normalMapMaterial;
         private static Material gaussianBlurMaterial;
@@ -315,7 +315,7 @@ namespace DCFApixels.WhimTex
         public static Material EffectCache => GetOrCreate(ref effectCacheMaterial, "Hidden/TextureCompositor/EffectCache");
         public static Material Transform => GetOrCreate(ref transformMaterial, "Hidden/TextureCompositor/Transform");
         public static Material PaintBrush => GetOrCreate(ref paintBrushMaterial, "Hidden/TextureCompositor/PaintBrush");
-        public static Material PreviewChannels => GetOrCreate(ref previewChannelsMaterial, "Hidden/TextureCompositor/PreviewChannels");
+        public static Material DisplayChannels => GetOrCreate(ref displayChannelsMaterial, "Hidden/TextureCompositor/DisplayChannels");
         public static Material AlphaConversion => GetOrCreate(
             ref alphaConversionMaterial,
             "Hidden/TextureCompositor/AlphaConversion");
@@ -383,13 +383,13 @@ namespace DCFApixels.WhimTex
                 UnityEngine.Object.DestroyImmediate(paintBrushMaterial);
             if (alphaConversionMaterial != null)
                 UnityEngine.Object.DestroyImmediate(alphaConversionMaterial);
-            if (previewChannelsMaterial != null)
-                UnityEngine.Object.DestroyImmediate(previewChannelsMaterial);
+            if (displayChannelsMaterial != null)
+                UnityEngine.Object.DestroyImmediate(displayChannelsMaterial);
             blendMaterial = null;
             transformMaterial = null;
             paintBrushMaterial = null;
             alphaConversionMaterial = null;
-            previewChannelsMaterial = null;
+            displayChannelsMaterial = null;
         }
     }
 
@@ -417,8 +417,15 @@ namespace DCFApixels.WhimTex
 
         protected Layer CurrentLayer => currentLayer;
         protected TextureCompositor Compositor => compositor;
-        protected virtual string PreviewTitle => "Preview";
+#pragma warning disable CS0618
+        protected virtual string LayerPreviewTitle => PreviewTitle;
+        protected virtual bool ImmediateLayerPreviewUpdates => ImmediatePreviewUpdates;
+        // Keep virtual legacy hooks so existing derived property windows still work.
+        [Obsolete("Override LayerPreviewTitle instead.")]
+        protected virtual string PreviewTitle => "Layer Preview";
+        [Obsolete("Override ImmediateLayerPreviewUpdates instead.")]
         protected virtual bool ImmediatePreviewUpdates => false;
+#pragma warning restore CS0618
         protected abstract Type EditedLayerType { get; }
 
         protected static void OpenPropertiesWindow<T>(Layer layer, TextureCompositor owner)
@@ -439,7 +446,7 @@ namespace DCFApixels.WhimTex
             InvalidateEffectTargetOptions();
             if (rootVisualElement != null && rootVisualElement.panel != null)
                 RefreshInterface();
-            RequestPreview(true);
+            RequestLayerPreview(true);
         }
 
         protected virtual void OnEnable()
@@ -448,7 +455,7 @@ namespace DCFApixels.WhimTex
             TextureCompositor.Changed += OnCompositorChanged;
             TextureCompositor.RenderResourcesChanged += OnCompositorChanged;
             WhimTexApi.LiveEditLocksChanged += RefreshAgentLock;
-            RequestPreview(true);
+            RequestLayerPreview(true);
         }
 
         protected virtual void OnDisable()
@@ -501,7 +508,7 @@ namespace DCFApixels.WhimTex
                 applyingChange = false;
             }
             SettingsBindings.Refresh();
-            RequestPreview();
+            RequestLayerPreview();
         }
 
         protected void AddEffectTarget(VisualElement root, TargetedLayerBehaviour effect)
@@ -510,9 +517,12 @@ namespace DCFApixels.WhimTex
             effectTargetSettings.Build(root, effect);
         }
 
-        protected void RequestPreview(bool immediate = false)
+        [Obsolete("Use RequestLayerPreview instead.")]
+        protected void RequestPreview(bool immediate = false) => RequestLayerPreview(immediate);
+
+        protected void RequestLayerPreview(bool immediate = false)
         {
-            layerPreview?.RequestPreview(immediate || ImmediatePreviewUpdates);
+            layerPreview?.RequestLayerPreview(immediate || ImmediateLayerPreviewUpdates);
         }
 
         protected void RefreshInterface(bool forceValues = false)
@@ -567,7 +577,7 @@ namespace DCFApixels.WhimTex
             SettingsBindings.Refresh(forceValues);
             root.Add(scroll);
             layerPreviewState ??= new LayerPreviewPanel.ViewState();
-            layerPreview = new LayerPreviewPanel(layerPreviewState) { tooltip = PreviewTitle };
+            layerPreview = new LayerPreviewPanel(layerPreviewState) { tooltip = LayerPreviewTitle };
             layerPreview.Bind(compositor, currentLayer);
             root.Add(layerPreview);
         }
@@ -598,14 +608,14 @@ namespace DCFApixels.WhimTex
             }
             InvalidateEffectTargetOptions();
             interfaceRefreshRequested = true;
-            RequestPreview();
+            RequestLayerPreview();
         }
 
         private void OnUndoRedo()
         {
             InvalidateEffectTargetOptions();
             RefreshInterface(forceValues: true);
-            RequestPreview(true);
+            RequestLayerPreview(true);
         }
 
     }

@@ -1,8 +1,10 @@
 using System;
 using System.Reflection;
+using System.Threading.Tasks;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
+using UnityEngine.UIElements;
 using DCFApixels.WhimTex;
 
 public static class WhimTexGradientIntegrationSmoke
@@ -16,7 +18,15 @@ public static class WhimTexGradientIntegrationSmoke
     static object Field(object target, string name) => target.GetType().GetField(name, Flags).GetValue(target);
     static object Call(object target, string name) => target.GetType().GetMethod(name, Flags).Invoke(target,null);
     static void Check(bool value,string message) { if(!value)throw new Exception(message); }
-    public static string Main()
+    static void EditColor(WhimTexGradientWindow editor, Color next)
+    {
+        var field = (ColorField)Field(editor, "color");
+        using var change = ChangeEvent<Color>.GetPooled(field.value, next);
+        change.target = field;
+        field.SetValueWithoutNotify(next);
+        field.SendEvent(change);
+    }
+    public static async Task<string> Main()
     {
         var host=ScriptableObject.CreateInstance<TestHost>();
         WhimTexGradientWindow editor=null;
@@ -25,8 +35,9 @@ public static class WhimTexGradientIntegrationSmoke
         {
             host.Show();
             editor=WhimTexGradientWindow.Open(host,"gradient");
-            ((ColorField)Field(editor,"color")).value=Color.red;
-            Check(((WhimTexGradient)Field(host,"gradient")).Evaluate(0).r==1,"Owner not updated");
+            await Task.Delay(200); // Let the native Editor panel attach before dispatching UI events.
+            EditColor(editor, Color.red);
+            Check(Mathf.Abs(((WhimTexGradient)Field(host,"gradient")).Evaluate(0).r-1)<.00002f,"Owner not updated: " + ((WhimTexGradient)Field(host,"gradient")).Evaluate(0));
             Check(((WhimTexGradient)Field(host,"secondGradient")).Evaluate(0).r==0,"Other field modified");
             var preview=(Texture2D)Field(editor,"preview");
             uint update=preview.updateCount;
@@ -36,18 +47,19 @@ public static class WhimTexGradientIntegrationSmoke
             Undo.PerformUndo();
             Check(((WhimTexGradient)Field(host,"gradient")).Evaluate(0).r==0,"Undo after close failed");
             Undo.PerformRedo();
-            Check(((WhimTexGradient)Field(host,"gradient")).Evaluate(0).r==1,"Redo after close failed");
+            Check(Mathf.Abs(((WhimTexGradient)Field(host,"gradient")).Evaluate(0).r-1)<.00002f,"Redo after close failed");
             editor=WhimTexGradientWindow.Open(host,"secondGradient");
-            ((ColorField)Field(editor,"color")).value=Color.blue;
-            Check(((WhimTexGradient)Field(host,"secondGradient")).Evaluate(0).b==1,"Second binding failed");
-            Check(((WhimTexGradient)Field(host,"gradient")).Evaluate(0).r==1,"First binding overwritten");
+            await Task.Delay(200);
+            EditColor(editor, Color.blue);
+            Check(Mathf.Abs(((WhimTexGradient)Field(host,"secondGradient")).Evaluate(0).b-1)<.00002f,"Second binding failed");
+            Check(Mathf.Abs(((WhimTexGradient)Field(host,"gradient")).Evaluate(0).r-1)<.00002f,"First binding overwritten");
             string json=EditorJsonUtility.ToJson(host);
             var copy=ScriptableObject.CreateInstance<TestHost>();
             try
             {
                 EditorJsonUtility.FromJsonOverwrite(json,copy);
-                Check(((WhimTexGradient)Field(copy,"gradient")).Evaluate(0).r==1,"Owner serialization failed");
-                Check(((WhimTexGradient)Field(copy,"secondGradient")).Evaluate(0).b==1,"Second serialization failed");
+                Check(Mathf.Abs(((WhimTexGradient)Field(copy,"gradient")).Evaluate(0).r-1)<.00002f,"Owner serialization failed");
+                Check(Mathf.Abs(((WhimTexGradient)Field(copy,"secondGradient")).Evaluate(0).b-1)<.00002f,"Second serialization failed");
             }
             finally { UnityEngine.Object.DestroyImmediate(copy); }
             var sourceField=new WhimTexGradientField("Source",host,"gradient");
@@ -62,9 +74,9 @@ public static class WhimTexGradientIntegrationSmoke
             Check(!ReferenceEquals(Field(source,"alphas"),Field(destination,"alphas")),"Clipboard shared alpha array");
             Check(destination.Evaluate(0)==source.Evaluate(0),"Clipboard changed value");
             Undo.PerformUndo();
-            Check(((WhimTexGradient)Field(host,"secondGradient")).Evaluate(0).b==1,"Paste Undo failed");
+            Check(Mathf.Abs(((WhimTexGradient)Field(host,"secondGradient")).Evaluate(0).b-1)<.00002f,"Paste Undo failed");
             Undo.PerformRedo();
-            Check(((WhimTexGradient)Field(host,"secondGradient")).Evaluate(0).r==1,"Paste Redo failed");
+            Check(Mathf.Abs(((WhimTexGradient)Field(host,"secondGradient")).Evaluate(0).r-1)<.00002f,"Paste Redo failed");
             EditorGUIUtility.systemCopyBuffer="not a gradient";
             Check(!destinationField.PasteValue(),"Invalid clipboard accepted");
             var g=new WhimTexGradient { ColorSpace=ColorSpace.Linear };

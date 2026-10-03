@@ -43,7 +43,11 @@ Shader "Hidden/TextureCompositor/Gradient"
             float WrapGradientTime(float t)
             {
                 if (_GradientWrapMode == 1) return frac(t);
-                if (_GradientWrapMode == 2) return 1 - abs(frac(t * .5) * 2 - 1);
+                if (_GradientWrapMode == 2)
+                {
+                    float mirrored = t - floor(t * .5) * 2;
+                    return mirrored <= 1 ? mirrored : 2 - mirrored;
+                }
                 return saturate(t);
             }
 

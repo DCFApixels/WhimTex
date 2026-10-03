@@ -10,22 +10,22 @@ namespace DCFApixels.WhimTex
     public sealed partial class TextureCompositorWindow
     {
         [SerializeField] private ShapeLayerBehaviour shapeToolSettings = new ShapeLayerBehaviour();
-        private Button previewShapeButton;
+        private Button canvasShapeButton;
         private ShapeManipulator shapeManipulator;
 
         private void BuildShapeTool()
         {
             shapeToolSettings ??= new ShapeLayerBehaviour();
             shapeManipulator = new ShapeManipulator(this);
-            toolkitPreviewCanvas.AddManipulator(shapeManipulator);
+            toolkitCanvas.AddManipulator(shapeManipulator);
         }
 
         private void AddShapeSettings()
         {
             shapeToolSettings ??= new ShapeLayerBehaviour();
-            var row = CreatePreviewSettingsRow();
+            var row = CreateCanvasSettingsRow();
             row.AddToClassList("whimtex-fill-settings");
-            BindPreviewSettingsRow(row, PreviewTool.Shape);
+            BindCanvasSettingsRow(row, CanvasTool.Shape);
             var kind = new EnumField(shapeToolSettings.kind);
             TwoChoiceDropdown.Attach(kind);
             kind.AddToClassList("whimtex-shape-kind");
@@ -65,7 +65,7 @@ namespace DCFApixels.WhimTex
                 width.SetValueWithoutNotify(shapeToolSettings.strokeWidth);
             });
             row.Add(width);
-            toolkitPreviewHeader.Add(row);
+            toolkitCanvasViewHeader.Add(row);
         }
 
         private static TextureTransform ShapeDragTransform(Vector2 start, Vector2 end, Vector2 canvasSize,
@@ -126,7 +126,7 @@ namespace DCFApixels.WhimTex
                 target.RegisterCallback<DetachFromPanelEvent>(Detached);
                 target.RegisterCallback<GeometryChangedEvent>(Geometry);
                 target.RegisterCallback<KeyDownEvent>(Key, TrickleDown.TrickleDown);
-                owner.toolkitPreviewCanvas.ViewChanged += overlay.MarkDirtyRepaint;
+                owner.toolkitCanvas.ViewChanged += overlay.MarkDirtyRepaint;
             }
             protected override void UnregisterCallbacksFromTarget()
             {
@@ -139,23 +139,23 @@ namespace DCFApixels.WhimTex
                 target.UnregisterCallback<DetachFromPanelEvent>(Detached);
                 target.UnregisterCallback<GeometryChangedEvent>(Geometry);
                 target.UnregisterCallback<KeyDownEvent>(Key, TrickleDown.TrickleDown);
-                owner.toolkitPreviewCanvas.ViewChanged -= overlay.MarkDirtyRepaint;
+                owner.toolkitCanvas.ViewChanged -= overlay.MarkDirtyRepaint;
                 overlay.RemoveFromHierarchy();
             }
             private Vector2 CanvasPoint(Vector2 position, bool control)
             {
-                var canvas = owner.toolkitPreviewCanvas;
+                var canvas = owner.toolkitCanvas;
                 Rect image = canvas.ImageRect;
                 Vector2 p = canvas.ToCanvas(position);
                 p = new Vector2((p.x - image.x) / image.width * dimensions.x,
                     (image.yMax - p.y) / image.height * dimensions.y);
-                return control ? p : owner.SnapPreviewGuidePoint(p);
+                return control ? p : owner.SnapCanvasGuidePoint(p);
             }
             private void Down(PointerDownEvent evt)
             {
-                if (IsDragging || owner.previewTool != PreviewTool.Shape || owner.compositor == null || evt.button != 0 ||
-                    evt.altKey || !target.contentRect.Contains(evt.localPosition) || owner.toolkitPreviewCanvas.PixelScale <= 0f) return;
-                owner.FinishPaintingStroke(); owner.FinishPreviewTransform();
+                if (IsDragging || owner.canvasTool != CanvasTool.Shape || owner.compositor == null || evt.button != 0 ||
+                    evt.altKey || !target.contentRect.Contains(evt.localPosition) || owner.toolkitCanvas.PixelScale <= 0f) return;
+                owner.FinishPaintingStroke(); owner.FinishCanvasTransform();
                 owner.Focus(); target.Focus();
                 document = owner.compositor;
                 dimensions = new Vector2(document.width, document.height);
@@ -174,7 +174,7 @@ namespace DCFApixels.WhimTex
                 Update(evt.localPosition, evt.shiftKey, evt.ctrlKey);
                 WhimTexUI.ConsumeEvent(evt);
             }
-            private bool Valid => document != null && owner.compositor == document && owner.previewTool == PreviewTool.Shape &&
+            private bool Valid => document != null && owner.compositor == document && owner.canvasTool == CanvasTool.Shape &&
                 dimensions == new Vector2(document.width, document.height);
             private void Update(Vector2 position, bool shift, bool control)
             {
@@ -262,8 +262,8 @@ namespace DCFApixels.WhimTex
                     }
                     Vector2 p = center + new Vector2(Mathf.Cos(angle) * local.x - Mathf.Sin(angle) * local.y,
                         Mathf.Sin(angle) * local.x + Mathf.Cos(angle) * local.y);
-                    Rect image = owner.toolkitPreviewCanvas.ImageRect;
-                    p = owner.toolkitPreviewCanvas.ToView(new Vector2(image.x + p.x / dimensions.x * image.width,
+                    Rect image = owner.toolkitCanvas.ImageRect;
+                    p = owner.toolkitCanvas.ToView(new Vector2(image.x + p.x / dimensions.x * image.width,
                         image.yMax - p.y / dimensions.y * image.height));
                     if (i == 0) painter.MoveTo(p); else painter.LineTo(p);
                 }

@@ -25,7 +25,7 @@ namespace DCFApixels.WhimTex
         private Hash128 uvCachedHash;
         private string uvMessage;
         private bool uvDisplayedSelection, uvDisplayedLayers;
-        private bool IsUvSelectionTool => previewTool == PreviewTool.UvIslandSelect;
+        private bool IsUvSelectionTool => canvasTool == CanvasTool.UvIslandSelect;
 
         private Button BuildUvButton()
         {
@@ -100,7 +100,7 @@ namespace DCFApixels.WhimTex
             fields.Add(new Button(() =>
             {
                 areaSelectionManipulator?.Cancel();
-                SetPreviewTool(PreviewTool.UvIslandSelect);
+                SetCanvasTool(CanvasTool.UvIslandSelect);
             }) { text = "Select UV Islands", tooltip = "Click inside an island to select its pixels. Shift adds, Alt subtracts. Switch to a brush to paint inside the selection." });
             fields.Add(new Button(() => { uvCachedChannel = -1; RefreshUvReference(); }) { text = "Refresh UV" });
             uvStatus = new HelpBox("Assign a Mesh to show its UV islands.", HelpBoxMessageType.Info);
@@ -123,7 +123,7 @@ namespace DCFApixels.WhimTex
         private void ChangeUvReference(Action change)
         {
             if (compositor == null) return;
-            FinishPaintingStroke(); FinishPreviewTransform();
+            FinishPaintingStroke(); FinishCanvasTransform();
             Undo.RecordObject(compositor, "Change UV Reference");
             change();
             EditorUtility.SetDirty(compositor);
@@ -180,9 +180,9 @@ namespace DCFApixels.WhimTex
             uvOverlay = new VisualElement { name = "uvOverlay", pickingMode = PickingMode.Ignore };
             uvOverlay.AddToClassList("whimtex-area-overlay");
             uvOverlay.generateVisualContent += DrawUvOverlay;
-            toolkitPreviewCanvas.Add(uvOverlay);
-            toolkitPreviewCanvas.ViewChanged += UvViewChanged;
-            toolkitPreviewCanvas.RegisterCallback<PointerLeaveEvent>(_ => SetUvHovered(-1));
+            toolkitCanvas.Add(uvOverlay);
+            toolkitCanvas.ViewChanged += UvViewChanged;
+            toolkitCanvas.RegisterCallback<PointerLeaveEvent>(_ => SetUvHovered(-1));
             uvOverlay.schedule.Execute(RefreshUvReference).Every(750);
             uvCachedChannel = -1;
         }
@@ -194,10 +194,10 @@ namespace DCFApixels.WhimTex
         }
         private int PickUvIsland(Vector2 point)
         {
-            if (!uvEnabled || uvMap == null || uvCachedDocument != compositor || !HasPreviewLayers || !toolkitPreviewCanvas.contentRect.Contains(point)) return -1;
-            Rect image = toolkitPreviewCanvas.ImageRect;
+            if (!uvEnabled || uvMap == null || uvCachedDocument != compositor || !HasCanvasLayers || !toolkitCanvas.contentRect.Contains(point)) return -1;
+            Rect image = toolkitCanvas.ImageRect;
             if (image.width <= 0 || image.height <= 0) return -1;
-            point = toolkitPreviewCanvas.ToCanvas(point);
+            point = toolkitCanvas.ToCanvas(point);
             return uvMap.Pick(new Vector2((point.x - image.x) / image.width, 1f - (point.y - image.y) / image.height));
         }
         private void SelectUvIsland(Vector2 point, SelectionCombine combine)
@@ -226,9 +226,9 @@ namespace DCFApixels.WhimTex
         }
         private void DrawUvOverlay(MeshGenerationContext context)
         {
-            if (!uvEnabled || uvMap == null || !HasPreviewLayers || uvCachedDocument != compositor) return;
-            Rect image = toolkitPreviewCanvas.ImageRect;
-            Vector2 View(Vector2 uv) => toolkitPreviewCanvas.ToView(new Vector2(image.x + uv.x * image.width, image.yMax - uv.y * image.height));
+            if (!uvEnabled || uvMap == null || !HasCanvasLayers || uvCachedDocument != compositor) return;
+            Rect image = toolkitCanvas.ImageRect;
+            Vector2 View(Vector2 uv) => toolkitCanvas.ToView(new Vector2(image.x + uv.x * image.width, image.yMax - uv.y * image.height));
             var p = context.painter2D;
             p.lineCap = LineCap.Round;
             int highlighted = IsUvSelectionTool ? uvHoveredIsland : -1;

@@ -7,34 +7,34 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
-        private enum PreviewTool
+        private enum CanvasTool
         {
             None, Brush, BlurBrush, Transform, Fill, Zoom, Pencil, RectangleSelect, PolygonSelect, Shape,
             GradientHandles, UvIslandSelect, FXTransform, FXPoint, FXNormal, HealingBrush
         }
 
-        [NonSerialized] private PreviewTool previewTool = PreviewTool.None;
-        [NonSerialized] private PreviewTool previewTransformReturnTool = PreviewTool.None;
+        [NonSerialized] private CanvasTool canvasTool = CanvasTool.None;
+        [NonSerialized] private CanvasTool canvasTransformReturnTool = CanvasTool.None;
         [NonSerialized] private PaintToolSettings paintSettings = new PaintToolSettings();
         private const string PaintToolSettingsPrefKey = "DCFApixels.WhimTex.PaintToolSettings";
-        private const string PreviewToolPrefKey = "DCFApixels.WhimTex.PreviewTool";
-        private const string PreviewTransformReturnToolPrefKey = "DCFApixels.WhimTex.PreviewTransformReturnTool";
+        private const string CanvasToolPrefKey = "DCFApixels.WhimTex.PreviewTool";
+        private const string CanvasTransformReturnToolPrefKey = "DCFApixels.WhimTex.PreviewTransformReturnTool";
         [NonSerialized] private bool conversionPromptOpen;
         [NonSerialized] private RenderTexture blurSampleTexture;
         [NonSerialized] private float paintingPressure = 1f;
-        [NonSerialized] private Button previewNoneButton;
-        [NonSerialized] private Button previewBrushButton;
-        [NonSerialized] private Button previewBlurBrushButton;
-        [NonSerialized] private Button previewPencilButton;
-        [NonSerialized] private Button previewTransformButton;
-        [NonSerialized] private Button previewFillButton;
-        [NonSerialized] private Button previewZoomButton;
-        [NonSerialized] private Button previewRectangleSelectButton;
-        [NonSerialized] private Button previewPolygonSelectButton;
-        private ScrollView previewToolScroll;
+        [NonSerialized] private Button canvasNoneButton;
+        [NonSerialized] private Button canvasBrushButton;
+        [NonSerialized] private Button canvasBlurBrushButton;
+        [NonSerialized] private Button canvasPencilButton;
+        [NonSerialized] private Button canvasTransformButton;
+        [NonSerialized] private Button canvasFillButton;
+        [NonSerialized] private Button canvasZoomButton;
+        [NonSerialized] private Button canvasRectangleSelectButton;
+        [NonSerialized] private Button canvasPolygonSelectButton;
+        private ScrollView canvasToolScroll;
 
-        private bool IsPreviewPaintTool => previewTool == PreviewTool.Brush || previewTool == PreviewTool.BlurBrush || previewTool == PreviewTool.Pencil;
-        private bool HasPreviewLayers
+        private bool IsCanvasPaintTool => canvasTool == CanvasTool.Brush || canvasTool == CanvasTool.BlurBrush || canvasTool == CanvasTool.Pencil;
+        private bool HasCanvasLayers
         {
             get
             {
@@ -44,35 +44,35 @@ namespace DCFApixels.WhimTex
                 return false;
             }
         }
-        private bool IsPreviewBrushEnabled => (previewTool == PreviewTool.Brush || previewTool == PreviewTool.Pencil) &&
-            (previewTool != PreviewTool.Brush || paintSettings.dynamics.source != BrushTipSource.HLSL || paintSettings.dynamics.tip != null) &&
+        private bool IsCanvasBrushEnabled => (canvasTool == CanvasTool.Brush || canvasTool == CanvasTool.Pencil) &&
+            (canvasTool != CanvasTool.Brush || paintSettings.dynamics.source != BrushTipSource.HLSL || paintSettings.dynamics.tip != null) &&
             GetSelectedLayer()?.Behaviour is DrawingLayerBehaviour layer && !WhimTexApi.IsLayerContentLocked(compositor, layer);
-        private bool IsPreviewBlurBrushEnabled => previewTool == PreviewTool.BlurBrush &&
+        private bool IsCanvasBlurBrushEnabled => canvasTool == CanvasTool.BlurBrush &&
             GetSelectedLayer()?.Behaviour is DrawingLayerBehaviour layer && !WhimTexApi.IsLayerContentLocked(compositor, layer);
-        private bool IsPreviewFillEnabled => previewTool == PreviewTool.Fill && GetSelectedLayer()?.Behaviour is DrawingLayerBehaviour layer && !WhimTexApi.IsLayerContentLocked(compositor, layer);
+        private bool IsCanvasFillEnabled => canvasTool == CanvasTool.Fill && GetSelectedLayer()?.Behaviour is DrawingLayerBehaviour layer && !WhimTexApi.IsLayerContentLocked(compositor, layer);
 
-        private void ApplyPreviewTextureFilter()
+        private void ApplyCanvasTextureFilter()
         {
-            FilterMode filter = previewTool == PreviewTool.Pencil ? FilterMode.Point : compositor != null ? compositor.outputFilter : FilterMode.Bilinear;
-            if (previewTexture != null) previewTexture.filterMode = filter;
-            if (channelPreviewTexture != null) channelPreviewTexture.filterMode = filter;
+            FilterMode filter = canvasTool == CanvasTool.Pencil ? FilterMode.Point : compositor != null ? compositor.outputFilter : FilterMode.Bilinear;
+            if (canvasTexture != null) canvasTexture.filterMode = filter;
+            if (channelCanvasTexture != null) channelCanvasTexture.filterMode = filter;
             if (postFxTexture != null) postFxTexture.filterMode = filter;
         }
 
-        private static PreviewTool ParsePreviewTool(string value)
+        private static CanvasTool ParseCanvasTool(string value)
         {
-            return Enum.TryParse(value, out PreviewTool tool) && Enum.IsDefined(typeof(PreviewTool), tool) && IsBasePreviewTool(tool)
-                ? tool : PreviewTool.None;
+            return Enum.TryParse(value, out CanvasTool tool) && Enum.IsDefined(typeof(CanvasTool), tool) && IsBaseCanvasTool(tool)
+                ? tool : CanvasTool.None;
         }
 
-        private void LoadPreviewToolSettings()
+        private void LoadCanvasToolSettings()
         {
-            previewTool = ParsePreviewTool(EditorPrefs.GetString(PreviewToolPrefKey, string.Empty));
-            lastBasePreviewTool = previewTool;
-            previewTransformReturnTool = ParsePreviewTool(
-                EditorPrefs.GetString(PreviewTransformReturnToolPrefKey, string.Empty));
-            if (previewTransformReturnTool == PreviewTool.Transform)
-                previewTransformReturnTool = PreviewTool.None;
+            canvasTool = ParseCanvasTool(EditorPrefs.GetString(CanvasToolPrefKey, string.Empty));
+            lastBaseCanvasTool = canvasTool;
+            canvasTransformReturnTool = ParseCanvasTool(
+                EditorPrefs.GetString(CanvasTransformReturnToolPrefKey, string.Empty));
+            if (canvasTransformReturnTool == CanvasTool.Transform)
+                canvasTransformReturnTool = CanvasTool.None;
         }
 
         private void LoadPaintToolSettings()
@@ -111,7 +111,7 @@ namespace DCFApixels.WhimTex
             }
             if (paintSettings == null || !paintSettings.TryRestoreBrushTip()) return;
             brushSettingsBindings?.Refresh();
-            UpdateToolkitPreviewPresentation();
+            UpdateToolkitCanvasPresentation();
         }
 
         private void ApplyPaintToolChange(Action change)
@@ -122,7 +122,7 @@ namespace DCFApixels.WhimTex
             SavePaintToolSettings();
             toolkitHeaderBindings.Refresh();
             brushSettingsBindings?.Refresh();
-            UpdateToolkitPreviewPresentation();
+            UpdateToolkitCanvasPresentation();
             RefreshBrushPresetButton();
         }
 
@@ -135,27 +135,27 @@ namespace DCFApixels.WhimTex
 
         private PaintStrokeParameters GetPaintingParameters()
         {
-            PaintStrokeParameters parameters = previewTool == PreviewTool.Pencil
+            PaintStrokeParameters parameters = canvasTool == CanvasTool.Pencil
                 ? paintSettings.GetPencilParameters(paintingErase, GetPaintingColor())
                 : paintSettings.GetStrokeParameters(paintingErase, GetPaintingColor());
-            if (previewTool == PreviewTool.Brush && paintSettings.dynamics != null && paintSettings.dynamics.pressure)
+            if (canvasTool == CanvasTool.Brush && paintSettings.dynamics != null && paintSettings.dynamics.pressure)
                 parameters = parameters.WithPressure(paintingPressure);
-            if (tiledPreview) parameters = parameters.WithCanvasWrap();
+            if (tiledCanvas) parameters = parameters.WithCanvasWrap();
             return parameters.WithSelectionMask(GetAreaSelectionTexture());
         }
 
         private bool HandlePaintConversionPrompt(PointerDownEvent evt)
         {
-            if (!HasPreviewLayers)
+            if (!HasCanvasLayers)
             {
                 WhimTexUI.ConsumeEvent(evt);
                 return true;
             }
-            bool painting = (IsPreviewPaintTool && (evt.button == 0 || evt.button == 1)) ||
-                previewTool == PreviewTool.HealingBrush && evt.button == 0;
-            bool filling = previewTool == PreviewTool.Fill && evt.button == 0;
+            bool painting = (IsCanvasPaintTool && (evt.button == 0 || evt.button == 1)) ||
+                canvasTool == CanvasTool.HealingBrush && evt.button == 0;
+            bool filling = canvasTool == CanvasTool.Fill && evt.button == 0;
             if ((!painting && !filling) || evt.altKey || compositor == null ||
-                !PreviewContainsPaintPoint(evt.localPosition) || GetSelectedLayer()?.Behaviour is DrawingLayerBehaviour && !WhimTexApi.IsLayerContentLocked(compositor, GetSelectedLayer()))
+                !CanvasContainsPaintPoint(evt.localPosition) || GetSelectedLayer()?.Behaviour is DrawingLayerBehaviour && !WhimTexApi.IsLayerContentLocked(compositor, GetSelectedLayer()))
                 return false;
 
             WhimTexUI.ConsumeEvent(evt);
@@ -196,105 +196,105 @@ namespace DCFApixels.WhimTex
             return true;
         }
 
-        private bool IsPreviewToolAvailable(PreviewTool tool)
+        private bool IsCanvasToolAvailable(CanvasTool tool)
         {
             Layer layer = GetSelectedLayer();
             switch (tool)
             {
-                case PreviewTool.Brush:
-                case PreviewTool.Pencil:
-                case PreviewTool.Fill: return layer?.Behaviour is DrawingLayerBehaviour;
-                case PreviewTool.BlurBrush: return layer?.Behaviour != null;
-                case PreviewTool.HealingBrush: return layer?.Behaviour != null;
-                case PreviewTool.Transform: return layer?.Behaviour != null;
-                case PreviewTool.Zoom:
-                case PreviewTool.Shape:
-                case PreviewTool.RectangleSelect:
-                case PreviewTool.PolygonSelect: return compositor != null;
+                case CanvasTool.Brush:
+                case CanvasTool.Pencil:
+                case CanvasTool.Fill: return layer?.Behaviour is DrawingLayerBehaviour;
+                case CanvasTool.BlurBrush: return layer?.Behaviour != null;
+                case CanvasTool.HealingBrush: return layer?.Behaviour != null;
+                case CanvasTool.Transform: return layer?.Behaviour != null;
+                case CanvasTool.Zoom:
+                case CanvasTool.Shape:
+                case CanvasTool.RectangleSelect:
+                case CanvasTool.PolygonSelect: return compositor != null;
                 default: return false;
             }
         }
 
-        private static VisualElement CreatePreviewSettingsRow()
+        private static VisualElement CreateCanvasSettingsRow()
         {
             var row = new VisualElement();
             row.AddToClassList("whimtex-tool-settings-row");
             return row;
         }
 
-        private void BindPreviewSettingsRow(VisualElement row, PreviewTool tool)
+        private void BindCanvasSettingsRow(VisualElement row, CanvasTool tool)
         {
             toolkitHeaderBindings.Add(() =>
             {
-                PreviewTool settings = previewTool;
-                if (settings == PreviewTool.UvIslandSelect) settings = PreviewTool.RectangleSelect;
+                CanvasTool settings = canvasTool;
+                if (settings == CanvasTool.UvIslandSelect) settings = CanvasTool.RectangleSelect;
                 bool visible = settings == tool;
                 row.EnableInClassList("whimtex-tool-options--hidden", !visible);
             });
         }
 
-        private VisualElement BuildPreviewToolToolbar()
+        private VisualElement BuildCanvasToolToolbar()
         {
-            VisualElement toolbar = new VisualElement { name = "previewTools" };
+            VisualElement toolbar = new VisualElement { name = "canvasTools" };
             toolbar.AddToClassList("whimtex-tools");
             toolbar.EnableInClassList("whimtex-tools--light", !EditorGUIUtility.isProSkin);
-            previewNoneButton = CreatePreviewToolButton("noTool", PreviewTool.None,
+            canvasNoneButton = CreateCanvasToolButton("noTool", CanvasTool.None,
                 "Layer Select (V). Click visible pixels to select a layer. Click a selected group again to select inside it. Shift toggles selection; Ctrl selects nested layers directly. Click empty space to deselect.");
-            previewBrushButton = CreatePreviewToolButton("brushTool", PreviewTool.Brush,
+            canvasBrushButton = CreateCanvasToolButton("brushTool", CanvasTool.Brush,
                 "Brush (B). Paint on the selected Drawing layer. Choose Brush/Eraser in the header; RMB temporarily erases.");
-            previewBlurBrushButton = CreatePreviewToolButton("blurBrushTool", PreviewTool.BlurBrush,
+            canvasBlurBrushButton = CreateCanvasToolButton("blurBrushTool", CanvasTool.BlurBrush,
                 "Blur Brush. Paint a soft circular blur on the selected Drawing layer. Choose the current layer or the layers below as the sample.");
-            previewPencilButton = CreatePreviewToolButton("pencilTool", PreviewTool.Pencil,
+            canvasPencilButton = CreateCanvasToolButton("pencilTool", CanvasTool.Pencil,
                 "Pencil (P). Paint crisp pixels with a Circle, Square or Diamond tip. RMB temporarily erases; [ and ] change size.");
-            previewFillButton = CreatePreviewToolButton("fillTool", PreviewTool.Fill,
+            canvasFillButton = CreateCanvasToolButton("fillTool", CanvasTool.Fill,
                 "Fill (G). Fill similar pixels on the selected Drawing layer, sampling this layer or all visible layers. Contiguous limits the fill to the clicked region.");
-            previewTransformButton = CreatePreviewToolButton("transformTool", PreviewTool.Transform,
+            canvasTransformButton = CreateCanvasToolButton("transformTool", CanvasTool.Transform,
                 "Transform (T). Drag inside to move, handles to scale, circle to rotate. " +
                 "Drag the gold cross to move the pivot without moving the image (requires nonzero scale). " +
                 "The pivot snaps to frame anchors; hold Ctrl to disable snapping. " +
                 "Shift: constrain movement / preserve proportions / snap rotation to 15°. Groups are not supported yet.");
-            toolbar.Add(previewNoneButton);
-            toolbar.Add(previewTransformButton);
-            previewRectangleSelectButton = CreatePreviewToolButton("rectangleSelectTool", PreviewTool.RectangleSelect,
+            toolbar.Add(canvasNoneButton);
+            toolbar.Add(canvasTransformButton);
+            canvasRectangleSelectButton = CreateCanvasToolButton("rectangleSelectTool", CanvasTool.RectangleSelect,
                 "Area Select (M). Hold or drag this button to choose Rectangle or Ellipse. Shift adds; Alt subtracts; Ctrl+D deselects. Selection limits painting and filling.");
             marqueePicker = new ShapePickerManipulator(this, true);
-            previewRectangleSelectButton.AddManipulator(marqueePicker);
-            previewPolygonSelectButton = CreatePreviewToolButton("polygonSelectTool", PreviewTool.PolygonSelect,
+            canvasRectangleSelectButton.AddManipulator(marqueePicker);
+            canvasPolygonSelectButton = CreateCanvasToolButton("polygonSelectTool", CanvasTool.PolygonSelect,
                 "Polygonal Lasso (L). Click vertices; Enter, double-click or click the first point to close. Backspace/RMB removes a vertex; Escape cancels.");
-            toolbar.Add(previewRectangleSelectButton);
-            toolbar.Add(previewPolygonSelectButton);
-            previewShapeButton = CreatePreviewToolButton("shapeTool", PreviewTool.Shape,
+            toolbar.Add(canvasRectangleSelectButton);
+            toolbar.Add(canvasPolygonSelectButton);
+            canvasShapeButton = CreateCanvasToolButton("shapeTool", CanvasTool.Shape,
                 "Shape (U). Hold or drag this button to pick a figure, then release over its icon. Drag on the canvas to create it.");
             shapePicker = new ShapePickerManipulator(this);
-            previewShapeButton.AddManipulator(shapePicker);
-            toolbar.Add(previewShapeButton);
-            toolbar.Add(previewBrushButton);
-            toolbar.Add(previewBlurBrushButton);
-            previewHealingButton = CreatePreviewToolButton("healingBrushTool", PreviewTool.HealingBrush,
+            canvasShapeButton.AddManipulator(shapePicker);
+            toolbar.Add(canvasShapeButton);
+            toolbar.Add(canvasBrushButton);
+            toolbar.Add(canvasBlurBrushButton);
+            canvasHealingButton = CreateCanvasToolButton("healingBrushTool", CanvasTool.HealingBrush,
                 "Healing Brush. Paint over a defect, then release to reconstruct it from nearby pixels. Esc cancels. Writes only the selected Drawing layer.");
-            toolbar.Add(previewHealingButton);
-            toolbar.Add(previewPencilButton);
-            toolbar.Add(previewFillButton);
-            previewZoomButton = CreatePreviewToolButton("zoomTool", PreviewTool.Zoom,
-                "Zoom (Z). Click to zoom in, drag a rectangle to frame an area, or Alt-click to zoom out. MMB-drag pans the preview.");
-            toolbar.Add(previewZoomButton);
+            toolbar.Add(canvasHealingButton);
+            toolbar.Add(canvasPencilButton);
+            toolbar.Add(canvasFillButton);
+            canvasZoomButton = CreateCanvasToolButton("zoomTool", CanvasTool.Zoom,
+                "Zoom (Z). Click to zoom in, drag a rectangle to frame an area, or Alt-click to zoom out. MMB-drag pans the canvas.");
+            toolbar.Add(canvasZoomButton);
             BuildContextToolButtons(toolbar);
-            previewToolScroll = new ScrollView(ScrollViewMode.Vertical)
+            canvasToolScroll = new ScrollView(ScrollViewMode.Vertical)
             {
-                name = "previewToolScroll",
+                name = "canvasToolScroll",
                 horizontalScrollerVisibility = ScrollerVisibility.Hidden,
                 verticalScrollerVisibility = ScrollerVisibility.Hidden
             };
-            previewToolScroll.AddToClassList("whimtex-tools-scroll");
-            previewToolScroll.EnableInClassList("whimtex-tools-scroll--light", !EditorGUIUtility.isProSkin);
-            previewToolScroll.Add(toolbar);
-            previewToolScroll.RegisterCallback<GeometryChangedEvent>(_ => RevealActivePreviewTool());
-            return previewToolScroll;
+            canvasToolScroll.AddToClassList("whimtex-tools-scroll");
+            canvasToolScroll.EnableInClassList("whimtex-tools-scroll--light", !EditorGUIUtility.isProSkin);
+            canvasToolScroll.Add(toolbar);
+            canvasToolScroll.RegisterCallback<GeometryChangedEvent>(_ => RevealActiveCanvasTool());
+            return canvasToolScroll;
         }
 
-        private void RevealActivePreviewTool()
+        private void RevealActiveCanvasTool()
         {
-            var scroll = previewToolScroll;
+            var scroll = canvasToolScroll;
             scroll?.schedule.Execute(() =>
             {
                 var button = scroll.Q<Button>(className: "whimtex-tool-button--selected");
@@ -303,27 +303,27 @@ namespace DCFApixels.WhimTex
             });
         }
 
-        private Button CreatePreviewToolButton(string name, PreviewTool tool, string tooltip)
+        private Button CreateCanvasToolButton(string name, CanvasTool tool, string tooltip)
         {
-            Button button = new Button(() => SetPreviewTool(tool)) { name = name, tooltip = tooltip };
+            Button button = new Button(() => SetCanvasTool(tool)) { name = name, tooltip = tooltip };
             button.AddToClassList("whimtex-tool-button");
-            if (tool == PreviewTool.Shape)
+            if (tool == CanvasTool.Shape)
                 button.Add(shapeToolIcon = new ShapeToolIcon(shapeToolSettings?.kind ?? ShapeLayerBehaviour.ShapeKind.Rectangle));
-            else if (tool == PreviewTool.RectangleSelect)
-                button.Add(marqueeToolIcon = new PreviewToolIcon(tool, marqueeShape == MarqueeShape.Ellipse));
+            else if (tool == CanvasTool.RectangleSelect)
+                button.Add(marqueeToolIcon = new CanvasToolIcon(tool, marqueeShape == MarqueeShape.Ellipse));
             else
-                button.Add(new PreviewToolIcon(tool));
-            if (tool == PreviewTool.Shape || tool == PreviewTool.RectangleSelect)
+                button.Add(new CanvasToolIcon(tool));
+            if (tool == CanvasTool.Shape || tool == CanvasTool.RectangleSelect)
                 button.Add(new ToolDropdownMarker());
             return button;
         }
 
-        private void RefreshPreviewToolToolbar()
+        private void RefreshCanvasToolToolbar()
         {
             RefreshPostFxPanel();
             RefreshContextToolButtons();
-            bool hasLayers = HasPreviewLayers;
-            PreviewTool displayedTool = previewTool;
+            bool hasLayers = HasCanvasLayers;
+            CanvasTool displayedTool = canvasTool;
             Layer selected = hasLayers ? GetSelectedLayer() : null;
             shapeToolIcon?.SetKind(shapeToolSettings?.kind ?? ShapeLayerBehaviour.ShapeKind.Rectangle);
             marqueeToolIcon?.SetEllipse(marqueeShape == MarqueeShape.Ellipse);
@@ -333,50 +333,50 @@ namespace DCFApixels.WhimTex
                 uvDisplayedSelection = IsUvSelectionTool; uvDisplayedLayers = hasLayers;
                 uvOverlay?.MarkDirtyRepaint();
             }
-            previewShapeButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == PreviewTool.Shape);
-            previewShapeButton?.EnableInClassList("whimtex-tool-button--unavailable", compositor == null);
-            previewRectangleSelectButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == PreviewTool.RectangleSelect);
-            previewPolygonSelectButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == PreviewTool.PolygonSelect);
-            previewRectangleSelectButton?.EnableInClassList("whimtex-tool-button--unavailable", !hasLayers);
-            previewPolygonSelectButton?.EnableInClassList("whimtex-tool-button--unavailable", !hasLayers);
-            previewZoomButton?.EnableInClassList("whimtex-tool-button--unavailable", !hasLayers);
-            previewZoomButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == PreviewTool.Zoom);
-            previewNoneButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == PreviewTool.None);
-            if (previewBrushButton != null)
+            canvasShapeButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == CanvasTool.Shape);
+            canvasShapeButton?.EnableInClassList("whimtex-tool-button--unavailable", compositor == null);
+            canvasRectangleSelectButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == CanvasTool.RectangleSelect);
+            canvasPolygonSelectButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == CanvasTool.PolygonSelect);
+            canvasRectangleSelectButton?.EnableInClassList("whimtex-tool-button--unavailable", !hasLayers);
+            canvasPolygonSelectButton?.EnableInClassList("whimtex-tool-button--unavailable", !hasLayers);
+            canvasZoomButton?.EnableInClassList("whimtex-tool-button--unavailable", !hasLayers);
+            canvasZoomButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == CanvasTool.Zoom);
+            canvasNoneButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == CanvasTool.None);
+            if (canvasBrushButton != null)
             {
-                previewBrushButton.EnableInClassList("whimtex-tool-button--unavailable", !(selected?.Behaviour is DrawingLayerBehaviour));
-                previewBrushButton.EnableInClassList("whimtex-tool-button--selected", displayedTool == PreviewTool.Brush);
+                canvasBrushButton.EnableInClassList("whimtex-tool-button--unavailable", !(selected?.Behaviour is DrawingLayerBehaviour));
+                canvasBrushButton.EnableInClassList("whimtex-tool-button--selected", displayedTool == CanvasTool.Brush);
             }
-            if (previewBlurBrushButton != null)
+            if (canvasBlurBrushButton != null)
             {
-                previewBlurBrushButton.EnableInClassList("whimtex-tool-button--unavailable", !(selected?.Behaviour is DrawingLayerBehaviour));
-                previewBlurBrushButton.EnableInClassList("whimtex-tool-button--selected", displayedTool == PreviewTool.BlurBrush);
+                canvasBlurBrushButton.EnableInClassList("whimtex-tool-button--unavailable", !(selected?.Behaviour is DrawingLayerBehaviour));
+                canvasBlurBrushButton.EnableInClassList("whimtex-tool-button--selected", displayedTool == CanvasTool.BlurBrush);
             }
-            if (previewPencilButton != null)
+            if (canvasPencilButton != null)
             {
-                previewPencilButton.EnableInClassList("whimtex-tool-button--unavailable", !(selected?.Behaviour is DrawingLayerBehaviour));
-                previewPencilButton.EnableInClassList("whimtex-tool-button--selected", displayedTool == PreviewTool.Pencil);
+                canvasPencilButton.EnableInClassList("whimtex-tool-button--unavailable", !(selected?.Behaviour is DrawingLayerBehaviour));
+                canvasPencilButton.EnableInClassList("whimtex-tool-button--selected", displayedTool == CanvasTool.Pencil);
             }
-            previewHealingButton?.EnableInClassList("whimtex-tool-button--unavailable", !(selected?.Behaviour is DrawingLayerBehaviour));
-            previewHealingButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == PreviewTool.HealingBrush);
-            if (previewTransformButton != null)
+            canvasHealingButton?.EnableInClassList("whimtex-tool-button--unavailable", !(selected?.Behaviour is DrawingLayerBehaviour));
+            canvasHealingButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == CanvasTool.HealingBrush);
+            if (canvasTransformButton != null)
             {
-                previewTransformButton.EnableInClassList("whimtex-tool-button--unavailable", selected == null);
-                previewTransformButton.EnableInClassList("whimtex-tool-button--selected", displayedTool == PreviewTool.Transform);
+                canvasTransformButton.EnableInClassList("whimtex-tool-button--unavailable", selected == null);
+                canvasTransformButton.EnableInClassList("whimtex-tool-button--selected", displayedTool == CanvasTool.Transform);
             }
-            if (previewFillButton != null)
+            if (canvasFillButton != null)
             {
-                previewFillButton.EnableInClassList("whimtex-tool-button--unavailable", !(selected?.Behaviour is DrawingLayerBehaviour));
-                previewFillButton.EnableInClassList("whimtex-tool-button--selected", displayedTool == PreviewTool.Fill);
+                canvasFillButton.EnableInClassList("whimtex-tool-button--unavailable", !(selected?.Behaviour is DrawingLayerBehaviour));
+                canvasFillButton.EnableInClassList("whimtex-tool-button--selected", displayedTool == CanvasTool.Fill);
             }
         }
 
-        private sealed class PreviewToolIcon : VisualElement
+        private sealed class CanvasToolIcon : VisualElement
         {
-            private readonly PreviewTool tool;
+            private readonly CanvasTool tool;
             private bool ellipse;
 
-            internal PreviewToolIcon(PreviewTool tool, bool ellipse = false)
+            internal CanvasToolIcon(CanvasTool tool, bool ellipse = false)
             {
                 this.tool = tool;
                 this.ellipse = ellipse;
@@ -402,30 +402,30 @@ namespace DCFApixels.WhimTex
                 painter.lineWidth = 1.35f;
                 painter.lineCap = LineCap.Round;
                 painter.lineJoin = LineJoin.Round;
-                if (tool == PreviewTool.None)
+                if (tool == CanvasTool.None)
                     DrawPointer(painter);
-                else if (tool == PreviewTool.Transform)
+                else if (tool == CanvasTool.Transform)
                     DrawHand(painter);
-                else if (tool == PreviewTool.GradientHandles || IsTemporaryPreviewTool(tool))
+                else if (tool == CanvasTool.GradientHandles || IsTemporaryCanvasTool(tool))
                     DrawHand(painter, withHandle: true);
-                else if (tool == PreviewTool.UvIslandSelect)
+                else if (tool == CanvasTool.UvIslandSelect)
                     DrawUvSelect(painter);
-                else if (tool == PreviewTool.Fill)
+                else if (tool == CanvasTool.Fill)
                     DrawBucket(painter);
-                else if (tool == PreviewTool.Zoom)
+                else if (tool == CanvasTool.Zoom)
                     DrawMagnifier(painter);
-                else if (tool == PreviewTool.Pencil)
+                else if (tool == CanvasTool.Pencil)
                     DrawPencil(painter);
-                else if (tool == PreviewTool.BlurBrush)
+                else if (tool == CanvasTool.BlurBrush)
                     DrawBlurBrush(context);
-                else if (tool == PreviewTool.HealingBrush)
+                else if (tool == CanvasTool.HealingBrush)
                     DrawHealingBrush(painter);
-                else if (tool == PreviewTool.RectangleSelect)
+                else if (tool == CanvasTool.RectangleSelect)
                 {
                     if (ellipse) DrawEllipseSelect(painter);
                     else DrawRectangleSelect(painter);
                 }
-                else if (tool == PreviewTool.PolygonSelect)
+                else if (tool == CanvasTool.PolygonSelect)
                     DrawPolygonSelect(painter);
                 else
                     DrawBrush(painter);

@@ -28,15 +28,15 @@ public static class CanvasToolbarSmoke
             Check(root.Query<Button>().ToList().Count(b => b.text == "Output") == 1, "Duplicate Output button");
             var children = canvas.Children().ToList();
             Check(children[children.IndexOf(output) - 1] is IntegerField, "Output does not follow canvas dimensions");
-            var tiled = root.Q<Button>("tiledPreviewButton");
-            Check(tiled != null && root.Q<VisualElement>("previewFooterContext").Contains(tiled), "Tiled is not in footer");
+            var tiled = root.Q<Button>("tiledCanvasButton");
+            Check(tiled != null && root.Q<VisualElement>("canvasFooterContext").Contains(tiled), "Tiled is not in footer");
             Check(!canvas.Query<Toggle>().ToList().Any(t => t.label == "Tiled"), "Old Tiled checkbox remains");
-            type.GetMethod("SetTiledPreview", flags).Invoke(window, new object[] { true });
+            type.GetMethod("SetTiledCanvas", flags).Invoke(window, new object[] { true });
             Check(tiled.ClassListContains("whimtex-channel-button--enabled"), "Tiled enabled state missing");
             window.CreateGUI();
-            tiled = window.rootVisualElement.Q<Button>("tiledPreviewButton");
+            tiled = window.rootVisualElement.Q<Button>("tiledCanvasButton");
             Check(tiled.ClassListContains("whimtex-channel-button--enabled"), "Tiled state lost on view rebuild");
-            type.GetMethod("SetTiledPreview", flags).Invoke(window, new object[] { false });
+            type.GetMethod("SetTiledCanvas", flags).Invoke(window, new object[] { false });
             Check(!tiled.ClassListContains("whimtex-channel-button--enabled"), "Tiled disabled state missing");
             return "PASS: Output beside canvas size, no duplicate header control, Tiled in footer with enabled/disabled state and view rebuild persistence.";
         }

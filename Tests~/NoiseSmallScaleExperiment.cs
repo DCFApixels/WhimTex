@@ -136,7 +136,9 @@ public static class NoiseSmallScaleExperiment
             material.SetVector(key,shared.GetVector(key));
         foreach(var key in new[]{"_NoiseZ","_NoiseCellularJitter","_NoiseWarpStrength"})
             material.SetFloat(key,shared.GetFloat(key));
-        material.SetVectorArray("_NoiseLattice", shared.GetVectorArray("_NoiseLattice"));
+        // The ordinary-noise path does not upload the periodic lattice anymore.
+        var lattice = shared.GetVectorArray("_NoiseLattice");
+        if (lattice != null && lattice.Length != 0) material.SetVectorArray("_NoiseLattice", lattice);
         material.SetInteger("_UnboundedUv", 1);
         return material;
     }

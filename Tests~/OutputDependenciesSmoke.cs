@@ -55,9 +55,9 @@ try
     var windowType = typeof(DCFApixels.WhimTex.TextureCompositorWindow);
     window = (DCFApixels.WhimTex.TextureCompositorWindow)windowType.GetMethod("OpenReferencedDocument", statics).Invoke(null, new object[] { b });
     var dirty = windowType.GetField("outputDependencyDirty", instance);
-    var requested = windowType.GetField("previewRequested", instance);
-    var render = windowType.GetMethod("UpdatePreview", instance);
-    var preview = windowType.GetField("previewTexture", instance);
+    var requested = windowType.GetField("canvasRequested", instance);
+    var render = windowType.GetMethod("UpdateCanvasRender", instance);
+    var preview = windowType.GetField("canvasTexture", instance);
     UnityEngine.Color RenderPixel()
     {
         render.Invoke(window, null);

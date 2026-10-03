@@ -9,7 +9,7 @@ namespace DCFApixels.WhimTex
     {
         private void ExecuteContextChange(string undoName, Action action)
         {
-            FinishPreviewTransform();
+            FinishCanvasTransform();
             FinishPaintingStroke();
             if (compositor == null) return;
             var previousSelection = new List<string>(selectedLayerIds);
@@ -40,7 +40,7 @@ namespace DCFApixels.WhimTex
             {
                 Undo.IncrementCurrentGroup();
                 applyingToolkitChange = false;
-                RequestPreview(true);
+                RequestCanvasRender(true);
                 RefreshToolkitInterface(forceValues: true);
             }
         }

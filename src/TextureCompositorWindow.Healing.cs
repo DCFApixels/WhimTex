@@ -21,7 +21,7 @@ namespace DCFApixels.WhimTex
         private static Task healingWorker;
         private VisualElement healingOverlay;
         private Label healingStatus;
-        private Button healingCancel, previewHealingButton;
+        private Button healingCancel, canvasHealingButton;
 
         private sealed class HealingJob
         {
@@ -34,8 +34,8 @@ namespace DCFApixels.WhimTex
 
         private void AddHealingSettings()
         {
-            var row = CreatePreviewSettingsRow();
-            BindPreviewSettingsRow(row, PreviewTool.HealingBrush);
+            var row = CreateCanvasSettingsRow();
+            BindCanvasSettingsRow(row, CanvasTool.HealingBrush);
             var size = CompactField(new FloatField("Size"), 88f);
             size.AddToClassList("whimtex-blur-size");
             toolkitHeaderBindings.Track(size, () => paintSettings.healingSize);
@@ -73,7 +73,7 @@ namespace DCFApixels.WhimTex
             row.Add(healingStatus);
             healingCancel = new Button(CancelHealing) { text = "Cancel", tooltip = "Cancel the stroke or pending calculation without changing pixels." };
             row.Add(healingCancel);
-            toolkitPreviewHeader.Add(row);
+            toolkitCanvasViewHeader.Add(row);
             RefreshHealingStatus();
         }
 
@@ -82,25 +82,25 @@ namespace DCFApixels.WhimTex
             healingOverlay = new VisualElement { name = "healingOverlay", pickingMode = PickingMode.Ignore };
             healingOverlay.AddToClassList("whimtex-healing-overlay");
             healingOverlay.generateVisualContent += DrawHealingOverlay;
-            toolkitPreviewCanvas.Add(healingOverlay);
-            toolkitPreviewCanvas.RegisterCallback<PointerCancelEvent>(_ => CancelHealing());
-            toolkitPreviewCanvas.RegisterCallback<DetachFromPanelEvent>(_ => CancelHealing());
+            toolkitCanvas.Add(healingOverlay);
+            toolkitCanvas.RegisterCallback<PointerCancelEvent>(_ => CancelHealing());
+            toolkitCanvas.RegisterCallback<DetachFromPanelEvent>(_ => CancelHealing());
         }
 
         private bool HandleHealingDown(PointerDownEvent evt)
         {
-            if (previewTool != PreviewTool.HealingBrush || evt.button != 0 || evt.altKey) return false;
+            if (canvasTool != CanvasTool.HealingBrush || evt.button != 0 || evt.altKey) return false;
             WhimTexUI.ConsumeEvent(evt);
             if (healingJob != null || healingWorker != null && !healingWorker.IsCompleted)
             { ShowNotification(new GUIContent("Healing is still running. Wait or cancel it first.")); return true; }
             var layer = GetSelectedLayer()?.Behaviour as DrawingLayerBehaviour;
             if (layer == null || compositor == null || WhimTexApi.IsLayerContentLocked(compositor, layer) ||
-                !PreviewContainsPaintPoint(evt.localPosition)) return true;
+                !CanvasContainsPaintPoint(evt.localPosition)) return true;
             var transform = compositor.GetPaintTransform(layer).ToMatrix(compositor.width, compositor.height);
             if (!transform.TryInverse(out _))
             { ShowNotification(new GUIContent("Healing needs an invertible layer transform.")); return true; }
             FinishPaintingStroke();
-            FinishPreviewTransform();
+            FinishCanvasTransform();
             healingDocument = compositor;
             healingLayer = layer;
             healingTransform = transform;
@@ -109,8 +109,8 @@ namespace DCFApixels.WhimTex
             try { BeginHealingStroke(HealingCanvasPoint(evt.localPosition)); }
             catch (Exception e) { CancelHealing(); ShowNotification(new GUIContent("Healing: " + e.Message)); return true; }
             healingPointer = evt.pointerId;
-            Focus(); toolkitPreviewCanvas.Focus();
-            toolkitPreviewCanvas.CapturePointer(evt.pointerId);
+            Focus(); toolkitCanvas.Focus();
+            toolkitCanvas.CapturePointer(evt.pointerId);
             healingOverlay?.MarkDirtyRepaint();
             RefreshHealingStatus();
             return true;
@@ -118,8 +118,8 @@ namespace DCFApixels.WhimTex
 
         private Vector2 HealingCanvasPoint(Vector2 position)
         {
-            var rect = toolkitPreviewCanvas.ImageRect;
-            position = toolkitPreviewCanvas.ToCanvas(position);
+            var rect = toolkitCanvas.ImageRect;
+            position = toolkitCanvas.ToCanvas(position);
             return new Vector2((position.x - rect.x) / rect.width * compositor.width,
                 (1 - (position.y - rect.y) / rect.height) * compositor.height);
         }
@@ -130,7 +130,7 @@ namespace DCFApixels.WhimTex
             healingTransform.TryInverse(out var inverse);
             healingStroke = new DrawingLayerBehaviour.HealingStrokeBuffer(healingCanvasSize.x, healingCanvasSize.y,
                 Mathf.Clamp(paintSettings.healingSize, 1, 512), Mathf.Clamp01(paintSettings.healingHardness),
-                tiledPreview, inverse, GetAreaSelectionTexture());
+                tiledCanvas, inverse, GetAreaSelectionTexture());
             healingStroke.Add(point);
         }
 
@@ -139,7 +139,7 @@ namespace DCFApixels.WhimTex
             if (healingPointer != evt.pointerId) return false;
             if ((evt.pressedButtons & 1) == 0) { WhimTexUI.ConsumeEvent(evt); return true; }
             AddHealingPoint(evt.localPosition);
-            UpdatePreviewCursor(evt.localPosition, evt.altKey);
+            UpdateCanvasCursor(evt.localPosition, evt.altKey);
             WhimTexUI.ConsumeEvent(evt);
             return true;
         }
@@ -157,18 +157,18 @@ namespace DCFApixels.WhimTex
             AddHealingPoint(evt.localPosition);
             int pointer = healingPointer;
             healingPointer = -1;
-            if (pointer >= 0 && toolkitPreviewCanvas.HasPointerCapture(pointer)) toolkitPreviewCanvas.ReleasePointer(pointer);
+            if (pointer >= 0 && toolkitCanvas.HasPointerCapture(pointer)) toolkitCanvas.ReleasePointer(pointer);
             if (healingLayer != null) StartHealing();
             WhimTexUI.ConsumeEvent(evt);
             return true;
         }
 
         private bool HealingContextValid => healingDocument != null && healingDocument == compositor &&
-            previewTool == PreviewTool.HealingBrush && healingLayer != null &&
+            canvasTool == CanvasTool.HealingBrush && healingLayer != null &&
             ReferenceEquals(GetSelectedLayer()?.Behaviour, healingLayer) &&
             compositor.width == healingCanvasSize.x && compositor.height == healingCanvasSize.y &&
             GetAreaSelection().Revision == healingSelectionRevision &&
-            healingStroke != null && healingStroke.tiled == tiledPreview &&
+            healingStroke != null && healingStroke.tiled == tiledCanvas &&
             compositor.GetPaintTransform(healingLayer).ToMatrix(compositor.width, compositor.height).Equals(healingTransform) &&
             !WhimTexApi.IsLayerContentLocked(compositor, healingLayer);
 
@@ -192,7 +192,7 @@ namespace DCFApixels.WhimTex
                     var wrap = source.wrapMode; var filter = source.filterMode;
                     try
                     {
-                        source.wrapMode = tiledPreview ? TextureWrapMode.Repeat : TextureWrapMode.Clamp;
+                        source.wrapMode = tiledCanvas ? TextureWrapMode.Repeat : TextureWrapMode.Clamp;
                         source.filterMode = FilterMode.Point;
                         Graphics.Blit(source, cropped, new Vector2(bounds.width / (float)width, bounds.height / (float)height),
                             new Vector2(bounds.x / (float)width, bounds.y / (float)height));
@@ -211,13 +211,13 @@ namespace DCFApixels.WhimTex
                     if (coverage[i] != 0) targets++;
                 }
                 if (targets == 0) throw new InvalidOperationException("The stroke does not cover editable pixels. Check the selection and layer frame.");
-                if (tiledPreview) bounds = HealingBrushUtility.RecenterTiledRegion(bounds, ref coverage, width, height);
+                if (tiledCanvas) bounds = HealingBrushUtility.RecenterTiledRegion(bounds, ref coverage, width, height);
                 rendered = paintSettings.healingSample == HealingSampleMode.CurrentLayer
                     ? healingLayer.Render(new LayerRenderContext(compositor, null, width, height, 1, applyModifiers: false))
                     : compositor.RenderLayerAndBelow(healingLayer, width, height);
                 if (rendered == null) throw new InvalidOperationException("No source image available.");
                 var pixels = ReadRegion(rendered);
-                var job = new HealingJob { bounds = bounds, tiled = tiledPreview };
+                var job = new HealingJob { bounds = bounds, tiled = tiledCanvas };
                 bool empty = paintSettings.healingTransparentOnly;
                 int quality = (int)paintSettings.healingQuality;
                 var token = job.cancellation.Token;
@@ -240,7 +240,7 @@ namespace DCFApixels.WhimTex
         private void UpdateHealing()
         {
             if (healingLayer == null) return;
-            if (healingPointer >= 0 && (toolkitPreviewCanvas == null || !toolkitPreviewCanvas.HasPointerCapture(healingPointer)))
+            if (healingPointer >= 0 && (toolkitCanvas == null || !toolkitCanvas.HasPointerCapture(healingPointer)))
             { CancelHealing(); return; }
             healingOverlay?.MarkDirtyRepaint();
             if (!HealingContextValid) { CancelHealing(); return; }
@@ -291,14 +291,14 @@ namespace DCFApixels.WhimTex
                 effectInteractiveUntil = 0;
                 Undo.FlushUndoRecordObjects();
                 Undo.CollapseUndoOperations(group);
-                RequestPreview(true);
+                RequestCanvasRender(true);
             }
             catch
             {
                 if (group >= 0)
                 {
                     Undo.FlushUndoRecordObjects(); Undo.RevertAllDownToGroup(group);
-                    compositor.InvalidateDrawingLayerSurfaces(); RequestPreview(true);
+                    compositor.InvalidateDrawingLayerSurfaces(); RequestCanvasRender(true);
                 }
                 throw;
             }
@@ -317,8 +317,8 @@ namespace DCFApixels.WhimTex
             healingLayer = null; healingDocument = null;
             healingStroke?.Dispose(); healingStroke = null;
             int pointer = healingPointer; healingPointer = -1;
-            if (pointer >= 0 && toolkitPreviewCanvas != null && toolkitPreviewCanvas.HasPointerCapture(pointer))
-                toolkitPreviewCanvas.ReleasePointer(pointer);
+            if (pointer >= 0 && toolkitCanvas != null && toolkitCanvas.HasPointerCapture(pointer))
+                toolkitCanvas.ReleasePointer(pointer);
             if (job != null)
             {
                 job.cancellation.Cancel();
@@ -343,17 +343,17 @@ namespace DCFApixels.WhimTex
 
         private void DrawHealingOverlay(MeshGenerationContext context)
         {
-            if (healingStroke?.Texture == null || compositor != healingDocument || toolkitPreviewCanvas == null) return;
-            Rect image = toolkitPreviewCanvas.ImageRect, viewport = healingOverlay.contentRect;
+            if (healingStroke?.Texture == null || compositor != healingDocument || toolkitCanvas == null) return;
+            Rect image = toolkitCanvas.ImageRect, viewport = healingOverlay.contentRect;
             if (image.width <= 0 || image.height <= 0 || viewport.width <= 0 || viewport.height <= 0) return;
             Vector3 Position(float x, float y)
             {
-                Vector2 point = healingStroke.tiled ? new Vector2(x, y) : toolkitPreviewCanvas.ToView(new Vector2(x, y));
+                Vector2 point = healingStroke.tiled ? new Vector2(x, y) : toolkitCanvas.ToView(new Vector2(x, y));
                 return new Vector3(point.x, point.y, Vertex.nearZ);
             }
             Vector2 Uv(Vector2 position)
             {
-                if (healingStroke.tiled) position = toolkitPreviewCanvas.ToCanvas(position);
+                if (healingStroke.tiled) position = toolkitCanvas.ToCanvas(position);
                 return new Vector2((position.x - image.x) / image.width, 1 - (position.y - image.y) / image.height);
             }
             var rect = healingStroke.tiled ? viewport : image;

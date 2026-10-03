@@ -79,7 +79,7 @@ namespace DCFApixels.WhimTex
 
         private void OnDisable()
         {
-            ForgetMiniPreviewCache();
+            ForgetLayerPreviewCache();
             WhimTexDocumentSession.StopFor(this, "document disabled");
             ReleaseLayerThumbnails();
             StopLiveOutput();
@@ -815,7 +815,7 @@ namespace DCFApixels.WhimTex
 
                 try
                 {
-                    PublishMiniPreview(layer, rendered);
+                    PublishLayerPreview(layer, rendered);
                     BlendInto(ref accumulator, rendered, layer.CompositeBlendMode, layer.opacity, layer.blendRange);
                 }
                 finally
@@ -868,7 +868,7 @@ namespace DCFApixels.WhimTex
                         content = FinishStage(content, group.colorRange == LayerColorRange.Standard, group.swizzle);
                     }
                 }
-                if (!passThrough) PublishMiniPreview(group, content);
+                if (!passThrough) PublishLayerPreview(group, content);
                 BlendInto(ref accumulator, content, passThrough ? (BlendMode)101 : group.EffectiveBlendMode,
                     group.opacity, group.blendRange);
             }

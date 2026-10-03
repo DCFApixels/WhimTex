@@ -35,7 +35,7 @@ next_page: "zh/preview.md"
 3. 调整滑块、颜色、纹理、开关和下拉选项，图像会立即更新。
 
 也可以将 WhimTex 效果 `.hlsl` 从 Project 拖到 **Layers** 的某一行。
-拖到预览或列表空白处会在合成顶部创建 **Shader Processor**。
+拖到画布视图或列表空白处会在合成顶部创建 **Shader Processor**。
 HLSL 画笔预设和没有效果标记的文件不会被接受。
 
 如果预设的代码或参数无效，选择时会在 Console 中报告错误，图层保持不变。
@@ -82,6 +82,7 @@ Gain、Levels、Threshold、环境光及扭曲偏移在适当位置提供软边�
 效果还可以提供渐变字段。点击色带即可编辑颜色、透明度和插值，包括 HDR 颜色。
 默认渐变为黑到白，也可在 HLSL 声明中指定两个端点，例如 `// @param gradient _Ramp = #FF0000FF -> #0000FF`。
 十六进制颜色按 RGBA 顺序书写；六位颜色默认完全不透明。更改会立即更新效果；简单双端点渐变可以保存为 HLSL 预设默认值。
+未指定默认值时使用 Perceptual 插值；HLSL 双颜色声明使用 Classic。
 
 渐变编辑器中的 **Wrap** 决定 0–1 以外的行为：**Clamp** 保持端点颜色，**Repeat** 重复渐变，**Mirror** 交替反转方向。若效果自身限制了输入范围，循环可能不会显现。
 
@@ -95,7 +96,7 @@ HLSL 声明语法见[着色器参数控件](shader-controls.md)。
 Ctrl/Cmd + Alt 会对称移动对角点。Position、Size 和 Rotation 保留已有变形；**Reset Transform** 清除变形。
 **Edit on Canvas** 在上下文工具下方启用一个临时手形工具，Point 和 Normal 参数也使用此工具。按钮提示标明参数。点击工具按钮、再次点击 **Edit on Canvas** 或按 Escape 可返回之前的工具。拖动时第一次按 Escape 只取消拖动。编辑其他参数会替换临时工具，但不会改变返回目标。参见[上下文工具](preview.md#上下文工具)。
 
-<a href="{{ '/Images/shader-processor-transform.png' | relative_url }}"><img src="{{ '/Images/shader-processor-transform.png' | relative_url }}" alt="WhimTex Shader Processor using a Spherize preset with a green Transform 2D frame on the preview" width="720"></a>
+<a href="{{ '/Images/shader-processor-transform.png' | relative_url }}"><img src="{{ '/Images/shader-processor-transform.png' | relative_url }}" alt="WhimTex Shader Processor using a Spherize preset with a green Transform 2D frame on the canvas" width="720"></a>
 
 该边框编辑的是效果，而不是图层的变换。其用途取决于具体效果：
 它可能用于放置图像、更改图案的缩放，或定义局部区域。边框本身不是遮罩，
@@ -127,7 +128,8 @@ HLSL 预设放入 ShaderFX 或其子文件夹；重新打开 **+ Preset** 即可
 纹理默认值是引用，而不是内嵌图像。要在另一个项目中使用它们，
 还需一并转移被引用的纹理资源及其 `.meta` 文件，或指定替换资源。
 
-编辑后的渐变保存在文档中。简单双端点渐变也可导出为 HLSL 默认值；额外色标或非默认插值、平滑度、循环方式需要在导出前简化。
+编辑后的渐变保存在文档中。HLSL 默认值支持两个端点、Classic 插值、Gamma 色彩空间、
+Clamp 循环、Smoothness 100% 和居中的中点。其他设置必须在导出前简化；导出不会静默丢弃设置。
 
 ## 将效果烘焙到图层
 

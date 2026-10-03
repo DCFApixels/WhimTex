@@ -67,7 +67,7 @@
 - Update matching EN/RU/ZH user guides. Keep paths and reciprocal `translations` metadata, including the page itself; add new localized pages together.
 - Artist guides: result → controls → visible effect. Keep API/storage/cache/Undo internals in technical references, not user guides. Warnings should concern results, compatibility or loss of work.
 - README: short introduction, installation, quick start, guide links. Keep browser-AI entry points discoverable.
-- Terminology: procedural brush / textured brush; RU процедурная кисть / текстурная кисть; ZH 程序化画笔 / 纹理画笔. ZH layer 图层, group 组, brush 画笔. Keep UI labels, JSON fields, CLI names and code in English.
+- Use the [glossary in feature decisions](Context~/DECISIONS.md#глоссарий) for UI and documentation terminology. Keep UI labels, JSON fields, CLI names and code in English. A terminology agreement does not itself rename existing UI, URLs or API identifiers.
 - Update the English authoring/API contract with behavior changes. Change schema generators, then regenerate schemas; do not edit generated schemas alone.
 - Validate docs via [building.md](Documentation~/building.md). Documentation builds do not authorize Unity builds/imports.
 - Third-party additions/updates: preserve copyright, include license/notices, record source version in `ThirdPartyNotices.md`, acknowledge and link upstream in localized READMEs.

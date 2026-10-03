@@ -47,7 +47,7 @@ namespace DCFApixels.WhimTex
 
         internal static ColorField Bind(ColorField field, WhimTexUI.ValueBindings bindings, Func<Color> read)
         {
-            field.UsePreviewChannels = true;
+            field.UseCanvasChannels = true;
             field.ReadPickerColor = read;
             field.HdrChanged = value => Hdr = value;
             void Refresh()
@@ -62,7 +62,7 @@ namespace DCFApixels.WhimTex
 
         internal static ColorField Bind(ColorField field, SerializedProperty property, Action edited)
         {
-            field.UsePreviewChannels = true;
+            field.UseCanvasChannels = true;
             SerializedProperty source = property.Copy();
             field.ReadPickerColor = () => source.colorValue;
             field.Document = () => WhimTexColorPicker.DocumentFor(source.serializedObject.targetObject);

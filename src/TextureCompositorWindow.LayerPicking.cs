@@ -25,18 +25,18 @@ namespace DCFApixels.WhimTex
 
         private bool HandleLayerPickPointerDown(PointerDownEvent evt)
         {
-            if (previewTool != PreviewTool.None || !HasPreviewLayers || evt.button != 0 || evt.altKey ||
-                evt.pressedButtons != 1 || evt.target != toolkitPreviewCanvas ||
-                !toolkitPreviewCanvas.contentRect.Contains(evt.localPosition) ||
-                (previewZoomManipulator?.IsDragging ?? false) || (previewGuideManipulator?.IsDragging ?? false)) return false;
+            if (canvasTool != CanvasTool.None || !HasCanvasLayers || evt.button != 0 || evt.altKey ||
+                evt.pressedButtons != 1 || evt.target != toolkitCanvas ||
+                !toolkitCanvas.contentRect.Contains(evt.localPosition) ||
+                (canvasZoomManipulator?.IsDragging ?? false) || (canvasGuideManipulator?.IsDragging ?? false)) return false;
             WhimTexUI.ConsumeEvent(evt);
             Focus();
-            toolkitPreviewCanvas.Focus();
-            Rect image = toolkitPreviewCanvas.ImageRect;
+            toolkitCanvas.Focus();
+            Rect image = toolkitCanvas.ImageRect;
             if (image.width <= 0f || image.height <= 0f) return true;
-            Vector2 point = toolkitPreviewCanvas.ToCanvas(evt.localPosition);
+            Vector2 point = toolkitCanvas.ToCanvas(evt.localPosition);
             Vector2 uv = new Vector2((point.x - image.x) / image.width, 1f - (point.y - image.y) / image.height);
-            if (tiledPreview) uv = new Vector2(Mathf.Repeat(uv.x, 1f), Mathf.Repeat(uv.y, 1f));
+            if (tiledCanvas) uv = new Vector2(Mathf.Repeat(uv.x, 1f), Mathf.Repeat(uv.y, 1f));
             try
             {
                 Layer hit = compositor.PickLayerAtPixel(Mathf.FloorToInt(uv.x * compositor.width), Mathf.FloorToInt(uv.y * compositor.height),

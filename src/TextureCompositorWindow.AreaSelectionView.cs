@@ -45,11 +45,11 @@ namespace DCFApixels.WhimTex
             }
             private Vector2 CanvasPoint(Vector2 point, bool disableSnap)
             {
-                Rect image = owner.toolkitPreviewCanvas.ImageRect;
-                point = owner.toolkitPreviewCanvas.ToCanvas(point);
+                Rect image = owner.toolkitCanvas.ImageRect;
+                point = owner.toolkitCanvas.ToCanvas(point);
                 Vector2 documentPoint = new Vector2((point.x - image.x) / Mathf.Max(.0001f, image.width) * owner.compositor.width,
                     (1f - (point.y - image.y) / Mathf.Max(.0001f, image.height)) * owner.compositor.height);
-                return disableSnap ? documentPoint : owner.SnapPreviewGuidePoint(documentPoint, owner.previewTool == PreviewTool.RectangleSelect);
+                return disableSnap ? documentPoint : owner.SnapCanvasGuidePoint(documentPoint, owner.canvasTool == CanvasTool.RectangleSelect);
             }
             private static Vector2 ConstrainMarquee(Vector2 start, Vector2 end)
             {
@@ -80,7 +80,7 @@ namespace DCFApixels.WhimTex
             }
             private void Down(PointerDownEvent evt)
             {
-                if (!owner.IsAreaSelectionTool || !owner.HasPreviewLayers ||
+                if (!owner.IsAreaSelectionTool || !owner.HasCanvasLayers ||
                     !target.contentRect.Contains(evt.localPosition) || (evt.button != 0 && evt.button != 1)) return;
                 WhimTexUI.ConsumeEvent(evt);
                 owner.Focus(); target.Focus();
@@ -95,12 +95,12 @@ namespace DCFApixels.WhimTex
                 {
                     combine = evt.shiftKey && evt.altKey ? SelectionCombine.Intersect : evt.shiftKey ? SelectionCombine.Add :
                         evt.altKey ? SelectionCombine.Subtract : owner.areaSelectionMode;
-                    wrap = owner.tiledPreview;
-                    owner.FinishPaintingStroke(); owner.FinishPreviewTransform();
+                    wrap = owner.tiledCanvas;
+                    owner.FinishPaintingStroke(); owner.FinishCanvasTransform();
                     owner.GetAreaSelection();
                 }
                 Current = CanvasPoint(evt.localPosition, evt.ctrlKey);
-                if (owner.previewTool == PreviewTool.RectangleSelect)
+                if (owner.canvasTool == CanvasTool.RectangleSelect)
                 {
                     shiftStartsCombine = evt.shiftKey;
                     pointerPosition = evt.localPosition;
@@ -109,7 +109,7 @@ namespace DCFApixels.WhimTex
                     target.CapturePointer(pointer);
                 }
                 else if (Vertices.Count >= 3 && (evt.clickCount > 1 ||
-                    (Current - Vertices[0]).magnitude * owner.toolkitPreviewCanvas.PixelScale <= 6f)) CompletePolygon();
+                    (Current - Vertices[0]).magnitude * owner.toolkitCanvas.PixelScale <= 6f)) CompletePolygon();
                 else if (Vertices.Count < 256 && (Vertices.Count == 0 || (Current - Vertices[Vertices.Count - 1]).sqrMagnitude > .0001f))
                     Vertices.Add(Current);
                 owner.areaSelectionOverlay?.MarkDirtyRepaint();
@@ -119,7 +119,7 @@ namespace DCFApixels.WhimTex
                 if (owner.IsUvSelectionTool && evt.pressedButtons == 0)
                     owner.SetUvHovered(owner.PickUvIsland(evt.localPosition));
                 if (!owner.IsAreaSelectionTool || !HasGesture || owner.compositor == null ||
-                    (owner.previewZoomManipulator?.IsNavigating ?? false)) return;
+                    (owner.canvasZoomManipulator?.IsNavigating ?? false)) return;
                 if (RectangleDragging && (evt.pointerId != pointer || (evt.pressedButtons & 1) == 0)) { Cancel(); return; }
                 UpdateCurrent(evt.localPosition, evt.shiftKey, evt.ctrlKey);
                 evt.StopImmediatePropagation();
@@ -130,7 +130,7 @@ namespace DCFApixels.WhimTex
                 UpdateCurrent(evt.localPosition, evt.shiftKey, evt.ctrlKey);
                 Vector2 a = Start, b = Current;
                 var operation = combine; bool tiled = wrap, ellipse = EllipseDragging;
-                bool click = (a - b).magnitude * owner.toolkitPreviewCanvas.PixelScale < 3f;
+                bool click = (a - b).magnitude * owner.toolkitCanvas.PixelScale < 3f;
                 Cancel();
                 if (!click) owner.ChangeAreaSelection(s =>
                 {
@@ -237,7 +237,7 @@ namespace DCFApixels.WhimTex
                 }
                 return true;
             }
-            private Vector2 PreviewPoint(Vector2 canvas, Rect image) => owner.toolkitPreviewCanvas.ToView(new Vector2(
+            private Vector2 CanvasViewPoint(Vector2 canvas, Rect image) => owner.toolkitCanvas.ToView(new Vector2(
                 image.x + canvas.x * image.width / owner.compositor.width,
                 image.yMax - canvas.y * image.height / owner.compositor.height));
             private void AddVisible(Vector2 a, Vector2 b)
@@ -260,13 +260,13 @@ namespace DCFApixels.WhimTex
             private void Draw(MeshGenerationContext context)
             {
                 if (owner.compositor == null || contentRect.width < 1f || contentRect.height < 1f) return;
-                Rect image = owner.toolkitPreviewCanvas.ImageRect;
+                Rect image = owner.toolkitCanvas.ImageRect;
                 if (image.width <= .0001f || image.height <= .0001f) return;
                 visibleEdges.Clear();
                 int left = 0, right = 0, top = 0, bottom = 0;
-                if (owner.tiledPreview)
+                if (owner.tiledCanvas)
                 {
-                    Rect bounds = owner.toolkitPreviewCanvas.VisibleCanvasBounds;
+                    Rect bounds = owner.toolkitCanvas.VisibleCanvasBounds;
                     left = Mathf.FloorToInt((bounds.xMin - image.xMax) / image.width) + 1;
                     right = Mathf.CeilToInt((bounds.xMax - image.xMin) / image.width) - 1;
                     top = Mathf.FloorToInt((bounds.yMin - image.yMax) / image.height) + 1;
@@ -280,7 +280,7 @@ namespace DCFApixels.WhimTex
                     foreach (Vector4 e in edges)
                     {
                         if (visibleEdges.Count >= 16384) break;
-                        AddVisible(PreviewPoint(new Vector2(e.x, e.y), tile), PreviewPoint(new Vector2(e.z, e.w), tile));
+                        AddVisible(CanvasViewPoint(new Vector2(e.x, e.y), tile), CanvasViewPoint(new Vector2(e.z, e.w), tile));
                     }
                 }
                 var gesture = owner.areaSelectionManipulator;
@@ -288,31 +288,31 @@ namespace DCFApixels.WhimTex
                 {
                     Vector2 center = (gesture.Start + gesture.Current) * .5f;
                     Vector2 radius = (gesture.Current - gesture.Start) * .5f;
-                    float viewRadius = Mathf.Max(Mathf.Abs(radius.x), Mathf.Abs(radius.y)) * owner.toolkitPreviewCanvas.PixelScale;
+                    float viewRadius = Mathf.Max(Mathf.Abs(radius.x), Mathf.Abs(radius.y)) * owner.toolkitCanvas.PixelScale;
                     int segments = Mathf.Clamp(Mathf.CeilToInt(Mathf.PI * Mathf.Sqrt(viewRadius)), 24, 512);
-                    Vector2 previous = PreviewPoint(center + new Vector2(radius.x, 0f), image);
+                    Vector2 previous = CanvasViewPoint(center + new Vector2(radius.x, 0f), image);
                     for (int i = 1; i <= segments; i++)
                     {
                         float angle = i * Mathf.PI * 2f / segments;
-                        Vector2 next = PreviewPoint(center + new Vector2(Mathf.Cos(angle) * radius.x, Mathf.Sin(angle) * radius.y), image);
+                        Vector2 next = CanvasViewPoint(center + new Vector2(Mathf.Cos(angle) * radius.x, Mathf.Sin(angle) * radius.y), image);
                         AddVisible(previous, next);
                         previous = next;
                     }
                 }
                 else if (gesture != null && gesture.RectangleDragging)
                 {
-                    Vector2 a = PreviewPoint(gesture.Start, image), b = PreviewPoint(gesture.Current, image);
-                    Vector2 c = PreviewPoint(new Vector2(gesture.Current.x, gesture.Start.y), image);
-                    Vector2 d = PreviewPoint(new Vector2(gesture.Start.x, gesture.Current.y), image);
+                    Vector2 a = CanvasViewPoint(gesture.Start, image), b = CanvasViewPoint(gesture.Current, image);
+                    Vector2 c = CanvasViewPoint(new Vector2(gesture.Current.x, gesture.Start.y), image);
+                    Vector2 d = CanvasViewPoint(new Vector2(gesture.Start.x, gesture.Current.y), image);
                     AddVisible(a, c); AddVisible(c, b);
                     AddVisible(b, d); AddVisible(d, a);
                 }
                 else if (gesture != null && gesture.Vertices.Count > 0)
                 {
                     for (int i = 1; i < gesture.Vertices.Count; i++)
-                        AddVisible(PreviewPoint(gesture.Vertices[i - 1], image), PreviewPoint(gesture.Vertices[i], image));
-                    AddVisible(PreviewPoint(gesture.Vertices[gesture.Vertices.Count - 1], image), PreviewPoint(gesture.Current, image));
-                    AddVisible(PreviewPoint(gesture.Current, image), PreviewPoint(gesture.Vertices[0], image));
+                        AddVisible(CanvasViewPoint(gesture.Vertices[i - 1], image), CanvasViewPoint(gesture.Vertices[i], image));
+                    AddVisible(CanvasViewPoint(gesture.Vertices[gesture.Vertices.Count - 1], image), CanvasViewPoint(gesture.Current, image));
+                    AddVisible(CanvasViewPoint(gesture.Current, image), CanvasViewPoint(gesture.Vertices[0], image));
                 }
                 Painter2D painter = context.painter2D;
                 painter.lineWidth = 1.5f; painter.lineCap = LineCap.Butt; painter.strokeColor = Color.black;

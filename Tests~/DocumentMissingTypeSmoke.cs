@@ -12,7 +12,7 @@ var serializerType = assembly.GetType("DCFApixels.WhimTex.WhimTexDocumentSeriali
 object Serialize(object document, DCFApixels.WhimTex.WhimTexDocumentContainer container) =>
     serializerType.GetMethod("Serialize", Static).Invoke(null, new[] { document, container });
 object Deserialize(byte[] model, DCFApixels.WhimTex.WhimTexDocumentContainer container) =>
-    serializerType.GetMethod("Deserialize", Static).Invoke(null, new object[] { model, container, typeof(DCFApixels.WhimTex.TextureCompositor) });
+    serializerType.GetMethod("Deserialize", Static).Invoke(null, new object[] { model, container, typeof(DCFApixels.WhimTex.TextureCompositor), null, false });
 string[] MissingTypes()
 {
     var list = (System.Collections.Generic.IReadOnlyList<string>)serializerType.GetProperty("LastMissingTypes", Static).GetValue(null);

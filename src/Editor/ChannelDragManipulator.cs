@@ -4,7 +4,7 @@ using UnityEngine.UIElements;
 
 namespace DCFApixels.WhimTex
 {
-    internal sealed class PreviewChannelDragManipulator : PointerManipulator
+    internal sealed class ChannelDragManipulator : PointerManipulator
     {
         private readonly Button[] buttons;
         private readonly Func<int> getMask;
@@ -13,7 +13,7 @@ namespace DCFApixels.WhimTex
         private bool value;
         private Vector2 previous;
 
-        internal PreviewChannelDragManipulator(Button[] buttons, Func<int> getMask, Action<int> toggle)
+        internal ChannelDragManipulator(Button[] buttons, Func<int> getMask, Action<int> toggle)
         {
             this.buttons = buttons;
             this.getMask = getMask;

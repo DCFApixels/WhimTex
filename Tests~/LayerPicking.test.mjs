@@ -21,14 +21,14 @@ for (const source of [window, settingsWindow]) {
     assert.match(source, /LayerPickAlphaThreshold = evt.newValue \* .01f/);
     assert.match(source, /LayerPickAlphaThreshold \* 100f/);
 }
-assert.match(ui, /OnPreviewPointerDown\(PointerDownEvent evt\)\s*\{\s*previewPointerControl = evt.ctrlKey;\s*if \(HandleLayerPickPointerDown\(evt\)\)/);
+assert.match(ui, /OnCanvasPointerDown\(PointerDownEvent evt\)\s*\{\s*canvasPointerControl = evt.ctrlKey;\s*if \(HandleLayerPickPointerDown\(evt\)\)/);
 assert.equal((ui.match(/HandleLayerPickPointerDown\(evt\)/g) ?? []).length, 1);
-assert.match(window, /previewTool != PreviewTool.None/);
+assert.match(window, /canvasTool != CanvasTool.None/);
 assert.match(window, /evt.button != 0 \|\| evt.altKey/);
-assert.match(window, /evt.target != toolkitPreviewCanvas/);
+assert.match(window, /evt.target != toolkitCanvas/);
 assert.match(window, /evt.pressedButtons != 1/);
-assert.match(window, /toolkitPreviewCanvas.ToCanvas\(evt.localPosition\)/);
-assert.match(window, /if \(tiledPreview\) uv = new Vector2\(Mathf.Repeat/);
+assert.match(window, /toolkitCanvas.ToCanvas\(evt.localPosition\)/);
+assert.match(window, /if \(tiledCanvas\) uv = new Vector2\(Mathf.Repeat/);
 assert.match(window, /if \(evt.shiftKey\)/);
 assert.match(window, /selectedLayerIds.Remove\(hit.Id\)/);
 assert.match(window, /else SelectOnlyLayer\(hit\?\.Id\)/);
@@ -43,6 +43,6 @@ assert.match(renderer, /collectingErrors = previousErrors/);
 assert.match(renderer, /effectCache = previousCache/);
 assert.match(renderer, /FindClippingBaseIndex/);
 assert.ok(!/MarkChanged\(|Undo\.|SetDirty\(/.test(renderer + window), 'Picking only changes window selection');
-assert.match(ui, /BindPreviewSettingsRow\(pickRow, PreviewTool.None\)/);
+assert.match(ui, /BindCanvasSettingsRow\(pickRow, CanvasTool.None\)/);
 assert.match(read('TextureCompositorWindow.Tools.cs'), /Layer Select \(V\)/);
 console.log('Layer picking threshold and UI integration contracts passed; GPU coverage uses LayerPickingSmoke.cs.');

@@ -1,6 +1,9 @@
-// Uses only the disposable window created by LayerPersistenceSetup, after layout has settled.
-var window = Resources.FindObjectsOfTypeAll<DCFApixels.WhimTex.TextureCompositorWindow>()
-    .Single(w => w.titleContent.text == "WhimTex verification b4f21b35");
+// Clamp arithmetic is independent of layout and the legacy persistence fixture.
+var window = ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositorWindow>();
+try
+{
+window.titleContent = new GUIContent("WhimTex isolated scroll regression " + Guid.NewGuid().ToString("N"));
+window.Show();
 var flags=System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic;
 var scroll=(UnityEngine.UIElements.ScrollView)window.GetType().GetField("toolkitSettingsScroll",flags).GetValue(window);
 var type=window.GetType().GetNestedType("LayerDragAutoScrollManipulator",System.Reflection.BindingFlags.NonPublic);
@@ -12,3 +15,5 @@ float old=Mathf.Clamp(8,scroll.verticalScroller.lowValue,scroll.verticalScroller
 float corrected=Bound(8,scroll.verticalScroller.lowValue,scroll.verticalScroller.highValue);
 return new { viewport=scroll.contentViewport.layout.height, content=scroll.contentContainer.layout.height,
     low=scroll.verticalScroller.lowValue, high=scroll.verticalScroller.highValue, oldOffset=old, correctedOffset=corrected };
+}
+finally { window.DiscardChanges(); window.Close(); }

@@ -1,7 +1,13 @@
 # Gradient GPU validation
 
-Rounded is built in; there is no Transition setting or migration. Retired transition source tests are preserved in
-`ArchivedTransitions/*.cs.txt` for research only and are not current executable tests.
+Rounded is built in; there is no Transition setting or migration. Tests for the removed
+Standard/Soft/Soft2/Soft3/Rational algorithms were deleted during the test-suite audit;
+their historical sources remain in Git. Compatibility fixtures and current Rounded tests remain active.
+
+Current audit (2026-10-03): see [TestSuiteAudit.ru.md](TestSuiteAudit.ru.md).
+The broad `GradientGpuRunSmoke` passes; `GradientGpuSmoke` currently exposes a
+CPU/GPU mismatch at a Fixed/Mirror stop boundary. The historical result below
+does not mean the current full suite passes.
 
 Run `GradientGpuSmoke.cs` through the connected Unity Pipeline `eval_file` command.
 It creates only transient objects and compares GPU output with the retained CPU thumbnail
@@ -17,7 +23,7 @@ Native PerceptualBlend quantizes RGB. Palette interpolation can differ by one en
 8-bit step; its comparison tolerance is .01 in linear light (other modes: .002 relative,
 including the compositor's existing half-float output stage). This is not bit-exact rendering.
 
-Verified in Unity 6000.7.0a6 / DX12: 394,765 checks passed. Largest observed absolute
+Historical validation in Unity 6000.7.0a6 / DX12: 394,765 checks passed. Largest observed absolute
 channel difference: .00831, within the PerceptualBlend tolerance.
 
 ## Performance spot check

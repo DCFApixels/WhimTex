@@ -101,17 +101,17 @@ if A is off, Brush, Pencil and Fill leave no mark. They do not change existing p
 
 ### Color picker channel view
 
-**Channels** in the color picker follows the main preview's R/G/B/A buttons for document colors (brushes, layers, gradient keys and FX). Turn it off for ordinary color display. The ring, square and slider gradients adapt; swatches compare the original color in the upper-left half with the channel view in the lower-right half. Their single alpha bar still shows actual transparency. RGB/HSV/HEX numbers and saved History colors remain original; editing is not restricted to visible channels.
+**Channels** in the color picker follows the R/G/B/A buttons in Canvas View for document colors (brushes, layers, gradient keys and FX). Turn it off for ordinary color display. The ring, square and slider gradients adapt; swatches compare the original color in the upper-left half with the channel view in the lower-right half. Their single alpha bar still shows actual transparency. RGB/HSV/HEX numbers and saved History colors remain original; editing is not restricted to visible channels.
 
-This choice is remembered across color pickers. Interface colors such as guides, UV overlays and checkerboards do not adapt. The eyedropper magnifier always shows the actual screen pixels. Mini-preview channel buttons are independent and do not affect the picker.
+This choice is remembered across color pickers. Interface colors such as guides, UV overlays and checkerboards do not adapt. The eyedropper magnifier always shows the actual screen pixels. Layer Preview channel buttons are independent and do not affect the picker.
 HDR color fields keep their intensity gradients in both diagonal halves; the shared alpha bar still represents the stored alpha.
 
 ## Paint bright HDR colors
 
-Enable **HDR** beside EV in the main preview footer to choose colors with RGB values above ordinary white (1).
+Enable **HDR** beside EV in the Canvas View footer to choose colors with RGB values above ordinary white (1).
 This is useful for luminous details you want to use with bloom.
 
-HDR values are real, but the current WhimTex editor previews are SDR, including the color picker and gradient editor. An HDR monitor alone does not make them display extra physical brightness. Lower **Preview EV** to inspect bright values without changing the color; intensity gradients in color fields are visual indicators, not HDR monitor output. The picker, gradient editor and main preview have independent exposure controls.
+HDR values are real, but the current WhimTex editor previews are SDR, including the color picker and gradient editor. An HDR monitor alone does not make them display extra physical brightness. Lower **Preview EV** to inspect bright values without changing the color; intensity gradients in color fields are visual indicators, not HDR monitor output. The picker, gradient editor and Canvas View have independent exposure controls.
 
 In **Layer Settings → Color & Blending**, choose **HDR** in the header dropdown
 to let the layer retain that extra brightness. **Standard** is the usual choice for ordinary artwork.

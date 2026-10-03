@@ -28,8 +28,8 @@ public static class GuideReloadSmoke
             document.name = "Guide Reload Test " + Guid.NewGuid().ToString("N");
             window.ShowUtility();
             window.CreateGUI();
-            var guides = (IList)Field("previewGuides").GetValue(window);
-            var guideType = WindowType.GetNestedType("PreviewGuide", BindingFlags.NonPublic);
+            var guides = (IList)Field("canvasGuides").GetValue(window);
+            var guideType = WindowType.GetNestedType("CanvasGuide", BindingFlags.NonPublic);
             for (int i = 0; i < 3; i++)
             {
                 var guide = Activator.CreateInstance(guideType);
@@ -37,12 +37,12 @@ public static class GuideReloadSmoke
                 guideType.GetField("position").SetValue(guide, 37f + i * 61f);
                 guides.Add(guide);
             }
-            Field("previewGuidesHidden").SetValue(window, true);
-            Field("previewGuidesLocked").SetValue(window, true);
-            Field("previewGuidesSnap").SetValue(window, false);
+            Field("canvasGuidesHidden").SetValue(window, true);
+            Field("canvasGuidesLocked").SetValue(window, true);
+            Field("canvasGuidesSnap").SetValue(window, false);
 
             // Rebuilding the view must rebind its runtime document reference, not discard guides.
-            Field("previewGuidesDocument").SetValue(window, null);
+            Field("canvasGuidesDocument").SetValue(window, null);
             window.CreateGUI();
             Validate(window);
             window.CreateGUI();
@@ -76,7 +76,7 @@ public static class GuideReloadSmoke
                 var next = ScriptableObject.CreateInstance<TextureCompositor>();
                 next.hideFlags = HideFlags.HideAndDontSave;
                 setDocument.Invoke(window, new object[] { next });
-                Check(((IList)Field("previewGuides").GetValue(window)).Count == 0,
+                Check(((IList)Field("canvasGuides").GetValue(window)).Count == 0,
                     "Switching to another document must clear guides.");
                 return "Guide reload passed: positions, angles, hidden/locked/snap state, UI rebuild and document switching.";
             }
@@ -92,12 +92,12 @@ public static class GuideReloadSmoke
 
     private static void Validate(TextureCompositorWindow window)
     {
-        var guides = (IList)Field("previewGuides").GetValue(window);
+        var guides = (IList)Field("canvasGuides").GetValue(window);
         Check(guides.Count == 3, "Guide list was cleared during restoration.");
-        Check((bool)Field("previewGuidesHidden").GetValue(window), "Hidden state was lost.");
-        Check((bool)Field("previewGuidesLocked").GetValue(window), "Locked state was lost.");
-        Check(!(bool)Field("previewGuidesSnap").GetValue(window), "Snapping preference was lost.");
-        Check((TextureCompositor)Field("previewGuidesDocument").GetValue(window) ==
+        Check((bool)Field("canvasGuidesHidden").GetValue(window), "Hidden state was lost.");
+        Check((bool)Field("canvasGuidesLocked").GetValue(window), "Locked state was lost.");
+        Check(!(bool)Field("canvasGuidesSnap").GetValue(window), "Snapping preference was lost.");
+        Check((TextureCompositor)Field("canvasGuidesDocument").GetValue(window) ==
             (TextureCompositor)Field("compositor").GetValue(window), "Guide view is not bound to the restored document.");
         for (int i = 0; i < guides.Count; i++)
         {

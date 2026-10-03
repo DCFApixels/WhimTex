@@ -12,7 +12,7 @@ namespace DCFApixels.WhimTex
         private const string AdvancedViewKey = "DCFApixels.WhimTex.NormalMap.AdvancedView";
         private static readonly NormalMapLayerBehaviour Defaults = new NormalMapLayerBehaviour();
         protected override Type EditedLayerType => typeof(NormalMapLayerBehaviour);
-        protected override string PreviewTitle => "Preview (Normal Map)";
+        protected override string LayerPreviewTitle => "Layer Preview (Normal Map)";
         public static void Open(NormalMapLayerBehaviour layer, TextureCompositor compositor) =>
             OpenPropertiesWindow<NormalMapLayerEditorWindow>(layer, compositor);
         protected override void BuildSettings(VisualElement root, Layer source) =>

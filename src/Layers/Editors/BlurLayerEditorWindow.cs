@@ -8,7 +8,7 @@ namespace DCFApixels.WhimTex
     public sealed class BlurLayerEditorWindow : LayerEditorWindowBase
     {
         protected override Type EditedLayerType => typeof(BlurLayerBehaviour);
-        protected override string PreviewTitle => "Preview (Blur)";
+        protected override string LayerPreviewTitle => "Layer Preview (Blur)";
         public static void Open(BlurLayerBehaviour layer, TextureCompositor compositor) =>
             OpenPropertiesWindow<BlurLayerEditorWindow>(layer, compositor);
         protected override void BuildSettings(VisualElement root, Layer source) =>

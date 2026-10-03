@@ -50,7 +50,12 @@ var afterReopen=doc.Compose();
 try {Check(((Vector4)(afterReopen.GetPixel(4,4)-savedColor)).sqrMagnitude<.000001f,"Composition remains identical across save and reopen");}
 finally {UnityEngine.Object.DestroyImmediate(afterReopen);}
 var window=Resources.FindObjectsOfTypeAll<DCFApixels.WhimTex.TextureCompositorWindow>()
-    .Single(w=>w.titleContent.text=="WhimTex verification b4f21b35");
+    .Single(w=>
+    {
+        var owned=(DCFApixels.WhimTex.TextureCompositor)w.GetType().GetField("compositor",Hidden).GetValue(w);
+        return owned!=null && !AssetDatabase.Contains(owned) && owned.layers.Count==1 &&
+            owned.layers[0].Id==SessionState.GetString("WhimTex.Verification.UnsavedId", "");
+    });
 var unsaved=(DCFApixels.WhimTex.TextureCompositor)window.GetType().GetField("compositor",Hidden).GetValue(window);
 Check(!AssetDatabase.Contains(unsaved) && unsaved.layers[0].Id==SessionState.GetString("WhimTex.Verification.UnsavedId", ""),"Unsaved document retains identity across actual domain reload");
 Check(unsaved.layers[0].GetPreviewTexture(8).GetPixel(4,4).r>.99f && unsaved.layers[0].GetPreviewTexture(8).GetPixel(4,4).a>.99f,"Unsaved Drawing pixels survive actual domain reload");

@@ -39,7 +39,7 @@ public static class PortableIncludesSmoke
             string builtins = "#include \"UnityCG.cginc\"\n#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ThirdParty/FastNoiseLite.hlsl\"\n#include \"Packages/com.dcfapixels.whimtex/src/Shaders/Dither.cginc\"\n";
             Check(Expand(builtins) == builtins, "Built-ins remain references");
             string original = "#include \"" + folder + "/parent.hlsl\"\nfloat4 ApplyFX(float2 uv, float4 color) { return Twice(color.r); }";
-            var fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F).Invoke(null, new object[] { doc, original, new List<ShaderFXParameter>() });
+            var fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.TextureCompositor), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { doc, original, new List<ShaderFXParameter>() });
             effects.Add(fx);
             typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(fx, null); checks++;
             Layer layer = new ColorFillLayerBehaviour(); doc.layers.Add(layer); layer.modifiers.Add(fx);

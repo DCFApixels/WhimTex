@@ -22,7 +22,7 @@ for (const contract of ['camera.cameraType = CameraType.Game;', 'data.requiresDe
 assert.ok(backend.indexOf('camera.overrideSceneCullingMask =') > backend.indexOf('camera.CopyFrom(source);'),
   'Reset the copied Scene View stage mask after CopyFrom, not only when creating the camera');
 assert.ok(!backend.includes('ReadPixels'));
-assert.ok(window.includes('if (!postFxEnabled || previewTexture == null) return;'));
+assert.ok(window.includes('if (!postFxEnabled || canvasTexture == null) return;'));
 assert.ok(window.includes('postFxBackend?.Dispose(); postFxBackend = null;'));
 assert.ok(shader.includes('lerp(BackgroundColor(input.uv),color.rgb,saturate(color.a))'));
 assert.ok(shader.indexOf('output.depth = SurfaceDepth(color.a);') < shader.indexOf('lerp(BackgroundColor(input.uv)'));

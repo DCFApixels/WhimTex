@@ -138,11 +138,11 @@ public static class SeamlessReleaseSmoke
         try
         {
             var doc=(TextureCompositor)Get(window,"compositor");Populate(doc,768,512,2,Mode.PatchQuilting);window.ShowUtility();
-            var tool=window.GetType().GetField("previewTool",F);
-            tool.SetValue(window,Enum.Parse(tool.FieldType,"Pencil"));Call(window,"UpdatePreview");
-            var rt=(RenderTexture)Get(window,"previewTexture");Check(rt.width==768&&rt.height==512,"Actual Pencil preview dimensions");
+            var tool=window.GetType().GetField("canvasTool",F);
+            tool.SetValue(window,Enum.Parse(tool.FieldType,"Pencil"));Call(window,"UpdateCanvasRender");
+            var rt=(RenderTexture)Get(window,"canvasTexture");Check(rt.width==768&&rt.height==512,"Actual Pencil preview dimensions");
             Same(Render(doc),Read(rt),"Full-resolution window preview/export");
-            var cache=Get(window,"previewEffectCache");Check((long)cache.GetType().GetProperty("Bytes",F).GetValue(cache)>0,"Window cache populated");
+            var cache=Get(window,"canvasEffectCache");Check((long)cache.GetType().GetProperty("Bytes",F).GetValue(cache)>0,"Window cache populated");
             var callbacks=new List<Action>();
             foreach(var update in (List<Action<bool>>)Get(Get(window,"toolkitLayerBindings"),"updates"))
                 if(update.Target!=null)foreach(var field in update.Target.GetType().GetFields(F))
@@ -222,14 +222,14 @@ public static class SeamlessReleaseSmoke
                 var w=windows[i]=ScriptableObject.CreateInstance<TextureCompositorWindow>();
                 var doc=(TextureCompositor)Get(w,"compositor");var layer=Populate(doc,1024,768,4,Mode.PatchQuilting);
                 layer.quiltingQuality=MakeSeamlessLayerBehaviour.QuiltingQuality.High;layer.quiltingSeed+=i;
-                w.ShowUtility();var tool=w.GetType().GetField("previewTool",F);tool.SetValue(w,Enum.Parse(tool.FieldType,"Pencil"));
-                Call(w,"UpdatePreview");caches[i]=Get(w,"previewEffectCache");
+                w.ShowUtility();var tool=w.GetType().GetField("canvasTool",F);tool.SetValue(w,Enum.Parse(tool.FieldType,"Pencil"));
+                Call(w,"UpdateCanvasRender");caches[i]=Get(w,"canvasEffectCache");
                 long bytes=Bytes(caches[i]);Check(bytes>0&&bytes<=256L*1024*1024,"Per-window cache budget");
                 report.AppendLine($"Window {i}: result cache {bytes/1048576.0:F1} MiB");
             }
-            long retained=Bytes(caches[1]);var before=Read((RenderTexture)Get(windows[1],"previewTexture"));
+            long retained=Bytes(caches[1]);var before=Read((RenderTexture)Get(windows[1],"canvasTexture"));
             Close(windows[0]);windows[0]=null;Check(Bytes(caches[0])==0,"First cache disposed");Check(Bytes(caches[1])==retained,"Second window cache isolated");
-            Call(windows[1],"UpdatePreview");Same(before,Read((RenderTexture)Get(windows[1],"previewTexture")),"Other window survives close");
+            Call(windows[1],"UpdateCanvasRender");Same(before,Read((RenderTexture)Get(windows[1],"canvasTexture")),"Other window survives close");
             Close(windows[1]);windows[1]=null;Check(Bytes(caches[1])==0,"Second cache disposed");
             return "PASS two full-resolution windows; "+report;
         }

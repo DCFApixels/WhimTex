@@ -1,4 +1,4 @@
-// Opt-in after manual compilation. Temporary document/window, no saved assets.
+// Canvas margins check after manual compilation. Temporary document/window, no saved assets.
 const System.Reflection.BindingFlags Hidden = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
 var window = UnityEngine.ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositorWindow>();
 var windowType = window.GetType();
@@ -20,10 +20,10 @@ try
     Call(drawing, "InitializeCanvas", 64, 64);
     var point = new UnityEngine.Vector2(-.05f, .5f);
     object[] args = { new UnityEngine.Vector2(-5, 50), new UnityEngine.Rect(0, 0, 100, 100), drawing, null, true };
-    Check((bool)Call(window, "TryMapPreviewToLayerUv", args), "Brush accepts a center outside canvas");
+    Check((bool)Call(window, "TryMapCanvasToLayerUv", args), "Brush accepts a center outside canvas");
     Check(UnityEngine.Vector2.Distance((UnityEngine.Vector2)args[3], point) < .0001f, "Outside coordinates are not clamped to the edge");
     args[4] = false;
-    Check(!(bool)Call(window, "TryMapPreviewToLayerUv", args), "Fill retains bounded sampling");
+    Check(!(bool)Call(window, "TryMapCanvasToLayerUv", args), "Fill retains bounded sampling");
     var parameters = Call(drawing, "GetStrokeParameters", false);
     Call(drawing, "BeginStroke", point);
     Call(drawing, "PaintPoint", point, 64, 64, parameters);

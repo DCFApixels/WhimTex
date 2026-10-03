@@ -104,12 +104,12 @@ public static class HealingBrushSmoke
             document.layers.Add(drawing);
             Call(document, "NormalizeModel");
             Call(window, "SelectOnlyLayer", drawing.Id);
-            var toolType = typeof(TextureCompositorWindow).GetNestedType("PreviewTool", Flags);
-            Call(window, "ChangePreviewTool", Enum.Parse(toolType, "HealingBrush"));
+            var toolType = typeof(TextureCompositorWindow).GetNestedType("CanvasTool", Flags);
+            Call(window, "ChangeCanvasTool", Enum.Parse(toolType, "HealingBrush"));
             window.ShowUtility(); window.position = new Rect(80, 80, 1050, 720); window.Focus();
             await Task.Delay(250);
             Call(window, "RefreshToolkitInterface", false);
-            var canvas = (VisualElement)Get(window, "toolkitPreviewCanvas");
+            var canvas = (VisualElement)Get(window, "toolkitCanvas");
             Check(window.rootVisualElement.Q<Button>("healingBrushTool") != null, "Healing tool exists");
             var settings = Get(window, "paintSettings");
             var searchField = window.rootVisualElement.Q<IntegerField>(className: "whimtex-healing-search");
@@ -212,7 +212,7 @@ public static class HealingBrushSmoke
             Check(Get(window, "healingJob") == null, "Document changes invalidate pending healing");
             await Task.Delay(100);
             Arm(blank); Call(window, "StartHealing");
-            Call(window, "ChangePreviewTool", Enum.Parse(toolType, "Brush"));
+            Call(window, "ChangeCanvasTool", Enum.Parse(toolType, "Brush"));
             Check(Get(window, "healingJob") == null, "Tool switch cancels pending work");
 
             // A transformed, selected stroke affects only its editable half in native source space.
@@ -223,7 +223,7 @@ public static class HealingBrushSmoke
             drawing.transform = transformed;
             texture.SetPixels(original); texture.Apply(); Call(drawing, "InvalidatePaintSurface");
             Call(document, "MarkChanged");
-            Call(window, "ChangePreviewTool", Enum.Parse(toolType, "HealingBrush"));
+            Call(window, "ChangeCanvasTool", Enum.Parse(toolType, "HealingBrush"));
             Set(settings, "healingSample", Enum.ToObject(settings.GetType().GetField("healingSample").FieldType, 0));
             var selectionMask = new byte[128 * 96];
             for (int y = 48; y < 96; y++) for (int x = 0; x < 128; x++) selectionMask[y * 128 + x] = 255;
@@ -239,7 +239,7 @@ public static class HealingBrushSmoke
             // Exercise the actual public UI event dispatch path and pointer lifecycle.
             Call(window, "RefreshToolkitInterface", false);
             await Task.Delay(120);
-            canvas = (VisualElement)Get(window, "toolkitPreviewCanvas");
+            canvas = (VisualElement)Get(window, "toolkitCanvas");
             Rect image = (Rect)canvas.GetType().GetProperty("ImageRect").GetValue(canvas);
             Vector2 local = (Vector2)Call(canvas, "ToView", new Vector2(image.x + image.width * 76 / 128f, image.center.y));
             Vector2 world = canvas.LocalToWorld(local);
@@ -304,7 +304,7 @@ public static class HealingBrushSmoke
             tileTexture.SetPixels(tilePixels); tileTexture.Apply();
             var tileLayer = (DrawingLayerBehaviour)Call(typeof(DrawingLayerBehaviour), "FromMergedTexture", tileTexture);
             document.layers.Insert(0, tileLayer); Call(document, "NormalizeModel");
-            Call(window, "SetTiledPreview", true);
+            Call(window, "SetTiledCanvas", true);
             Arm(tileLayer); Call(window, "BeginHealingStroke", new Vector2(-128, 38));
             Call(Get(window, "healingStroke"), "Add", new Vector2(-128, 58));
             var periodic = ReadMask(Get(window, "healingStroke"));
@@ -366,7 +366,7 @@ public static class HealingBrushSmoke
             Check(Get(window, "healingStroke") != null, "Pointer down on rotated, zoomed neighboring tile starts a raster stroke");
             periodic = ReadMask(Get(window, "healingStroke"));
             Check(periodic[48 * 128 + 127].a > .99f && periodic[48 * 128].a > .99f, "Real tiled pointer maps to the wrapped mask");
-            Call(window, "SetTiledPreview", false);
+            Call(window, "SetTiledCanvas", false);
             Check(Get(window, "healingStroke") == null, "Tiled switch cancels and releases stroke");
 
             // On an empty retouching layer, the mask alpha should become the applied repair alpha exactly.

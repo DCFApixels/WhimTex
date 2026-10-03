@@ -134,6 +134,7 @@ public static class DocumentReliabilitySmoke
             importer = (TextureImporter)AssetImporter.GetAtPath(path);
             importer.textureCompression = TextureImporterCompression.Uncompressed;
             importer.sRGBTexture = false; importer.SaveAndReimport();
+            WhimTexDocumentFile.SetOutputSrgb(doc, false);
             WhimTexDocumentFile.Save(doc, path);
             Check(!((TextureImporter)AssetImporter.GetAtPath(path)).sRGBTexture && Near(ReadGpu(image), expected), "linear data save");
             ((ColorFillLayerBehaviour)doc.layers[0].Behaviour).color = new Color(2, .2f, .3f, .25f);

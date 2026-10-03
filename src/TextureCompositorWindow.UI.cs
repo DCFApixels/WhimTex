@@ -9,20 +9,20 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
-        private const float ToolkitPreviewHeaderRowHeight = 24f;
+        private const float ToolkitCanvasViewHeaderRowHeight = 24f;
         private const float ToolkitLayerRowHeight = 26f;
         private const float ToolkitLayerIndent = 14f;
 
-        [NonSerialized] private VisualElement toolkitPreviewPane;
-        [NonSerialized] private VisualElement toolkitPreviewHeader;
+        [NonSerialized] private VisualElement toolkitCanvasView;
+        [NonSerialized] private VisualElement toolkitCanvasViewHeader;
         [NonSerialized] private VisualElement toolkitCanvasToolbar;
-        [NonSerialized] private VisualElement toolkitPreviewActions;
+        [NonSerialized] private VisualElement toolkitCanvasActions;
         [NonSerialized] private VisualElement toolkitDocumentRoot;
         [NonSerialized] private ScrollView toolkitSettingsScroll;
         [NonSerialized] private VisualElement toolkitLayerFooter;
-        [NonSerialized] private SpritePreviewElement toolkitPreviewCanvas;
-        [NonSerialized] private PreviewFooterHintLabel toolkitPreviewFooter;
-        [NonSerialized] private VisualElement toolkitPreviewErrorRoot;
+        [NonSerialized] private CanvasElement toolkitCanvas;
+        [NonSerialized] private CanvasViewFooterHintLabel toolkitCanvasViewFooter;
+        [NonSerialized] private VisualElement toolkitCanvasErrorRoot;
         [NonSerialized] private ObjectField toolkitDocumentField;
         [NonSerialized] private VisualElement toolkitLayerHierarchyRoot;
         [NonSerialized] private VisualElement toolkitLayerEndDropZone;
@@ -30,10 +30,10 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private StyleLength activeDropMarginLeft;
         [NonSerialized] private LayerDragManipulator activeLayerDrag;
         [NonSerialized] private int paintingPointerId = -1;
-        [NonSerialized] private bool previewPointerInside;
-        [NonSerialized] private bool previewPointerAlt;
-        [NonSerialized] private bool previewPointerControl;
-        [NonSerialized] private Vector2 previewPointerPosition;
+        [NonSerialized] private bool canvasPointerInside;
+        [NonSerialized] private bool canvasPointerAlt;
+        [NonSerialized] private bool canvasPointerControl;
+        [NonSerialized] private Vector2 canvasPointerPosition;
         [NonSerialized] private bool applyingToolkitChange;
         [NonSerialized] private bool rebuildingToolkit;
         [NonSerialized] private bool toolkitRefreshRequested;
@@ -41,7 +41,7 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private bool toolkitHeaderBuilt;
         [NonSerialized] private Button toolkitSaveButton;
         [NonSerialized] private Button toolkitSaveAsButton;
-        [NonSerialized] private HelpBox toolkitPreviewError;
+        [NonSerialized] private HelpBox toolkitCanvasError;
         private readonly WhimTexUI.ValueBindings toolkitSettingsBindings = new WhimTexUI.ValueBindings();
         private readonly WhimTexUI.ValueBindings toolkitHeaderBindings = new WhimTexUI.ValueBindings();
         private readonly WhimTexUI.ValueBindings toolkitLayerBindings = new WhimTexUI.ValueBindings();
@@ -72,16 +72,16 @@ namespace DCFApixels.WhimTex
 
         public void CreateGUI()
         {
-            ClearPreviewPointerCursor();
-            CancelPreviewEyedropper();
-            CancelPreviewZoomGesture();
-            FinishPreviewTransform();
+            ClearCanvasPointerCursor();
+            CancelCanvasEyedropper();
+            CancelCanvasZoomGesture();
+            FinishCanvasTransform();
             if (compositor == null)
                 SetCompositor(CreateTemporaryCompositor());
 
             VisualElement root = rootVisualElement;
             WhimTexColorPicker.SetDocument(root, () => compositor);
-            WhimTexColorChannels.SetSource(root, () => this != null ? previewChannels : -1);
+            WhimTexColorChannels.SetSource(root, () => this != null ? canvasChannels : -1);
             InstallLayerDragGhost();
             root.UnregisterCallback<KeyDownEvent>(OnToolkitKeyDown, TrickleDown.TrickleDown);
             root.UnregisterCallback<KeyUpEvent>(OnToolkitKeyUp, TrickleDown.TrickleDown);
@@ -94,8 +94,8 @@ namespace DCFApixels.WhimTex
             root.UnregisterCallback<PointerDownEvent>(OnOpacityPointerDown, TrickleDown.TrickleDown);
             root.UnregisterCallback<PointerDownEvent>(OnSectionPointerDown, TrickleDown.TrickleDown);
             ResetOpacityEntry();
-            toolkitInspectorPreview?.Dispose();
-            toolkitInspectorPreview = null;
+            toolkitLayerPreview?.Dispose();
+            toolkitLayerPreview = null;
             root.Clear();
             WhimTexUI.ApplyWindowStyles(root);
             toolkitBoundDocument = null;
@@ -127,7 +127,7 @@ namespace DCFApixels.WhimTex
             VisualElement workspace = new VisualElement { name = "whimTexWorkspace" };
             workspace.AddToClassList("whimtex-workspace");
             root.Add(workspace);
-            workspace.Add(BuildPreviewToolToolbar());
+            workspace.Add(BuildCanvasToolToolbar());
 
             if (settingsPaneWidth <= 0f)
                 settingsPaneWidth = DefaultSettingsPaneWidth;
@@ -141,10 +141,10 @@ namespace DCFApixels.WhimTex
             split.style.minHeight = 0f;
             workspace.Add(split);
 
-            toolkitPreviewPane = BuildToolkitPreviewPane();
-            toolkitPreviewPane.style.minWidth = PreviewPaneMinWidth;
-            toolkitPreviewPane.style.flexGrow = 1f;
-            split.Add(toolkitPreviewPane);
+            toolkitCanvasView = BuildToolkitCanvasView();
+            toolkitCanvasView.style.minWidth = CanvasViewMinWidth;
+            toolkitCanvasView.style.flexGrow = 1f;
+            split.Add(toolkitCanvasView);
 
             VisualElement settingsPane = new VisualElement();
             settingsPane.style.minWidth = SettingsPaneMinWidth;
@@ -198,9 +198,9 @@ namespace DCFApixels.WhimTex
                     layerSettingsPaneHeight = evt.newRect.height;
             });
             layerSettingsPane.Add(toolkitLayerSettingsScroll);
-            inspectorPreviewState ??= new LayerPreviewPanel.ViewState { collapsed = true };
-            toolkitInspectorPreview = new LayerPreviewPanel(inspectorPreviewState);
-            layerSettingsPane.Add(toolkitInspectorPreview);
+            layerPreviewState ??= new LayerPreviewPanel.ViewState { collapsed = true };
+            toolkitLayerPreview = new LayerPreviewPanel(layerPreviewState);
+            layerSettingsPane.Add(toolkitLayerPreview);
 
             VisualElement layersPane = new VisualElement();
             layersPane.AddToClassList("whimtex-layers-pane");
@@ -245,7 +245,7 @@ namespace DCFApixels.WhimTex
             layerDragAutoScroll?.Stop();
         }
 
-        private VisualElement BuildToolkitPreviewPane()
+        private VisualElement BuildToolkitCanvasView()
         {
             VisualElement pane = new VisualElement();
             pane.style.flexDirection = FlexDirection.Column;
@@ -255,51 +255,51 @@ namespace DCFApixels.WhimTex
             toolkitCanvasToolbar.AddToClassList("whimtex-canvas-toolbar");
             pane.Add(toolkitCanvasToolbar);
 
-            var previewBody = new VisualElement();
-            previewBody.style.flexGrow = 1f;
-            previewBody.style.minHeight = 0f;
-            pane.Add(previewBody);
-            var settingsSpace = new VisualElement { name = "previewToolSettingsSpace", pickingMode = PickingMode.Ignore };
+            var canvasBody = new VisualElement();
+            canvasBody.style.flexGrow = 1f;
+            canvasBody.style.minHeight = 0f;
+            pane.Add(canvasBody);
+            var settingsSpace = new VisualElement { name = "canvasToolSettingsSpace", pickingMode = PickingMode.Ignore };
             settingsSpace.AddToClassList("whimtex-tool-settings-space");
-            previewBody.Add(settingsSpace);
+            canvasBody.Add(settingsSpace);
 
-            toolkitPreviewHeader = new VisualElement { name = "previewToolSettings" };
-            toolkitPreviewHeader.AddToClassList("whimtex-tool-settings-panel");
-            toolkitPreviewHeader.EnableInClassList("whimtex-tool-settings-panel--light", !EditorGUIUtility.isProSkin);
+            toolkitCanvasViewHeader = new VisualElement { name = "canvasToolSettings" };
+            toolkitCanvasViewHeader.AddToClassList("whimtex-tool-settings-panel");
+            toolkitCanvasViewHeader.EnableInClassList("whimtex-tool-settings-panel--light", !EditorGUIUtility.isProSkin);
 
-            toolkitPreviewErrorRoot = new VisualElement();
-            toolkitPreviewErrorRoot.style.flexShrink = 0f;
-            toolkitPreviewErrorRoot.style.paddingLeft = PanePadding;
-            toolkitPreviewErrorRoot.style.paddingRight = PanePadding;
-            previewBody.Add(toolkitPreviewErrorRoot);
-            toolkitPreviewError = WhimTexUI.AddHelpBox(toolkitPreviewErrorRoot, string.Empty, HelpBoxMessageType.Error);
-            toolkitPreviewError.style.display = DisplayStyle.None;
+            toolkitCanvasErrorRoot = new VisualElement();
+            toolkitCanvasErrorRoot.style.flexShrink = 0f;
+            toolkitCanvasErrorRoot.style.paddingLeft = PanePadding;
+            toolkitCanvasErrorRoot.style.paddingRight = PanePadding;
+            canvasBody.Add(toolkitCanvasErrorRoot);
+            toolkitCanvasError = WhimTexUI.AddHelpBox(toolkitCanvasErrorRoot, string.Empty, HelpBoxMessageType.Error);
+            toolkitCanvasError.style.display = DisplayStyle.None;
 
-            toolkitPreviewCanvas = new SpritePreviewElement(previewViewport);
-            toolkitPreviewCanvas.AddManipulator(new HlslEffectDropManipulator(this));
-            toolkitPreviewCanvas.AddManipulator(new ProjectTextureDropManipulator(this, prependToRoot: true));
-            toolkitPreviewCanvas.style.flexGrow = 1f;
+            toolkitCanvas = new CanvasElement(canvasViewport);
+            toolkitCanvas.AddManipulator(new HlslEffectDropManipulator(this));
+            toolkitCanvas.AddManipulator(new ProjectTextureDropManipulator(this, prependToRoot: true));
+            toolkitCanvas.style.flexGrow = 1f;
             BuildGradientCanvasTool();
-            BuildPreviewGuides();
-            BuildPreviewZoomTool();
-            BuildPreviewTransformTool();
-            previewEyedropper = new PreviewEyedropperManipulator(this);
-            toolkitPreviewCanvas.AddManipulator(previewEyedropper);
+            BuildCanvasGuides();
+            BuildCanvasZoomTool();
+            BuildCanvasTransformTool();
+            canvasEyedropper = new CanvasEyedropperManipulator(this);
+            toolkitCanvas.AddManipulator(canvasEyedropper);
             BuildUvOverlay();
             BuildAreaSelectionTools();
             BuildShapeTool();
             BuildHealingOverlay();
-            toolkitPreviewCanvas.RegisterCallback<PointerDownEvent>(OnPreviewPointerDown);
-            toolkitPreviewCanvas.RegisterCallback<PointerMoveEvent>(OnPreviewPointerMove);
-            toolkitPreviewCanvas.RegisterCallback<PointerUpEvent>(OnPreviewPointerUp);
-            toolkitPreviewCanvas.RegisterCallback<PointerEnterEvent>(OnPreviewPointerEnter);
-            toolkitPreviewCanvas.RegisterCallback<PointerLeaveEvent>(OnPreviewPointerLeave);
-            toolkitPreviewCanvas.RegisterCallback<PointerCaptureOutEvent>(OnPreviewPointerCaptureOut);
-            previewBody.Add(BuildPostFxPreview(toolkitPreviewCanvas));
+            toolkitCanvas.RegisterCallback<PointerDownEvent>(OnCanvasPointerDown);
+            toolkitCanvas.RegisterCallback<PointerMoveEvent>(OnCanvasPointerMove);
+            toolkitCanvas.RegisterCallback<PointerUpEvent>(OnCanvasPointerUp);
+            toolkitCanvas.RegisterCallback<PointerEnterEvent>(OnCanvasPointerEnter);
+            toolkitCanvas.RegisterCallback<PointerLeaveEvent>(OnCanvasPointerLeave);
+            toolkitCanvas.RegisterCallback<PointerCaptureOutEvent>(OnCanvasPointerCaptureOut);
+            canvasBody.Add(BuildCanvasViewWorkspace(toolkitCanvas));
 
-            previewBody.Add(BuildPreviewFooter());
+            canvasBody.Add(BuildCanvasViewFooter());
             // Reserve one row in the layout; wrapped settings draw above the canvas.
-            previewBody.Add(toolkitPreviewHeader);
+            canvasBody.Add(toolkitCanvasViewHeader);
             return pane;
         }
 
@@ -313,7 +313,7 @@ namespace DCFApixels.WhimTex
             {
                 toolkitRefreshRequested = false;
                 NormalizeLayerSelection();
-                ReconcilePreviewToolContext();
+                ReconcileCanvasToolContext();
                 if (toolkitBoundDocument != compositor)
                 {
                     toolkitBoundDocument = compositor;
@@ -328,8 +328,8 @@ namespace DCFApixels.WhimTex
                 toolkitSettingsBindings.Refresh(forceValues);
                 RefreshToolkitLayerHierarchy(forceValues);
                 RefreshToolkitLayerInspector(forceValues);
-                RefreshToolkitPreviewHeader(forceValues);
-                UpdateToolkitPreviewPresentation();
+                RefreshToolkitCanvasHeader(forceValues);
+                UpdateToolkitCanvasPresentation();
             }
             finally
             {
@@ -430,7 +430,7 @@ namespace DCFApixels.WhimTex
                     ? "Save the editable JSON document (Ctrl+S). Use Save As TIFF for a Unity texture."
                     : "Save the document (Ctrl+S). The document is a WhimTex file: a TIFF that Unity imports as a texture.";
             toolkitSaveButton?.SetEnabled(saved && (HasDocumentChanges() || paintingLayer != null ||
-                previewTransformManipulator != null && previewTransformManipulator.IsDragging));
+                canvasTransformManipulator != null && canvasTransformManipulator.IsDragging));
             if (toolkitSaveAsButton == null) return;
             toolkitSaveAsButton.text = legacy ? "Save As TIFF" : compositor != null && !saved ? "⚠ Save As" : "Save As";
             toolkitSaveAsButton.tooltip = legacy
@@ -491,7 +491,7 @@ namespace DCFApixels.WhimTex
                     () => compositor.outputPrecision = (WhimTexOutputPrecision)precision.choices.IndexOf(evt.newValue)));
                 toolkitCanvasToolbar.Add(precision);
                 var srgb = new Toggle("sRGB") { name = "canvasOutputSrgb",
-                    tooltip = "TIFF output encoding: on = sRGB, off = Linear. Applied when you Save; supports Undo. Layer colors and preview remain unchanged, apart from output quantization. Float32 / HDR output is always Linear." };
+                    tooltip = "TIFF output encoding: on = sRGB, off = Linear. Applied when you Save; supports Undo. Layer colors and the canvas remain unchanged, apart from output quantization. Float32 / HDR output is always Linear." };
                 srgb.AddToClassList("whimtex-canvas-srgb");
                 toolkitSettingsBindings.Track(srgb, () => WhimTexDocumentFile.GetOutputSrgb(compositor));
                 toolkitSettingsBindings.Add(() => srgb.SetEnabled(compositor.outputPrecision != WhimTexOutputPrecision.Float32));
@@ -502,7 +502,7 @@ namespace DCFApixels.WhimTex
             var filter = new EnumField("Filter", compositor.outputFilter) { name = "canvasOutputFilter" };
             TwoChoiceDropdown.Attach(filter);
             filter.AddToClassList("whimtex-canvas-filter");
-            filter.tooltip = "Final image filtering, saved with the document. Point keeps pixels sharp; Bilinear smooths them. Trilinear blends mip levels when available (this does not generate mipmaps). Pencil temporarily uses Point in the preview only.";
+            filter.tooltip = "Final image filtering, saved with the document. Point keeps pixels sharp; Bilinear smooths them. Trilinear blends mip levels when available (this does not generate mipmaps). Pencil temporarily uses Point on the canvas only.";
             toolkitSettingsBindings.Track(filter, () => (Enum)compositor.outputFilter);
             filter.RegisterValueChangedCallback(evt =>
             {
@@ -512,9 +512,9 @@ namespace DCFApixels.WhimTex
             });
             toolkitCanvasToolbar.Add(filter);
 
-            toolkitPreviewActions = new VisualElement();
-            toolkitPreviewActions.AddToClassList("whimtex-preview-actions");
-            toolkitCanvasToolbar.Add(toolkitPreviewActions);
+            toolkitCanvasActions = new VisualElement();
+            toolkitCanvasActions.AddToClassList("whimtex-canvas-view-actions");
+            toolkitCanvasToolbar.Add(toolkitCanvasActions);
         }
 
         private void BuildToolkitSettings()
@@ -536,7 +536,7 @@ namespace DCFApixels.WhimTex
             var showAll = new Button(() =>
             {
                 if (compositor == null) return;
-                FinishPreviewTransform();
+                FinishCanvasTransform();
                 FinishPaintingStroke();
                 ApplyToolkitChange("Show All Layers", () => ShowAllLayers(compositor.layers));
             }) { tooltip = "Show all layers and groups" };
@@ -728,7 +728,7 @@ namespace DCFApixels.WhimTex
                 if (evt.button == 1)
                 {
                     WhimTexUI.ConsumeEvent(evt);
-                    FinishPreviewTransform();
+                    FinishCanvasTransform();
                     FinishPaintingStroke();
                     Focus();
                     if (!IsLayerSelected(layer.Id))
@@ -745,7 +745,7 @@ namespace DCFApixels.WhimTex
                     if (!field.ClassListContains("whimtex-layer-multi-edit")) continue;
                     if (!IsLayerSelected(layer.Id))
                     {
-                        FinishPreviewTransform();
+                        FinishCanvasTransform();
                         FinishPaintingStroke();
                         SelectOnlyLayer(layer.Id);
                         RefreshToolkitInterface();
@@ -1156,7 +1156,7 @@ namespace DCFApixels.WhimTex
                     evt.StopImmediatePropagation();
                     return;
                 }
-                owner.FinishPreviewTransform();
+                owner.FinishCanvasTransform();
                 owner.FinishPaintingStroke();
                 owner.activeLayerDrag?.Cancel();
                 owner.activeLayerDrag = this;
@@ -1519,9 +1519,9 @@ namespace DCFApixels.WhimTex
             element.style.borderLeftColor = color;
         }
 
-        private void RefreshToolkitPreviewHeader(bool forceValues = false)
+        private void RefreshToolkitCanvasHeader(bool forceValues = false)
         {
-            if (toolkitPreviewHeader == null || compositor == null)
+            if (toolkitCanvasViewHeader == null || compositor == null)
                 return;
 
             if (toolkitHeaderBuilt)
@@ -1531,39 +1531,39 @@ namespace DCFApixels.WhimTex
             }
 
             toolkitHeaderBuilt = true;
-            CancelPreviewZoomGesture();
+            CancelCanvasZoomGesture();
             toolkitHeaderBindings.Clear();
-            toolkitPreviewHeader.Clear();
-            BuildToolkitPreviewHeader();
+            toolkitCanvasViewHeader.Clear();
+            BuildToolkitCanvasHeader();
             toolkitHeaderBindings.Refresh(forceValues);
         }
 
-        private void BuildToolkitPreviewHeader()
+        private void BuildToolkitCanvasHeader()
         {
-            toolkitPreviewActions.Clear();
+            toolkitCanvasActions.Clear();
             Button clear = WhimTexUI.CreateToolbarButton("Clear", () =>
             {
                 if (GetSelectedLayer()?.Behaviour is DrawingLayerBehaviour drawing) ClearDrawingLayer(drawing);
             }, 46f);
             toolkitHeaderBindings.Add(() => clear.SetEnabled(GetSelectedLayer()?.Behaviour is DrawingLayerBehaviour layer && !WhimTexApi.IsLayerContentLocked(compositor, layer)));
-            toolkitPreviewActions.Add(clear);
-            toolkitPreviewActions.Add(WhimTexUI.CreateToolbarButton("Refresh", () => RequestPreview(true), 64f));
-            AddPreviewTransformSettings();
-            AddPreviewZoomSettings();
+            toolkitCanvasActions.Add(clear);
+            toolkitCanvasActions.Add(WhimTexUI.CreateToolbarButton("Refresh", () => RequestCanvasRender(true), 64f));
+            AddCanvasTransformSettings();
+            AddCanvasZoomSettings();
             AddShapeSettings();
-            AddAreaSelectionSettings(PreviewTool.RectangleSelect);
-            AddAreaSelectionSettings(PreviewTool.PolygonSelect);
+            AddAreaSelectionSettings(CanvasTool.RectangleSelect);
+            AddAreaSelectionSettings(CanvasTool.PolygonSelect);
 
-            VisualElement pickRow = CreatePreviewSettingsRow();
+            VisualElement pickRow = CreateCanvasSettingsRow();
             AddLayerPickSettings(pickRow);
-            BindPreviewSettingsRow(pickRow, PreviewTool.None);
-            toolkitPreviewHeader.Add(pickRow);
+            BindCanvasSettingsRow(pickRow, CanvasTool.None);
+            toolkitCanvasViewHeader.Add(pickRow);
 
             AddFillSettings();
             AddPencilSettings();
-            VisualElement brushRow = CreatePreviewSettingsRow();
+            VisualElement brushRow = CreateCanvasSettingsRow();
             brushRow.AddToClassList("whimtex-brush-header");
-            BindPreviewSettingsRow(brushRow, PreviewTool.Brush);
+            BindCanvasSettingsRow(brushRow, CanvasTool.Brush);
             EnumField tool = CompactField(new EnumField(paintSettings.tool), 72f);
             toolkitHeaderBindings.Track(tool, () => (Enum)paintSettings.tool);
             tool.RegisterValueChangedCallback(evt => ApplyPaintToolChange(
@@ -1594,15 +1594,15 @@ namespace DCFApixels.WhimTex
             brushPressure.RegisterValueChangedCallback(evt => ApplyPaintToolChange(
                 () => paintSettings.dynamics.pressure = evt.newValue));
             brushRow.Add(brushPressure);
-            toolkitPreviewHeader.Add(brushRow);
+            toolkitCanvasViewHeader.Add(brushRow);
             AddBlurBrushSettings();
             AddHealingSettings();
         }
 
         private void AddBlurBrushSettings()
         {
-            VisualElement row = CreatePreviewSettingsRow();
-            BindPreviewSettingsRow(row, PreviewTool.BlurBrush);
+            VisualElement row = CreateCanvasSettingsRow();
+            BindCanvasSettingsRow(row, CanvasTool.BlurBrush);
             FloatField size = CompactField(new FloatField("Size") { value = paintSettings.blurSize }, 88f);
             size.AddToClassList("whimtex-blur-size");
             toolkitHeaderBindings.Track(size, () => paintSettings.blurSize);
@@ -1633,13 +1633,13 @@ namespace DCFApixels.WhimTex
             toolkitHeaderBindings.Track(mode, () => (Enum)paintSettings.blurSampleMode);
             mode.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() => paintSettings.blurSampleMode = (BlurBrushSampleMode)evt.newValue));
             row.Add(mode);
-            toolkitPreviewHeader.Add(row);
+            toolkitCanvasViewHeader.Add(row);
         }
 
         private void AddPencilSettings()
         {
-            VisualElement row = CreatePreviewSettingsRow();
-            BindPreviewSettingsRow(row, PreviewTool.Pencil);
+            VisualElement row = CreateCanvasSettingsRow();
+            BindCanvasSettingsRow(row, CanvasTool.Pencil);
             DropdownField mode = CompactField(new DropdownField(new List<string> { "Pencil", "Eraser" }, 0), 78f);
             toolkitHeaderBindings.Track(mode, () => paintSettings.tool == PaintToolMode.Eraser ? "Eraser" : "Pencil");
             mode.RegisterValueChangedCallback(evt => ApplyPaintToolChange(
@@ -1658,14 +1658,14 @@ namespace DCFApixels.WhimTex
             shape.RegisterValueChangedCallback(evt => ApplyPaintToolChange(
                 () => paintSettings.pencilShape = (PencilShape)evt.newValue));
             row.Add(shape);
-            toolkitPreviewHeader.Add(row);
+            toolkitCanvasViewHeader.Add(row);
         }
 
         private static T CompactField<T>(T field, float width) where T : VisualElement
         {
             TwoChoiceDropdown.Attach(field);
             field.style.width = width;
-            field.style.height = ToolkitPreviewHeaderRowHeight - 2f;
+            field.style.height = ToolkitCanvasViewHeaderRowHeight - 2f;
             field.style.marginLeft = 1f;
             field.style.marginRight = 1f;
             return field;
@@ -1701,134 +1701,134 @@ namespace DCFApixels.WhimTex
             RefreshToolkitInterface();
         }
 
-        private void UpdateToolkitPreviewPresentation()
+        private void UpdateToolkitCanvasPresentation()
         {
-            if (toolkitPreviewCanvas == null || compositor == null)
+            if (toolkitCanvas == null || compositor == null)
                 return;
 
-            bool hasLayers = HasPreviewLayers;
-            toolkitPreviewCanvas.SetCanvasVisible(hasLayers);
+            bool hasLayers = HasCanvasLayers;
+            toolkitCanvas.SetCanvasVisible(hasLayers);
             DrawingLayerBehaviour drawing = GetSelectedLayer()?.Behaviour as DrawingLayerBehaviour;
-            ApplyPreviewTextureFilter();
-            RefreshPreviewQualityControl();
-            RefreshPreviewToolToolbar();
-            RefreshPreviewTransformTool();
+            ApplyCanvasTextureFilter();
+            RefreshCanvasQualityControl();
+            RefreshCanvasToolToolbar();
+            RefreshCanvasTransformTool();
             GetAreaSelection();
             areaSelectionOverlay?.Invalidate();
-            bool transforming = IsPreviewTransformEnabled;
-            toolkitPreviewCanvas.SetTiled(tiledPreview);
-            tiledPreviewButton?.EnableInClassList("whimtex-channel-button--enabled", tiledPreview);
-            toolkitPreviewCanvas.SetPencilCursor(previewTool == PreviewTool.Pencil);
-            toolkitPreviewCanvas.SetDocument(channelPreviewTexture != null ? (Texture)channelPreviewTexture : PreviewPresentationSource,
+            bool transforming = IsCanvasTransformEnabled;
+            toolkitCanvas.SetTiled(tiledCanvas);
+            tiledCanvasButton?.EnableInClassList("whimtex-channel-button--enabled", tiledCanvas);
+            toolkitCanvas.SetPencilCursor(canvasTool == CanvasTool.Pencil);
+            toolkitCanvas.SetDocument(channelCanvasTexture != null ? (Texture)channelCanvasTexture : CanvasPresentationSource,
                 compositor.width, compositor.height,
-                IsPreviewBrushEnabled || IsPreviewBlurBrushEnabled ? drawing : null, transforming,
-                IsPreviewPaintTool || previewTool == PreviewTool.HealingBrush ? paintSettings : null);
-            toolkitPreviewCanvas.SetRoundCursorSize(previewTool == PreviewTool.HealingBrush ? paintSettings.healingSize :
-                previewTool == PreviewTool.BlurBrush ? paintSettings.blurSize : paintSettings.brushSize);
-            RefreshPreviewPointerCursor();
-            if (toolkitPreviewError != null)
+                IsCanvasBrushEnabled || IsCanvasBlurBrushEnabled ? drawing : null, transforming,
+                IsCanvasPaintTool || canvasTool == CanvasTool.HealingBrush ? paintSettings : null);
+            toolkitCanvas.SetRoundCursorSize(canvasTool == CanvasTool.HealingBrush ? paintSettings.healingSize :
+                canvasTool == CanvasTool.BlurBrush ? paintSettings.blurSize : paintSettings.brushSize);
+            RefreshCanvasPointerCursor();
+            if (toolkitCanvasError != null)
             {
-                toolkitPreviewError.text = previewError ?? string.Empty;
-                toolkitPreviewError.style.display = string.IsNullOrEmpty(previewError) ? DisplayStyle.None : DisplayStyle.Flex;
+                toolkitCanvasError.text = canvasError ?? string.Empty;
+                toolkitCanvasError.style.display = string.IsNullOrEmpty(canvasError) ? DisplayStyle.None : DisplayStyle.Flex;
             }
 
-            if (toolkitPreviewFooter != null)
+            if (toolkitCanvasViewFooter != null)
             {
-                if (IsTemporaryPreviewTool(previewTool))
+                if (IsTemporaryCanvasTool(canvasTool))
                 {
-                    toolkitPreviewFooter.text = TemporaryToolDescription + " • Esc return";
+                    toolkitCanvasViewFooter.text = TemporaryToolDescription + " • Esc return";
                 }
                 else if (IsGradientCanvasEnabled)
                 {
-                    toolkitPreviewFooter.text = "Drag gradient handles • Double-click key for color • Delete key • Esc return";
+                    toolkitCanvasViewFooter.text = "Drag gradient handles • Double-click key for color • Delete key • Esc return";
                 }
                 else if (transforming)
                 {
-                    toolkitPreviewFooter.text = "Drag move • handles scale • circle rotate • gold cross pivot • Shift constrain • Esc cancel • T exit";
+                    toolkitCanvasViewFooter.text = "Drag move • handles scale • circle rotate • gold cross pivot • Shift constrain • Esc cancel • T exit";
                 }
-                else if (IsPreviewZoomEnabled)
+                else if (IsCanvasZoomEnabled)
                 {
-                    toolkitPreviewFooter.text = "Click zoom in • Alt-click zoom out • Drag frame • MMB pan • Shift+MMB rotate • Wheel zoom";
+                    toolkitCanvasViewFooter.text = "Click zoom in • Alt-click zoom out • Drag frame • MMB pan • Shift+MMB rotate • Wheel zoom";
                 }
-                else if (IsPreviewFillEnabled)
+                else if (IsCanvasFillEnabled)
                 {
-                    toolkitPreviewFooter.text = "LMB fill • Alt pick color • X colors • All Layers / Contiguous / Tolerance / Antialias / Expand";
+                    toolkitCanvasViewFooter.text = "LMB fill • Alt pick color • X colors • All Layers / Contiguous / Tolerance / Antialias / Expand";
                 }
-                else if (previewTool == PreviewTool.Shape)
+                else if (canvasTool == CanvasTool.Shape)
                 {
-                    toolkitPreviewFooter.text = "Drag new shape • Shift equal proportions / 45° line • Ctrl no snapping • Esc cancel • T transform";
+                    toolkitCanvasViewFooter.text = "Drag new shape • Shift equal proportions / 45° line • Ctrl no snapping • Esc cancel • T transform";
                 }
                 else if (IsAreaSelectionTool)
                 {
-                    toolkitPreviewFooter.text = IsUvSelectionTool
+                    toolkitCanvasViewFooter.text = IsUvSelectionTool
                         ? "Click UV island • Shift add • Alt subtract • Ctrl+C copy • Ctrl+D deselect"
-                        : previewTool == PreviewTool.RectangleSelect
+                        : canvasTool == CanvasTool.RectangleSelect
                         ? "Drag select • Shift add • Alt subtract • Ctrl+C copy • Ctrl+V paste • Ctrl+D deselect"
                         : "Click vertices • Enter/double-click close • Backspace remove vertex • Esc cancel • Ctrl+D deselect";
                 }
-                else if (previewTool == PreviewTool.HealingBrush)
+                else if (canvasTool == CanvasTool.HealingBrush)
                 {
-                    toolkitPreviewFooter.text = "Paint over defect • Release to heal • Esc cancel • [ ] size • Click non-Drawing layer to convert";
+                    toolkitCanvasViewFooter.text = "Paint over defect • Release to heal • Esc cancel • [ ] size • Click non-Drawing layer to convert";
                 }
-                else if (previewTool == PreviewTool.BlurBrush && IsPreviewToolAvailable(PreviewTool.BlurBrush))
+                else if (canvasTool == CanvasTool.BlurBrush && IsCanvasToolAvailable(CanvasTool.BlurBrush))
                 {
-                    toolkitPreviewFooter.text = "LMB blur • soft round tip • Pressure scales strength • choose Current Layer or Below Layers";
+                    toolkitCanvasViewFooter.text = "LMB blur • soft round tip • Pressure scales strength • choose Current Layer or Below Layers";
                 }
-                else if (IsPreviewBrushEnabled)
+                else if (IsCanvasBrushEnabled)
                 {
-                    toolkitPreviewFooter.text = previewTexture != null
-                        ? $"LMB paint • RMB erase • Alt pick color • Shift lines • X colors • [ ] size • {(previewTool == PreviewTool.Pencil ? paintSettings.pencilSize : paintSettings.brushSize):0.#} px"
-                        : "Rendering painting preview…";
+                    toolkitCanvasViewFooter.text = canvasTexture != null
+                        ? $"LMB paint • RMB erase • Alt pick color • Shift lines • X colors • [ ] size • {(canvasTool == CanvasTool.Pencil ? paintSettings.pencilSize : paintSettings.brushSize):0.#} px"
+                        : "Rendering canvas stroke…";
                 }
-                else if (IsPreviewPaintTool || previewTool == PreviewTool.Fill)
+                else if (IsCanvasPaintTool || canvasTool == CanvasTool.Fill)
                 {
-                    toolkitPreviewFooter.text = GetSelectedLayer() == null
+                    toolkitCanvasViewFooter.text = GetSelectedLayer() == null
                         ? "Select a layer to paint or fill • Tool settings are shared"
                         : "Click to convert the selected layer to Drawing • Tool settings are shared";
                 }
-                else if (previewTool == PreviewTool.Transform)
+                else if (canvasTool == CanvasTool.Transform)
                 {
-                    toolkitPreviewFooter.text = "Select a non-group layer to transform";
+                    toolkitCanvasViewFooter.text = "Select a non-group layer to transform";
                 }
                 else
                 {
-                    toolkitPreviewFooter.text = !hasLayers ? "Add a layer to start"
-                        : previewTexture != null
-                        ? (tiledPreview ? "Tiled canvas • seamless brush and eraser • auto refresh" : "Transparent canvas • auto refresh")
-                        : "Rendering preview…";
+                    toolkitCanvasViewFooter.text = !hasLayers ? "Add a layer to start"
+                        : canvasTexture != null
+                        ? (tiledCanvas ? "Tiled canvas • seamless brush and eraser • auto refresh" : "Transparent canvas • auto refresh")
+                        : "Rendering canvas…";
                 }
-                toolkitPreviewFooter.RefreshVisibility();
+                toolkitCanvasViewFooter.RefreshVisibility();
             }
         }
 
-        private void OnPreviewPointerEnter(PointerEnterEvent evt)
+        private void OnCanvasPointerEnter(PointerEnterEvent evt)
         {
-            previewPointerControl = evt.ctrlKey;
-            UpdatePreviewCursor(evt.localPosition, evt.altKey);
+            canvasPointerControl = evt.ctrlKey;
+            UpdateCanvasCursor(evt.localPosition, evt.altKey);
         }
 
-        private void OnPreviewPointerLeave(PointerLeaveEvent evt)
+        private void OnCanvasPointerLeave(PointerLeaveEvent evt)
         {
-            ClearPreviewPointerCursor();
+            ClearCanvasPointerCursor();
         }
 
-        private void OnPreviewPointerDown(PointerDownEvent evt)
+        private void OnCanvasPointerDown(PointerDownEvent evt)
         {
-            previewPointerControl = evt.ctrlKey;
+            canvasPointerControl = evt.ctrlKey;
             if (HandleLayerPickPointerDown(evt)) return;
             if (HandlePaintConversionPrompt(evt)) return;
             if (HandleHealingDown(evt)) return;
             if (HandleFillPointerDown(evt)) return;
             DrawingLayerBehaviour layer = GetSelectedLayer()?.Behaviour as DrawingLayerBehaviour;
-            if (!(IsPreviewBrushEnabled || IsPreviewBlurBrushEnabled) || paintingLayer != null || layer == null ||
+            if (!(IsCanvasBrushEnabled || IsCanvasBlurBrushEnabled) || paintingLayer != null || layer == null ||
                 (evt.button != 0 && evt.button != 1) || evt.altKey)
                 return;
-            if (!toolkitPreviewCanvas.contentRect.Contains(evt.localPosition)) return;
+            if (!toolkitCanvas.contentRect.Contains(evt.localPosition)) return;
 
             Focus();
-            toolkitPreviewCanvas.Focus();
+            toolkitCanvas.Focus();
             bool erase = evt.button == 1 || paintSettings.tool == PaintToolMode.Eraser;
-            if (!erase && (previewChannels & 8) == 0)
+            if (!erase && (canvasChannels & 8) == 0)
             {
                 WhimTexUI.ConsumeEvent(evt);
                 return;
@@ -1838,21 +1838,21 @@ namespace DCFApixels.WhimTex
             paintingErase = erase;
             paintingPressure = GetPointerPressure(evt.pressure);
             paintingPointerMoved = false;
-            previewPointerPosition = evt.localPosition;
-            toolkitPreviewCanvas.CapturePointer(evt.pointerId);
+            canvasPointerPosition = evt.localPosition;
+            toolkitCanvas.CapturePointer(evt.pointerId);
             CapturePaintingGuide(evt.localPosition, evt.ctrlKey);
-            if (!TryBeginPreviewStroke(GetPreviewPaintPosition(evt.localPosition, evt.shiftKey, evt.ctrlKey), evt.shiftKey)) FinishPaintingStroke();
-            UpdatePreviewCursor(evt.localPosition, false);
+            if (!TryBeginCanvasStroke(GetCanvasPaintPosition(evt.localPosition, evt.shiftKey, evt.ctrlKey), evt.shiftKey)) FinishPaintingStroke();
+            UpdateCanvasCursor(evt.localPosition, false);
             WhimTexUI.ConsumeEvent(evt);
         }
 
-        private bool TryBeginPreviewStroke(Vector2 position, bool shift)
+        private bool TryBeginCanvasStroke(Vector2 position, bool shift)
         {
             DrawingLayerBehaviour layer = GetSelectedLayer()?.Behaviour as DrawingLayerBehaviour;
             if (layer == null ||
-                !TryMapPreviewToLayerUv(position, toolkitPreviewCanvas.ImageRect, layer, out Vector2 startUv, allowOutside: true)) return false;
+                !TryMapCanvasToLayerUv(position, toolkitCanvas.ImageRect, layer, out Vector2 startUv, allowOutside: true)) return false;
             paintingLayer = layer;
-            if (previewTool == PreviewTool.Brush) paintSettings.dynamics.seed = Environment.TickCount;
+            if (canvasTool == CanvasTool.Brush) paintSettings.dynamics.seed = Environment.TickCount;
             bool connect = shift && ReferenceEquals(lineAnchorLayer, layer) &&
                            lineAnchorCanvasSize == new Vector2Int(compositor.width, compositor.height);
             Vector2 originUv = connect ? lineAnchorUv : startUv;
@@ -1860,11 +1860,11 @@ namespace DCFApixels.WhimTex
             hasLastPaintingUv = true;
             Undo.RecordObject(compositor, "Paint Stroke");
             layer.PrepareStroke(compositor.width, compositor.height, "Paint Stroke");
-            if (tiledPreview)
+            if (tiledCanvas)
                 layer.BeginTiledStroke(originUv, compositor.width, compositor.height);
             else
                 layer.BeginStroke(originUv);
-            if (previewTool == PreviewTool.BlurBrush)
+            if (canvasTool == CanvasTool.BlurBrush)
                 blurSampleTexture = paintSettings.blurSampleMode switch
                 {
                     BlurBrushSampleMode.BelowLayers => compositor.RenderLayerAndBelow(layer, compositor.width, compositor.height),
@@ -1872,7 +1872,7 @@ namespace DCFApixels.WhimTex
                     _ => layer.CaptureBlurSource(compositor.width, compositor.height)
                 };
             RememberPaintingPoint(originUv);
-            if (previewTool == PreviewTool.BlurBrush)
+            if (canvasTool == CanvasTool.BlurBrush)
                 layer.BlurSegment(startUv, startUv, compositor.width, compositor.height,
                     paintSettings.blurSize, paintSettings.blurHardness, GetBlurStrength(), blurSampleTexture);
             else if (connect && originUv != startUv)
@@ -1881,28 +1881,28 @@ namespace DCFApixels.WhimTex
                 layer.PaintPoint(startUv, compositor.width, compositor.height, GetPaintingParameters());
             paintingShiftHeld = false;
             SetPaintingShift(shift);
-            RefreshPreviewDuringPainting();
+            RefreshCanvasDuringPainting();
             return true;
         }
 
-        private void OnPreviewPointerMove(PointerMoveEvent evt)
+        private void OnCanvasPointerMove(PointerMoveEvent evt)
         {
             if (HandleHealingMove(evt)) return;
-            previewPointerControl = evt.ctrlKey;
+            canvasPointerControl = evt.ctrlKey;
             if (paintingLayer == null || paintingPointerId != evt.pointerId)
             {
-                UpdatePreviewCursor(evt.localPosition, evt.altKey);
+                UpdateCanvasCursor(evt.localPosition, evt.altKey);
                 return;
             }
 
-            Vector2 paintPosition = GetPreviewPaintPosition(evt.localPosition, evt.shiftKey, evt.ctrlKey);
+            Vector2 paintPosition = GetCanvasPaintPosition(evt.localPosition, evt.shiftKey, evt.ctrlKey);
             paintingPressure = GetPointerPressure(evt.pressure);
             paintingPointerMoved |= evt.deltaPosition.sqrMagnitude > 0f;
-            UpdatePreviewCursor(evt.localPosition, evt.altKey);
+            UpdateCanvasCursor(evt.localPosition, evt.altKey);
 
-            if (toolkitPreviewCanvas.contentRect.Contains(evt.localPosition) && TryMapPreviewToLayerUv(
+            if (toolkitCanvas.contentRect.Contains(evt.localPosition) && TryMapCanvasToLayerUv(
                     paintPosition,
-                    toolkitPreviewCanvas.ImageRect,
+                    toolkitCanvas.ImageRect,
                     paintingLayer,
                     out Vector2 dragUv, allowOutside: true))
             {
@@ -1923,14 +1923,14 @@ namespace DCFApixels.WhimTex
                 if (hasLastPaintingUv && paintingLayer.TryClipStrokeSegmentToRepeatShape(
                         lastPaintingUv, pointUv, compositor.width, compositor.height, out Vector2 clippedUv))
                 {
-                    if (previewTool == PreviewTool.BlurBrush)
+                    if (canvasTool == CanvasTool.BlurBrush)
                         paintingLayer.BlurSegment(lastPaintingUv, clippedUv, compositor.width, compositor.height,
                             paintSettings.blurSize, paintSettings.blurHardness, GetBlurStrength(), blurSampleTexture);
                     else
                         paintingLayer.PaintSegment(lastPaintingUv, clippedUv, compositor.width, compositor.height, false,
                             GetPaintingParameters());
                     RememberPaintingPoint(clippedUv);
-                    RefreshPreviewDuringPainting();
+                    RefreshCanvasDuringPainting();
                 }
                 hasLastPaintingUv = false;
                 return;
@@ -1940,7 +1940,7 @@ namespace DCFApixels.WhimTex
             {
                 if (lastPaintingUv == pointUv)
                     return;
-                if (previewTool == PreviewTool.BlurBrush)
+                if (canvasTool == CanvasTool.BlurBrush)
                     paintingLayer.BlurSegment(lastPaintingUv, pointUv, compositor.width, compositor.height,
                         paintSettings.blurSize, paintSettings.blurHardness, GetBlurStrength(), blurSampleTexture);
                 else
@@ -1949,7 +1949,7 @@ namespace DCFApixels.WhimTex
             }
             else
             {
-                if (previewTool == PreviewTool.BlurBrush)
+                if (canvasTool == CanvasTool.BlurBrush)
                     paintingLayer.BlurSegment(pointUv, pointUv, compositor.width, compositor.height,
                         paintSettings.blurSize, paintSettings.blurHardness, GetBlurStrength(), blurSampleTexture);
                 else
@@ -1957,7 +1957,7 @@ namespace DCFApixels.WhimTex
             }
             RememberPaintingPoint(pointUv);
             hasLastPaintingUv = true;
-            RefreshPreviewDuringPainting();
+            RefreshCanvasDuringPainting();
         }
 
         private float GetBlurStrength()
@@ -1975,7 +1975,7 @@ namespace DCFApixels.WhimTex
             paintingShiftHeld = held;
             paintingLockedAxis = 0;
             paintingAxisAnchor = lastPaintingDocumentUv;
-            paintingAxisPointerAnchor = previewPointerPosition;
+            paintingAxisPointerAnchor = canvasPointerPosition;
         }
 
         private Vector2 ConstrainPaintingPosition(Vector2 position, bool shift)
@@ -1984,8 +1984,8 @@ namespace DCFApixels.WhimTex
             if (!shift)
                 return position;
 
-            Rect rect = toolkitPreviewCanvas.ImageRect;
-            Vector2 anchor = toolkitPreviewCanvas.ToView(new Vector2(
+            Rect rect = toolkitCanvas.ImageRect;
+            Vector2 anchor = toolkitCanvas.ToView(new Vector2(
                 rect.x + paintingAxisAnchor.x * rect.width,
                 rect.y + (1f - paintingAxisAnchor.y) * rect.height));
             Vector2 delta = position - paintingAxisPointerAnchor;
@@ -1998,10 +1998,10 @@ namespace DCFApixels.WhimTex
             return paintingLockedAxis == 1 ? new Vector2(position.x, anchor.y) : new Vector2(anchor.x, position.y);
         }
 
-        private void OnPreviewPointerUp(PointerUpEvent evt)
+        private void OnCanvasPointerUp(PointerUpEvent evt)
         {
             if (HandleHealingUp(evt)) return;
-            previewPointerControl = evt.ctrlKey;
+            canvasPointerControl = evt.ctrlKey;
             if (paintingLayer == null ||
                 paintingPointerId != evt.pointerId ||
                 paintingMouseButton != evt.button)
@@ -2009,20 +2009,20 @@ namespace DCFApixels.WhimTex
                 return;
             }
 
-            Vector2 paintPosition = GetPreviewPaintPosition(evt.localPosition, evt.shiftKey, evt.ctrlKey);
-            if (paintingPointerMoved && toolkitPreviewCanvas.contentRect.Contains(evt.localPosition) &&
-                TryMapPreviewToLayerUv(paintPosition, toolkitPreviewCanvas.ImageRect, paintingLayer, out Vector2 endUv, allowOutside: true))
+            Vector2 paintPosition = GetCanvasPaintPosition(evt.localPosition, evt.shiftKey, evt.ctrlKey);
+            if (paintingPointerMoved && toolkitCanvas.contentRect.Contains(evt.localPosition) &&
+                TryMapCanvasToLayerUv(paintPosition, toolkitCanvas.ImageRect, paintingLayer, out Vector2 endUv, allowOutside: true))
                 PaintTowardsLayerPoint(endUv);
 
             paintingPointerId = -1;
-            if (toolkitPreviewCanvas.HasPointerCapture(evt.pointerId))
-                toolkitPreviewCanvas.ReleasePointer(evt.pointerId);
+            if (toolkitCanvas.HasPointerCapture(evt.pointerId))
+                toolkitCanvas.ReleasePointer(evt.pointerId);
             FinishPaintingStroke();
-            UpdatePreviewCursor(evt.localPosition, evt.altKey);
+            UpdateCanvasCursor(evt.localPosition, evt.altKey);
             WhimTexUI.ConsumeEvent(evt);
         }
 
-        private void OnPreviewPointerCaptureOut(PointerCaptureOutEvent evt)
+        private void OnCanvasPointerCaptureOut(PointerCaptureOutEvent evt)
         {
             if (healingPointer == evt.pointerId) CancelHealing();
             if (paintingLayer == null || paintingPointerId != evt.pointerId)
@@ -2031,48 +2031,48 @@ namespace DCFApixels.WhimTex
             FinishPaintingStroke();
         }
 
-        private void UpdatePreviewCursor(Vector2 localPosition, bool alt)
+        private void UpdateCanvasCursor(Vector2 localPosition, bool alt)
         {
-            previewPointerPosition = localPosition;
-            previewPointerAlt = alt;
-            previewPointerInside = toolkitPreviewCanvas != null && toolkitPreviewCanvas.contentRect.Contains(localPosition);
-            previewEyedropper?.UpdateCursor(localPosition, alt);
-            bool panning = previewZoomManipulator?.IsNavigating ?? false;
-            if (!panning && previewGuideManipulator != null && previewGuideManipulator.WantsCursor(localPosition, alt))
+            canvasPointerPosition = localPosition;
+            canvasPointerAlt = alt;
+            canvasPointerInside = toolkitCanvas != null && toolkitCanvas.contentRect.Contains(localPosition);
+            canvasEyedropper?.UpdateCursor(localPosition, alt);
+            bool panning = canvasZoomManipulator?.IsNavigating ?? false;
+            if (!panning && canvasGuideManipulator != null && canvasGuideManipulator.WantsCursor(localPosition, alt))
             {
-                toolkitPreviewCanvas.SetCursor(false, localPosition, false);
-                toolkitPreviewCanvas.SetToolCursor(PreviewTool.Transform, false, false, MouseCursor.MoveArrow);
+                toolkitCanvas.SetCursor(false, localPosition, false);
+                toolkitCanvas.SetToolCursor(CanvasTool.Transform, false, false, MouseCursor.MoveArrow);
                 return;
             }
-            bool visible = (IsPreviewPaintTool || previewTool == PreviewTool.HealingBrush) &&
-                           !panning && !alt && previewPointerInside;
-            toolkitPreviewCanvas?.SetCursor(
+            bool visible = (IsCanvasPaintTool || canvasTool == CanvasTool.HealingBrush) &&
+                           !panning && !alt && canvasPointerInside;
+            toolkitCanvas?.SetCursor(
                 visible,
-                visible ? GetPreviewPaintPosition(localPosition, paintingShiftHeld, previewPointerControl, updateConstraint: false) : localPosition,
-                previewTool != PreviewTool.HealingBrush && (paintingLayer != null ? paintingErase : paintSettings.tool == PaintToolMode.Eraser));
-            MouseCursor transformCursor = !panning && previewPointerInside && IsPreviewTransformEnabled
-                ? previewTransformManipulator?.GetCursor(localPosition, alt) ?? MouseCursor.Pan
+                visible ? GetCanvasPaintPosition(localPosition, paintingShiftHeld, canvasPointerControl, updateConstraint: false) : localPosition,
+                canvasTool != CanvasTool.HealingBrush && (paintingLayer != null ? paintingErase : paintSettings.tool == PaintToolMode.Eraser));
+            MouseCursor transformCursor = !panning && canvasPointerInside && IsCanvasTransformEnabled
+                ? canvasTransformManipulator?.GetCursor(localPosition, alt) ?? MouseCursor.Pan
                 : MouseCursor.Pan;
-            toolkitPreviewCanvas?.SetToolCursor(previewTool, visible, panning, transformCursor,
-                previewZoomManipulator?.IsRotating ?? false);
+            toolkitCanvas?.SetToolCursor(canvasTool, visible, panning, transformCursor,
+                canvasZoomManipulator?.IsRotating ?? false);
         }
 
-        private void RefreshPreviewPointerCursor()
+        private void RefreshCanvasPointerCursor()
         {
-            if (previewPointerInside)
-                UpdatePreviewCursor(previewPointerPosition, previewPointerAlt);
+            if (canvasPointerInside)
+                UpdateCanvasCursor(canvasPointerPosition, canvasPointerAlt);
             else
-                toolkitPreviewCanvas?.SetToolCursor(previewTool, false, previewZoomManipulator?.IsNavigating ?? false,
-                    rotating: previewZoomManipulator?.IsRotating ?? false);
+                toolkitCanvas?.SetToolCursor(canvasTool, false, canvasZoomManipulator?.IsNavigating ?? false,
+                    rotating: canvasZoomManipulator?.IsRotating ?? false);
         }
 
-        private void ClearPreviewPointerCursor()
+        private void ClearCanvasPointerCursor()
         {
-            previewPointerInside = false;
-            previewPointerAlt = false;
-            previewPointerControl = false;
-            toolkitPreviewCanvas?.SetCursor(false, default, false);
-            toolkitPreviewCanvas?.SetToolCursor(previewTool, false, false);
+            canvasPointerInside = false;
+            canvasPointerAlt = false;
+            canvasPointerControl = false;
+            toolkitCanvas?.SetCursor(false, default, false);
+            toolkitCanvas?.SetToolCursor(canvasTool, false, false);
         }
 
         private void OnToolkitKeyDown(KeyDownEvent evt)
@@ -2080,8 +2080,8 @@ namespace DCFApixels.WhimTex
             if (keyboardTransform != null && evt.keyCode != nudgeKey) StopKeyboardNudge();
             if (evt.keyCode == KeyCode.LeftControl || evt.keyCode == KeyCode.RightControl)
             {
-                previewPointerControl = evt.ctrlKey;
-                RefreshPreviewPointerCursor();
+                canvasPointerControl = evt.ctrlKey;
+                RefreshCanvasPointerCursor();
             }
             if ((evt.ctrlKey || evt.commandKey) && !evt.altKey && !evt.shiftKey && evt.keyCode == KeyCode.S)
             {
@@ -2097,9 +2097,9 @@ namespace DCFApixels.WhimTex
                 return;
             }
 
-            if (evt.keyCode == KeyCode.Escape && previewGuideManipulator?.IsDragging == true)
+            if (evt.keyCode == KeyCode.Escape && canvasGuideManipulator?.IsDragging == true)
             {
-                previewGuideManipulator.Cancel();
+                canvasGuideManipulator.Cancel();
                 WhimTexUI.ConsumeEvent(evt);
                 return;
             }
@@ -2111,14 +2111,14 @@ namespace DCFApixels.WhimTex
                 return;
             }
             if (gradientCanvasManipulator?.HandleDelete(evt) == true) return;
-            if (evt.keyCode == KeyCode.Escape && previewZoomManipulator?.IsDragging == true)
+            if (evt.keyCode == KeyCode.Escape && canvasZoomManipulator?.IsDragging == true)
             {
-                CancelPreviewZoomGesture();
+                CancelCanvasZoomGesture();
                 WhimTexUI.ConsumeEvent(evt);
                 return;
             }
 
-            if (previewTool == PreviewTool.HealingBrush && !evt.ctrlKey && !evt.commandKey && !evt.altKey)
+            if (canvasTool == CanvasTool.HealingBrush && !evt.ctrlKey && !evt.commandKey && !evt.altKey)
             {
                 if (evt.keyCode == KeyCode.Escape && healingLayer != null)
                 { CancelHealing(); WhimTexUI.ConsumeEvent(evt); return; }
@@ -2131,16 +2131,16 @@ namespace DCFApixels.WhimTex
                     WhimTexUI.ConsumeEvent(evt); return;
                 }
             }
-            if (HandlePreviewGuideKey(evt)) return;
+            if (HandleCanvasGuideKey(evt)) return;
             if (HandleAreaSelectionKey(evt)) return;
             if (HandleContextToolEscape(evt)) return;
             if (HandleLayerNudgeKey(evt)) return;
             if (HandleLayerNavigationKey(evt)) return;
 
-            if (previewTool != PreviewTool.Transform && (evt.keyCode == KeyCode.LeftAlt || evt.keyCode == KeyCode.RightAlt))
+            if (canvasTool != CanvasTool.Transform && (evt.keyCode == KeyCode.LeftAlt || evt.keyCode == KeyCode.RightAlt))
             {
-                previewEyedropper?.UpdateModifier(true);
-                if (CanUsePreviewEyedropper)
+                canvasEyedropper?.UpdateModifier(true);
+                if (CanUseCanvasEyedropper)
                 {
                     WhimTexUI.ConsumeEvent(evt);
                     return;
@@ -2151,13 +2151,13 @@ namespace DCFApixels.WhimTex
                 return;
             ResetOpacityEntry();
 
-            if (HandlePreviewTransformKey(evt))
+            if (HandleCanvasTransformKey(evt))
                 return;
 
             if (paintingLayer != null && (evt.keyCode == KeyCode.LeftShift || evt.keyCode == KeyCode.RightShift))
             {
                 SetPaintingShift(true);
-                RefreshPreviewPointerCursor();
+                RefreshCanvasPointerCursor();
                 evt.StopImmediatePropagation();
                 return;
             }
@@ -2175,7 +2175,7 @@ namespace DCFApixels.WhimTex
                          (evt.keyCode == KeyCode.Y && !evt.shiftKey));
             if (undo || redo)
             {
-                FinishPreviewTransform();
+                FinishCanvasTransform();
                 FinishPaintingStroke();
                 if (undo)
                     Undo.PerformUndo();
@@ -2185,7 +2185,7 @@ namespace DCFApixels.WhimTex
                 return;
             }
 
-            if (!IsPreviewPaintTool && previewTool != PreviewTool.Fill)
+            if (!IsCanvasPaintTool && canvasTool != CanvasTool.Fill)
                 return;
 
             bool swapColors = !actionModifier && !evt.altKey && evt.keyCode == KeyCode.X;
@@ -2196,16 +2196,16 @@ namespace DCFApixels.WhimTex
                 return;
             }
 
-            if (!IsPreviewPaintTool) return;
+            if (!IsCanvasPaintTool) return;
             bool decrease = evt.keyCode == KeyCode.LeftBracket || evt.character == '[';
             bool increase = evt.keyCode == KeyCode.RightBracket || evt.character == ']';
             if (!decrease && !increase)
                 return;
 
-            float currentSize = previewTool == PreviewTool.Pencil ? paintSettings.pencilSize : paintSettings.brushSize;
+            float currentSize = canvasTool == CanvasTool.Pencil ? paintSettings.pencilSize : paintSettings.brushSize;
             float step = PaintToolSettings.GetSizeShortcutStep(currentSize);
             float nextSize = Mathf.Max(1f, Mathf.Round(currentSize + (increase ? step : -step)));
-            if (previewTool == PreviewTool.Pencil)
+            if (canvasTool == CanvasTool.Pencil)
                 ApplyPaintToolChange(() => paintSettings.pencilSize = Mathf.Clamp(Mathf.RoundToInt(nextSize), 1, 4096));
             else
                 ApplyPaintToolChange(() => paintSettings.brushSize = nextSize);
@@ -2222,13 +2222,13 @@ namespace DCFApixels.WhimTex
             }
             if (evt.keyCode == KeyCode.LeftControl || evt.keyCode == KeyCode.RightControl)
             {
-                previewPointerControl = evt.ctrlKey;
-                RefreshPreviewPointerCursor();
+                canvasPointerControl = evt.ctrlKey;
+                RefreshCanvasPointerCursor();
             }
             if (evt.keyCode == KeyCode.LeftAlt || evt.keyCode == KeyCode.RightAlt)
             {
-                previewEyedropper?.UpdateModifier(evt.altKey);
-                if (CanUsePreviewEyedropper)
+                canvasEyedropper?.UpdateModifier(evt.altKey);
+                if (CanUseCanvasEyedropper)
                 {
                     WhimTexUI.ConsumeEvent(evt);
                     return;
@@ -2237,7 +2237,7 @@ namespace DCFApixels.WhimTex
             if (paintingLayer != null && (evt.keyCode == KeyCode.LeftShift || evt.keyCode == KeyCode.RightShift))
             {
                 SetPaintingShift(evt.shiftKey);
-                RefreshPreviewPointerCursor();
+                RefreshCanvasPointerCursor();
                 evt.StopImmediatePropagation();
             }
         }
@@ -2258,18 +2258,18 @@ namespace DCFApixels.WhimTex
             return false;
         }
 
-        private sealed class SpritePreviewElement : VisualElement
+        private sealed class CanvasElement : VisualElement
         {
-            private readonly PreviewViewport viewport;
+            private readonly CanvasViewport viewport;
             private readonly Image backdrop;
-            private readonly PreviewInsetShadow insetShadow;
+            private readonly CanvasViewInsetShadow insetShadow;
             private readonly VisualElement checker;
             private Texture2D checkerTexture;
             private Texture2D transparentCursorTexture;
             private bool toolCursorHidden;
             private readonly Image image;
             private readonly VisualElement tiledImage;
-            private readonly PreviewCanvasShadow canvasShadow;
+            private readonly CanvasShadow canvasShadow;
             private readonly VisualElement overlay;
             private readonly PencilCursorElement pencilCursorElement;
             private Texture texture;
@@ -2294,10 +2294,10 @@ namespace DCFApixels.WhimTex
             public Rect VisibleCanvasBounds => viewport.VisibleCanvasBounds(contentRect);
             public event Action ViewChanged;
 
-            public SpritePreviewElement(PreviewViewport viewport)
+            public CanvasElement(CanvasViewport viewport)
             {
                 this.viewport = viewport;
-                AddToClassList("whimtex-preview-canvas");
+                AddToClassList("whimtex-canvas");
                 focusable = true;
                 style.minHeight = 96f;
                 style.backgroundColor = EditorGUIUtility.isProSkin
@@ -2306,23 +2306,23 @@ namespace DCFApixels.WhimTex
 
                 backdrop = new Image
                 {
-                    image = WhimTexBranding.PreviewBackdrop,
+                    image = WhimTexBranding.CanvasViewBackdrop,
                     scaleMode = ScaleMode.ScaleToFit,
                     pickingMode = PickingMode.Ignore,
                     focusable = false
                 };
-                backdrop.AddToClassList("whimtex-preview-backdrop");
+                backdrop.AddToClassList("whimtex-canvas-view-backdrop");
                 Add(backdrop);
 
-                insetShadow = new PreviewInsetShadow();
+                insetShadow = new CanvasViewInsetShadow();
                 Add(insetShadow);
                 RefreshBackdropVisibility();
 
-                canvasShadow = new PreviewCanvasShadow();
+                canvasShadow = new CanvasShadow();
                 Add(canvasShadow);
 
                 checker = new VisualElement { pickingMode = PickingMode.Ignore };
-                checker.AddToClassList("whimtex-preview-surface");
+                checker.AddToClassList("whimtex-canvas-surface");
                 checker.style.position = Position.Absolute;
                 checker.style.backgroundColor = EditorGUIUtility.isProSkin
                     ? new Color(0.26f, 0.26f, 0.26f, 1f)
@@ -2339,12 +2339,12 @@ namespace DCFApixels.WhimTex
                     pickingMode = PickingMode.Ignore
                 };
                 image.style.position = Position.Absolute;
-                image.AddToClassList("whimtex-preview-surface");
+                image.AddToClassList("whimtex-canvas-surface");
                 Add(image);
 
                 tiledImage = new VisualElement { pickingMode = PickingMode.Ignore };
                 tiledImage.AddToClassList("whimtex-tiled-image");
-                tiledImage.AddToClassList("whimtex-preview-surface");
+                tiledImage.AddToClassList("whimtex-canvas-surface");
                 tiledImage.generateVisualContent += DrawTiledImage;
                 Add(tiledImage);
 
@@ -2362,12 +2362,12 @@ namespace DCFApixels.WhimTex
                 });
             }
 
-            private sealed class PreviewInsetShadow : VisualElement
+            private sealed class CanvasViewInsetShadow : VisualElement
             {
-                public PreviewInsetShadow()
+                public CanvasViewInsetShadow()
                 {
                     pickingMode = PickingMode.Ignore;
-                    AddToClassList("whimtex-preview-inset-shadow");
+                    AddToClassList("whimtex-canvas-view-inset-shadow");
                     generateVisualContent += Draw;
                 }
 
@@ -2405,7 +2405,7 @@ namespace DCFApixels.WhimTex
                 }
             }
 
-            private sealed class PreviewCanvasShadow : VisualElement
+            private sealed class CanvasShadow : VisualElement
             {
                 private const int Rings = 16;
                 private const float Spread = 30f;
@@ -2417,11 +2417,11 @@ namespace DCFApixels.WhimTex
                     canvas.width + Spread * 2f,
                     canvas.height + Spread * 2f);
 
-                public PreviewCanvasShadow()
+                public CanvasShadow()
                 {
                     pickingMode = PickingMode.Ignore;
-                    AddToClassList("whimtex-preview-canvas-shadow");
-                    AddToClassList("whimtex-preview-surface");
+                    AddToClassList("whimtex-canvas-shadow");
+                    AddToClassList("whimtex-canvas-surface");
                     generateVisualContent += Draw;
                 }
 
@@ -2437,7 +2437,7 @@ namespace DCFApixels.WhimTex
                     float right = bounds.xMax - Spread;
                     float bottom = bounds.yMax - Spread - DropOffset;
 
-                    // Same band mesh as PreviewInsetShadow: consecutive rings share vertices, so the
+                    // Same band mesh as CanvasViewInsetShadow: consecutive rings share vertices, so the
                     // cubic fade interpolates smoothly instead of stepping. The peak sits on the
                     // canvas edge and falls to nothing at the outer bounds.
                     // 40% of the way from the soft variant (0.38) back toward the original strong one (0.78).
@@ -2461,7 +2461,7 @@ namespace DCFApixels.WhimTex
                             ushort b = (ushort)(ring * 4 + (side + 1) % 4);
                             ushort c = (ushort)(b + 4);
                             ushort d = (ushort)(a + 4);
-                            // Rings grow outwards here, the opposite of PreviewInsetShadow, so the
+                            // Rings grow outwards here, the opposite of CanvasViewInsetShadow, so the
                             // winding has to be reversed to keep the faces front-facing.
                             mesh.SetNextIndex(a); mesh.SetNextIndex(c); mesh.SetNextIndex(b);
                             mesh.SetNextIndex(a); mesh.SetNextIndex(d); mesh.SetNextIndex(c);
@@ -2472,8 +2472,8 @@ namespace DCFApixels.WhimTex
 
             public void RefreshBackdropVisibility()
             {
-                backdrop.EnableInClassList("whimtex-preview-backdrop--hidden", !WhimTexUserSettings.ShowManta);
-                insetShadow.EnableInClassList("whimtex-preview-backdrop--hidden", !WhimTexUserSettings.ShowManta);
+                backdrop.EnableInClassList("whimtex-canvas-view-backdrop--hidden", !WhimTexUserSettings.ShowManta);
+                insetShadow.EnableInClassList("whimtex-canvas-view-backdrop--hidden", !WhimTexUserSettings.ShowManta);
             }
 
             private void UpdateBackdropLayout()
@@ -2487,14 +2487,14 @@ namespace DCFApixels.WhimTex
                     size, size));
             }
 
-            public void SetToolCursor(PreviewTool tool, bool hide, bool panning, MouseCursor transformCursor = MouseCursor.Pan, bool rotating = false)
+            public void SetToolCursor(CanvasTool tool, bool hide, bool panning, MouseCursor transformCursor = MouseCursor.Pan, bool rotating = false)
             {
-                bool transforming = !panning && (tool == PreviewTool.Transform || tool == PreviewTool.GradientHandles || IsTemporaryPreviewTool(tool));
-                EnableInClassList("whimtex-preview-cursor--pan", (panning && !rotating) || (transforming && transformCursor == MouseCursor.Pan));
-                EnableInClassList("whimtex-preview-cursor--zoom", !panning && tool == PreviewTool.Zoom);
-                EnableInClassList("whimtex-preview-cursor--scale", transforming && transformCursor == MouseCursor.ScaleArrow);
-                EnableInClassList("whimtex-preview-cursor--rotate", rotating || (transforming && transformCursor == MouseCursor.RotateArrow));
-                EnableInClassList("whimtex-preview-cursor--move", transforming && transformCursor == MouseCursor.MoveArrow);
+                bool transforming = !panning && (tool == CanvasTool.Transform || tool == CanvasTool.GradientHandles || IsTemporaryCanvasTool(tool));
+                EnableInClassList("whimtex-canvas-cursor--pan", (panning && !rotating) || (transforming && transformCursor == MouseCursor.Pan));
+                EnableInClassList("whimtex-canvas-cursor--zoom", !panning && tool == CanvasTool.Zoom);
+                EnableInClassList("whimtex-canvas-cursor--scale", transforming && transformCursor == MouseCursor.ScaleArrow);
+                EnableInClassList("whimtex-canvas-cursor--rotate", rotating || (transforming && transformCursor == MouseCursor.RotateArrow));
+                EnableInClassList("whimtex-canvas-cursor--move", transforming && transformCursor == MouseCursor.MoveArrow);
                 if (toolCursorHidden == hide) return;
                 toolCursorHidden = hide;
                 if (!hide)
@@ -2528,7 +2528,7 @@ namespace DCFApixels.WhimTex
             {
                 if (canvasVisible == visible) return;
                 canvasVisible = visible;
-                EnableInClassList("whimtex-preview-canvas--empty", !visible);
+                EnableInClassList("whimtex-canvas--empty", !visible);
                 if (visible) viewport.Reset();
                 UpdateImageLayout(true);
             }
@@ -2537,9 +2537,9 @@ namespace DCFApixels.WhimTex
             {
                 if (tiled == enabled) return;
                 tiled = enabled;
-                image.EnableInClassList("whimtex-preview-image--hidden", tiled);
-                tiledImage.EnableInClassList("whimtex-preview-image--visible", tiled);
-                canvasShadow.EnableInClassList("whimtex-preview-canvas-shadow--hidden", tiled);
+                image.EnableInClassList("whimtex-canvas-view-image--hidden", tiled);
+                tiledImage.EnableInClassList("whimtex-canvas-view-image--visible", tiled);
+                canvasShadow.EnableInClassList("whimtex-canvas-shadow--hidden", tiled);
                 UpdateImageLayout(true);
             }
 
@@ -2633,7 +2633,7 @@ namespace DCFApixels.WhimTex
                 presentationRect = nextPresentation;
                 presentedRotation = viewport.Rotation;
                 PositionSurface(checker, presentationRect, !tiled);
-                PositionSurface(canvasShadow, PreviewCanvasShadow.BoundsFor(ImageRect), true);
+                PositionSurface(canvasShadow, CanvasShadow.BoundsFor(ImageRect), true);
                 PositionSurface(image, ImageRect, true);
                 PositionElement(tiledImage, contentRect);
                 PositionElement(overlay, contentRect);

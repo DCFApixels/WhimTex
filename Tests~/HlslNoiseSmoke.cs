@@ -30,7 +30,7 @@ public static class HlslNoiseSmoke
                     if(float.IsNaN(a.r)||float.IsInfinity(a.r)||a==b)throw new Exception("Invalid noise pixels: "+type);
                     checks++;
                     string source="#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ThirdParty/FastNoiseLite.hlsl\"\nfloat4 ApplyFX(float2 uv,float4 color){"+code+"}";
-                    fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft",stat).Invoke(null,new object[]{null,source,new List<ShaderFXParameter>()});
+                    fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", stat, null, new[] { typeof(DCFApixels.WhimTex.TextureCompositor), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null,new object[]{null,source,new List<ShaderFXParameter>()});
                     typeof(ShaderFX).GetMethod("ApplyAgentDraft",inst).Invoke(fx,null);
                     checks++;
                 }

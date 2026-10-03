@@ -25,5 +25,5 @@ for (const kind of ['Aligned', 'Angled', 'Active']) {
     assert.ok(guides.includes(`WhimTexUserSettings.Guide${kind}Color`));
 }
 assert.match(guides, /if \(deleting\) lineColor = new Color\(1f, .35f, .25f, .9f\)/);
-assert.match(read('TextureCompositorWindow.cs'), /OnPreviewAppearanceChanged\(\)[\s\S]*?previewGuideOverlay\?\.MarkDirtyRepaint\(\)/);
+assert.match(read('TextureCompositorWindow.cs'), /OnCanvasViewAppearanceChanged\(\)[\s\S]*?canvasGuideOverlay\?\.MarkDirtyRepaint\(\)/);
 console.log('Guide settings persistence, reset, UI and shared snap-radius source contracts passed.');

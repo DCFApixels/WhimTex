@@ -6,7 +6,7 @@ var drawingType = typeof(DCFApixels.WhimTex.DrawingLayerBehaviour);
 var settingsType = drawingType.Assembly.GetType("DCFApixels.WhimTex.PaintToolSettings", true);
 var apiType = typeof(DCFApixels.WhimTex.WhimTexApi);
 var setBrush = apiType.GetMethod("SetBrush", StaticHidden);
-var jsonType = setBrush.GetParameters()[1].ParameterType;
+var jsonType = setBrush.GetParameters()[2].ParameterType;
 object Json(string value) => jsonType.GetMethod("Parse", new[] { typeof(string) }).Invoke(null, new object[] { value });
 int checks = 0;
 object Call(object target, string method, params object[] args) => target.GetType().GetMethod(method, Hidden).Invoke(target, args);
@@ -45,7 +45,7 @@ Check(Read<float>(clamped, "Size") == 1 && Read<float>(clamped, "Hardness") == 1
 legacy.brushSpacing = 0;
 Check(Mathf.Abs(Read<float>(Call(legacy, "GetStrokeParameters", false), "SpacingPixels") - 77 * 0.16f) < 0.0001f,
     "Legacy zero spacing retains its default migration");
-setBrush.Invoke(null, new object[] { legacy, Json("{\"size\":12}") });
+setBrush.Invoke(null, new object[] { null, legacy, Json("{\"size\":12}") });
 Check(legacy.brushSize == 12 && legacy.brushColor == Color.red && legacy.brushHardness == 0.4f,
     "Partial API brush commands preserve omitted saved values");
 

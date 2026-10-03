@@ -14,22 +14,24 @@ namespace DCFApixels.WhimTex
         internal Action<bool> HdrChanged;
         internal Action OpenPickerOverride;
         internal object PickerContext;
-        public bool UsePreviewChannels { get; set; }
-        internal Func<int> ReadPreviewChannels;
+        public bool UseCanvasChannels { get; set; }
+        [Obsolete("Use UseCanvasChannels instead.")]
+        public bool UsePreviewChannels { get => UseCanvasChannels; set => UseCanvasChannels = value; }
+        internal Func<int> ReadCanvasChannels;
         private Func<int> attachedChannelSource;
         private VisualElement channelSwatch;
         private VisualElement nativeColor, nativeGradient, nativeAlphaGradient;
         private int lastChannelMask = -2;
         private bool lastHdr;
 
-        internal Func<int> ResolveChannelSource() => !UsePreviewChannels ? null : ReadPreviewChannels ??
+        internal Func<int> ResolveChannelSource() => !UseCanvasChannels ? null : ReadCanvasChannels ??
             WhimTexColorChannels.FindSource(this, WhimTexColorPicker.FindDocument(this) ?? Document?.Invoke());
 
         public WhimTexColorField(string label = null) : base(label)
         {
             RegisterCallback<AttachToPanelEvent>(_ =>
             {
-                if (UsePreviewChannels)
+                if (UseCanvasChannels)
                 {
                     attachedChannelSource = ResolveChannelSource();
                     BuildChannelSwatch();
@@ -96,7 +98,7 @@ namespace DCFApixels.WhimTex
             channelSwatch.AddToClassList("whimtex-color-channel-swatch");
             channelSwatch.generateVisualContent += context =>
             {
-                if (showMixedValue || !UsePreviewChannels || !WhimTexColorChannels.Enabled || lastChannelMask < 0 || lastChannelMask == 15) return;
+                if (showMixedValue || !UseCanvasChannels || !WhimTexColorChannels.Enabled || lastChannelMask < 0 || lastChannelMask == 15) return;
                 var rect = channelSwatch.contentRect;
                 if (rect.width <= 0 || rect.height <= 0) return;
                 if (hdr)
@@ -151,7 +153,7 @@ namespace DCFApixels.WhimTex
         private void RefreshChannelSwatch()
         {
             if (channelSwatch == null) return;
-            int mask = UsePreviewChannels && WhimTexColorChannels.Enabled ? (ReadPreviewChannels ?? attachedChannelSource)?.Invoke() ?? -1 : -1;
+            int mask = UseCanvasChannels && WhimTexColorChannels.Enabled ? (ReadCanvasChannels ?? attachedChannelSource)?.Invoke() ?? -1 : -1;
             if (mask == lastChannelMask && hdr == lastHdr) return;
             lastChannelMask = mask;
             lastHdr = hdr;

@@ -301,13 +301,13 @@ namespace DCFApixels.WhimTex
             EditorPrefs.DeleteKey(ImageOpenLayerKey);
             EditorPrefs.DeleteKey(VsCodeExecutableKey);
             EditorPrefs.DeleteKey(PresetsFolderKey);
-            ResetPreviewAppearance();
+            ResetCanvasViewAppearance();
             LayerPickAlphaThreshold = DefaultLayerPickAlphaThreshold;
             EditorPrefs.DeleteKey(LayerPickAlphaKey);
             ResetGuidesAndSnapping();
         }
 
-        internal static void ResetPreviewAppearance()
+        internal static void ResetCanvasViewAppearance()
         {
             EditorPrefs.DeleteKey(HealingStrokeColorKey);
             healingStrokeColor = null;

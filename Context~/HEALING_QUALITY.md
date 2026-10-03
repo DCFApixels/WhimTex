@@ -237,6 +237,9 @@ previews (original / vertical / both), worker-input crops and metrics under
 and tonal variation for this fixture, not arbitrary-image quality.
 Settings: 256×256 Perlin, None or FBm, scale 8, seed 1337; Size 64, Hardness .8,
 Search 64, Balanced, Current Layer. No user document or Assets file is changed.
+The fixture explicitly uses Noise ColorValues, the encoding used for the recorded gates.
+The newer Noise default is LinearData; using it would change the input image and invalidate
+comparison with these historical contrast measurements. The quality thresholds are unchanged.
 
 Reproduced the reported patch-like artifacts. For smooth noise, the mean vertical seam
 jump dropped from .080097 to .008907, but mean absolute second differences inside the

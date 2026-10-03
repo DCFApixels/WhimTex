@@ -7,7 +7,7 @@ namespace DCFApixels.WhimTex
     {
         private TextureCompositorWindow OpenNewDocument()
         {
-            FinishPreviewTransform();
+            FinishCanvasTransform();
             FinishPaintingStroke();
             var window = CreateWindow<TextureCompositorWindow>("WhimTex", typeof(TextureCompositorWindow));
             window.RefreshDocumentTitle(true);
@@ -25,7 +25,7 @@ namespace DCFApixels.WhimTex
             if (!WhimTexDocumentService.IsDocumentAsset(source)) return false;
             WhimTexUI.ConsumeEvent(evt);
             activeLayerDrag?.Cancel();
-            FinishPreviewTransform();
+            FinishCanvasTransform();
             FinishPaintingStroke();
             SelectOnlyLayer(layer.Id);
             RefreshToolkitInterface();

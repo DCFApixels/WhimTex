@@ -135,13 +135,14 @@ public static class DocumentPreparationSmoke
             Check(File.ReadAllBytes(path).SequenceEqual(latest), "pending HLSL leaves TIFF intact");
             Set(fx, "code", applied);
 
-            // Headless working session: opening does not compile; Render prepares embedded effects.
+            // Headless Open restores applied FX so detached copies can validate
+            // their state; it still must not create an editor window.
             var buildType = Type("WhimTexDocumentBuild");
             using (var build = (IDisposable)Call(buildType, null, "Open", path))
             {
                 var opened = (TextureCompositor)Get(build, "Document");
                 var restored = (ShaderFX)opened.layers[0].modifiers[0];
-                Check(!(bool)Get(restored, "HasAppliedShader"), "headless Open is shader-lazy");
+                Check((bool)Get(restored, "HasAppliedShader"), "headless Open restores applied FX");
                 var preview = (Texture2D)Call(buildType, build, "Render"); Owned.Add(preview);
                 Check((bool)Get(restored, "HasAppliedShader") && preview.width == 64, "headless Render prepares effects");
                 Call(buildType, build, "Save", folder + "/Headless.tiff");

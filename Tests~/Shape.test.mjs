@@ -9,12 +9,12 @@ const inspector = read('Layers/Editors/ShapeLayerEditorWindow.cs');
 const down = tool.split('private void Down(')[1].split('private bool Valid')[0];
 const up = tool.split('private void Up(')[1].split('internal void Cancel()')[0];
 assert.doesNotMatch(down, /AddLayer\(|\.layers\.Add\(|Undo\./, 'Reservation exists only in gesture-local state');
-assert.doesNotMatch(down, /!owner.HasPreviewLayers/, 'Shapes can create the first layer');
+assert.doesNotMatch(down, /!owner.HasCanvasLayers/, 'Shapes can create the first layer');
 assert.match(down, /shape = new ShapeLayerBehaviour/);
 assert.match(down, /WhimTexColorInputs.DisplayColor\(settings.fillColor\)/);
 assert.match(tool, /canvas.ToCanvas\(position\)/, 'Creation uses inverse view rotation');
-assert.match(tool, /control \? p : owner.SnapPreviewGuidePoint\(p\)/);
-assert.match(tool, /owner.compositor == document && owner.previewTool == PreviewTool.Shape/);
+assert.match(tool, /control \? p : owner.SnapCanvasGuidePoint\(p\)/);
+assert.match(tool, /owner.compositor == document && owner.canvasTool == CanvasTool.Shape/);
 assert.match(up, /Valid &&[\s\S]*sqrMagnitude >= 9f/);
 assert.equal((up.match(/owner.AddLayer\(/g) || []).length, 1, 'One existing transactional add on release');
 assert.match(up, /Cancel\(\);\s*owner.AddLayer/);
@@ -29,7 +29,7 @@ for (const event of ['PointerDown', 'PointerMove', 'PointerUp', 'PointerCaptureO
 }
 assert.match(tool, /evt.keyCode == KeyCode.Escape\) \{ Cancel\(\); WhimTexUI.ConsumeEvent/);
 assert.match(read('TextureCompositorWindow.Api.cs'), /window.shapeManipulator != null && window.shapeManipulator.IsDragging/);
-assert.match(read('TextureCompositorWindow.Zoom.cs'), /CancelPreviewZoomGesture\(\)[\s\S]*?shapeManipulator\?\.Cancel\(\)/);
+assert.match(read('TextureCompositorWindow.Zoom.cs'), /CancelCanvasZoomGesture\(\)[\s\S]*?shapeManipulator\?\.Cancel\(\)/);
 assert.match(behaviour, /RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear/);
 assert.match(behaviour, /SetVector\("_ShapeFill", HdrUtility.Decode\(fillColor\)\)/);
 assert.match(behaviour, /applyTransform: false, applyModifiers: context.applyModifiers/);

@@ -72,7 +72,7 @@ for (const bad of [{ size: [0, 32] }, { variation: 2 }, { cellColor: 'Unknown' }
 const paste = read('src/TextureCompositorWindow.AreaSelection.cs');
 assert.ok(paste.indexOf('IsProceduralClipboard(clipboardText)') < paste.indexOf('TextureCompositor copiedLayers = LayerClipboard.Current'));
 assert.match(paste, /IsTextInputTarget\(target\)/);
-assert.match(paste, /resize && HasPreviewLayers/);
+assert.match(paste, /resize && HasCanvasLayers/);
 assert.ok(paste.indexOf('generated.Compile()') < paste.indexOf('PasteProceduralClipboard(generated, resize)'),
   'Effects compile before the tree is handed to the paste');
 assert.match(paste, /if \(!handedOver\) generated\.Dispose\(\)/, 'A refused paste releases its temporary document');

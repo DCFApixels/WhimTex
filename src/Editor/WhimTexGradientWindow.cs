@@ -182,7 +182,7 @@ namespace DCFApixels.WhimTex
                 }
             });
             rootVisualElement.Add(strip);
-            color = new ColorField("Color") { hdr = false, showAlpha = false, UsePreviewChannels = true, ReadPreviewChannels = () => channelSource?.Invoke() ?? -1 };
+            color = new ColorField("Color") { hdr = false, showAlpha = false, UseCanvasChannels = true, ReadCanvasChannels = () => channelSource?.Invoke() ?? -1 };
             color.OpenPickerOverride = OpenKeyColor;
             color.RegisterValueChangedCallback(e => Edit(() =>
             {

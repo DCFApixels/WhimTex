@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace DCFApixels.WhimTex
 {
-    internal sealed class PreviewViewport
+    internal sealed class CanvasViewport
     {
         internal const float MinimumScale = 1f / 1024f;
         internal const float MaximumScale = 64f;

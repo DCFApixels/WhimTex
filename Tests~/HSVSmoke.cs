@@ -23,7 +23,7 @@ public static class HSVSmoke
         var previous = RenderTexture.active; bool srgb = GL.sRGBWrite;
         try
         {
-            fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", flags).Invoke(null, new object[] { owner, File.ReadAllText(path), new List<ShaderFXParameter>() });
+            fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", flags, null, new[] { typeof(DCFApixels.WhimTex.TextureCompositor), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { owner, File.ReadAllText(path), new List<ShaderFXParameter>() });
             typeof(ShaderFX).GetMethod("ApplyAgentDraft", flags).Invoke(fx, null);
             var values = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", flags).GetValue(fx);
             var colors = new[] { Color.black, Color.white, Color.red, Color.green, Color.blue, new Color(.18f,.18f,.18f), new Color(4,.6f,.02f), new Color(-.2f,.3f,.1f) };
@@ -31,10 +31,13 @@ public static class HSVSmoke
             for (int x=0;x<8;x++) { colors[x].a=x/7f; input.SetPixel(x,0,colors[x]); input.SetPixel(x,1,colors[x]); } input.Apply();
             target = new RenderTexture(8,2,0,RenderTextureFormat.ARGBFloat,RenderTextureReadWrite.Linear); target.Create();
             output = new Texture2D(8,2,TextureFormat.RGBAFloat,false,true);
-            var context = Activator.CreateInstance(typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.LayerRenderContext"), owner, null, 8, 2, 1f, true, true);
+            var context = Activator.CreateInstance(typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.LayerRenderContext"), owner, null, 8, 2, 1f, true, true, null);
             foreach (var settings in new[] { new Vector4(0,1,1,1), new Vector4(120,1,1,1), new Vector4(-120,1,1,1), new Vector4(180,0,1,1), new Vector4(37,2,.5f,1), new Vector4(-180,.5f,2,.5f), new Vector4(70,2,0,1), new Vector4(120,2,2,0) })
             {
-                for(int i=0;i<4;i++) values[i].floatValue=settings[i];
+                values.Find(p => p.name == "_Hue").floatValue = settings.x;
+                values.Find(p => p.name == "_Saturation").floatValue = settings.y;
+                values.Find(p => p.name == "_Value").floatValue = settings.z;
+                values.Find(p => p.name == "_Opacity").floatValue = settings.w;
                 var material=(Material)typeof(ShaderFX).GetMethod("GetMaterial",flags).Invoke(fx,new[]{context});
                 GL.sRGBWrite=false; Graphics.Blit(input,target,material); RenderTexture.active=target;
                 output.ReadPixels(new Rect(0,0,8,2),0,0); output.Apply();

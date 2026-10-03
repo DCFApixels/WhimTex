@@ -89,7 +89,7 @@ for (const file of ['src/TextureCompositorWindow.DocumentTitle.cs', 'src/WhimTex
   'src/ModifierEditorWindow.cs', 'src/Utils.cs'])
   assert.ok(read(file).includes('WhimTexBranding.WindowTitle('), `${file}: branded title`);
 for (const [file, size] of [
-  ['src/WhimTexIcon.png', 64], ['src/WhimTexPreviewBackdrop.png', 1024], ['Documentation~/Images/favicon-32.png', 32],
+  ['src/WhimTexIcon.png', 64], ['src/WhimTexCanvasViewBackdrop.png', 1024], ['Documentation~/Images/favicon-32.png', 32],
   ['Documentation~/Images/apple-touch-icon.png', 180], ['Documentation~/Images/whimtex-logo.png', 512]
 ]) {
   const png = readFileSync(path.join(root, file));
@@ -100,41 +100,41 @@ for (const [file, size] of [
 }
 assert.ok(read('Documentation~/_includes/title.html').includes('site.logo | relative_url'));
 assert.ok(read('Documentation~/_includes/favicon.html').includes('site.logo | relative_url'));
-const backdropGuid = read('src/WhimTexPreviewBackdrop.png.meta').match(/^guid: (\w+)$/m)[1];
+const backdropGuid = read('src/WhimTexCanvasViewBackdrop.png.meta').match(/^guid: (\w+)$/m)[1];
 assert.ok(read('src/WhimTexBranding.cs').includes(`GUIDToAssetPath("${backdropGuid}")`));
-const previewUI = read('src/TextureCompositorWindow.UI.cs').split('private sealed class SpritePreviewElement')[1];
+const previewUI = read('src/TextureCompositorWindow.UI.cs').split('private sealed class CanvasElement')[1];
 assert.ok(previewUI.indexOf('Add(backdrop);') < previewUI.indexOf('Add(checker);'), 'Backdrop stays behind the canvas/checker, not in document pixels');
 assert.match(previewUI, /backdrop = new Image\s*\{[^}]*pickingMode = PickingMode.Ignore,[^}]*focusable = false/s);
-assert.match(read('src/WhimTexSplitView.uss'), /\.whimtex-preview-backdrop\s*\{\s*position: absolute;\s*opacity: 0\.035;/);
-assert.match(read('src/WhimTexSplitView.uss'), /\.whimtex-preview-canvas\s*\{[^}]*overflow: hidden;/);
+assert.match(read('src/WhimTexSplitView.uss'), /\.whimtex-canvas-view-backdrop\s*\{\s*position: absolute;\s*opacity: 0\.035;/);
+assert.match(read('src/WhimTexSplitView.uss'), /\.whimtex-canvas\s*\{[^}]*overflow: hidden;/);
 const backdropLayout = previewUI.split('private void UpdateBackdropLayout()')[1].split('public void SetToolCursor')[0];
 assert.ok(!/viewport\.|ImageRect|documentWidth|documentHeight/.test(backdropLayout), 'Background placement is independent of document transforms and zoom');
 console.log('WhimTex branding and legacy package/API/preference identity checks passed (Unity not executed).');
 
-const presentation = read('src/TextureCompositorWindow.UI.cs').split('private void UpdateToolkitPreviewPresentation()')[1].split('private void OnPreviewPointerEnter')[0];
+const presentation = read('src/TextureCompositorWindow.UI.cs').split('private void UpdateToolkitCanvasPresentation()')[1].split('private void OnCanvasPointerEnter')[0];
 const toolSource = read('src/TextureCompositorWindow.Tools.cs');
 assert.match(toolSource, /foreach \(Layer layer in compositor.layers\)\s*if \(layer != null\) return true;/);
-assert.match(presentation, /bool hasLayers = HasPreviewLayers;/);
-const toolbar = toolSource.split('private void RefreshPreviewToolToolbar()')[1].split('private sealed class PreviewToolIcon')[0];
-assert.match(toolbar, /PreviewTool displayedTool = previewTool;/);
+assert.match(presentation, /bool hasLayers = HasCanvasLayers;/);
+const toolbar = toolSource.split('private void RefreshCanvasToolToolbar()')[1].split('private sealed class CanvasToolIcon')[0];
+assert.match(toolbar, /CanvasTool displayedTool = canvasTool;/);
 assert.match(toolbar, /Layer selected = hasLayers \? GetSelectedLayer\(\) : null;/);
-assert.ok(!/previewTool\s*=(?!=)|SetPreviewTool\(|SetEnabled\(/.test(toolbar), 'Empty styling preserves tool choice and configuration');
-assert.equal((toolbar.match(/--selected", displayedTool == PreviewTool\./g) || []).length, 10);
-for (const button of ['previewRectangleSelectButton', 'previewPolygonSelectButton', 'previewZoomButton'])
+assert.ok(!/canvasTool\s*=(?!=)|SetCanvasTool\(|SetEnabled\(/.test(toolbar), 'Empty styling preserves tool choice and configuration');
+assert.equal((toolbar.match(/--selected", displayedTool == CanvasTool\./g) || []).length, 11);
+for (const button of ['canvasRectangleSelectButton', 'canvasPolygonSelectButton', 'canvasZoomButton'])
   assert.ok(toolbar.includes(`${button}?.EnableInClassList("whimtex-tool-button--unavailable", !hasLayers)`));
-assert.match(toolSource, /HandlePaintConversionPrompt\(PointerDownEvent evt\)\s*\{\s*if \(!HasPreviewLayers\)\s*\{\s*WhimTexUI.ConsumeEvent\(evt\);\s*return true;/);
+assert.match(toolSource, /HandlePaintConversionPrompt\(PointerDownEvent evt\)\s*\{\s*if \(!HasCanvasLayers\)\s*\{\s*WhimTexUI.ConsumeEvent\(evt\);\s*return true;/);
 const zoom = read('src/TextureCompositorWindow.Zoom.cs');
-assert.match(zoom, /ChangePreviewZoom\(bool fit\)\s*\{\s*if \(!HasPreviewLayers\) return;/);
-assert.match(zoom, /if \(!owner.HasPreviewLayers \|\| \(evt.button != 2/);
-assert.match(zoom, /if \(!owner.HasPreviewLayers \|\| !target.contentRect.Contains\(point\)/);
-assert.match(read('src/TextureCompositorWindow.AreaSelectionView.cs'), /!owner.IsAreaSelectionTool \|\| !owner.HasPreviewLayers/);
-assert.match(read('src/TextureCompositorWindow.Eyedropper.cs'), /CanUsePreviewEyedropper => HasPreviewLayers &&/);
+assert.match(zoom, /ChangeCanvasZoom\(bool fit\)\s*\{\s*if \(!HasCanvasLayers\) return;/);
+assert.match(zoom, /if \(!owner.HasCanvasLayers \|\| \(evt.button != 2/);
+assert.match(zoom, /if \(!owner.HasCanvasLayers \|\| !target.contentRect.Contains\(point\)/);
+assert.match(read('src/TextureCompositorWindow.AreaSelectionView.cs'), /!owner.IsAreaSelectionTool \|\| !owner.HasCanvasLayers/);
+assert.match(read('src/TextureCompositorWindow.Eyedropper.cs'), /CanUseCanvasEyedropper => HasCanvasLayers &&/);
 assert.ok(!/layer\.visible/.test(presentation), 'Hidden layers still count as document content');
 assert.match(presentation, /SetCanvasVisible\(hasLayers\)/);
 for (const element of ['checker', 'image', 'tiledImage'])
-  assert.ok(previewUI.includes(`${element}.AddToClassList("whimtex-preview-surface")`));
-assert.ok(!previewUI.includes('backdrop.AddToClassList("whimtex-preview-surface")'));
-assert.match(read('src/WhimTexSplitView.uss'), /\.whimtex-preview-canvas--empty > \.whimtex-preview-surface\s*\{\s*display: none;/);
+  assert.ok(previewUI.includes(`${element}.AddToClassList("whimtex-canvas-surface")`));
+assert.ok(!previewUI.includes('backdrop.AddToClassList("whimtex-canvas-surface")'));
+assert.match(read('src/WhimTexSplitView.uss'), /\.whimtex-canvas--empty > \.whimtex-canvas-surface\s*\{\s*display: none;/);
 assert.match(previewUI, /if \(canvasVisible == visible\) return;[\s\S]*?if \(visible\) viewport.Reset\(\);/);
 for (const method of ['ZoomAt', 'Frame', 'Pan'])
   assert.match(previewUI, new RegExp(`public void ${method}\\([^)]*\\)\\s*\\{\\s*if \\(!canvasVisible\\) return;`));

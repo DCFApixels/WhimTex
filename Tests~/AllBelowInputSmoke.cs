@@ -80,7 +80,7 @@ public static class AllBelowInputSmoke
                 var composite = Cached();
                 Same(composite, Fresh(), effect + " cached/export parity");
                 var args = new object[] { effect.Owner, null };
-                Check((bool)Call(doc, "TryGetCachedMiniPreview", args), effect + " main cache supplies mini preview");
+                Check((bool)Call(doc, "TryGetCachedLayerPreview", args), effect + " main cache supplies mini preview");
                 var copy = RenderTexture.GetTemporary(32, 32, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
                 Graphics.Blit((RenderTexture)args[1], copy);
                 Same(standalone, Read(copy), effect + " main/standalone parity");
@@ -95,7 +95,7 @@ public static class AllBelowInputSmoke
             doc.layers.Insert(0, blur); Normalize();
             int publishes = 0;
             Action<Layer, RenderTexture> observer = (layer, pixels) => { if (layer == lower || layer == upper) publishes++; };
-            var publication = typeof(TextureCompositor).GetEvent("MiniPreviewRendered", F);
+            var publication = typeof(TextureCompositor).GetEvent("LayerPreviewRendered", F);
             publication.GetAddMethod(true).Invoke(doc, new object[] { observer });
             try { cache.Dispose(); Cached(); Check(publishes == 2, "Main path reuses accumulator without rendering lower sources twice"); }
             finally { publication.GetRemoveMethod(true).Invoke(doc, new object[] { observer }); }
@@ -185,7 +185,14 @@ public static class AllBelowInputSmoke
             var copied = (TextureCompositor)Call(doc, "CaptureLayerClipboard", new List<Layer> { blur });
             try { Check(((TargetedLayerBehaviour)copied.layers[0].Behaviour).inputMode == EffectInputMode.AllBelow, "Native copy keeps stack-relative mode without copying sources"); }
             finally { UnityEngine.Object.DestroyImmediate(copied); }
-            string portable = (string)api.GetMethod("WritePortableClipboard", F).Invoke(null, new object[] { doc, new List<Layer> { blur } });
+            bool incompleteRejected = false;
+            try { api.GetMethod("WritePortableClipboard", F).Invoke(null, new object[] { doc, new List<Layer> { blur } }); }
+            catch (TargetInvocationException ex) { incompleteRejected = ex.GetBaseException() is WhimTexDocumentException; }
+            Check(incompleteRejected, "Portable fragments require every All Below input; native copying remains stack-relative");
+            // Pixel tests above used an in-memory texture. Canonical clipboard requires
+            // saved asset references; this round-trip checks input mode with a procedural source.
+            lower.SetBehaviour(new ColorFillLayerBehaviour());
+            string portable = (string)api.GetMethod("WritePortableClipboard", F).Invoke(null, new object[] { doc, doc.layers });
             var restored = readClipboard.Invoke(null, new object[] { portable, 32, 32 });
             try
             {
@@ -220,6 +227,10 @@ public static class AllBelowInputSmoke
             Check(!targetField.ClassListContains("whimtex-hidden"), "Specific target available");
             Check(WhimTexApi.Describe().Contains("AllBelow"), "API advertises mode");
             return "Passed " + checks + " checks: six effects, merged input, main reuse, cache, mini preview, thumbnails, export, clipping, groups, cycles, serialization and API.";
+        }
+        catch (TargetInvocationException error)
+        {
+            throw new Exception(error.InnerException?.ToString() ?? error.ToString(), error);
         }
         finally
         {

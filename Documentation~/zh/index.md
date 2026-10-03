@@ -38,7 +38,7 @@ next_page: "zh/getting-started.md"
 
 ## 检查与交付
 
-- [预览与导航](preview.md)
+- [画布视图与导航](preview.md)
 - [颜色、HDR 与通道](color.md)
 - [游戏后处理](post-fx.md)
 - [保存与导出](saving.md)

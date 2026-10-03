@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 const read = p => readFileSync(new URL('../src/' + p, import.meta.url), 'utf8');
 const src = read('TextureCompositorWindow.Guides.cs');
 const ui = read('TextureCompositorWindow.UI.cs');
-const view = read('PreviewViewport.cs');
+const view = read('CanvasViewport.cs');
 const close = (a, b, epsilon = 1e-6) => assert.ok(Math.abs(a - b) < epsilon, `${a} vs ${b}`);
 class V {
     constructor(x, y) { this.x = x; this.y = y; }
@@ -98,59 +98,59 @@ assert.match(src, /Vector2.Dot\(\(point - canvas.ImageRect.position\) \/ canvas.
 assert.match(src, /pending.position = PositionAt\(point, pending.normal\) \+ grabOffset/);
 const cancel = src.split('internal void Cancel()')[1].split('private void Leave')[0];
 assert.ok(cancel.indexOf('pointer = -1') < cancel.indexOf('ReleasePointer'));
-assert.ok(!cancel.includes('previewGuides.Remove') && !cancel.includes('previewGuides.Add'));
+assert.ok(!cancel.includes('canvasGuides.Remove') && !cancel.includes('canvasGuides.Add'));
 const update = src.split('private void Update(Vector2 point)')[1].split('private void Move')[0];
-assert.ok(!update.includes('previewGuides['), 'Drag preview must not change committed guides');
-assert.match(src, /if \(discard\)\s*\{\s*owner.RememberPreviewGuides\(\);\s*owner.previewGuides.RemoveAt\(movingIndex\)/);
-assert.match(src, /else if \(!discard && owner.previewGuides.Count < MaxPreviewGuides\)\s*\{\s*owner.RememberPreviewGuides\(\);\s*owner.previewGuides.Add\(pending\)/);
+assert.ok(!update.includes('canvasGuides['), 'Drag preview must not change committed guides');
+assert.match(src, /if \(discard\)\s*\{\s*owner.RememberCanvasGuides\(\);\s*owner.canvasGuides.RemoveAt\(movingIndex\)/);
+assert.match(src, /else if \(!discard && owner.canvasGuides.Count < MaxCanvasGuides\)\s*\{\s*owner.RememberCanvasGuides\(\);\s*owner.canvasGuides.Add\(pending\)/);
 assert.match(src, /!control && !alt/);
-const guideToolPolicy = src.match(/private bool CanMovePreviewGuides => ([\s\S]*?);/)[1];
-const canInteract = new Function('previewTool', `return ${guideToolPolicy.replace(/PreviewTool\.(\w+)/g, '"$1"')};`);
+const guideToolPolicy = src.match(/private bool CanMoveCanvasGuides => ([\s\S]*?);/)[1];
+const canInteract = new Function('canvasTool', `return ${guideToolPolicy.replace(/CanvasTool\.(\w+)/g, '"$1"')};`);
 const toolsSource = read('TextureCompositorWindow.Tools.cs');
-const toolNames = toolsSource.match(/enum PreviewTool\s*\{([^}]+)\}/)[1].split(',').map(name => name.trim());
+const toolNames = toolsSource.match(/enum CanvasTool\s*\{([^}]+)\}/)[1].split(',').map(name => name.trim());
 for (const tool of toolNames)
     assert.equal(canInteract(tool), ['None', 'Transform', 'Zoom'].includes(tool), `${tool}: guide interaction policy`);
 assert.equal(canInteract('Unknown'), false);
 const beginPolicy = src.match(/private bool CanGrab\(bool control, bool alt\) => ([\s\S]*?);/)[1];
-assert.ok(!beginPolicy.includes('CanMovePreviewGuides'), 'Creating a guide must not be restricted by the selected tool');
-assert.match(src, /private int Hit\(Vector2 point\)\s*\{\s*if \(!owner.CanMovePreviewGuides \|\|/);
+assert.ok(!beginPolicy.includes('CanMoveCanvasGuides'), 'Creating a guide must not be restricted by the selected tool');
+assert.match(src, /private int Hit\(Vector2 point\)\s*\{\s*if \(!owner.CanMoveCanvasGuides \|\|/);
 const continuePolicy = src.match(/private bool CanContinueDrag => ([\s\S]*?);/)[1];
 const canContinue = new Function('Ready', 'movingIndex', 'owner', `return ${continuePolicy};`);
 for (const tool of toolNames) {
-    const owner = { CanMovePreviewGuides: canInteract(tool) };
+    const owner = { CanMoveCanvasGuides: canInteract(tool) };
     assert.equal(canContinue(true, -1, owner), true, `${tool}: new guide can be placed`);
     assert.equal(canContinue(true, 0, owner), canInteract(tool), `${tool}: moving an existing guide`);
     assert.equal(canContinue(false, -1, owner), false, 'Missing canvas cancels creation');
-    owner.previewGuidesLocked = true;
+    owner.canvasGuidesLocked = true;
     assert.equal(canContinue(true, 0, owner), false, 'Locked guides cannot be moved');
     assert.equal(canContinue(true, -1, owner), true, 'Locking existing guides does not prohibit creating a new one');
-    owner.previewGuidesLocked = false;
-    owner.previewGuidesHidden = true;
+    owner.canvasGuidesLocked = false;
+    owner.canvasGuidesHidden = true;
     assert.equal(canContinue(true, 0, owner), false, 'Hidden guides cannot be moved');
 }
 assert.match(src, /WantsCursor\(Vector2 point, bool alt\) => IsDragging \|\|/);
 assert.match(src, /CanGrab\(controlHeld, alt\) && \(RailAt\(point\) >= 0 \|\| Hit\(point\) >= 0\)/);
 assert.ok(!src.includes('rail.pickingMode ='), 'Edge strips remain interactive for every tool');
 const down = src.split('private void Down(PointerDownEvent evt)')[1].split('private void Update(Vector2 point)')[0];
-assert.ok(!down.includes('CanMovePreviewGuides'), 'Creation must not be blocked before the rail hit test');
+assert.ok(!down.includes('CanMoveCanvasGuides'), 'Creation must not be blocked before the rail hit test');
 assert.match(down, /int hit = rail < 0 \? Hit\(point\) : -1;/);
 assert.match(src, /if \(!CanContinueDrag \|\|/);
 assert.match(src, /if \(CanContinueDrag\)/);
-assert.match(src, /bounds, owner.CanMovePreviewGuides && !owner.previewGuidesLocked &&\s*\(i == hovered \|\| i == owner.selectedPreviewGuide\), false/);
-assert.ok(!src.match(/private bool Ready => ([\s\S]*?);/)[1].includes('CanMovePreviewGuides'), 'Guide visibility must not depend on the selected tool');
-const setTool = read('TextureCompositorWindow.ContextTools.cs').split('private void ChangePreviewTool(PreviewTool tool)')[1];
-assert.ok(setTool.indexOf('CancelPreviewZoomGesture();') >= 0 && setTool.indexOf('CancelPreviewZoomGesture();') < setTool.indexOf('previewTool = tool;'), 'Switching tools must cancel an uncommitted guide drag');
-assert.match(read('TextureCompositorWindow.Zoom.cs'), /CancelPreviewZoomGesture\(\)\s*\{\s*previewGuideManipulator\?\.Cancel\(\);/);
+assert.match(src, /bounds, owner.CanMoveCanvasGuides && !owner.canvasGuidesLocked &&\s*\(i == hovered \|\| i == owner.selectedCanvasGuide\), false/);
+assert.ok(!src.match(/private bool Ready => ([\s\S]*?);/)[1].includes('CanMoveCanvasGuides'), 'Guide visibility must not depend on the selected tool');
+const setTool = read('TextureCompositorWindow.ContextTools.cs').split('private void ChangeCanvasTool(CanvasTool tool)')[1];
+assert.ok(setTool.indexOf('CancelCanvasZoomGesture();') >= 0 && setTool.indexOf('CancelCanvasZoomGesture();') < setTool.indexOf('canvasTool = tool;'), 'Switching tools must cancel an uncommitted guide drag');
+assert.match(read('TextureCompositorWindow.Zoom.cs'), /CancelCanvasZoomGesture\(\)\s*\{\s*canvasGuideManipulator\?\.Cancel\(\);/);
 assert.match(src, /owner.areaSelectionManipulator\?\.HasGesture/);
 for (const [event, callback] of [['PointerDown', 'Down'], ['PointerMove', 'Move'], ['PointerUp', 'Up'], ['Wheel', 'Wheel']])
     for (const op of ['Register', 'Unregister'])
         assert.ok(src.includes(`${op}Callback<${event}Event>(${callback}, TrickleDown.TrickleDown)`));
-assert.ok(ui.indexOf('BuildPreviewGuides();') < ui.indexOf('BuildPreviewZoomTool();'));
-assert.match(ui, /KeyCode.Escape && previewGuideManipulator\?\.IsDragging == true/);
-assert.match(read('TextureCompositorWindow.cs'), /ClearPreviewGuides\(\);\s*previewGuidesDocument = next;[\s\S]*?compositor = next/);
+assert.ok(ui.indexOf('BuildCanvasGuides();') < ui.indexOf('BuildCanvasZoomTool();'));
+assert.match(ui, /KeyCode.Escape && canvasGuideManipulator\?\.IsDragging == true/);
+assert.match(read('TextureCompositorWindow.cs'), /ClearCanvasGuides\(\);\s*canvasGuidesDocument = next;[\s\S]*?compositor = next/);
 assert.ok(!/\bUndo\.|RenderTexture|MarkChanged|SetDirty/.test(src), 'Guides remain window-local and outside the render/Undo pipeline');
-assert.match(src, /whimtex-preview-surface/);
-assert.match(src, /ViewChanged \+= previewGuideOverlay.MarkDirtyRepaint/);
+assert.match(src, /whimtex-canvas-surface/);
+assert.match(src, /ViewChanged \+= canvasGuideOverlay.MarkDirtyRepaint/);
 const colorBody = src.match(/Color lineColor = ([\s\S]*?)\s*for \(int pass/)[1];
 const evaluateGuideColor = new Function('aligned', 'highlight', 'deleting', 'Color', 'WhimTexUserSettings',
     `let lineColor = ${colorBody.replace(/(\d)f\b/g, '$1')} return lineColor;`);
@@ -170,4 +170,4 @@ for (const aligned of [false, true]) {
 const styles = read('WhimTexSplitView.uss');
 assert.match(styles, /\.whimtex-guide-rail--left\s*\{[^}]*width: 8px;/);
 assert.match(styles, /\.whimtex-guide-rail--top\s*\{[^}]*height: 8px;/);
-console.log(`Preview guides: ${checks} angle/position checks, extracted line clipping and input/lifecycle contracts passed (Unity not executed).`);
+console.log(`Canvas View guides: ${checks} angle/position checks, extracted line clipping and input/lifecycle contracts passed (Unity not executed).`);

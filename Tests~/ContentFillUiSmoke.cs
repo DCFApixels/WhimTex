@@ -36,8 +36,8 @@ try
         bool strip=x<16||x>=66||y<16||y>=40;
         Check(strip?pixels[y*82+x].a>.999f:pixels[y*82+x].a==0,"Only inward strip written");
     }
-    Check(added.transform.position==new UnityEngine.Vector2(-1,-8),"Cropped image correct canvas-space placement");
-    Check(added.transform.scale==new UnityEngine.Vector2(82f/128,56f/96),"Cropped pixels retain native size");
+    Check(((UnityEngine.Vector2)added.transform.position)==new UnityEngine.Vector2(-1,-8),"Cropped image correct canvas-space placement");
+    Check(((UnityEngine.Vector2)added.transform.scale)==new UnityEngine.Vector2(82f/128,56f/96),"Cropped pixels retain native size");
     // Render the actual new layer through the compositor, not just the CPU result.
     var source=typeof(DCFApixels.WhimTex.TextureCompositor).GetMethod("RenderAreaSelectionSource",f);
     var rendered=(UnityEngine.Texture2D)source.Invoke(doc,new object[]{added});
@@ -107,7 +107,7 @@ try
     Call("Apply");Check(doc.layers.Count==previousCount+1,"Inverse result adds a new layer");
     var inverseLayer=doc.layers[0];
     var inverseTexture=(UnityEngine.Texture2D)inverseLayer.Behaviour.GetType().GetProperty("StoredTexture",f).GetValue(inverseLayer.Behaviour);
-    Check(inverseTexture.width==128&&inverseTexture.height==96&&inverseLayer.transform.position==UnityEngine.Vector2.zero,"Inverse result not cropped to old bounds");
+    Check(inverseTexture.width==128&&inverseTexture.height==96&&((UnityEngine.Vector2)inverseLayer.transform.position)==UnityEngine.Vector2.zero,"Inverse result not cropped to old bounds");
     var inversePixels=inverseTexture.GetPixels();
     for(int i=0;i<captured.Length;i++)Check(captured[i]==255?inversePixels[i].a==0:inversePixels[i].a>.999f,"Applied pixels match inverted region");
     var currentMask=(byte[])selection.GetType().GetProperty("Coverage",f).GetValue(selection);

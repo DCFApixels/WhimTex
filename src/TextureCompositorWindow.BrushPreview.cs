@@ -78,7 +78,7 @@ namespace DCFApixels.WhimTex
             {
                 if (brushStrokePreviewMaterial == null)
                 {
-                    Material source = WhimTexMaterials.PreviewChannels;
+                    Material source = WhimTexMaterials.DisplayChannels;
                     if (source == null) return;
                     brushStrokePreviewMaterial = new Material(source) { hideFlags = HideFlags.HideAndDontSave };
                     brushStrokePreviewMaterial.SetVector("_Channels", Vector4.one);

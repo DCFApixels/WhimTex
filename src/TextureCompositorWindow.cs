@@ -9,26 +9,26 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow : EditorWindow, IHasCustomMenu
     {
-        private const int PreviewMaxSize = 512;
-        private const double PreviewDelay = 0.12d;
-        private const double PaintingPreviewInterval = 1d / 30d;
-        private const float DefaultPaintingPreviewScale = 1f;
-        private const float MinimumPaintingPreviewScale = 0.125f;
-        private const float MaximumPaintingPreviewScale = 1f;
+        private const int CanvasMaxSize = 512;
+        private const double CanvasDelay = 0.12d;
+        private const double PaintingCanvasInterval = 1d / 30d;
+        private const float DefaultPaintingCanvasScale = 1f;
+        private const float MinimumPaintingCanvasScale = 0.125f;
+        private const float MaximumPaintingCanvasScale = 1f;
         private const float DefaultSettingsPaneWidth = 400f;
         private const float DefaultLayerSettingsPaneHeight = 320f;
-        private const float PreviewPaneMinWidth = 200f;
+        private const float CanvasViewMinWidth = 200f;
         private const float SettingsPaneMinWidth = 320f;
         private const float PanePadding = 8f;
         private const string DraggedLayerIdKey = "DCFApixels.WhimTex.DraggedLayerId";
         private const string DraggedCompositorIdKey = "DCFApixels.WhimTex.DraggedCompositorId";
-        private const string PaintingPreviewScalePrefKey = "DCFApixels.WhimTex.PaintingPreviewScale";
+        private const string PaintingCanvasScalePrefKey = "DCFApixels.WhimTex.PaintingPreviewScale";
 
         private static readonly Color DropIndicatorColor = new Color(0.20f, 0.58f, 0.95f, 1f);
         private static readonly Color GroupDropHighlightColor = new Color(0.20f, 0.58f, 0.95f, 0.22f);
-        private static readonly GUIContent LivePreviewQualityContent = new GUIContent(
+        private static readonly GUIContent LiveCanvasQualityContent = new GUIContent(
             "Live Quality",
-            "Resolution scale used while painting. Lower values make effect-heavy previews faster. Ordinary non-painting preview is limited to 512 pixels, even at 100%. Select Pencil for full-resolution preview; save and export always use full resolution.");
+            "Resolution scale used while painting. Lower values make effect-heavy canvas updates faster. Outside painting, Canvas View is limited to 512 pixels, even at 100%. Select Pencil for full resolution; save and export always use full resolution.");
         private static readonly GUIContent PrimaryBrushColorContent = new GUIContent(
             string.Empty,
             "Foreground brush color. Press X to swap it with the background color.");
@@ -54,11 +54,11 @@ namespace DCFApixels.WhimTex
         [SerializeField] private float settingsPaneWidth = DefaultSettingsPaneWidth;
         [SerializeField] private float layerSettingsPaneHeight = DefaultLayerSettingsPaneHeight;
 
-        [NonSerialized] private RenderTexture previewTexture;
-        [NonSerialized] private bool previewRequested;
-        [NonSerialized] private double previewAt;
+        [NonSerialized] private RenderTexture canvasTexture;
+        [NonSerialized] private bool canvasRequested;
+        [NonSerialized] private double canvasAt;
         [SerializeField] private bool temporaryDocumentDirty;
-        [NonSerialized] private string previewError;
+        [NonSerialized] private string canvasError;
         [NonSerialized] private Dictionary<string, bool> groupExpansion;
         [NonSerialized] private DrawingLayerBehaviour paintingLayer;
         [NonSerialized] private Vector2 lastPaintingUv;
@@ -74,8 +74,8 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private bool paintingPointerMoved;
         [NonSerialized] private bool paintingErase;
         [NonSerialized] private int paintingMouseButton = -1;
-        [NonSerialized] private double nextPaintingPreviewAt;
-        [NonSerialized] private float paintingPreviewScale;
+        [NonSerialized] private double nextPaintingCanvasAt;
+        [NonSerialized] private float paintingCanvasScale;
         [NonSerialized] private bool ownsUnityShortcutSuppression;
 
         [MenuItem("Window/WhimTex")]
@@ -98,9 +98,9 @@ namespace DCFApixels.WhimTex
         {
             if (!EditorUtility.DisplayDialog(
                 "Reset WhimTex Settings",
-                "Reset panel sizes, scrolling, selection, foldouts, RGBA channels and preview tool state in all open " +
+                "Reset panel sizes, scrolling, selection, foldouts, RGBA channels and canvas tool state in all open " +
                 "WhimTex windows, and remove the saved Live Quality preference?\n\n" +
-                "Shared brush, color, fill, preview appearance settings and the presets folder path will also be reset. Preset files will not be deleted. " +
+                "Shared brush, color, fill, Canvas View appearance settings and the presets folder path will also be reset. Preset files will not be deleted. " +
                 "Open documents (including unsaved work), layers, textures and Shader FX " +
                 "will be preserved. Unity settings and window docking will not change. " +
                 "This settings reset cannot be undone.",
@@ -111,14 +111,14 @@ namespace DCFApixels.WhimTex
             foreach (TextureCompositorWindow window in windows)
             {
                 window.rootVisualElement.Focus();
-                window.FinishPreviewTransform();
+                window.FinishCanvasTransform();
                 window.FinishPaintingStroke();
             }
             Undo.FlushUndoRecordObjects();
-            EditorPrefs.DeleteKey(PaintingPreviewScalePrefKey);
+            EditorPrefs.DeleteKey(PaintingCanvasScalePrefKey);
             EditorPrefs.DeleteKey(PaintToolSettingsPrefKey);
-            EditorPrefs.DeleteKey(PreviewToolPrefKey);
-            EditorPrefs.DeleteKey(PreviewTransformReturnToolPrefKey);
+            EditorPrefs.DeleteKey(CanvasToolPrefKey);
+            EditorPrefs.DeleteKey(CanvasTransformReturnToolPrefKey);
             WhimTexColorInputs.Reset();
             WhimTexUserSettings.Reset();
             foreach (TextureCompositorWindow window in windows)
@@ -129,23 +129,23 @@ namespace DCFApixels.WhimTex
         private void ResetEditorWindowSettings()
         {
             StopLiveOutput();
-            CancelPreviewEyedropper();
+            CancelCanvasEyedropper();
             Undo.ClearUndo(this);
-            CancelPreviewZoomGesture();
-            previewViewport.Reset();
+            CancelCanvasZoomGesture();
+            canvasViewport.Reset();
             ClearLayerDragData();
             ClearToolkitDropIndicator();
             settingsPaneWidth = DefaultSettingsPaneWidth;
             layerSettingsPaneHeight = DefaultLayerSettingsPaneHeight;
-            paintingPreviewScale = DefaultPaintingPreviewScale;
-            previewChannels = AllPreviewChannels;
-            previewDebug = false;
-            previewExposure = 0f;
+            paintingCanvasScale = DefaultPaintingCanvasScale;
+            canvasChannels = AllCanvasChannels;
+            canvasDebug = false;
+            canvasExposure = 0f;
             transformSettingsExpanded = false;
             colorSettingsExpanded = false;
             layerPropertiesExpanded = true;
             layerFxExpanded = false;
-            tiledPreview = false;
+            tiledCanvas = false;
             ReleasePostFx();
             postFxEnabled = false;
             postFxExpanded = true;
@@ -159,12 +159,12 @@ namespace DCFApixels.WhimTex
             scrollPosition = Vector2.zero;
             SelectOnlyLayer(null);
             groupExpansion?.Clear();
-            previewTool = PreviewTool.None;
-            lastBasePreviewTool = PreviewTool.None;
-            temporaryReturnTool = PreviewTool.None;
+            canvasTool = CanvasTool.None;
+            lastBaseCanvasTool = CanvasTool.None;
+            temporaryReturnTool = CanvasTool.None;
             temporaryDocument = toolContextDocument = null;
             temporaryLayerId = toolContextLayerId = null;
-            previewTransformReturnTool = PreviewTool.None;
+            canvasTransformReturnTool = CanvasTool.None;
             paintSettings?.ReleasePresetTip();
             paintSettings = new PaintToolSettings();
             selectedBrushPreset = selectedBrushPresetSnapshot = null;
@@ -172,10 +172,10 @@ namespace DCFApixels.WhimTex
             hasLastPaintingUv = false;
             paintingShiftHeld = false;
             paintingLockedAxis = 0;
-            ReleasePreview();
+            ReleaseCanvasRender();
             ReleaseEffectCache();
             CreateGUI();
-            RequestPreview(true);
+            RequestCanvasRender(true);
             Repaint();
         }
 
@@ -188,21 +188,21 @@ namespace DCFApixels.WhimTex
         {
             RestoreSourceImage();
             RefreshDocumentTitle(true);
-            previewExposure = 0f;
-            LoadPreviewToolSettings();
+            canvasExposure = 0f;
+            LoadCanvasToolSettings();
             LoadPaintToolSettings();
             EditorApplication.delayCall += RestoreBrushTipAfterReload;
             EditorApplication.projectChanged += RestoreBrushTipAfterReload;
             EditorApplication.projectChanged += CancelHealing;
             minSize = new Vector2(640f, 420f);
             groupExpansion = new Dictionary<string, bool>();
-            paintingPreviewScale = ClampPaintingPreviewScale(
-                EditorPrefs.GetFloat(PaintingPreviewScalePrefKey, DefaultPaintingPreviewScale));
+            paintingCanvasScale = ClampPaintingCanvasScale(
+                EditorPrefs.GetFloat(PaintingCanvasScalePrefKey, DefaultPaintingCanvasScale));
             TextureCompositor.Changed += OnCompositorChanged;
             TextureCompositor.RenderResourcesChanged += OnCompositorRenderResourcesChanged;
-            TextureCompositor.MiniPreviewRequested += OnMiniPreviewRequested;
+            TextureCompositor.LayerPreviewRequested += OnLayerPreviewRequested;
             TextureCompositor.OutputTextureChanged += OnOutputTextureChanged;
-            WhimTexUserSettings.Changed += OnPreviewAppearanceChanged;
+            WhimTexUserSettings.Changed += OnCanvasViewAppearanceChanged;
             AssemblyReloadEvents.beforeAssemblyReload += StopLiveOutput;
             EditorApplication.quitting += StopLiveOutput;
             WhimTexDocumentSession.StateChanged += RefreshLiveOutputButton;
@@ -214,7 +214,7 @@ namespace DCFApixels.WhimTex
                 compositor.NormalizeModel();
             WhimTexDocumentService.Attach(this, compositor);
             UpdateUnsavedChangesState();
-            RequestPreview(true);
+            RequestCanvasRender(true);
 
             if (focusedWindow == this)
                 SuppressUnityShortcuts();
@@ -222,9 +222,9 @@ namespace DCFApixels.WhimTex
 
         private void OnDisable()
         {
-            TextureCompositor.MiniPreviewRequested -= OnMiniPreviewRequested;
-            toolkitInspectorPreview?.Dispose();
-            toolkitInspectorPreview = null;
+            TextureCompositor.LayerPreviewRequested -= OnLayerPreviewRequested;
+            toolkitLayerPreview?.Dispose();
+            toolkitLayerPreview = null;
             WhimTexDocumentService.Detach(this);
             StopKeyboardNudge();
             CancelImageUrlPaste();
@@ -235,9 +235,9 @@ namespace DCFApixels.WhimTex
             EditorApplication.projectChanged -= RestoreBrushTipAfterReload;
             EditorApplication.projectChanged -= CancelHealing;
             StopLiveOutput();
-            CancelPreviewEyedropper();
-            CancelPreviewZoomGesture();
-            FinishPreviewTransform();
+            CancelCanvasEyedropper();
+            CancelCanvasZoomGesture();
+            FinishCanvasTransform();
             RestoreUnityShortcuts();
             FinishPaintingStroke();
             ResetAreaSelection();
@@ -245,17 +245,17 @@ namespace DCFApixels.WhimTex
             TextureCompositor.Changed -= OnCompositorChanged;
             TextureCompositor.RenderResourcesChanged -= OnCompositorRenderResourcesChanged;
             TextureCompositor.OutputTextureChanged -= OnOutputTextureChanged;
-            WhimTexUserSettings.Changed -= OnPreviewAppearanceChanged;
+            WhimTexUserSettings.Changed -= OnCanvasViewAppearanceChanged;
             AssemblyReloadEvents.beforeAssemblyReload -= StopLiveOutput;
             EditorApplication.quitting -= StopLiveOutput;
             WhimTexDocumentSession.StateChanged -= RefreshLiveOutputButton;
             EditorApplication.projectChanged -= OnLiveOutputProjectChanged;
             ClearLayerDragData();
-            ReleasePreview();
+            ReleaseCanvasRender();
             ReleaseEffectCache();
             compositor?.ReleaseLayerThumbnails();
-            toolkitPreviewCanvas?.ReleaseCheckerTexture();
-            toolkitPreviewCanvas?.ReleaseToolCursor();
+            toolkitCanvas?.ReleaseCheckerTexture();
+            toolkitCanvas?.ReleaseToolCursor();
             ReleasePostFx();
         }
 
@@ -266,20 +266,20 @@ namespace DCFApixels.WhimTex
             RestoreBrushTipAfterReload();
         }
 
-        private void OnPreviewAppearanceChanged()
+        private void OnCanvasViewAppearanceChanged()
         {
-            toolkitPreviewCanvas?.RefreshBackdropVisibility();
+            toolkitCanvas?.RefreshBackdropVisibility();
             toolkitHeaderBindings.Refresh();
-            previewGuideOverlay?.MarkDirtyRepaint();
+            canvasGuideOverlay?.MarkDirtyRepaint();
             healingOverlay?.MarkDirtyRepaint();
             postFxDirty = true;
             postFxBackgroundField?.SetValueWithoutNotify(WhimTexUserSettings.PostFxBackground);
             refreshPostFxFields?.Invoke();
-            toolkitPreviewCanvas?.RefreshCheckerColors();
-            if (previewDebug)
+            toolkitCanvas?.RefreshCheckerColors();
+            if (canvasDebug)
             {
-                UpdateChannelPreview();
-                UpdateToolkitPreviewPresentation();
+                UpdateChannelCanvas();
+                UpdateToolkitCanvasPresentation();
             }
         }
 
@@ -297,7 +297,7 @@ namespace DCFApixels.WhimTex
             RefreshDocumentTitle();
             RefreshLiveOutputButton();
             hasUnsavedChanges = HasDocumentChanges() || paintingLayer != null ||
-                 previewTransformManipulator != null && previewTransformManipulator.IsDragging;
+                 canvasTransformManipulator != null && canvasTransformManipulator.IsDragging;
             saveChangesMessage = "Save this WhimTex document before closing?\n\n" +
                 "Save opens Save As to choose a file. Discard closes without saving. Cancel keeps the window open.";
             RefreshDocumentSaveControls();
@@ -316,7 +316,7 @@ namespace DCFApixels.WhimTex
 
         public override void DiscardChanges()
         {
-            FinishPreviewTransform();
+            FinishCanvasTransform();
             FinishPaintingStroke();
             StopLiveOutput();
             temporaryDocumentDirty = false;
@@ -328,12 +328,12 @@ namespace DCFApixels.WhimTex
             if (healingPointer >= 0) CancelHealing();
             StopKeyboardNudge();
             ClearLayerDragGhost();
-            ClearPreviewPointerCursor();
+            ClearCanvasPointerCursor();
             areaSelectionManipulator?.Cancel();
-            if (!OwnsScreenEyedropper) CancelPreviewEyedropper();
-            CancelPreviewZoomGesture();
+            if (!OwnsScreenEyedropper) CancelCanvasEyedropper();
+            CancelCanvasZoomGesture();
             ResetOpacityEntry();
-            FinishPreviewTransform();
+            FinishCanvasTransform();
             RestoreUnityShortcuts();
         }
 
@@ -413,7 +413,7 @@ namespace DCFApixels.WhimTex
         private void Update()
         {
             UpdateHealing();
-            if (ReconcilePreviewToolContext()) toolkitRefreshRequested = true;
+            if (ReconcileCanvasToolContext()) toolkitRefreshRequested = true;
             UpdatePostFx();
             RequestEffectRefinement();
             UpdateUnsavedChangesState();
@@ -421,16 +421,16 @@ namespace DCFApixels.WhimTex
                 RefreshToolkitInterface();
             if (toolkitSettingsScroll != null)
                 scrollPosition = toolkitSettingsScroll.scrollOffset;
-            if (!previewRequested || EditorApplication.timeSinceStartup < previewAt)
+            if (!canvasRequested || EditorApplication.timeSinceStartup < canvasAt)
                 return;
 
-            previewRequested = false;
-            bool paintingPreview = paintingLayer != null;
-            UpdatePreview();
-            if (previewTransformManipulator != null && previewTransformManipulator.IsDragging)
-                nextTransformPreviewAt = EditorApplication.timeSinceStartup + PaintingPreviewInterval;
-            if (paintingPreview)
-                nextPaintingPreviewAt = EditorApplication.timeSinceStartup + PaintingPreviewInterval;
+            canvasRequested = false;
+            bool paintingCanvas = paintingLayer != null;
+            UpdateCanvasRender();
+            if (canvasTransformManipulator != null && canvasTransformManipulator.IsDragging)
+                nextTransformCanvasAt = EditorApplication.timeSinceStartup + PaintingCanvasInterval;
+            if (paintingCanvas)
+                nextPaintingCanvasAt = EditorApplication.timeSinceStartup + PaintingCanvasInterval;
         }
 
         private Layer GetDraggedLayer() => GetDraggedLayerForDocument(compositor);
@@ -574,17 +574,17 @@ namespace DCFApixels.WhimTex
             layer.ClearSurface(compositor.width, compositor.height);
             temporaryDocumentDirty |= !AssetDatabase.Contains(compositor);
             compositor.MarkChanged();
-            RequestPreview(true);
+            RequestCanvasRender(true);
         }
 
-        private void RefreshPreviewDuringPainting()
+        private void RefreshCanvasDuringPainting()
         {
             double now = EditorApplication.timeSinceStartup;
-            double requestedAt = Math.Max(now, nextPaintingPreviewAt);
-            if (!previewRequested || requestedAt < previewAt)
-                previewAt = requestedAt;
-            previewRequested = true;
-            toolkitPreviewCanvas?.MarkDirtyRepaint();
+            double requestedAt = Math.Max(now, nextPaintingCanvasAt);
+            if (!canvasRequested || requestedAt < canvasAt)
+                canvasAt = requestedAt;
+            canvasRequested = true;
+            toolkitCanvas?.MarkDirtyRepaint();
         }
 
         private void FinishPaintingStroke()
@@ -606,8 +606,8 @@ namespace DCFApixels.WhimTex
             paintingLockedAxis = 0;
             paintingPointerMoved = false;
             paintingGuideIndex = -1;
-            if (capturedPointer >= 0 && toolkitPreviewCanvas != null && toolkitPreviewCanvas.HasPointerCapture(capturedPointer))
-                toolkitPreviewCanvas.ReleasePointer(capturedPointer);
+            if (capturedPointer >= 0 && toolkitCanvas != null && toolkitCanvas.HasPointerCapture(capturedPointer))
+                toolkitCanvas.ReleasePointer(capturedPointer);
 
             if (finishedLayer == null)
                 return;
@@ -620,8 +620,8 @@ namespace DCFApixels.WhimTex
                 return;
             }
             finishedLayer.SyncSurfaceToTexture();
-            nextPaintingPreviewAt = 0d;
-            if (previewTool == PreviewTool.BlurBrush)
+            nextPaintingCanvasAt = 0d;
+            if (canvasTool == CanvasTool.BlurBrush)
             {
                 // Blur Brush changes pixels using a stable source snapshot. Once
                 // the stroke ends, do not keep the surrounding FX stack in its
@@ -634,10 +634,10 @@ namespace DCFApixels.WhimTex
             if (compositor != null)
                 compositor.MarkChanged();
             Undo.FlushUndoRecordObjects();
-            RequestPreview(true);
+            RequestCanvasRender(true);
         }
 
-        private bool TryMapPreviewToLayerUv(
+        private bool TryMapCanvasToLayerUv(
             Vector2 mousePosition,
             Rect imageRect,
             DrawingLayerBehaviour layer,
@@ -648,11 +648,11 @@ namespace DCFApixels.WhimTex
             if (imageRect.width <= 0f || imageRect.height <= 0f || layer == null)
                 return false;
 
-            if (toolkitPreviewCanvas != null) mousePosition = toolkitPreviewCanvas.ToCanvas(mousePosition);
+            if (toolkitCanvas != null) mousePosition = toolkitCanvas.ToCanvas(mousePosition);
             Vector2 documentUv = new Vector2(
                 (mousePosition.x - imageRect.x) / imageRect.width,
                 1f - (mousePosition.y - imageRect.y) / imageRect.height);
-            if (tiledPreview)
+            if (tiledCanvas)
             {
                 if (!TiledCanvasUtility.IsInvertible(compositor.GetPaintTransform(layer))) return false;
                 sourceUv = TiledCanvasUtility.ToSource(documentUv, compositor.GetPaintTransform(layer), compositor.width, compositor.height);
@@ -694,7 +694,7 @@ namespace DCFApixels.WhimTex
         private void AddDrawingLayerForSelection()
         {
             if (compositor == null) return;
-            FinishPreviewTransform();
+            FinishCanvasTransform();
             FinishPaintingStroke();
             Layer selected = GetSelectedLayer();
             if (selected != null && compositor.TryFindLayer(selected, out List<Layer> container, out int index))
@@ -741,7 +741,7 @@ namespace DCFApixels.WhimTex
 
         private void GroupLayers(List<Layer> selected)
         {
-            FinishPreviewTransform();
+            FinishCanvasTransform();
             FinishPaintingStroke();
             if (selected.Count == 0 || !compositor.TryFindLayer(selected[0], out List<Layer> container, out _))
                 return;
@@ -853,7 +853,7 @@ namespace DCFApixels.WhimTex
             menu.AddItem(new GUIContent("Copy as JSON"), false, () =>
             {
                 FinishPaintingStroke();
-                FinishPreviewTransform();
+                FinishCanvasTransform();
                 try
                 {
                     string json = WhimTexApi.WritePortableClipboardReport(compositor, roots, out var warnings);
@@ -899,7 +899,7 @@ namespace DCFApixels.WhimTex
         {
             if (layers.Exists(WhimTexApi.ContainsReservation))
             { ShowNotification(new GUIContent("Finish or cancel generation before converting these layers.")); return; }
-            FinishPreviewTransform();
+            FinishCanvasTransform();
             FinishPaintingStroke();
             if (compositor == null || layers.Count == 0)
                 return;
@@ -972,7 +972,7 @@ namespace DCFApixels.WhimTex
             {
                 if (undoGroup >= 0) Undo.IncrementCurrentGroup();
                 applyingToolkitChange = false;
-                RequestPreview(true);
+                RequestCanvasRender(true);
                 RefreshToolkitInterface(forceValues: true);
             }
         }
@@ -1071,87 +1071,87 @@ namespace DCFApixels.WhimTex
             temporaryDocumentDirty |= !AssetDatabase.Contains(compositor);
             compositor.NormalizeModel();
             compositor.MarkChanged();
-            RequestPreview();
+            RequestCanvasRender();
         }
 
-        private void RequestPreview(bool immediate = false)
+        private void RequestCanvasRender(bool immediate = false)
         {
             immediate |= GetSelectedLayer()?.Behaviour is NoiseLayerBehaviour;
-            double requestedAt = EditorApplication.timeSinceStartup + (immediate ? 0d : PreviewDelay);
-            if (!previewRequested || requestedAt < previewAt)
-                previewAt = requestedAt;
-            previewRequested = true;
+            double requestedAt = EditorApplication.timeSinceStartup + (immediate ? 0d : CanvasDelay);
+            if (!canvasRequested || requestedAt < canvasAt)
+                canvasAt = requestedAt;
+            canvasRequested = true;
         }
 
-        private void OnMiniPreviewRequested(TextureCompositor document)
+        private void OnLayerPreviewRequested(TextureCompositor document)
         {
-            if (document == compositor) RequestPreview(true);
+            if (document == compositor) RequestCanvasRender(true);
         }
 
-        private void UpdatePreview()
+        private void UpdateCanvasRender()
         {
             if (outputDependencyDirty)
             {
                 outputDependencyDirty = false;
                 ReleaseEffectCache();
             }
-            ReleasePreview(keepChannelBuffer: true);
-            previewError = null;
+            ReleaseCanvasRender(keepChannelBuffer: true);
+            canvasError = null;
             if (compositor == null)
             {
-                ReleaseChannelPreview();
+                ReleaseChannelCanvas();
                 return;
             }
 
             try
             {
                 bool interactive = EffectsAreInteractive;
-                int maxSize = previewTool == PreviewTool.Pencil || liveOutputEnabled && !interactive
+                int maxSize = canvasTool == CanvasTool.Pencil || liveOutputEnabled && !interactive
                     ? Mathf.Max(compositor.width, compositor.height)
-                    : paintingLayer != null ? GetPaintingPreviewMaxSize() : PreviewMaxSize;
-                previewEffectCache ??= new EffectRenderCache();
-                previewTexture = compositor.RenderCachedPreview(maxSize, previewEffectCache, interactive, paintingLayer);
+                    : paintingLayer != null ? GetPaintingCanvasMaxSize() : CanvasMaxSize;
+                canvasEffectCache ??= new EffectRenderCache();
+                canvasTexture = compositor.RenderCachedPreview(maxSize, canvasEffectCache, interactive, paintingLayer);
                 effectRefinementPending = interactive;
-                ApplyPreviewTextureFilter();
+                ApplyCanvasTextureFilter();
                 PublishLiveOutput();
                 RenderPostFx();
-                UpdateChannelPreview();
+                UpdateChannelCanvas();
             }
             catch (Exception exception)
             {
-                previewError = exception.Message;
+                canvasError = exception.Message;
                 Debug.LogException(exception);
-                ReleaseChannelPreview();
+                ReleaseChannelCanvas();
             }
-            UpdateToolkitPreviewPresentation();
+            UpdateToolkitCanvasPresentation();
         }
 
-        private int GetPaintingPreviewMaxSize()
+        private int GetPaintingCanvasMaxSize()
         {
             return Mathf.Clamp(
-                Mathf.RoundToInt(PreviewMaxSize * paintingPreviewScale),
-                Mathf.RoundToInt(PreviewMaxSize * MinimumPaintingPreviewScale),
-                PreviewMaxSize);
+                Mathf.RoundToInt(CanvasMaxSize * paintingCanvasScale),
+                Mathf.RoundToInt(CanvasMaxSize * MinimumPaintingCanvasScale),
+                CanvasMaxSize);
         }
 
-        private static float ClampPaintingPreviewScale(float value)
+        private static float ClampPaintingCanvasScale(float value)
         {
             if (float.IsNaN(value) || float.IsInfinity(value))
-                return DefaultPaintingPreviewScale;
-            return Mathf.Clamp(value, MinimumPaintingPreviewScale, MaximumPaintingPreviewScale);
+                return DefaultPaintingCanvasScale;
+            return Mathf.Clamp(value, MinimumPaintingCanvasScale, MaximumPaintingCanvasScale);
         }
 
-        private void ReleasePreview(bool keepChannelBuffer = false)
+        private void ReleaseCanvasRender(bool keepChannelBuffer = false)
         {
             postFxValid = false;
             postFxDirty = true;
-            toolkitPreviewCanvas?.ClearTexture();
+            toolkitCanvas?.ClearTexture();
             if (!keepChannelBuffer)
-                ReleaseChannelPreview();
-            if (previewTexture == null)
+                ReleaseChannelCanvas();
+            if (canvasTexture == null)
                 return;
-            RenderTexture.ReleaseTemporary(previewTexture);
-            previewTexture = null;
+            RenderTexture.ReleaseTemporary(canvasTexture);
+            canvasTexture = null;
         }
 
         private TextureCompositor CreateTemporaryCompositor()
@@ -1170,10 +1170,10 @@ namespace DCFApixels.WhimTex
                 return;
 
             if (HasPendingImageUrl) { CancelImageUrlPaste(); RemoveNotification(); }
-            CancelPreviewEyedropper();
-            CancelPreviewZoomGesture();
-            previewViewport.Reset();
-            FinishPreviewTransform();
+            CancelCanvasEyedropper();
+            CancelCanvasZoomGesture();
+            canvasViewport.Reset();
+            FinishCanvasTransform();
             FinishPaintingStroke();
             ClearLayerDragData();
             lineAnchorLayer = null;
@@ -1183,8 +1183,8 @@ namespace DCFApixels.WhimTex
             StopLiveOutput();
             ReleaseEffectCache();
             ResetAreaSelection();
-            ClearPreviewGuides();
-            previewGuidesDocument = next;
+            ClearCanvasGuides();
+            canvasGuidesDocument = next;
             ClearDocumentFile();
             compositor = next;
             WhimTexDocumentService.Attach(this, compositor);
@@ -1193,7 +1193,7 @@ namespace DCFApixels.WhimTex
             SelectOnlyLayer(null);
             temporaryDocumentDirty = false;
             groupExpansion?.Clear();
-            RequestPreview(true);
+            RequestCanvasRender(true);
             RefreshToolkitInterface();
 
             UpdateUnsavedChangesState();
@@ -1222,7 +1222,7 @@ namespace DCFApixels.WhimTex
         private void PrepareDocumentSave()
         {
             rootVisualElement.Focus();
-            FinishPreviewTransform();
+            FinishCanvasTransform();
             FinishPaintingStroke();
             Undo.FlushUndoRecordObjects();
         }
@@ -1275,7 +1275,7 @@ namespace DCFApixels.WhimTex
                 lineAnchorLayer = null;
 
             toolkitInspectorEffectTarget?.Invalidate();
-            CancelPreviewEyedropper();
+            CancelCanvasEyedropper();
             if (contentChanged && TextureCompositor.IsRefreshingUndo)
             {
                 OnUndoRedo();
@@ -1286,7 +1286,7 @@ namespace DCFApixels.WhimTex
             if (!contentChanged) ReleaseEffectCache();
             effectInteractiveUntil = EditorApplication.timeSinceStartup + .2d;
             UpdateUnsavedChangesState();
-            RequestPreview();
+            RequestCanvasRender();
             if (!applyingToolkitChange)
             {
                 ResetOpacityEntry();
@@ -1299,7 +1299,7 @@ namespace DCFApixels.WhimTex
             CancelHealing();
             ReleaseEffectCache();
             ResetOpacityEntry();
-            previewTransformManipulator?.End(false, false);
+            canvasTransformManipulator?.End(false, false);
             gradientCanvasManipulator?.End(false, false);
             if (compositor == null)
                 return;
@@ -1312,7 +1312,7 @@ namespace DCFApixels.WhimTex
             paintingPointerId = -1;
             selectedLayerId = compositor.FindLayer(selectedLayerId)?.Id;
             temporaryDocumentDirty |= !AssetDatabase.Contains(compositor);
-            RequestPreview(true);
+            RequestCanvasRender(true);
             RefreshToolkitInterface(forceValues: true);
         }
     }

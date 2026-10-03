@@ -1,8 +1,8 @@
-Shader "Hidden/TextureCompositor/PreviewChannels"
+Shader "Hidden/TextureCompositor/DisplayChannels"
 {
     Properties
     {
-        _MainTex ("Preview", 2D) = "white" {}
+        _MainTex ("Input", 2D) = "white" {}
         _Channels ("RGBA", Vector) = (1, 1, 1, 1)
         _Exposure ("Exposure multiplier", Float) = 1
         _Debug ("Numeric errors", Float) = 0

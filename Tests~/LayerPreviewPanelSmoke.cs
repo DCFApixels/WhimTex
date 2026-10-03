@@ -218,10 +218,10 @@ public static class LayerPreviewPanelSmoke
                         var source = (RenderTexture)Get(embedded, "source");
                         var before = Read(source);
                         var channelButtons = embedded.Q("layer-preview-channels").Query<Button>().ToList();
-                        int footerMask = (int)Get(window, "previewChannels");
+                        int footerMask = (int)Get(window, "canvasChannels");
                         CheckChannelDrag(embedded.Q("layer-preview-channels"), () => (int)Get(state, "channelMask"));
-                        Check((int)Get(window, "previewChannels") == footerMask, "Mini drag leaves main mask unchanged");
-                        CheckChannelDrag(window.rootVisualElement.Q("previewFooterColor"), () => (int)Get(window, "previewChannels"));
+                        Check((int)Get(window, "canvasChannels") == footerMask, "Mini drag leaves main mask unchanged");
+                        CheckChannelDrag(window.rootVisualElement.Q("canvasFooterColor"), () => (int)Get(window, "canvasChannels"));
                         Check((int)Get(state, "channelMask") == 15 && (int)Get(Get(standalone, "state"), "channelMask") == 15, "Main drag leaves both mini masks unchanged");
                         Check(!embedded.Q("layer-preview-resizer").HasPointerCapture(PointerId.mousePointerId), "Channel gesture does not start divider resize");
                         var savedActive = RenderTexture.active; bool savedSrgb = GL.sRGBWrite;
@@ -253,7 +253,7 @@ public static class LayerPreviewPanelSmoke
                                 Check(Math.Abs(after[i][c] - expected) < .003f, "Channel pixels " + mask);
                             }
                             Check(ReferenceEquals(Get(embedded, "source"), source), "Channel switch does not rerender layer");
-                            Check((int)Get(window, "previewChannels") == footerMask && (int)Get(Get(standalone, "state"), "channelMask") == 15, "Mini masks independent of footer and Properties");
+                            Check((int)Get(window, "canvasChannels") == footerMask && (int)Get(Get(standalone, "state"), "channelMask") == 15, "Mini masks independent of footer and Properties");
                         }
                         last = source;
                         Call(embedded, "Tick"); Check(ReferenceEquals(Get(embedded, "source"), last), "Clean preview reused");
@@ -296,7 +296,7 @@ public static class LayerPreviewPanelSmoke
                         Call(embedded, "Tick"); Check(Get(embedded, "source") == null, "Detached preview cannot render");
                         parent.Add(embedded);
                         doc.width = 128; doc.height = 512; Call(doc, "MarkChanged");
-                        Call(standalone, "RequestPreview", true); Later(); break;
+                        Call(standalone, "RequestLayerPreview", true); Later(); break;
                     case 6:
                         Drag(standalone, 1000); Later(); break;
                     case 7:

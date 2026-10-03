@@ -17,13 +17,13 @@ assert.doesNotMatch(asset, /SaveLegacyAssetForCompatibility|AssetDatabase\.Creat
 assert.match(asset, /source == null \|\| outputTexture == null/);
 for (const op of ['+=', '-=']) assert.ok(window.includes(`TextureCompositor.OutputTextureChanged ${op} OnOutputTextureChanged`));
 assert.match(live, /!change.ShouldRefresh\(compositor\)/);
-assert.match(live, /outputDependencyDirty = true;\s*RequestPreview\(\)/);
-assert.match(window, /UpdatePreview\(\)\s*\{\s*if \(outputDependencyDirty\)\s*\{\s*outputDependencyDirty = false;\s*ReleaseEffectCache\(\)/);
+assert.match(live, /outputDependencyDirty = true;\s*RequestCanvasRender\(\)/);
+assert.match(window, /UpdateCanvasRender\(\)\s*\{\s*if \(outputDependencyDirty\)\s*\{\s*outputDependencyDirty = false;\s*ReleaseEffectCache\(\)/);
 assert.match(change, /consumer == source/);
 assert.match(change, /layer\?\.IsGroup == true && UsesTexture\(layer.layers, texture\)/);
 assert.match(change, /visited.Add\(dependency\)/);
 assert.match(change, /return !DependsOnTexture\(source.layers, consumer.OutputTexture/);
 assert.ok(!/AssetDatabase|EditorPrefs|MarkChanged|SetDirty|Undo\./.test(change));
 const handler = live.split('private void OnOutputTextureChanged')[1].split('private bool CanPublishLiveOutput')[0];
-assert.ok(!/MarkChanged|SetDirty|Undo\.|UpdatePreview\(|ReleaseEffectCache\(/.test(handler));
+assert.ok(!/MarkChanged|SetDirty|Undo\.|UpdateCanvasRender\(|ReleaseEffectCache\(/.test(handler));
 console.log('Output notifications, lazy cache invalidation, File/group matching and cycle guard source contracts passed.');

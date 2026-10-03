@@ -9,7 +9,7 @@ namespace DCFApixels.WhimTex
     {
         private ShapePickerManipulator shapePicker;
         private ShapePickerManipulator marqueePicker;
-        private PreviewToolIcon marqueeToolIcon;
+        private CanvasToolIcon marqueeToolIcon;
         private ShapeToolIcon shapeToolIcon;
 
         private sealed class ToolDropdownMarker : VisualElement
@@ -161,7 +161,7 @@ namespace DCFApixels.WhimTex
                     item.AddToClassList("whimtex-shape-picker-item");
                     item.EnableInClassList("whimtex-shape-picker-item--selected", marquee
                         ? (int)owner.marqueeShape == i : owner.shapeToolSettings.kind == Kinds[i]);
-                    if (marquee) item.Add(new PreviewToolIcon(PreviewTool.RectangleSelect, i == 1));
+                    if (marquee) item.Add(new CanvasToolIcon(CanvasTool.RectangleSelect, i == 1));
                     else item.Add(new ShapeToolIcon(Kinds[i]));
                     items[i] = item;
                     menu.Add(item);
@@ -222,7 +222,7 @@ namespace DCFApixels.WhimTex
                         owner.shapeToolSettings.kind = Kinds[selection];
                     }
                 }
-                if (selection >= 0 || click) owner.SetPreviewTool(marquee ? PreviewTool.RectangleSelect : PreviewTool.Shape);
+                if (selection >= 0 || click) owner.SetCanvasTool(marquee ? CanvasTool.RectangleSelect : CanvasTool.Shape);
                 WhimTexUI.ConsumeEvent(evt);
             }
             internal void Cancel()

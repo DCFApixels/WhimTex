@@ -7,7 +7,7 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
-        [NonSerialized] private double nextTransformPreviewAt;
+        [NonSerialized] private double nextTransformCanvasAt;
         [NonSerialized] private MultiLayerTransform multiLayerTransform;
         private bool HasMultipleTransformSelection => selectedLayerIds != null && selectedLayerIds.Count > 1;
         private MultiLayerTransform CurrentMultiTransform
@@ -24,7 +24,7 @@ namespace DCFApixels.WhimTex
             get
             {
                 if (compositor == null) return false;
-                if (PreviewFXParameter != null || !HasMultipleTransformSelection) return true;
+                if (CanvasFXParameter != null || !HasMultipleTransformSelection) return true;
                 foreach (var id in selectedLayerIds)
                 {
                     var layer = compositor.FindLayer(id);
@@ -34,25 +34,25 @@ namespace DCFApixels.WhimTex
                 return true;
             }
         }
-        private VisualElement previewTransformOverlay;
-        private PreviewTransformManipulator previewTransformManipulator;
-        [NonSerialized] private ShaderFX previewTransformFX;
-        [NonSerialized] private string previewTransformParameterId;
+        private VisualElement canvasTransformOverlay;
+        private CanvasTransformManipulator canvasTransformManipulator;
+        [NonSerialized] private ShaderFX canvasTransformFX;
+        [NonSerialized] private string canvasTransformParameterId;
 
-        private ShaderFXParameter PreviewFXParameter
+        private ShaderFXParameter CanvasFXParameter
         {
             get
             {
-                if (previewTool != PreviewTool.FXTransform || previewTransformFX == null || compositor == null || GetSelectedLayer() is not Layer selected ||
-                    !selected.modifiers.Contains(previewTransformFX) || WhimTexApi.IsLayerContentLocked(compositor, selected) ||
-                    WhimTexApi.IsShaderFXContentLocked(previewTransformFX)) return null;
-                foreach (var p in previewTransformFX.Parameters)
-                    if (p != null && p.id == previewTransformParameterId && p.type == ShaderFXParameterType.Transform2D) return p;
+                if (canvasTool != CanvasTool.FXTransform || canvasTransformFX == null || compositor == null || GetSelectedLayer() is not Layer selected ||
+                    !selected.modifiers.Contains(canvasTransformFX) || WhimTexApi.IsLayerContentLocked(compositor, selected) ||
+                    WhimTexApi.IsShaderFXContentLocked(canvasTransformFX)) return null;
+                foreach (var p in canvasTransformFX.Parameters)
+                    if (p != null && p.id == canvasTransformParameterId && p.type == ShaderFXParameterType.Transform2D) return p;
                 return null;
             }
         }
 
-        private TextureTransform CurrentPreviewTransform => PreviewFXParameter is ShaderFXParameter p
+        private TextureTransform CurrentCanvasTransform => CanvasFXParameter is ShaderFXParameter p
             ? p.transformValue.ToLayerTransform(new Vector2(compositor.width, compositor.height)) : HasMultipleTransformSelection ? CurrentMultiTransform.Frame : compositor.GetCanvasTransform(GetSelectedLayer());
 
         internal static TextureCompositor FindFXTransformDocument(ShaderFX effect)
@@ -78,31 +78,31 @@ namespace DCFApixels.WhimTex
                     !WhimTexApi.IsLayerContentLocked(window.compositor, selected) &&
                     (best == null || window == focusedWindow || best != focusedWindow && window.AgentFocusOrder > best.AgentFocusOrder)) best = window;
             if (best == null) { EditorUtility.DisplayDialog("FX Transform", "Select a layer using this FX in a WhimTex window first.", "OK"); return; }
-            best.ActivateTemporaryTool(PreviewTool.FXTransform, effect, parameterId);
+            best.ActivateTemporaryTool(CanvasTool.FXTransform, effect, parameterId);
         }
 
-        private bool IsPreviewTransformEnabled => (previewTool == PreviewTool.Transform || previewTool == PreviewTool.FXTransform && PreviewFXParameter != null) && TransformSelectionAvailable &&
+        private bool IsCanvasTransformEnabled => (canvasTool == CanvasTool.Transform || canvasTool == CanvasTool.FXTransform && CanvasFXParameter != null) && TransformSelectionAvailable &&
             GetSelectedLayer() is Layer layer && layer.Behaviour != null &&
             !WhimTexApi.IsLayerContentLocked(compositor, layer) && !WhimTexApi.ContainsReservation(layer);
 
-        private void BuildPreviewTransformTool()
+        private void BuildCanvasTransformTool()
         {
             BuildNormalTool();
             BuildPointTool();
-            previewTransformOverlay = new VisualElement { pickingMode = PickingMode.Ignore };
-            previewTransformOverlay.StretchToParentSize();
-            toolkitPreviewCanvas.Add(previewTransformOverlay);
-            previewTransformManipulator = new PreviewTransformManipulator(this);
-            previewTransformOverlay.generateVisualContent += previewTransformManipulator.Draw;
-            toolkitPreviewCanvas.AddManipulator(previewTransformManipulator);
-            toolkitPreviewCanvas.RegisterCallback<GeometryChangedEvent>(_ => previewTransformOverlay.MarkDirtyRepaint());
+            canvasTransformOverlay = new VisualElement { pickingMode = PickingMode.Ignore };
+            canvasTransformOverlay.StretchToParentSize();
+            toolkitCanvas.Add(canvasTransformOverlay);
+            canvasTransformManipulator = new CanvasTransformManipulator(this);
+            canvasTransformOverlay.generateVisualContent += canvasTransformManipulator.Draw;
+            toolkitCanvas.AddManipulator(canvasTransformManipulator);
+            toolkitCanvas.RegisterCallback<GeometryChangedEvent>(_ => canvasTransformOverlay.MarkDirtyRepaint());
         }
 
-        private void AddPreviewTransformSettings()
+        private void AddCanvasTransformSettings()
         {
-            VisualElement row = CreatePreviewSettingsRow();
+            VisualElement row = CreateCanvasSettingsRow();
             row.AddToClassList("whimtex-transform-settings");
-            toolkitHeaderBindings.Add(() => row.SetEnabled(PreviewFXParameter == null && !HasMultipleTransformSelection));
+            toolkitHeaderBindings.Add(() => row.SetEnabled(CanvasFXParameter == null && !HasMultipleTransformSelection));
             VisualElement tilingGroup = WhimTexUI.CreateRow();
             tilingGroup.AddToClassList("whimtex-transform-option");
             tilingGroup.Add(CreateCompactLabel("Tiling", 38f));
@@ -111,14 +111,14 @@ namespace DCFApixels.WhimTex
                 "Source: inherit texture wrap modes. Clamp: extend edge pixels. " +
                 "Unbounded: continue procedural UVs; raster layers use Clip.";
             toolkitHeaderBindings.Track(tiling, () => (Enum)(GetSelectedLayer()?.transform.tiling ?? TransformTilingMode.Clip));
-            toolkitHeaderBindings.Add(() => tiling.SetEnabled(IsPreviewToolAvailable(PreviewTool.Transform)));
-            BindPreviewSettingsRow(row, PreviewTool.Transform);
+            toolkitHeaderBindings.Add(() => tiling.SetEnabled(IsCanvasToolAvailable(CanvasTool.Transform)));
+            BindCanvasSettingsRow(row, CanvasTool.Transform);
             tiling.RegisterValueChangedCallback(evt =>
             {
                 Layer selected = GetSelectedLayer();
                 if (selected == null)
                     return;
-                FinishPreviewTransform();
+                FinishCanvasTransform();
                 ApplyToolkitChange("Change Transform Tiling", () => selected.transform.tiling = (TransformTilingMode)evt.newValue);
             });
             tilingGroup.Add(tiling);
@@ -130,13 +130,13 @@ namespace DCFApixels.WhimTex
             filter.tooltip = "Source: inherit the texture's Filter Mode. Point: sharp pixels. Bilinear: smooth. " +
                 "Trilinear: smooth mip transitions (requires source mipmaps). Independent of Tiling.";
             toolkitHeaderBindings.Track(filter, () => (Enum)(GetSelectedLayer()?.filterMode ?? LayerFilterMode.Source));
-            toolkitHeaderBindings.Add(() => filter.SetEnabled(IsPreviewToolAvailable(PreviewTool.Transform)));
+            toolkitHeaderBindings.Add(() => filter.SetEnabled(IsCanvasToolAvailable(CanvasTool.Transform)));
             filter.RegisterValueChangedCallback(evt =>
             {
                 Layer selected = GetSelectedLayer();
                 if (selected == null)
                     return;
-                FinishPreviewTransform();
+                FinishCanvasTransform();
                 FinishPaintingStroke();
                 ApplyToolkitChange("Change Layer Filter", () => selected.filterMode = (LayerFilterMode)evt.newValue);
             });
@@ -146,7 +146,7 @@ namespace DCFApixels.WhimTex
                 GetSelectedLayer, () => compositor,
                 (undoName, change) =>
                 {
-                    FinishPreviewTransform();
+                    FinishCanvasTransform();
                     FinishPaintingStroke();
                     ApplyToolkitChange(undoName, change);
                 }, toolkitHeaderBindings));
@@ -154,7 +154,7 @@ namespace DCFApixels.WhimTex
                 GetSelectedLayer, () => compositor,
                 (undoName, change) =>
                 {
-                    FinishPreviewTransform();
+                    FinishCanvasTransform();
                     FinishPaintingStroke();
                     ApplyToolkitChange(undoName, change);
                 }, toolkitHeaderBindings, originalSize: true));
@@ -163,7 +163,7 @@ namespace DCFApixels.WhimTex
                 Layer selected = GetSelectedLayer();
                 if (selected == null || selected.IsGroup)
                     return;
-                FinishPreviewTransform();
+                FinishCanvasTransform();
                 FinishPaintingStroke();
                 TextureTransform value = selected.transform;
                 value.Reset();
@@ -171,65 +171,65 @@ namespace DCFApixels.WhimTex
                     ApplyToolkitChange("Reset Layer Transform", () => selected.transform = value);
             });
             reset.tooltip = "Reset position, scale, rotation and pivot; restore Tiling to Clip. Keep Filter unchanged.";
-            toolkitHeaderBindings.Add(() => reset.SetEnabled(IsPreviewTransformEnabled));
+            toolkitHeaderBindings.Add(() => reset.SetEnabled(IsCanvasTransformEnabled));
             row.Add(reset);
-            toolkitPreviewHeader.Add(row);
+            toolkitCanvasViewHeader.Add(row);
         }
 
-        private void TogglePreviewTransform()
+        private void ToggleCanvasTransform()
         {
-            SetPreviewTool(previewTool == PreviewTool.Transform
-                ? previewTransformReturnTool
-                : PreviewTool.Transform);
+            SetCanvasTool(canvasTool == CanvasTool.Transform
+                ? canvasTransformReturnTool
+                : CanvasTool.Transform);
         }
 
-        private void SetPreviewTool(PreviewTool tool)
+        private void SetCanvasTool(CanvasTool tool)
         {
-            ReconcilePreviewToolContext();
-            if (!IsBasePreviewTool(tool))
+            ReconcileCanvasToolContext();
+            if (!IsBaseCanvasTool(tool))
             {
                 if (!IsContextToolAvailable(tool)) return;
-                if (previewTool == tool) { ExitContextTool(); return; }
+                if (canvasTool == tool) { ExitContextTool(); return; }
             }
-            ChangePreviewTool(tool);
+            ChangeCanvasTool(tool);
             RefreshToolkitInterface();
-            toolkitPreviewCanvas?.Focus();
+            toolkitCanvas?.Focus();
         }
 
-        private bool HandlePreviewTransformKey(KeyDownEvent evt)
+        private bool HandleCanvasTransformKey(KeyDownEvent evt)
         {
             if (evt.ctrlKey || evt.commandKey || evt.altKey)
                 return false;
             if (evt.keyCode == KeyCode.T)
-                TogglePreviewTransform();
+                ToggleCanvasTransform();
             else if (evt.keyCode == KeyCode.B)
-                SetPreviewTool(PreviewTool.Brush);
+                SetCanvasTool(CanvasTool.Brush);
             else if (evt.keyCode == KeyCode.P)
-                SetPreviewTool(PreviewTool.Pencil);
+                SetCanvasTool(CanvasTool.Pencil);
             else if (evt.keyCode == KeyCode.G)
-                SetPreviewTool(PreviewTool.Fill);
+                SetCanvasTool(CanvasTool.Fill);
             else if (evt.keyCode == KeyCode.M)
-                SetPreviewTool(PreviewTool.RectangleSelect);
+                SetCanvasTool(CanvasTool.RectangleSelect);
             else if (evt.keyCode == KeyCode.L)
-                SetPreviewTool(PreviewTool.PolygonSelect);
+                SetCanvasTool(CanvasTool.PolygonSelect);
             else if (evt.keyCode == KeyCode.U)
-                SetPreviewTool(PreviewTool.Shape);
+                SetCanvasTool(CanvasTool.Shape);
             else if (evt.keyCode == KeyCode.Z)
-                SetPreviewTool(PreviewTool.Zoom);
-            else if (IsPreviewZoomEnabled && evt.keyCode == KeyCode.Escape)
-                CancelPreviewZoomGesture();
+                SetCanvasTool(CanvasTool.Zoom);
+            else if (IsCanvasZoomEnabled && evt.keyCode == KeyCode.Escape)
+                CancelCanvasZoomGesture();
             else if (evt.keyCode == KeyCode.V)
-                SetPreviewTool(PreviewTool.None);
-            else if (IsPreviewTransformEnabled && evt.keyCode == KeyCode.Escape)
+                SetCanvasTool(CanvasTool.None);
+            else if (IsCanvasTransformEnabled && evt.keyCode == KeyCode.Escape)
             {
-                if (previewTransformManipulator != null && previewTransformManipulator.IsDragging)
-                    FinishPreviewTransform(true);
+                if (canvasTransformManipulator != null && canvasTransformManipulator.IsDragging)
+                    FinishCanvasTransform(true);
                 else
-                    TogglePreviewTransform();
+                    ToggleCanvasTransform();
             }
-            else if (IsPreviewTransformEnabled && (evt.keyCode == KeyCode.Return || evt.keyCode == KeyCode.KeypadEnter))
+            else if (IsCanvasTransformEnabled && (evt.keyCode == KeyCode.Return || evt.keyCode == KeyCode.KeypadEnter))
             {
-                if (IsTemporaryPreviewTool(previewTool)) ExitContextTool(); else TogglePreviewTransform();
+                if (IsTemporaryCanvasTool(canvasTool)) ExitContextTool(); else ToggleCanvasTransform();
             }
             else
                 return false;
@@ -237,32 +237,32 @@ namespace DCFApixels.WhimTex
             return true;
         }
 
-        private void FinishPreviewTransform(bool cancel = false)
+        private void FinishCanvasTransform(bool cancel = false)
         {
             gradientCanvasManipulator?.End(cancel);
-            previewTransformManipulator?.End(cancel, true);
+            canvasTransformManipulator?.End(cancel, true);
             pointManipulator?.Finish(cancel);
             normalManipulator?.Finish(cancel);
         }
 
-        private void RefreshPreviewTransformTool()
+        private void RefreshCanvasTransformTool()
         {
             gradientCanvasManipulator?.Validate();
             gradientCanvasOverlay?.MarkDirtyRepaint();
-            previewTransformManipulator?.ValidateSelection();
-            previewTransformOverlay?.MarkDirtyRepaint();
+            canvasTransformManipulator?.ValidateSelection();
+            canvasTransformOverlay?.MarkDirtyRepaint();
         }
 
-        private void RequestTransformPreview()
+        private void RequestTransformCanvas()
         {
-            double requestedAt = Math.Max(EditorApplication.timeSinceStartup, nextTransformPreviewAt);
-            if (!previewRequested || previewAt > requestedAt)
-                previewAt = requestedAt;
-            previewRequested = true;
-            previewTransformOverlay.MarkDirtyRepaint();
+            double requestedAt = Math.Max(EditorApplication.timeSinceStartup, nextTransformCanvasAt);
+            if (!canvasRequested || canvasAt > requestedAt)
+                canvasAt = requestedAt;
+            canvasRequested = true;
+            canvasTransformOverlay.MarkDirtyRepaint();
         }
 
-        private sealed class PreviewTransformManipulator : PointerManipulator
+        private sealed class CanvasTransformManipulator : PointerManipulator
         {
             private static readonly Vector2[] Handles =
             {
@@ -294,7 +294,7 @@ namespace DCFApixels.WhimTex
 
             public bool IsDragging => pointerId >= 0;
 
-            public PreviewTransformManipulator(TextureCompositorWindow owner) => this.owner = owner;
+            public CanvasTransformManipulator(TextureCompositorWindow owner) => this.owner = owner;
 
             protected override void RegisterCallbacksOnTarget()
             {
@@ -321,17 +321,17 @@ namespace DCFApixels.WhimTex
 
             public void ValidateSelection()
             {
-                if (IsDragging && (!owner.IsPreviewTransformEnabled ||
-                    !ReferenceEquals(gestureParameter, owner.PreviewFXParameter) ||
+                if (IsDragging && (!owner.IsCanvasTransformEnabled ||
+                    !ReferenceEquals(gestureParameter, owner.CanvasFXParameter) ||
                     !ReferenceEquals(layer, owner.GetSelectedLayer()) ||
                     !ReferenceEquals(gestureBehaviour, layer?.Behaviour) ||
                     (gestureMulti != null && !gestureMulti.Matches(owner.compositor, owner.selectedLayerIds)) ||
                     size != new Vector2(owner.compositor.width, owner.compositor.height)))
                     End(false, true);
-                if (owner.previewTransformFX != null && owner.PreviewFXParameter == null)
+                if (owner.canvasTransformFX != null && owner.CanvasFXParameter == null)
                 {
-                    owner.previewTransformFX = null;
-                    owner.previewTransformParameterId = null;
+                    owner.canvasTransformFX = null;
+                    owner.canvasTransformParameterId = null;
                 }
             }
 
@@ -348,7 +348,7 @@ namespace DCFApixels.WhimTex
                 return Vector2.Scale(transform.Map(uv, dimensions), dimensions);
             }
 
-            private static Vector2 ToPreview(Vector2 pixels, Rect imageRect, Vector2 dimensions) =>
+            private static Vector2 ToCanvasPoint(Vector2 pixels, Rect imageRect, Vector2 dimensions) =>
                 new Vector2(imageRect.x + pixels.x / dimensions.x * imageRect.width,
                     imageRect.yMax - pixels.y / dimensions.y * imageRect.height);
 
@@ -358,8 +358,8 @@ namespace DCFApixels.WhimTex
 
             private static Vector2 RotationHandle(TextureTransform transform, Rect imageRect, Vector2 dimensions)
             {
-                Vector2 center = ToPreview(TransformPoint(new Vector2(0.5f, 0.5f), transform, dimensions), imageRect, dimensions);
-                Vector2 top = ToPreview(TransformPoint(Handles[5], transform, dimensions), imageRect, dimensions);
+                Vector2 center = ToCanvasPoint(TransformPoint(new Vector2(0.5f, 0.5f), transform, dimensions), imageRect, dimensions);
+                Vector2 top = ToCanvasPoint(TransformPoint(Handles[5], transform, dimensions), imageRect, dimensions);
                 Vector2 direction = top - center;
                 if (direction.sqrMagnitude < 0.01f)
                     direction = Vector2.up * -1f;
@@ -368,7 +368,7 @@ namespace DCFApixels.WhimTex
 
             private static int HitTest(Vector2 point, TextureTransform transform, Rect imageRect, Vector2 dimensions, bool showPivot = true)
             {
-                Vector2 pivot = ToPreview(TransformPoint(transform.pivotF, transform, dimensions), imageRect, dimensions);
+                Vector2 pivot = ToCanvasPoint(TransformPoint(transform.pivotF, transform, dimensions), imageRect, dimensions);
                 if (showPivot && (point - pivot).sqrMagnitude <= 81f)
                     return CanMovePivot(transform) ? PivotHandle : -1;
                 if ((point - RotationHandle(transform, imageRect, dimensions)).sqrMagnitude <= 81f)
@@ -377,7 +377,7 @@ namespace DCFApixels.WhimTex
                 float distance = 81f;
                 for (int i = 0; i < Handles.Length; i++)
                 {
-                    float candidate = (point - ToPreview(TransformPoint(Handles[i], transform, dimensions), imageRect, dimensions)).sqrMagnitude;
+                    float candidate = (point - ToCanvasPoint(TransformPoint(Handles[i], transform, dimensions), imageRect, dimensions)).sqrMagnitude;
                     if (candidate < distance)
                     {
                         nearest = i;
@@ -393,12 +393,12 @@ namespace DCFApixels.WhimTex
 
             internal MouseCursor GetCursor(Vector2 point, bool alt)
             {
-                if (!owner.IsPreviewTransformEnabled) return MouseCursor.Pan;
-                point = owner.toolkitPreviewCanvas.ToCanvas(point);
-                Rect rect = owner.toolkitPreviewCanvas.ImageRect;
+                if (!owner.IsCanvasTransformEnabled) return MouseCursor.Pan;
+                point = owner.toolkitCanvas.ToCanvas(point);
+                Rect rect = owner.toolkitCanvas.ImageRect;
                 if (rect.width <= 0f || rect.height <= 0f) return MouseCursor.Pan;
-                int hit = IsDragging ? handle : HitTest(point, owner.CurrentPreviewTransform, rect,
-                    new Vector2(owner.compositor.width, owner.compositor.height), owner.PreviewFXParameter == null);
+                int hit = IsDragging ? handle : HitTest(point, owner.CurrentCanvasTransform, rect,
+                    new Vector2(owner.compositor.width, owner.compositor.height), owner.CanvasFXParameter == null);
                 if (hit == RotateHandle) return MouseCursor.RotateArrow;
                 if (hit == PivotHandle) return MouseCursor.MoveArrow;
                 return hit >= 0 && hit < Handles.Length ? MouseCursor.ScaleArrow : MouseCursor.Pan;
@@ -406,28 +406,28 @@ namespace DCFApixels.WhimTex
 
             private void OnDown(PointerDownEvent evt)
             {
-                if (!owner.IsPreviewTransformEnabled || evt.button != 0 || IsDragging)
+                if (!owner.IsCanvasTransformEnabled || evt.button != 0 || IsDragging)
                     return;
-                Rect rect = owner.toolkitPreviewCanvas.ImageRect;
+                Rect rect = owner.toolkitCanvas.ImageRect;
                 if (rect.width <= 0f || rect.height <= 0f)
                     return;
                 Layer selected = owner.GetSelectedLayer();
                 Vector2 dimensions = new Vector2(owner.compositor.width, owner.compositor.height);
-                Vector2 canvasPoint = owner.toolkitPreviewCanvas.ToCanvas(evt.localPosition);
-                int hit = HitTest(canvasPoint, owner.CurrentPreviewTransform, rect, dimensions, owner.PreviewFXParameter == null);
+                Vector2 canvasPoint = owner.toolkitCanvas.ToCanvas(evt.localPosition);
+                int hit = HitTest(canvasPoint, owner.CurrentCanvasTransform, rect, dimensions, owner.CanvasFXParameter == null);
                 if (hit < 0)
                     return;
                 owner.Focus();
                 target.Focus();
                 layer = selected;
                 gestureBehaviour = selected.Behaviour;
-                original = owner.CurrentPreviewTransform;
+                original = owner.CurrentCanvasTransform;
                 originalLocal = selected.transform;
-                gestureMulti = owner.PreviewFXParameter == null && owner.HasMultipleTransformSelection ? owner.CurrentMultiTransform : null;
+                gestureMulti = owner.CanvasFXParameter == null && owner.HasMultipleTransformSelection ? owner.CurrentMultiTransform : null;
                 gestureMulti?.Begin();
                 lastAlt = evt.altKey;
-                gestureParameter = owner.PreviewFXParameter;
-                gestureFX = gestureParameter != null ? owner.previewTransformFX : null;
+                gestureParameter = owner.CanvasFXParameter;
+                gestureFX = gestureParameter != null ? owner.canvasTransformFX : null;
                 size = dimensions;
                 handle = hit;
                 gestureImageRect = rect;
@@ -436,7 +436,7 @@ namespace DCFApixels.WhimTex
                 pointerId = evt.pointerId;
                 undoGroup = -1;
                 target.CapturePointer(pointerId);
-                owner.UpdatePreviewCursor(evt.localPosition, evt.altKey);
+                owner.UpdateCanvasCursor(evt.localPosition, evt.altKey);
                 evt.StopImmediatePropagation();
             }
 
@@ -446,7 +446,7 @@ namespace DCFApixels.WhimTex
                     return;
                 lastAlt = evt.altKey;
                 UpdateTransform(evt.localPosition, evt.shiftKey, evt.ctrlKey || evt.commandKey);
-                owner.UpdatePreviewCursor(evt.localPosition, evt.altKey);
+                owner.UpdateCanvasCursor(evt.localPosition, evt.altKey);
                 evt.StopImmediatePropagation();
             }
 
@@ -481,24 +481,24 @@ namespace DCFApixels.WhimTex
 
             private Vector2 SnapPivot(Vector2 pivot, Vector2 documentPosition)
             {
-                Vector2 previewPosition = ToPreview(documentPosition, gestureImageRect, size);
+                Vector2 canvasPosition = ToCanvasPoint(documentPosition, gestureImageRect, size);
                 float nearestDistance = PivotSnapDistance * PivotSnapDistance;
                 Vector2 result = pivot;
                 for (int i = 0; i <= Handles.Length; i++)
                 {
                     Vector2 anchor = i < Handles.Length ? Handles[i] : new Vector2(0.5f, 0.5f);
-                    Vector2 anchorPosition = ToPreview(TransformPoint(anchor, original, size), gestureImageRect, size);
-                    float distance = (anchorPosition - previewPosition).sqrMagnitude;
+                    Vector2 anchorPosition = ToCanvasPoint(TransformPoint(anchor, original, size), gestureImageRect, size);
+                    float distance = (anchorPosition - canvasPosition).sqrMagnitude;
                     if (distance <= nearestDistance)
                     {
                         nearestDistance = distance;
                         result = anchor;
                     }
                 }
-                bool intersection = owner.TrySnapPreviewGuideIntersection(documentPosition, Vector2.zero, out Vector2 guidePoint);
-                if (!intersection) guidePoint = owner.SnapPreviewGuidePoint(documentPosition);
+                bool intersection = owner.TrySnapCanvasGuideIntersection(documentPosition, Vector2.zero, out Vector2 guidePoint);
+                if (!intersection) guidePoint = owner.SnapCanvasGuidePoint(documentPosition);
                 if (intersection || (guidePoint != documentPosition &&
-                    (ToPreview(guidePoint, gestureImageRect, size) - previewPosition).sqrMagnitude < nearestDistance))
+                    (ToCanvasPoint(guidePoint, gestureImageRect, size) - canvasPosition).sqrMagnitude < nearestDistance))
                 {
                     Vector2 local = Rotate(guidePoint - Vector2.Scale(original.pivotF, size) - original.positionF, -original.rotationF);
                     result = original.pivotF + new Vector2(local.x / original.scaleF.x / size.x, local.y / original.scaleF.y / size.y);
@@ -535,17 +535,17 @@ namespace DCFApixels.WhimTex
                     vertical && Mathf.Abs(offset.y) <= tolerance.y ? offset.y : 0f);
                 Vector2 center = TransformPoint(new Vector2(.5f, .5f), transform, size);
                 Vector2 halfSize = new Vector2(Mathf.Abs(transform.scaleF.x) * size.x * .5f, Mathf.Abs(transform.scaleF.y) * size.y * .5f);
-                return owner.SnapPreviewGuideMove(center, Rotate(Vector2.right, transform.rotationF), halfSize, canvasOffset, horizontal, vertical);
+                return owner.SnapCanvasGuideMove(center, Rotate(Vector2.right, transform.rotationF), halfSize, canvasOffset, horizontal, vertical);
             }
 
             private Vector2 SnapResize(Vector2 point, Vector2 direction, bool free)
             {
-                Vector2 pixelsToPreview = new Vector2(gestureImageRect.width / size.x, gestureImageRect.height / size.y);
+                Vector2 pixelsToCanvasView = new Vector2(gestureImageRect.width / size.x, gestureImageRect.height / size.y);
                 if (free)
                 {
-                    Vector2 canvasPoint = point + new Vector2(CanvasEdgeOffset(point.x, size.x, CanvasSnapDistance / pixelsToPreview.x),
-                        CanvasEdgeOffset(point.y, size.y, CanvasSnapDistance / pixelsToPreview.y));
-                    return owner.SnapPreviewGuideResize(point, direction, true, Rotate(Vector2.right, original.rotationF), canvasPoint);
+                    Vector2 canvasPoint = point + new Vector2(CanvasEdgeOffset(point.x, size.x, CanvasSnapDistance / pixelsToCanvasView.x),
+                        CanvasEdgeOffset(point.y, size.y, CanvasSnapDistance / pixelsToCanvasView.y));
+                    return owner.SnapCanvasGuideResize(point, direction, true, Rotate(Vector2.right, original.rotationF), canvasPoint);
                 }
 
                 Vector2 result = point;
@@ -556,13 +556,13 @@ namespace DCFApixels.WhimTex
                     for (int edge = 0; edge < 2; edge++)
                     {
                         Vector2 offset = direction * ((edge * size[axis] - point[axis]) / direction[axis]);
-                        float distance = Vector2.Scale(offset, pixelsToPreview).sqrMagnitude;
+                        float distance = Vector2.Scale(offset, pixelsToCanvasView).sqrMagnitude;
                         if (distance > nearest) continue;
                         nearest = distance;
                         result = point + offset;
                     }
                 }
-                return owner.SnapPreviewGuideResize(point, direction, false, Rotate(Vector2.right, original.rotationF), result);
+                return owner.SnapCanvasGuideResize(point, direction, false, Rotate(Vector2.right, original.rotationF), result);
             }
 
             private void UpdateTransform(Vector2 point, bool constrain, bool disableSnap)
@@ -571,7 +571,7 @@ namespace DCFApixels.WhimTex
                 if (!IsDragging)
                     return;
                 lastPointerPosition = point;
-                point = owner.toolkitPreviewCanvas.ToCanvas(point);
+                point = owner.toolkitCanvas.ToCanvas(point);
                 Vector2 current = ToDocument(point, gestureImageRect, size);
                 Vector2 delta = current - pointerStart;
                 if (undoGroup < 0 && delta.sqrMagnitude < 0.000001f)
@@ -622,7 +622,7 @@ namespace DCFApixels.WhimTex
                         next.rotation = Math.Round(next.rotation / 15d) * 15d;
                     else if (!disableSnap)
                     {
-                        float snapped = owner.SnapPreviewGuideRotation(next.rotationF);
+                        float snapped = owner.SnapCanvasGuideRotation(next.rotationF);
                         if (snapped != next.rotationF) next.rotation = snapped;
                     }
                 }
@@ -673,7 +673,7 @@ namespace DCFApixels.WhimTex
                     var offset=new Double2((anchor.x*size.x-pivot.x)*next.scale.x,(anchor.y*size.y-pivot.y)*next.scale.y);
                     next.position=fixedPoint-pivot-ProjectiveMatrix.Rotate(original.rotation).Point(offset);
                 }
-                TextureTransform currentValue = owner.CurrentPreviewTransform;
+                TextureTransform currentValue = owner.CurrentCanvasTransform;
                 if (next.Equals(currentValue))
                     return;
                 if (undoGroup < 0)
@@ -686,9 +686,9 @@ namespace DCFApixels.WhimTex
                 }
                 WriteTransform(next);
                 if (handle == PivotHandle)
-                    owner.previewTransformOverlay.MarkDirtyRepaint();
+                    owner.canvasTransformOverlay.MarkDirtyRepaint();
                 else
-                    owner.RequestTransformPreview();
+                    owner.RequestTransformCanvas();
             }
 
             private static double SafeDoubleScale(double value) => value < 0 ? Math.Min(value,-1e-5) : Math.Max(value,1e-5);
@@ -765,7 +765,7 @@ namespace DCFApixels.WhimTex
                 lastAlt = evt.altKey;
                 UpdateTransform(evt.localPosition, evt.shiftKey, evt.ctrlKey || evt.commandKey);
                 End(false, true);
-                owner.UpdatePreviewCursor(evt.localPosition, evt.altKey);
+                owner.UpdateCanvasCursor(evt.localPosition, evt.altKey);
                 evt.StopImmediatePropagation();
             }
 
@@ -813,7 +813,7 @@ namespace DCFApixels.WhimTex
                     try { owner.CommitModelChange(); }
                     finally { owner.applyingToolkitChange = false; }
                     owner.lineAnchorLayer = null;
-                    owner.RequestPreview(true);
+                    owner.RequestCanvasRender(true);
                     owner.toolkitRefreshRequested = true;
                 }
                 layer = null;
@@ -822,22 +822,22 @@ namespace DCFApixels.WhimTex
                 gestureFX = null;
                 gestureParameter = null;
                 undoGroup = -1;
-                owner.previewTransformOverlay?.MarkDirtyRepaint();
-                if (owner.IsPreviewTransformEnabled) owner.RefreshPreviewPointerCursor();
+                owner.canvasTransformOverlay?.MarkDirtyRepaint();
+                if (owner.IsCanvasTransformEnabled) owner.RefreshCanvasPointerCursor();
             }
 
             public void Draw(MeshGenerationContext context)
             {
-                if (!owner.IsPreviewTransformEnabled)
+                if (!owner.IsCanvasTransformEnabled)
                     return;
-                Rect rect = owner.toolkitPreviewCanvas.ImageRect;
+                Rect rect = owner.toolkitCanvas.ImageRect;
                 if (rect.width <= 0f || rect.height <= 0f)
                     return;
-                TextureTransform transform = owner.CurrentPreviewTransform;
-                bool fxTransform = owner.PreviewFXParameter != null;
+                TextureTransform transform = owner.CurrentCanvasTransform;
+                bool fxTransform = owner.CanvasFXParameter != null;
                 Vector2 dimensions = new Vector2(owner.compositor.width, owner.compositor.height);
-                Vector2 ViewPoint(Vector2 pixels) => owner.toolkitPreviewCanvas.ToView(ToPreview(pixels, rect, dimensions));
-                Vector2 rotationHandle = owner.toolkitPreviewCanvas.ToView(RotationHandle(transform, rect, dimensions));
+                Vector2 ViewPoint(Vector2 pixels) => owner.toolkitCanvas.ToView(ToCanvasPoint(pixels, rect, dimensions));
+                Vector2 rotationHandle = owner.toolkitCanvas.ToView(RotationHandle(transform, rect, dimensions));
                 Painter2D painter = context.painter2D;
                 for (int pass = 0; pass < 2; pass++)
                 {

@@ -9,15 +9,19 @@ try
     material.EnableKeyword("BRUSH_TEXTURE");
     material.SetTexture("_BrushTip", UnityEngine.Texture2D.whiteTexture);
     material.SetVector("_TipAspect", UnityEngine.Vector4.one);
+    // The current shader maps canvas vertices through these homogeneous rows.
+    material.SetVector("_PaintRow0", new UnityEngine.Vector4(1,0,0,0));
+    material.SetVector("_PaintRow1", new UnityEngine.Vector4(0,1,0,0));
+    material.SetVector("_PaintRow2", new UnityEngine.Vector4(0,0,1,0));
     material.SetFloat("_SrcBlend", 1); material.SetFloat("_DstBlend", 0);
     var positions = new[] { new UnityEngine.Vector3(0,0,0), new UnityEngine.Vector3(0,1,0), new UnityEngine.Vector3(1,1,0), new UnityEngine.Vector3(1,0,0) };
     mesh.vertices = positions;
     mesh.uv = new[] { UnityEngine.Vector2.zero, UnityEngine.Vector2.up, UnityEngine.Vector2.one, UnityEngine.Vector2.right };
     for (int channel = 1; channel <= 6; channel++)
     {
-        var data = new System.Collections.Generic.List<UnityEngine.Vector3>();
-        for (int i = 0; i < 4; i++) data.Add(channel == 5 ? UnityEngine.Vector3.one :
-            channel == 6 ? new UnityEngine.Vector3(32,1,0) : UnityEngine.Vector3.zero);
+        var data = new System.Collections.Generic.List<UnityEngine.Vector4>();
+        for (int i = 0; i < 4; i++) data.Add(channel == 5 ? UnityEngine.Vector4.one :
+            channel == 6 ? new UnityEngine.Vector4(32,1,0,1) : UnityEngine.Vector4.zero);
         mesh.SetUVs(channel, data);
     }
     mesh.SetIndices(new[] {0,1,2,3}, UnityEngine.MeshTopology.Quads, 0);
@@ -50,7 +54,7 @@ try
                     UnityEngine.GL.MultiTexCoord2(0, positions[i].x, positions[i].y);
                     for (int channel = 1; channel <= 4; channel++) UnityEngine.GL.MultiTexCoord3(channel,0,0,0);
                     UnityEngine.GL.MultiTexCoord3(5,1,1,1);
-                    UnityEngine.GL.MultiTexCoord3(6,32,1,0);
+                    UnityEngine.GL.MultiTexCoord(6, new UnityEngine.Vector3(32,1,0));
                     UnityEngine.GL.Vertex(positions[i]);
                 }
                 UnityEngine.GL.End();

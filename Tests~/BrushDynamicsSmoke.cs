@@ -87,7 +87,7 @@ foreach (float opacity in new[] { 1f, .5f })
     {
         Set(layer, "blendRange", System.Enum.Parse(Get(layer, "blendRange").GetType(), "HDR"));
         Stroke(layer, settings, 1);
-        var tint = new UnityEngine.Gradient();
+        var tint = new DCFApixels.WhimTex.WhimTexGradient();
         var gray = new UnityEngine.Color(.5f, .5f, .5f, 1f);
         tint.SetKeys(new[] { new UnityEngine.GradientColorKey(gray, 0f), new UnityEngine.GradientColorKey(gray, 1f) },
             new[] { new UnityEngine.GradientAlphaKey(1f, 0f), new UnityEngine.GradientAlphaKey(1f, 1f) });
@@ -159,7 +159,7 @@ foreach (float opacity in new[] { 1f, .5f })
     Set(dynamics, "tipChannel", System.Enum.Parse(Get(dynamics, "tipChannel").GetType(), "Color"));
     Set(dynamics, "tipSdf", true);
     Set(dynamics, "proceduralMode", System.Enum.Parse(Get(dynamics, "proceduralMode").GetType(), "SdfGradient"));
-    var sdfGradient = new UnityEngine.Gradient();
+    var sdfGradient = new DCFApixels.WhimTex.WhimTexGradient();
     sdfGradient.SetKeys(new[] { new UnityEngine.GradientColorKey(UnityEngine.Color.red, 0f), new UnityEngine.GradientColorKey(UnityEngine.Color.blue, 1f) },
         new[] { new UnityEngine.GradientAlphaKey(0f, .2f), new UnityEngine.GradientAlphaKey(1f, .7f) });
     Set(dynamics, "tipGradient", sdfGradient);
@@ -170,20 +170,21 @@ foreach (float opacity in new[] { 1f, .5f })
     Set(dynamics, "angleOffset", -90f);
     var restoredOffset = UnityEngine.JsonUtility.FromJson(UnityEngine.JsonUtility.ToJson(dynamics), dynamics.GetType());
     Near((float)Get(restoredOffset, "angleOffset"), -90f, "Angle Offset survives serialization");
-    Check(((UnityEngine.Gradient)Get(restoredOffset, "tipGradient")).Equals(sdfGradient), "SDF gradient survives serialization");
+    Check(((DCFApixels.WhimTex.WhimTexGradient)Get(restoredOffset, "tipGradient")).Equals(sdfGradient), "SDF gradient survives serialization");
     Check(Get(restoredOffset, "proceduralMode").ToString() == "SdfGradient", "Procedural mode survives serialization");
     Set(dynamics, "rotationMode", System.Enum.Parse(Get(dynamics, "rotationMode").GetType(), "StrokeDirection"));
     Set(dynamics, "blend", DCFApixels.WhimTex.BlendMode.Multiply);
     Set(dynamics, "blendApplication", System.Enum.Parse(Get(dynamics, "blendApplication").GetType(), "Stamp"));
     Call(settings, "ResetBrushTip");
-    Near((float)Get(settings, "brushHardness"), .8f, "Tip resets hardness");
+    Near((float)Get(settings, "brushHardness"), .2f, "Tip preserves hardness");
     Check(Get(dynamics, "tip") == null && Get(dynamics, "tipChannel").ToString() == "Alpha", "Tip resets texture/channel");
     Check(!(bool)Get(dynamics, "tipSdf"), "Tip disables SDF");
     Check(Get(dynamics, "proceduralMode").ToString() == "Hardness", "Tip resets procedural mode");
-    var resetSdf = (UnityEngine.Gradient)Get(dynamics, "tipGradient");
-    Near(resetSdf.Evaluate(0f).a, 0f, "Tip resets SDF outside opacity");
+    var resetSdf = (DCFApixels.WhimTex.WhimTexGradient)Get(dynamics, "tipGradient");
+    Near(resetSdf.Evaluate(0f).a, 1f, "Tip resets SDF inside opacity");
     Near(resetSdf.Evaluate(.5f).a, .5f, "Tip resets SDF transition");
-    Check(resetSdf.Evaluate(1f) == UnityEngine.Color.white, "Tip resets SDF inside color");
+    Near(resetSdf.Evaluate(1f).a, 0f, "Tip resets SDF outside opacity");
+    Check(resetSdf.ColorKeys[0].color == UnityEngine.Color.white && resetSdf.ColorKeys[1].color == UnityEngine.Color.white, "Tip resets SDF color");
     Check((string)Get(settings, "brushTipGuid") == "", "Tip clears saved reference");
     Check((long)Get(settings, "brushTipLocalId") == 0L, "Tip clears saved subasset reference");
     Check((string)Get(settings, "brushTipPresetPath") == "", "Tip clears saved preset reference");
@@ -199,7 +200,7 @@ foreach (float opacity in new[] { 1f, .5f })
     Call(settings, "ResetBrushColor");
     Check(Get(dynamics, "blendApplication").ToString() == "Stroke", "Color resets blend application");
     Check(Get(dynamics, "blend").ToString() == "Normal", "Color resets Blend");
-    Check(!(bool)dynamics.GetType().GetProperty("HasTint", flags).GetValue(dynamics), "Color resets Tint");
+    Check(!(bool)dynamics.GetType().GetProperty("HasTint", flags).GetValue(dynamics), "Color resets Tint: constantTint=" + ((UnityEngine.Color)Get(dynamics, "constantTint")).ToString("R") + ", tintVaries=" + Get(dynamics, "tintVaries"));
     Near((float)Get(dynamics, "opacity"), .4f, "Section resets preserve Opacity");
     Near((float)Get(dynamics, "flow"), .3f, "Section resets preserve Flow");
     Check((UnityEngine.Color)Get(settings, "brushColor") == UnityEngine.Color.cyan, "Section resets preserve palette");
@@ -211,7 +212,7 @@ try
 {
     var settings = Settings();
     var dynamics = Get(settings, "dynamics");
-    var gradient = new UnityEngine.Gradient();
+    var gradient = new DCFApixels.WhimTex.WhimTexGradient();
     gradient.SetKeys(new[] { new UnityEngine.GradientColorKey(UnityEngine.Color.red, 0f), new UnityEngine.GradientColorKey(UnityEngine.Color.red, 1f) },
         new[] { new UnityEngine.GradientAlphaKey(1f, 0f), new UnityEngine.GradientAlphaKey(1f, 1f) });
     Set(dynamics, "tintGradient", gradient);
@@ -235,6 +236,22 @@ try
     Check((uint)sampleArgs[0] != previousState, "Different alpha keys enable random sampling");
     Call(dynamics, "ResetTint");
     Check(!(bool)dynamics.GetType().GetProperty("HasTint", flags).GetValue(dynamics), "White reset restores neutral fast path");
+    foreach (UnityEngine.ColorSpace space in new[] { UnityEngine.ColorSpace.Gamma, UnityEngine.ColorSpace.Linear })
+    foreach (DCFApixels.WhimTex.WhimTexGradientMode mode in System.Enum.GetValues(typeof(DCFApixels.WhimTex.WhimTexGradientMode)))
+    {
+        gradient = new DCFApixels.WhimTex.WhimTexGradient { Mode = mode, ColorSpace = space };
+        gradient.SetKeys(new[] { new UnityEngine.GradientColorKey(UnityEngine.Color.white, .2f), new UnityEngine.GradientColorKey(UnityEngine.Color.white, .8f) },
+            new[] { new UnityEngine.GradientAlphaKey(1f, .3f), new UnityEngine.GradientAlphaKey(1f, .7f) });
+        Set(dynamics, "tintGradient", gradient);
+        Call(dynamics, "PrepareTint");
+        Check(!(bool)Get(dynamics, "HasTint") && !(bool)Get(dynamics, "PerStamp"), "Constant white remains neutral in " + mode + "/" + space);
+        var almostWhite = new UnityEngine.Color(.999999f, 1f, 1f, 1f);
+        gradient.SetKeys(new[] { new UnityEngine.GradientColorKey(almostWhite, 0f), new UnityEngine.GradientColorKey(almostWhite, 1f) },
+            new[] { new UnityEngine.GradientAlphaKey(1f, 0f), new UnityEngine.GradientAlphaKey(1f, 1f) });
+        Call(dynamics, "PrepareTint");
+        Check((bool)Get(dynamics, "HasTint"), "Near-white tint is not discarded in " + mode + "/" + space);
+    }
+    Call(dynamics, "ResetTint");
     Stroke(tinted, settings, 1);
     Near(Pixel(tinted).g, 1f, "Reset gradient leaves palette color unchanged");
 }

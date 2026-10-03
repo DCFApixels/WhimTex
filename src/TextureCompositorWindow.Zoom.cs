@@ -6,138 +6,138 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
-        [NonSerialized] private PreviewViewport previewViewport = new PreviewViewport();
-        private PreviewZoomManipulator previewZoomManipulator;
-        private FloatField previewZoomPercent;
-        private FloatField previewRotationField;
-        private Button previewRotationReset;
-        private float displayedPreviewScale = float.NaN;
-        private float displayedPreviewRotation = float.NaN;
-        private bool IsPreviewZoomEnabled => previewTool == PreviewTool.Zoom && compositor != null;
+        [NonSerialized] private CanvasViewport canvasViewport = new CanvasViewport();
+        private CanvasZoomManipulator canvasZoomManipulator;
+        private FloatField canvasZoomPercent;
+        private FloatField canvasRotationField;
+        private Button canvasRotationReset;
+        private float displayedCanvasScale = float.NaN;
+        private float displayedCanvasRotation = float.NaN;
+        private bool IsCanvasZoomEnabled => canvasTool == CanvasTool.Zoom && compositor != null;
 
-        private void BuildPreviewZoomTool()
+        private void BuildCanvasZoomTool()
         {
-            previewZoomManipulator = new PreviewZoomManipulator(this);
-            toolkitPreviewCanvas.AddManipulator(previewZoomManipulator);
-            float lastPixelScale = toolkitPreviewCanvas.PixelScale;
-            toolkitPreviewCanvas.ViewChanged += () =>
+            canvasZoomManipulator = new CanvasZoomManipulator(this);
+            toolkitCanvas.AddManipulator(canvasZoomManipulator);
+            float lastPixelScale = toolkitCanvas.PixelScale;
+            toolkitCanvas.ViewChanged += () =>
             {
-                bool scaleChanged = lastPixelScale != toolkitPreviewCanvas.PixelScale;
-                lastPixelScale = toolkitPreviewCanvas.PixelScale;
-                RefreshPreviewZoomReadout();
-                RefreshPreviewTransformTool();
-                RefreshPreviewPointerCursor();
+                bool scaleChanged = lastPixelScale != toolkitCanvas.PixelScale;
+                lastPixelScale = toolkitCanvas.PixelScale;
+                RefreshCanvasZoomReadout();
+                RefreshCanvasTransformTool();
+                RefreshCanvasPointerCursor();
                 if (scaleChanged && postFxSettings != null && postFxSettings.linkDistanceToZoom) postFxDirty = true;
             };
         }
 
-        private void AddPreviewZoomSettings()
+        private void AddCanvasZoomSettings()
         {
-            VisualElement row = CreatePreviewSettingsRow();
+            VisualElement row = CreateCanvasSettingsRow();
             row.AddToClassList("whimtex-zoom-settings");
-            BindPreviewSettingsRow(row, PreviewTool.Zoom);
-            previewZoomPercent = new FloatField("Zoom %")
+            BindCanvasSettingsRow(row, CanvasTool.Zoom);
+            canvasZoomPercent = new FloatField("Zoom %")
             {
                 isDelayed = true,
-                tooltip = "Preview scale in percent. Zoom around the center of the view without changing its rotation."
+                tooltip = "Canvas zoom in percent. Zoom around the center of the view without changing its rotation."
             };
-            displayedPreviewScale = float.NaN;
-            displayedPreviewRotation = float.NaN;
-            previewZoomPercent.AddToClassList("whimtex-zoom-percent");
-            previewZoomPercent.AddToClassList("whimtex-view-field");
-            previewZoomPercent.RegisterValueChangedCallback(evt =>
+            displayedCanvasScale = float.NaN;
+            displayedCanvasRotation = float.NaN;
+            canvasZoomPercent.AddToClassList("whimtex-zoom-percent");
+            canvasZoomPercent.AddToClassList("whimtex-view-field");
+            canvasZoomPercent.RegisterValueChangedCallback(evt =>
             {
-                SetPreviewZoomPercent(evt.newValue);
-                previewZoomPercent.SetValueWithoutNotify(toolkitPreviewCanvas.PixelScale * 100f);
+                SetCanvasZoomPercent(evt.newValue);
+                canvasZoomPercent.SetValueWithoutNotify(toolkitCanvas.PixelScale * 100f);
             });
-            toolkitHeaderBindings.Add(RefreshPreviewZoomReadout);
-            row.Add(previewZoomPercent);
-            row.Add(WhimTexUI.CreateButton("Fit", () => ChangePreviewZoom(true)));
-            row.Add(WhimTexUI.CreateButton("100%", () => ChangePreviewZoom(false)));
-            previewRotationField = new FloatField("Angle °")
+            toolkitHeaderBindings.Add(RefreshCanvasZoomReadout);
+            row.Add(canvasZoomPercent);
+            row.Add(WhimTexUI.CreateButton("Fit", () => ChangeCanvasZoom(true)));
+            row.Add(WhimTexUI.CreateButton("100%", () => ChangeCanvasZoom(false)));
+            canvasRotationField = new FloatField("Angle °")
             {
                 isDelayed = true,
                 tooltip = "View rotation in degrees. Enter an exact angle; no snapping is applied."
             };
-            previewRotationField.AddToClassList("whimtex-view-field");
-            previewRotationField.RegisterValueChangedCallback(evt =>
+            canvasRotationField.AddToClassList("whimtex-view-field");
+            canvasRotationField.RegisterValueChangedCallback(evt =>
             {
-                SetPreviewRotation(evt.newValue);
-                previewRotationField.SetValueWithoutNotify(previewViewport.Rotation);
+                SetCanvasRotation(evt.newValue);
+                canvasRotationField.SetValueWithoutNotify(canvasViewport.Rotation);
             });
-            row.Add(previewRotationField);
-            previewRotationReset = WhimTexUI.CreateButton("0°", () =>
+            row.Add(canvasRotationField);
+            canvasRotationReset = WhimTexUI.CreateButton("0°", () =>
             {
-                SetPreviewRotation(0f);
-                toolkitPreviewCanvas.Focus();
+                SetCanvasRotation(0f);
+                toolkitCanvas.Focus();
             });
-            previewRotationReset.tooltip = "Reset view rotation to 0°.";
-            row.Add(previewRotationReset);
-            toolkitPreviewHeader.Add(row);
+            canvasRotationReset.tooltip = "Reset view rotation to 0°.";
+            row.Add(canvasRotationReset);
+            toolkitCanvasViewHeader.Add(row);
         }
 
-        private void SetPreviewZoomPercent(float percent)
+        private void SetCanvasZoomPercent(float percent)
         {
-            if (!HasPreviewLayers || percent <= 0f || float.IsNaN(percent) || float.IsInfinity(percent)) return;
-            CancelPreviewZoomGesture();
-            FinishPreviewTransform();
+            if (!HasCanvasLayers || percent <= 0f || float.IsNaN(percent) || float.IsInfinity(percent)) return;
+            CancelCanvasZoomGesture();
+            FinishCanvasTransform();
             FinishPaintingStroke();
-            toolkitPreviewCanvas.ZoomAt(toolkitPreviewCanvas.contentRect.center, percent / 100f);
+            toolkitCanvas.ZoomAt(toolkitCanvas.contentRect.center, percent / 100f);
         }
 
-        private void SetPreviewRotation(float degrees)
+        private void SetCanvasRotation(float degrees)
         {
-            if (!HasPreviewLayers || float.IsNaN(degrees) || float.IsInfinity(degrees)) return;
-            CancelPreviewZoomGesture();
-            FinishPreviewTransform();
+            if (!HasCanvasLayers || float.IsNaN(degrees) || float.IsInfinity(degrees)) return;
+            CancelCanvasZoomGesture();
+            FinishCanvasTransform();
             FinishPaintingStroke();
-            toolkitPreviewCanvas.SetViewRotation(degrees, snap: false);
+            toolkitCanvas.SetViewRotation(degrees, snap: false);
         }
 
-        private void RefreshPreviewZoomReadout()
+        private void RefreshCanvasZoomReadout()
         {
-            if (previewZoomPercent == null || toolkitPreviewCanvas == null)
+            if (canvasZoomPercent == null || toolkitCanvas == null)
                 return;
-            float scale = toolkitPreviewCanvas.PixelScale;
-            if (previewRotationField != null)
+            float scale = toolkitCanvas.PixelScale;
+            if (canvasRotationField != null)
             {
-                if (displayedPreviewRotation != previewViewport.Rotation)
+                if (displayedCanvasRotation != canvasViewport.Rotation)
                 {
-                    displayedPreviewRotation = previewViewport.Rotation;
-                    previewRotationField.SetValueWithoutNotify(displayedPreviewRotation);
+                    displayedCanvasRotation = canvasViewport.Rotation;
+                    canvasRotationField.SetValueWithoutNotify(displayedCanvasRotation);
                 }
-                previewRotationField.SetEnabled(HasPreviewLayers);
+                canvasRotationField.SetEnabled(HasCanvasLayers);
             }
-            previewRotationReset?.SetEnabled(HasPreviewLayers && previewViewport.Rotation != 0f);
-            previewZoomPercent.SetEnabled(HasPreviewLayers);
-            if (scale == displayedPreviewScale)
+            canvasRotationReset?.SetEnabled(HasCanvasLayers && canvasViewport.Rotation != 0f);
+            canvasZoomPercent.SetEnabled(HasCanvasLayers);
+            if (scale == displayedCanvasScale)
                 return;
-            displayedPreviewScale = scale;
-            previewZoomPercent.SetValueWithoutNotify(scale * 100f);
+            displayedCanvasScale = scale;
+            canvasZoomPercent.SetValueWithoutNotify(scale * 100f);
         }
 
-        private void ChangePreviewZoom(bool fit)
+        private void ChangeCanvasZoom(bool fit)
         {
-            if (!HasPreviewLayers) return;
-            CancelPreviewZoomGesture();
-            FinishPreviewTransform();
+            if (!HasCanvasLayers) return;
+            CancelCanvasZoomGesture();
+            FinishCanvasTransform();
             FinishPaintingStroke();
-            if (fit) previewViewport.Reset();
-            else toolkitPreviewCanvas.ZoomAt(toolkitPreviewCanvas.contentRect.center, 1f);
-            toolkitPreviewCanvas.UpdateImageLayout();
-            toolkitPreviewCanvas.Focus();
+            if (fit) canvasViewport.Reset();
+            else toolkitCanvas.ZoomAt(toolkitCanvas.contentRect.center, 1f);
+            toolkitCanvas.UpdateImageLayout();
+            toolkitCanvas.Focus();
         }
 
-        private void CancelPreviewZoomGesture()
+        private void CancelCanvasZoomGesture()
         {
-            previewGuideManipulator?.Cancel();
+            canvasGuideManipulator?.Cancel();
             shapePicker?.Cancel();
             marqueePicker?.Cancel();
             shapeManipulator?.Cancel();
-            previewZoomManipulator?.Cancel();
+            canvasZoomManipulator?.Cancel();
         }
 
-        private sealed class PreviewZoomManipulator : PointerManipulator
+        private sealed class CanvasZoomManipulator : PointerManipulator
         {
             private readonly TextureCompositorWindow owner;
             private int pointerId = -1;
@@ -149,7 +149,7 @@ namespace DCFApixels.WhimTex
             internal bool IsRotating => IsDragging && rotating;
             internal bool IsNavigating => IsDragging && panning;
 
-            internal PreviewZoomManipulator(TextureCompositorWindow owner)
+            internal CanvasZoomManipulator(TextureCompositorWindow owner)
             {
                 this.owner = owner;
                 selection = new VisualElement { pickingMode = PickingMode.Ignore };
@@ -190,14 +190,14 @@ namespace DCFApixels.WhimTex
                 pointerId = -1;
                 if (captured >= 0 && target.HasPointerCapture(captured)) target.ReleasePointer(captured);
                 selection.MarkDirtyRepaint();
-                if (captured >= 0) owner.RefreshPreviewPointerCursor();
+                if (captured >= 0) owner.RefreshCanvasPointerCursor();
             }
 
             private void OnCaptureOut(PointerCaptureOutEvent evt) { if (evt.pointerId == pointerId) Cancel(); }
             private void OnCancel(PointerCancelEvent evt) { if (evt.pointerId == pointerId) Cancel(); }
             private void OnDetach(DetachFromPanelEvent evt)
             {
-                owner.ClearPreviewPointerCursor();
+                owner.ClearCanvasPointerCursor();
                 Cancel();
             }
             private void OnGeometry(GeometryChangedEvent evt) => Cancel();
@@ -209,11 +209,11 @@ namespace DCFApixels.WhimTex
                     WhimTexUI.ConsumeEvent(evt);
                     return;
                 }
-                if (!owner.HasPreviewLayers || (evt.button != 2 && !(evt.button == 0 && owner.IsPreviewZoomEnabled)) ||
+                if (!owner.HasCanvasLayers || (evt.button != 2 && !(evt.button == 0 && owner.IsCanvasZoomEnabled)) ||
                     !target.contentRect.Contains(evt.localPosition)) return;
-                owner.CancelPreviewEyedropper();
+                owner.CancelCanvasEyedropper();
                 owner.shapeManipulator?.Cancel();
-                owner.FinishPreviewTransform();
+                owner.FinishCanvasTransform();
                 owner.FinishPaintingStroke();
                 if (owner.areaSelectionManipulator?.RectangleDragging == true)
                     owner.areaSelectionManipulator.Cancel();
@@ -222,28 +222,28 @@ namespace DCFApixels.WhimTex
                 start = current = evt.localPosition;
                 panning = evt.button == 2;
                 rotating = panning && evt.shiftKey;
-                freeRotation = owner.previewViewport.Rotation;
+                freeRotation = owner.canvasViewport.Rotation;
                 zoomOut = evt.altKey;
                 pointerId = evt.pointerId;
                 target.CapturePointer(pointerId);
-                owner.UpdatePreviewCursor(evt.localPosition, evt.altKey);
+                owner.UpdateCanvasCursor(evt.localPosition, evt.altKey);
                 WhimTexUI.ConsumeEvent(evt);
             }
 
             private void OnWheel(WheelEvent evt)
             {
                 Vector2 point = target.WorldToLocal(evt.mousePosition);
-                if (!owner.HasPreviewLayers || !target.contentRect.Contains(point) || evt.delta.y == 0f ||
+                if (!owner.HasCanvasLayers || !target.contentRect.Contains(point) || evt.delta.y == 0f ||
                     float.IsNaN(evt.delta.y) || float.IsInfinity(evt.delta.y)) return;
                 WhimTexUI.ConsumeEvent(evt);
                 if (IsDragging && !panning) Cancel();
                 owner.shapeManipulator?.Cancel();
-                owner.FinishPreviewTransform();
+                owner.FinishCanvasTransform();
                 owner.FinishPaintingStroke();
-                SpritePreviewElement canvas = owner.toolkitPreviewCanvas;
-                canvas.ZoomAt(point, PreviewViewport.WheelScale(canvas.PixelScale, evt.delta.y));
+                CanvasElement canvas = owner.toolkitCanvas;
+                canvas.ZoomAt(point, CanvasViewport.WheelScale(canvas.PixelScale, evt.delta.y));
                 if (IsNavigating) current = point;
-                owner.UpdatePreviewCursor(point, evt.altKey);
+                owner.UpdateCanvasCursor(point, evt.altKey);
             }
 
             private void OnMove(PointerMoveEvent evt)
@@ -252,15 +252,15 @@ namespace DCFApixels.WhimTex
                 if ((evt.pressedButtons & (panning ? 4 : 1)) == 0)
                 {
                     Cancel();
-                    owner.UpdatePreviewCursor(evt.localPosition, evt.altKey);
+                    owner.UpdateCanvasCursor(evt.localPosition, evt.altKey);
                     evt.StopImmediatePropagation();
                     return;
                 }
                 Vector2 point = evt.localPosition;
                 if (rotating) RotateTo(point, evt.ctrlKey);
-                else if (panning) owner.toolkitPreviewCanvas.Pan(point - current);
+                else if (panning) owner.toolkitCanvas.Pan(point - current);
                 current = point;
-                owner.UpdatePreviewCursor(point, evt.altKey);
+                owner.UpdateCanvasCursor(point, evt.altKey);
                 selection.MarkDirtyRepaint();
                 evt.StopImmediatePropagation();
             }
@@ -269,11 +269,11 @@ namespace DCFApixels.WhimTex
             {
                 if (!IsDragging || evt.pointerId != pointerId || evt.button != (panning ? 2 : 0)) return;
                 if (rotating) RotateTo(evt.localPosition, evt.ctrlKey);
-                else if (panning) owner.toolkitPreviewCanvas.Pan((Vector2)evt.localPosition - current);
+                else if (panning) owner.toolkitCanvas.Pan((Vector2)evt.localPosition - current);
                 current = evt.localPosition;
                 if (!panning)
                 {
-                    SpritePreviewElement canvas = owner.toolkitPreviewCanvas;
+                    CanvasElement canvas = owner.toolkitCanvas;
                     Rect region = SelectionRect();
                     if (zoomOut || evt.altKey)
                     {
@@ -286,7 +286,7 @@ namespace DCFApixels.WhimTex
                         canvas.ZoomAt(start, canvas.PixelScale * 2f);
                 }
                 Cancel();
-                owner.UpdatePreviewCursor(evt.localPosition, evt.altKey);
+                owner.UpdateCanvasCursor(evt.localPosition, evt.altKey);
                 WhimTexUI.ConsumeEvent(evt);
             }
 
@@ -297,8 +297,8 @@ namespace DCFApixels.WhimTex
                 // Avoid an unstable angle when the pointer passes through the pivot.
                 if (from.sqrMagnitude >= 144f && to.sqrMagnitude >= 144f)
                     freeRotation += Vector2.SignedAngle(from, to);
-                float rotation = disableSnap ? freeRotation : owner.SnapPreviewGuideRotation(freeRotation, includeCanvasAxes: true);
-                owner.toolkitPreviewCanvas.SetViewRotation(rotation, snap: false);
+                float rotation = disableSnap ? freeRotation : owner.SnapCanvasGuideRotation(freeRotation, includeCanvasAxes: true);
+                owner.toolkitCanvas.SetViewRotation(rotation, snap: false);
             }
 
             private Rect SelectionRect()

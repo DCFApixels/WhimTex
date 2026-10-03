@@ -108,7 +108,7 @@ The gradient editor's document-local History is a shared swatch/drag implementat
 
 ### Channel-adapted display
 
-`WhimTexColorField.UsePreviewChannels` explicitly opts document-color inputs into channel display; service colors remain ordinary. `WhimTexColorInputs.Bind` opts in layer/brush/FX bindings. An ancestor channel provider identifies the originating compositor window; detached Properties/gradient inputs fall back only to a unique open window for that document. Ambiguous or unavailable ownership uses ordinary display, never the focused unrelated document. Gradient sessions carry the originating provider into their detached editor and key picker. Mini-preview masks are not sources.
+`WhimTexColorField.UseCanvasChannels` explicitly opts document-color inputs into channel display; service colors remain ordinary. `WhimTexColorInputs.Bind` opts in layer/brush/FX bindings. An ancestor channel provider identifies the originating compositor window; detached Properties/gradient inputs fall back only to a unique open window for that document. Ambiguous or unavailable ownership uses ordinary display, never the focused unrelated document. Gradient sessions carry the originating provider into their detached editor and key picker. Layer Preview masks are not sources. The obsolete `UsePreviewChannels` property forwards to `UseCanvasChannels` for existing integrations.
 
 The persistent `Channels` preference changes rendering only. Two/three active RGB channels zero excluded components; one RGB component is grayscale; alpha-only is opaque grayscale alpha; no channels is black. Numeric RGB/HSV/HEX, HDR intensity, callbacks, History and serialization remain unmasked. Existing painting-channel semantics are unchanged. `Channels` is hidden for inputs without a channel source. Source changes refresh visible controls without changing their values.
 
@@ -220,9 +220,11 @@ The mask describes rendered data, not a separate history of input colors. Paint 
 does not add diagnostic marks. Disabled channels explicitly zero their values rather than multiply
 NaN by zero.
 
-### Layer mini preview
+<a id="layer-mini-preview"></a>
 
-When available, the mini preview uses the cached layer result from the main preview, before
+### Layer Preview
+
+When available, Layer Preview uses the cached layer result from Canvas View, before
 blending with other layers. This avoids differences caused by a separate lower-resolution render.
 Otherwise it renders independently; clipped layers and pass-through groups use this fallback.
 A group shows only its own colored content against transparency.

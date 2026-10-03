@@ -38,7 +38,7 @@ Start with a first image, or choose a workflow below. Control names match the ed
 
 ## Inspect and deliver
 
-- [Preview and navigation](preview.md)
+- [Canvas View and navigation](preview.md)
 - [Color, HDR and channels](color.md)
 - [Game post-processing](post-fx.md)
 - [Save and export](saving.md)

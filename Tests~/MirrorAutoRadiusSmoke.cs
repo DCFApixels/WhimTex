@@ -49,6 +49,9 @@ public static class MirrorAutoRadiusSmoke
                 layer.mirrorAutoRadius = false; layer.mirrorCorrectionRadius = Mathf.Max(.005f, width * .25f);
                 Same(automatic, Render(false)); Same(automatic, Render(true)); Same(autoThumbnail, Render(true, true));
             }
+            // Rendering above uses the transient texture. Serialization below tests settings,
+            // so use a procedural source with the same layer identity (no unsaved asset reference).
+            source.Owner.SetBehaviour(new ColorFillLayerBehaviour());
             var setter = typeof(WhimTexApi).GetMethod("SetMakeSeamless", F);
             foreach (bool automatic in new[] { true, false })
             {
@@ -59,16 +62,16 @@ public static class MirrorAutoRadiusSmoke
                 Check(layer.mirrorAutoRadius == automatic, "API setter");
                 var clone = JsonUtility.FromJson<MakeSeamlessLayerBehaviour>(JsonUtility.ToJson(layer));
                 Check(clone.mirrorAutoRadius == automatic && clone.mirrorCorrectionRadius == .13f, "Serialized settings");
-                string json = (string)typeof(WhimTexApi).GetMethod("WritePortableClipboard", F).Invoke(null, new object[] { doc, doc.layers });
-                using (var clip = (IDisposable)typeof(WhimTexApi).GetMethod("ReadProceduralClipboard", F).Invoke(null, new object[] { json, 48, 32 }))
+                using (var clip = WhimTexDocumentJson.Read(WhimTexDocumentJson.Write(doc, new WhimTexJsonWriteOptions {Mode = WhimTexJsonWriteMode.Full}).Json))
                 {
-                    var decoded = (TextureCompositor)clip.GetType().GetField("Document", F).GetValue(clip);
+                    var decoded = clip.Document;
                     var restored = (MakeSeamlessLayerBehaviour)decoded.layers[0].Behaviour;
-                    Check(restored.mirrorAutoRadius == automatic && restored.mirrorCorrectionRadius == .13f, "Portable roundtrip");
+                    Check(restored.mirrorAutoRadius == automatic && restored.mirrorCorrectionRadius == .13f, "Full JSON retains inactive manual radius too");
                 }
             }
             return $"Passed: {checks} checks, auto/manual render equivalence, compensation on/off, cache invalidation, thumbnails, API and serialization.";
         }
+        catch (TargetInvocationException e) { throw new Exception(e.GetBaseException().ToString()); }
         finally { cache.Dispose(); UnityEngine.Object.DestroyImmediate(doc); UnityEngine.Object.DestroyImmediate(texture); }
     }
 }

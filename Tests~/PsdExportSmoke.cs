@@ -13,6 +13,12 @@ try
     fill.transform.rotation = 20;
     var gradient = new DCFApixels.WhimTex.GradientLayerBehaviour { layerName = "Gradient", gradientType = DCFApixels.WhimTex.GradientLayerBehaviour.GradientType.Horizontal };
     gradient.transform.rotation = 15;
+    // Native PSD gradient metadata represents Classic interpolation, not Perceptual.
+    gradient.gradient.Mode = DCFApixels.WhimTex.WhimTexGradientMode.Classic;
+    gradient.gradient.ColorSpace = ColorSpace.Gamma;
+    gradient.gradient.Smoothness = 0;
+    gradient.transform.storage = DCFApixels.WhimTex.TransformStorage.TRS;
+    gradient.transform.tiling = DCFApixels.WhimTex.TransformTilingMode.Clip;
     gradient.transform.scale = new Vector2(0.7f, 1f);
     document.layers = new List<DCFApixels.WhimTex.Layer>
     {
@@ -26,13 +32,21 @@ try
             } }
         } }
     };
+    // A nested gradient uses a composed projective transform and must be rasterized.
+    var fallback = DCFApixels.WhimTex.WhimTexPsdExporter.Export(document, System.IO.Path.Combine(folder, "nested-fallback.psd"));
+    Check(fallback.editableFillCount == 2, "Nested gradient uses the raster fallback");
+    // Test the separate supported native path with the same gradient at the root.
+    var outer = (DCFApixels.WhimTex.GroupLayerBehaviour)document.layers[1].Behaviour;
+    var nested = (DCFApixels.WhimTex.GroupLayerBehaviour)outer.layers[2].Behaviour;
+    var gradientLayer = nested.layers[0];
+    nested.layers.RemoveAt(0); document.layers.Insert(1, gradientLayer);
     string before = EditorJsonUtility.ToJson(document);
     bool dirty = EditorUtility.IsDirty(document);
     RenderTexture active = RenderTexture.active;
     string path = System.IO.Path.Combine(folder, "composition.psd");
     var report = DCFApixels.WhimTex.WhimTexPsdExporter.Export(document, path);
     Check(report.layerCount == 5 && report.groupCount == 2, "Layer/group counts");
-    Check(report.editableFillCount == 3 && report.editableOutlineCount == 1, "Native fills and stroke");
+    Check(report.editableFillCount == 3 && report.editableOutlineCount == 1, "Native fills and stroke: fills=" + report.editableFillCount + ", strokes=" + report.editableOutlineCount);
     Check(before == EditorJsonUtility.ToJson(document), "Source serialization unchanged");
     Check(dirty == EditorUtility.IsDirty(document), "Source dirty state unchanged");
     Check(active == RenderTexture.active, "Active render target restored");

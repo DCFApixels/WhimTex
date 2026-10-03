@@ -14,7 +14,7 @@ previous_page: "en/automation.md"
 
 1. Select a Drawing layer.
 2. Check that **Brush** or **Pencil** is selected and the brush size is not too small; see [painting controls](painting.md).
-3. Turn on **R / G / B / A** in the preview footer and check the paint color's transparency; see [color settings](color.md).
+3. Turn on **R / G / B / A** in the Canvas View footer and check the paint color's transparency; see [color settings](color.md).
 4. If the canvas has a selection, [clear it](selection.md): strokes cannot reach outside it.
 5. Check that the layer is visible and its opacity is not zero.
 6. If Clipping Mask is enabled, check that its base layer is visible and contains an image.
@@ -50,7 +50,7 @@ Click **Save** in WhimTex after editing, including after changing a linked textu
 
 ## Painting feels slow
 
-Lower **Live Quality** in the Preview footer.
+Lower **Live Quality** in the Canvas View footer.
 For a complex image, temporarily hide effects you do not need while painting.
 Pencil uses full resolution regardless of **Live Quality**, keeping pixel work precise.
 

@@ -9,7 +9,7 @@ namespace DCFApixels.WhimTex
     public sealed class SDFLayerEditorWindow : LayerEditorWindowBase
     {
         protected override Type EditedLayerType => typeof(SDFLayerBehaviour);
-        protected override string PreviewTitle => "Preview (SDF)";
+        protected override string LayerPreviewTitle => "Layer Preview (SDF)";
 
         public static void Open(SDFLayerBehaviour layer, TextureCompositor compositor)
         {

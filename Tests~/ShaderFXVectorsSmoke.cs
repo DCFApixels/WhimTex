@@ -1,13 +1,22 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
-using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.UIElements;
 using DCFApixels.WhimTex;
 
 public static class ShaderFXVectorsSmoke
 {
+    // Bind the package's JSON assembly explicitly; other Editor integrations can
+    // expose an embedded copy with the same public type names.
+    static object ParseJson(string json)
+    {
+        var reference = Array.Find(typeof(WhimTexApi).Assembly.GetReferencedAssemblies(), a => a.Name == "Newtonsoft.Json");
+        return Assembly.Load(reference).GetType("Newtonsoft.Json.Linq.JObject", true)
+            .GetMethod("Parse", new[] { typeof(string) }).Invoke(null, new object[] { json });
+    }
+    static object At(object node, string key) => node.GetType().GetProperty("Item", new[] { typeof(string) }).GetValue(node, new object[] { key });
+    static bool Flag(object node, string key) => bool.Parse(At(node, key).ToString());
     public static string Main()
     {
         const BindingFlags F = BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.Static|BindingFlags.Instance;
@@ -44,7 +53,7 @@ public static class ShaderFXVectorsSmoke
         ShaderFX fx=null;
         try
         {
-            fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft",F).Invoke(null,new object[]{doc,code,new List<ShaderFXParameter>()});
+            fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.TextureCompositor), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null,new object[]{doc,code,new List<ShaderFXParameter>()});
             typeof(ShaderFX).GetMethod("ApplyAgentDraft",F).Invoke(fx,null);
             Layer layer=new ColorFillLayerBehaviour(); layer.modifiers.Add(fx); doc.layers.Add(layer);
             var image=doc.Compose();
@@ -57,18 +66,20 @@ public static class ShaderFXVectorsSmoke
             Check(ui.Q<Vector2Field>()!=null && ui.Query<Vector3Field>().ToList().Count==2 && ui.Q<Button>()!=null,"parameter UI");
         }
         finally{if(fx!=null)UnityEngine.Object.DestroyImmediate(fx);UnityEngine.Object.DestroyImmediate(doc);}
-        JObject compileResult = JObject.Parse(WhimTexApi.CompileFXPreset("Packages/com.dcfapixels.whimtex/src/FXPresets/Halftone.hlsl"));
-        Check((bool)compileResult["success"], "FX compile diagnostic request: " + compileResult.ToString());
-        Check((bool)compileResult["compiled"], "Halftone preset compilation: " + compileResult.ToString());
-        Check(compileResult["diagnostics"] is JArray && compileResult["warnings"] is JArray && compileResult["errors"] is JArray,
+        var compileResult = ParseJson(WhimTexApi.CompileFXPreset("Packages/com.dcfapixels.whimtex/src/FXPresets/Halftone.hlsl"));
+        Check(Flag(compileResult, "success"), "FX compile diagnostic request: " + compileResult.ToString());
+        Check(Flag(compileResult, "compiled"), "Halftone preset compilation: " + compileResult.ToString());
+        Check(At(compileResult, "diagnostics").GetType().FullName == "Newtonsoft.Json.Linq.JArray" &&
+            At(compileResult, "warnings").GetType().FullName == "Newtonsoft.Json.Linq.JArray" &&
+            At(compileResult, "errors").GetType().FullName == "Newtonsoft.Json.Linq.JArray",
             "FX compile diagnostic response shape");
-        JObject rawCompile = JObject.Parse(WhimTexApi.CompileFX(source:
+        var rawCompile = ParseJson(WhimTexApi.CompileFX(source:
             "// @param color _Tint = (1, 1, 1, 1)\nfloat4 ApplyFX(float2 uv, float4 color) { return color * _Tint; }"));
-        Check((bool)rawCompile["success"] && (bool)rawCompile["compiled"], "Raw FX source compilation: " + rawCompile.ToString());
-        JObject relativeIncludeCompile = JObject.Parse(WhimTexApi.CompileFX(
+        Check(Flag(rawCompile, "success") && Flag(rawCompile, "compiled"), "Raw FX source compilation: " + rawCompile.ToString());
+        var relativeIncludeCompile = ParseJson(WhimTexApi.CompileFX(
             source: "#include \"./Dither.cginc\"\nfloat4 ApplyFX(float2 uv, float4 color) { return color * DitherThreshold(uv * _CanvasSize.xy, 1); }",
             includeBasePath: "Packages/com.dcfapixels.whimtex/src/Shaders"));
-        Check((bool)relativeIncludeCompile["success"] && (bool)relativeIncludeCompile["compiled"],
+        Check(Flag(relativeIncludeCompile, "success") && Flag(relativeIncludeCompile, "compiled"),
             "Raw FX relative include compilation: " + relativeIncludeCompile.ToString());
         return "PASS: "+checks+" parser, defaults, normalization, GPU, preset roundtrip, UI, raw FX and relative-include compile checks.";
     }

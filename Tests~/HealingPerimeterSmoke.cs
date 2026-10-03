@@ -65,11 +65,11 @@ public static class HealingPerimeterSmoke
                     Call(noise, "ReleaseTransientResources");
                     document.layers.Clear(); document.layers.Add(drawing); Call(document, "NormalizeModel");
                     Call(window, "SelectOnlyLayer", drawing.Id);
-                    var tool = typeof(TextureCompositorWindow).GetNestedType("PreviewTool", F);
-                    Call(window, "ChangePreviewTool", Enum.Parse(tool, "HealingBrush"));
+                    var tool = typeof(TextureCompositorWindow).GetNestedType("CanvasTool", F);
+                    Call(window, "ChangeCanvasTool", Enum.Parse(tool, "HealingBrush"));
                     window.ShowUtility(); shown = true; window.position = new Rect(80, 80, 1050, 720);
                     await Task.Delay(150); Call(window, "RefreshToolkitInterface", false);
-                    Call(window, "SetTiledPreview", true);
+                    Call(window, "SetTiledCanvas", true);
                     var settings = Get(window, "paintSettings");
                     Set(settings, "healingSize", 64f); Set(settings, "healingHardness", .8f); Set(settings, "healingSearch", 64);
                     Set(settings, "healingTransparentOnly", false);

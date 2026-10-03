@@ -66,10 +66,10 @@ public static class ColorPickerChannelsSmoke
             Check(toggle.ClassListContains("whimtex-picker-hidden"),"Service picker hides channel toggle");
             var rootA=new VisualElement(); var rootB=new VisualElement();
             Source(rootA,()=>1); Source(rootB,()=>6);
-            var field=new WhimTexColorField { UsePreviewChannels=true }; rootA.Add(field);
+            var field=new WhimTexColorField { UseCanvasChannels=true }; rootA.Add(field);
             Func<int> Read()=> (Func<int>)typeof(WhimTexColorField).GetMethod("ResolveChannelSource",F).Invoke(field,null);
             Check(Read()()==1,"Source from owner A"); rootB.Add(field); Check(Read()()==6,"Reparent resolves owner B");
-            field.UsePreviewChannels=false; Check(Read()==null,"Service field opt-out");
+            field.UseCanvasChannels=false; Check(Read()==null,"Service field opt-out");
             p.CreateGUI();
             Check(((Toggle)Get(p,"channelControl")).ClassListContains("whimtex-picker-hidden"),"Recreated service picker hides toggle");
             return "PASS: "+checks+" checks: all masks, unchanged RGBA/HSV/HEX, opt-in, owner isolation, live toggle and GUI recreation.";
@@ -85,7 +85,7 @@ public static class ColorPickerChannelsSmoke
         Call(p,"SetChannelSource",(Func<int>)(()=>3));
         foreach(string name in new[]{"Channels","Ordinary","HDR","Mixed","Disabled"})
         {
-            var field=new WhimTexColorField(name) { name="test-"+name, UsePreviewChannels=name!="Ordinary", hdr=name=="HDR", showAlpha=true, showEyeDropper=false };
+            var field=new WhimTexColorField(name) { name="test-"+name, UseCanvasChannels=name!="Ordinary", hdr=name=="HDR", showAlpha=true, showEyeDropper=false };
             field.SetValueWithoutNotify(new Color(.8f,.35f,.15f,.4f)*(name=="HDR"?2:1));
             field.showMixedValue=name=="Mixed"; field.SetEnabled(name!="Disabled");
             p.rootVisualElement.Add(field);
@@ -162,7 +162,7 @@ public static class ColorPickerChannelsSmoke
     {
         var p=Resources.FindObjectsOfTypeAll<WhimTexColorPicker>().Single(x=>x.name=="Color picker layout test");
         var field=p.rootVisualElement.Q<WhimTexColorField>("test-HDR");
-        typeof(WhimTexColorField).GetField("ReadPreviewChannels",F).SetValue(field,(Func<int>)(()=>1));
+        typeof(WhimTexColorField).GetField("ReadCanvasChannels",F).SetValue(field,(Func<int>)(()=>1));
         Call(field,"RefreshChannelSwatch");
         return "R-only HDR comparison ready; capture and run HdrPixels.";
     }

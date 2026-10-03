@@ -36,8 +36,10 @@ namespace DCFApixels.WhimTex
             foreach (var p in values)
             {
                 if (p.controls.Count == 0) { rows.Add((0, ExportDeclaration(p, portable), null)); continue; }
-                int defaultIndex = p.controls.FindIndex(c => c.type != ShaderFXParameterType.Bool);
-                if (defaultIndex < 0) defaultIndex = 0;
+                int defaultIndex = p.controls.FindIndex(c => c.type != ShaderFXParameterType.Bool && CanDeclareDefault(c, p.floatValue));
+                if (defaultIndex < 0) defaultIndex = p.controls.FindIndex(c => CanDeclareDefault(c, p.floatValue));
+                if (defaultIndex < 0)
+                    throw new FormatException("No control can represent the current preset default for " + p.name + ".");
                 for (int i = 0; i < p.controls.Count; i++)
                 {
                     var control = p.controls[i];
@@ -126,6 +128,14 @@ namespace DCFApixels.WhimTex
                 throw new IOException("Exported HLSL exceeds 2 MiB.");
             ShaderFXMetadata.Parse(source, true, out _);
             return source;
+        }
+
+        private static bool CanDeclareDefault(ShaderFXParameterControl control, float value)
+        {
+            if (control.type == ShaderFXParameterType.Bool) return value == 0f || value == 1f;
+            if (control.type != ShaderFXParameterType.Float) return true;
+            return !(control.hasMinimum && !control.softMinimum && value < control.minimum ||
+                control.hasMaximum && !control.softMaximum && value > control.maximum);
         }
 
         private static string Number(double value)

@@ -274,10 +274,12 @@ default wins. Curve parameters are FX-only, not HLSL brush parameters.
 
 ### Gradient parameters
 
-`gradient` creates an editable WhimTex gradient, initially opaque black to white (Classic mode).
+`gradient` without a default creates an opaque black-to-white Perceptual gradient.
 Declare `// @param gradient _Ramp`, optionally with two endpoint colors such as
 `// @param gradient _Ramp = #FF0000FF -> #0000FF`. Each endpoint accepts `#RRGGBB` (opaque) or
-`#RRGGBBAA` (RGBA), or a numeric `(r, g, b, a)` tuple. The parameter remains editable after creation.
+`#RRGGBBAA` (RGBA), or a numeric `(r, g, b, a)` tuple. Explicit endpoint defaults use Classic,
+Gamma, Clamp, Smoothness 1 and midpoint .5, matching their original HLSL export format.
+The parameter remains editable after creation.
 Use `_Ramp_Sample(t)` to obtain straight linear RGBA. The helper uses the gradient's **Wrap** setting: **Clamp** holds endpoint colors, **Repeat** repeats every unit, and **Mirror** alternates forward and backward every unit, including negative inputs.
 Do not redeclare a sampler or reference internal `_WhimTex_` uniforms.
 Colors, HDR, alpha, interpolation, smoothness and midpoints are edited in the gradient field.
@@ -288,8 +290,9 @@ edits upload new pixels without recompiling the shader. Fixed uses Point filteri
 use Bilinear. LUT sampling is an approximation: transitions finer than one LUT interval may be lost.
 GPU caches are released with the material and recreated after reload. Edited keys are serialized
 in the effect/document. The code default initializes new instances; applying code preserves the current edited value.
-**Save Preset…** writes a compatible two-endpoint gradient as a default; gradients with extra stops or
-non-default interpolation, smoothness or wrapping must be simplified before export.
+**Save Preset…** writes a two-endpoint Classic/Gamma/Clamp gradient with Smoothness 1 and
+midpoint .5 as a default. Other gradients must be simplified before this endpoint-only export;
+the exporter rejects them rather than silently changing their settings.
 Gradient parameters are FX-only, not HLSL brush parameters.
 
 ```hlsl

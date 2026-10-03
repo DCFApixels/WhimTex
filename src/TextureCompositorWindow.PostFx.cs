@@ -26,14 +26,14 @@ namespace DCFApixels.WhimTex
         private string postFxMessage;
         private bool postFxFailed;
 
-        private Texture PreviewPresentationSource => postFxEnabled && postFxValid && postFxTexture != null ? postFxTexture : previewTexture;
+        private Texture CanvasPresentationSource => postFxEnabled && postFxValid && postFxTexture != null ? postFxTexture : canvasTexture;
 
-        private VisualElement BuildPostFxPreview(VisualElement preview)
+        private VisualElement BuildCanvasViewWorkspace(VisualElement canvas)
         {
             postFxSettings ??= new PostFxPreviewSettings();
-            var workspace = new VisualElement { name = "previewWorkspace" };
-            workspace.AddToClassList("whimtex-preview-workspace");
-            workspace.Add(preview);
+            var workspace = new VisualElement { name = "canvasViewWorkspace" };
+            workspace.AddToClassList("whimtex-canvas-view-workspace");
+            workspace.Add(canvas);
             postFxOverlay = new VisualElement { name = "postFxOverlay", pickingMode = PickingMode.Ignore };
             postFxOverlay.AddToClassList("whimtex-post-fx-overlay");
             workspace.Add(postFxOverlay);
@@ -41,7 +41,7 @@ namespace DCFApixels.WhimTex
             panel.AddToClassList("whimtex-post-fx-panel");
             postFxOverlay.Add(panel);
             var tabs = new VisualElement { pickingMode = PickingMode.Ignore };
-            tabs.AddToClassList("whimtex-preview-drawer-tabs");
+            tabs.AddToClassList("whimtex-canvas-view-drawer-tabs");
             panel.Add(tabs);
             BuildBrushTab(tabs);
             postFxTab = new Button(() =>
@@ -81,8 +81,8 @@ namespace DCFApixels.WhimTex
                 }
                 RefreshPostFxPanel();
                 if (postFxEnabled) RenderPostFx();
-                UpdateChannelPreview();
-                UpdateToolkitPreviewPresentation();
+                UpdateChannelCanvas();
+                UpdateToolkitCanvasPresentation();
             }) { text = "Post FX", tooltip = "Preview through the scene, game camera or a Volume Profile. Does not affect painting, sampling or export." };
             postFxButton.AddToClassList("whimtex-channel-button");
             postFxButton.AddToClassList("whimtex-post-fx-button");
@@ -144,7 +144,7 @@ namespace DCFApixels.WhimTex
             root.Add(threshold);
             var invert = AddPostFxToggle(root, "Invert", postFxSettings.invert, value => postFxSettings.invert = value);
             AddPostFxToggle(root, "Link to Zoom", postFxSettings.linkDistanceToZoom, value => postFxSettings.linkDistanceToZoom = value,
-                "Simulate distance changes when zooming the preview. Otherwise zoom only magnifies the processed result.");
+                "Simulate distance changes when zooming the canvas. Otherwise zoom only magnifies the processed result.");
             postFxStatus = new HelpBox("Preview only. Alpha Height creates relief; Alpha Mask places pixels below Threshold at the far plane.", HelpBoxMessageType.Info);
             root.Add(postFxStatus);
             root.Add(new Button(() => { postFxDirty = true; nextPostFxCheck = 0; }) { text = "Refresh Post FX" });
@@ -199,7 +199,7 @@ namespace DCFApixels.WhimTex
 
         private void RefreshPostFxPanel()
         {
-            bool brushAvailable = previewTool == PreviewTool.Brush;
+            bool brushAvailable = canvasTool == CanvasTool.Brush;
             if (!brushAvailable) brushesExpanded = false;
             if (brushesExpanded) postFxExpanded = false;
             postFxOverlay?.EnableInClassList("whimtex-post-fx-overlay--hidden", !postFxEnabled && !brushAvailable && !uvEnabled);
@@ -222,7 +222,7 @@ namespace DCFApixels.WhimTex
 
         private void UpdatePostFx()
         {
-            if (!postFxEnabled || previewTexture == null || EditorApplication.timeSinceStartup < nextPostFxCheck) return;
+            if (!postFxEnabled || canvasTexture == null || EditorApplication.timeSinceStartup < nextPostFxCheck) return;
             nextPostFxCheck = EditorApplication.timeSinceStartup + (postFxSettings.animate ? .125 : .25);
             try
             {
@@ -233,8 +233,8 @@ namespace DCFApixels.WhimTex
                 RenderPostFx();
             }
             catch (Exception exception) { SetPostFxFailure(exception.Message); postFxDirty = false; }
-            UpdateChannelPreview();
-            UpdateToolkitPreviewPresentation();
+            UpdateChannelCanvas();
+            UpdateToolkitCanvasPresentation();
         }
 
         private void EnsurePostFxBackend()
@@ -251,23 +251,23 @@ namespace DCFApixels.WhimTex
         {
             postFxValid = false;
             postFxDirty = false;
-            if (!postFxEnabled || previewTexture == null) return;
+            if (!postFxEnabled || canvasTexture == null) return;
             try
             {
                 EnsurePostFxBackend();
                 if (postFxBackend == null) throw new InvalidOperationException("No Post FX adapter for the active pipeline. URP 17.x is supported; other pipelines need an adapter. The original preview is shown.");
-                if (postFxTexture == null || postFxTexture.width != previewTexture.width || postFxTexture.height != previewTexture.height)
+                if (postFxTexture == null || postFxTexture.width != canvasTexture.width || postFxTexture.height != canvasTexture.height)
                 {
                     ReleasePostFxTexture();
-                    postFxTexture = new RenderTexture(previewTexture.width, previewTexture.height, 0, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear)
+                    postFxTexture = new RenderTexture(canvasTexture.width, canvasTexture.height, 0, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear)
                         { name = "WhimTex Post FX Preview", hideFlags = HideFlags.HideAndDontSave, wrapMode = TextureWrapMode.Clamp };
                     postFxTexture.Create();
                 }
-                postFxTexture.filterMode = previewTexture.filterMode;
-                float zoom = toolkitPreviewCanvas != null ? toolkitPreviewCanvas.PixelScale : 1f;
-                var canvasSize = compositor != null ? new Vector2(compositor.width, compositor.height) : new Vector2(previewTexture.width, previewTexture.height);
+                postFxTexture.filterMode = canvasTexture.filterMode;
+                float zoom = toolkitCanvas != null ? toolkitCanvas.PixelScale : 1f;
+                var canvasSize = compositor != null ? new Vector2(compositor.width, compositor.height) : new Vector2(canvasTexture.width, canvasTexture.height);
                 postFxSettings.backgroundMode = WhimTexUserSettings.PostFxBackgroundMode;
-                postFxMessage = postFxBackend.Render(new PostFxPreviewRequest(postFxSettings, previewTexture, WhimTexUserSettings.PostFxBackground, zoom, canvasSize), postFxTexture);
+                postFxMessage = postFxBackend.Render(new PostFxPreviewRequest(postFxSettings, canvasTexture, WhimTexUserSettings.PostFxBackground, zoom, canvasSize), postFxTexture);
                 postFxValid = true;
                 postFxFailed = false;
                 postFxDirty = false;

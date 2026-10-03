@@ -16,14 +16,14 @@ Select a **Drawing** layer and paint directly on the canvas.
 Choose **Brush** (`B`) for soft strokes or **Pencil** (`P`) for crisp pixels.
 If you try to paint on another layer type, the editor offers to convert it first.
 
-A small cross marks the brush center when its outline becomes large relative to the preview.
+A small cross marks the brush center when its outline becomes large relative to Canvas View.
 
 ## Shape the stroke
 
 | Control | What it changes |
 | :--- | :--- |
 | Size | Stroke width. You can drag the label or use `[` / `]`. |
-| Hardness / Gradient | Next to Size in the preview header. Drag Hardness or type a percentage; click the gradient strip to edit it. The arrow switches procedural brushes between Hardness and Gradient without losing either setting. |
+| Hardness / Gradient | Next to Size in the Canvas View header. Drag Hardness or type a percentage; click the gradient strip to edit it. The arrow switches procedural brushes between Hardness and Gradient without losing either setting. |
 | Opacity | Maximum strength of a whole stroke. Release and paint again to build another coat. |
 | Flow | Strength of each brush stamp. Lower values let overlapping stamps build color gradually. |
 
@@ -41,13 +41,13 @@ for its tip. Zoom in to see its exact pixel outline.
 
 ## Customize the brush
 
-With **Brush** selected, open the upper arrow on the right edge of the preview to show
+With **Brush** selected, open the upper arrow on the right edge of Canvas View to show
 **Brushes**. It shares the drawer with Post FX: opening one closes the other.
 
 <a href="{{ '/Images/brush-settings.png' | relative_url }}"><img src="{{ '/Images/brush-settings.png' | relative_url }}" alt="WhimTex Brushes drawer with a neon red stroke, stamp controls, tint, blend mode and live brush preview" width="720"></a>
 
 All brush preset controls are available here: **Size** is in **Tip**, and **Opacity / Flow**
-are in **Color**. The preview header provides shortcuts to the same settings.
+are in **Color**. The Canvas View header provides shortcuts to the same settings.
 
 The brush sample previews the current tip without layer FX or symmetry; Eraser previews on gray paint.
 Use **Preview Scale (%)** to fit a large tip or wide scatter. It changes only the sample, not the painted brush size.
@@ -70,7 +70,7 @@ Palette colors are not reset.
 | Texture | Drag in a texture to use its shape as a brush. Clear the field to return to the procedural brush. Size measures its longest side. |
 | Tip Channel | Alpha uses transparency; Luminance uses white as ink; Inverted Luminance uses black as ink. Color keeps the tip's color, multiplied by the painting color. All modes respect the tip's alpha. |
 | SDF | Treat the texture as a distance field and map it through Gradient. Use Alpha for a field in transparency, Luminance for a grayscale field, or Inverted Luminance when dark areas are inside. Color uses the alpha field while keeping the tip's RGB color. |
-| Gradient (preview header) | Left is the interior (**0**), right is the outer edge (**1**). Alpha keys control the edge and coverage; color keys multiply the brush color and Tint. Move alpha keys closer for a sharp edge or apart for softness. Shift the transition right to expand the shape, left to shrink it. |
+| Gradient (Canvas View header) | Left is the interior (**0**), right is the outer edge (**1**). Alpha keys control the edge and coverage; color keys multiply the brush color and Tint. Move alpha keys closer for a sharp edge or apart for softness. Shift the transition right to expand the shape, left to shrink it. |
 | Tint | Different gradient color or alpha keys produce a random tint per stamp, multiplied by the palette color. Identical keys give a constant tint. The small ↺ button on the right resets to opaque white, which leaves the palette color unchanged. |
 | Blend | How paint combines with existing pixels on the active layer. Independent of the layer's Blend setting; ignored when erasing. |
 | Apply Blend | **Per Stroke** (default) applies Blend to the complete stroke. **Per Stamp** applies it to every stamp, including where stamps overlap within the same stroke. Opacity controls the whole result; Flow controls each stamp. With dense Spacing, Per Stamp can be slower. |
@@ -85,7 +85,7 @@ For a procedural brush, the gradient runs from **0 at the circular tip's center*
 Assigning a texture preserves the selected procedural brush mode.
 
 For a textured SDF brush, enable **SDF** in Tip, choose the channel containing the distance field,
-then edit **Gradient** in the preview header while watching the sample. Start with white color keys to keep
+then edit **Gradient** in the Canvas View header while watching the sample. Start with white color keys to keep
 the brush color, and use the alpha keys to shape the edge. You can add transparent bands
 for hollow shapes or color bands for a multicolored tip. The field should use the 0–1 range,
 with higher values inside (or choose Inverted Luminance). Keep SDF off for ordinary image
@@ -184,7 +184,7 @@ Press **Escape** or **Cancel** to discard the stroke or pending calculation. Cha
 the document, selection or tool cancels pending work; wait for completion before saving.
 
 Choose its color and opacity in **User Settings → Healing Brush → Stroke Color**.
-This changes only the overlay, not mask strength or the repaired image. **Reset Preview Appearance** restores the default blue at 40% opacity.
+This changes only the overlay, not mask strength or the repaired image. **Reset Canvas View Appearance** restores the default blue at 40% opacity.
 
 The colored preview shows the painted mask, including its soft edge and selection. Painting
 over it again does not increase coverage. In **Tiled** preview, draw on any copy: the mask

@@ -1,5 +1,5 @@
 ---
-title: "Preview and navigation"
+title: "Canvas View and navigation"
 parent: "English"
 nav_order: 10
 lang: "en"
@@ -9,30 +9,34 @@ previous_page: "en/shader-fx.md"
 next_page: "en/color.md"
 ---
 
-# Preview and navigation
+<a id="preview-and-navigation"></a>
 
-Use the Preview to inspect your image up close, check seams or look at individual channels.
+# Canvas View and navigation
+
+Canvas View is the whole panel, including its tool settings and footer. The canvas is the image area inside it: use it to paint, inspect details and check seams or individual channels.
 Changing the view does not resize the document.
 
-The preview footer holds controls for quality, live texture updates, post-processing,
+The Canvas View footer holds controls for quality, live texture updates, post-processing,
 UV overlays, guides and channel viewing. It also contains **HDR**, the color-input mode,
 and hints for the active tool.
 
-## Layer mini preview
+<a id="layer-mini-preview"></a>
 
-Drag the **Preview** strip at the bottom of **Layer Settings** upward to inspect the selected layer; drag it down to hide the image. The separate **Properties** window has the same mini preview and opens with it visible. The block stays below the scrolling settings and is at most 256 px high, including the strip, or less if space is limited. Its chosen height stays unchanged when switching layers or image resolutions. Small images enlarge proportionally to fit; large images shrink without cropping.
+## Layer Preview
 
-The mini preview shows the layer before blending with other layers. A group shows its own colored content against transparency.
+Drag the **Layer Preview** strip at the bottom of **Layer Settings** upward to inspect the selected layer; drag it down to hide the image. The separate **Properties** window has the same Layer Preview and opens with it visible. The block stays below the scrolling settings and is at most 256 px high, including the strip, or less if space is limited. Its chosen height stays unchanged when switching layers or image resolutions. Small images enlarge proportionally to fit; large images shrink without cropping.
 
-The compact, neutral **R / G / B / A** buttons toggle channels independently, like the main preview footer. One RGB channel is displayed in grayscale; **A** controls transparency. Enable only **A** to inspect alpha in grayscale, or turn all four off to show black. Transparent areas use a checkerboard. This selection belongs to the mini preview only: it does not change the main preview, painting, the layer or saved output.
+The Layer Preview shows the layer before blending with other layers. A group shows its own colored content against transparency.
 
-In either preview, hold the left mouse button and drag across **R / G / B / A** to switch several channels together.
+The compact, neutral **R / G / B / A** buttons toggle channels independently, like the Canvas View footer. One RGB channel is displayed in grayscale; **A** controls transparency. Enable only **A** to inspect alpha in grayscale, or turn all four off to show black. Transparent areas use a checkerboard. This selection belongs to the Layer Preview only: it does not change the Canvas View, painting, the layer or saved output.
+
+In Canvas View or Layer Preview, hold the left mouse button and drag across **R / G / B / A** to switch several channels together.
 
 ## Context tools
 
 Tools below the toolbar separator appear when they are relevant. Selecting a Gradient layer automatically selects **Gradient Handles** (the hand icon). You can switch back to a basic tool; it stays selected until you activate another layer. With multiple layers selected, context tools use the active, last-selected layer.
 
-Enabling **UV** adds **UV Island Select** without switching tools. **Edit on Canvas** on an FX parameter adds one temporary hand tool at the bottom. Its tooltip and the preview footer identify the parameter; editing another parameter replaces this tool.
+Enabling **UV** adds **UV Island Select** without switching tools. **Edit on Canvas** on an FX parameter adds one temporary hand tool at the bottom. Its tooltip and the Canvas View footer identify the parameter; editing another parameter replaces this tool.
 
 Click the active context-tool button or press `Escape` to return to your last basic tool. Leaving a temporary FX tool returns to the tool used before it, including an available context tool. During a drag, `Escape` cancels only that drag; press it again to leave the tool. Changing inspector values, opening a color picker or switching applications does not leave the tool.
 
@@ -67,7 +71,7 @@ PNG/JPEG/EXR files do not store a sampling mode for other applications.
 
 View rotation does not rotate the layers or affect saving and export.
 
-**Tiled** is a toggle button in the preview footer, beside UV and Guides. Enable it to see repeated copies
+**Tiled** is a toggle button in the Canvas View footer, beside UV and Guides. Enable it to see repeated copies
 and work across the edges: painting, erasing, filling and selections wrap to the opposite side.
 The saved image size and layer transforms remain unchanged.
 See [seamless painting](symmetry.md).
@@ -76,16 +80,16 @@ See [seamless painting](symmetry.md).
 
 ### Create and edit guides
 
-Drag from the thin strip on the left of Preview to create a vertical guide, or from the top strip for a horizontal one.
+Drag from the thin strip on the left of Canvas View to create a vertical guide, or from the top strip for a horizontal one.
 The new line is parallel to the strip even on a rotated canvas; afterwards it moves, zooms and rotates with the canvas.
 
-Drag an existing line to reposition it. Drop it back on either strip or outside Preview to remove it; `Esc` cancels the drag.
+Drag an existing line to reposition it. Drop it back on either strip or outside Canvas View to remove it; `Esc` cancels the drag.
 You can create guides from the edge strips with any tool. Only **Zoom**, **Transform** and **Layer Select** can grab existing lines to move or drag-delete them. Painting, filling and area-selection tools ignore existing guides; the lines stay visible.
 Click a guide to select it: arrow keys nudge it, `Shift` increases the step tenfold, and `Delete` removes it. Click elsewhere or press `Esc` to deselect. Double-click a guide to enter an exact **Position (px)** and **Angle (°)**. Angles are relative to the canvas: 0° is horizontal, 90° is vertical. For those two orientations, Position is the distance from the top or left edge; at other angles it is the signed perpendicular distance from the top-left corner.
 
 Right-click a guide to **Edit**, **Duplicate** or **Delete** it. Right-click either edge strip for the shared controls:
 
-- **Show Guides** — hide or show the lines. The **Guides** button next to **UV** in the preview footer does the same. Hidden guides do not attract tools; creating a new guide shows them again.
+- **Show Guides** — hide or show the lines. The **Guides** button next to **UV** in the Canvas View footer does the same. Hidden guides do not attract tools; creating a new guide shows them again.
 - **Lock Guides** — protect existing lines from editing. You can still create new guides and snap tools to locked ones.
 - **Snap to Guides** — toggle snapping; hold `Ctrl` to bypass it temporarily. `Ctrl` also lets Zoom and Transform grab through an existing line.
 - **Undo Guide Change / Redo Guide Change** — undo or redo guide edits without affecting painting.
@@ -111,7 +115,7 @@ Guides are not exported and are cleared when switching documents.
 
 ### Appearance and snap distance
 
-Guides that are horizontal or vertical in the current preview appear bright cyan; angled guides use a softer blue-gray. The colors update as you rotate the view, without changing snapping.
+Guides that are horizontal or vertical in the current Canvas View appear bright cyan; angled guides use a softer blue-gray. The colors update as you rotate the view, without changing snapping.
 
 In **User Settings → Guides & Snapping**, choose colors for **Aligned Guides**, **Angled Guides** and the **Active Guide** (hovered, selected or dragged). A guide about to be deleted stays red.
 **Snap Radius (px)** sets the attraction distance for guides, intersections, canvas edges and pivot anchors: 1–64 UI pixels, default 8, independent of zoom. Angular snapping is unchanged. These preferences apply across windows and are saved between sessions; **Reset Guides & Snapping** restores their defaults.
@@ -129,7 +133,7 @@ Patch Quilting can select different patches at reduced resolution; verify this f
 ## See your paint on a model
 
 1. Save the document and assign its texture to your model's material.
-2. Turn on **Live Update** (the circle button) in the preview footer, next to **Post FX**.
+2. Turn on **Live Update** (the circle button) in the Canvas View footer, next to **Post FX**.
 3. Paint or adjust layers: objects using that texture update in Scene View.
 
 <a href="{{ '/Images/uv-rubik-cube.png' | relative_url }}"><img src="{{ '/Images/uv-rubik-cube.png' | relative_url }}" alt="Live Update in WhimTex: white lettering painted across the cube's texture appears on the model in Unity Scene view" width="720"></a>

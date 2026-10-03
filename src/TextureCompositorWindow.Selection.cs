@@ -25,11 +25,11 @@ namespace DCFApixels.WhimTex
         {
             StopKeyboardNudge();
             var element = evt.target as VisualElement;
-            if (element != null && toolkitPreviewCanvas != null &&
-                (element == toolkitPreviewCanvas || toolkitPreviewCanvas.Contains(element)))
+            if (element != null && toolkitCanvas != null &&
+                (element == toolkitCanvas || toolkitCanvas.Contains(element)))
             {
                 keyboardCanvasContext = true;
-                toolkitPreviewCanvas.Focus();
+                toolkitCanvas.Focus();
             }
             else if (element != null && toolkitLayerHierarchyRoot != null &&
                 (element == toolkitLayerHierarchyRoot || toolkitLayerHierarchyRoot.Contains(element)))
@@ -47,12 +47,12 @@ namespace DCFApixels.WhimTex
                 IsLayerNavigationInput(rootVisualElement.panel?.focusController?.focusedElement as VisualElement))
                 return false;
             WhimTexUI.ConsumeEvent(evt);
-            if (!IsBasePreviewTool(previewTool)) return true;
+            if (!IsBaseCanvasTool(canvasTool)) return true;
             if (keyboardTransform != null && nudgeKey == evt.keyCode) return true; // Ignore OS repeat.
             StopKeyboardNudge();
-            if (activeLayerDrag != null || paintingLayer != null || PreviewFXParameter != null ||
-                previewTransformManipulator?.IsDragging == true || previewZoomManipulator?.IsDragging == true ||
-                previewGuideManipulator?.IsDragging == true || gradientCanvasManipulator?.IsDragging == true)
+            if (activeLayerDrag != null || paintingLayer != null || CanvasFXParameter != null ||
+                canvasTransformManipulator?.IsDragging == true || canvasZoomManipulator?.IsDragging == true ||
+                canvasGuideManipulator?.IsDragging == true || gradientCanvasManipulator?.IsDragging == true)
                 return true;
             if (areaSelectionManipulator?.HasGesture == true) return true;
             NormalizeLayerSelection();
@@ -63,7 +63,7 @@ namespace DCFApixels.WhimTex
                 if (layer == null || layer.Behaviour == null || WhimTexApi.IsLayerContentLocked(compositor, layer) ||
                     WhimTexApi.ContainsReservation(layer)) return true;
             }
-            FinishPreviewTransform();
+            FinishCanvasTransform();
             try
             {
                 keyboardTransform = new MultiLayerTransform(compositor, selectedLayerIds);
@@ -84,14 +84,14 @@ namespace DCFApixels.WhimTex
 
         private void NudgeOnePixel()
         {
-            // Canvas pixels, independent of preview zoom and layer/parent scale.
+            // Canvas pixels, independent of canvas zoom and layer/parent scale.
             var frame = keyboardFrame;
             frame.position += new Double2(nudgeKey == KeyCode.LeftArrow ? -1 : nudgeKey == KeyCode.RightArrow ? 1 : 0,
                 nudgeKey == KeyCode.UpArrow ? 1 : nudgeKey == KeyCode.DownArrow ? -1 : 0);
             if (!keyboardTransform.Apply(frame)) { StopKeyboardNudge(); return; }
             keyboardFrame = frame;
-            RequestPreview(true);
-            previewTransformOverlay?.MarkDirtyRepaint();
+            RequestCanvasRender(true);
+            canvasTransformOverlay?.MarkDirtyRepaint();
             gradientCanvasOverlay?.MarkDirtyRepaint();
         }
 
@@ -132,14 +132,14 @@ namespace DCFApixels.WhimTex
                 IsLayerNavigationInput(rootVisualElement.panel?.focusController?.focusedElement as VisualElement))
                 return false;
             if (activeLayerDrag != null || paintingLayer != null ||
-                (previewTransformManipulator != null && previewTransformManipulator.IsDragging) ||
-                (previewZoomManipulator != null && previewZoomManipulator.IsDragging))
+                (canvasTransformManipulator != null && canvasTransformManipulator.IsDragging) ||
+                (canvasZoomManipulator != null && canvasZoomManipulator.IsDragging))
                 return false;
 
             WhimTexUI.ConsumeEvent(evt);
             int index = FindAdjacentLayerIndex(evt.keyCode == KeyCode.UpArrow ? -1 : 1);
             if (index < 0) return true;
-            FinishPreviewTransform();
+            FinishCanvasTransform();
             FinishPaintingStroke();
             LayerTreeEntry entry = toolkitLayerTree[index];
             SelectOnlyLayer(entry.Layer.Id);
@@ -216,7 +216,7 @@ namespace DCFApixels.WhimTex
 
         private void SelectLayerFromPointer(Layer layer, PointerDownEvent evt, bool preserveSelection = false)
         {
-            FinishPreviewTransform();
+            FinishCanvasTransform();
             FinishPaintingStroke();
             bool additive = evt.ctrlKey || evt.commandKey;
             if (evt.shiftKey)
@@ -289,7 +289,7 @@ namespace DCFApixels.WhimTex
         {
             List<Layer> targets = GetSelectedParameterLayers(source);
             if (targets.Count == 0) return;
-            FinishPreviewTransform();
+            FinishCanvasTransform();
             FinishPaintingStroke();
             ApplyToolkitChange(undoName, () =>
             {
@@ -344,7 +344,7 @@ namespace DCFApixels.WhimTex
         {
             if (layers.Exists(WhimTexApi.ContainsReservation))
             { ShowNotification(new GUIContent("Finish or cancel generation before duplicating these layers.")); return; }
-            FinishPreviewTransform();
+            FinishCanvasTransform();
             FinishPaintingStroke();
             Layer active = GetSelectedLayer();
             applyingToolkitChange = true;
@@ -365,7 +365,7 @@ namespace DCFApixels.WhimTex
                 selectionAnchorId = selectedLayerId;
                 temporaryDocumentDirty |= !AssetDatabase.Contains(compositor);
                 lineAnchorLayer = null;
-                RequestPreview();
+                RequestCanvasRender();
             }
             catch (System.Exception exception)
             {
@@ -423,7 +423,7 @@ namespace DCFApixels.WhimTex
                 selectionAnchorId = selectedLayerId;
                 temporaryDocumentDirty |= !AssetDatabase.Contains(compositor);
                 lineAnchorLayer = null;
-                RequestPreview();
+                RequestCanvasRender();
             }
             catch
             {
@@ -440,7 +440,7 @@ namespace DCFApixels.WhimTex
 
         private void DeleteLayers(List<Layer> layers)
         {
-            FinishPreviewTransform();
+            FinishCanvasTransform();
             FinishPaintingStroke();
             if (layers.Count == 0)
                 return;
@@ -462,7 +462,7 @@ namespace DCFApixels.WhimTex
         {
             if (layers.Exists(WhimTexApi.ContainsReservation))
             { ShowNotification(new GUIContent("Finish or cancel generation before merging these layers.")); return; }
-            FinishPreviewTransform();
+            FinishCanvasTransform();
             FinishPaintingStroke();
             if (compositor == null || layers.Count == 0) return;
             applyingToolkitChange = true;
@@ -481,7 +481,7 @@ namespace DCFApixels.WhimTex
             finally
             {
                 applyingToolkitChange = false;
-                RequestPreview(true);
+                RequestCanvasRender(true);
                 RefreshToolkitInterface(forceValues: true);
             }
         }
@@ -563,7 +563,7 @@ namespace DCFApixels.WhimTex
                     return;
                 }
                 DragAndDrop.AcceptDrag();
-                owner.FinishPreviewTransform();
+                owner.FinishCanvasTransform();
                 owner.FinishPaintingStroke();
                 Undo.IncrementCurrentGroup();
                 int undoGroup = Undo.GetCurrentGroup();
@@ -614,7 +614,7 @@ namespace DCFApixels.WhimTex
         {
             if (!CanDropLayers(layers, destination))
                 return;
-            FinishPreviewTransform();
+            FinishCanvasTransform();
             FinishPaintingStroke();
             index = Mathf.Clamp(index, 0, destination.Count);
             int insertion = index;

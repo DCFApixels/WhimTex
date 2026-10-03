@@ -66,8 +66,7 @@ public static class ShaderFXTiffCatalogSmoke
             string sourceCode = (string)Field(effect, "code");
             Check(!string.IsNullOrEmpty(guid) && !string.IsNullOrEmpty(source), "Catalog preset was not linked before save.");
 
-            path = "Assets/WhimTexShaderFXCatalogSmoke.tiff";
-            if (File.Exists(path)) AssetDatabase.DeleteAsset(path);
+            path = "Assets/WhimTexShaderFXCatalogSmoke_" + Guid.NewGuid().ToString("N") + ".tiff";
             path = DCFApixels.WhimTex.WhimTexDocumentFile.Save(document, path);
             files.Add(path);
             Check(File.Exists(path), "Catalog smoke TIFF was not written.");
@@ -83,8 +82,7 @@ public static class ShaderFXTiffCatalogSmoke
             // A missing preset must degrade to the source snapshot embedded in the TIFF.
             SetField(loadedEffect, "catalogGuid", "missing-shaderfx-preset-guid");
             SetField(loadedEffect, "catalogSourcePath", "Assets/MissingShaderFXPreset.hlsl");
-            string fallbackPath = "Assets/WhimTexShaderFXCatalogFallbackSmoke.tiff";
-            if (File.Exists(fallbackPath)) AssetDatabase.DeleteAsset(fallbackPath);
+            string fallbackPath = "Assets/WhimTexShaderFXCatalogFallbackSmoke_" + Guid.NewGuid().ToString("N") + ".tiff";
             fallbackPath = DCFApixels.WhimTex.WhimTexDocumentFile.Save(loaded, fallbackPath);
             files.Add(fallbackPath);
             Check(DCFApixels.WhimTex.WhimTexDocumentFile.TryLoad(fallbackPath, out var fallback, out string fallbackError), "Fallback reload failed: " + fallbackError);

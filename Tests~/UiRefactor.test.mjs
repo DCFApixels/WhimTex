@@ -3,7 +3,21 @@ import { readFileSync } from 'node:fs';
 import { snapshot } from './UssCascadeSnapshot.mjs';
 const read = p => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 // New controls are not a restyle of the existing cascade.
-const styles = read('src/WhimTexSplitView.uss')
+// Canonicalize only the approved terminology migration. Values, specificity and
+// conflicting declaration order still compare against a frozen baseline.
+// Baseline: committed USS at e8070f0 (new inspector, Healing, scrollable tools,
+// seamless controls and FX groups reviewed separately from the glossary rename).
+const terminology = [
+    ['.whimtex-canvas-view-', '.whimtex-preview-'],
+    ['.whimtex-canvas-shadow', '.whimtex-preview-canvas-shadow'],
+    ['.whimtex-canvas-cursor-', '.whimtex-preview-cursor-'],
+    ['.whimtex-canvas-surface', '.whimtex-preview-surface'],
+    ['.whimtex-layer-preview-channel', '.whimtex-mini-preview-channel'],
+];
+let canonicalStyles = read('src/WhimTexSplitView.uss');
+for (const [current, previous] of terminology) canonicalStyles = canonicalStyles.replaceAll(current, previous);
+canonicalStyles = canonicalStyles.replace(/\.whimtex-canvas(?=--|[^\w-]|$)/g, '.whimtex-preview-canvas');
+const styles = canonicalStyles
     .replace(/\.whimtex-missing-thumbnail\s*\{[^}]*\}/g, '')
     .replace(/\.whimtex-view-field(?:\s*>\s*\.unity-base-field__label)?\s*\{[^}]*\}/g, '')
     .replace(/\.whimtex-guides?-[^{]+\{[^}]*\}/g, '')

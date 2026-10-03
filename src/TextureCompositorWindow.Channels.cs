@@ -7,7 +7,7 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
-        private const int AllPreviewChannels = 15;
+        private const int AllCanvasChannels = 15;
         internal static Func<int> FindColorChannelSource(TextureCompositor document)
         {
             if (document == null) return null;
@@ -18,88 +18,88 @@ namespace DCFApixels.WhimTex
                     if (match != null) return null;
                     match = window;
                 }
-            return match == null ? null : () => match != null && match.compositor == document ? match.previewChannels : -1;
+            return match == null ? null : () => match != null && match.compositor == document ? match.canvasChannels : -1;
         }
-        [SerializeField] private int previewChannels = AllPreviewChannels;
-        [NonSerialized] private RenderTexture channelPreviewTexture;
+        [UnityEngine.Serialization.FormerlySerializedAs("previewChannels")]
+        [SerializeField] private int canvasChannels = AllCanvasChannels;
+        [NonSerialized] private RenderTexture channelCanvasTexture;
         [NonSerialized] private Button[] channelButtons;
-        [SerializeField] private bool previewDebug;
-        [NonSerialized] private float previewExposure;
-        [NonSerialized] private Slider previewQualitySlider;
-        [NonSerialized] private Label previewQualityValue;
+        [UnityEngine.Serialization.FormerlySerializedAs("previewDebug")]
+        [SerializeField] private bool canvasDebug;
+        [NonSerialized] private float canvasExposure;
+        [NonSerialized] private Slider canvasQualitySlider;
+        [NonSerialized] private Label canvasQualityValue;
 
-        private Vector4 PreviewChannelMask => new Vector4(
-            (previewChannels & 1) != 0 ? 1f : 0f,
-            (previewChannels & 2) != 0 ? 1f : 0f,
-            (previewChannels & 4) != 0 ? 1f : 0f,
-            (previewChannels & 8) != 0 ? 1f : 0f);
+        private Vector4 CanvasChannelMask => new Vector4(
+            (canvasChannels & 1) != 0 ? 1f : 0f,
+            (canvasChannels & 2) != 0 ? 1f : 0f,
+            (canvasChannels & 4) != 0 ? 1f : 0f,
+            (canvasChannels & 8) != 0 ? 1f : 0f);
 
-        private VisualElement BuildPreviewFooter()
+        private VisualElement BuildCanvasViewFooter()
         {
             VisualElement footer = new VisualElement();
-            footer.AddToClassList("whimtex-preview-footer");
-            var left = new VisualElement { name = "previewFooterLeft" };
-            left.AddToClassList("whimtex-preview-footer-side");
+            footer.AddToClassList("whimtex-canvas-view-footer");
+            var left = new VisualElement { name = "canvasFooterLeft" };
+            left.AddToClassList("whimtex-canvas-view-footer-side");
             footer.Add(left);
-            var updates = CreatePreviewFooterGroup("previewFooterUpdates");
-            updates.Add(BuildPreviewQualityControl());
+            var updates = CreateCanvasViewFooterGroup("canvasFooterUpdates");
+            updates.Add(BuildCanvasQualityControl());
             updates.Add(BuildLiveOutputButton());
             left.Add(updates);
-            var context = CreatePreviewFooterGroup("previewFooterContext", true);
+            var context = CreateCanvasViewFooterGroup("canvasFooterContext", true);
             context.Add(BuildPostFxButton());
             context.Add(BuildUvButton());
-            context.Add(BuildTiledPreviewButton());
+            context.Add(BuildTiledCanvasButton());
             context.Add(BuildGuidesButton());
             left.Add(context);
-            footer.RegisterCallback<GeometryChangedEvent>(evt =>
-                footer.EnableInClassList("whimtex-preview-footer--compact", evt.newRect.width < 600f));
-            toolkitPreviewFooter = new PreviewFooterHintLabel();
-            toolkitPreviewFooter.AddToClassList("whimtex-preview-status");
-            footer.Add(toolkitPreviewFooter);
-            var right = new VisualElement { name = "previewFooterRight" };
-            right.AddToClassList("whimtex-preview-footer-side");
-            right.AddToClassList("whimtex-preview-channels");
+            toolkitCanvasViewFooter = new CanvasViewFooterHintLabel();
+            toolkitCanvasViewFooter.AddToClassList("whimtex-canvas-view-status");
+            footer.Add(toolkitCanvasViewFooter);
+            var right = new VisualElement { name = "canvasFooterRight" };
+            right.AddToClassList("whimtex-canvas-view-footer-side");
+            right.AddToClassList("whimtex-canvas-view-channels");
             footer.Add(right);
-            var inspection = CreatePreviewFooterGroup("previewFooterInspection");
+            var inspection = CreateCanvasViewFooterGroup("canvasFooterInspection");
             right.Add(inspection);
             inspection.Add(WhimTexColorInputs.CreateToggleControl());
-            var exposure = new FloatField("EV") { value = previewExposure, tooltip = "Preview exposure only, in stops. Does not affect painting, fill sampling or export." };
-            exposure.AddToClassList("whimtex-preview-exposure");
-            exposure.EnableInClassList("whimtex-preview-exposure--adjusted", previewExposure != 0f);
+            var exposure = new FloatField("EV") { value = canvasExposure, tooltip = "Canvas View exposure only, in stops. Does not affect painting, fill sampling or export." };
+            exposure.AddToClassList("whimtex-canvas-view-exposure");
+            exposure.EnableInClassList("whimtex-canvas-view-exposure--adjusted", canvasExposure != 0f);
             exposure.RegisterValueChangedCallback(evt =>
             {
-                previewExposure = float.IsNaN(evt.newValue) ? 0f : Mathf.Clamp(evt.newValue, -20f, 20f);
-                exposure.SetValueWithoutNotify(previewExposure);
-                exposure.EnableInClassList("whimtex-preview-exposure--adjusted", previewExposure != 0f);
-                UpdateChannelPreview(); UpdateToolkitPreviewPresentation();
+                canvasExposure = float.IsNaN(evt.newValue) ? 0f : Mathf.Clamp(evt.newValue, -20f, 20f);
+                exposure.SetValueWithoutNotify(canvasExposure);
+                exposure.EnableInClassList("whimtex-canvas-view-exposure--adjusted", canvasExposure != 0f);
+                UpdateChannelCanvas(); UpdateToolkitCanvasPresentation();
             });
             inspection.Add(exposure);
             var debug = new Button(() =>
             {
-                previewDebug = !previewDebug;
-                UpdateChannelPreview(); UpdateToolkitPreviewPresentation();
-            }) { tooltip = "Debug numeric errors: highlights invalid or overflowing components before they were replaced with zero. Preview only; choose the highlight color in User Settings." };
+                canvasDebug = !canvasDebug;
+                UpdateChannelCanvas(); UpdateToolkitCanvasPresentation();
+            }) { tooltip = "Debug numeric errors: highlights invalid or overflowing components before they were replaced with zero. Canvas View only; choose the highlight color in User Settings." };
             debug.AddToClassList("whimtex-channel-button");
             debug.AddToClassList("whimtex-debug-button");
             debug.Add(new LayerActionIcon(LayerActionIcon.Kind.Bug));
             debug.schedule.Execute(() =>
             {
-                debug.EnableInClassList("whimtex-channel-button--enabled", previewDebug);
+                debug.EnableInClassList("whimtex-channel-button--enabled", canvasDebug);
                 debug.EnableInClassList("whimtex-channel-button--error", compositor != null && compositor.HasNumericErrors);
             }).Every(150);
             inspection.Add(debug);
-            var channels = CreatePreviewFooterGroup("previewFooterColor", true);
+            var channels = CreateCanvasViewFooterGroup("canvasFooterColor", true);
             right.Add(channels);
             channelButtons = new Button[4];
             string[] labels = { "R", "G", "B", "A" };
             for (int i = 0; i < labels.Length; i++)
             {
                 int bit = 1 << i;
-                Button button = new Button(() => TogglePreviewChannel(bit)) { text = labels[i] };
+                Button button = new Button(() => ToggleCanvasChannel(bit)) { text = labels[i] };
                 button.tooltip = i == 3
-                    ? "Alpha: off ignores transparency in Preview and gives the brush A=0 (no paint). " +
+                    ? "Alpha: off ignores transparency in Canvas View and gives the brush A=0 (no paint). " +
                       "Enable only A to view alpha in grayscale. Eraser is unaffected."
-                    : labels[i] + " channel: show in Preview and use the brush value; off paints this component as 0. " +
+                    : labels[i] + " channel: show in Canvas View and use the brush value; off paints this component as 0. " +
                       "A single RGB channel is shown in grayscale; A controls its transparency. " +
                       "Existing pixels are not changed by toggling. Eraser is unaffected.";
                 button.AddToClassList("whimtex-channel-button");
@@ -108,25 +108,42 @@ namespace DCFApixels.WhimTex
                 channelButtons[i] = button;
                 channels.Add(button);
             }
-            channels.AddManipulator(new PreviewChannelDragManipulator(channelButtons, () => previewChannels, TogglePreviewChannel));
+            channels.AddManipulator(new ChannelDragManipulator(channelButtons, () => canvasChannels, ToggleCanvasChannel));
+            var hint = toolkitCanvasViewFooter;
+            float normalUpdatesWidth = 0f;
+            void RefreshFooterLayout()
+            {
+                bool compact = footer.ClassListContains("whimtex-canvas-view-footer--compact");
+                if (!compact) normalUpdatesWidth = updates.layout.width;
+                float RequiredWidth(VisualElement group) => group.layout.width +
+                    group.resolvedStyle.marginLeft + group.resolvedStyle.marginRight;
+                float required = Mathf.Max(normalUpdatesWidth, updates.layout.width) +
+                    RequiredWidth(context) + RequiredWidth(inspection) + RequiredWidth(channels) +
+                    hint.resolvedStyle.marginLeft + hint.resolvedStyle.marginRight;
+                if (float.IsNaN(required) || normalUpdatesWidth <= 0f) return;
+                footer.EnableInClassList("whimtex-canvas-view-footer--compact", footer.contentRect.width < required);
+            }
+            footer.RegisterCallback<GeometryChangedEvent>(_ => RefreshFooterLayout());
+            foreach (var group in new[] { updates, context, inspection, channels })
+                group.RegisterCallback<GeometryChangedEvent>(_ => RefreshFooterLayout());
             RefreshChannelButtons();
             return footer;
         }
 
-        private static VisualElement CreatePreviewFooterGroup(string name, bool separated = false)
+        private static VisualElement CreateCanvasViewFooterGroup(string name, bool separated = false)
         {
             var group = new VisualElement { name = name };
-            group.AddToClassList("whimtex-preview-footer-group");
-            if (separated) group.AddToClassList("whimtex-preview-footer-group--separated");
+            group.AddToClassList("whimtex-canvas-view-footer-group");
+            if (separated) group.AddToClassList("whimtex-canvas-view-footer-group--separated");
             return group;
         }
 
-        private sealed class PreviewFooterHintLabel : Label
+        private sealed class CanvasViewFooterHintLabel : Label
         {
             private string measuredText;
             private float measuredWidth;
 
-            public PreviewFooterHintLabel()
+            public CanvasViewFooterHintLabel()
             {
                 RegisterCallback<GeometryChangedEvent>(_ =>
                 {
@@ -143,65 +160,65 @@ namespace DCFApixels.WhimTex
                     measuredWidth = MeasureTextSize(text, 0, MeasureMode.Undefined, 0, MeasureMode.Undefined).x;
                     measuredText = text;
                 }
-                EnableInClassList("whimtex-preview-status--hidden",
+                EnableInClassList("whimtex-canvas-view-status--hidden",
                     string.IsNullOrEmpty(text) || !(measuredWidth <= contentRect.width));
             }
         }
 
-        private VisualElement BuildPreviewQualityControl()
+        private VisualElement BuildCanvasQualityControl()
         {
-            VisualElement control = new VisualElement { tooltip = LivePreviewQualityContent.tooltip };
-            control.AddToClassList("whimtex-preview-quality");
+            VisualElement control = new VisualElement { tooltip = LiveCanvasQualityContent.tooltip };
+            control.AddToClassList("whimtex-canvas-view-quality");
             Label label = new Label("Live Quality");
-            label.AddToClassList("whimtex-preview-quality-label");
+            label.AddToClassList("whimtex-canvas-view-quality-label");
             control.Add(label);
             Slider quality = new Slider(
-                MinimumPaintingPreviewScale * 100f, MaximumPaintingPreviewScale * 100f)
+                MinimumPaintingCanvasScale * 100f, MaximumPaintingCanvasScale * 100f)
             {
-                value = paintingPreviewScale * 100f,
-                tooltip = LivePreviewQualityContent.tooltip
+                value = paintingCanvasScale * 100f,
+                tooltip = LiveCanvasQualityContent.tooltip
             };
-            quality.AddToClassList("whimtex-preview-quality-slider");
-            Label value = new Label($"{paintingPreviewScale * 100f:0.#}%");
-            value.AddToClassList("whimtex-preview-quality-value");
-            previewQualitySlider = quality;
-            previewQualityValue = value;
+            quality.AddToClassList("whimtex-canvas-view-quality-slider");
+            Label value = new Label($"{paintingCanvasScale * 100f:0.#}%");
+            value.AddToClassList("whimtex-canvas-view-quality-value");
+            canvasQualitySlider = quality;
+            canvasQualityValue = value;
             quality.RegisterValueChangedCallback(evt =>
             {
-                if (previewTool == PreviewTool.Pencil) return;
-                paintingPreviewScale = ClampPaintingPreviewScale(evt.newValue * 0.01f);
-                EditorPrefs.SetFloat(PaintingPreviewScalePrefKey, paintingPreviewScale);
-                value.text = $"{paintingPreviewScale * 100f:0.#}%";
+                if (canvasTool == CanvasTool.Pencil) return;
+                paintingCanvasScale = ClampPaintingCanvasScale(evt.newValue * 0.01f);
+                EditorPrefs.SetFloat(PaintingCanvasScalePrefKey, paintingCanvasScale);
+                value.text = $"{paintingCanvasScale * 100f:0.#}%";
             });
             control.Add(quality);
             control.Add(value);
-            RefreshPreviewQualityControl();
+            RefreshCanvasQualityControl();
             return control;
         }
 
-        private void RefreshPreviewQualityControl()
+        private void RefreshCanvasQualityControl()
         {
-            if (previewQualitySlider == null || previewQualityValue == null) return;
-            bool pencil = previewTool == PreviewTool.Pencil;
-            float percent = pencil ? 100f : paintingPreviewScale * 100f;
-            previewQualitySlider.SetEnabled(!pencil);
-            if (!Mathf.Approximately(previewQualitySlider.value, percent))
-                previewQualitySlider.SetValueWithoutNotify(percent);
+            if (canvasQualitySlider == null || canvasQualityValue == null) return;
+            bool pencil = canvasTool == CanvasTool.Pencil;
+            float percent = pencil ? 100f : paintingCanvasScale * 100f;
+            canvasQualitySlider.SetEnabled(!pencil);
+            if (!Mathf.Approximately(canvasQualitySlider.value, percent))
+                canvasQualitySlider.SetValueWithoutNotify(percent);
             string text = $"{percent:0.#}%";
-            if (previewQualityValue.text != text) previewQualityValue.text = text;
-            previewQualitySlider.tooltip = pencil
+            if (canvasQualityValue.text != text) canvasQualityValue.text = text;
+            canvasQualitySlider.tooltip = pencil
                 ? "Pencil uses full canvas resolution. Your Live Quality preference is restored with other tools."
-                : LivePreviewQualityContent.tooltip;
+                : LiveCanvasQualityContent.tooltip;
         }
 
-        private void TogglePreviewChannel(int bit)
+        private void ToggleCanvasChannel(int bit)
         {
-            FinishPreviewTransform();
+            FinishCanvasTransform();
             FinishPaintingStroke();
-            previewChannels = (previewChannels ^ bit) & AllPreviewChannels;
+            canvasChannels = (canvasChannels ^ bit) & AllCanvasChannels;
             RefreshChannelButtons();
-            UpdateChannelPreview();
-            UpdateToolkitPreviewPresentation();
+            UpdateChannelCanvas();
+            UpdateToolkitCanvasPresentation();
         }
 
         private void RefreshChannelButtons()
@@ -209,7 +226,7 @@ namespace DCFApixels.WhimTex
             if (channelButtons == null)
                 return;
             for (int i = 0; i < channelButtons.Length; i++)
-                channelButtons[i].EnableInClassList("whimtex-channel-button--enabled", (previewChannels & (1 << i)) != 0);
+                channelButtons[i].EnableInClassList("whimtex-channel-button--enabled", (canvasChannels & (1 << i)) != 0);
         }
 
         private Color GetPaintingColor()
@@ -217,46 +234,46 @@ namespace DCFApixels.WhimTex
             Color color = WhimTexColorInputs.DisplayColor(paintSettings.brushColor);
             if (paintingErase)
                 return color;
-            Vector4 mask = PreviewChannelMask;
+            Vector4 mask = CanvasChannelMask;
             return HdrUtility.ApplyChannelMask(color, mask);
         }
 
-        private void UpdateChannelPreview()
+        private void UpdateChannelCanvas()
         {
-            if (previewTexture == null)
+            if (canvasTexture == null)
             {
-                ReleaseChannelPreview();
+                ReleaseChannelCanvas();
                 return;
             }
-            Material material = WhimTexMaterials.PreviewChannels;
+            Material material = WhimTexMaterials.DisplayChannels;
             if (material == null)
             {
-                ReleaseChannelPreview();
+                ReleaseChannelCanvas();
                 return;
             }
-            if (channelPreviewTexture == null || channelPreviewTexture.width != previewTexture.width ||
-                channelPreviewTexture.height != previewTexture.height)
+            if (channelCanvasTexture == null || channelCanvasTexture.width != canvasTexture.width ||
+                channelCanvasTexture.height != canvasTexture.height)
             {
-                ReleaseChannelPreview();
-                channelPreviewTexture = new RenderTexture(previewTexture.width, previewTexture.height, 0,
+                ReleaseChannelCanvas();
+                channelCanvasTexture = new RenderTexture(canvasTexture.width, canvasTexture.height, 0,
                     RenderTextureFormat.ARGB32, RenderTextureReadWrite.Default)
                 {
-                    name = "WhimTex Channel Preview",
+                    name = "WhimTex Canvas Channels",
                     hideFlags = HideFlags.HideAndDontSave,
                     wrapMode = TextureWrapMode.Clamp
                 };
             }
-            channelPreviewTexture.filterMode = previewTexture.filterMode;
-            material.SetVector("_Channels", PreviewChannelMask);
-            material.SetFloat("_Exposure", Mathf.Pow(2f, previewExposure));
-            material.SetFloat("_Debug", previewDebug ? 1f : 0f);
+            channelCanvasTexture.filterMode = canvasTexture.filterMode;
+            material.SetVector("_Channels", CanvasChannelMask);
+            material.SetFloat("_Exposure", Mathf.Pow(2f, canvasExposure));
+            material.SetFloat("_Debug", canvasDebug ? 1f : 0f);
             Color errorColor = WhimTexUserSettings.InvalidPixels;
             material.SetVector("_ErrorColor", (Vector4)(QualitySettings.activeColorSpace == ColorSpace.Linear ? errorColor.linear : errorColor));
             material.SetTexture("_Errors", compositor != null && compositor.NumericErrorMask != null ? compositor.NumericErrorMask : Texture2D.blackTexture);
             RenderTexture previous = RenderTexture.active;
             try
             {
-                Graphics.Blit(PreviewPresentationSource, channelPreviewTexture, material);
+                Graphics.Blit(CanvasPresentationSource, channelCanvasTexture, material);
             }
             finally
             {
@@ -264,13 +281,13 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private void ReleaseChannelPreview()
+        private void ReleaseChannelCanvas()
         {
-            if (channelPreviewTexture == null)
+            if (channelCanvasTexture == null)
                 return;
-            channelPreviewTexture.Release();
-            DestroyImmediate(channelPreviewTexture);
-            channelPreviewTexture = null;
+            channelCanvasTexture.Release();
+            DestroyImmediate(channelCanvasTexture);
+            channelCanvasTexture = null;
         }
     }
 }

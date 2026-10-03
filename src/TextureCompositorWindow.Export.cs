@@ -130,7 +130,7 @@ namespace DCFApixels.WhimTex
                 default: return false;
             }
 
-            FinishPreviewTransform();
+            FinishCanvasTransform();
             FinishPaintingStroke();
             Texture2D texture = null;
             try

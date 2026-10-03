@@ -30,9 +30,9 @@ namespace DCFApixels.WhimTex
 
         private void AddFillSettings()
         {
-            VisualElement row = CreatePreviewSettingsRow();
+            VisualElement row = CreateCanvasSettingsRow();
             row.AddToClassList("whimtex-fill-settings");
-            BindPreviewSettingsRow(row, PreviewTool.Fill);
+            BindCanvasSettingsRow(row, CanvasTool.Fill);
             AddPaintColorFields(row);
             Toggle allLayers = new Toggle("All Layers");
             allLayers.AddToClassList("whimtex-fill-all-layers");
@@ -69,25 +69,25 @@ namespace DCFApixels.WhimTex
             expand.RegisterValueChangedCallback(evt => ApplyPaintToolChange(
                 () => paintSettings.fillExpand = Mathf.Clamp(evt.newValue, 0, 32)));
             row.Add(expand);
-            toolkitPreviewHeader.Add(row);
+            toolkitCanvasViewHeader.Add(row);
         }
 
         private bool HandleFillPointerDown(PointerDownEvent evt)
         {
-            if (!IsPreviewFillEnabled || evt.button != 0 || evt.altKey || compositor == null)
+            if (!IsCanvasFillEnabled || evt.button != 0 || evt.altKey || compositor == null)
                 return false;
-            if (!PreviewContainsPaintPoint(evt.localPosition)) return false;
+            if (!CanvasContainsPaintPoint(evt.localPosition)) return false;
             WhimTexUI.ConsumeEvent(evt);
             Focus();
-            toolkitPreviewCanvas.Focus();
+            toolkitCanvas.Focus();
             DrawingLayerBehaviour layer = (DrawingLayerBehaviour)GetSelectedLayer();
             if (!TiledCanvasUtility.IsInvertible(compositor.GetPaintTransform(layer)) ||
-                !TryMapPreviewToLayerUv(evt.localPosition, toolkitPreviewCanvas.ImageRect, layer, out Vector2 uv))
+                !TryMapCanvasToLayerUv(evt.localPosition, toolkitCanvas.ImageRect, layer, out Vector2 uv))
             {
                 ShowNotification(new GUIContent("Fill inside the layer's source frame, or apply its transform first."));
                 return true;
             }
-            if (tiledPreview)
+            if (tiledCanvas)
             {
                 uv = TiledCanvasUtility.CanonicalSource(uv, compositor.GetPaintTransform(layer), compositor.width, compositor.height);
                 if (uv.x < 0f || uv.x > 1f || uv.y < 0f || uv.y > 1f)
@@ -96,12 +96,12 @@ namespace DCFApixels.WhimTex
                     return true;
                 }
             }
-            Vector4 channels = PreviewChannelMask;
+            Vector4 channels = CanvasChannelMask;
             Color foreground = WhimTexColorInputs.DisplayColor(paintSettings.brushColor);
             Color color = HdrUtility.DecodePaintColor(HdrUtility.ApplyChannelMask(foreground, channels));
             if (color.a == 0) return true;
             FinishPaintingStroke();
-            FinishPreviewTransform();
+            FinishCanvasTransform();
             lineAnchorLayer = null;
             Texture2D composite = null;
             int undoGroup = -1;
@@ -151,7 +151,7 @@ namespace DCFApixels.WhimTex
                 compositor.MarkChanged();
                 Undo.FlushUndoRecordObjects();
                 Undo.CollapseUndoOperations(undoGroup);
-                RequestPreview(true);
+                RequestCanvasRender(true);
             }
             catch (Exception exception)
             {
@@ -160,7 +160,7 @@ namespace DCFApixels.WhimTex
                     Undo.FlushUndoRecordObjects();
                     Undo.RevertAllDownToGroup(undoGroup);
                     compositor.InvalidateDrawingLayerSurfaces();
-                    RequestPreview(true);
+                    RequestCanvasRender(true);
                 }
                 ShowNotification(new GUIContent("Fill failed: " + exception.Message));
                 Debug.LogException(exception);

@@ -22,7 +22,7 @@ public static class ShaderFXTextureLayersSmoke
             source.enabled = false;
             doc.layers.Add(consumer); doc.layers.Add(source);
             typeof(TextureCompositor).GetMethod("NormalizeModel", F).Invoke(doc, null);
-            fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F).Invoke(null, new object[] { doc,
+            fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.TextureCompositor), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { doc,
                 "// @param texture2D _Map\nfloat4 ApplyFX(float2 uv,float4 color){return tex2D(_Map,uv);}", new List<ShaderFXParameter>() });
             typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(fx, null);
             consumer.modifiers.Add(fx);

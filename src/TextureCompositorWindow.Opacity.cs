@@ -44,7 +44,7 @@ namespace DCFApixels.WhimTex
             else
                 return false;
 
-            FinishPreviewTransform();
+            FinishCanvasTransform();
             FinishPaintingStroke();
             double now = EditorApplication.timeSinceStartup;
             bool pair = opacityFirstDigit >= 0 && ReferenceEquals(opacityDigitLayer, layer) &&

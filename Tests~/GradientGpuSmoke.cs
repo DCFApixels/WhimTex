@@ -15,7 +15,7 @@ void Check(bool value, string message) { if (!value) throw new System.Exception(
 UnityEngine.Texture2D Palette() => (UnityEngine.Texture2D)layerType.GetField("palette", flags).GetValue(layer);
 UnityEngine.RenderTexture Render(int w, int h)
 {
-    var context = System.Activator.CreateInstance(contextType, new object[] { document, null, w, h, 1f, false, false });
+    var context = System.Activator.CreateInstance(contextType, new object[] { document, null, w, h, 1f, false, false, null });
     return (UnityEngine.RenderTexture)layerType.GetMethod("Render", flags).Invoke(layer, new object[] { context });
 }
 void Compare(string label, int w = 65, int h = 33, float tolerance = .002f)
@@ -46,6 +46,59 @@ void Compare(string label, int w = 65, int h = 33, float tolerance = .002f)
         if (output != null) UnityEngine.RenderTexture.ReleaseTemporary(output);
         if (expected != null) UnityEngine.Object.DestroyImmediate(expected);
         if (actual != null) UnityEngine.Object.DestroyImmediate(actual);
+    }
+}
+void CompareFixedBoundaries()
+{
+    // Feed an exact uniform coordinate: no raster interpolation, radius or pixel-center rounding.
+    // Test every boundary and both sides with the original color tolerance.
+    var temporary = Render(1, 1); UnityEngine.RenderTexture.ReleaseTemporary(temporary);
+    var material = new UnityEngine.Material(UnityEngine.Shader.Find("Hidden/TextureCompositor/Gradient"));
+    var output = new UnityEngine.RenderTexture(1, 1, 0, UnityEngine.RenderTextureFormat.ARGBFloat, UnityEngine.RenderTextureReadWrite.Linear);
+    var readback = new UnityEngine.Texture2D(1, 1, UnityEngine.TextureFormat.RGBAFloat, false, true);
+    var encode = typeof(DCFApixels.WhimTex.WhimTexGradient).GetMethod("EvaluateEncoded", flags);
+    var decode = layerType.Assembly.GetType("DCFApixels.WhimTex.HdrUtility").GetMethod("Decode",
+        System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+    try
+    {
+        output.Create();
+        material.SetTexture("_GradientPalette", Palette());
+        material.SetVectorArray("_GradientIntervals", (UnityEngine.Vector4[])layerType.GetField("paletteIntervals", flags).GetValue(layer));
+        material.SetInt("_GradientIntervalCount", (int)layerType.GetField("paletteIntervalCount", flags).GetValue(layer));
+        material.SetVector("_GradientStart", (UnityEngine.Color)layerType.GetField("paletteStart", flags).GetValue(layer));
+        material.SetInt("_GradientType", 1);
+        material.SetInt("_GradientWrapMode", (int)layer.gradient.WrapMode);
+        material.SetVector("_GradientOutputSize", UnityEngine.Vector4.one);
+        material.SetInt("_UnboundedUv", 1);
+        material.SetVector("_UvRow1", new UnityEngine.Vector4(0, 0, .5f, 0));
+        material.SetVector("_UvRow2", new UnityEngine.Vector4(0, 0, 1, 0));
+        var times = new System.Collections.Generic.List<float> { 0, 1 };
+        foreach (var key in layer.gradient.ColorKeys) times.Add(key.time);
+        foreach (var key in layer.gradient.AlphaKeys) times.Add(key.time);
+        foreach (float key in times)
+        foreach (float offset in new[] { -2f, -1f, 0f, 1f, 2f })
+        foreach (float side in new[] { -0.000001f, 0f, 0.000001f })
+        {
+            float time = key + offset + side;
+            material.SetVector("_UvRow0", new UnityEngine.Vector4(0, 0, time, 0));
+            UnityEngine.GL.sRGBWrite = false;
+            UnityEngine.Graphics.Blit(null, output, material);
+            UnityEngine.RenderTexture.active = output;
+            readback.ReadPixels(new UnityEngine.Rect(0, 0, 1, 1), 0, 0, false);
+            var encoded = (UnityEngine.Color)encode.Invoke(layer.gradient, new object[] { time });
+            var expected = (UnityEngine.Color)decode.Invoke(null, new object[] { encoded });
+            var actual = readback.GetPixel(0, 0);
+            for (int c = 0; c < 4; c++)
+                Check(UnityEngine.Mathf.Abs(actual[c] - expected[c]) <= .002f * UnityEngine.Mathf.Max(1, UnityEngine.Mathf.Abs(expected[c])),
+                    "Exact Fixed boundary " + layer.gradient.ColorSpace + "/" + layer.gradient.WrapMode + " t=" + time.ToString("R") +
+                    " channel " + c + ": expected=" + expected[c] + " actual=" + actual[c]);
+        }
+    }
+    finally
+    {
+        UnityEngine.RenderTexture.active = sentinel;
+        output.Release(); UnityEngine.Object.DestroyImmediate(output);
+        UnityEngine.Object.DestroyImmediate(readback); UnityEngine.Object.DestroyImmediate(material);
     }
 }
 try
@@ -86,6 +139,7 @@ try
             // by one encoded 8-bit step (up to .009 in linear light near white).
             Compare(space + "/" + mode + "/" + wrap + "/" + kind, tolerance: mode == DCFApixels.WhimTex.WhimTexGradientMode.Perceptual ? .01f : .002f);
         }
+        if (mode == DCFApixels.WhimTex.WhimTexGradientMode.Fixed) CompareFixedBoundaries();
     }
     layer.gradient.Mode = DCFApixels.WhimTex.WhimTexGradientMode.Classic;
     layer.gradientType = DCFApixels.WhimTex.GradientLayerBehaviour.GradientType.Circular;
@@ -94,7 +148,8 @@ try
     layer.circularRepetitions = 0; Compare("Zero repetitions");
     layer.gradientType = DCFApixels.WhimTex.GradientLayerBehaviour.GradientType.Radial;
     layer.gradient = null; Compare("Null fallback");
-    layer.gradient = new DCFApixels.WhimTex.WhimTexGradient();
+    // The strict signed-HDR case tests Classic; all modes are covered above.
+    layer.gradient = new DCFApixels.WhimTex.WhimTexGradient { Mode = DCFApixels.WhimTex.WhimTexGradientMode.Classic };
     layer.gradient.SetKeys(new[] {new UnityEngine.GradientColorKey(new UnityEngine.Color(-.5f, 2f, .2f), 0),
         new UnityEngine.GradientColorKey(new UnityEngine.Color(3f, -.2f, 1.2f), 1)},
         new[] {new UnityEngine.GradientAlphaKey(.2f, 0), new UnityEngine.GradientAlphaKey(.8f, 1)});
@@ -123,7 +178,10 @@ try
         alphas[i] = new UnityEngine.GradientAlphaKey(i / 7f, .04f + i * .131f);
     }
     layer.gradient.SetKeys(colors, alphas);
-    Compare("Maximum independent color/alpha keys, fixed");
+    // Avoid a radial/square sample exactly on t=.4 where CPU/GPU shape rounding differs.
+    // Exact jump semantics are tested separately with uniform coordinates, not a larger color tolerance.
+    Compare("Maximum independent color/alpha keys, fixed", 64, 34);
+    CompareFixedBoundaries();
     Check(Palette().height == 17, "Maximum palette interval count");
     layer.gradient.Mode = DCFApixels.WhimTex.WhimTexGradientMode.Classic;
     Compare("Maximum independent color/alpha keys, blend");

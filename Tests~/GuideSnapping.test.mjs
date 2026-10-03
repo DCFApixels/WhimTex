@@ -28,16 +28,16 @@ function body(name) {
 function compile(name, args) {
     const outNames = [...body(name).matchAll(/out Vector2 (intersection|target)/g)].map(m => m[1]);
     let code = body(name)
-        .replace(/TrySnapPreviewGuideIntersection\((\w+), ([\w.]+), out Vector2 (\w+)\)/g, 'intersect($1, $2, value => $3 = value)')
-        .replace(/foreach \(PreviewGuide guide in previewGuides\)/g, 'for (const guide of previewGuides)')
+        .replace(/TrySnapCanvasGuideIntersection\((\w+), ([\w.]+), out Vector2 (\w+)\)/g, 'intersect($1, $2, value => $3 = value)')
+        .replace(/foreach \(CanvasGuide guide in canvasGuides\)/g, 'for (const guide of canvasGuides)')
         .replace(/GuideDocumentPlane\(([^;]+?), out Vector2 (\w+), out float (\w+)\);/g, 'let [$2, $3] = plane($1);')
         .replace(/GuideDocumentPlane\(guide, out Vector2 n, out _\);/g, 'let [n] = plane(guide);')
-        .replace('return point + SnapPreviewGuideMove(point, axisX, Vector2.zero, fallback - point, true, true)', 'return add(point, snapMove(point, axisX, new V(0, 0), sub(fallback, point), true, true))')
+        .replace('return point + SnapCanvasGuideMove(point, axisX, Vector2.zero, fallback - point, true, true)', 'return add(point, snapMove(point, axisX, new V(0, 0), sub(fallback, point), true, true))')
         .replace(/\b(?:float|Vector2|int|bool) (\w+)/g, 'let $1')
         .replace(/new Vector2/g, 'new V').replace(/Vector2.Dot/g, 'dot').replace(/GuideAxesParallel/g, 'parallel')
         .replace(/Mathf.Abs/g, 'Math.abs').replace(/Mathf.Min/g, 'Math.min')
         .replace(/Mathf.Atan2/g, 'Math.atan2').replace(/Mathf.Round/g, 'Math.round').replace(/Mathf.Rad2Deg/g, '(180 / Math.PI)')
-        .replace(/previewGuides.Count/g, 'previewGuides.length').replace(/(\d)f\b/g, '$1')
+        .replace(/canvasGuides.Count/g, 'canvasGuides.length').replace(/(\d)f\b/g, '$1')
         .replaceAll('Vector2.right', 'new V(1, 0)').replaceAll('Vector2.up', 'new V(0, 1)').replaceAll('Vector2.zero', 'new V(0, 0)')
         .replace('float.PositiveInfinity', 'Infinity')
         .replace(/new V\(firstDelta \* n.y - first.y \* delta,\s*first.x \* delta - firstDelta \* n.x\) \/ determinant/,
@@ -55,45 +55,45 @@ function compile(name, args) {
         .replace('direction * ((d - dot(n, point)) / denominator)', 'mul(direction, ((d - dot(n, point)) / denominator))')
         .replace('result = point + offset', 'result = add(point, offset)');
     if (outNames.length) code = `let ${outNames.join(', ')};\n` + code;
-    if (name === 'TrySnapPreviewGuideIntersection') code = 'let result;\n' + code.replaceAll('return false;', 'return [false, result];').replace('return found;', 'return [found, result];');
-    const fn = new Function(...args, 'previewGuides', 'GuideSnapTolerance', 'CanSnapPreviewGuides', 'plane', 'V', 'dot', 'parallel', 'add', 'sub', 'mul', 'snapMove', 'intersect', code);
+    if (name === 'TrySnapCanvasGuideIntersection') code = 'let result;\n' + code.replaceAll('return false;', 'return [false, result];').replace('return found;', 'return [found, result];');
+    const fn = new Function(...args, 'canvasGuides', 'GuideSnapTolerance', 'CanSnapCanvasGuides', 'plane', 'V', 'dot', 'parallel', 'add', 'sub', 'mul', 'snapMove', 'intersect', code);
     return (values, guides, tolerance = 8, enabled = true) => fn(...args.map((_, i) => values[i]), guides, tolerance, enabled,
         g => [g.n, g.d], V, dot, parallel, add, sub, mul, (...args) => moveSnap(args, guides, tolerance, enabled),
         (point, direction, set) => { const [found, result] = intersectionSnap([point, direction], guides, tolerance, enabled); set(result); return found; });
 }
-const intersectionSnap = compile('TrySnapPreviewGuideIntersection', ['point', 'direction']);
-const pointSnap = compile('SnapPreviewGuidePoint', ['point', 'axisAlignedOnly']);
-const moveSnap = compile('SnapPreviewGuideMove', ['center', 'axisX', 'halfSize', 'fallback', 'horizontal', 'vertical']);
-const resizeSnap = compile('SnapPreviewGuideResize', ['point', 'direction', 'free', 'axisX', 'fallback']);
-const rotationSnap = compile('SnapPreviewGuideRotation', ['rotation', 'includeCanvasAxes']);
-const paintBody = body('GetPreviewPaintPosition')
+const intersectionSnap = compile('TrySnapCanvasGuideIntersection', ['point', 'direction']);
+const pointSnap = compile('SnapCanvasGuidePoint', ['point', 'axisAlignedOnly']);
+const moveSnap = compile('SnapCanvasGuideMove', ['center', 'axisX', 'halfSize', 'fallback', 'horizontal', 'vertical']);
+const resizeSnap = compile('SnapCanvasGuideResize', ['point', 'direction', 'free', 'axisX', 'fallback']);
+const rotationSnap = compile('SnapCanvasGuideRotation', ['rotation', 'includeCanvasAxes']);
+const paintBody = body('GetCanvasPaintPosition')
     .replace(/\b(?:Rect|Vector2) (\w+)/g, 'let $1').replace(/new Vector2/g, 'new V')
     .replace('Vector2.right', 'new V(1, 0)').replace(/(\d)f\b/g, '$1')
     .replace('snapped == point', '(snapped.x === point.x && snapped.y === point.y)');
 const paintPosition = new Function('state', 'position', 'shift', 'disableSnap', 'updateConstraint', 'V', `with (state) { ${paintBody} }`);
 function guideStrokeMethod(name) {
     const code = body(name)
-        .replace(/TrySnapPreviewGuideIntersection\(documentPoint, ([\w.]+), out Vector2 intersection\)/g,
+        .replace(/TrySnapCanvasGuideIntersection\(documentPoint, ([\w.]+), out Vector2 intersection\)/g,
             'intersect(state, documentPoint, $1, value => intersection = value)')
-        .replace(/\b(?:Rect|Vector2|PreviewGuide|float|int|bool) (\w+)/g, 'let $1')
+        .replace(/\b(?:Rect|Vector2|CanvasGuide|float|int|bool) (\w+)/g, 'let $1')
         .replaceAll('Vector2.zero', 'new V(0, 0)')
         .replace(/new Vector2/g, 'new V').replace(/Vector2.Dot/g, 'dot')
-        .replace(/Mathf.Abs/g, 'Math.abs').replace(/previewGuides.Count/g, 'previewGuides.length')
+        .replace(/Mathf.Abs/g, 'Math.abs').replace(/canvasGuides.Count/g, 'canvasGuides.length')
         .replace(/(\d)f\b/g, '$1')
         .replace('point += guide.normal * (guide.position - dot(point, guide.normal))',
             'point = add(point, mul(guide.normal, guide.position - dot(point, guide.normal)))');
     const fn = new Function('state', 'position', 'disableSnap', 'V', 'dot', 'add', 'mul', 'intersect', `let intersection; with (state) { ${code} }`);
     return (state, position, disableSnap = false) => fn(state, position, disableSnap, V, dot, add, mul,
         (state, point, direction, set) => {
-            const guides = state.previewGuides.map(g => ({ n: new V(g.normal.x, -g.normal.y), d: g.position - g.normal.y * state.compositor.height }));
-            const [found, result] = intersectionSnap([point, direction], guides, state.GuideSnapTolerance, state.CanSnapPreviewGuides);
+            const guides = state.canvasGuides.map(g => ({ n: new V(g.normal.x, -g.normal.y), d: g.position - g.normal.y * state.compositor.height }));
+            const [found, result] = intersectionSnap([point, direction], guides, state.GuideSnapTolerance, state.CanSnapCanvasGuides);
             set(result); return found;
         });
 }
 const captureGuide = guideStrokeMethod('CapturePaintingGuide');
 const projectGuide = guideStrokeMethod('ProjectPaintingGuide');
 const canLock = new Function('state', `with (state) { return ${src.match(/CanLockPaintingGuide =>([^;]+);/)[1]
-    .replace(/previewGuides.Count/g, 'previewGuides.length')}; }`);
+    .replace(/canvasGuides.Count/g, 'canvasGuides.length')}; }`);
 let checks = 0;
 for (const rotation of [0, 17, 45, 90, -90, 178]) for (const scale of [.25, 1, 8]) {
     const c = Math.cos(rotation * Math.PI / 180), s = Math.sin(rotation * Math.PI / 180);
@@ -109,27 +109,27 @@ for (const rotation of [0, 17, 45, 90, -90, 178]) for (const scale of [.25, 1, 8
         const p = add(mul(n, 100 + 3 / scale), mul(new V(-n.y, n.x), 50));
         const expected = sub(p, mul(n, 3 / scale));
         let constraints = 0;
-        const state = { paintingLayer: null, IsPreviewPaintTool: true, CanSnapPreviewGuides: true,
-            paintingGuideIndex: -1, paintingGuideRevision: 0, previewGuidesRevision: 1,
-            previewGuides: [{ normal: new V(n.x, -n.y), position: guide.d - n.y * 256 }],
+        const state = { paintingLayer: null, IsCanvasPaintTool: true, CanSnapCanvasGuides: true,
+            paintingGuideIndex: -1, paintingGuideRevision: 0, canvasGuidesRevision: 1,
+            canvasGuides: [{ normal: new V(n.x, -n.y), position: guide.d - n.y * 256 }],
             GuideSnapTolerance: 8 / scale,
             get CanLockPaintingGuide() { return canLock(this); },
             ProjectPaintingGuide(p) { return projectGuide(this, p); },
             SetPaintingShift() { constraints++; },
             compositor: { width: 512, height: 256 }, paintingLockedAxis: 0, paintingAxisAnchor: new V(0, 0),
-            toolkitPreviewCanvas: { ImageRect: image, ToCanvas: toCanvas, ToView: toView },
-            previewViewport: { ToCanvasDelta: inverse },
+            toolkitCanvas: { ImageRect: image, ToCanvas: toCanvas, ToView: toView },
+            canvasViewport: { ToCanvasDelta: inverse },
             ConstrainPaintingPosition(p) { constraints++; return p; },
-            SnapPreviewGuidePoint: p => pointSnap([p, false], [guide], 8 / scale),
-            SnapPreviewGuideResize: (...args) => resizeSnap(args, [guide], 8 / scale) };
+            SnapCanvasGuidePoint: p => pointSnap([p, false], [guide], 8 / scale),
+            SnapCanvasGuideResize: (...args) => resizeSnap(args, [guide], 8 / scale) };
         closeV(paintPosition(state, screen(p), false, false, true, V), screen(expected));
         closeV(paintPosition(state, screen(p), false, false, false, V), screen(expected));
         closeV(paintPosition(state, screen(p), false, true, true, V), screen(p));
-        state.CanSnapPreviewGuides = false;
+        state.CanSnapCanvasGuides = false;
         closeV(paintPosition(state, screen(p), false, false, true, V), screen(p));
-        state.CanSnapPreviewGuides = true; state.IsPreviewPaintTool = false;
+        state.CanSnapCanvasGuides = true; state.IsCanvasPaintTool = false;
         closeV(paintPosition(state, screen(p), false, false, true, V), screen(p));
-        state.IsPreviewPaintTool = true; state.paintingLayer = {};
+        state.IsCanvasPaintTool = true; state.paintingLayer = {};
         paintPosition(state, screen(p), false, false, false, V);
         assert.equal(constraints, 0, 'Cursor rendering must not mutate the Shift axis lock');
         paintPosition(state, screen(p), false, false, true, V);
@@ -147,16 +147,16 @@ for (const rotation of [0, 17, 45, 90, -90, 178]) for (const scale of [.25, 1, 8
         closeV(paintPosition(state, screen(far), true, false, true, V), screen(onGuide));
         assert.equal(state.paintingGuideIndex, 0, 'Release/re-press retains the original guide');
         const crossing = { normal: new V(n.y, n.x), position: dot(new V(far.x, 256 - far.y), new V(n.y, n.x)) };
-        state.previewGuides.push(crossing);
+        state.canvasGuides.push(crossing);
         closeV(paintPosition(state, screen(far), true, false, true, V), screen(onGuide));
         assert.equal(state.paintingGuideIndex, 0, 'A closer guide never steals the stroke lock');
-        state.previewGuides.pop();
+        state.canvasGuides.pop();
         state.paintingLockedAxis = 1;
         closeV(paintPosition(state, screen(far), true, true, true, V), screen(far));
-        state.CanSnapPreviewGuides = false;
+        state.CanSnapCanvasGuides = false;
         assert.equal(state.CanLockPaintingGuide, false, 'Hidden/disabled guides do not lock');
-        state.CanSnapPreviewGuides = true;
-        state.previewGuidesRevision++;
+        state.CanSnapCanvasGuides = true;
+        state.canvasGuidesRevision++;
         assert.equal(state.CanLockPaintingGuide, false, 'Changed guide lists invalidate the lock');
         captureGuide(state, screen(p), true);
         assert.equal(state.paintingGuideIndex, -1, 'Ctrl at stroke start does not reserve a guide');
@@ -265,15 +265,15 @@ for (const guides of [[], [{ n: axis(0), d: 2 }], [{ n: axis(0), d: 2 }, { n: ax
     checks++;
 }
 // The Shift guide lock still allows along-line attraction to an intersection.
-const lockedState = { compositor: { height: 100, width: 100 }, GuideSnapTolerance: 8, CanSnapPreviewGuides: true,
-    paintingGuideIndex: 0, previewGuides: [{ normal: new V(0, 1), position: 40 }, { normal: new V(1, 0), position: 50 }],
-    toolkitPreviewCanvas: { ImageRect: { x: 0, y: 0, width: 100, height: 100 }, ToCanvas: p => p, ToView: p => p } };
+const lockedState = { compositor: { height: 100, width: 100 }, GuideSnapTolerance: 8, CanSnapCanvasGuides: true,
+    paintingGuideIndex: 0, canvasGuides: [{ normal: new V(0, 1), position: 40 }, { normal: new V(1, 0), position: 50 }],
+    toolkitCanvas: { ImageRect: { x: 0, y: 0, width: 100, height: 100 }, ToCanvas: p => p, ToView: p => p } };
 closeV(projectGuide(lockedState, new V(54, 85)), new V(50, 40));
 closeV(projectGuide(lockedState, new V(59, 85)), new V(59, 40));
-lockedState.IsPreviewPaintTool = true;
-lockedState.previewGuidesRevision = 1;
+lockedState.IsCanvasPaintTool = true;
+lockedState.canvasGuidesRevision = 1;
 const diagonal = axis(45);
-lockedState.previewGuides.push({ normal: diagonal, position: dot(diagonal, new V(54, 44)) + .5 });
+lockedState.canvasGuides.push({ normal: diagonal, position: dot(diagonal, new V(54, 44)) + .5 });
 captureGuide(lockedState, new V(54, 44));
 assert.ok(lockedState.paintingGuideIndex < 2, 'Shift lock must use a guide through the priority intersection, not a nearer unrelated line');
 closeV(projectGuide(lockedState, new V(54, 44)), new V(50, 40));
@@ -311,25 +311,25 @@ assert.match(src, /position = guide.position - guide.normal.y \* compositor.heig
 assert.match(src, /normal = new Vector2\(guide.normal.x, -guide.normal.y\)/);
 assert.match(src, /Mathf.Abs\(determinant\) <= .0001f/);
 assert.match(src, /if \(!GuideAxesParallel\(n, axisX\) && !GuideAxesParallel\(n, axisY\)\) continue;/);
-assert.match(src, /GuideSnapPixels \/ toolkitPreviewCanvas.PixelScale/);
-assert.match(src, /!previewGuidesHidden && previewGuidesSnap/);
+assert.match(src, /GuideSnapPixels \/ toolkitCanvas.PixelScale/);
+assert.match(src, /!canvasGuidesHidden && canvasGuidesSnap/);
 const transform = read('TextureCompositorWindow.Transform.cs');
 const ui = read('TextureCompositorWindow.UI.cs');
-assert.equal((ui.match(/GetPreviewPaintPosition\(evt.localPosition, evt.shiftKey, evt.ctrlKey\)/g) ?? []).length, 3, 'Down, Move and Up share snapping');
-assert.match(ui, /GetPreviewPaintPosition\(localPosition, paintingShiftHeld, previewPointerControl, updateConstraint: false\)/);
-assert.ok(!ui.includes('UpdatePreviewCursor(paintPosition'), 'Keep the raw cursor position to avoid double snapping and a sticky Ctrl bypass');
-assert.match(ui, /paintingAxisPointerAnchor = previewPointerPosition/);
-assert.match(ui, /CapturePaintingGuide\(evt.localPosition, evt.ctrlKey\);\s*if \(!TryBeginPreviewStroke/);
+assert.equal((ui.match(/GetCanvasPaintPosition\(evt.localPosition, evt.shiftKey, evt.ctrlKey\)/g) ?? []).length, 3, 'Down, Move and Up share snapping');
+assert.match(ui, /GetCanvasPaintPosition\(localPosition, paintingShiftHeld, canvasPointerControl, updateConstraint: false\)/);
+assert.ok(!ui.includes('UpdateCanvasCursor(paintPosition'), 'Keep the raw cursor position to avoid double snapping and a sticky Ctrl bypass');
+assert.match(ui, /paintingAxisPointerAnchor = canvasPointerPosition/);
+assert.match(ui, /CapturePaintingGuide\(evt.localPosition, evt.ctrlKey\);\s*if \(!TryBeginCanvasStroke/);
 assert.equal((ui.match(/CapturePaintingGuide\(/g) ?? []).length, 1, 'Capture only at stroke start, never on Move or hover');
 assert.match(read('TextureCompositorWindow.cs'), /paintingPointerMoved = false;\s*paintingGuideIndex = -1;/);
-for (const name of ['SnapPreviewGuidePoint', 'SnapPreviewGuideMove', 'SnapPreviewGuideResize', 'SnapPreviewGuideRotation'])
+for (const name of ['SnapCanvasGuidePoint', 'SnapCanvasGuideMove', 'SnapCanvasGuideResize', 'SnapCanvasGuideRotation'])
     assert.ok(transform.includes(`owner.${name}(`));
-assert.match(transform, /else if \(!disableSnap\)[\s\S]*?owner\.SnapPreviewGuideRotation\(next\.rotationF\)/);
+assert.match(transform, /else if \(!disableSnap\)[\s\S]*?owner\.SnapCanvasGuideRotation\(next\.rotationF\)/);
 const selection = read('TextureCompositorWindow.AreaSelectionView.cs');
 assert.equal((selection.match(/CanvasPoint\(evt.localPosition, evt.ctrlKey\)/g) ?? []).length, 1);
 assert.equal((selection.match(/UpdateCurrent\(evt.localPosition, evt.shiftKey, evt.ctrlKey\)/g) ?? []).length, 2);
 assert.match(selection, /Current = CanvasPoint\(position, control\)/);
-assert.match(selection, /disableSnap \? documentPoint : owner.SnapPreviewGuidePoint\(documentPoint, owner.previewTool == PreviewTool.RectangleSelect\)/);
+assert.match(selection, /disableSnap \? documentPoint : owner.SnapCanvasGuidePoint\(documentPoint, owner.canvasTool == CanvasTool.RectangleSelect\)/);
 const commands = read('TextureCompositorWindow.GuideCommands.cs');
 function commandBody(name) {
     const start = commands.indexOf('{', commands.indexOf(` ${name}(`));
@@ -345,29 +345,29 @@ class List extends Array {
     Clear() { this.length = 0; }
     ToArray() { return Array.from(this); }
 }
-const remember = new Function('state', `with (state) { ${commandBody('RememberPreviewGuides')} }`);
-const restore = new Function('state', 'redo', `with (state) { ${commandBody('RestorePreviewGuides')} }`);
-const state = { previewGuides: new List(), previewGuideUndo: new List(), previewGuideRedo: new List(),
-    previewGuidesLocked: false, previewGuidesRevision: 0, selectedPreviewGuide: -1,
-    previewGuideManipulator: { Cancel() {} }, RefreshPreviewGuides() {} };
-for (let i = 0; i < 70; i++) { remember(state); state.previewGuides.Clear(); state.previewGuides.Add(i); }
-assert.equal(state.previewGuideUndo.Count, 64);
-restore(state, false); assert.deepEqual(state.previewGuides.ToArray(), [68]);
-restore(state, true); assert.deepEqual(state.previewGuides.ToArray(), [69]);
-restore(state, false); remember(state); state.previewGuides[0] = 99;
-assert.equal(state.previewGuideRedo.Count, 0, 'A new edit invalidates the redo branch');
-state.previewGuidesLocked = true;
-restore(state, false); assert.equal(state.previewGuides[0], 99, 'Lock protects guide history too');
-state.previewGuidesLocked = false;
-while (state.previewGuideUndo.Count) restore(state, false);
-const oldest = state.previewGuides.ToArray();
-restore(state, false); assert.deepEqual(state.previewGuides.ToArray(), oldest, 'Empty history is a no-op');
-assert.equal(state.previewGuideRedo.Count, 64);
+const remember = new Function('state', `with (state) { ${commandBody('RememberCanvasGuides')} }`);
+const restore = new Function('state', 'redo', `with (state) { ${commandBody('RestoreCanvasGuides')} }`);
+const state = { canvasGuides: new List(), canvasGuideUndo: new List(), canvasGuideRedo: new List(),
+    canvasGuidesLocked: false, canvasGuidesRevision: 0, selectedCanvasGuide: -1,
+    canvasGuideManipulator: { Cancel() {} }, RefreshCanvasGuides() {} };
+for (let i = 0; i < 70; i++) { remember(state); state.canvasGuides.Clear(); state.canvasGuides.Add(i); }
+assert.equal(state.canvasGuideUndo.Count, 64);
+restore(state, false); assert.deepEqual(state.canvasGuides.ToArray(), [68]);
+restore(state, true); assert.deepEqual(state.canvasGuides.ToArray(), [69]);
+restore(state, false); remember(state); state.canvasGuides[0] = 99;
+assert.equal(state.canvasGuideRedo.Count, 0, 'A new edit invalidates the redo branch');
+state.canvasGuidesLocked = true;
+restore(state, false); assert.equal(state.canvasGuides[0], 99, 'Lock protects guide history too');
+state.canvasGuidesLocked = false;
+while (state.canvasGuideUndo.Count) restore(state, false);
+const oldest = state.canvasGuides.ToArray();
+restore(state, false); assert.deepEqual(state.canvasGuides.ToArray(), oldest, 'Empty history is a no-op');
+assert.equal(state.canvasGuideRedo.Count, 64);
 for (const text of ['Show Guides', 'Lock Guides', 'Snap to Guides', 'Delete Guide', 'Duplicate Guide', 'Edit Guide', 'Undo Guide Change', 'Redo Guide Change', 'Clear Guides'])
     assert.ok(commands.includes(text));
-assert.match(commands, /previewGuideUndo.Count == 64/);
-assert.match(commands, /previewGuideRedo.Clear\(\)/);
-assert.match(commands, /owner.previewGuidesRevision != revision/);
-assert.match(commands, /focusedElement != toolkitPreviewCanvas/);
+assert.match(commands, /canvasGuideUndo.Count == 64/);
+assert.match(commands, /canvasGuideRedo.Clear\(\)/);
+assert.match(commands, /owner.canvasGuidesRevision != revision/);
+assert.match(commands, /focusedElement != toolkitCanvas/);
 assert.ok(!/\bUndo\.|RenderTexture|MarkChanged|SetDirty/.test(commands), 'Guide history does not snapshot or dirty the compositor');
 console.log(`Guide snapping: ${checks} extracted geometry cases and management/integration source checks passed (Unity UI not executed).`);

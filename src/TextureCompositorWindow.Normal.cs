@@ -15,7 +15,7 @@ namespace DCFApixels.WhimTex
         {
             get
             {
-                if (previewTool != PreviewTool.FXNormal || normalFX == null || compositor == null || GetSelectedLayer() is not Layer layer ||
+                if (canvasTool != CanvasTool.FXNormal || normalFX == null || compositor == null || GetSelectedLayer() is not Layer layer ||
                     !layer.modifiers.Contains(normalFX) || WhimTexApi.IsLayerContentLocked(compositor, layer) ||
                     WhimTexApi.IsShaderFXContentLocked(normalFX)) return null;
                 foreach (var p in normalFX.Parameters)
@@ -37,7 +37,7 @@ namespace DCFApixels.WhimTex
                     !WhimTexApi.IsLayerContentLocked(w.compositor, layer) &&
                     (best == null || w == focusedWindow || best != focusedWindow && w.AgentFocusOrder > best.AgentFocusOrder)) best = w;
             if (best == null) return;
-            best.ActivateTemporaryTool(PreviewTool.FXNormal, effect, id);
+            best.ActivateTemporaryTool(CanvasTool.FXNormal, effect, id);
         }
 
         internal static Vector3 ProjectNormal(Vector2 xy, bool back)
@@ -51,9 +51,9 @@ namespace DCFApixels.WhimTex
         {
             normalOverlay = new VisualElement { pickingMode = PickingMode.Ignore };
             normalOverlay.StretchToParentSize();
-            toolkitPreviewCanvas.Add(normalOverlay);
+            toolkitCanvas.Add(normalOverlay);
             var manipulator = normalManipulator = new NormalManipulator(this);
-            toolkitPreviewCanvas.AddManipulator(manipulator);
+            toolkitCanvas.AddManipulator(manipulator);
             normalOverlay.generateVisualContent += manipulator.Draw;
             bool wasActive = false;
             normalOverlay.schedule.Execute(() =>
@@ -76,11 +76,11 @@ namespace DCFApixels.WhimTex
             private Vector4 originalValue;
             internal bool IsDragging => pointer >= 0;
             internal NormalManipulator(TextureCompositorWindow owner) { this.owner = owner; }
-            private Vector2 Center => owner.toolkitPreviewCanvas.ToView(owner.toolkitPreviewCanvas.ImageRect.center);
+            private Vector2 Center => owner.toolkitCanvas.ToView(owner.toolkitCanvas.ImageRect.center);
             private Vector2 Tip(ShaderFXParameter p)
             {
                 var n = ShaderFXParameter.NormalizeNormal(p.vectorValue);
-                return Center + owner.previewViewport.ToViewDelta(new Vector2(n.x, -n.y) * Radius);
+                return Center + owner.canvasViewport.ToViewDelta(new Vector2(n.x, -n.y) * Radius);
             }
             protected override void RegisterCallbacksOnTarget()
             {
@@ -132,7 +132,7 @@ namespace DCFApixels.WhimTex
                 if (owner.NormalParameter != parameter || effect == null || (e.pressedButtons & 1) == 0) { Finish(); return; }
                 moved |= Vector2.Distance(start,e.localPosition) > 3;
                 if (!moved) return;
-                Vector2 xy = owner.previewViewport.ToCanvasDelta((Vector2)e.localPosition + offset - Center) / Radius;
+                Vector2 xy = owner.canvasViewport.ToCanvasDelta((Vector2)e.localPosition + offset - Center) / Radius;
                 Set(ProjectNormal(new Vector2(xy.x,-xy.y),back));
             }
             private void Up(PointerUpEvent e)

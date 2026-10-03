@@ -76,6 +76,8 @@ public static class SeamlessChannelsSmoke
             var grouped=Render("RenderLayerPreview",effect.Owner,32);
             for(int i=0;i<grouped.Length;i++)
             {Check(Math.Abs(grouped[i].r-original[i].r)<.002f,"Group source R");Check(Math.Abs(grouped[i].b-original[i].b)<.002f,"Group source B");}
+            // GPU checks are complete; keep identity but remove the unsaved texture reference.
+            source.Owner.SetBehaviour(new ColorFillLayerBehaviour());
             var json=(string)typeof(WhimTexApi).GetMethod("WritePortableClipboard",Flags).Invoke(null,new object[]{document,document.layers});
             var clipboard=typeof(WhimTexApi).GetMethod("ReadProceduralClipboard",Flags).Invoke(null,new object[]{json,32,16});
             try
@@ -99,6 +101,7 @@ public static class SeamlessChannelsSmoke
             Check(restored.processRed&&!restored.processGreen&&restored.processBlue&&restored.processAlpha,"Redo");
             return $"RGBA mask: {checks} checks passed (16 masks x 6 mode/option combinations x 3 Poisson directions, independent RGBA selection, all-off bypass, previews/export/cache, group, Portable, UI, Undo/Redo, defaults).";
         }
+        catch (TargetInvocationException e) { throw new Exception(e.GetBaseException().ToString()); }
         finally
         {
             if(window!=null)window.Close();if(focus!=null)focus.Focus();

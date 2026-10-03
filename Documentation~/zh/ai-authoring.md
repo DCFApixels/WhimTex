@@ -14,7 +14,7 @@ translations: "en/ai-authoring.md,ru/ai-authoring.md,zh/ai-authoring.md"
 
 1. 将[创作指南](../AI/README.md)交给 AI，并描述你的纹理。要求返回 **WhimTex clipboard JSON**，并将有用的部分放在命名的图层上。
 2. 复制返回的 JSON 代码块。
-3. 聚焦预览或图层面板，退出文本编辑并按 **Ctrl+V**（在 macOS 上为 Cmd+V）。
+3. 聚焦画布视图或图层面板，退出文本编辑并按 **Ctrl+V**（在 macOS 上为 Cmd+V）。
 4. 照常调整新图层。**Ctrl+Z** 会撤销整个插入操作。
 
 例如：“在透明背景上创建一个蓝色的魔法圆环，带有可编辑的圆环边缘和

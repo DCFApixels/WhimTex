@@ -143,7 +143,7 @@ public static class MirrorEnhancementsSmoke
         for(int y=0;y<16;y++)for(int x=0;x<32;x++)pixels[y*32+x]=new Color(.4f+.1f*Mathf.Sin(x*.7f+y*.2f),.2f+x*.01f,.3f+y*.02f,1);
         texture.SetPixels(pixels);texture.Apply();
         var source=new FileLayerBehaviour {sourceTexture=texture,colorRange=LayerColorRange.HDR};
-        var effect=new MakeSeamlessLayerBehaviour {colorRange=LayerColorRange.HDR};
+        var effect=new MakeSeamlessLayerBehaviour {colorRange=LayerColorRange.HDR, mirrorAutoRadius=false};
         document.layers.Add(effect);document.layers.Add(source);
         var cache=Activator.CreateInstance(Assembly.GetType("DCFApixels.WhimTex.EffectRenderCache"),true);
         var focus=EditorWindow.focusedWindow;EditorWindow window=null;
@@ -196,11 +196,12 @@ public static class MirrorEnhancementsSmoke
                 .Invoke(null,new object[]{renderedInput,32,16,effect.mirrorPoissonEdges,effect.mirrorCorrectionRadius});
             try{Same(Render("RenderLayerPreview",effect.Owner,32),Read(onlyCorrection),"Correction independent of mirror directions",.003f);}
             finally{RenderTexture.ReleaseTemporary(onlyCorrection);}
-            var json=(string)typeof(WhimTexApi).GetMethod("WritePortableClipboard",Flags).Invoke(null,new object[]{document,document.layers});
-            var clipboard=typeof(WhimTexApi).GetMethod("ReadProceduralClipboard",Flags).Invoke(null,new object[]{json,32,16});
+            // Settings round-trip includes inactive manual radius; GPU checks above retain the texture fixture.
+            source.Owner.SetBehaviour(new ColorFillLayerBehaviour());
+            var clipboard=WhimTexDocumentJson.Read(WhimTexDocumentJson.Write(document,new WhimTexJsonWriteOptions {Mode=WhimTexJsonWriteMode.Full}).Json);
             try
             {
-                var copy=(TextureCompositor)clipboard.GetType().GetField("Document",Flags).GetValue(clipboard);
+                var copy=clipboard.Document;
                 var saved=(MakeSeamlessLayerBehaviour)copy.layers[0].Behaviour;
                 Check(saved.mirrorTransitionStart==effect.mirrorTransitionStart,"Portable transition start");
                 Check(saved.mirrorContrastCompensation&&saved.mirrorSeamCorrection&&saved.mirrorContrast==.65f&&saved.mirrorCorrectionRadius==.09f,"Portable controls");

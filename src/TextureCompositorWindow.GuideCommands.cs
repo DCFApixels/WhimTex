@@ -7,167 +7,171 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
-        [SerializeField] private bool previewGuidesHidden, previewGuidesLocked;
-        [SerializeField] private bool previewGuidesSnap = true;
-        private int selectedPreviewGuide = -1, previewGuidesRevision;
-        private readonly List<PreviewGuide[]> previewGuideUndo = new List<PreviewGuide[]>();
-        private readonly List<PreviewGuide[]> previewGuideRedo = new List<PreviewGuide[]>();
-        private const int MaxPreviewGuides = 256;
-        private Button previewGuidesButton;
+        [UnityEngine.Serialization.FormerlySerializedAs("previewGuidesHidden")]
+        [SerializeField] private bool canvasGuidesHidden;
+        [UnityEngine.Serialization.FormerlySerializedAs("previewGuidesLocked")]
+        [SerializeField] private bool canvasGuidesLocked;
+        [UnityEngine.Serialization.FormerlySerializedAs("previewGuidesSnap")]
+        [SerializeField] private bool canvasGuidesSnap = true;
+        private int selectedCanvasGuide = -1, canvasGuidesRevision;
+        private readonly List<CanvasGuide[]> canvasGuideUndo = new List<CanvasGuide[]>();
+        private readonly List<CanvasGuide[]> canvasGuideRedo = new List<CanvasGuide[]>();
+        private const int MaxCanvasGuides = 256;
+        private Button canvasGuidesButton;
 
         private Button BuildGuidesButton()
         {
-            previewGuidesButton = new Button(() => SetPreviewGuidesHidden(!previewGuidesHidden))
+            canvasGuidesButton = new Button(() => SetCanvasGuidesHidden(!canvasGuidesHidden))
             {
                 text = "Guides"
             };
-            previewGuidesButton.AddToClassList("whimtex-channel-button");
-            previewGuidesButton.AddToClassList("whimtex-guides-button");
-            RefreshPreviewGuidesButton();
-            return previewGuidesButton;
+            canvasGuidesButton.AddToClassList("whimtex-channel-button");
+            canvasGuidesButton.AddToClassList("whimtex-guides-button");
+            RefreshCanvasGuidesButton();
+            return canvasGuidesButton;
         }
 
-        private void RefreshPreviewGuidesButton()
+        private void RefreshCanvasGuidesButton()
         {
-            if (previewGuidesButton == null) return;
-            previewGuidesButton.EnableInClassList("whimtex-channel-button--enabled", !previewGuidesHidden);
-            previewGuidesButton.tooltip = previewGuidesHidden
+            if (canvasGuidesButton == null) return;
+            canvasGuidesButton.EnableInClassList("whimtex-channel-button--enabled", !canvasGuidesHidden);
+            canvasGuidesButton.tooltip = canvasGuidesHidden
                 ? "Show guides and restore guide snapping."
                 : "Hide guides and temporarily disable guide snapping.";
         }
 
-        private void SetPreviewGuidesHidden(bool hidden)
+        private void SetCanvasGuidesHidden(bool hidden)
         {
-            if (previewGuidesHidden == hidden) return;
-            previewGuideManipulator?.Cancel();
-            previewGuidesHidden = hidden;
-            selectedPreviewGuide = -1;
-            RefreshPreviewGuidesButton();
-            RefreshPreviewGuides();
+            if (canvasGuidesHidden == hidden) return;
+            canvasGuideManipulator?.Cancel();
+            canvasGuidesHidden = hidden;
+            selectedCanvasGuide = -1;
+            RefreshCanvasGuidesButton();
+            RefreshCanvasGuides();
         }
 
-        private void RememberPreviewGuides()
+        private void RememberCanvasGuides()
         {
-            if (previewGuideUndo.Count == 64) previewGuideUndo.RemoveAt(0);
-            previewGuideUndo.Add(previewGuides.ToArray());
-            previewGuideRedo.Clear();
-            previewGuidesRevision++;
+            if (canvasGuideUndo.Count == 64) canvasGuideUndo.RemoveAt(0);
+            canvasGuideUndo.Add(canvasGuides.ToArray());
+            canvasGuideRedo.Clear();
+            canvasGuidesRevision++;
         }
 
-        private void RefreshPreviewGuides()
+        private void RefreshCanvasGuides()
         {
-            previewGuideOverlay?.MarkDirtyRepaint();
-            RefreshPreviewPointerCursor();
+            canvasGuideOverlay?.MarkDirtyRepaint();
+            RefreshCanvasPointerCursor();
         }
 
-        private void RestorePreviewGuides(bool redo)
+        private void RestoreCanvasGuides(bool redo)
         {
-            if (previewGuidesLocked) return;
-            var source = redo ? previewGuideRedo : previewGuideUndo;
-            var destination = redo ? previewGuideUndo : previewGuideRedo;
+            if (canvasGuidesLocked) return;
+            var source = redo ? canvasGuideRedo : canvasGuideUndo;
+            var destination = redo ? canvasGuideUndo : canvasGuideRedo;
             if (source.Count == 0) return;
-            previewGuideManipulator?.Cancel();
-            destination.Add(previewGuides.ToArray());
-            previewGuides.Clear();
-            previewGuides.AddRange(source[source.Count - 1]);
+            canvasGuideManipulator?.Cancel();
+            destination.Add(canvasGuides.ToArray());
+            canvasGuides.Clear();
+            canvasGuides.AddRange(source[source.Count - 1]);
             source.RemoveAt(source.Count - 1);
-            selectedPreviewGuide = -1;
-            previewGuidesRevision++;
-            RefreshPreviewGuides();
+            selectedCanvasGuide = -1;
+            canvasGuidesRevision++;
+            RefreshCanvasGuides();
         }
 
-        private void DeletePreviewGuide(int index)
+        private void DeleteCanvasGuide(int index)
         {
-            if (previewGuidesLocked || index < 0 || index >= previewGuides.Count) return;
-            previewGuideManipulator?.Cancel();
-            RememberPreviewGuides();
-            previewGuides.RemoveAt(index);
-            selectedPreviewGuide = -1;
-            RefreshPreviewGuides();
+            if (canvasGuidesLocked || index < 0 || index >= canvasGuides.Count) return;
+            canvasGuideManipulator?.Cancel();
+            RememberCanvasGuides();
+            canvasGuides.RemoveAt(index);
+            selectedCanvasGuide = -1;
+            RefreshCanvasGuides();
         }
 
-        private void ShowPreviewGuideMenu(int index = -1)
+        private void ShowCanvasGuideMenu(int index = -1)
         {
-            previewGuideManipulator?.Cancel();
-            int revision = previewGuidesRevision;
+            canvasGuideManipulator?.Cancel();
+            int revision = canvasGuidesRevision;
             TextureCompositor document = compositor;
-            bool Current() => this != null && document == compositor && revision == previewGuidesRevision;
-            bool Editable() => Current() && !previewGuidesLocked && index >= 0 && index < previewGuides.Count;
+            bool Current() => this != null && document == compositor && revision == canvasGuidesRevision;
+            bool Editable() => Current() && !canvasGuidesLocked && index >= 0 && index < canvasGuides.Count;
             var menu = new GenericMenu();
             if (index >= 0)
             {
-                selectedPreviewGuide = index;
-                if (!previewGuidesLocked)
+                selectedCanvasGuide = index;
+                if (!canvasGuidesLocked)
                 {
                     menu.AddItem(new GUIContent("Edit Guide…"), false, () =>
                     {
-                        if (Editable()) PreviewGuideSettingsWindow.Open(this, index);
+                        if (Editable()) CanvasGuideSettingsWindow.Open(this, index);
                     });
-                    if (previewGuides.Count < MaxPreviewGuides)
+                    if (canvasGuides.Count < MaxCanvasGuides)
                         menu.AddItem(new GUIContent("Duplicate Guide"), false, () =>
                         {
-                            if (!Editable() || previewGuides.Count >= MaxPreviewGuides) return;
-                            RememberPreviewGuides();
-                            PreviewGuide copy = previewGuides[index];
-                            copy.position += 16f / Mathf.Max(.00001f, toolkitPreviewCanvas.PixelScale);
-                            previewGuides.Add(copy);
-                            selectedPreviewGuide = previewGuides.Count - 1;
-                            RefreshPreviewGuides();
+                            if (!Editable() || canvasGuides.Count >= MaxCanvasGuides) return;
+                            RememberCanvasGuides();
+                            CanvasGuide copy = canvasGuides[index];
+                            copy.position += 16f / Mathf.Max(.00001f, toolkitCanvas.PixelScale);
+                            canvasGuides.Add(copy);
+                            selectedCanvasGuide = canvasGuides.Count - 1;
+                            RefreshCanvasGuides();
                         });
                     else menu.AddDisabledItem(new GUIContent("Duplicate Guide"));
-                    menu.AddItem(new GUIContent("Delete Guide"), false, () => { if (Editable()) DeletePreviewGuide(index); });
+                    menu.AddItem(new GUIContent("Delete Guide"), false, () => { if (Editable()) DeleteCanvasGuide(index); });
                 }
                 else menu.AddDisabledItem(new GUIContent("Guide is locked"));
                 menu.AddSeparator("");
             }
-            menu.AddItem(new GUIContent("Show Guides"), !previewGuidesHidden, () =>
+            menu.AddItem(new GUIContent("Show Guides"), !canvasGuidesHidden, () =>
             {
                 if (!Current()) return;
-                SetPreviewGuidesHidden(!previewGuidesHidden);
+                SetCanvasGuidesHidden(!canvasGuidesHidden);
             });
-            menu.AddItem(new GUIContent("Lock Guides"), previewGuidesLocked, () =>
+            menu.AddItem(new GUIContent("Lock Guides"), canvasGuidesLocked, () =>
             {
                 if (!Current()) return;
-                previewGuideManipulator?.Cancel();
-                previewGuidesLocked = !previewGuidesLocked;
-                selectedPreviewGuide = -1;
-                RefreshPreviewGuides();
+                canvasGuideManipulator?.Cancel();
+                canvasGuidesLocked = !canvasGuidesLocked;
+                selectedCanvasGuide = -1;
+                RefreshCanvasGuides();
             });
-            menu.AddItem(new GUIContent("Snap to Guides"), previewGuidesSnap, () =>
+            menu.AddItem(new GUIContent("Snap to Guides"), canvasGuidesSnap, () =>
             {
-                if (Current()) previewGuidesSnap = !previewGuidesSnap;
+                if (Current()) canvasGuidesSnap = !canvasGuidesSnap;
             });
             menu.AddSeparator("");
-            if (!previewGuidesLocked && previewGuideUndo.Count > 0)
-                menu.AddItem(new GUIContent("Undo Guide Change"), false, () => { if (Current()) RestorePreviewGuides(false); });
+            if (!canvasGuidesLocked && canvasGuideUndo.Count > 0)
+                menu.AddItem(new GUIContent("Undo Guide Change"), false, () => { if (Current()) RestoreCanvasGuides(false); });
             else menu.AddDisabledItem(new GUIContent("Undo Guide Change"));
-            if (!previewGuidesLocked && previewGuideRedo.Count > 0)
-                menu.AddItem(new GUIContent("Redo Guide Change"), false, () => { if (Current()) RestorePreviewGuides(true); });
+            if (!canvasGuidesLocked && canvasGuideRedo.Count > 0)
+                menu.AddItem(new GUIContent("Redo Guide Change"), false, () => { if (Current()) RestoreCanvasGuides(true); });
             else menu.AddDisabledItem(new GUIContent("Redo Guide Change"));
-            if (!previewGuidesLocked && previewGuides.Count > 0)
+            if (!canvasGuidesLocked && canvasGuides.Count > 0)
                 menu.AddItem(new GUIContent("Clear Guides"), false, () =>
                 {
-                    if (!Current() || previewGuidesLocked) return;
-                    RememberPreviewGuides();
-                    previewGuides.Clear();
-                    selectedPreviewGuide = -1;
-                    RefreshPreviewGuides();
+                    if (!Current() || canvasGuidesLocked) return;
+                    RememberCanvasGuides();
+                    canvasGuides.Clear();
+                    selectedCanvasGuide = -1;
+                    RefreshCanvasGuides();
                 });
             else menu.AddDisabledItem(new GUIContent("Clear Guides"));
             menu.ShowAsContext();
-            RefreshPreviewGuides();
+            RefreshCanvasGuides();
         }
 
-        private bool HandlePreviewGuideKey(KeyDownEvent evt)
+        private bool HandleCanvasGuideKey(KeyDownEvent evt)
         {
-            if (toolkitPreviewCanvas == null || toolkitPreviewCanvas.panel?.focusController?.focusedElement != toolkitPreviewCanvas ||
-                !CanMovePreviewGuides || previewGuidesHidden || previewGuidesLocked ||
-                selectedPreviewGuide < 0 || selectedPreviewGuide >= previewGuides.Count ||
-                previewGuideManipulator?.IsDragging == true) return false;
+            if (toolkitCanvas == null || toolkitCanvas.panel?.focusController?.focusedElement != toolkitCanvas ||
+                !CanMoveCanvasGuides || canvasGuidesHidden || canvasGuidesLocked ||
+                selectedCanvasGuide < 0 || selectedCanvasGuide >= canvasGuides.Count ||
+                canvasGuideManipulator?.IsDragging == true) return false;
             bool action = evt.ctrlKey || evt.commandKey;
             if (action || evt.altKey) return false;
-            if (evt.keyCode == KeyCode.Escape) selectedPreviewGuide = -1;
-            else if (evt.keyCode == KeyCode.Delete || evt.keyCode == KeyCode.Backspace) DeletePreviewGuide(selectedPreviewGuide);
+            if (evt.keyCode == KeyCode.Escape) selectedCanvasGuide = -1;
+            else if (evt.keyCode == KeyCode.Delete || evt.keyCode == KeyCode.Backspace) DeleteCanvasGuide(selectedCanvasGuide);
             else
             {
                 Vector2 direction;
@@ -179,21 +183,22 @@ namespace DCFApixels.WhimTex
                     case KeyCode.DownArrow: direction = Vector2.up; break;
                     default: return false;
                 }
-                PreviewGuide guide = previewGuides[selectedPreviewGuide];
-                float delta = Vector2.Dot(previewViewport.ToCanvasDelta(direction), guide.normal) * (evt.shiftKey ? 10f : 1f);
+                CanvasGuide guide = canvasGuides[selectedCanvasGuide];
+                float delta = Vector2.Dot(canvasViewport.ToCanvasDelta(direction), guide.normal) * (evt.shiftKey ? 10f : 1f);
                 if (Mathf.Abs(delta) > .00001f)
                 {
-                    RememberPreviewGuides();
+                    RememberCanvasGuides();
                     guide.position += delta;
-                    previewGuides[selectedPreviewGuide] = guide;
+                    canvasGuides[selectedCanvasGuide] = guide;
                 }
             }
-            RefreshPreviewGuides();
+            RefreshCanvasGuides();
             WhimTexUI.ConsumeEvent(evt);
             return true;
         }
 
-        private sealed class PreviewGuideSettingsWindow : EditorWindow
+        [UnityEngine.Scripting.APIUpdating.MovedFrom(true, sourceNamespace: "DCFApixels.WhimTex", sourceAssembly: null, sourceClassName: "TextureCompositorWindow+PreviewGuideSettingsWindow")]
+        private sealed class CanvasGuideSettingsWindow : EditorWindow
         {
             private TextureCompositorWindow owner;
             private TextureCompositor document;
@@ -201,9 +206,9 @@ namespace DCFApixels.WhimTex
 
             internal static void Open(TextureCompositorWindow owner, int index)
             {
-                var window = CreateInstance<PreviewGuideSettingsWindow>();
+                var window = CreateInstance<CanvasGuideSettingsWindow>();
                 window.owner = owner; window.document = owner.compositor;
-                window.index = index; window.revision = owner.previewGuidesRevision;
+                window.index = index; window.revision = owner.canvasGuidesRevision;
                 window.titleContent = new GUIContent("Guide");
                 window.minSize = new Vector2(300f, 150f);
                 window.maxSize = new Vector2(420f, 200f);
@@ -212,8 +217,8 @@ namespace DCFApixels.WhimTex
 
             private void CreateGUI()
             {
-                if (owner == null || index < 0 || index >= owner.previewGuides.Count) { Close(); return; }
-                PreviewGuide guide = owner.previewGuides[index];
+                if (owner == null || index < 0 || index >= owner.canvasGuides.Count) { Close(); return; }
+                CanvasGuide guide = owner.canvasGuides[index];
                 float initialAngle = Mathf.Repeat(Mathf.Atan2(guide.normal.x, guide.normal.y) * Mathf.Rad2Deg, 180f);
                 float radians = initialAngle * Mathf.Deg2Rad;
                 Vector2 initialNormal = new Vector2(Mathf.Sin(radians), Mathf.Cos(radians));
@@ -223,17 +228,17 @@ namespace DCFApixels.WhimTex
                 rootVisualElement.Add(position); rootVisualElement.Add(angle); rootVisualElement.Add(message);
                 rootVisualElement.Add(new Button(() =>
                 {
-                    if (owner == null || owner.compositor != document || owner.previewGuidesRevision != revision || owner.previewGuidesLocked)
+                    if (owner == null || owner.compositor != document || owner.canvasGuidesRevision != revision || owner.canvasGuidesLocked)
                     { Close(); return; }
                     if (float.IsNaN(position.value) || float.IsInfinity(position.value) ||
                         float.IsNaN(angle.value) || float.IsInfinity(angle.value)) return;
                     float a = Mathf.Repeat(angle.value, 180f) * Mathf.Deg2Rad;
-                    var edited = new PreviewGuide { normal = new Vector2(Mathf.Sin(a), Mathf.Cos(a)), position = position.value };
+                    var edited = new CanvasGuide { normal = new Vector2(Mathf.Sin(a), Mathf.Cos(a)), position = position.value };
                     if (edited.normal != guide.normal || edited.position != guide.position)
                     {
-                        owner.RememberPreviewGuides();
-                        owner.previewGuides[index] = edited;
-                        owner.RefreshPreviewGuides();
+                        owner.RememberCanvasGuides();
+                        owner.canvasGuides[index] = edited;
+                        owner.RefreshCanvasGuides();
                     }
                     Close();
                 }) { text = "Apply" });

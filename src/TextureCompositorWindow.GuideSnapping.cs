@@ -5,32 +5,32 @@ namespace DCFApixels.WhimTex
     public sealed partial class TextureCompositorWindow
     {
         private static float GuideSnapPixels => WhimTexUserSettings.SnapRadius;
-        private bool CanSnapPreviewGuides => !previewGuidesHidden && previewGuidesSnap && HasPreviewLayers &&
-            previewGuidesDocument == compositor && previewGuides.Count > 0 && toolkitPreviewCanvas != null &&
-            toolkitPreviewCanvas.PixelScale > .00001f;
-        private float GuideSnapTolerance => GuideSnapPixels / toolkitPreviewCanvas.PixelScale;
+        private bool CanSnapCanvasGuides => !canvasGuidesHidden && canvasGuidesSnap && HasCanvasLayers &&
+            canvasGuidesDocument == compositor && canvasGuides.Count > 0 && toolkitCanvas != null &&
+            toolkitCanvas.PixelScale > .00001f;
+        private float GuideSnapTolerance => GuideSnapPixels / toolkitCanvas.PixelScale;
 
         [System.NonSerialized] private int paintingGuideIndex = -1;
         [System.NonSerialized] private int paintingGuideRevision;
-        private bool CanLockPaintingGuide => paintingLayer != null && IsPreviewPaintTool && CanSnapPreviewGuides &&
-            paintingGuideRevision == previewGuidesRevision && paintingGuideIndex >= 0 && paintingGuideIndex < previewGuides.Count;
+        private bool CanLockPaintingGuide => paintingLayer != null && IsCanvasPaintTool && CanSnapCanvasGuides &&
+            paintingGuideRevision == canvasGuidesRevision && paintingGuideIndex >= 0 && paintingGuideIndex < canvasGuides.Count;
 
         private void CapturePaintingGuide(Vector2 position, bool disableSnap)
         {
             paintingGuideIndex = -1;
-            if (disableSnap || !IsPreviewPaintTool || !CanSnapPreviewGuides) return;
-            Rect image = toolkitPreviewCanvas.ImageRect;
+            if (disableSnap || !IsCanvasPaintTool || !CanSnapCanvasGuides) return;
+            Rect image = toolkitCanvas.ImageRect;
             if (image.width <= 0f || image.height <= 0f) return;
-            Vector2 canvasPoint = toolkitPreviewCanvas.ToCanvas(position);
+            Vector2 canvasPoint = toolkitCanvas.ToCanvas(position);
             Vector2 point = new Vector2((canvasPoint.x - image.x) / image.width * compositor.width,
                 (canvasPoint.y - image.y) / image.height * compositor.height);
             Vector2 documentPoint = new Vector2(point.x, compositor.height - point.y);
-            bool atIntersection = TrySnapPreviewGuideIntersection(documentPoint, Vector2.zero, out Vector2 intersection);
+            bool atIntersection = TrySnapCanvasGuideIntersection(documentPoint, Vector2.zero, out Vector2 intersection);
             Vector2 lockPoint = new Vector2(intersection.x, compositor.height - intersection.y);
             float distance = GuideSnapTolerance;
-            for (int i = 0; i < previewGuides.Count; i++)
+            for (int i = 0; i < canvasGuides.Count; i++)
             {
-                PreviewGuide guide = previewGuides[i];
+                CanvasGuide guide = canvasGuides[i];
                 if (atIntersection && Mathf.Abs(guide.position - Vector2.Dot(lockPoint, guide.normal)) > GuideSnapTolerance * .0001f)
                     continue;
                 float delta = Mathf.Abs(guide.position - Vector2.Dot(point, guide.normal));
@@ -38,27 +38,27 @@ namespace DCFApixels.WhimTex
                 distance = delta;
                 paintingGuideIndex = i;
             }
-            paintingGuideRevision = previewGuidesRevision;
+            paintingGuideRevision = canvasGuidesRevision;
         }
 
         private Vector2 ProjectPaintingGuide(Vector2 position)
         {
-            Rect image = toolkitPreviewCanvas.ImageRect;
+            Rect image = toolkitCanvas.ImageRect;
             if (image.width <= 0f || image.height <= 0f) return position;
-            Vector2 canvasPoint = toolkitPreviewCanvas.ToCanvas(position);
+            Vector2 canvasPoint = toolkitCanvas.ToCanvas(position);
             Vector2 point = new Vector2((canvasPoint.x - image.x) / image.width * compositor.width,
                 (canvasPoint.y - image.y) / image.height * compositor.height);
-            PreviewGuide guide = previewGuides[paintingGuideIndex];
+            CanvasGuide guide = canvasGuides[paintingGuideIndex];
             point += guide.normal * (guide.position - Vector2.Dot(point, guide.normal));
             Vector2 documentPoint = new Vector2(point.x, compositor.height - point.y);
             Vector2 direction = new Vector2(guide.normal.y, guide.normal.x);
-            if (TrySnapPreviewGuideIntersection(documentPoint, direction, out Vector2 intersection))
+            if (TrySnapCanvasGuideIntersection(documentPoint, direction, out Vector2 intersection))
                 point = new Vector2(intersection.x, compositor.height - intersection.y);
-            return toolkitPreviewCanvas.ToView(new Vector2(image.x + point.x / compositor.width * image.width,
+            return toolkitCanvas.ToView(new Vector2(image.x + point.x / compositor.width * image.width,
                 image.y + point.y / compositor.height * image.height));
         }
 
-        private Vector2 GetPreviewPaintPosition(Vector2 position, bool shift, bool disableSnap, bool updateConstraint = true)
+        private Vector2 GetCanvasPaintPosition(Vector2 position, bool shift, bool disableSnap, bool updateConstraint = true)
         {
             if (shift && !disableSnap && CanLockPaintingGuide)
             {
@@ -68,53 +68,53 @@ namespace DCFApixels.WhimTex
             if (paintingLayer != null && updateConstraint) position = ConstrainPaintingPosition(position, shift);
             else if (paintingLayer != null && shift)
             {
-                Rect rect = toolkitPreviewCanvas.ImageRect;
-                Vector2 anchor = toolkitPreviewCanvas.ToView(new Vector2(rect.x + paintingAxisAnchor.x * rect.width,
+                Rect rect = toolkitCanvas.ImageRect;
+                Vector2 anchor = toolkitCanvas.ToView(new Vector2(rect.x + paintingAxisAnchor.x * rect.width,
                     rect.y + (1f - paintingAxisAnchor.y) * rect.height));
                 position = paintingLockedAxis == 1 ? new Vector2(position.x, anchor.y) :
                     paintingLockedAxis == 2 ? new Vector2(anchor.x, position.y) : anchor;
             }
-            if (disableSnap || !IsPreviewPaintTool || !CanSnapPreviewGuides) return position;
-            Rect image = toolkitPreviewCanvas.ImageRect;
+            if (disableSnap || !IsCanvasPaintTool || !CanSnapCanvasGuides) return position;
+            Rect image = toolkitCanvas.ImageRect;
             if (image.width <= 0f || image.height <= 0f) return position;
-            Vector2 canvasPoint = toolkitPreviewCanvas.ToCanvas(position);
+            Vector2 canvasPoint = toolkitCanvas.ToCanvas(position);
             Vector2 point = new Vector2((canvasPoint.x - image.x) / image.width * compositor.width,
                 (image.yMax - canvasPoint.y) / image.height * compositor.height);
             Vector2 snapped;
             if (paintingLayer != null && shift)
             {
                 if (paintingLockedAxis == 0) return position;
-                Vector2 right = previewViewport.ToCanvasDelta(Vector2.right);
+                Vector2 right = canvasViewport.ToCanvasDelta(Vector2.right);
                 right.y = -right.y;
                 Vector2 direction = paintingLockedAxis == 1 ? right : new Vector2(-right.y, right.x);
-                snapped = SnapPreviewGuideResize(point, direction, false, right, point);
+                snapped = SnapCanvasGuideResize(point, direction, false, right, point);
             }
-            else snapped = SnapPreviewGuidePoint(point);
+            else snapped = SnapCanvasGuidePoint(point);
             if (snapped == point) return position;
-            return toolkitPreviewCanvas.ToView(new Vector2(image.x + snapped.x / compositor.width * image.width,
+            return toolkitCanvas.ToView(new Vector2(image.x + snapped.x / compositor.width * image.width,
                 image.yMax - snapped.y / compositor.height * image.height));
         }
 
         private static bool GuideAxesParallel(Vector2 a, Vector2 b) =>
             Mathf.Abs(a.x * b.y - a.y * b.x) <= .0001f;
 
-        private void GuideDocumentPlane(PreviewGuide guide, out Vector2 normal, out float position)
+        private void GuideDocumentPlane(CanvasGuide guide, out Vector2 normal, out float position)
         {
             normal = new Vector2(guide.normal.x, -guide.normal.y);
             position = guide.position - guide.normal.y * compositor.height;
         }
 
-        private Vector2 SnapPreviewGuidePoint(Vector2 point, bool axisAlignedOnly = false)
+        private Vector2 SnapCanvasGuidePoint(Vector2 point, bool axisAlignedOnly = false)
         {
-            if (!CanSnapPreviewGuides) return point;
+            if (!CanSnapCanvasGuides) return point;
             // An intersection is an unambiguous point, including for axis-aligned selections.
-            if (TrySnapPreviewGuideIntersection(point, Vector2.zero, out Vector2 intersection)) return intersection;
+            if (TrySnapCanvasGuideIntersection(point, Vector2.zero, out Vector2 intersection)) return intersection;
             float tolerance = GuideSnapTolerance;
             float distance = tolerance;
             Vector2 projected = point;
-            for (int i = 0; i < previewGuides.Count; i++)
+            for (int i = 0; i < canvasGuides.Count; i++)
             {
-                GuideDocumentPlane(previewGuides[i], out Vector2 n, out float d);
+                GuideDocumentPlane(canvasGuides[i], out Vector2 n, out float d);
                 if (axisAlignedOnly && !GuideAxesParallel(n, Vector2.right) && !GuideAxesParallel(n, Vector2.up)) continue;
                 float delta = d - Vector2.Dot(point, n);
                 if (Mathf.Abs(delta) > distance) continue;
@@ -125,22 +125,22 @@ namespace DCFApixels.WhimTex
 
         // A zero direction allows free movement. Otherwise accept only intersections on
         // the motion line, so snapping cannot break an axis/aspect-ratio constraint.
-        private bool TrySnapPreviewGuideIntersection(Vector2 point, Vector2 direction, out Vector2 result)
+        private bool TrySnapCanvasGuideIntersection(Vector2 point, Vector2 direction, out Vector2 result)
         {
             result = point;
-            if (!CanSnapPreviewGuides || previewGuides.Count < 2) return false;
+            if (!CanSnapCanvasGuides || canvasGuides.Count < 2) return false;
             float tolerance = GuideSnapTolerance;
             float nearest = tolerance * tolerance;
             float directionLength = direction.magnitude;
             bool found = false;
-            for (int i = 0; i < previewGuides.Count; i++)
+            for (int i = 0; i < canvasGuides.Count; i++)
             {
-                GuideDocumentPlane(previewGuides[i], out Vector2 first, out float firstD);
+                GuideDocumentPlane(canvasGuides[i], out Vector2 first, out float firstD);
                 float firstDelta = firstD - Vector2.Dot(first, point);
                 if (Mathf.Abs(firstDelta) > tolerance) continue;
-                for (int j = i + 1; j < previewGuides.Count; j++)
+                for (int j = i + 1; j < canvasGuides.Count; j++)
                 {
-                    GuideDocumentPlane(previewGuides[j], out Vector2 n, out float d);
+                    GuideDocumentPlane(canvasGuides[j], out Vector2 n, out float d);
                     float delta = d - Vector2.Dot(n, point);
                     if (Mathf.Abs(delta) > tolerance) continue;
                     float determinant = first.x * n.y - first.y * n.x;
@@ -163,10 +163,10 @@ namespace DCFApixels.WhimTex
             return found;
         }
 
-        private Vector2 SnapPreviewGuideMove(Vector2 center, Vector2 axisX, Vector2 halfSize,
+        private Vector2 SnapCanvasGuideMove(Vector2 center, Vector2 axisX, Vector2 halfSize,
             Vector2 fallback, bool horizontal, bool vertical)
         {
-            if (!CanSnapPreviewGuides) return fallback;
+            if (!CanSnapCanvasGuides) return fallback;
             Vector2 axisY = new Vector2(-axisX.y, axisX.x);
             if (horizontal || vertical)
             {
@@ -180,7 +180,7 @@ namespace DCFApixels.WhimTex
                 {
                     if ((halfSize.x == 0f && x != 0) || (halfSize.y == 0f && y != 0)) continue;
                     Vector2 anchor = center + axisX * (x * halfSize.x) + axisY * (y * halfSize.y);
-                    if (!TrySnapPreviewGuideIntersection(anchor, motion, out Vector2 target)) continue;
+                    if (!TrySnapCanvasGuideIntersection(anchor, motion, out Vector2 target)) continue;
                     Vector2 offset = target - anchor;
                     float squared = offset.sqrMagnitude;
                     if (squared > nearestIntersection) continue;
@@ -197,7 +197,7 @@ namespace DCFApixels.WhimTex
                 float previous = Vector2.Dot(fallback, direction);
                 float nearest = previous == 0f ? GuideSnapTolerance : Mathf.Min(GuideSnapTolerance, Mathf.Abs(previous));
                 float best = previous;
-                foreach (PreviewGuide guide in previewGuides)
+                foreach (CanvasGuide guide in canvasGuides)
                 {
                     GuideDocumentPlane(guide, out Vector2 n, out float d);
                     if (!GuideAxesParallel(n, direction)) continue;
@@ -215,17 +215,17 @@ namespace DCFApixels.WhimTex
             return result;
         }
 
-        private Vector2 SnapPreviewGuideResize(Vector2 point, Vector2 direction, bool free, Vector2 axisX, Vector2 fallback)
+        private Vector2 SnapCanvasGuideResize(Vector2 point, Vector2 direction, bool free, Vector2 axisX, Vector2 fallback)
         {
-            if (!CanSnapPreviewGuides) return fallback;
-            if (free) return point + SnapPreviewGuideMove(point, axisX, Vector2.zero, fallback - point, true, true);
-            if (direction.sqrMagnitude > 0f && TrySnapPreviewGuideIntersection(point, direction, out Vector2 intersection))
+            if (!CanSnapCanvasGuides) return fallback;
+            if (free) return point + SnapCanvasGuideMove(point, axisX, Vector2.zero, fallback - point, true, true);
+            if (direction.sqrMagnitude > 0f && TrySnapCanvasGuideIntersection(point, direction, out Vector2 intersection))
                 return intersection;
             Vector2 result = fallback;
             float nearest = fallback == point ? GuideSnapTolerance * GuideSnapTolerance :
                 Mathf.Min(GuideSnapTolerance * GuideSnapTolerance, (fallback - point).sqrMagnitude);
             Vector2 axisY = new Vector2(-axisX.y, axisX.x);
-            foreach (PreviewGuide guide in previewGuides)
+            foreach (CanvasGuide guide in canvasGuides)
             {
                 GuideDocumentPlane(guide, out Vector2 n, out float d);
                 if (!GuideAxesParallel(n, axisX) && !GuideAxesParallel(n, axisY)) continue;
@@ -239,7 +239,7 @@ namespace DCFApixels.WhimTex
             return result;
         }
 
-        private float SnapPreviewGuideRotation(float rotation, bool includeCanvasAxes = false)
+        private float SnapCanvasGuideRotation(float rotation, bool includeCanvasAxes = false)
         {
             float nearest = 3f, result = rotation;
             if (includeCanvasAxes)
@@ -248,8 +248,8 @@ namespace DCFApixels.WhimTex
                 float delta = Mathf.Abs(target - rotation);
                 if (delta <= nearest) { nearest = delta; result = target; }
             }
-            if (!CanSnapPreviewGuides) return result;
-            foreach (PreviewGuide guide in previewGuides)
+            if (!CanSnapCanvasGuides) return result;
+            foreach (CanvasGuide guide in canvasGuides)
             {
                 GuideDocumentPlane(guide, out Vector2 n, out _);
                 float angle = Mathf.Atan2(n.y, n.x) * Mathf.Rad2Deg;
@@ -261,10 +261,10 @@ namespace DCFApixels.WhimTex
             return result;
         }
 
-        private float SnapPreviewGuidePosition(PreviewGuide guide, int excluded)
+        private float SnapCanvasGuidePosition(CanvasGuide guide, int excluded)
         {
-            if (!previewGuidesSnap || previewGuidesHidden || !HasPreviewLayers || toolkitPreviewCanvas == null ||
-                toolkitPreviewCanvas.PixelScale <= .00001f) return guide.position;
+            if (!canvasGuidesSnap || canvasGuidesHidden || !HasCanvasLayers || toolkitCanvas == null ||
+                toolkitCanvas.PixelScale <= .00001f) return guide.position;
             float best = guide.position, nearest = GuideSnapTolerance;
             void Consider(float position)
             {
@@ -276,9 +276,9 @@ namespace DCFApixels.WhimTex
                 for (int i = 0; i <= 2; i++) Consider(guide.normal.x * compositor.width * i * .5f);
             else if (GuideAxesParallel(guide.normal, Vector2.up))
                 for (int i = 0; i <= 2; i++) Consider(guide.normal.y * compositor.height * i * .5f);
-            if (GetSelectedLayer() is Layer selected && selected.Behaviour != null && (!selected.IsGroup || PreviewFXParameter != null))
+            if (GetSelectedLayer() is Layer selected && selected.Behaviour != null && (!selected.IsGroup || CanvasFXParameter != null))
             {
-                TextureTransform transform = CurrentPreviewTransform;
+                TextureTransform transform = CurrentCanvasTransform;
                 float angle = transform.rotationF * Mathf.Deg2Rad;
                 float c = Mathf.Cos(angle), s = Mathf.Sin(angle);
                 Vector2 axisX = new Vector2(c, -s), axisY = new Vector2(s, c);
@@ -294,14 +294,14 @@ namespace DCFApixels.WhimTex
                     for (int edge = -1; edge <= 1; edge++) Consider(Vector2.Dot(guide.normal, center) + edge * extent);
                 }
             }
-            for (int i = 0; i < previewGuides.Count; i++)
+            for (int i = 0; i < canvasGuides.Count; i++)
             {
-                if (i == excluded || GuideAxesParallel(guide.normal, previewGuides[i].normal)) continue;
-                PreviewGuide a = previewGuides[i];
-                for (int j = i + 1; j < previewGuides.Count; j++)
+                if (i == excluded || GuideAxesParallel(guide.normal, canvasGuides[i].normal)) continue;
+                CanvasGuide a = canvasGuides[i];
+                for (int j = i + 1; j < canvasGuides.Count; j++)
                 {
-                    if (j == excluded || GuideAxesParallel(guide.normal, previewGuides[j].normal)) continue;
-                    PreviewGuide b = previewGuides[j];
+                    if (j == excluded || GuideAxesParallel(guide.normal, canvasGuides[j].normal)) continue;
+                    CanvasGuide b = canvasGuides[j];
                     float determinant = a.normal.x * b.normal.y - a.normal.y * b.normal.x;
                     if (Mathf.Abs(determinant) <= .0001f) continue;
                     Vector2 intersection = new Vector2(
@@ -311,10 +311,10 @@ namespace DCFApixels.WhimTex
                     if (float.IsNaN(position) || float.IsInfinity(position) ||
                         Mathf.Abs(position - guide.position) > nearest) continue;
                     bool blocked = false;
-                    for (int k = 0; k < previewGuides.Count; k++)
+                    for (int k = 0; k < canvasGuides.Count; k++)
                     {
                         if (k == excluded) continue;
-                        PreviewGuide other = previewGuides[k];
+                        CanvasGuide other = canvasGuides[k];
                         if (GuideAxesParallel(guide.normal, other.normal) &&
                             Mathf.Abs(Vector2.Dot(other.normal, intersection) - other.position) <= .001f)
                         { blocked = true; break; }

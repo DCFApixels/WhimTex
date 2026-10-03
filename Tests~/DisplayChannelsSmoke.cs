@@ -1,7 +1,7 @@
 // Opt-in eval body after manual Unity import/compilation. Requires an active graphics device.
 // Uses temporary GPU resources only; does not save assets, open windows, or change Undo.
-var shader = Shader.Find("Hidden/TextureCompositor/PreviewChannels");
-if (shader == null || !shader.isSupported) throw new Exception("Preview channel shader is unavailable.");
+var shader = Shader.Find("Hidden/TextureCompositor/DisplayChannels");
+if (shader == null || !shader.isSupported) throw new Exception("Display channel shader is unavailable.");
 var samples = new[]
 {
     new Color32(51, 128, 204, 64),
@@ -72,4 +72,4 @@ finally
     if (readback != null) UnityEngine.Object.DestroyImmediate(readback);
     if (source != null) UnityEngine.Object.DestroyImmediate(source);
 }
-return $"Preview channel checks passed: {checks} across all 16 masks.";
+return $"Display channel checks passed: {checks} across all 16 masks.";

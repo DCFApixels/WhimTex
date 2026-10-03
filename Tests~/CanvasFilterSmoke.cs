@@ -67,30 +67,30 @@ try
         finally { UnityEngine.Object.DestroyImmediate(texture); RenderTexture.ReleaseTemporary(preview); }
     }
     Check(pointSample < .05f && bilinearSample > .1f && bilinearSample < .5f, "GPU Point/Bilinear produce distinct edge sampling");
-    var previewTexture = RenderTexture.GetTemporary(4, 2);
+    var canvasTexture = RenderTexture.GetTemporary(4, 2);
     var channel = new RenderTexture(4, 2, 0);
     var post = new RenderTexture(4, 2, 0);
     try
     {
-        type.GetField("previewTexture", Hidden).SetValue(window, previewTexture);
-        type.GetField("channelPreviewTexture", Hidden).SetValue(window, channel);
+        type.GetField("canvasTexture", Hidden).SetValue(window, canvasTexture);
+        type.GetField("channelCanvasTexture", Hidden).SetValue(window, channel);
         type.GetField("postFxTexture", Hidden).SetValue(window, post);
-        var toolField = type.GetField("previewTool", Hidden);
+        var toolField = type.GetField("canvasTool", Hidden);
         document.outputFilter = FilterMode.Trilinear;
         toolField.SetValue(window, Enum.Parse(toolField.FieldType, "Pencil"));
-        type.GetMethod("ApplyPreviewTextureFilter", Hidden).Invoke(window, null);
-        Check(previewTexture.filterMode == FilterMode.Point && channel.filterMode == FilterMode.Point && post.filterMode == FilterMode.Point, "Pencil preview override");
+        type.GetMethod("ApplyCanvasTextureFilter", Hidden).Invoke(window, null);
+        Check(canvasTexture.filterMode == FilterMode.Point && channel.filterMode == FilterMode.Point && post.filterMode == FilterMode.Point, "Pencil preview override");
         Check(document.outputFilter == FilterMode.Trilinear, "Pencil leaves output setting intact");
         toolField.SetValue(window, Enum.Parse(toolField.FieldType, "Brush"));
-        type.GetMethod("ApplyPreviewTextureFilter", Hidden).Invoke(window, null);
-        Check(previewTexture.filterMode == FilterMode.Trilinear && channel.filterMode == FilterMode.Trilinear && post.filterMode == FilterMode.Trilinear, "Return to document filtering");
+        type.GetMethod("ApplyCanvasTextureFilter", Hidden).Invoke(window, null);
+        Check(canvasTexture.filterMode == FilterMode.Trilinear && channel.filterMode == FilterMode.Trilinear && post.filterMode == FilterMode.Trilinear, "Return to document filtering");
     }
     finally
     {
-        type.GetField("previewTexture", Hidden).SetValue(window, null);
-        type.GetField("channelPreviewTexture", Hidden).SetValue(window, null);
+        type.GetField("canvasTexture", Hidden).SetValue(window, null);
+        type.GetField("channelCanvasTexture", Hidden).SetValue(window, null);
         type.GetField("postFxTexture", Hidden).SetValue(window, null);
-        RenderTexture.ReleaseTemporary(previewTexture); UnityEngine.Object.DestroyImmediate(channel); UnityEngine.Object.DestroyImmediate(post);
+        RenderTexture.ReleaseTemporary(canvasTexture); UnityEngine.Object.DestroyImmediate(channel); UnityEngine.Object.DestroyImmediate(post);
     }
     document.outputFilter = (FilterMode)123;
     typeof(DCFApixels.WhimTex.TextureCompositor).GetMethod("NormalizeModel", Hidden).Invoke(document, null);

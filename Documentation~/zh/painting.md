@@ -16,14 +16,14 @@ next_page: "zh/selection.md"
 选择 **Brush**（`B`）绘制柔和的笔触，或选择 **Pencil**（`P`）绘制锐利的像素。
 如果你尝试在其他类型的图层上绘制，编辑器会先提示转换。
 
-当画笔轮廓相对于预览区域过大时，中心会显示一个小十字标记。
+当画笔轮廓相对于画布视图过大时，中心会显示一个小十字标记。
 
 ## 塑造笔触
 
 | 控件 | 它改变什么 |
 | :--- | :--- |
 | Size | 笔触宽度。你可以拖动标签或使用 `[` / `]`。 |
-| Hardness / Gradient | 位于预览标题栏中 Size 的旁边。拖动 Hardness 或输入百分比；点击渐变条可编辑它。箭头可在 Hardness 和 Gradient 之间切换程序化画笔，并且不会丢失任一设置。 |
+| Hardness / Gradient | 位于画布视图顶部工具设置中 Size 的旁边。拖动 Hardness 或输入百分比；点击渐变条可编辑它。箭头可在 Hardness 和 Gradient 之间切换程序化画笔，并且不会丢失任一设置。 |
 | Opacity | 整个笔触的最大强度。松开并再次绘制可叠加另一层。 |
 | Flow | 每个画笔图章的强度。较低的值让重叠的图章逐渐叠加颜色。 |
 
@@ -41,13 +41,13 @@ Pencil 没有硬度或间距控件。可为它的笔尖选择 **Circle**、**Squ
 
 ## 自定义画笔
 
-在选中 **Brush** 的情况下，打开预览右边缘上方的箭头以显示
+在选中 **Brush** 的情况下，打开画布视图右边缘上方的箭头以显示
 **Brushes**。它与 Post FX 共用抽屉：打开一个会关闭另一个。
 
 <a href="{{ '/Images/brush-settings.png' | relative_url }}"><img src="{{ '/Images/brush-settings.png' | relative_url }}" alt="WhimTex Brushes drawer with a neon red stroke, stamp controls, tint, blend mode and live brush preview" width="720"></a>
 
 所有画笔预设控件都在这里：**Size** 在 **Tip** 中，**Opacity / Flow**
-在 **Color** 中。预览标题栏提供了指向相同设置的快捷入口。
+在 **Color** 中。画布视图顶部工具设置提供了指向相同设置的快捷入口。
 
 笔触示例预览当前笔尖，不包含图层 FX 或对称；Eraser 在灰色颜料上预览擦除。
 用 **Preview Scale (%)** 容纳大笔尖或宽散布；它仅改变示例，不改变实际绘制大小。
@@ -70,7 +70,7 @@ Pencil 没有硬度或间距控件。可为它的笔尖选择 **Circle**、**Squ
 | Texture | 拖入一个纹理以将其形状用作画笔。清空该字段可返回程序化画笔。Size 测量其最长边。 |
 | Tip Channel | Alpha 使用透明度；Luminance 将白色作为墨水；Inverted Luminance 将黑色作为墨水。Color 保留笔尖的颜色，并乘以绘制颜色。所有模式都遵循笔尖的透明通道。 |
 | SDF | 将纹理视为距离场，并通过 Gradient 映射它。使用 Alpha 表示以透明度构成的场，使用 Luminance 表示灰度场，或在暗部为内部时使用 Inverted Luminance。Color 使用透明通道场，同时保留笔尖的 RGB 颜色。 |
-| Gradient (preview header) | 左侧是内部（**0**），右侧是外缘（**1**）。透明通道色标控制边缘和覆盖范围；颜色色标会乘以画笔颜色和 Tint。将透明通道色标移近可获得锐利边缘，移远则变得柔和。将过渡右移可扩展形状，左移则收缩它。 |
+| Gradient (Canvas View header) | 左侧是内部（**0**），右侧是外缘（**1**）。透明通道色标控制边缘和覆盖范围；颜色色标会乘以画笔颜色和 Tint。将透明通道色标移近可获得锐利边缘，移远则变得柔和。将过渡右移可扩展形状，左移则收缩它。 |
 | Tint | 不同的渐变色或透明通道色标会为每个图章产生随机着色，并乘以调色板颜色。相同的色标给出恒定着色。右侧的小 ↺ 按钮会重置为不透明白色，这不会改变调色板颜色。 |
 | Blend | 绘制与活动图层上已有像素的结合方式。独立于图层的 Blend 设置；擦除时会被忽略。 |
 | Apply Blend | **Per Stroke**（默认）将 Blend 应用于整个笔触。**Per Stamp** 将它应用于每个图章，包括同一笔触内图章重叠的地方。Opacity 控制整个结果；Flow 控制每个图章。在密集的 Spacing 下，Per Stamp 可能会更慢。 |
@@ -85,7 +85,7 @@ Pencil 没有硬度或间距控件。可为它的笔尖选择 **Circle**、**Squ
 指定纹理后，已选的程序化画笔模式会保留。
 
 对于纹理 SDF 画笔，在 Tip 中启用 **SDF**，选择包含距离场的通道，
-然后在观察示例的同时在预览标题栏中编辑 **Gradient**。开始时使用白色颜色色标以保留
+然后在观察示例的同时在画布视图顶部工具设置中编辑 **Gradient**。开始时使用白色颜色色标以保留
 画笔颜色，并使用透明通道色标塑造边缘。你可以添加透明色带
 来制作中空形状，或添加颜色色带来制作多色笔尖。该场应使用 0–1 范围，
 内部值更高（或选择 Inverted Luminance）。普通图像
@@ -180,7 +180,7 @@ HLSL 用脚本生成笔尖，与带纹理的 Standard 使用相同的 Tip Channe
 修改文档、选区或工具会取消待处理结果；保存前请等待计算完成。
 
 在 **User Settings → Healing Brush → Stroke Color** 中设置预览颜色与透明度。
-该设置仅影响显示，不改变蒙版强度或修复结果。**Reset Preview Appearance** 恢复默认蓝色和 40% 不透明度。
+该设置仅影响显示，不改变蒙版强度或修复结果。**Reset Canvas View Appearance** 恢复默认蓝色和 40% 不透明度。
 
 彩色预览显示实际绘制的蒙版，包括柔边与选区。反复涂过不会增加覆盖强度。
 在 **Tiled** 预览中可在任意副本上绘制，蒙版会跨越边缘和角落，修复搜索也会跨越接缝。

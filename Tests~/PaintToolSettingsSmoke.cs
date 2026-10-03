@@ -46,18 +46,18 @@ Check(type.GetField("repeatMode") == null && type.GetField("transform") == null,
 var field = windowType.GetField("paintSettings", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
 Check(field.FieldType == type && System.Attribute.IsDefined(field, typeof(System.NonSerializedAttribute)),
     "Shared settings are excluded from window Undo snapshots");
-var toolType = windowType.GetNestedType("PreviewTool", System.Reflection.BindingFlags.NonPublic);
-var parseTool = windowType.GetMethod("ParsePreviewTool", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+var toolType = windowType.GetNestedType("CanvasTool", System.Reflection.BindingFlags.NonPublic);
+var parseTool = windowType.GetMethod("ParseCanvasTool", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
 foreach (string name in System.Enum.GetNames(toolType))
 {
-    bool basic = (int)System.Enum.Parse(toolType, name) <= (int)System.Enum.Parse(toolType, "Shape");
+    bool basic = (int)System.Enum.Parse(toolType, name) <= (int)System.Enum.Parse(toolType, "Shape") || name == "HealingBrush";
     Check(parseTool.Invoke(null, new object[] { name }).ToString() == (basic ? name : "None"),
         "Only base tools survive preferences: " + name);
 }
 foreach (string invalid in new[] { null, "", "RemovedTool", "999", "-1" })
     Check(parseTool.Invoke(null, new object[] { invalid }).ToString() == "None",
         "Unknown tool preference falls back to None: " + invalid);
-foreach (string name in new[] { "previewTool", "previewTransformReturnTool", "lastBasePreviewTool", "temporaryReturnTool" })
+foreach (string name in new[] { "canvasTool", "canvasTransformReturnTool", "lastBaseCanvasTool", "temporaryReturnTool" })
     Check(System.Attribute.IsDefined(windowType.GetField(name,
             System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic),
         typeof(System.NonSerializedAttribute)), "Tool selection is excluded from Undo: " + name);

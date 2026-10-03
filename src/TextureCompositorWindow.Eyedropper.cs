@@ -9,20 +9,20 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
-        private PreviewEyedropperManipulator previewEyedropper;
-        private bool CanUsePreviewEyedropper => HasPreviewLayers && (IsPreviewPaintTool || previewTool == PreviewTool.Fill);
-        private bool OwnsScreenEyedropper => previewEyedropper?.IsOpen ?? false;
+        private CanvasEyedropperManipulator canvasEyedropper;
+        private bool CanUseCanvasEyedropper => HasCanvasLayers && (IsCanvasPaintTool || canvasTool == CanvasTool.Fill);
+        private bool OwnsScreenEyedropper => canvasEyedropper?.IsOpen ?? false;
 
-        private void CancelPreviewEyedropper() => previewEyedropper?.Cancel();
+        private void CancelCanvasEyedropper() => canvasEyedropper?.Cancel();
 
-        private static Color PreviewScreenSample(Color[] pixels, int side, float alpha)
+        private static Color CanvasScreenSample(Color[] pixels, int side, float alpha)
         {
             Color color = pixels[(side / 2) * side + side / 2];
             color.a = alpha;
             return color;
         }
 
-        private static Rect PreviewEyedropperLensRect(Vector2 point, Rect bounds)
+        private static Rect CanvasEyedropperLensRect(Vector2 point, Rect bounds)
         {
             const float width = 96f, height = 116f, gap = 24f;
             float x = point.x + gap;
@@ -100,7 +100,7 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private sealed class PreviewEyedropperManipulator : PointerManipulator
+        private sealed class CanvasEyedropperManipulator : PointerManipulator
         {
             private readonly TextureCompositorWindow owner;
             private ScreenEyedropperWindow picker;
@@ -110,7 +110,7 @@ namespace DCFApixels.WhimTex
 
             internal void SuppressUntilAltReleased() => failedUntilAltReleased = true;
 
-            internal PreviewEyedropperManipulator(TextureCompositorWindow owner) => this.owner = owner;
+            internal CanvasEyedropperManipulator(TextureCompositorWindow owner) => this.owner = owner;
 
             protected override void RegisterCallbacksOnTarget()
             {
@@ -145,9 +145,9 @@ namespace DCFApixels.WhimTex
 
             private void Begin(Vector2 screenPoint)
             {
-                if (owner.previewTool == PreviewTool.Transform || IsOpen || failedUntilAltReleased || focusedWindow != owner || !owner.CanUsePreviewEyedropper || owner.paintingLayer != null ||
-                    (owner.previewZoomManipulator?.IsNavigating ?? false) ||
-                    (owner.previewGuideManipulator?.IsDragging ?? false) ||
+                if (owner.canvasTool == CanvasTool.Transform || IsOpen || failedUntilAltReleased || focusedWindow != owner || !owner.CanUseCanvasEyedropper || owner.paintingLayer != null ||
+                    (owner.canvasZoomManipulator?.IsNavigating ?? false) ||
+                    (owner.canvasGuideManipulator?.IsDragging ?? false) ||
                     (Event.current != null && (Event.current.control || Event.current.command))) return;
                 try
                 {
@@ -167,7 +167,7 @@ namespace DCFApixels.WhimTex
             {
                 if (picker == closed) picker = null;
                 if (owner == null) return;
-                owner.ClearPreviewPointerCursor();
+                owner.ClearCanvasPointerCursor();
                 owner.Repaint();
             }
 
@@ -184,7 +184,7 @@ namespace DCFApixels.WhimTex
             private const int SampleSide = 11;
             private static ScreenEyedropperWindow current;
             private TextureCompositorWindow owner;
-            private PreviewEyedropperManipulator controller;
+            private CanvasEyedropperManipulator controller;
             private ScreenEyedropperCapture capture;
             private ScreenEyedropperLensWindow lensWindow;
             private Image magnified;
@@ -210,7 +210,7 @@ namespace DCFApixels.WhimTex
             private bool shortcutsSuppressed;
             private bool starting;
 
-            internal void Open(TextureCompositorWindow owner, PreviewEyedropperManipulator controller, Vector2 point)
+            internal void Open(TextureCompositorWindow owner, CanvasEyedropperManipulator controller, Vector2 point)
             {
                 starting = true;
                 if (current != null) current.Finish(false);
@@ -230,7 +230,7 @@ namespace DCFApixels.WhimTex
                 lensWindow.hideFlags = HideFlags.HideAndDontSave;
                 lensWindow.titleContent = new GUIContent("WhimTex Color Sample");
                 lensWindow.minSize = lensWindow.maxSize = minSize;
-                lensWindow.position = PreviewEyedropperLensRect(point, InternalEditorUtility.GetBoundsOfDesktopAtPoint(point));
+                lensWindow.position = CanvasEyedropperLensRect(point, InternalEditorUtility.GetBoundsOfDesktopAtPoint(point));
                 BuildLens(lensWindow.rootVisualElement);
                 lensWindow.ShowPopup();
                 ShowPopup();
@@ -393,7 +393,7 @@ namespace DCFApixels.WhimTex
             {
                 if (lensWindow == null) return;
                 Vector2 point = pendingPick ? pendingPickPosition : screenPosition;
-                Rect next = PreviewEyedropperLensRect(point, InternalEditorUtility.GetBoundsOfDesktopAtPoint(point));
+                Rect next = CanvasEyedropperLensRect(point, InternalEditorUtility.GetBoundsOfDesktopAtPoint(point));
                 if (lensWindow.position == next) return;
                 DeferCoveredSample();
                 lensWindow.position = next;
@@ -404,7 +404,7 @@ namespace DCFApixels.WhimTex
                 if (closing) return;
                 try
                 {
-                    if (owner == null || lensWindow == null || !owner.CanUsePreviewEyedropper || focusedWindow != this)
+                    if (owner == null || lensWindow == null || !owner.CanUseCanvasEyedropper || focusedWindow != this)
                     {
                         Finish(false);
                         return;
@@ -436,7 +436,7 @@ namespace DCFApixels.WhimTex
                     Color[] pixels = InternalEditorUtility.ReadScreenPixelUnderCursor(point, SampleSide, SampleSide);
                     if (pixels == null || pixels.Length != SampleSide * SampleSide)
                         throw new InvalidOperationException("Unity did not return the requested screen pixels.");
-                    Color color = PreviewScreenSample(pixels, SampleSide,
+                    Color color = CanvasScreenSample(pixels, SampleSide,
                         commitPick ? pendingPickAlpha : owner.paintSettings.brushColor.a);
                     for (int i = 0; i < pixels.Length; i++) pixels[i].a = 1f;
                     if (sampleTexture == null)
@@ -494,7 +494,7 @@ namespace DCFApixels.WhimTex
                 if (owner != null)
                 {
                     owner.Focus();
-                    owner.toolkitPreviewCanvas?.Focus();
+                    owner.toolkitCanvas?.Focus();
                 }
             }
 

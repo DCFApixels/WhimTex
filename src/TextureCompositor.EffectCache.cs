@@ -46,21 +46,21 @@ namespace DCFApixels.WhimTex
         {
             var previous = effectCache;
             bool previousQuality = interactiveEffects;
-            bool previousPublishing = publishingMiniPreview;
+            bool previousPublishing = publishingLayerPreview;
             try
             {
                 effectCache = cache;
                 interactiveEffects = interactive;
-                publishingMiniPreview = true;
+                publishingLayerPreview = true;
                 cache.BeginFrame(this, painting);
                 var result = RenderPreview(maxSize);
-                lastMiniPreviewCache = cache;
-                lastMiniPreviewSize = maxSize;
-                lastMiniPreviewInteractive = interactive;
-                lastMiniPreviewPainting = painting;
+                lastLayerPreviewCache = cache;
+                lastLayerPreviewSize = maxSize;
+                lastLayerPreviewInteractive = interactive;
+                lastLayerPreviewPainting = painting;
                 return result;
             }
-            finally { effectCache = previous; interactiveEffects = previousQuality; publishingMiniPreview = previousPublishing; }
+            finally { effectCache = previous; interactiveEffects = previousQuality; publishingLayerPreview = previousPublishing; }
         }
 
         private RenderTexture CachedEffectRender(Layer layer, string kind, int w, int h, float scale,

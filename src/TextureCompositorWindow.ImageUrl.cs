@@ -211,11 +211,11 @@ namespace DCFApixels.WhimTex
         private bool InsertDownloadedImage(Texture2D texture, string url)
         {
             FinishPaintingStroke();
-            FinishPreviewTransform();
+            FinishCanvasTransform();
             var source = texture;
             ExecuteContextChange("Paste Image URL", () =>
             {
-                if (!HasPreviewLayers) { compositor.width = source.width; compositor.height = source.height; }
+                if (!HasCanvasLayers) { compositor.width = source.width; compositor.height = source.height; }
                 var layer = DrawingLayerBehaviour.FromMergedTexture(source);
                 layer.RememberImageUrl(url);
                 layer.colorRange = LayerColorRange.Standard;

@@ -32,7 +32,7 @@ Check(layer.radius == 32 && layer.arc == 90 && layer.distance == 128 && layer.an
     "Switching all blur modes preserves inactive settings");
 var copy = new DCFApixels.WhimTex.BlurLayerBehaviour();
 setter.Invoke(null, new object[]{copy, snapshot.Invoke(null, new object[]{layer})});
-Check(UnityEngine.JsonUtility.ToJson(layer) == UnityEngine.JsonUtility.ToJson(copy), "Snapshot round trip");
+Check(snapshot.Invoke(null, new object[]{layer}).ToString() == snapshot.Invoke(null, new object[]{copy}).ToString(), "API settings snapshot round trip (wrapper identity is not a blur setting)");
 Reject("{\"distance\":-1}"); Reject("{\"distance\":513}"); Reject("{\"angle\":181}");
 Reject("{\"arc\":361}"); Reject("{\"center\":[0,2]}"); Reject("{\"center\":[0]}");
 Reject("{\"mode\":\"Zoom\"}"); Reject("{\"direction\":\"Unknown\"}"); Reject("{\"edges\":\"Unknown\"}");
@@ -47,7 +47,7 @@ try
 {
     var aliases = new System.Collections.Generic.Dictionary<string, DCFApixels.WhimTex.Layer>();
     object Apply(string json) => type.GetMethod("ApplyOperation", flags).Invoke(null, new object[]{document, Json(json), aliases, false});
-    var added = (DCFApixels.WhimTex.BlurLayerBehaviour)Apply("{\"op\":\"add\",\"type\":\"blur\",\"as\":\"blur\",\"settings\":{\"blur\":{\"distance\":37}}}");
+    var added = (DCFApixels.WhimTex.BlurLayerBehaviour)((DCFApixels.WhimTex.Layer)Apply("{\"op\":\"add\",\"type\":\"blur\",\"as\":\"blur\",\"settings\":{\"blur\":{\"distance\":37}}}")).Behaviour;
     Check(added.distance == 37 && document.layers.Count == 1, "Factory and settings routing");
     Apply("{\"op\":\"set\",\"layer\":\"@blur\",\"settings\":{\"blur\":{\"mode\":\"Circular\",\"arc\":20}}}");
     Check(added.mode == DCFApixels.WhimTex.BlurType.Circular && added.arc == 20, "Set routing");

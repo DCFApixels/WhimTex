@@ -120,7 +120,7 @@ namespace DCFApixels.WhimTex
                 DragAndDrop.AcceptDrag();
                 evt.StopImmediatePropagation();
                 owner.ClearToolkitDropIndicator();
-                owner.FinishPreviewTransform();
+                owner.FinishCanvasTransform();
                 owner.FinishPaintingStroke();
                 Undo.IncrementCurrentGroup();
                 int undoGroup = Undo.GetCurrentGroup();

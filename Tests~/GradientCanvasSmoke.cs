@@ -67,7 +67,7 @@ public static class GradientCanvasSmoke
             var selection=typeof(TextureCompositorWindow).GetField("selectedLayerId",instanceFlags);
             var visible=typeof(TextureCompositorWindow).GetProperty("IsGradientCanvasEnabled",instanceFlags);
             selection.SetValue(window,g.Id);
-            var tool=typeof(TextureCompositorWindow).GetField("previewTool",instanceFlags);
+            var tool=typeof(TextureCompositorWindow).GetField("canvasTool",instanceFlags);
             foreach(var value in Enum.GetValues(tool.FieldType))
             {
                 tool.SetValue(window,value);

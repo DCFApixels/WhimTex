@@ -46,7 +46,7 @@ for (int mode = 0; mode < 3; mode++)
         document.width = 32;
         Call(document, "MarkChanged");
         Call(window, "UpdateUnsavedChangesState");
-        Check(!window.hasUnsavedChanges, "Canvas changes without layers do not enable the close warning");
+        Check(window.hasUnsavedChanges, "Canvas changes are unsaved document changes even without layers");
         DCFApixels.WhimTex.Layer root = Drawing(Color.red);
         if (mode == 2)
             root = new DCFApixels.WhimTex.GroupLayerBehaviour { layers = new List<DCFApixels.WhimTex.Layer> { root,
@@ -60,7 +60,7 @@ for (int mode = 0; mode < 3; mode++)
         End(group);
         Check(document.layers.Count == 0, "Deletion removes the root");
         Call(window, "UpdateUnsavedChangesState");
-        Check(!window.hasUnsavedChanges, "Deleting the last layer removes the close warning");
+        Check(window.hasUnsavedChanges, "Deleting the last layer remains an unsaved document edit");
         Undo.PerformUndo();
         Check(document.layers.Count == 1 && document.layers[0].Id == id, "Undo restores the root identity");
         Call(window, "UpdateUnsavedChangesState");

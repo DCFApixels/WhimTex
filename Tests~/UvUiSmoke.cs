@@ -13,7 +13,7 @@ void Write(string name,object value)=>type.GetField(name,flags).SetValue(window,
 object Call(string name,params object[] args)=>type.GetMethod(name,flags).Invoke(window,args);
 try
 {
-    var canvas=(UnityEngine.UIElements.VisualElement)Read("toolkitPreviewCanvas");
+    var canvas=(UnityEngine.UIElements.VisualElement)Read("toolkitCanvas");
     var overlay=(UnityEngine.UIElements.VisualElement)Read("uvOverlay");
     var drawer=(UnityEngine.UIElements.VisualElement)Read("uvDrawer");
     Check(canvas.contentRect.width>100 && canvas.contentRect.height>100,"Preview has layout");
@@ -38,14 +38,14 @@ try
     Check(Pixels()[200*512+150]==0 && Pixels()[180*512+380]==255,"Subtract island");
     Call("SelectUvIsland",Point(.3f,.4f),System.Enum.Parse(combine,"Intersect"));
     Check(Pixels()[180*512+380]==0,"Intersect disjoint islands");
-    var viewport=Read("previewViewport");
+    var viewport=Read("canvasViewport");
     viewport.GetType().GetMethod("SetRotation",flags).Invoke(viewport,new object[]{37f,false});
     canvas.GetType().GetMethod("UpdateImageLayout").Invoke(canvas,null);
     Check((int)Call("PickUvIsland",Point(.3f,.4f))==0,"Picking uses inverse rotated view mapping");
     Call("SelectUvIsland",Point(.3f,.4f),System.Enum.Parse(combine,"Replace"));
     byte[] before=(byte[])Pixels().Clone();
-    Write("previewTool",System.Enum.Parse(type.GetNestedType("PreviewTool",flags),"Brush"));
-    Call("RefreshPreviewToolToolbar");
+    Write("canvasTool",System.Enum.Parse(type.GetNestedType("CanvasTool",flags),"Brush"));
+    Call("RefreshCanvasToolToolbar");
     Check(!(bool)type.GetProperty("IsUvSelectionTool",flags).GetValue(window),"Brush is not UV selection tool");
     Check((int)Read("uvHoveredIsland")==-1,"Brush clears UV hover marker");
     Write("brushesExpanded",true);Write("uvExpanded",false); Call("RefreshPostFxPanel");

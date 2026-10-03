@@ -53,7 +53,7 @@ public static class HealingNoiseSeamDiagnostic
         var focused = EditorWindow.focusedWindow;
         const string pref = "DCFApixels.WhimTex.PreviewTool";
         bool hadPref = EditorPrefs.HasKey(pref); string oldPref = EditorPrefs.GetString(pref);
-        var report = new StringBuilder("256x256; scale 8; seed 1337; size 64; hardness .8; search 64; Balanced; Current Layer.\n");
+        var report = new StringBuilder("256x256; Noise ColorValues; scale 8; seed 1337; size 64; hardness .8; search 64; Balanced; Current Layer.\n");
         Directory.CreateDirectory("Temp/WhimTex/NoiseSeams");
         try
         {
@@ -66,7 +66,9 @@ public static class HealingNoiseSeamDiagnostic
                     window = ScriptableObject.CreateInstance<TextureCompositorWindow>();
                     document = (TextureCompositor)Get(window, "compositor"); document.width = document.height = N;
                     var noise = new NoiseLayerBehaviour { noiseType = NoiseLayerBehaviour.NoiseType.Perlin,
-                        fractal = fractal ? NoiseLayerBehaviour.FractalType.FBm : NoiseLayerBehaviour.FractalType.None, scale = 8, seed = 1337 };
+                        fractal = fractal ? NoiseLayerBehaviour.FractalType.FBm : NoiseLayerBehaviour.FractalType.None,
+                        scale = 8, seed = 1337, encoding = NoiseLayerBehaviour.OutputEncoding.ColorValues };
+                    // The recorded quality gates used ColorValues, before Noise defaulted to LinearData.
                     document.layers.Add(noise); Call(document, "NormalizeModel");
                     var previous = RenderTexture.active;
                     var rendered = (RenderTexture)Call(document, "RenderLayerPreview", noise.Owner, N);
@@ -81,11 +83,11 @@ public static class HealingNoiseSeamDiagnostic
                     Call(noise, "ReleaseTransientResources");
                     document.layers.Clear(); document.layers.Add(drawing); Call(document, "NormalizeModel");
                     Call(window, "SelectOnlyLayer", drawing.Id);
-                    var tool = typeof(TextureCompositorWindow).GetNestedType("PreviewTool", F);
-                    Call(window, "ChangePreviewTool", Enum.Parse(tool, "HealingBrush"));
+                    var tool = typeof(TextureCompositorWindow).GetNestedType("CanvasTool", F);
+                    Call(window, "ChangeCanvasTool", Enum.Parse(tool, "HealingBrush"));
                     window.ShowUtility(); shown = true; window.position = new Rect(80, 80, 1050, 720);
                     await Task.Delay(150); Call(window, "RefreshToolkitInterface", false);
-                    Call(window, "SetTiledPreview", true);
+                    Call(window, "SetTiledCanvas", true);
                     var settings = Get(window, "paintSettings");
                     Set(settings, "healingSize", 64f); Set(settings, "healingHardness", .8f); Set(settings, "healingSearch", 64);
                     Set(settings, "healingTransparentOnly", false);
@@ -149,7 +151,8 @@ public static class HealingNoiseSeamDiagnostic
                     // Require a modest contrast gain as well as the existing roughness/seam bounds.
                     double coarseColorDeviation = fractal ? .059922 : .086862;
                     if (after.deviation < coarseColorDeviation * (fractal ? 1.04 : 1.02))
-                        throw new Exception("Fine-level contrast transfer regression: " + name);
+                        throw new Exception("Fine-level contrast transfer regression: " + name + "; source: " + Format(before) + "; healed: " + Format(after) +
+                            "; required_deviation=" + (coarseColorDeviation * (fractal ? 1.04 : 1.02)).ToString("F6", System.Globalization.CultureInfo.InvariantCulture));
                     for (int i = 0; i < both.Length; i++)
                         if (!float.IsFinite(both[i].r) || both[i].a < .999f) throw new Exception("Invalid healed pixel");
                 }

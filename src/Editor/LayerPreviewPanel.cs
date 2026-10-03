@@ -33,7 +33,7 @@ namespace DCFApixels.WhimTex
         private RenderTexture source, channelTexture;
         private Material channelMaterial;
         private bool dirty = true, attached, disposed;
-        private bool awaitingMainPreview;
+        private bool awaitingCanvasRender;
         private double renderAt;
         private VisualElement layoutParent;
 
@@ -42,15 +42,15 @@ namespace DCFApixels.WhimTex
             this.state = state ?? throw new ArgumentNullException(nameof(state));
             name = "layer-preview";
             AddToClassList("whimtex-output-preview-footer");
-            header = new VisualElement { name = "layer-preview-resizer", tooltip = "Drag up to reveal the mini preview; drag down to hide it." };
+            header = new VisualElement { name = "layer-preview-resizer", tooltip = "Drag up to reveal the layer preview; drag down to hide it." };
             header.AddToClassList("whimtex-output-preview-title");
-            header.Add(new Label("Preview") { pickingMode = PickingMode.Ignore });
+            header.Add(new Label("Layer Preview") { pickingMode = PickingMode.Ignore });
             var grip = new VisualElement { pickingMode = PickingMode.Ignore };
             grip.AddToClassList("whimtex-output-preview-grip");
             header.Add(grip);
             state.channelMask = state.channelMask < 0 ? (state.channel == 1 ? 7 : state.channel == 2 ? 8 : 15) : state.channelMask & 15;
             channels = new VisualElement { name = "layer-preview-channels" };
-            channels.AddToClassList("whimtex-mini-preview-channels");
+            channels.AddToClassList("whimtex-layer-preview-channels");
             string[] labels = { "R", "G", "B", "A" };
             for (int i = 0; i < labels.Length; i++)
             {
@@ -59,16 +59,16 @@ namespace DCFApixels.WhimTex
                 {
                     name = "layer-preview-channel-" + labels[i].ToLowerInvariant(), text = labels[i],
                     tooltip = i == 3
-                        ? "Alpha: off ignores transparency; enable only A to view alpha in grayscale. Mini preview only; does not affect painting or output."
-                        : labels[i] + " channel: toggle in the mini preview. A single RGB channel is shown in grayscale; A controls transparency. Does not affect painting or output."
+                        ? "Alpha: off ignores transparency; enable only A to view alpha in grayscale. Layer preview only; does not affect painting or output."
+                        : labels[i] + " channel: toggle in the layer preview. A single RGB channel is shown in grayscale; A controls transparency. Does not affect painting or output."
                 };
                 button.AddToClassList("whimtex-channel-button");
-                button.AddToClassList("whimtex-mini-preview-channel");
+                button.AddToClassList("whimtex-layer-preview-channel");
                 button.EnableInClassList("whimtex-channel-button--enabled", (state.channelMask & bit) != 0);
                 channelButtons[i] = button;
                 channels.Add(button);
             }
-            channels.AddManipulator(new PreviewChannelDragManipulator(channelButtons, () => state.channelMask, ToggleChannel));
+            channels.AddManipulator(new ChannelDragManipulator(channelButtons, () => state.channelMask, ToggleChannel));
             channels.SetEnabled(false);
             header.Add(channels);
             resize = new ResizeManipulator(this);
@@ -91,26 +91,26 @@ namespace DCFApixels.WhimTex
         internal void Bind(TextureCompositor owner, Layer layer)
         {
             if (disposed || (document == owner && ReferenceEquals(boundLayer, layer) && ReferenceEquals(boundBehaviour, layer?.Behaviour))) return;
-            if (!ReferenceEquals(document, null)) document.MiniPreviewRendered -= OnMainPreviewRendered;
+            if (!ReferenceEquals(document, null)) document.LayerPreviewRendered -= OnLayerPreviewRendered;
             ReleaseTextures();
             document = owner;
-            if (attached && document != null) document.MiniPreviewRendered += OnMainPreviewRendered;
+            if (attached && document != null) document.LayerPreviewRendered += OnLayerPreviewRendered;
             boundLayer = layer;
             boundBehaviour = layer?.Behaviour;
             layerId = layer?.Id;
             channels.SetEnabled(owner != null && layer != null && layer.Behaviour != null && !(layer.Behaviour is PendingLayerBehaviour));
-            RequestPreview(true);
+            RequestLayerPreview(true);
             UpdateLayout();
         }
 
-        internal void RequestPreview(bool immediate = false)
+        internal void RequestLayerPreview(bool immediate = false)
         {
             if (disposed) return;
             // Coalesce edits without indefinitely postponing a preview during continuous dragging.
             double next = EditorApplication.timeSinceStartup + (immediate ? 0d : .12d);
             renderAt = dirty ? Math.Min(renderAt, next) : next;
             dirty = true;
-            awaitingMainPreview = false;
+            awaitingCanvasRender = false;
         }
 
         private void OnAttach(AttachToPanelEvent evt)
@@ -121,15 +121,15 @@ namespace DCFApixels.WhimTex
             layoutParent?.RegisterCallback<GeometryChangedEvent>(OnGeometry);
             TextureCompositor.Changed += OnChanged;
             TextureCompositor.RenderResourcesChanged += OnChanged;
-            if (document != null) document.MiniPreviewRendered += OnMainPreviewRendered;
+            if (document != null) document.LayerPreviewRendered += OnLayerPreviewRendered;
             EditorApplication.update += Tick;
-            RequestPreview(true);
+            RequestLayerPreview(true);
             UpdateLayout();
         }
 
         private void OnDetach(DetachFromPanelEvent evt) => Stop();
         private void OnGeometry(GeometryChangedEvent evt) => UpdateLayout();
-        private void OnChanged(TextureCompositor changed) { if (changed == document) RequestPreview(); }
+        private void OnChanged(TextureCompositor changed) { if (changed == document) RequestLayerPreview(); }
 
         private bool CanDisplay()
         {
@@ -139,14 +139,14 @@ namespace DCFApixels.WhimTex
             return true;
         }
 
-        private void OnMainPreviewRendered(Layer layer, RenderTexture pixels)
+        private void OnLayerPreviewRendered(Layer layer, RenderTexture pixels)
         {
             if (!ReferenceEquals(layer, boundLayer) || !CanDisplay()) return;
-            try { AcceptMainPreview(pixels); }
-            catch (Exception ex) { surface.tooltip = "Mini preview unavailable: " + ex.Message; Debug.LogException(ex); }
+            try { AcceptCachedLayerPreview(pixels); }
+            catch (Exception ex) { surface.tooltip = "Layer preview unavailable: " + ex.Message; Debug.LogException(ex); }
         }
 
-        private void AcceptMainPreview(RenderTexture pixels)
+        private void AcceptCachedLayerPreview(RenderTexture pixels)
         {
             float scale = Mathf.Min(1f, (float)PreviewSize / Mathf.Max(pixels.width, pixels.height));
             var descriptor = pixels.descriptor;
@@ -169,7 +169,7 @@ namespace DCFApixels.WhimTex
             finally { RenderTexture.active = previous; GL.sRGBWrite = srgb; }
             ReleaseTextures();
             source = copy;
-            dirty = awaitingMainPreview = false;
+            dirty = awaitingCanvasRender = false;
             UpdateChannels();
             surface.tooltip = string.Empty;
         }
@@ -188,24 +188,24 @@ namespace DCFApixels.WhimTex
             if (!dirty || EditorApplication.timeSinceStartup < renderAt) return;
             try
             {
-                if (document.TryGetCachedMiniPreview(layer, out var cached)) { AcceptMainPreview(cached); return; }
-                if (!awaitingMainPreview)
+                if (document.TryGetCachedLayerPreview(layer, out var cached)) { AcceptCachedLayerPreview(cached); return; }
+                if (!awaitingCanvasRender)
                 {
-                    awaitingMainPreview = true;
+                    awaitingCanvasRender = true;
                     renderAt = EditorApplication.timeSinceStartup + .12d;
-                    document.RequestMiniPreviewRefresh();
+                    document.RequestLayerPreviewRefresh();
                     return;
                 }
-                dirty = awaitingMainPreview = false;
+                dirty = awaitingCanvasRender = false;
                 ReleaseTextures();
-                source = document.RenderMiniPreviewFallback(layer, PreviewSize);
+                source = document.RenderLayerPreviewFallback(layer, PreviewSize);
                 UpdateChannels();
                 surface.tooltip = source == null ? "Preview unavailable" : string.Empty;
                 UpdateLayout();
             }
             catch (Exception ex)
             {
-                dirty = awaitingMainPreview = false;
+                dirty = awaitingCanvasRender = false;
                 ReleaseTextures();
                 surface.tooltip = "Preview unavailable: " + ex.Message;
                 Debug.LogException(ex);
@@ -239,7 +239,7 @@ namespace DCFApixels.WhimTex
             state.collapsed = requestedHeight <= threshold;
             if (!state.collapsed) state.height = Mathf.Clamp(requestedHeight, Mathf.Min(60f, maximum), maximum);
             UpdateLayout();
-            if (wasCollapsed && !state.collapsed) RequestPreview(true);
+            if (wasCollapsed && !state.collapsed) RequestLayerPreview(true);
         }
 
         private void ToggleChannel(int bit)
@@ -258,7 +258,7 @@ namespace DCFApixels.WhimTex
             if (source == null) return;
             if (channelMaterial == null)
             {
-                var shader = AssetDatabase.LoadAssetAtPath<Shader>("Packages/com.dcfapixels.whimtex/src/Shaders/PreviewChannels.shader");
+                var shader = AssetDatabase.LoadAssetAtPath<Shader>("Packages/com.dcfapixels.whimtex/src/Shaders/DisplayChannels.shader");
                 if (shader == null || !shader.isSupported) { image.image = source; return; }
                 channelMaterial = new Material(shader) { hideFlags = HideFlags.HideAndDontSave };
             }
@@ -319,7 +319,7 @@ namespace DCFApixels.WhimTex
             EditorApplication.update -= Tick;
             TextureCompositor.Changed -= OnChanged;
             TextureCompositor.RenderResourcesChanged -= OnChanged;
-            if (!ReferenceEquals(document, null)) document.MiniPreviewRendered -= OnMainPreviewRendered;
+            if (!ReferenceEquals(document, null)) document.LayerPreviewRendered -= OnLayerPreviewRendered;
             layoutParent?.UnregisterCallback<GeometryChangedEvent>(OnGeometry);
             layoutParent = null;
             ReleaseTextures();

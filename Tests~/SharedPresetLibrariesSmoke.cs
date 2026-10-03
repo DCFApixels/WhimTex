@@ -2,7 +2,7 @@
 const System.Reflection.BindingFlags Hidden = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public;
 var assembly = typeof(DCFApixels.WhimTex.ShaderFX).Assembly;
 System.Type Type(string name) => assembly.GetType("DCFApixels.WhimTex." + name, true);
-object Call(string type, string method, params object[] args) => Type(type).GetMethod(method, Hidden).Invoke(null, args);
+object Call(string type, string method, params object[] args) => Array.Find(Type(type).GetMethods(Hidden), m => m.Name == method && m.GetParameters().Length == args.Length).Invoke(null, args);
 object Field(object obj, string name) => obj.GetType().GetField(name, Hidden).GetValue(obj);
 void Set(object obj, string name, object value) => obj.GetType().GetField(name, Hidden).SetValue(obj, value);
 int checks = 0;
@@ -42,8 +42,7 @@ try
     var effectEditor = UnityEditor.Editor.CreateEditor(effect); owned.Add(effectEditor);
     var editorView = effectEditor.CreateInspectorGUI();
     bool foundSave = false;
-    foreach (var child in editorView.Children())
-        if (child is UnityEngine.UIElements.Button button && button.text == "Save HLSL Preset…") foundSave = true;
+    UnityEngine.UIElements.UQueryExtensions.Query<UnityEngine.UIElements.Button>(editorView).ForEach(button => foundSave |= button.text == "Save Preset…");
     Check(foundSave, "Save preset is in the code editor");
     string before = UnityEngine.JsonUtility.ToJson(effect);
     string generated = (string)Call("ShaderFXPresetWriter", "BuildSource", effect, "Test/Saved");

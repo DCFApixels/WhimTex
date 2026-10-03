@@ -50,7 +50,7 @@ public static class GroupFXSmoke
         try
         {
             string code = "float4 ApplyFX(float2 uv, float4 color) { return float4(color.b, color.r, color.g, color.a); }";
-            fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", flags).Invoke(null,
+            fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", flags, null, new[] { typeof(DCFApixels.WhimTex.TextureCompositor), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null,
                 new object[] { doc, code, new List<ShaderFXParameter>() });
             typeof(ShaderFX).GetMethod("ApplyAgentDraft", flags).Invoke(fx, null);
             Layer group = new GroupLayerBehaviour();
@@ -95,7 +95,8 @@ public static class GroupFXSmoke
             var fxView = ui.GetMethod("BuildLayerInspectorSections", flags).Invoke(null, new object[] {
                 root, group, doc, (Action<string, Action>)((_, action) => action()), bindings,
                 (Action<VisualElement>)(_ => throw new Exception("Group-specific properties callback")),
-                true, (Action<bool>)(_ => {}), true, (Action<bool>)(_ => {}), true, (Action<bool>)(_ => {}) });
+                true, (Action<bool>)(_ => {}), true, (Action<bool>)(_ => {}), true, (Action<bool>)(_ => {}),
+                true, (Action<bool>)(_ => {}) });
             var mode = root.Q<TextField>("groupCompositing");
             if (fxView == null || mode == null || !mode.isReadOnly || mode.value != "Pass Through" || !mode.enabledInHierarchy)
                 throw new Exception("Group inspector availability");

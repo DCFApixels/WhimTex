@@ -1,4 +1,4 @@
-var type = typeof(DCFApixels.WhimTex.TextureCompositorWindow).Assembly.GetType("DCFApixels.WhimTex.PreviewViewport", true);
+var type = typeof(DCFApixels.WhimTex.TextureCompositorWindow).Assembly.GetType("DCFApixels.WhimTex.CanvasViewport", true);
 var viewport = System.Activator.CreateInstance(type, true);
 var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
 var bounds = new UnityEngine.Rect(0, 0, 808, 408);
@@ -110,4 +110,4 @@ Call("SetRotation", float.PositiveInfinity, false);
 Check(Rotation() == 85f, "Non-finite rotations are ignored");
 Call("Reset");
 Check(Rotation() == 0f && Image(bounds) == fitted, "Fit resets rotation and framing together");
-return "Preview zoom checks passed: " + checks + ". No assets or GPU resources created.";
+return "Canvas View zoom checks passed: " + checks + ". No assets or GPU resources created.";

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const read = path => readFileSync(new URL('../src/' + path, import.meta.url), 'utf8');
-const viewport = read('PreviewViewport.cs');
+const viewport = read('CanvasViewport.cs');
 const ui = read('TextureCompositorWindow.UI.cs');
 const zoom = read('TextureCompositorWindow.Zoom.cs');
 const transform = read('TextureCompositorWindow.Transform.cs');
@@ -20,14 +20,14 @@ const add = (a, b) => a.map((v, i) => v + b[i]);
 const sub = (a, b) => a.map((v, i) => v - b[i]);
 const mul = (a, b) => a.map((v, i) => v * b[i]);
 const div = (a, b) => a.map((v, i) => v / b[i]);
-const constrainSource = ui.split('private Vector2 ConstrainPaintingPosition(')[1].split('private void OnPreviewPointerUp(')[0];
+const constrainSource = ui.split('private Vector2 ConstrainPaintingPosition(')[1].split('private void OnCanvasPointerUp(')[0];
 const constrainBody = constrainSource.slice(constrainSource.indexOf('{') + 1, constrainSource.lastIndexOf('}'))
     .replace('SetPaintingShift(shift);', '')
     .replace(/(?:Rect|Vector2) (\w+) =/g, 'let $1 =')
     .replace('position - paintingAxisPointerAnchor', 'new Vector2(position.x - state.pointerAnchor.x, position.y - state.pointerAnchor.y)')
     .replace(/paintingAxisAnchor/g, 'state.anchor').replace(/paintingLockedAxis/g, 'state.axis')
     .replace(/Mathf.Abs/g, 'Math.abs').replace(/(\d)f\b/g, '$1');
-const constrain = new Function('position', 'shift', 'toolkitPreviewCanvas', 'state', 'Vector2', constrainBody);
+const constrain = new Function('position', 'shift', 'toolkitCanvas', 'state', 'Vector2', constrainBody);
 class Point {
     constructor(x, y) { this.x = x; this.y = y; }
     get sqrMagnitude() { return this.x * this.x + this.y * this.y; }
@@ -69,7 +69,7 @@ for (const angle of [0, 17, 45, 90, 133, 179.9, -90, -178, 270, 1081]) {
             close(toCanvas(toView(point)), point);
             const size = [672, 336], position = [-37, 51], nextSize = mul(size, [1.2, 1.2]);
             const anchor = toCanvas(point), uv = div(sub(anchor, position), size);
-            // Same anchored-zoom and center formula as PreviewViewport.ZoomAt.
+            // Same anchored-zoom and center formula as CanvasViewport.ZoomAt.
             const center = add(uv, div(sub(pivot, anchor), nextSize));
             const nextPosition = sub(pivot, mul(center, nextSize));
             close(toView(add(nextPosition, mul(uv, nextSize))), point);
@@ -99,23 +99,23 @@ assert.match(viewport, /Mathf.Round\(degrees \/ 90f\) \* 90f/);
 assert.match(viewport, /Mathf.Abs\(degrees - nearest\) <= 3f/);
 assert.match(zoom, /rotating = panning && evt.shiftKey/);
 assert.match(zoom, /new FloatField\("Angle °"\)\s*\{\s*isDelayed = true/);
-assert.match(zoom, /SetPreviewRotation\(evt.newValue\);\s*previewRotationField.SetValueWithoutNotify\(previewViewport.Rotation\)/);
+assert.match(zoom, /SetCanvasRotation\(evt.newValue\);\s*canvasRotationField.SetValueWithoutNotify\(canvasViewport.Rotation\)/);
 assert.match(zoom, /SetViewRotation\(degrees, snap: false\)/);
-assert.match(zoom, /!HasPreviewLayers \|\| float.IsNaN\(degrees\) \|\| float.IsInfinity\(degrees\)/);
-assert.match(zoom, /previewRotationField.SetValueWithoutNotify\(displayedPreviewRotation\)/);
+assert.match(zoom, /!HasCanvasLayers \|\| float.IsNaN\(degrees\) \|\| float.IsInfinity\(degrees\)/);
+assert.match(zoom, /canvasRotationField.SetValueWithoutNotify\(displayedCanvasRotation\)/);
 const styles = read('WhimTexSplitView.uss');
 assert.match(styles, /\.whimtex-view-field\s*\{\s*width: 130px;/);
 assert.match(styles, /\.whimtex-view-field > \.unity-base-field__label\s*\{\s*min-width: 0;/);
 assert.match(zoom, /new FloatField\("Zoom %"\)\s*\{\s*isDelayed = true/);
-assert.match(zoom, /SetPreviewZoomPercent\(evt.newValue\);\s*previewZoomPercent.SetValueWithoutNotify\(toolkitPreviewCanvas.PixelScale \* 100f\)/);
+assert.match(zoom, /SetCanvasZoomPercent\(evt.newValue\);\s*canvasZoomPercent.SetValueWithoutNotify\(toolkitCanvas.PixelScale \* 100f\)/);
 assert.match(zoom, /percent <= 0f \|\| float.IsNaN\(percent\) \|\| float.IsInfinity\(percent\)/);
-assert.match(zoom, /ZoomAt\(toolkitPreviewCanvas.contentRect.center, percent \/ 100f\)/);
-assert.match(zoom, /previewZoomPercent.SetValueWithoutNotify\(scale \* 100f\)/);
+assert.match(zoom, /ZoomAt\(toolkitCanvas.contentRect.center, percent \/ 100f\)/);
+assert.match(zoom, /canvasZoomPercent.SetValueWithoutNotify\(scale \* 100f\)/);
 assert.match(zoom, /freeRotation \+= Vector2.SignedAngle\(from, to\)/);
-assert.match(zoom, /disableSnap \? freeRotation : owner.SnapPreviewGuideRotation\(freeRotation, includeCanvasAxes: true\)/);
+assert.match(zoom, /disableSnap \? freeRotation : owner.SnapCanvasGuideRotation\(freeRotation, includeCanvasAxes: true\)/);
 assert.match(zoom, /SetViewRotation\(rotation, snap: false\)/);
 assert.match(zoom, /RotateTo\(point, evt.ctrlKey\)/);
-assert.match(zoom, /if \(!owner.HasPreviewLayers/);
+assert.match(zoom, /if \(!owner.HasCanvasLayers/);
 assert.match(zoom, /pointerId = -1;\s*if \(captured >= 0/);
 for (const event of ['Down', 'Move', 'Up'])
     for (const action of ['Register', 'Unregister'])
@@ -127,13 +127,13 @@ assert.match(ui, /rect.position = ToView\(rect.center\) - rect.size \* 0.5f/);
 assert.match(ui, /Vector2 canvasCursor = ToCanvas\(cursorPosition\)/);
 assert.match(ui, /x = viewport.ToViewDelta\(x\)/);
 assert.match(ui, /y = viewport.ToViewDelta\(y\)/);
-assert.match(constrainSource, /anchor = toolkitPreviewCanvas.ToView\(new Vector2/);
+assert.match(constrainSource, /anchor = toolkitCanvas.ToView\(new Vector2/);
 assert.ok(!constrainSource.includes('ToCanvas'), 'Shift constrains in screen space before the shared painting conversion');
-assert.match(read('TextureCompositorWindow.cs'), /mousePosition = toolkitPreviewCanvas.ToCanvas\(mousePosition\)/);
-assert.match(read('TextureCompositorWindow.Tiling.cs'), /ImageRect.Contains\(toolkitPreviewCanvas.ToCanvas\(position\)\)/);
-assert.match(transform, /lastPointerPosition = point;\s*point = owner.toolkitPreviewCanvas.ToCanvas\(point\)/);
-assert.match(selection, /point = owner.toolkitPreviewCanvas.ToCanvas\(point\)/);
-assert.match(selection, /Rect bounds = owner.toolkitPreviewCanvas.VisibleCanvasBounds/);
-assert.match(selection, /PreviewPoint\(new Vector2\(gesture.Current.x, gesture.Start.y\), image\)/);
+assert.match(read('TextureCompositorWindow.cs'), /mousePosition = toolkitCanvas.ToCanvas\(mousePosition\)/);
+assert.match(read('TextureCompositorWindow.Tiling.cs'), /ImageRect.Contains\(toolkitCanvas.ToCanvas\(position\)\)/);
+assert.match(transform, /lastPointerPosition = point;\s*point = owner.toolkitCanvas.ToCanvas\(point\)/);
+assert.match(selection, /point = owner.toolkitCanvas.ToCanvas\(point\)/);
+assert.match(selection, /Rect bounds = owner.toolkitCanvas.VisibleCanvasBounds/);
+assert.match(selection, /CanvasViewPoint\(new Vector2\(gesture.Current.x, gesture.Start.y\), image\)/);
 assert.ok(!/RenderTexture|Undo\.|SetDirty|SerializeField/.test(viewport));
-console.log(`Preview rotation: ${checks} geometry checks and integration source checks passed (Unity/UI not executed).`);
+console.log(`Canvas View rotation: ${checks} geometry checks and integration source checks passed (Unity/UI not executed).`);

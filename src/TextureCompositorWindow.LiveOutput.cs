@@ -16,7 +16,7 @@ namespace DCFApixels.WhimTex
             if (healingLayer != null && change.ShouldRefresh(compositor)) CancelHealing();
             if (compositor == null || !change.ShouldRefresh(compositor)) return;
             outputDependencyDirty = true;
-            RequestPreview();
+            RequestCanvasRender();
         }
 
         /// <summary>A document whose file is an imported image is updated through the document session.</summary>
@@ -39,7 +39,7 @@ namespace DCFApixels.WhimTex
                 }
                 liveOutputEnabled = !liveOutputEnabled;
                 if (!liveOutputEnabled) compositor?.StopLiveOutput();
-                else RequestPreview(true);
+                else RequestCanvasRender(true);
                 RefreshLiveOutputButton();
             });
             liveOutputButton.AddToClassList("whimtex-channel-button");
@@ -83,13 +83,13 @@ namespace DCFApixels.WhimTex
         {
             if (HasDocumentFile)
             {
-                WhimTexDocumentSession.Publish(compositor, previewTexture);
+                WhimTexDocumentSession.Publish(compositor, canvasTexture);
                 return;
             }
             if (!liveOutputEnabled || !CanPublishLiveOutput) return;
             try
             {
-                compositor.PublishLiveOutput(previewTexture);
+                compositor.PublishLiveOutput(canvasTexture);
             }
             catch (Exception exception)
             {
@@ -112,7 +112,7 @@ namespace DCFApixels.WhimTex
         private void OnLiveOutputProjectChanged()
         {
             if (!CanPublishLiveOutput) StopLiveOutput();
-            else if (liveOutputEnabled) RequestPreview(true);
+            else if (liveOutputEnabled) RequestCanvasRender(true);
         }
     }
 }

@@ -19,7 +19,7 @@ public static class ShaderFXCurveSmoke
         void Check(bool ok, string message) { if (!ok) throw new Exception(message); checks++; }
         ShaderFX Create(string code)
         {
-            var fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F).Invoke(null, new object[] { doc, code, new List<ShaderFXParameter>() });
+            var fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.TextureCompositor), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { doc, code, new List<ShaderFXParameter>() });
             effects.Add(fx); typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(fx, null); return fx;
         }
         List<ShaderFXParameter> Params(ShaderFX fx) => (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);

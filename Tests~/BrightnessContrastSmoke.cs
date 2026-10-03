@@ -28,8 +28,9 @@ public static class BrightnessContrastSmoke
             fx = (ShaderFX)draft.Invoke(null, new object[] { doc, File.ReadAllText(path), new List<ShaderFXParameter>() });
             typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(fx, null);
             var parameters = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
-            if (parameters.Count != 2) throw new Exception("Expected two controls.");
-            foreach (var p in parameters)
+            if (parameters.Count != 3 || parameters.Find(p => p.name == "_Opacity")?.floatValue != 1f)
+                throw new Exception("Expected two tone controls and neutral opacity.");
+            foreach (var p in parameters.FindAll(p => p.name != "_Opacity"))
                 if (!p.softMinimum || !p.softMaximum || p.floatValue != 0) throw new Exception("Expected neutral defaults and both bounds soft.");
             var context = Activator.CreateInstance(typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.LayerRenderContext"),
                 doc, null, w, h, 1f, true, true, null);

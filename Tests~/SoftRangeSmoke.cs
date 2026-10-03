@@ -31,7 +31,7 @@ public static class SoftRangeSmoke
         var owner=ScriptableObject.CreateInstance<TextureCompositor>();owner.hideFlags=HideFlags.HideAndDontSave;
         try
         {
-            fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft",flags).Invoke(null,new object[]{owner,code,new List<ShaderFXParameter>()});
+            fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", flags, null, new[] { typeof(DCFApixels.WhimTex.TextureCompositor), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null,new object[]{owner,code,new List<ShaderFXParameter>()});
             typeof(ShaderFX).GetMethod("ApplyAgentDraft",flags).Invoke(fx,null);
             var values=(List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters",flags).GetValue(fx);
             var view=(VisualElement)Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.ShaderFXParameterView"),flags,null,new object[]{fx},null);
@@ -65,13 +65,22 @@ public static class SoftRangeSmoke
             var hard=view.Q<Slider>(); hard.value=.5f;hard.value=5;
             Check(values[0].floatValue==2,"Hard range still clamps");
             number.value=5;
-            var context=Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.LayerRenderContext"),owner,null,4,4,1f,true,true);
+            var context=Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.LayerRenderContext"),owner,null,4,4,1f,true,true, null);
             var material=(Material)typeof(ShaderFX).GetMethod("GetMaterial",flags).Invoke(fx,new[]{context});
             Check(material.GetFloat("_Strength")==5,"GPU receives outside value");
             var writer=assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetWriter");
             string exported=(string)writer.GetMethod("BuildSource",flags).Invoke(null,new object[]{fx,"Test/Soft"});
-            Check(exported.Contains("_Strength [~0 .. ~2] // Soft control"),"Export lost tilde without initializer");
+            Check(exported.Contains("_Strength [0 .. 2]") && exported.Contains("_Strength = 5 [~0 .. ~2] // Soft control"),"Export assigns the default to a compatible control without changing either range");
             var roundtrip=Parse(exported);Check(roundtrip[0].floatValue==5 && roundtrip[0].controls[1].softMaximum,"Export value/controls roundtrip");
+            foreach (float value in new[] { -3f, 1f })
+            {
+                number.value=value;
+                string next=(string)writer.GetMethod("BuildSource",flags).Invoke(null,new object[]{fx,"Test/Soft"});
+                var restored=Parse(next)[0];
+                Check(restored.floatValue==value && restored.controls.Count==2 &&
+                    !restored.controls[0].softMinimum && !restored.controls[0].softMaximum &&
+                    restored.controls[1].softMinimum && restored.controls[1].softMaximum,"Linked bounds/value preserved at "+value);
+            }
             var copy=JsonUtility.FromJson<ShaderFXParameter>(JsonUtility.ToJson(values[0]));Check(copy.controls[1].softMaximum,"Serialization");
             var brushType=assembly.GetType("DCFApixels.WhimTex.BrushTipProgram");
             const string brush="// @whimtex-brush Test/Soft\n// @param float _Strength = 5 [~0 .. ~2]\nfloat4 BrushTip(float2 uv){return float4(_Strength,0,0,1);}";
@@ -81,6 +90,7 @@ public static class SoftRangeSmoke
             Check(brushExport.Contains("= 5 [~0 .. ~2]"),"Brush export");
             return "PASS: parsing/validation, attached UI typing and dragging, linked hard/soft controls, shader upload, FX/brush export and serialization.";
         }
+        catch (TargetInvocationException e) { throw new Exception(e.GetBaseException().ToString()); }
         finally
         {
             if(window!=null)window.Close();

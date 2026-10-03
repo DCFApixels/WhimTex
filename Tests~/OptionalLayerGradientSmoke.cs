@@ -207,15 +207,22 @@ public static class OptionalLayerGradientSmoke
         foreach (var doc in new[] { noiseDoc, sdfDoc })
         {
             var source = doc.layers[0].Behaviour;
+            // Colored grain bypasses gradient mapping; use monochrome grain for the active-palette clipboard case.
+            if (source is NoiseLayerBehaviour grain) grain.whiteNoiseColor = NoiseLayerBehaviour.WhiteNoiseColor.Monochrome;
             Enable(source, false);
             foreach (WhimTexGradientMode mode in Enum.GetValues(typeof(WhimTexGradientMode)))
             {
                 ((WhimTexGradient)source.GetType().GetField("gradient").GetValue(source)).Mode = mode;
+                using var full = WhimTexDocumentJson.Read(WhimTexDocumentJson.Write(doc, new WhimTexJsonWriteOptions {Mode = WhimTexJsonWriteMode.Full}).Json);
+                var fullCopy = full.Document.layers[0].Behaviour;
+                Check(!Enabled(fullCopy) && ((WhimTexGradient)fullCopy.GetType().GetField("gradient").GetValue(fullCopy)).Equals(source.GetType().GetField("gradient").GetValue(source)), "Full JSON preserves inactive palette " + mode);
+                Enable(source, true);
                 string json = (string)typeof(WhimTexApi).GetMethod("WritePortableClipboard", F).Invoke(null, new object[] { doc, doc.layers });
                 using var copied = (IDisposable)typeof(WhimTexApi).GetMethod("ReadProceduralClipboard", F).Invoke(null, new object[] { json, 48, 48 });
                 var copy = Document(copied).layers[0].Behaviour;
-                Check(!Enabled(copy), "Clipboard preserves output");
-                Check(((WhimTexGradient)copy.GetType().GetField("gradient").GetValue(copy)).Equals(source.GetType().GetField("gradient").GetValue(source)), "Clipboard preserves entire palette " + mode);
+                Check(Enabled(copy), "Clipboard preserves active gradient output");
+                Check(((WhimTexGradient)copy.GetType().GetField("gradient").GetValue(copy)).Equals(source.GetType().GetField("gradient").GetValue(source)), "Clipboard preserves entire palette " + mode + ": " + JsonUtility.ToJson(source.GetType().GetField("gradient").GetValue(source)) + " -> " + JsonUtility.ToJson(copy.GetType().GetField("gradient").GetValue(copy)));
+                Enable(source, false);
                 string serialized = JsonUtility.ToJson(source);
                 var restored = JsonUtility.FromJson(serialized, source.GetType());
                 Check(!Enabled((LayerBehaviour)restored), "Unity serialization preserves output");

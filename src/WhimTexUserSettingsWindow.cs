@@ -95,10 +95,10 @@ namespace DCFApixels.WhimTex
             var vsCodeNote = new Label("Optional fallback for installations not found by Unity or PATH. On macOS, install the code shell command in PATH or select its executable here.");
             vsCodeNote.AddToClassList("whimtex-user-settings-note");
             scroll.Add(vsCodeNote);
-            AddHeading(scroll, "Preview Background");
-            cleanBackground = new Toggle("Clean Preview Background")
+            AddHeading(scroll, "Canvas View Background");
+            cleanBackground = new Toggle("Clean Canvas View Background")
             {
-                tooltip = "Hide the logo on the preview background. Does not affect your image or exports."
+                tooltip = "Hide the logo on the Canvas View background. Does not affect your image or exports."
             };
             cleanBackground.AddToClassList("whimtex-user-settings-color");
             cleanBackground.RegisterValueChangedCallback(evt => WhimTexUserSettings.ShowManta = !evt.newValue);
@@ -118,7 +118,7 @@ namespace DCFApixels.WhimTex
                 checkerSize.SetValueWithoutNotify(WhimTexUserSettings.CheckerSize);
             });
             scroll.Add(checkerSize);
-            AddHeading(scroll, "Debug Preview");
+            AddHeading(scroll, "Canvas Diagnostics");
             invalidPixels = AddColor(scroll, "Invalid Pixels", value => WhimTexUserSettings.InvalidPixels = value);
             invalidPixels.tooltip = "Display color for the accumulated numeric-error mask when Debug is enabled. Does not change image pixels or exports.";
             AddHeading(scroll, "Post FX Preview");
@@ -141,7 +141,7 @@ namespace DCFApixels.WhimTex
             var note = new Label("Saved for your user account. Applies to all WhimTex windows; documents and exports are unaffected.");
             note.AddToClassList("whimtex-user-settings-note");
             scroll.Add(note);
-            var reset = new Button(WhimTexUserSettings.ResetPreviewAppearance) { text = "Reset Preview Appearance" };
+            var reset = new Button(WhimTexUserSettings.ResetCanvasViewAppearance) { text = "Reset Canvas View Appearance" };
             reset.AddToClassList("whimtex-user-settings-reset");
             scroll.Add(reset);
             AddHeading(scroll, "Layer Select");
@@ -171,9 +171,9 @@ namespace DCFApixels.WhimTex
             });
             scroll.Add(snapRadius);
             guideAlignedColor = AddColor(scroll, "Aligned Guides", value => WhimTexUserSettings.GuideAlignedColor = value);
-            guideAlignedColor.tooltip = "Idle guides parallel to the current preview's horizontal or vertical axis.";
+            guideAlignedColor.tooltip = "Idle guides parallel to the current canvas view's horizontal or vertical axis.";
             guideAngledColor = AddColor(scroll, "Angled Guides", value => WhimTexUserSettings.GuideAngledColor = value);
-            guideAngledColor.tooltip = "Idle guides at other angles in the current preview.";
+            guideAngledColor.tooltip = "Idle guides at other angles in the current canvas view.";
             guideActiveColor = AddColor(scroll, "Active Guide", value => WhimTexUserSettings.GuideActiveColor = value);
             guideActiveColor.tooltip = "A hovered, selected or dragged guide. A guide about to be deleted stays red.";
             var resetGuides = new Button(WhimTexUserSettings.ResetGuidesAndSnapping) { text = "Reset Guides & Snapping" };

@@ -43,6 +43,6 @@ for (const event of ['KeyDown','KeyUp']) {
     assert.ok(source.includes(`RegisterCallback<${event}Event>`));
     assert.ok(source.includes(`UnregisterCallback<${event}Event>`));
 }
-assert.match(read('TextureCompositorWindow.Tools.cs'), /tool == PreviewTool.Shape \|\| tool == PreviewTool.RectangleSelect\)\s*button.Add\(new ToolDropdownMarker\(\)\)/);
+assert.match(read('TextureCompositorWindow.Tools.cs'), /tool == CanvasTool.Shape \|\| tool == CanvasTool.RectangleSelect\)\s*button.Add\(new ToolDropdownMarker\(\)\)/);
 assert.match(read('WhimTexSplitView.uss'), /\.whimtex-tool-dropdown-marker \{\s*position: absolute;\s*right: 1px;\s*bottom: 1px;/);
 console.log(`Marquee constraints: ${checks} geometry cases, Shift transitions, pointer-up and dropdown marker contracts passed.`);

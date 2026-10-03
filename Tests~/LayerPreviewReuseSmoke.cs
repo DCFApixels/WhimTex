@@ -5,10 +5,10 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using DCFApixels.WhimTex;
 
-public static class MiniPreviewReuseSmoke
+public static class LayerPreviewReuseSmoke
 {
     const BindingFlags F = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
-    const string Key = "WhimTex.MiniPreviewReuseSmoke";
+    const string Key = "WhimTex.LayerPreviewReuseSmoke";
     static object Call(object obj, string method, params object[] args) => obj.GetType().GetMethod(method, F).Invoke(obj, args);
     static object Get(object obj, string field) => obj.GetType().GetField(field, F).GetValue(obj);
     static void Set(object obj, string field, object value) => obj.GetType().GetField(field, F).SetValue(obj, value);
@@ -81,7 +81,7 @@ public static class MiniPreviewReuseSmoke
                 Main(); CompareLayer(n, 512);
                 var baseline = (RenderTexture)Call(doc, "RenderAllLayers", 512, 384);
                 var observed = (RenderTexture)Call(doc, "RenderCachedPreview", 512, cache, false, null);
-                try { Same(Read(baseline), Read(observed), "Mini observation does not alter composite"); }
+                try { Same(Read(baseline), Read(observed), "Layer Preview observation does not alter composite"); }
                 finally { RenderTexture.ReleaseTemporary(baseline); RenderTexture.ReleaseTemporary(observed); }
                 var captured = Read(Source());
                 var fallback = (RenderTexture)Call(doc, "RenderLayerPreview", n, 256);
@@ -89,19 +89,19 @@ public static class MiniPreviewReuseSmoke
                 double difference = 0; for (int i = 0; i < low.Length; i++) difference += Math.Abs(low[i].r - captured[i].r);
                 Check(difference / low.Length > .01, "Noise snapshot uses main-resolution sampling, not independent 256 render");
                 var args = new object[] { n, null };
-                Check(!(bool)Call(doc, "TryGetCachedMiniPreview", args), "Plain Noise has no effect-cache entry");
+                Check(!(bool)Call(doc, "TryGetCachedLayerPreview", args), "Plain Noise has no effect-cache entry");
                 noise.seed++; Main(); CompareLayer(n, 512);
                 var held = Source();
                 var export = (RenderTexture)Call(doc, "RenderAllLayers", 512, 384); RenderTexture.ReleaseTemporary(export);
-                Check(ReferenceEquals(held, Source()), "Export does not publish to mini preview");
+                Check(ReferenceEquals(held, Source()), "Export does not publish to Layer Preview");
                 var thumbnail = (RenderTexture)Call(doc, "RenderThumbnailLayer", n, 64, cache); RenderTexture.ReleaseTemporary(thumbnail);
-                Check(ReferenceEquals(held, Source()), "Thumbnail does not publish to mini preview");
+                Check(ReferenceEquals(held, Source()), "Thumbnail does not publish to Layer Preview");
 
                 var blur = new BlurLayerBehaviour { radius = 6, inputMode = EffectInputMode.Specific, TargetLayerId = n.Id };
                 Layer b = blur; doc.layers.Insert(0, b); n.enabled = false; Call(doc, "NormalizeModel");
                 Bind(b); Main(); CompareLayer(b, 512);
                 args = new object[] { b, null };
-                Check((bool)Call(doc, "TryGetCachedMiniPreview", args), "Finished effect available from main cache");
+                Check((bool)Call(doc, "TryGetCachedLayerPreview", args), "Finished effect available from main cache");
                 var expected = Reduce((RenderTexture)args[1]); var expectedPixels = Read(expected); RenderTexture.ReleaseTemporary(expected);
                 Bind(null); Bind(b);
                 int hits = (int)cache.GetType().GetProperty("Hits", F).GetValue(cache);
@@ -111,14 +111,14 @@ public static class MiniPreviewReuseSmoke
                 Check((int)cache.GetType().GetProperty("Hits", F).GetValue(cache) > hits, "Opening reuses existing cache without a new main render");
                 Same(Read(Source()), expectedPixels, "Copied cache pixels");
                 cache.Dispose();
-                Check(Source().IsCreated(), "Mini owns copy independent of cache eviction");
-                Same(Read(Source()), expectedPixels, "Cache disposal preserves mini pixels");
+                Check(Source().IsCreated(), "Layer Preview owns copy independent of cache eviction");
+                Same(Read(Source()), expectedPixels, "Cache disposal preserves Layer Preview pixels");
                 noise.seed++;
                 args = new object[] { b, null };
-                Check(!(bool)Call(doc, "TryGetCachedMiniPreview", args), "Missing/stale cache rejected");
+                Check(!(bool)Call(doc, "TryGetCachedLayerPreview", args), "Missing/stale cache rejected");
                 Main(); CompareLayer(b, 512);
                 noise.seed++;
-                Check(!(bool)Call(doc, "TryGetCachedMiniPreview", new object[] { b, null }), "Dependency change rejects cached result before main rerender");
+                Check(!(bool)Call(doc, "TryGetCachedLayerPreview", new object[] { b, null }), "Dependency change rejects cached result before main rerender");
                 Main(); CompareLayer(b, 512);
 
                 var fill = new ColorFillLayerBehaviour { color = new Color(.2f, .7f, .4f, .5f), opacity = .25f };
@@ -128,7 +128,7 @@ public static class MiniPreviewReuseSmoke
                 Layer g = group; g.opacity = .5f; g.children.Add(f); doc.layers.Clear(); doc.layers.Add(g); Call(doc, "NormalizeModel"); Bind(g); Main();
                 Check(Source() != null && Read(Source())[0].g > Read(Source())[0].r, "Isolated group snapshot preserves rendered color");
                 var groupPixels = Read(Source());
-                var groupFallback = (RenderTexture)Call(doc, "RenderMiniPreviewFallback", g, 256);
+                var groupFallback = (RenderTexture)Call(doc, "RenderLayerPreviewFallback", g, 256);
                 try { Same(groupPixels, Read(groupFallback), "Group fallback matches main color before outer opacity"); }
                 finally { RenderTexture.ReleaseTemporary(groupFallback); }
                 var processor = new ShaderProcessorLayerBehaviour(); Layer p = processor; doc.layers.Insert(0, p); Call(doc, "NormalizeModel"); Bind(p); Main();
@@ -138,16 +138,16 @@ public static class MiniPreviewReuseSmoke
                 Layer basis = new ColorFillLayerBehaviour { color = new Color(1, 1, 1, .4f) }; doc.layers.Add(basis); Call(doc, "NormalizeModel");
                 Bind(f); Main();
                 Check(Source() == null, "Unmasked clipping-chain source is not published as finished layer");
-                Call(mini, "RequestPreview", true); Set(mini, "awaitingMainPreview", true); Call(mini, "Tick");
+                Call(mini, "RequestLayerPreview", true); Set(mini, "awaitingCanvasRender", true); Call(mini, "Tick");
                 CompareLayer(f, 256);
                 Check(Math.Abs(Read(Source())[0].a - .2f) < .003f, "Fallback retains clipping coverage");
                 Set(state, "collapsed", true); Call(mini, "UpdateLayout"); Main();
-                Check(Source() == null, "Collapsed mini ignores main render");
+                Check(Source() == null, "Collapsed Layer Preview ignores main render");
                 f.clippingMask = false; Bind(f); Set(state, "collapsed", false); Call(mini, "UpdateLayout");
                 doc.width = 4; doc.height = 2; Main();
                 Check(Source() != null && Source().width == 4 && Source().height == 2, "Small render retained for proportional display upscaling");
                 Check(Math.Abs((float)Get(state, "height") - 256) < .1f, "Preferred height independent of render size");
-                mini.RemoveFromHierarchy(); Main(); Check(Source() == null, "Detached mini ignores live renders");
+                mini.RemoveFromHierarchy(); Main(); Check(Source() == null, "Detached Layer Preview ignores live renders");
                 SessionState.SetString(Key, "Passed: " + checks + " assertions; main Noise sampling, effect cache, dependency freshness, GPU ownership/state, groups, processor, clipping fallback, export/thumbnail isolation, collapsed/detached behavior.");
             }
             catch (Exception ex) { SessionState.SetString(Key, "FAILED: " + ex); }

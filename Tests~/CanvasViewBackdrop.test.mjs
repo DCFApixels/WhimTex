@@ -4,16 +4,16 @@ import { readFileSync } from 'node:fs';
 const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 const ui = read('src/TextureCompositorWindow.UI.cs');
 const uss = read('src/WhimTexSplitView.uss');
-assert.ok(!/toolkitPreviewCanvas\.style\.margin(?:Left|Right|Top|Bottom)\s*=/.test(ui));
-assert.match(uss, /\.whimtex-layers-footer,\s*\.whimtex-preview-footer\s*\{\s*height: 26px;/);
-const preview = ui.slice(ui.indexOf('private sealed class SpritePreviewElement'));
+assert.ok(!/toolkitCanvas\.style\.margin(?:Left|Right|Top|Bottom)\s*=/.test(ui));
+assert.match(uss, /\.whimtex-layers-footer,\s*\.whimtex-canvas-view-footer\s*\{\s*height: 26px;/);
+const preview = ui.slice(ui.indexOf('private sealed class CanvasElement'));
 assert.ok(preview.indexOf('Add(backdrop);') < preview.indexOf('Add(insetShadow);'));
 assert.ok(preview.indexOf('Add(insetShadow);') < preview.indexOf('Add(checker);'));
 assert.ok(preview.indexOf('Add(insetShadow);') < preview.indexOf('RefreshBackdropVisibility();'));
 for (const element of ['backdrop', 'insetShadow'])
-    assert.ok(preview.includes(`${element}.EnableInClassList("whimtex-preview-backdrop--hidden", !WhimTexUserSettings.ShowManta);`));
+    assert.ok(preview.includes(`${element}.EnableInClassList("whimtex-canvas-view-backdrop--hidden", !WhimTexUserSettings.ShowManta);`));
 assert.ok(preview.indexOf('Add(checker);') < preview.indexOf('Add(image);'));
-const shadow = preview.split('private sealed class PreviewInsetShadow')[1].split('public void RefreshBackdropVisibility')[0];
+const shadow = preview.split('private sealed class CanvasViewInsetShadow')[1].split('public void RefreshBackdropVisibility')[0];
 assert.ok(shadow.includes('pickingMode = PickingMode.Ignore;'));
 assert.ok(!shadow.includes('Texture2D') && !shadow.includes('schedule.'));
 const steps = Number(shadow.match(/const int steps = (\d+);/)[1]);
@@ -44,4 +44,4 @@ for (const [width, height] of [[1, 1], [8, 240], [200, 96], [1920, 1080], [5120,
     assert.ok(Math.abs(area - (width * height - (width - 2 * depth) * (height - 2 * depth))) < 1e-6,
         'Shadow covers only the inset border, with no corner overlap or center fill');
 }
-console.log('Preview background stacking, spacing, footer source and shadow geometry reference checks passed (Unity/UI not executed).');
+console.log('Canvas View background stacking, spacing, footer source and shadow geometry reference checks passed (Unity/UI not executed).');

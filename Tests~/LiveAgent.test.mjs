@@ -7,7 +7,9 @@ const jobs = read('src/Automation/WhimTexApi.Live.cs');
 const complete = read('src/Automation/WhimTexApi.LiveCompletion.cs');
 const model = read('src/TextureCompositor.cs');
 function body(source, signature) {
-  const start = source.indexOf('{', source.indexOf(signature));
+  const signatureStart = source.indexOf(signature);
+  assert.ok(signatureStart >= 0, `Missing method: ${signature}`);
+  const start = source.indexOf('{', signatureStart);
   assert.ok(start > 0, signature);
   let depth = 1, end = start + 1;
   while (depth && end < source.length) { if (source[end] === '{') depth++; if (source[end] === '}') depth--; end++; }
@@ -40,7 +42,7 @@ for (const a of [0,.1,.5,1]) for (const b of [0,.2,.7,1]) for (const r of [0,.5,
 // Transparent red next to opaque blue must not produce red fringes on resampling.
 assert.deepEqual(blend(rgba(1,0,0,0),rgba(0,0,1,1),.5),rgba(0,0,1,.5)); checks++;
 const PendingLayerBehaviour = class {};
-code=body(model,'private static int NextContentLayer(')
+code=body(model,'internal static int NextContentLayer(')
   .replaceAll('container.Count','container.length').replaceAll(' is PendingLayerBehaviour',' instanceof PendingLayerBehaviour');
 const next=new Function('PendingLayerBehaviour',`return (container,index)=>{${code}}`)(PendingLayerBehaviour);
 for (let count=0;count<100;count++) {

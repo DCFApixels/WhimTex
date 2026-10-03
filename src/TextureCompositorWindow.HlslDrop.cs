@@ -88,7 +88,7 @@ namespace DCFApixels.WhimTex
                     return;
                 }
                 DragAndDrop.AcceptDrag();
-                owner.FinishPreviewTransform();
+                owner.FinishCanvasTransform();
                 owner.FinishPaintingStroke();
                 owner.ApplyDroppedHlsl(candidate, layer);
                 inspected = null;

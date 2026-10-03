@@ -59,12 +59,17 @@ public static class SeamlessEmptyEdgesSmoke
                 Click("right");State(Edges.LeftAndRight);Click("top");State(Edges.AllEdges);
                 member.SetValue(layer,Edges.None);Call(bindings,"Refresh",true);
             }
-            string json=(string)typeof(WhimTexApi).GetMethod("WritePortableClipboard",F).Invoke(null,new object[]{doc,doc.layers});
-            using(var clip=(IDisposable)typeof(WhimTexApi).GetMethod("ReadProceduralClipboard",F).Invoke(null,new object[]{json,32,24}))
+            // Full JSON includes inactive selectors; optimized clipboard intentionally omits them.
+            // The transient GPU fixture is not an asset; exclude it only during this settings check.
+            string json;
+            source.sourceTexture=null;
+            try { json=WhimTexDocumentJson.Write(doc,new WhimTexJsonWriteOptions {Mode=WhimTexJsonWriteMode.Full}).Json; }
+            finally { source.sourceTexture=t; }
+            using(var clip=WhimTexDocumentJson.Read(json))
             {
-                var decoded=(TextureCompositor)clip.GetType().GetField("Document",F).GetValue(clip);
+                var decoded=clip.Document;
                 var saved=(MakeSeamlessLayerBehaviour)decoded.layers[0].Behaviour;
-                Check(saved.poissonEdges==Edges.None&&saved.mirrorPoissonEdges==Edges.None&&saved.offsetPoissonEdges==Edges.None&&saved.quiltingEdges==Edges.None&&saved.quiltingPoissonEdges==Edges.None,"Portable None roundtrip");
+                Check(saved.poissonEdges==Edges.None&&saved.mirrorPoissonEdges==Edges.None&&saved.offsetPoissonEdges==Edges.None&&saved.quiltingEdges==Edges.None&&saved.quiltingPoissonEdges==Edges.None,"Full JSON retains all None selectors");
             }
             layer.horizontal=MakeSeamlessLayerBehaviour.HorizontalDirection.Off;layer.vertical=MakeSeamlessLayerBehaviour.VerticalDirection.Off;
             layer.leftEdge=layer.rightEdge=layer.topEdge=layer.bottomEdge=false;
@@ -87,6 +92,7 @@ public static class SeamlessEmptyEdgesSmoke
             }
             return $"Empty paired edges: {checks} checks passed (five selectors, portable roundtrip, four methods, cache/thumbnail/export, core bypass and caller state).";
         }
+        catch (TargetInvocationException e) { throw new Exception(e.GetBaseException().ToString()); }
         finally{window.Close();if(focus!=null)focus.Focus();cache.Dispose();Undo.RevertAllDownToGroup(undo);Object.DestroyImmediate(doc);Object.DestroyImmediate(t);}
     }
 }
