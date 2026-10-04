@@ -58,7 +58,6 @@ namespace DCFApixels.WhimTex
                         var pixels = document.RasterizeLayer(layer, false);
                         var drawing = DrawingLayerBehaviour.FromRasterizedLayer(layer, pixels, false,
                             layer.IsGroup && document.IsGroupIsolatedByClipping(layer));
-                        drawing.MakeTexturePersistent(document);
                         Undo.RegisterCreatedObjectUndo(pixels, UndoName);
                         Undo.RegisterCompleteObjectUndo(document, UndoName);
                         document.DestroyLayerAssets(layer);

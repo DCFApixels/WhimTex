@@ -3,13 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.Scripting.APIUpdating;
 
 namespace DCFApixels.WhimTex
 {
-    // Pending DCFApixels.WhimTex rename marker; do not remove.
-    [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "TextureCompositor")]
-    [CreateAssetMenu(fileName = "TextureCompositor", menuName = "WhimTex/Texture Compositor")]
     public sealed partial class TextureCompositor : ScriptableObject, ISerializationCallbackReceiver
     {
         private const int MinimumOutputSize = 1;
@@ -67,7 +63,6 @@ namespace DCFApixels.WhimTex
         private void OnEnable()
         {
             NormalizeModel();
-            EnsureOutputSettingsBaseline();
             undoDeserialized = Undo.isProcessing;
             CaptureNativeUndoVersions();
         }
@@ -82,7 +77,6 @@ namespace DCFApixels.WhimTex
             ForgetLayerPreviewCache();
             WhimTexDocumentSession.StopFor(this, "document disabled");
             ReleaseLayerThumbnails();
-            StopLiveOutput();
             ReleaseOriginalFileTextureCache();
             ReleaseLayerResources(layers, preserveDrawingPixels: true);
             ReleaseDiagnostics();
@@ -129,13 +123,6 @@ namespace DCFApixels.WhimTex
             layer.modifiers.Add(effect);
         }
 
-        internal void PersistEmbeddedShaderFX()
-        {
-            foreach (ShaderFX effect in embeddedShaderFX)
-                if (effect != null)
-                    effect.PersistEmbedded(this);
-        }
-
         internal void AdoptAgentShaderFX(ShaderFX effect, string undoName)
         {
             if (effect == null || effect.EmbeddedOwner != this || embeddedShaderFX.Contains(effect)) return;
@@ -170,53 +157,22 @@ namespace DCFApixels.WhimTex
             EditorUtility.SetDirty(this);
         }
 
-        internal void CloneEmbeddedShaderFX()
-        {
-            embeddedShaderFX = new List<ShaderFX>();
-            Dictionary<ShaderFX, ShaderFX> copies = new Dictionary<ShaderFX, ShaderFX>();
-            CloneIn(layers);
-            void CloneIn(List<Layer> source)
-            {
-                if (source == null)
-                    return;
-                foreach (Layer layer in source)
-                {
-                    if (layer == null)
-                        continue;
-                    if (layer.modifiers != null)
-                        for (int i = 0; i < layer.modifiers.Count; i++)
-                            if (layer.modifiers[i] is ShaderFX effect && effect.EmbeddedOwner != null)
-                            {
-                                if (!copies.TryGetValue(effect, out ShaderFX copy))
-                                {
-                                    copy = effect.CloneForDocument(this);
-                                    copies.Add(effect, copy);
-                                    embeddedShaderFX.Add(copy);
-                                }
-                                layer.modifiers[i] = copy;
-                            }
-                    if (layer?.AsGroup() is Layer group)
-                        CloneIn(group.layers);
-                }
-            }
-        }
-
-        public Texture2D Compose()
+        public Texture2D ComposeCanvas()
         {
             NormalizeModel();
-            return ComposeAtSize(width, height, 1f);
+            return ComposeCanvasAtSize(width, height, 1f);
         }
 
-        internal Texture2D ComposePreview(int maxSize)
+        internal Texture2D ComposeCanvas(int maxSize)
         {
-            GetPreviewDimensions(maxSize, out int previewWidth, out int previewHeight, out float scaleMultiplier);
-            return ComposeAtSize(previewWidth, previewHeight, scaleMultiplier);
+            GetCanvasRenderSize(maxSize, out int renderWidth, out int renderHeight, out float scaleMultiplier);
+            return ComposeCanvasAtSize(renderWidth, renderHeight, scaleMultiplier);
         }
 
-        internal RenderTexture RenderPreview(int maxSize)
+        internal RenderTexture RenderCanvas(int maxSize)
         {
-            GetPreviewDimensions(maxSize, out int previewWidth, out int previewHeight, out float scaleMultiplier);
-            return RenderComposite(previewWidth, previewHeight, scaleMultiplier);
+            GetCanvasRenderSize(maxSize, out int renderWidth, out int renderHeight, out float scaleMultiplier);
+            return RenderCanvasCore(renderWidth, renderHeight, scaleMultiplier);
         }
 
         internal RenderTexture RenderLayerPreview(Layer layer, int maxSize) =>
@@ -243,8 +199,8 @@ namespace DCFApixels.WhimTex
 
         // Snapshot the complete visible composition for tools that need to sample
         // the final result without changing the layer being edited.
-        internal RenderTexture RenderAllLayers(int outputWidth, int outputHeight) =>
-            RenderComposite(outputWidth, outputHeight, 1f);
+        internal RenderTexture RenderCanvasAtSize(int outputWidth, int outputHeight) =>
+            RenderCanvasCore(outputWidth, outputHeight, 1f);
 
         internal RenderTexture RenderAgentLayerPreview(Layer layer, int maxSize) =>
             RenderLayerPreviewCore(layer, maxSize, true, true);
@@ -255,20 +211,20 @@ namespace DCFApixels.WhimTex
                 return null;
 
             RefreshTransformHierarchy();
-            // Unlike RenderComposite, these paths enter layer rendering directly.
+            // Unlike RenderCanvasCore, these paths enter layer rendering directly.
             // Do not leave their temporary output bound in the caller's render state.
             RenderTexture previous = RenderTexture.active;
             try
             {
-                GetPreviewDimensions(maxSize, out int previewWidth, out int previewHeight, out float scaleMultiplier);
+                GetCanvasRenderSize(maxSize, out int renderWidth, out int renderHeight, out float scaleMultiplier);
                 if (preserveGroupColor && layer?.AsGroup() is Layer group)
-                    return RenderGroupEffectInput(group, previewWidth, previewHeight, scaleMultiplier,
+                    return RenderGroupEffectInput(group, renderWidth, renderHeight, scaleMultiplier,
                         new HashSet<Layer>(), preserveColor: true, includeDisabled: includeDisabled);
                 return RenderStandalone(
                     container,
                     index,
-                    previewWidth,
-                    previewHeight,
+                    renderWidth,
+                    renderHeight,
                     scaleMultiplier,
                     new HashSet<Layer>(), includeDisabled: includeDisabled);
             }
@@ -597,12 +553,6 @@ namespace DCFApixels.WhimTex
             undoDeserialized = false;
             NormalizeModel();
             RemoveUnusedEmbeddedShaderFX();
-            if (AssetDatabase.Contains(this))
-            {
-                PersistEmbeddedShaderFX();
-                PersistDrawingLayerTextures();
-                EditorUtility.SetDirty(this);
-            }
             CaptureNativeUndoVersions();
             Changed?.Invoke(this);
         }
@@ -610,26 +560,6 @@ namespace DCFApixels.WhimTex
         internal void SyncDrawingLayerTextures()
         {
             VisitDrawingLayers(layers, drawing => drawing.SyncPendingSurfaceToTexture());
-        }
-
-        internal void CloneDrawingLayerTextures()
-        {
-            VisitDrawingLayers(layers, drawing => drawing.CloneStoredTexture());
-        }
-
-        internal void PersistDrawingLayerTextures(bool reimport = true)
-        {
-            if (!AssetDatabase.Contains(this))
-                return;
-
-            bool addedTexture = false;
-            VisitDrawingLayers(layers, drawing => addedTexture |= drawing.MakeTexturePersistent(this));
-            if (!addedTexture || !reimport)
-                return;
-
-            string assetPath = AssetDatabase.GetAssetPath(this);
-            if (!string.IsNullOrEmpty(assetPath))
-                AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceUpdate);
         }
 
         internal void InvalidateDrawingLayerSurfaces()
@@ -685,9 +615,9 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private Texture2D ComposeAtSize(int outputWidth, int outputHeight, float scaleMultiplier)
+        private Texture2D ComposeCanvasAtSize(int outputWidth, int outputHeight, float scaleMultiplier)
         {
-            RenderTexture composite = RenderComposite(outputWidth, outputHeight, scaleMultiplier);
+            RenderTexture composite = RenderCanvasCore(outputWidth, outputHeight, scaleMultiplier);
             try
             {
                 Texture2D result = HdrUtility.ReadLinear(composite);
@@ -700,7 +630,7 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private RenderTexture RenderComposite(int outputWidth, int outputHeight, float scaleMultiplier)
+        private RenderTexture RenderCanvasCore(int outputWidth, int outputHeight, float scaleMultiplier)
         {
             RefreshTransformHierarchy();
             EffectRenderCache localCache = null;
@@ -1157,13 +1087,13 @@ namespace DCFApixels.WhimTex
             return result;
         }
 
-        private void GetPreviewDimensions(int maxSize, out int previewWidth, out int previewHeight, out float scaleMultiplier)
+        private void GetCanvasRenderSize(int maxSize, out int renderWidth, out int renderHeight, out float scaleMultiplier)
         {
             maxSize = Mathf.Max(1, maxSize);
             float scale = Mathf.Min(1f, (float)maxSize / Mathf.Max(width, height));
-            previewWidth = Mathf.Max(1, Mathf.RoundToInt(width * scale));
-            previewHeight = Mathf.Max(1, Mathf.RoundToInt(height * scale));
-            scaleMultiplier = Mathf.Max((float)width / previewWidth, (float)height / previewHeight);
+            renderWidth = Mathf.Max(1, Mathf.RoundToInt(width * scale));
+            renderHeight = Mathf.Max(1, Mathf.RoundToInt(height * scale));
+            scaleMultiplier = Mathf.Max((float)width / renderWidth, (float)height / renderHeight);
         }
 
         private void CollectEffectTargetOptions(

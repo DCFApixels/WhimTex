@@ -4,8 +4,6 @@ using System.Text;
 using UnityEditor;
 using UnityEditor.Rendering;
 using UnityEngine;
-using UnityEngine.Serialization;
-using UnityEngine.Scripting.APIUpdating;
 
 namespace DCFApixels.WhimTex
 {
@@ -25,7 +23,7 @@ namespace DCFApixels.WhimTex
         public bool inGroup;
         public int groupId;
         public string groupTitle;
-        [FormerlySerializedAs("groupToggleParameter")] public string groupHeaderParameter;
+        public string groupHeaderParameter;
         public ShaderFXParameterType type;
         public int order;
         public bool hasMinimum, hasMaximum;
@@ -54,7 +52,6 @@ namespace DCFApixels.WhimTex
         public AnimationCurve curveValue;
         public ShaderFXTransform transformValue = ShaderFXTransform.Default;
         [HideInInspector] public string id = Guid.NewGuid().ToString("N");
-        [HideInInspector] public bool declaredInCode;
         [HideInInspector] public bool hasMinimum, hasMaximum;
         [HideInInspector] public bool softMinimum, softMaximum;
         internal bool HasSoftRange => softMinimum || softMaximum;
@@ -112,7 +109,7 @@ namespace DCFApixels.WhimTex
             switch (type)
             {
                 case ShaderFXParameterType.Enum:
-                case ShaderFXParameterType.Float: material.SetFloat(propertyName, controls.Count > 0 ? floatValue : Clamp(floatValue)); break;
+                case ShaderFXParameterType.Float: material.SetFloat(propertyName, floatValue); break;
                 case ShaderFXParameterType.Bool: material.SetFloat(propertyName, BoolValue ? 1f : 0f); break;
                 case ShaderFXParameterType.Color: HdrUtility.SetShaderColor(material, propertyName, colorValue); break;
                 case ShaderFXParameterType.Vector2:
@@ -136,9 +133,6 @@ namespace DCFApixels.WhimTex
             }
         }
     }
-
-    // Pending DCFApixels.WhimTex rename marker; do not remove.
-    [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "ShaderFX")]
     [CreateAssetMenu(fileName = "New Shader FX", menuName = "WhimTex/Shader FX")]
     public sealed partial class ShaderFX : ScriptableObject, ISerializationCallbackReceiver
     {
@@ -171,7 +165,7 @@ namespace DCFApixels.WhimTex
         [SerializeField, HideInInspector] private string shaderKey = Guid.NewGuid().ToString("N");
         [SerializeField, HideInInspector] private bool shaderCreationRecorded;
         [NonSerialized] private Material material;
-        [NonSerialized] private Shader materialSourceShader, upgradedTransformShader;
+        [NonSerialized] private Shader materialSourceShader;
         [NonSerialized] private Dictionary<ShaderFXParameter, GradientBinding> gradientBindings;
         [NonSerialized] private string determinismWarningSource;
         [NonSerialized] private bool determinismWarningCached, determinismWarningFound;
@@ -198,6 +192,26 @@ namespace DCFApixels.WhimTex
         void ISerializationCallbackReceiver.OnAfterDeserialize() => undoDeserialized = true;
 
         internal void ResetUndoTrackingAfterLoad() => undoDeserialized = false;
+
+        // File input only: stored values become declarations before normal authoring begins.
+        internal void NormalizeFileParameters()
+        {
+            code = WhimTexFileCompatibility0125.DeclareSavedParameters(code, parameters);
+            try { PrepareParameterDeclarations(); }
+            catch (FormatException) { /* Preserve broken drafts for the normal Apply diagnostics. */ }
+            if (compiledShader != null)
+            {
+                string source = WhimTexFileCompatibility0125.DeclareSavedParameters(appliedCode, appliedParameters);
+                try
+                {
+                    var next = ShaderFXMetadata.Parse(source, false, out _);
+                    ShaderFXMetadata.PreserveValues(next, appliedParameters);
+                    appliedCode = source;
+                    appliedParameters = next;
+                }
+                catch (FormatException) { /* Keep the last applied snapshot if its draft is malformed. */ }
+            }
+        }
 
         internal bool ConsumeUndoChanges()
         {
@@ -427,23 +441,6 @@ namespace DCFApixels.WhimTex
             return copy;
         }
 
-        internal void PersistEmbedded(TextureCompositor owner)
-        {
-            if (embeddedOwner != owner || !AssetDatabase.Contains(owner))
-                return;
-            hideFlags = HideFlags.HideInHierarchy;
-            if (!AssetDatabase.Contains(this))
-                AssetDatabase.AddObjectToAsset(this, owner);
-            if (compiledShader != null && !AssetDatabase.Contains(compiledShader))
-            {
-                compiledShader.hideFlags = HideFlags.HideInHierarchy | HideFlags.HideInInspector;
-                AssetDatabase.AddObjectToAsset(compiledShader, owner);
-            }
-            EditorUtility.SetDirty(this);
-            if (compiledShader != null)
-                EditorUtility.SetDirty(compiledShader);
-        }
-
         internal void RegisterCreatedCopyUndo(string undoName)
         {
             shaderCreationRecorded = compiledShader != null;
@@ -482,6 +479,7 @@ namespace DCFApixels.WhimTex
         private void OnEnable()
         {
             undoDeserialized = Undo.isProcessing;
+            if (!undoDeserialized && AssetDatabase.Contains(this)) NormalizeFileParameters();
             AssemblyReloadEvents.beforeAssemblyReload += ReleaseMaterial;
             EditorApplication.quitting += ReleaseMaterial;
             EditorApplication.delayCall += ReloadCatalogAfterEnable;
@@ -501,7 +499,11 @@ namespace DCFApixels.WhimTex
             ReleaseMaterial();
         }
 
-        private void ReloadCatalogAfterEnable() { if (this != null && !Undo.isProcessing) ReloadCatalogSource(); }
+        private void ReloadCatalogAfterEnable()
+        {
+            if (this == null || Undo.isProcessing) return;
+            ReloadCatalogSource();
+        }
 
         private void OnDestroy()
         {
@@ -559,13 +561,7 @@ namespace DCFApixels.WhimTex
             {
                 ReleaseMaterial();
                 materialSourceShader = compiledShader;
-                string upgraded = ShaderFXSourceBuilder.UpgradeTransformHelpers(appliedSource, appliedParameters);
-                if (upgraded != appliedSource)
-                {
-                    upgradedTransformShader = ShaderUtil.CreateShaderAsset(upgraded, true);
-                    if (upgradedTransformShader != null) upgradedTransformShader.hideFlags = HideFlags.HideAndDontSave;
-                }
-                material = new Material(upgradedTransformShader != null ? upgradedTransformShader : compiledShader) { hideFlags = HideFlags.HideAndDontSave };
+                material = new Material(compiledShader) { hideFlags = HideFlags.HideAndDontSave };
             }
             foreach (ShaderFXParameter applied in appliedParameters)
             {
@@ -676,7 +672,6 @@ namespace DCFApixels.WhimTex
                 if (contentChanged) EditorUtility.SetDirty(this);
                 if (contentChanged && embeddedOwner != null)
                 {
-                    PersistEmbedded(embeddedOwner);
                     EditorUtility.SetDirty(embeddedOwner);
                 }
                 else if (contentChanged && !string.IsNullOrEmpty(path))
@@ -725,8 +720,6 @@ namespace DCFApixels.WhimTex
                 DestroyImmediate(material);
             material = null;
             materialSourceShader = null;
-            if (upgradedTransformShader != null) DestroyImmediate(upgradedTransformShader);
-            upgradedTransformShader = null;
         }
     }
 }

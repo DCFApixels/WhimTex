@@ -417,15 +417,8 @@ namespace DCFApixels.WhimTex
 
         protected Layer CurrentLayer => currentLayer;
         protected TextureCompositor Compositor => compositor;
-#pragma warning disable CS0618
-        protected virtual string LayerPreviewTitle => PreviewTitle;
-        protected virtual bool ImmediateLayerPreviewUpdates => ImmediatePreviewUpdates;
-        // Keep virtual legacy hooks so existing derived property windows still work.
-        [Obsolete("Override LayerPreviewTitle instead.")]
-        protected virtual string PreviewTitle => "Layer Preview";
-        [Obsolete("Override ImmediateLayerPreviewUpdates instead.")]
-        protected virtual bool ImmediatePreviewUpdates => false;
-#pragma warning restore CS0618
+        protected virtual string LayerPreviewTitle => "Layer Preview";
+        protected virtual bool ImmediateLayerPreviewUpdates => false;
         protected abstract Type EditedLayerType { get; }
 
         protected static void OpenPropertiesWindow<T>(Layer layer, TextureCompositor owner)
@@ -516,9 +509,6 @@ namespace DCFApixels.WhimTex
             effectTargetSettings = new EffectTargetSettingsView(compositor, ApplyLayerChange, SettingsBindings);
             effectTargetSettings.Build(root, effect);
         }
-
-        [Obsolete("Use RequestLayerPreview instead.")]
-        protected void RequestPreview(bool immediate = false) => RequestLayerPreview(immediate);
 
         protected void RequestLayerPreview(bool immediate = false)
         {

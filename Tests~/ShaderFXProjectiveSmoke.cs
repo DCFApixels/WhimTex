@@ -71,7 +71,6 @@ public static class ShaderFXProjectiveSmoke
         var output=RenderTexture.GetTemporary(64,32,0,RenderTextureFormat.ARGBFloat,RenderTextureReadWrite.Linear);
         var readback=new Texture2D(64,32,TextureFormat.RGBAFloat,false,true);
         var active=RenderTexture.active;
-        Shader legacy=null;
         try
         {
             string code="// @param transform2D _Area\nfloat4 ApplyFX(float2 uv, float4 color) { float2 p=_Area_ToLocal(uv); float2 q=_Area_ToInput(p); return float4(p, length(q-uv),1); }";
@@ -119,36 +118,17 @@ public static class ShaderFXProjectiveSmoke
             try { Check(editor.CreateInspectorGUI()!=null,"Inspector builds"); }
             finally { UnityEngine.Object.DestroyImmediate(editor); }
 
-            // Stored shaders made by the previous wrapper continue working without Apply.
-            string source=(string)typeof(ShaderFX).GetField("appliedSource",F).GetValue(fx);
-            string prefix="_WhimTex_Area_"+parameters[0].id+"_";
-            foreach(string direction in new[]{"ToLocal","ToInput"})
-            {
-                string current=$"float2 _Area_{direction}(float2 uv) {{ float3 p = float3(uv, 1.0); float w = dot({prefix}{direction}Row2.xyz, p); w = w < 0.0 ? min(w, -1e-7) : max(w, 1e-7); return float2(dot({prefix}{direction}Row0.xyz, p), dot({prefix}{direction}Row1.xyz, p)) / w; }}";
-                string previous=$"float2 _Area_{direction}(float2 uv) {{ float3 p = float3(uv, 1.0); return float2(dot({prefix}{direction}Row0.xyz, p), dot({prefix}{direction}Row1.xyz, p)); }}";
-                Check(source.Contains(current),"Locate helper");
-                source=source.Replace(current,previous).Replace($"float4 {prefix}{direction}Row2;","");
-            }
-            legacy=ShaderUtil.CreateShaderAsset(source,true);legacy.hideFlags=HideFlags.HideAndDontSave;
-            Call(fx,"ReleaseMaterial");
-            field.SetValue(fx,legacy);
-            typeof(ShaderFX).GetField("appliedSource",F).SetValue(fx,source);
+            // Pending authoring does not rewrite or replace the already applied shader.
             typeof(ShaderFX).GetField("code",F).SetValue(fx,code+"\n// pending edit");
-            var upgraded=Render();
-            Check(upgraded.shader!=legacy,"Old wrapper upgraded transiently");
-            matrix.TryInverse(out var inverse);
-            var center=inverse.Point(new Double2(32.5/64,16.5/32));var color=readback.GetPixel(32,16);
-            Check(Math.Abs(color.r-center.x)+Math.Abs(color.g-center.y)<.0001,"Old wrapper handles perspective");
-            Check(Render()==upgraded && Render().shader==upgraded.shader,"Upgrade cached");
+            var applied=Render();
+            Check(applied.shader==shader,"Applied shader remains unchanged");
             Check(((string)typeof(ShaderFX).GetField("code",F).GetValue(fx)).EndsWith("// pending edit"),"Pending code preserved");
-            Call(fx,"ReleaseMaterial");field.SetValue(fx,shader);
             return "FX projective checks passed: "+checks;
         }
         finally
         {
             RenderTexture.active=active;
             if(fx!=null)UnityEngine.Object.DestroyImmediate(fx);
-            if(legacy!=null)UnityEngine.Object.DestroyImmediate(legacy);
             UnityEngine.Object.DestroyImmediate(readback);RenderTexture.ReleaseTemporary(output);
             UnityEngine.Object.DestroyImmediate(doc);
         }

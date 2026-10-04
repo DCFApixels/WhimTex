@@ -56,7 +56,7 @@ public static class LayerPreviewReuseSmoke
         void Bind(Layer layer) => Call(mini, "Bind", doc, layer);
         void Main()
         {
-            var composite = (RenderTexture)Call(doc, "RenderCachedPreview", 512, cache, false, null);
+            var composite = (RenderTexture)Call(doc, "RenderCanvasWithCache", 512, cache, false, null);
             RenderTexture.ReleaseTemporary(composite);
         }
         void CompareLayer(Layer layer, int size)
@@ -79,8 +79,8 @@ public static class LayerPreviewReuseSmoke
             {
                 Check(Math.Abs(mini.resolvedStyle.height - 256) < 1, "Block cap 256 including header");
                 Main(); CompareLayer(n, 512);
-                var baseline = (RenderTexture)Call(doc, "RenderAllLayers", 512, 384);
-                var observed = (RenderTexture)Call(doc, "RenderCachedPreview", 512, cache, false, null);
+                var baseline = (RenderTexture)Call(doc, "RenderCanvasAtSize", 512, 384);
+                var observed = (RenderTexture)Call(doc, "RenderCanvasWithCache", 512, cache, false, null);
                 try { Same(Read(baseline), Read(observed), "Layer Preview observation does not alter composite"); }
                 finally { RenderTexture.ReleaseTemporary(baseline); RenderTexture.ReleaseTemporary(observed); }
                 var captured = Read(Source());
@@ -92,9 +92,9 @@ public static class LayerPreviewReuseSmoke
                 Check(!(bool)Call(doc, "TryGetCachedLayerPreview", args), "Plain Noise has no effect-cache entry");
                 noise.seed++; Main(); CompareLayer(n, 512);
                 var held = Source();
-                var export = (RenderTexture)Call(doc, "RenderAllLayers", 512, 384); RenderTexture.ReleaseTemporary(export);
+                var export = (RenderTexture)Call(doc, "RenderCanvasAtSize", 512, 384); RenderTexture.ReleaseTemporary(export);
                 Check(ReferenceEquals(held, Source()), "Export does not publish to Layer Preview");
-                var thumbnail = (RenderTexture)Call(doc, "RenderThumbnailLayer", n, 64, cache); RenderTexture.ReleaseTemporary(thumbnail);
+                var thumbnail = (RenderTexture)Call(doc, "RenderLayerThumbnail", n, 64, cache); RenderTexture.ReleaseTemporary(thumbnail);
                 Check(ReferenceEquals(held, Source()), "Thumbnail does not publish to Layer Preview");
 
                 var blur = new BlurLayerBehaviour { radius = 6, inputMode = EffectInputMode.Specific, TargetLayerId = n.Id };

@@ -94,7 +94,7 @@ the selected value is inverted before looking up tipGradient, as for a texture t
 
 ## Full HLSL specification
 
-Optional `// @header(Shape)` adds a bold, non-collapsible heading, while `// @helpbox(Your hint text.)` adds an informational help box above the next parameter. `// @formerlyserializedas(_OldName)` immediately before a parameter declares its previous name so compatible saved brush values migrate after a rename; repeat it for multiple old names. These are metadata, not uniforms, and are preserved when saving a preset. Directives without a following parameter are ignored.
+Optional `// @header(Shape)` adds a bold, non-collapsible heading, while `// @helpbox(Your hint text.)` adds an informational help box above the next parameter. `// @formerlyserializedas(_OldName)` immediately before a parameter declares its previous name so compatible saved brush values migrate after a rename; repeat it for multiple old names. These are metadata, not uniforms, and are preserved when saving a preset. A rename directive must be followed by a parameter declaration; headings and help boxes without one are ignored.
 
 Implement `float4 BrushTip(float2 uv)`: UV is 0..1 across the cached square tip, with
 Y increasing upward. Return straight (not premultiplied) RGBA. Alpha is clamped to 0..1.

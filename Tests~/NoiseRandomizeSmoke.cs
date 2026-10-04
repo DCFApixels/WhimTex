@@ -67,7 +67,7 @@ public static class NoiseRandomizeSmoke
                 Check(noise.direction == 37.5f && noise.periodic1D, "Random All preserves Direction and 1D Seamless");
                 if (i % 4 == 0)
                 {
-                    var image = doc.Compose();
+                    var image = doc.ComposeCanvas();
                     try { Check(image.GetPixels().All(c => c.r >= 0 && c.r <= 1 && c.g >= 0 && c.g <= 1 && c.b >= 0 && c.b <= 1 && c.a >= 0 && c.a <= 1), "Finite bounded render"); }
                     finally { UnityEngine.Object.DestroyImmediate(image); }
                 }

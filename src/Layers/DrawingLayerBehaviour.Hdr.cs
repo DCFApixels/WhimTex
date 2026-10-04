@@ -40,7 +40,6 @@ namespace DCFApixels.WhimTex
                 // Preserve sub-asset identity and let native object Undo restore both layout and pixels.
                 EditorUtility.CopySerialized(replacement, pixels);
                 EditorUtility.SetDirty(pixels);
-                unchecked { pixelsRevision++; }
                 ReleasePaintSurface();
             }
             finally { Object.DestroyImmediate(replacement); }
@@ -51,7 +50,6 @@ namespace DCFApixels.WhimTex
             EnsureHdrStorage();
             InitializeCanvas(width, height);
             Undo.RegisterCompleteObjectUndo(pixels, undoName);
-            unchecked { pixelsRevision++; }
             HdrUtility.WritePixels(pixels, output);
             EditorUtility.SetDirty(pixels);
             ReleasePaintSurface();

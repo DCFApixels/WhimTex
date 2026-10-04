@@ -74,13 +74,13 @@ public static class SeamlessEmptyEdgesSmoke
             layer.horizontal=MakeSeamlessLayerBehaviour.HorizontalDirection.Off;layer.vertical=MakeSeamlessLayerBehaviour.VerticalDirection.Off;
             layer.leftEdge=layer.rightEdge=layer.topEdge=layer.bottomEdge=false;
             layer.mirrorSeamCorrection=layer.offsetSeamCorrection=layer.quiltingSeamCorrection=true;
-            layer.enabled=false;var expected=Render("RenderAllLayers",32,24);layer.enabled=true;source.enabled=false;
+            layer.enabled=false;var expected=Render("RenderCanvasAtSize",32,24);layer.enabled=true;source.enabled=false;
             foreach(var mode in new[]{MakeSeamlessLayerBehaviour.SeamlessMode.Mirror,MakeSeamlessLayerBehaviour.SeamlessMode.OffsetBlend,MakeSeamlessLayerBehaviour.SeamlessMode.ScreenedPoisson,MakeSeamlessLayerBehaviour.SeamlessMode.PatchQuilting})
             {
                 layer.mode=mode;
-                Same(Render("RenderAllLayers",32,24),expected,"Empty effect export bypass "+mode);
-                Same(Render("RenderCachedPreview",32,cache,false,null),expected,"Empty effect cached bypass");
-                Same(Render("RenderThumbnailLayer",layer.Owner,32,cache),p,"Empty effect thumbnail bypass");
+                Same(Render("RenderCanvasAtSize",32,24),expected,"Empty effect export bypass "+mode);
+                Same(Render("RenderCanvasWithCache",32,cache,false,null),expected,"Empty effect cached bypass");
+                Same(Render("RenderLayerThumbnail",layer.Owner,32,cache),p,"Empty effect thumbnail bypass");
             }
             foreach(string type in new[]{"ScreenedSeamless","PatchQuiltingSeamless"})
             {

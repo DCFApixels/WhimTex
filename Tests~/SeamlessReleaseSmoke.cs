@@ -25,7 +25,7 @@ public static class SeamlessReleaseSmoke
         finally{RenderTexture.active=previous;Object.DestroyImmediate(t);}
     }
     static Color[] Render(TextureCompositor doc)
-    {var rt=(RenderTexture)Call(doc,"RenderAllLayers",doc.width,doc.height);try{return Read(rt);}finally{RenderTexture.ReleaseTemporary(rt);}}
+    {var rt=(RenderTexture)Call(doc,"RenderCanvasAtSize",doc.width,doc.height);try{return Read(rt);}finally{RenderTexture.ReleaseTemporary(rt);}}
     static void Same(Color[] a,Color[] b,string label,float tolerance=.003f)
     {
         Check(a.Length==b.Length,label+" size");float max=0;
@@ -102,13 +102,13 @@ public static class SeamlessReleaseSmoke
                     target=ScriptableObject.CreateInstance<TextureCompositorWindow>();target.ShowUtility();
                     var dest=(TextureCompositor)Get(target,"compositor");dest.layers.Clear();dest.width=96;dest.height=64;
                     snapshot=(TextureCompositor)Call(doc,"CaptureLayerClipboard",new List<Layer>(doc.layers));
-                    Call(target,"PasteCopiedLayersAt",snapshot,dest.layers,0,null,false,null);
+                    Call(target,"PasteCopiedLayersAt",snapshot,dest.layers,0,null,false);
                     Check(dest.layers.Count==2,"Window copy count");
                     var copied=(MakeSeamlessLayerBehaviour)dest.layers[0].Behaviour;
                     Settings((MakeSeamlessLayerBehaviour)doc.layers[0].Behaviour,copied);
                     Check(copied.Id!=doc.layers[0].Id&&copied.TargetLayerId==dest.layers[1].Id,"Copied target remapped");
                     Same(Render(doc),Render(dest),mode+" window copy");
-                    var compose=doc.Compose();
+                    var compose=doc.ComposeCanvas();
                     try
                     {
                         var linear=compose.GetPixels();Same(Render(doc),linear,mode+" export compose");
@@ -169,7 +169,7 @@ public static class SeamlessReleaseSmoke
                 layer.mode=mode;Color[] first=null;var times=new double[3];
                 for(int i=0;i<3;i++)
                 {
-                    var watch=Stopwatch.StartNew();var rt=(RenderTexture)Call(doc,"RenderCachedPreview",size,cache,false,null);
+                    var watch=Stopwatch.StartNew();var rt=(RenderTexture)Call(doc,"RenderCanvasWithCache",size,cache,false,null);
                     Color[] pixels;try{pixels=Read(rt);}finally{RenderTexture.ReleaseTemporary(rt);}watch.Stop();times[i]=watch.Elapsed.TotalMilliseconds;
                     if(first==null){first=pixels;Same(pixels,pixels,"Stress finite");}else Same(first,pixels,"Stress cache");
                 }

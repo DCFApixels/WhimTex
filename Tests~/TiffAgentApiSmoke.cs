@@ -30,8 +30,6 @@ public static class TiffAgentApiSmoke
         AssetDatabase.CreateFolder("Assets", Path.GetFileName(folder));
         string tiff = folder + "/Generated.tiff";
         string legacy = folder + "/Legacy.asset";
-        string migrated = folder + "/Migrated.tiff";
-        TextureCompositor legacyDocument = null;
         try
         {
             string describe = WhimTexApi.Describe();
@@ -59,27 +57,16 @@ public static class TiffAgentApiSmoke
             string render = WhimTexApi.Render(tiff, preview, 64);
             Check(render.Contains("\"success\":true") && File.Exists(previewFull), "TIFF render");
 
-            legacyDocument = ScriptableObject.CreateInstance<TextureCompositor>();
-            legacyDocument.hideFlags = HideFlags.HideAndDontSave;
-            legacyDocument.width = 32; legacyDocument.height = 32;
-            legacyDocument.layers.Add(new Layer(new ColorFillLayerBehaviour { color = Color.red }));
-            typeof(TextureCompositor).GetMethod("SaveLegacyAssetForCompatibility", Any).Invoke(legacyDocument, new object[] { legacy });
-            UnityEngine.Object.DestroyImmediate(legacyDocument); legacyDocument = null;
-            string migration = WhimTexApi.Migrate(legacy, migrated);
-            Check(migration.Contains("\"success\":true") && File.Exists(Path.Combine(projectRoot, migrated)), "legacy to TIFF migration");
-            Check(File.Exists(Path.Combine(projectRoot, legacy)), "legacy source remains after migration");
-            string legacyValidation = WhimTexApi.Validate(legacy, false);
-            Check(legacyValidation.Contains("\"success\":true") && legacyValidation.Contains("\"valid\":true"), "legacy validation remains available");
-            string legacyRevision = Revision(WhimTexApi.Inspect(legacy));
-            string legacyEdit = WhimTexApi.ExecuteJson("{\"apiVersion\":1,\"assetPath\":\"" + legacy + "\",\"expectedRevision\":\"" + legacyRevision + "\",\"operations\":[]}");
-            Check(legacyEdit.Contains("\"success\":false") && legacyEdit.Contains("legacy_read_only"), "legacy save is rejected by agent batch API");
+            Check(WhimTexApi.Inspect(legacy).Contains("invalid_path"), "asset inspection is rejected");
+            Check(WhimTexApi.Validate(legacy, false).Contains("invalid_path"), "asset validation is rejected");
+            string legacyEdit = WhimTexApi.ExecuteJson("{\"apiVersion\":1,\"assetPath\":\"" + legacy + "\",\"dryRun\":true,\"operations\":[]}");
+            Check(legacyEdit.Contains("invalid_path"), "asset dry-run is rejected");
             string legacyCreate = WhimTexApi.ExecuteJson("{\"apiVersion\":1,\"assetPath\":\"" + folder + "/New.asset\",\"create\":true,\"width\":8,\"height\":8,\"operations\":[]}");
-            Check(legacyCreate.Contains("\"success\":false") && legacyCreate.Contains("legacy_read_only"), "legacy creation is rejected by agent batch API");
-            return "PASS: TIFF create/edit, legacy read/migrate, legacy write rejection, and source preservation.";
+            Check(legacyCreate.Contains("\"success\":false") && legacyCreate.Contains("invalid_path"), "legacy creation is rejected by agent batch API");
+            return "PASS: TIFF create/edit, diagnostics, rendering and rejected .asset document paths.";
         }
         finally
         {
-            if (legacyDocument != null) UnityEngine.Object.DestroyImmediate(legacyDocument);
             if (File.Exists(previewFull)) File.Delete(previewFull);
             AssetDatabase.DeleteAsset(folder);
         }

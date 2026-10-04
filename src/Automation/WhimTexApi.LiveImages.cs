@@ -53,7 +53,7 @@ namespace DCFApixels.WhimTex
             {
                 if (source != "none")
                 {
-                    rendered = layer == null ? job.document.Compose() : job.document.RenderAreaSelectionAlphaSource(layer);
+                    rendered = layer == null ? job.document.ComposeCanvas() : job.document.RenderAreaSelectionAlphaSource(layer);
                     Require(rendered != null, "Could not render the source.", "render_failed");
                     using var pixels = HdrUtility.ReadPixels(rendered, Allocator.Temp);
                     crop = new Texture2D(job.region.width, job.region.height, TextureFormat.RGBAHalf, false, true);
@@ -125,7 +125,7 @@ namespace DCFApixels.WhimTex
             RenderTexture rt = null;
             try
             {
-                if (layer == null) texture = document.ComposePreview(size);
+                if (layer == null) texture = document.ComposeCanvas(size);
                 else
                 {
                     rt = document.RenderAgentLayerPreview(layer, size);

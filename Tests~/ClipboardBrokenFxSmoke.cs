@@ -29,7 +29,7 @@ public static class ClipboardBrokenFxSmoke
         "{\"id\":\"source\",\"enabled\":false,\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}}]}";
     static Color Pixel(TextureCompositor doc)
     {
-        Texture2D texture = doc.Compose();
+        Texture2D texture = doc.ComposeCanvas();
         try { return texture.GetPixel(8, 8); }
         finally { Object.DestroyImmediate(texture); }
     }
@@ -87,11 +87,6 @@ public static class ClipboardBrokenFxSmoke
                 }
                 finally { Undo.ClearUndo(destination); Object.DestroyImmediate(destination); }
             }
-        }
-        using (var legacy = Read("{\"format\":\"whimtex.layers\",\"version\":1,\"layers\":[{\"type\":\"color\",\"fx\":[{\"code\":\"float4 ApplyFX(float2 uv,float4 color){return missingClipboardFunction(color);}\"}]}]}"))
-        {
-            Call(legacy, "Compile");
-            Check(((IList)Get(legacy, "Warnings")).Count == 1, "Legacy compilation failure still rejects the tree.");
         }
         foreach (string json in new[] { Fixture(broken[0], true).Replace("\"textureLayerId\":\"source\"", "\"textureLayerId\":\"missing\""),
             Fixture(broken[0], true).Replace("\"id\":\"source\"", "\"id\":\"color\"") })

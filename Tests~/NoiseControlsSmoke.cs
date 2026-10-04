@@ -27,7 +27,7 @@ public static class NoiseControlsSmoke
         void Refresh()=>bindingsType.GetMethod("Refresh").Invoke(bindings,new object[]{true});
         T Find<T>(string label) where T:VisualElement => root.Query<T>().Where(v=>v is BaseField<Vector2> v2?v2.label==label:
             v is BaseField<Vector3> v3?v3.label==label:v is BaseField<string> text?text.label==label:false).First();
-        Texture2D Compose()=>document.Compose();
+        Texture2D ComposeCanvas()=>document.ComposeCanvas();
         try
         {
             Refresh();
@@ -86,7 +86,7 @@ public static class NoiseControlsSmoke
             {
                 noise.noiseType=(NoiseLayerBehaviour.NoiseType)kind;noise.warp=(NoiseLayerBehaviour.WarpType)warp;
                 noise.periodic=periodic?NoiseLayerBehaviour.PeriodicAxes.XY:NoiseLayerBehaviour.PeriodicAxes.None;
-                noise.offset.z=.2f;var a=Compose();noise.offset.z=.7f;var b=Compose();
+                noise.offset.z=.2f;var a=ComposeCanvas();noise.offset.z=.7f;var b=ComposeCanvas();
                 try
                 {
                     double diff=0;var ca=a.GetPixels();var cb=b.GetPixels();

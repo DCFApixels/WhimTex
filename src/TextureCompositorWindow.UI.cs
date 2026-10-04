@@ -357,7 +357,7 @@ namespace DCFApixels.WhimTex
             };
             toolkitDocumentField.style.flexGrow = 1f;
             toolkitDocumentField.style.minWidth = 140f;
-            toolkitDocumentField.tooltip = "A WhimTex document or its generated texture/sprite. Double-click the saved asset in Project to edit its layers.";
+            toolkitDocumentField.tooltip = "The imported texture of a WhimTex TIFF document. Double-click the file in Project to edit its layers.";
             toolkitSettingsBindings.Track(toolkitDocumentField,
                 () => sourceImage != null ? (UnityEngine.Object)sourceImage :
                     compositor.OutputTexture != null ? (UnityEngine.Object)compositor.OutputTexture : compositor);
@@ -368,25 +368,11 @@ namespace DCFApixels.WhimTex
                     toolkitDocumentField.SetValueWithoutNotify(sourceImage != null ? (UnityEngine.Object)sourceImage : compositor.OutputTexture != null ? (UnityEngine.Object)compositor.OutputTexture : compositor);
                     return;
                 }
-                TextureCompositor selected = TextureCompositor.FindDocument(evt.newValue);
-                if (selected == null || selected == compositor)
-                {
-                    toolkitDocumentField.SetValueWithoutNotify(sourceImage != null ? (UnityEngine.Object)sourceImage : compositor.OutputTexture != null ? (UnityEngine.Object)compositor.OutputTexture : compositor);
-                    return;
-                }
-
-                if (ResolveUnsavedTemporaryDocument())
-                {
-                    SetCompositor(selected);
-                }
-                else
-                {
-                    toolkitDocumentField.SetValueWithoutNotify(sourceImage != null ? (UnityEngine.Object)sourceImage : compositor.OutputTexture != null ? (UnityEngine.Object)compositor.OutputTexture : compositor);
-                }
+                toolkitDocumentField.SetValueWithoutNotify(sourceImage != null ? (UnityEngine.Object)sourceImage : compositor.OutputTexture != null ? (UnityEngine.Object)compositor.OutputTexture : compositor);
             });
             toolbar.Add(toolkitDocumentField);
             toolkitSaveButton = WhimTexUI.CreateToolbarButton("Save", () => SaveDocument(), 46f);
-            toolkitSaveButton.tooltip = "Save the document (Ctrl+S). Legacy .asset documents are read-only and open Save As for a TIFF copy.";
+            toolkitSaveButton.tooltip = "Save the document (Ctrl+S).";
             toolbar.Add(toolkitSaveButton);
             toolkitSaveAsButton = WhimTexUI.CreateToolbarButton("Save As", SaveDocumentAs, 82f);
             toolkitSaveAsButton.tooltip = "Save the document under another name.";
@@ -419,12 +405,9 @@ namespace DCFApixels.WhimTex
             // A document keeps its file as an imported image, so having a file is not the same as being an asset.
             bool hasFile = compositor != null && (TryGetDocumentFile(compositor, out _) ||
                 !string.IsNullOrEmpty(sourceImagePath));
-            bool saved = compositor != null && (hasFile || AssetDatabase.Contains(compositor));
-            bool legacy = compositor != null && WhimTexLegacyMigration.IsLegacyAsset(compositor);
+            bool saved = hasFile;
             if (toolkitSaveButton != null)
-            toolkitSaveButton.tooltip = legacy
-                    ? "Legacy .asset is read-only; Ctrl+S opens Save As for a TIFF copy."
-                    : sourceImage != null
+                toolkitSaveButton.tooltip = sourceImage != null
                     ? "Save the document (Ctrl+S). With one layer, the linked image is updated in its original format."
                     : WhimTexDocumentJson.IsJsonPath(WhimTexDocumentService.PathOf(compositor))
                     ? "Save the editable JSON document (Ctrl+S). Use Save As TIFF for a Unity texture."
@@ -432,10 +415,8 @@ namespace DCFApixels.WhimTex
             toolkitSaveButton?.SetEnabled(saved && (HasDocumentChanges() || paintingLayer != null ||
                 canvasTransformManipulator != null && canvasTransformManipulator.IsDragging));
             if (toolkitSaveAsButton == null) return;
-            toolkitSaveAsButton.text = legacy ? "Save As TIFF" : compositor != null && !saved ? "⚠ Save As" : "Save As";
-            toolkitSaveAsButton.tooltip = legacy
-                ? "Legacy .asset documents are read-only. Save a new editable TIFF document."
-                : saved
+            toolkitSaveAsButton.text = compositor != null && !saved ? "⚠ Save As" : "Save As";
+            toolkitSaveAsButton.tooltip = saved
                 ? "Save the document under another name."
                 : "This document has no file yet. Use Save As to keep its layers.";
             RefreshLiveOutputButton();
@@ -478,27 +459,24 @@ namespace DCFApixels.WhimTex
             toolkitCanvasToolbar.Add(height);
             Button outputSettings = WhimTexUI.CreateToolbarButton("Output", OpenDocumentOutputSettings, 58f);
             outputSettings.name = "canvasOutputSettings";
-            outputSettings.tooltip = "Select the saved TIFF to edit its native texture import settings in Inspector. An unsaved document must be saved first. Legacy assets keep their Output Settings window.";
+            outputSettings.tooltip = "Select the saved TIFF to edit its native texture import settings in Inspector. An unsaved document must be saved first.";
             toolkitCanvasToolbar.Add(outputSettings);
-            if (!AssetDatabase.Contains(compositor))
-            {
-                var precision = new PopupField<string>("Precision", new List<string> { "Auto", "8-bit", "Float32" }, Mathf.Clamp((int)compositor.outputPrecision, 0, 2))
-                    { name = "canvasOutputPrecision", tooltip = "TIFF source precision, independent of GPU compression. Auto uses 8-bit unless HDR is needed; 8-bit clamps to 0–1; Float32 preserves fine values even within 0–1. Working rendering remains half-float. Drawing storage limits: 256 MiB per texture, 1 GiB total; canvas up to 16384, decoded TIFF image below 2 GiB." };
-                precision.AddToClassList("whimtex-canvas-precision");
-                TwoChoiceDropdown.Attach(precision);
-                toolkitSettingsBindings.Track(precision, () => precision.choices[Mathf.Clamp((int)compositor.outputPrecision, 0, 2)]);
-                precision.RegisterValueChangedCallback(evt => ApplyToolkitChange("Change TIFF Precision",
-                    () => compositor.outputPrecision = (WhimTexOutputPrecision)precision.choices.IndexOf(evt.newValue)));
-                toolkitCanvasToolbar.Add(precision);
-                var srgb = new Toggle("sRGB") { name = "canvasOutputSrgb",
-                    tooltip = "TIFF output encoding: on = sRGB, off = Linear. Applied when you Save; supports Undo. Layer colors and the canvas remain unchanged, apart from output quantization. Float32 / HDR output is always Linear." };
-                srgb.AddToClassList("whimtex-canvas-srgb");
-                toolkitSettingsBindings.Track(srgb, () => WhimTexDocumentFile.GetOutputSrgb(compositor));
-                toolkitSettingsBindings.Add(() => srgb.SetEnabled(compositor.outputPrecision != WhimTexOutputPrecision.Float32));
-                srgb.RegisterValueChangedCallback(evt => ApplyToolkitChange("Change Output Encoding",
-                    () => WhimTexDocumentFile.SetOutputSrgb(compositor, evt.newValue)));
-                toolkitCanvasToolbar.Add(srgb);
-            }
+            var precision = new PopupField<string>("Precision", new List<string> { "Auto", "8-bit", "Float32" }, Mathf.Clamp((int)compositor.outputPrecision, 0, 2))
+                { name = "canvasOutputPrecision", tooltip = "TIFF source precision, independent of GPU compression. Auto uses 8-bit unless HDR is needed; 8-bit clamps to 0–1; Float32 preserves fine values even within 0–1. Working rendering remains half-float. Drawing storage limits: 256 MiB per texture, 1 GiB total; canvas up to 16384, decoded TIFF image below 2 GiB." };
+            precision.AddToClassList("whimtex-canvas-precision");
+            TwoChoiceDropdown.Attach(precision);
+            toolkitSettingsBindings.Track(precision, () => precision.choices[Mathf.Clamp((int)compositor.outputPrecision, 0, 2)]);
+            precision.RegisterValueChangedCallback(evt => ApplyToolkitChange("Change TIFF Precision",
+                () => compositor.outputPrecision = (WhimTexOutputPrecision)precision.choices.IndexOf(evt.newValue)));
+            toolkitCanvasToolbar.Add(precision);
+            var srgb = new Toggle("sRGB") { name = "canvasOutputSrgb",
+                tooltip = "TIFF output encoding: on = sRGB, off = Linear. Applied when you Save; supports Undo. Layer colors and the canvas remain unchanged, apart from output quantization. Float32 / HDR output is always Linear." };
+            srgb.AddToClassList("whimtex-canvas-srgb");
+            toolkitSettingsBindings.Track(srgb, () => WhimTexDocumentFile.GetOutputSrgb(compositor));
+            toolkitSettingsBindings.Add(() => srgb.SetEnabled(compositor.outputPrecision != WhimTexOutputPrecision.Float32));
+            srgb.RegisterValueChangedCallback(evt => ApplyToolkitChange("Change Output Encoding",
+                () => WhimTexDocumentFile.SetOutputSrgb(compositor, evt.newValue)));
+            toolkitCanvasToolbar.Add(srgb);
             var filter = new EnumField("Filter", compositor.outputFilter) { name = "canvasOutputFilter" };
             TwoChoiceDropdown.Attach(filter);
             filter.AddToClassList("whimtex-canvas-filter");
@@ -1868,7 +1846,7 @@ namespace DCFApixels.WhimTex
                 blurSampleTexture = paintSettings.blurSampleMode switch
                 {
                     BlurBrushSampleMode.BelowLayers => compositor.RenderLayerAndBelow(layer, compositor.width, compositor.height),
-                    BlurBrushSampleMode.AllLayers => compositor.RenderAllLayers(compositor.width, compositor.height),
+                    BlurBrushSampleMode.AllLayers => compositor.RenderCanvasAtSize(compositor.width, compositor.height),
                     _ => layer.CaptureBlurSource(compositor.width, compositor.height)
                 };
             RememberPaintingPoint(originUv);
@@ -2887,19 +2865,6 @@ namespace DCFApixels.WhimTex
                 }
                 if (!float.IsInfinity(forward) && !float.IsInfinity(backward))
                     StrokeLine(painter, center - direction * backward, center + direction * forward);
-            }
-
-            private static void FillRect(Painter2D painter, float x, float y, float width, float height)
-            {
-                if (width <= 0f || height <= 0f)
-                    return;
-                painter.BeginPath();
-                painter.MoveTo(new Vector2(x, y));
-                painter.LineTo(new Vector2(x + width, y));
-                painter.LineTo(new Vector2(x + width, y + height));
-                painter.LineTo(new Vector2(x, y + height));
-                painter.ClosePath();
-                painter.Fill();
             }
 
             private void StrokeLine(Painter2D painter, Vector2 from, Vector2 to)

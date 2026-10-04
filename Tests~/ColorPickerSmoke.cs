@@ -61,7 +61,8 @@ public static class ColorPickerSmoke
             {
                 var serializer=assembly.GetType("DCFApixels.WhimTex.WhimTexDocumentSerializer");
                 byte[] bytes=(byte[])serializer.GetMethod("Serialize",F).Invoke(null,new object[]{doc,container});
-                copy=(TextureCompositor)serializer.GetMethod("Deserialize",F).Invoke(null,new object[]{bytes,container,typeof(TextureCompositor),null,false});
+                var readResult = serializer.GetMethod("Deserialize", F).Invoke(null, new object[]{bytes,container,typeof(TextureCompositor),null,false});
+                copy=(TextureCompositor)readResult.GetType().GetProperty("Model", F).GetValue(readResult);
                 Check(History(copy).Count==1,"Document serializer retains history"); Near(History(copy)[0],first,"History preserves RGBA");
             }
             bool valid=true; observed=Color.red;

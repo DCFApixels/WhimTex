@@ -32,11 +32,11 @@ public static class ShaderFXCurveSmoke
             Check(p.type == ShaderFXParameterType.Curve && Mathf.Abs(p.curveValue.Evaluate(.25f) - .25f) < 1e-6f, "default");
             Layer layer = new ColorFillLayerBehaviour(); doc.layers.Add(layer); layer.modifiers.Add(fx);
             var shader = typeof(ShaderFX).GetField("compiledShader", F).GetValue(fx);
-            var image = doc.Compose();
+            var image = doc.ComposeCanvas();
             try { var c = image.GetPixel(8,8); Check(Mathf.Abs(c.r) < .005f && Mathf.Abs(c.g-.5f)<.005f && Mathf.Abs(c.b-1)<.005f, "GPU sampling/clamp " + c); }
             finally { UnityEngine.Object.DestroyImmediate(image); }
             p.curveValue = AnimationCurve.Linear(0, .2f, 1, .6f);
-            image = doc.Compose();
+            image = doc.ComposeCanvas();
             try { var c=image.GetPixel(8,8); Check(Mathf.Abs(c.r-.2f)<.005f && Mathf.Abs(c.g-.4f)<.005f && Mathf.Abs(c.b-.6f)<.005f, "live update " + c); }
             finally { UnityEngine.Object.DestroyImmediate(image); }
             Check(ReferenceEquals(shader,typeof(ShaderFX).GetField("compiledShader",F).GetValue(fx)), "no recompile");
@@ -63,11 +63,11 @@ public static class ShaderFXCurveSmoke
             var roundtrip=(AnimationCurve)utility.GetMethod("Parse",F).Invoke(null,new object[]{text});
             Check(roundtrip.Evaluate(.5f)==0,"step tangent roundtrip");
             Bake(new AnimationCurve()); Check(Count()==3 && tex.GetPixel(250,0).r==0,"empty curve");
-            var reader=typeof(WhimTexApi).GetMethod("ReadLiveFxParameters",F);
-            var tokenType=reader.GetParameters()[0].ParameterType;
-            var payload=tokenType.GetMethod("Parse",new[]{typeof(string)}).Invoke(null,new object[]{"[{\"name\":\"_Profile\",\"type\":\"Curve\",\"value\":\""+text+"\"}]" });
-            var api=(List<ShaderFXParameter>)typeof(WhimTexApi).GetMethod("ReadLiveFxParameters",F).Invoke(null,new object[]{payload,doc});
-            Check(api[0].curveValue.Evaluate(.5f)==0,"API curve input");
+            var reader=typeof(WhimTexApi).GetMethod("ReadFxParameterValue",F);
+            var tokenType=reader.GetParameters()[1].ParameterType;
+            var payload=tokenType.GetMethod("Parse",new[]{typeof(string)}).Invoke(null,new object[]{"\""+text+"\""});
+            var api=(ShaderFXParameter)reader.Invoke(null,new object[]{p,payload,doc});
+            Check(api.curveValue.Evaluate(.5f)==0,"API updates a declared curve value");
             var viewType=typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXParameterView");
             var view=(VisualElement)Activator.CreateInstance(viewType,F,null,new object[]{fx},null);
             Check(view.Q<CurveField>() != null,"standard curve field");

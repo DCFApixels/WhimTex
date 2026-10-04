@@ -32,10 +32,10 @@ UnityEngine.Color[] Read(UnityEngine.RenderTexture rt)
     try{UnityEngine.RenderTexture.active=rt;read.ReadPixels(new UnityEngine.Rect(0,0,rt.width,rt.height),0,0,false);return read.GetPixels();}
     finally{UnityEngine.RenderTexture.active=previous;UnityEngine.Object.DestroyImmediate(read);UnityEngine.RenderTexture.ReleaseTemporary(rt);}
 }
-UnityEngine.Color[] Render(bool fast=false)=>Read((UnityEngine.RenderTexture)compositorType.GetMethod("RenderCachedPreview",flags).Invoke(document,new object[]{64,cache,fast,null}));
+UnityEngine.Color[] Render(bool fast=false)=>Read((UnityEngine.RenderTexture)compositorType.GetMethod("RenderCanvasWithCache",flags).Invoke(document,new object[]{64,cache,fast,null}));
 UnityEngine.Color[] Fresh()
 {
-    var result=document.Compose();try{return result.GetPixels();}finally{UnityEngine.Object.DestroyImmediate(result);}
+    var result=document.ComposeCanvas();try{return result.GetPixels();}finally{UnityEngine.Object.DestroyImmediate(result);}
 }
 void Same(UnityEngine.Color[] a,UnityEngine.Color[] b,float tolerance,string message)
 { for(int i=0;i<a.Length;i++)for(int c=0;c<4;c++)Check(System.Math.Abs(a[i][c]-b[i][c])<=tolerance,message); }

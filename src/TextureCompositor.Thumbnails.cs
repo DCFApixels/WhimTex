@@ -28,7 +28,7 @@ namespace DCFApixels.WhimTex
 
         internal void RefreshThumbnailStructure() => layerThumbnails?.RefreshStructure();
 
-        internal RenderTexture RenderThumbnailLayer(Layer layer, int maxSize, EffectRenderCache cache)
+        internal RenderTexture RenderLayerThumbnail(Layer layer, int maxSize, EffectRenderCache cache)
         {
             if (!TryFindLayer(layer, out var container, out int index)) return null;
             var previousTarget = RenderTexture.active;
@@ -39,7 +39,7 @@ namespace DCFApixels.WhimTex
                 collectingErrors = false;
                 interactiveEffects = false;
                 effectCache = cache;
-                GetPreviewDimensions(maxSize, out int w, out int h, out float scale);
+                GetCanvasRenderSize(maxSize, out int w, out int h, out float scale);
                 return RenderStandalone(container, index, w, h, scale, new HashSet<Layer>(),
                     applyTransform: false, includeDisabled: true, applyClipping: false);
             }

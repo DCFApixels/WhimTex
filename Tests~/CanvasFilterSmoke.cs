@@ -7,7 +7,7 @@ var document = (DCFApixels.WhimTex.TextureCompositor)type.GetField("compositor",
 var source = new Texture2D(4, 2, TextureFormat.RGBA32, false, true) { hideFlags = HideFlags.HideAndDontSave, filterMode = FilterMode.Point };
 var previous = RenderTexture.active;
 bool previousSrgb = GL.sRGBWrite;
-var render = typeof(DCFApixels.WhimTex.TextureCompositor).GetMethod("RenderPreview", Hidden);
+var render = typeof(DCFApixels.WhimTex.TextureCompositor).GetMethod("RenderCanvas", Hidden);
 int checks = 0;
 void Check(bool condition, string message) { if (!condition) throw new Exception(message); checks++; }
 float SampleUpscaled(Texture texture)
@@ -39,11 +39,11 @@ try
     foreach (FilterMode mode in new[] { FilterMode.Point, FilterMode.Bilinear, FilterMode.Trilinear })
     {
         document.outputFilter = mode;
-        var texture = document.Compose();
+        var texture = document.ComposeCanvas();
         var preview = (RenderTexture)render.Invoke(document, new object[] { 4 });
         try
         {
-            Check(texture.filterMode == mode, "Compose sampling " + mode);
+            Check(texture.filterMode == mode, "ComposeCanvas sampling " + mode);
             Check(preview.filterMode == mode, "Preview sampling " + mode);
             Check(texture.mipmapCount == 1 && !preview.useMipMap, "No extra mipmaps allocated");
             if (mode == FilterMode.Point) pointSample = SampleUpscaled(texture);
@@ -53,16 +53,6 @@ try
             finally { UnityEngine.Object.DestroyImmediate(clone); }
             using (var serialized = new SerializedObject(document))
                 Check(serialized.FindProperty("outputFilter").intValue == (int)mode, "Serialized document setting");
-            var sessionType = typeof(DCFApixels.WhimTex.TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.LiveOutputSession");
-            var session = (IDisposable)Activator.CreateInstance(sessionType, Hidden, null, new object[] { texture }, null);
-            try
-            {
-                sessionType.GetMethod("SetFilter", Hidden).Invoke(session, new object[] { FilterMode.Point });
-                Check(texture.filterMode == FilterMode.Point, "Live sampling changes");
-                sessionType.GetMethod("Publish", Hidden).Invoke(session, new object[] { preview });
-            }
-            finally { session.Dispose(); }
-            Check(texture.filterMode == mode, "Live off restores saved filter");
         }
         finally { UnityEngine.Object.DestroyImmediate(texture); RenderTexture.ReleaseTemporary(preview); }
     }

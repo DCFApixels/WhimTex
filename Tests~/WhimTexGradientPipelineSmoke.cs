@@ -39,14 +39,14 @@ public static class WhimTexGradientPipelineSmoke
         try
         {
             doc.layers.Add(source);
-            var baseline=Pixels(doc.Compose());
+            var baseline=Pixels(doc.ComposeCanvas());
             Same(baseline,Pixels(Export(source,false)),"Standalone export",true);
             group.children.Add(source);doc.layers.Clear();doc.layers.Add(group);
             group.compositing=GroupCompositing.Isolated;
-            Same(baseline,Pixels(doc.Compose()),"Isolated group composite");
+            Same(baseline,Pixels(doc.ComposeCanvas()),"Isolated group composite");
             Same(baseline,Pixels((Texture2D)typeof(TextureCompositor).GetMethod("RenderPsdGroupContent",flags).Invoke(doc,new object[]{group})),"Layered group export",true);
             group.compositing=GroupCompositing.PassThrough;
-            Same(baseline,Pixels(doc.Compose()),"Pass-through group composite");
+            Same(baseline,Pixels(doc.ComposeCanvas()),"Pass-through group composite");
             foreach(var target in new[] {source,group})
             {
                 doc.layers.Clear();doc.layers.Add(effect);doc.layers.Add(target);
@@ -57,7 +57,7 @@ public static class WhimTexGradientPipelineSmoke
             doc.layers.Clear();doc.layers.Add(source);
             source.clippingMask=true;
             doc.layers.Add(new ColorFillLayerBehaviour {color=new Color(0,0,0,.5f)});
-            foreach(var pixel in Pixels(doc.Compose()))
+            foreach(var pixel in Pixels(doc.ComposeCanvas()))
             {
                 count++;if(Mathf.Abs(pixel.a-.5f)>.003f)throw new Exception("Clipping alpha");
             }

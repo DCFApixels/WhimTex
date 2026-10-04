@@ -77,7 +77,7 @@ namespace DCFApixels.WhimTex
             {
                 GL.sRGBWrite = false;
                 RenderCount++;
-                rendered = document.RenderThumbnailLayer(layer, Mathf.Max(64, size * 2), renders);
+                rendered = document.RenderLayerThumbnail(layer, Mathf.Max(64, size * 2), renders);
                 Texture2D next = null;
                 if (rendered != null)
                 {

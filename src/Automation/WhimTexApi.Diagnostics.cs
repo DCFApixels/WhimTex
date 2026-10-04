@@ -324,7 +324,7 @@ namespace DCFApixels.WhimTex
                     try
                     {
                         RequireGraphics();
-                        preview = document.ComposePreview(1024);
+                        preview = document.ComposeCanvas(1024);
                         Require(preview != null, "The document produced no preview.", "render_failed");
                         result["rendered"] = true;
                         result["renderWidth"] = preview.width;
@@ -354,12 +354,11 @@ namespace DCFApixels.WhimTex
             var displayed = WhimTexDocumentService.FindDisplayed(path);
             var result = Success();
             result["assetPath"] = path;
-            result["format"] = IsTiffPath(path) ? "tiff" : WhimTexDocumentJson.IsJsonPath(path) ? WhimTexDocumentJson.Format : "asset";
+            result["format"] = IsTiffPath(path) ? "tiff" : WhimTexDocumentJson.Format;
             result["exists"] = info.Exists;
             result["guid"] = AssetDatabase.AssetPathToGUID(path);
             result["imported"] = AssetDatabase.LoadMainAssetAtPath(path) != null;
-            result["isDocument"] = info.Exists && (IsTiffPath(path) || WhimTexDocumentJson.IsJsonPath(path) ? WhimTexDocumentFile.IsDocument(path) :
-                TextureCompositor.FindDocument(AssetDatabase.LoadMainAssetAtPath(path)) != null);
+            result["isDocument"] = info.Exists && WhimTexDocumentFile.IsDocument(path);
             result["fileBytes"] = info.Exists ? info.Length : 0;
             result["lastWriteUtc"] = info.Exists ? info.LastWriteTimeUtc.ToString("O") : null;
             result["diskRevision"] = info.Exists ? DiskRevision(full) : null;

@@ -26,7 +26,7 @@ public static class GroupFXSmoke
         }
         Color Pixel()
         {
-            var texture = doc.Compose();
+            var texture = doc.ComposeCanvas();
             try { return texture.GetPixel(4, 4); }
             finally { UnityEngine.Object.DestroyImmediate(texture); }
         }
@@ -106,12 +106,12 @@ public static class GroupFXSmoke
             group.modifiers.Clear();
             bindingsType.GetMethod("Refresh").Invoke(bindings, new object[] { true });
             if (mode.value != "Pass Through") throw new Exception("Group inspector restoration");
-            string json = "{\"format\":\"whimtex.layers\",\"version\":1,\"layers\":[{\"type\":\"group\",\"fx\":[{\"code\":\"" + code + "\"}],\"children\":[{\"type\":\"color\",\"properties\":{\"color\":[1,0,0,1]}}]}]}";
+            string json = "{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"group\",\"group\":true,\"behaviour\":{\"$type\":\"GroupLayerBehaviour\"},\"modifiers\":[{\"$type\":\"ShaderFX\",\"code\":\"" + code + "\"}],\"children\":[{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"storedColor\":[1,0,0,1]}}]}]}";
             using (var data = (IDisposable)typeof(WhimTexApi).GetMethod("ReadProceduralClipboard", flags).Invoke(null, new object[] { json, 8, 8 }))
             {
                 data.GetType().GetMethod("Compile", flags).Invoke(data, null);
                 var pasted = (TextureCompositor)data.GetType().GetField("Document", flags).GetValue(data);
-                var texture = pasted.Compose();
+                var texture = pasted.ComposeCanvas();
                 try { Near(texture.GetPixel(4, 4), Color.green, "Clipboard group FX"); }
                 finally { UnityEngine.Object.DestroyImmediate(texture); }
             }

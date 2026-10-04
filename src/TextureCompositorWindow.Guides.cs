@@ -8,14 +8,12 @@ namespace DCFApixels.WhimTex
     public sealed partial class TextureCompositorWindow
     {
         [Serializable]
-        [UnityEngine.Scripting.APIUpdating.MovedFrom(true, sourceNamespace: "DCFApixels.WhimTex", sourceAssembly: null, sourceClassName: "TextureCompositorWindow+PreviewGuide")]
         private struct CanvasGuide
         {
             public Vector2 normal;
             public float position;
         }
 
-        [UnityEngine.Serialization.FormerlySerializedAs("previewGuides")]
         [SerializeField] private List<CanvasGuide> canvasGuides = new List<CanvasGuide>();
         [NonSerialized] private TextureCompositor canvasGuidesDocument;
         private CanvasGuideManipulator canvasGuideManipulator;

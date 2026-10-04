@@ -35,7 +35,7 @@ public static class HealingPerimeterSmoke
     public static async Task<string> Main()
     {
         var focused = EditorWindow.focusedWindow;
-        const string pref = "DCFApixels.WhimTex.PreviewTool";
+        const string pref = "DCFApixels.WhimTex.Canvas.Tool";
         bool hadPref = EditorPrefs.HasKey(pref); string oldPref = EditorPrefs.GetString(pref);
         var report = new StringBuilder("512x512; scale 8; seed 1337; size 64; hardness .8; search 64; Balanced; Current Layer.\n");
         Directory.CreateDirectory("Temp/WhimTex/NoiseSeams");

@@ -50,7 +50,7 @@ namespace DCFApixels.WhimTex
             try
             {
                 if (layer == null)
-                    rendered = RenderComposite(width, height, 1f);
+                    rendered = RenderCanvasCore(width, height, 1f);
                 else if (TryFindLayer(layer, out List<Layer> container, out int index))
                 {
                     var stack = new HashSet<Layer>();

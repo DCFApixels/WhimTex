@@ -356,7 +356,7 @@ namespace DCFApixels.WhimTex
                 string name = names[i];
                 _prepared[name] = results[i];
                 // The immutable stored block now owns everything needed by Save. Do not keep
-                // hundreds of MiB of raw snapshots alive during Compose/TIFF encoding as well.
+                // hundreds of MiB of raw snapshots alive during ComposeCanvas/TIFF encoding as well.
                 if (_native.TryGetValue(name, out var native))
                 {
                     _native.Remove(name);
@@ -385,7 +385,7 @@ namespace DCFApixels.WhimTex
 
         private void VerifyStored(string name, ReadOnlySpan<byte> stored)
         {
-            if (name == IntegrityBlock || !Contains(IntegrityBlock)) return;
+            if (name == IntegrityBlock) return;
             if (_integrity == null)
             {
                 if (LengthOf(IntegrityBlock) > 8 * 1024 * 1024) throw new WhimTexDocumentException("Invalid integrity manifest.");
@@ -448,6 +448,7 @@ namespace DCFApixels.WhimTex
                 result._entries[name] = entry;
                 position = checked(position + (int)entry.storedLength);
             }
+            if (!result.Contains(IntegrityBlock)) throw new WhimTexDocumentException("The document integrity manifest is missing. Resave older files in WhimTex 0.12.5.");
             result._source = stream;
             result._sourceStart = start;
             return result;
@@ -595,6 +596,7 @@ namespace DCFApixels.WhimTex
                 // inflate every drawing layer and does not hold pixels and textures in memory together.
             }
             if (offset != payload.Length) throw new WhimTexDocumentException("Unexpected trailing container data.");
+            if (!result.Contains(IntegrityBlock)) throw new WhimTexDocumentException("The document integrity manifest is missing. Resave older files in WhimTex 0.12.5.");
             return result;
         }
 

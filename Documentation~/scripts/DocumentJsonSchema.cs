@@ -74,7 +74,15 @@ public static class DocumentJsonSchema
                 properties["$type"] = D(("const", name));
                 if (type == typeof(ShaderFX))
                 { properties["$id"] = D(("type", "string")); properties["$name"] = D(("type", "string")); }
+                if (type == typeof(ShapeLayerBehaviour)) properties["roundness"] = D(
+                    ("type", "number"), ("deprecated", true), ("description", "0.12.5 input; normalized to explicit cornerRoundness."));
+                if (type == typeof(ShaderFXParameter)) properties["declaredInCode"] = D(
+                    ("type", "boolean"), ("deprecated", true), ("description", "0.12.5 input; distinguishes saved manual parameters from removed code declarations. Never written by current writers."));
                 if (type == typeof(DrawingLayerBehaviour)) properties["contentOmitted"] = D(("const", true));
+                if (type == typeof(TextureCompositor)) properties["spriteSlices"] = D(
+                    ("type", new[] { "array", "null" }), ("deprecated", true),
+                    ("description", "Ignored 0.12.5 file metadata; never written by current writers."),
+                    ("items", new Dictionary<string, object>()));
                 foreach (FieldInfo f in (FieldInfo[])fields.Invoke(null, new object[] { type }))
                     if (!(type == typeof(TextureCompositor) && f.Name == "layers") && !(type == typeof(DrawingLayerBehaviour) && f.Name == "pixels"))
                         properties[f.Name] = type == typeof(TextureCompositor) && (f.Name == "width" || f.Name == "height")
@@ -89,7 +97,6 @@ public static class DocumentJsonSchema
         var schema = D(("$schema", "https://json-schema.org/draft/2020-12/schema"), ("title", "WhimTex document v1"),
             ("type", "object"), ("additionalProperties", false), ("required", new[] { "format", "version", "layers" }),
             ("properties", D(("format", D(("const", WhimTexDocumentJson.Format))), ("version", D(("const", 1))),
-                ("kind", D(("type", "string"), ("deprecated", true), ("description", "Obsolete, ignored on read and never written. The caller's operation selects open, insert or replace."))),
                 ("writeMode", Schema(typeof(WhimTexJsonWriteMode))),
                 ("document", document), ("layers", layers))), ("$defs", definitions));
         var json = Type.GetType("Newtonsoft.Json.JsonConvert, Newtonsoft.Json", true);

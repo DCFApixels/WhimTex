@@ -15,7 +15,7 @@ for (const part of ['sample', 'swatch']) {
 assert.ok(eye.includes('InternalEditorUtility.ReadScreenPixelUnderCursor(point, SampleSide, SampleSide)'));
 assert.equal((eye.match(/InternalEditorUtility.ReadScreenPixelUnderCursor\(/g) ?? []).length, 1,
     'Picking and magnification share one 11x11 screen read; no independent 1x1 rounding');
-assert.ok(!/RenderPreview|EyeDropper.Start|KeyCode.Escape|DllImport|globalEventHandler/.test(eye));
+assert.ok(!/RenderCanvas|EyeDropper.Start|KeyCode.Escape|DllImport|globalEventHandler/.test(eye));
 assert.ok(!/DrawIcon|iconRect|target.Add\(lens\)/.test(eye));
 assert.ok(!uss.includes('whimtex-eyedropper-cursor'));
 assert.ok(eye.includes('private sealed class ScreenEyedropperWindow : EditorWindow'));

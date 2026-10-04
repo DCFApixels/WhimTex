@@ -8,7 +8,9 @@ assert.match(source, /evt.altKey \|\| evt.ctrlKey \|\| evt.commandKey \|\| evt.s
 assert.match(source, /layer\?\.Behaviour is FileLayerBehaviour file/);
 assert.match(source, /FindLayerDragControl\(row, evt.target as VisualElement\) != null/);
 assert.match(source, /!IsLayerDragArea\(row, evt.target as VisualElement\)/);
-assert.match(source, /TextureCompositor.FindDocument\(source\)/);
+assert.match(source, /WhimTexDocumentService.IsDocumentAsset\(source\)/);
+assert.doesNotMatch(source, /TextureCompositor.FindDocument/);
+assert.match(source, /OpenWhimTexDocumentPath\(UnityEditor.AssetDatabase.GetAssetPath\(source\)\)/);
 assert.match(source, /activeLayerDrag\?\.Cancel\(\)/);
 assert.match(source, /EditorApplication.delayCall/);
 assert.match(source, /if \(this != null && source != null/);

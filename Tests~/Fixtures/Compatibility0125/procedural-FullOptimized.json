@@ -1,0 +1,382 @@
+{
+  "format": "whimtex.document",
+  "version": 1,
+  "document": {
+    "colorHistory": [],
+    "layerNameCounters": [
+      {
+        "prefix": "Color Fill",
+        "next": 1
+      },
+      {
+        "prefix": "Group",
+        "next": 1
+      },
+      {
+        "prefix": "Noise",
+        "next": 1
+      },
+      {
+        "prefix": "Shape",
+        "next": 1
+      },
+      {
+        "prefix": "Outline",
+        "next": 1
+      }
+    ],
+    "nextCopyNumber": 1,
+    "spriteSlices": [],
+    "width": 32,
+    "height": 24,
+    "outputFilter": "Bilinear",
+    "outputPrecision": "Auto",
+    "outputSrgb": true,
+    "uvReferenceMesh": null,
+    "uvReferenceChannel": 0,
+    "uvReferenceSubmesh": -1
+  },
+  "layers": [
+    {
+      "id": "00000000000000000000000000000005",
+      "layerName": "Outline",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 0.25,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Clip"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "OutlineLayerBehaviour",
+        "metric": "EuclideanExact",
+        "sourceChannel": "Alpha",
+        "outlineColor": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "outlineWidth": 4.0,
+        "outlineSoftness": 1.0,
+        "outlineOffset": 0.0,
+        "fillCenter": false,
+        "outlinePosition": "Outside",
+        "targetLayerId": "00000000000000000000000000000002",
+        "inputMode": "Specific",
+        "recoveryId": "0d1cf086087d4131bc9ed99e554afa61"
+      },
+      "behaviourId": "0d1cf086087d4131bc9ed99e554afa61",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "00000000000000000000000000000002",
+      "layerName": "Group",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 0.73,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [
+        {
+          "$type": "ShaderFX",
+          "$id": "fx0",
+          "active": true,
+          "code": "float4 ApplyFX(float2 uv, float4 color)\r\n{\r\n    return float4(color.rgb * _Gain, color.a);\r\n}\r\n",
+          "parameters": [
+            {
+              "name": "_Gain",
+              "type": "Float",
+              "floatValue": 0.625,
+              "id": "11111111111111111111111111111111",
+              "declaredInCode": false,
+              "hasMinimum": false,
+              "hasMaximum": false,
+              "softMinimum": false,
+              "softMaximum": false,
+              "minimum": 0.0,
+              "maximum": 0.0,
+              "controls": []
+            }
+          ],
+          "shaderKey": "150db093e54b46c5ad10b1979f9d6dc7",
+          "$name": "Shader FX"
+        }
+      ],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 17.125,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Clip"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "GroupLayerBehaviour",
+        "recoveryId": "9b7412428f5a440b9085355fa525c7b6"
+      },
+      "behaviourId": "9b7412428f5a440b9085355fa525c7b6",
+      "children": [
+        {
+          "id": "00000000000000000000000000000003",
+          "layerName": "Noise",
+          "enabled": true,
+          "clippingMask": false,
+          "opacity": 0.4,
+          "blendMode": "Normal",
+          "colorRange": "Standard",
+          "blendRange": "Standard",
+          "swizzle": {
+            "packed": 0
+          },
+          "modifiers": [],
+          "transform": {
+            "pivot": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "rotation": 0.0,
+            "storage": "TRS",
+            "matrix": {
+              "m00": 0.0,
+              "m01": 0.0,
+              "m02": 0.0,
+              "m10": 0.0,
+              "m11": 0.0,
+              "m12": 0.0,
+              "m20": 0.0,
+              "m21": 0.0,
+              "m22": 0.0
+            },
+            "tiling": "Unbounded"
+          },
+          "filterMode": "Source",
+          "behaviour": {
+            "$type": "NoiseLayerBehaviour",
+            "noiseType": "OpenSimplex2",
+            "dimensions": "TwoD",
+            "seed": 517,
+            "scale": 11.5,
+            "scaleY": 0.0,
+            "linkScale": true,
+            "offset": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "periodic": "None",
+            "fractal": "FBm",
+            "octaves": 3,
+            "lacunarity": 2.0,
+            "gain": 0.5,
+            "weightedStrength": 0.0,
+            "warp": "None",
+            "encoding": "LinearData",
+            "inverted": false,
+            "recoveryId": "b64d294427f0473581c9491dda997fb4"
+          },
+          "behaviourId": "b64d294427f0473581c9491dda997fb4",
+          "children": null,
+          "group": false,
+          "compositing": "PassThrough"
+        },
+        {
+          "id": "00000000000000000000000000000004",
+          "layerName": "Shape",
+          "enabled": true,
+          "clippingMask": false,
+          "opacity": 0.6,
+          "blendMode": "Normal",
+          "colorRange": "Standard",
+          "blendRange": "Standard",
+          "swizzle": {
+            "packed": 0
+          },
+          "modifiers": [],
+          "transform": {
+            "pivot": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "position": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "rotation": 0.0,
+            "storage": "TRS",
+            "matrix": {
+              "m00": 0.0,
+              "m01": 0.0,
+              "m02": 0.0,
+              "m10": 0.0,
+              "m11": 0.0,
+              "m12": 0.0,
+              "m20": 0.0,
+              "m21": 0.0,
+              "m22": 0.0
+            },
+            "tiling": "Clip"
+          },
+          "filterMode": "Source",
+          "behaviour": {
+            "$type": "ShapeLayerBehaviour",
+            "kind": "Rectangle",
+            "fillColor": [
+              0.8,
+              0.4,
+              0.2,
+              0.75
+            ],
+            "fill": true,
+            "stroke": false,
+            "feather": 0.0,
+            "roundness": 3.5,
+            "cornerRoundness": [
+              -1.0,
+              -1.0,
+              -1.0,
+              -1.0
+            ],
+            "linkCorners": true,
+            "recoveryId": "d5e2a0491e7d49ae9997a92d606fce9a"
+          },
+          "behaviourId": "d5e2a0491e7d49ae9997a92d606fce9a",
+          "children": null,
+          "group": false,
+          "compositing": "PassThrough"
+        }
+      ],
+      "group": true,
+      "compositing": "PassThrough"
+    },
+    {
+      "id": "00000000000000000000000000000001",
+      "layerName": "Background",
+      "enabled": true,
+      "clippingMask": false,
+      "opacity": 1.0,
+      "blendMode": "Normal",
+      "colorRange": "Standard",
+      "blendRange": "Standard",
+      "swizzle": {
+        "packed": 0
+      },
+      "modifiers": [],
+      "transform": {
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0.0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0.0,
+          "m01": 0.0,
+          "m02": 0.0,
+          "m10": 0.0,
+          "m11": 0.0,
+          "m12": 0.0,
+          "m20": 0.0,
+          "m21": 0.0,
+          "m22": 0.0
+        },
+        "tiling": "Unbounded"
+      },
+      "filterMode": "Source",
+      "behaviour": {
+        "$type": "ColorFillLayerBehaviour",
+        "mode": "Color",
+        "storedColor": [
+          0.12,
+          0.25,
+          0.43,
+          1.0
+        ],
+        "recoveryId": "1fdda92b41374abca23a90b922040632"
+      },
+      "behaviourId": "1fdda92b41374abca23a90b922040632",
+      "children": null,
+      "group": false,
+      "compositing": "PassThrough"
+    }
+  ]
+}

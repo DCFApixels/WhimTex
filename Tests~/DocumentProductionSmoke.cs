@@ -91,7 +91,7 @@ public static class DocumentProductionSmoke
                 Check(loaded.outputPrecision == precision, "precision persists");
             }
             Check(!((TextureImporter)AssetImporter.GetAtPath(path)).sRGBTexture, "float output imports linear");
-            var reference = doc.Compose(); owned.Add(reference);
+            var reference = doc.ComposeCanvas(); owned.Add(reference);
             byte[] actual = File.ReadAllBytes(path);
             byte[] expected = WhimTexTiffImage.WriteRaw(reference.width, reference.height, reference.GetRawTextureData<byte>().ToArray(), 16, 32);
             Check(WhimTexTiffImage.TryReadPixels(actual, out _, out _, out byte[] actualPixels, out _), "float pixels decoded");

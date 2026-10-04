@@ -52,7 +52,6 @@ namespace DCFApixels.WhimTex
                 Undo.IncrementCurrentGroup();
                 undoGroup = Undo.GetCurrentGroup();
                 Undo.SetCurrentGroupName(undoName);
-                prepared.MakeTexturePersistent(this);
                 Undo.RegisterCreatedObjectUndo(texture, undoName);
                 registered = true;
                 Undo.RegisterCompleteObjectUndo(this, undoName);

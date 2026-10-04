@@ -10,7 +10,7 @@ public static class NoiseWarpPeriodSmoke
     const int Size = 17;
     static Material Prepare(TextureCompositor doc)
     {
-        var image=doc.Compose(); UnityEngine.Object.DestroyImmediate(image);
+        var image=doc.ComposeCanvas(); UnityEngine.Object.DestroyImmediate(image);
         var t=typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.WhimTexMaterials");
         var shared=(Material)t.GetProperty("Noise",F).GetValue(null);
         var m=new Material(shared);

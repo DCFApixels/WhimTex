@@ -41,7 +41,7 @@ public static class TiffCompactReferenceSmoke
             Check(document.layers != null && document.layers.Count > 0, name + " contains layers");
             Check(document.layers.Any(layer => layer.Behaviour != null && expectedLayerType.IsInstanceOfType(layer.Behaviour)),
                 name + " contains the expected layer kind");
-            Texture2D composed = document.Compose();
+            Texture2D composed = document.ComposeCanvas();
             try
             {
                 Check(composed != null && composed.width == 128 && composed.height == 128,

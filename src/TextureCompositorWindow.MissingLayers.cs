@@ -65,7 +65,6 @@ namespace DCFApixels.WhimTex
                         {
                             drawing.InitializeCanvas(compositor.width, compositor.height);
                             drawing.InvalidatePaintSurface();
-                            drawing.MakeTexturePersistent(compositor);
                             UnityEditor.Undo.RegisterCreatedObjectUndo(drawing.StoredTexture, "Replace Layer Behaviour");
                         }
                         catch

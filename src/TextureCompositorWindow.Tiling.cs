@@ -5,7 +5,6 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
-        [UnityEngine.Serialization.FormerlySerializedAs("tiledPreview")]
         [SerializeField] private bool tiledCanvas;
         [System.NonSerialized] private Button tiledCanvasButton;
 

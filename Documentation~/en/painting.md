@@ -122,6 +122,9 @@ stay unchanged. The preview updates when you select a preset.
 In **Window tab ⋮ → User Settings… → Presets**, choose **Presets Folder** with **…**
 or enter an absolute path. The folder setting is shared across projects on this computer
 for your user account. **↺** restores the default location without deleting files.
+If presets are missing after an update, select their existing folder here; the files are not
+moved or deleted. Tool and Canvas View preferences may reset after updates.
+
 Brushes are stored in its **Brushes** subfolder. Each `.sebrush` file includes its texture
 tip, so you can copy it to another computer's Brushes folder without importing the original
 texture. Overwriting keeps the previous file as `.sebrush.bak`; to restore it, rename that

@@ -42,7 +42,7 @@ namespace DCFApixels.WhimTex
             finally { RenderTexture.active=previous; GL.sRGBWrite=srgb; }
         }
 
-        internal RenderTexture RenderCachedPreview(int maxSize, EffectRenderCache cache, bool interactive, DrawingLayerBehaviour painting)
+        internal RenderTexture RenderCanvasWithCache(int maxSize, EffectRenderCache cache, bool interactive, DrawingLayerBehaviour painting)
         {
             var previous = effectCache;
             bool previousQuality = interactiveEffects;
@@ -53,7 +53,7 @@ namespace DCFApixels.WhimTex
                 interactiveEffects = interactive;
                 publishingLayerPreview = true;
                 cache.BeginFrame(this, painting);
-                var result = RenderPreview(maxSize);
+                var result = RenderCanvas(maxSize);
                 lastLayerPreviewCache = cache;
                 lastLayerPreviewSize = maxSize;
                 lastLayerPreviewInteractive = interactive;

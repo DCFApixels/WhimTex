@@ -18,8 +18,12 @@ public static class OptionalLayerGradientSmoke
         if (source is NoiseLayerBehaviour noise) noise.encoding = value ? NoiseLayerBehaviour.OutputEncoding.Gradient : NoiseLayerBehaviour.OutputEncoding.ColorValues;
         else ((SDFLayerBehaviour)source).encoding = value ? SDFLayerBehaviour.OutputEncoding.Gradient : SDFLayerBehaviour.OutputEncoding.LinearData;
     }
-    static IDisposable Read(string layers) => (IDisposable)typeof(WhimTexApi).GetMethod("ReadProceduralClipboard", F)
-        .Invoke(null, new object[] { "{\"format\":\"whimtex.layers\",\"version\":1,\"layers\":" + layers + "}", 48, 48 });
+    static IDisposable Read(string layers)
+    {
+        try { return (IDisposable)typeof(WhimTexApi).GetMethod("ReadProceduralClipboard", F)
+            .Invoke(null, new object[] { "{\"format\":\"whimtex.document\",\"version\":1,\"layers\":" + layers + "}", 48, 48 }); }
+        catch (TargetInvocationException error) { throw error.GetBaseException(); }
+    }
     static TextureCompositor Document(IDisposable data) => (TextureCompositor)data.GetType().GetField("Document", F).GetValue(data);
     static Color[] Render(TextureCompositor doc, Layer layer)
     {
@@ -58,10 +62,10 @@ public static class OptionalLayerGradientSmoke
         void Compare()
         {
             var old = RenderTexture.active;
-            var output = (RenderTexture)typeof(TextureCompositor).GetMethod("RenderCachedPreview", F)
+            var output = (RenderTexture)typeof(TextureCompositor).GetMethod("RenderCanvasWithCache", F)
                 .Invoke(doc, new object[] { 48, cache, false, null });
             var read = new Texture2D(48, 48, TextureFormat.RGBAFloat, false, true);
-            var fresh = doc.Compose();
+            var fresh = doc.ComposeCanvas();
             try
             {
                 RenderTexture.active = output;
@@ -154,8 +158,8 @@ public static class OptionalLayerGradientSmoke
             foreach (var message in UnityEditor.ShaderUtil.GetShaderMessages(shader))
                 Check(message.severity.ToString() != "Error", message.message);
         }
-        using var noiseData = Read("[{\"type\":\"noise\",\"properties\":{\"colorRange\":\"HDR\"}}]");
-        using var sdfData = Read("[{\"type\":\"sdf\",\"target\":\"shape\",\"properties\":{\"colorRange\":\"HDR\",\"maxDistance\":16}},{\"type\":\"shape\",\"id\":\"shape\",\"properties\":{\"enabled\":false,\"shape\":{\"kind\":\"Ellipse\"}},\"transform\":{\"scale\":[0.5,0.5]}}]");
+        using var noiseData = Read("[{\"id\":\"noise\",\"colorRange\":\"HDR\",\"behaviour\":{\"$type\":\"NoiseLayerBehaviour\"}}]");
+        using var sdfData = Read("[{\"id\":\"sdf\",\"colorRange\":\"HDR\",\"behaviour\":{\"$type\":\"SDFLayerBehaviour\",\"inputMode\":\"Specific\",\"targetLayerId\":\"shape\",\"maxDistanceNormalization\":16}},{\"id\":\"shape\",\"enabled\":false,\"behaviour\":{\"$type\":\"ShapeLayerBehaviour\",\"kind\":\"Ellipse\"},\"transform\":{\"scale\":{\"x\":0.5,\"y\":0.5}}}]");
         var noiseDoc = Document(noiseData); var sdfDoc = Document(sdfData);
         var noise = (NoiseLayerBehaviour)noiseDoc.layers[0].Behaviour;
         var sdf = (SDFLayerBehaviour)sdfDoc.layers[0].Behaviour;
@@ -241,7 +245,7 @@ public static class OptionalLayerGradientSmoke
         Directory.CreateDirectory("Temp/WhimTex");
         foreach (var doc in new[] { noiseDoc, sdfDoc })
         {
-            var image = doc.Compose();
+            var image = doc.ComposeCanvas();
             try { File.WriteAllBytes("Temp/WhimTex/optional-gradient-" + doc.layers[0].Behaviour + ".png", image.EncodeToPNG()); }
             finally { UnityEngine.Object.DestroyImmediate(image); }
             Cache(doc);

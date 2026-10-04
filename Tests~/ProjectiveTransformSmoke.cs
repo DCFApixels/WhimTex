@@ -71,20 +71,19 @@ public static class ProjectiveTransformSmoke
     {
         const BindingFlags f=BindingFlags.Static|BindingFlags.NonPublic;
         var read=typeof(WhimTexApi).GetMethod("ReadProceduralClipboard",f);
-        string root="{\"format\":\"whimtex.layers\",\"version\":1,\"layers\":[{\"type\":\"color\",\"transform\":";
-        string[] bodies={"{\"matrix\":[0.8,0.1,0.05,0,0.8,0.1,0,0.25,1]}","{\"position\":[12.123456789123,0]}","{\"matrix\":[1,0,0,0,1,0,0,0,1],\"scale\":[1,1]}"};
+        string root="{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"},\"transform\":";
+        string[] bodies={"{\"storage\":\"Projective\",\"matrix\":{\"m00\":0.8,\"m01\":0.1,\"m02\":0.05,\"m10\":0,\"m11\":0.8,\"m12\":0.1,\"m20\":0,\"m21\":0.25,\"m22\":1}}","{\"position\":{\"x\":12.123456789123,\"y\":0}}","{\"storage\":\"Projective\",\"matrix\":{\"m00\":1,\"m01\":0,\"m02\":0,\"m10\":0,\"m11\":1,\"m12\":0,\"m20\":0,\"m21\":0,\"m22\":1},\"scale\":{\"x\":2,\"y\":3}}"};
         for(int i=0;i<bodies.Length;i++)
         {
             object result=null;
             try
             {
                 result=read.Invoke(null,new object[]{root+bodies[i]+"}]}",128,128});
-                Check(i<2,"Reject ambiguous matrix and TRS");
                 var doc=(TextureCompositor)result.GetType().GetField("Document",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(result);
                 if(i==0)Check(doc.layers[0].transform.storage==TransformStorage.Projective,"Clipboard matrix");
                 if(i==1)Check(doc.layers[0].transform.position.x==12.123456789123,"Clipboard double precision");
+                if(i==2)Check(doc.layers[0].transform.storage==TransformStorage.Projective && doc.layers[0].transform.scale==new Double2(2,3),"Native JSON retains inactive TRS beside the active matrix");
             }
-            catch(TargetInvocationException) { if(i!=2)throw;checks++; }
             finally { (result as IDisposable)?.Dispose(); }
         }
     }
@@ -100,7 +99,7 @@ public static class ProjectiveTransformSmoke
         RenderTexture output=null;Texture2D read=null;var previous=RenderTexture.active;
         try
         {
-            output=(RenderTexture)typeof(TextureCompositor).GetMethod("RenderPreview",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(doc,new object[]{64});
+            output=(RenderTexture)typeof(TextureCompositor).GetMethod("RenderCanvas",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(doc,new object[]{64});
             RenderTexture.active=output;read=new Texture2D(64,64,TextureFormat.RGBAFloat,false,true);
             read.ReadPixels(new Rect(0,0,64,64),0,0);read.Apply();
             transform.ToMatrix(64,64).TryInverse(out var inv);
@@ -131,7 +130,7 @@ public static class ProjectiveTransformSmoke
             var center=transform.Map(new Vector2(.5f,.5f),new Vector2(128,128));
             var source=transform.Unmap(center,new Vector2(128,128));
             Call("BeginStroke",source);Call("PaintPoint",source,128,128,Call("GetStrokeParameters",false));Call("EndStroke");
-            output=(RenderTexture)typeof(TextureCompositor).GetMethod("RenderPreview",flags).Invoke(doc,new object[]{128});
+            output=(RenderTexture)typeof(TextureCompositor).GetMethod("RenderCanvas",flags).Invoke(doc,new object[]{128});
             RenderTexture.active=output;read=new Texture2D(128,128,TextureFormat.RGBAFloat,false,true);
             read.ReadPixels(new Rect(0,0,128,128),0,0);read.Apply();
             System.IO.Directory.CreateDirectory("Temp/WhimTex");
@@ -164,7 +163,7 @@ public static class ProjectiveTransformSmoke
             var drawing=(DrawingLayerBehaviour)typeof(DrawingLayerBehaviour).GetMethod("FromMergedTexture",BindingFlags.Static|BindingFlags.NonPublic).Invoke(null,new object[]{source});
             Layer layer=shape ? (Layer)new ShapeLayerBehaviour {kind=ShapeLayerBehaviour.ShapeKind.Rectangle,fill=true,stroke=false,roundness=0} : (Layer)drawing;
             layer.transform=transform; doc.layers.Add(layer);
-            output=(RenderTexture)typeof(TextureCompositor).GetMethod("RenderPreview",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(doc,new object[]{128});
+            output=(RenderTexture)typeof(TextureCompositor).GetMethod("RenderCanvas",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(doc,new object[]{128});
             Check(RenderTexture.active==previous,"Render state restored");
             RenderTexture.active=output;read=new Texture2D(128,128,TextureFormat.RGBAFloat,false,true);
             read.ReadPixels(new Rect(0,0,128,128),0,0);read.Apply();

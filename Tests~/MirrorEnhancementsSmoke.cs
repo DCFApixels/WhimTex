@@ -176,11 +176,11 @@ public static class MirrorEnhancementsSmoke
                 Color[] expected;
                 try {expected=Read(direct);}finally {RenderTexture.ReleaseTemporary(direct);}
                 Same(Render("RenderLayerPreview",effect.Owner,32),expected,"Layer "+option,.003f);
-                Same(Render("RenderThumbnailLayer",effect.Owner,32,cache),expected,"Thumbnail",.003f);
+                Same(Render("RenderLayerThumbnail",effect.Owner,32,cache),expected,"Thumbnail",.003f);
                 source.enabled=false;
-                Same(Render("RenderAllLayers",32,16),expected,"Export",.003f);
-                Same(Render("RenderCachedPreview",32,cache,false,null),expected,"Settings invalidate cache",.003f);
-                Same(Render("RenderCachedPreview",32,cache,false,null),expected,"Cache hit",.003f);
+                Same(Render("RenderCanvasAtSize",32,16),expected,"Export",.003f);
+                Same(Render("RenderCanvasWithCache",32,cache,false,null),expected,"Settings invalidate cache",.003f);
+                Same(Render("RenderCanvasWithCache",32,cache,false,null),expected,"Cache hit",.003f);
                 source.enabled=true;
             }
             var group=new GroupLayerBehaviour {compositing=GroupCompositing.Isolated};

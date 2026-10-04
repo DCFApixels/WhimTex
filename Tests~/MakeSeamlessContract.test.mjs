@@ -4,16 +4,14 @@ const read = file => readFileSync(new URL('../' + file, import.meta.url), 'utf8'
 const parser = read('src/Automation/WhimTexApi.MakeSeamless.cs');
 const model = read('src/Layers/MakeSeamlessLayerBehaviour.cs');
 const inspect = read('src/Automation/WhimTexApi.Inspect.cs');
-const properties = JSON.parse(read('Documentation~/AI/layers.schema.json')).$defs.makeSeamless.properties;
+const properties = JSON.parse(read('Documentation~/AI/agent-fields.schema.json')).$defs.makeSeamless.properties;
 const reference = read('Documentation~/AgentAPI.md').split('### Make Seamless settings')[1].split('### Normal Map settings')[0];
-const clipboardGuide = read('Documentation~/AI/LEGACY_LAYERS.md').split('- **makeSeamless:**')[1].split('\n- **')[0];
 const keys = [...parser.match(/Keys\(value,([\s\S]*?)\);/)[1].matchAll(/"([^"]+)"/g)].map(m => m[1]);
 const snapshotKeys = [...parser.split('private static JObject MakeSeamlessSnapshot')[1].matchAll(/\["([^"]+)"\] =/g)].map(m => m[1]);
 assert.deepEqual(Object.keys(properties).sort(), [...keys].sort());
 assert.deepEqual(snapshotKeys.sort(), [...keys].sort());
 for (const key of keys) {
   assert.ok(reference.includes('`' + key + '`'), `Missing API field ${key}`);
-  assert.ok(clipboardGuide.includes('`' + key + '`'), `Missing clipboard field ${key}`);
   assert.ok(Object.hasOwn(properties[key], 'default'), `Missing schema default ${key}`);
 }
 const enumFields = {

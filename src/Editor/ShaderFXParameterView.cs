@@ -89,14 +89,13 @@ namespace DCFApixels.WhimTex
                     foreach (var p in effect.Parameters)
                         if (p != null)
                         {
-                            if (p.controls.Count == 0) rows.Add((p, null));
-                            else foreach (var control in p.controls) rows.Add((p, control));
+                            foreach (var control in p.controls) rows.Add((p, control));
                         }
-                    rows.Sort((a, b) => (a.control?.order ?? 0).CompareTo(b.control?.order ?? 0));
+                    rows.Sort((a, b) => a.control.order.CompareTo(b.control.order));
                     ParameterGroupView group = null;
                     foreach (var row in rows)
                     {
-                        if (row.control?.inGroup == true)
+                        if (row.control.inGroup)
                         {
                             if (group == null || group.id != row.control.groupId) group = AddGroup(row.control);
                             if (!row.control.hidden && row.parameter.id != group.headerParameterId)
@@ -105,7 +104,7 @@ namespace DCFApixels.WhimTex
                         else
                         {
                             group = null;
-                            if (row.control?.hidden != true) AddParameter(this, row.parameter, row.control);
+                            if (!row.control.hidden) AddParameter(this, row.parameter, row.control);
                         }
                     }
                 }
@@ -432,10 +431,10 @@ namespace DCFApixels.WhimTex
             return true;
         }
 
-        private void AddParameter(VisualElement parent, ShaderFXParameter declaration, ShaderFXParameterControl control = null)
+        private void AddParameter(VisualElement parent, ShaderFXParameter declaration, ShaderFXParameterControl control)
         {
             VisualElement rowRoot = parent;
-            if (!string.IsNullOrEmpty(control?.visibleIfParameter))
+            if (!string.IsNullOrEmpty(control.visibleIfParameter))
             {
                 rowRoot = new VisualElement();
                 rowRoot.AddToClassList("whimtex-fx-conditional-parameter");
@@ -450,27 +449,24 @@ namespace DCFApixels.WhimTex
                 });
             }
 
-            if (control?.headers != null)
+            if (control.headers != null)
                 foreach (string title in control.headers)
                 {
                     var heading = new Label(title);
                     heading.AddToClassList("whimtex-fx-parameter-header");
                     rowRoot.Add(heading);
                 }
-            if (control?.helpBoxes != null)
+            if (control.helpBoxes != null)
                 foreach (string message in control.helpBoxes)
                     rowRoot.Add(new HelpBox(message, HelpBoxMessageType.Info));
             int firstChild = rowRoot.childCount;
-            if (control != null)
-            {
-                declaration = declaration.Copy();
-                declaration.type = control.type;
-                declaration.hasMinimum = control.hasMinimum; declaration.hasMaximum = control.hasMaximum;
-                declaration.softMinimum = control.softMinimum; declaration.softMaximum = control.softMaximum;
-                declaration.minimum = control.minimum; declaration.maximum = control.maximum;
-            }
+            declaration = declaration.Copy();
+            declaration.type = control.type;
+            declaration.hasMinimum = control.hasMinimum; declaration.hasMaximum = control.hasMaximum;
+            declaration.softMinimum = control.softMinimum; declaration.softMaximum = control.softMaximum;
+            declaration.minimum = control.minimum; declaration.maximum = control.maximum;
             string id = declaration.id;
-            string label = !string.IsNullOrWhiteSpace(control?.label)
+            string label = !string.IsNullOrWhiteSpace(control.label)
                 ? control.label
                 : ObjectNames.NicifyVariableName(declaration.name.TrimStart('_'));
             switch (declaration.type)
@@ -488,7 +484,6 @@ namespace DCFApixels.WhimTex
                     refresh.Add(() => gradient.SetValueWithoutNotify(Find(id).gradientValue ??= new WhimTexGradient()));
                     break;
                 case ShaderFXParameterType.Enum:
-                    if (control == null) goto case ShaderFXParameterType.Float;
                     var choices = new List<string>();
                     foreach (var option in control.optionNames) choices.Add(ObjectNames.NicifyVariableName(option));
                     for (int i = 0; i < choices.Count; i++)
@@ -611,7 +606,7 @@ namespace DCFApixels.WhimTex
                     refresh.Add(() => { var p = Find(id); p.transformValue.GetDisplay(Dimensions(), out var location, out var scale, out var angle); position.SetValueWithoutNotify(location); size.SetValueWithoutNotify(scale); rotation.SetValueWithoutNotify(angle); });
                     break;
             }
-            if (!string.IsNullOrEmpty(control?.tooltip))
+            if (!string.IsNullOrEmpty(control.tooltip))
                 for (int i = firstChild; i < rowRoot.childCount; i++) rowRoot[i].tooltip = control.tooltip;
         }
     }

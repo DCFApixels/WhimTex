@@ -26,7 +26,7 @@ void Stack(params DCFApixels.WhimTex.Layer[] layers)
 }
 UnityEngine.Color Pixel()
 {
-    var texture = doc.Compose();
+    var texture = doc.ComposeCanvas();
     try { return texture.GetPixel(4, 4); }
     finally { UnityEngine.Object.DestroyImmediate(texture); }
 }

@@ -52,12 +52,12 @@ public static class AllBelowInputSmoke
         Layer hidden = new ColorFillLayerBehaviour { color = Color.magenta, enabled = false };
         void Normalize() => Call(doc, "NormalizeModel");
         Color[] Preview(Layer layer) => Read((RenderTexture)Call(doc, "RenderLayerPreview", layer, 32));
-        Color[] Cached() => Read((RenderTexture)Call(doc, "RenderCachedPreview", 32, cache, false, null));
-        Color[] Fresh() => Read((RenderTexture)Call(doc, "RenderAllLayers", 32, 32));
+        Color[] Cached() => Read((RenderTexture)Call(doc, "RenderCanvasWithCache", 32, cache, false, null));
+        Color[] Fresh() => Read((RenderTexture)Call(doc, "RenderCanvasAtSize", 32, 32));
         ulong Stamp(Layer layer) { Call(cache, "BeginFrame", doc, null); return (ulong)Call(cache, "Stamp", layer); }
         Texture2D Snapshot()
         {
-            var tex = doc.Compose(); textures.Add(tex); return tex;
+            var tex = doc.ComposeCanvas(); textures.Add(tex); return tex;
         }
         try
         {
@@ -84,7 +84,7 @@ public static class AllBelowInputSmoke
                 var copy = RenderTexture.GetTemporary(32, 32, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
                 Graphics.Blit((RenderTexture)args[1], copy);
                 Same(standalone, Read(copy), effect + " main/standalone parity");
-                Same(standalone, Read((RenderTexture)Call(doc, "RenderThumbnailLayer", effect.Owner, 32, cache)), effect + " thumbnail parity");
+                Same(standalone, Read((RenderTexture)Call(doc, "RenderLayerThumbnail", effect.Owner, 32, cache)), effect + " thumbnail parity");
                 effect.inputMode = EffectInputMode.Specific; effect.TargetLayerId = reference.Id;
                 Same(standalone, Preview(effect), effect + " equals effect on composited snapshot");
                 Same(composite, Fresh(), effect + " main effect blend unchanged");
@@ -175,7 +175,7 @@ public static class AllBelowInputSmoke
             operation.Invoke(null, new object[] { doc, Parse("{\"op\":\"target\",\"layer\":\"" + blur.Id + "\",\"input\":\"AllBelow\"}"), new Dictionary<string, Layer>(), false });
             Check(blur.inputMode == EffectInputMode.AllBelow && blur.TargetLayerId == null, "API sets stack input without target");
             var readClipboard = api.GetMethod("ReadProceduralClipboard", F);
-            var clipboard = readClipboard.Invoke(null, new object[] { "{\"format\":\"whimtex.layers\",\"version\":1,\"layers\":[{\"type\":\"blur\",\"input\":\"AllBelow\"},{\"type\":\"color\"}]}", 32, 32 });
+            var clipboard = readClipboard.Invoke(null, new object[] { "{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"blur\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"AllBelow\"}},{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}}]}", 32, 32 });
             try
             {
                 var pasted = (TextureCompositor)clipboard.GetType().GetField("Document", F).GetValue(clipboard);
@@ -201,17 +201,17 @@ public static class AllBelowInputSmoke
             }
             finally { ((IDisposable)restored).Dispose(); }
             foreach (string invalid in new[] {
-                "{\"type\":\"blur\",\"input\":\"AllBelow\",\"target\":\"x\"}",
-                "{\"type\":\"blur\",\"input\":\"Specific\"}",
-                "{\"type\":\"color\",\"input\":\"AllBelow\"}" })
+                "{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"blur\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"Specific\",\"targetLayerId\":\"missing\"}}]}",
+                "{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"blur\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"Specific\"}}]}",
+                "{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"inputMode\":\"AllBelow\"}}]}" })
             {
                 bool rejected = false;
                 try
                 {
-                    var bad = readClipboard.Invoke(null, new object[] { "{\"format\":\"whimtex.layers\",\"version\":1,\"layers\":[" + invalid + "]}", 32, 32 });
+                    var bad = readClipboard.Invoke(null, new object[] { invalid, 32, 32 });
                     ((IDisposable)bad).Dispose();
                 }
-                catch (TargetInvocationException ex) { rejected = ex.GetBaseException().GetType().Name == "WhimTexApiException"; }
+                catch (TargetInvocationException ex) { rejected = ex.GetBaseException() is WhimTexDocumentException; }
                 Check(rejected, "Invalid clipboard input rejected");
             }
             var bindings = Activator.CreateInstance(typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.WhimTexUI+ValueBindings"), true);

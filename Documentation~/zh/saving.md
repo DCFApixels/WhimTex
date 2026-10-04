@@ -198,10 +198,4 @@ WhimTex 验证文件后可将其保存为**新的 TIFF**，原文档和临时文
 
 ## 迁移旧文档
 
-旧版 `.asset` 文档仍可打开，但不能再保存为该格式。
-在 WhimTex 中使用 **Save As**，或选中旧资源并选择
-**Assets → WhimTex → Migrate Legacy .asset to TIFF…**。
-
-迁移会将可编辑图层和 Drawing 像素复制到新 TIFF，原资源及其 GUID 保持不变。
-材质和 File 图层仍引用旧输出：请按需要指定新 TIFF，并检查其导入设置。
-后续输出设置请在 TIFF 的 Inspector 中调整。
+不再支持 `.asset` 文档。升级前，请在 WhimTex 0.12.5 中打开旧文档，通过 **Save As** 保存为 TIFF。检查图层、Drawing 像素和导入设置，再按需要将新 TIFF 指定给材质和 File 图层。当前版本读取 TIFF/JSON，不读取旧版 `.asset` 文档。

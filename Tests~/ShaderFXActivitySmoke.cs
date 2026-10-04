@@ -20,7 +20,7 @@ public static class ShaderFXActivitySmoke
             doc.layers.Add(layer); layer.modifiers.Add(fx);
             float Render()
             {
-                var image = doc.Compose();
+                var image = doc.ComposeCanvas();
                 try { return image.GetPixel(8,8).r; }
                 finally { UnityEngine.Object.DestroyImmediate(image); }
             }

@@ -93,7 +93,7 @@ for (const key of ['quiltingEdges','quiltingWidth','quiltingFeather','quiltingCo
     const api = read('src/Automation/WhimTexApi.MakeSeamless.cs');
     assert.ok(api.includes(`["${key}"] = layer.${key}`));
     assert.match(api, new RegExp(`\\(value,\\s*"${key}",\\s*layer\\.${key}`));
-    assert.ok(read('Documentation~/AI/LEGACY_LAYERS.md').includes('`'+key+'`'));
+    assert.ok(read('Documentation~/AgentAPI.md').includes('`'+key+'`'));
 }
 assert.match(layer, /Limit\(quiltingFeather,0,100,50\)/);
 assert.doesNotMatch(layer, /Limit\(quiltingFeather[^\n]+\/context.scaleMultiplier/);

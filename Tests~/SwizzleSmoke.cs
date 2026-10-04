@@ -6,7 +6,7 @@ void Check(bool condition, string message) { if (!condition) throw new System.Ex
 bool Near(float a, float b) => UnityEngine.Mathf.Abs(a - b) < .012f;
 UnityEngine.Color Pixel()
 {
-    var texture = document.Compose();
+    var texture = document.ComposeCanvas();
     try { return texture.GetPixel(2, 2); }
     finally { UnityEngine.Object.DestroyImmediate(texture); }
 }

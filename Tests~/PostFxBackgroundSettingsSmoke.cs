@@ -4,8 +4,8 @@ var flags = System.Reflection.BindingFlags.Static | System.Reflection.BindingFla
 var instanceFlags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
 var mode = settings.GetProperty("PostFxBackgroundMode", flags);
 var color = settings.GetProperty("PostFxBackground", flags);
-const string modeKey = "DCFApixels.WhimTex.Preview.PostFxBackgroundMode";
-const string colorKey = "DCFApixels.WhimTex.Preview.PostFxBackground";
+const string modeKey = "DCFApixels.WhimTex.CanvasView.PostFxBackgroundMode";
+const string colorKey = "DCFApixels.WhimTex.CanvasView.PostFxBackground";
 bool hadMode = UnityEditor.EditorPrefs.HasKey(modeKey), hadColor = UnityEditor.EditorPrefs.HasKey(colorKey);
 int savedMode = UnityEditor.EditorPrefs.GetInt(modeKey);
 string savedColor = UnityEditor.EditorPrefs.GetString(colorKey);

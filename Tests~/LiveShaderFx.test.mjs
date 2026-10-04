@@ -48,16 +48,17 @@ let code=body(source,'private static void ApplyLiveFx(')
   .replaceAll('spec["code"]?.Type == JTokenType.String','typeof spec["code"] === "string"')
   .replaceAll('((string)spec["code"]).Length','spec["code"].length')
   .replaceAll('(string)spec["code"]','spec["code"]')
+  .replace(', false, out _)', ')')
   .replace('catch (Exception error)','catch (error)').replaceAll('error.Message','error.message');
 const create=(owner,code,parameters)=>({owner,code,parameters,Parameters:new List(parameters),TextureLayerParameters(){return [];},ApplyAgentDraft(){if(code==='INVALID')throw Error('bad shader');}});
 const parameterLimit=read('src/Automation/WhimTexApi.cs').match(/const int MaxFxParameters = (\d+);/);
 assert.ok(parameterLimit, 'The FX parameter resource limit must exist');
 const MaxFxParameters=Number(parameterLimit[1]);
 assert.equal(MaxFxParameters,128, 'Public live-authoring parameter budget');
-assert.match(body(source,'private static List<ShaderFXParameter> ReadLiveFxParameters('),/array.Count <= MaxFxParameters/);
-const readParameters=v=>{if(v==null)return [];Require(Array.isArray(v)&&v.length<=MaxFxParameters,'parameter limit');return v;};
-const mutate=new Function('Require','Text','Int','Keys','Obj','List','ReadLiveFxParameters','RequireGraphics','ShaderFX','WhimTexApiException','MaxFxParameters',
-  `return (layer,token,owner,created)=>{${code}}`)(Require,Text,Int,Keys,v=>v,List,readParameters,()=>{}, {CreateAgentDraft:create},class extends Error{},MaxFxParameters);
+assert.ok(!source.includes('ReadLiveFxParameters'));
+const metadata={Parse:code=>Array.from({length:code==='LIMIT'?MaxFxParameters:code==='OVER'?MaxFxParameters+1:0},()=>({}))};
+const mutate=new Function('Require','Text','Int','Keys','Obj','List','ShaderFXMetadata','RequireGraphics','ShaderFX','WhimTexApiException','MaxFxParameters',
+  `return (layer,token,owner,created)=>{${code}}`)(Require,Text,Int,Keys,v=>v,List,metadata,()=>{}, {CreateAgentDraft:create},class extends Error{},MaxFxParameters);
 const a={},b={}; const make=()=>({modifiers:new List([a,b]),IsGroup:false});
 let target=make(), created=new List();
 mutate(target,[{code:'A'},{op:'replace',index:0,code:'B'},{op:'remove',index:1}],doc,created);
@@ -68,10 +69,10 @@ assert.equal(target.modifiers[0],a); assert.equal(target.modifiers[2],b); assert
 for(const operations of [
   [{op:'replace',code:'A'}],[{op:'remove',index:7}],[{op:'remove',index:0,code:'A'}],
   [{op:'unknown'}],[{code:''}],[{code:'X'.repeat(65537)}],[{code:'A',typo:1}],Array.from({length:17},()=>({code:'A'})),
-  [{code:'A',parameters:Array.from({length:MaxFxParameters+1},()=>({}))}]
+  [{code:'A',parameters:[]}],[{code:'OVER'}]
 ]) assert.throws(()=>mutate(make(),operations,doc,new List()));
 target=make();
-mutate(target,[{code:'A',parameters:Array.from({length:MaxFxParameters},()=>({}))}],doc,new List());
+mutate(target,[{code:'LIMIT'}],doc,new List());
 assert.equal(target.modifiers.at(-1).Parameters.Count,MaxFxParameters,'The inclusive boundary remains accepted');
 target=make(); assert.throws(()=>mutate(target,[{op:'replace',index:0,code:'INVALID'}],doc,new List()));
 assert.equal(target.modifiers[0],a); // Failed compilation cannot publish the failing effect.

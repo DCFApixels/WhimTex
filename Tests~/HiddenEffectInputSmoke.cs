@@ -62,7 +62,7 @@ try
             Same(before,Render(effect),"Hidden children remain excluded");
         }
         effect.enabled = false;
-        var composite = document.Compose();
+        var composite = document.ComposeCanvas();
         try { foreach(var pixel in composite.GetPixels()) Check(pixel.a<.001f,"Hidden sources stay out of composition"); }
         finally { UnityEngine.Object.DestroyImmediate(composite); }
         effect.enabled = true; target.enabled = true;

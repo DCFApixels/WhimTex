@@ -34,7 +34,7 @@ public static class ShaderFXLocalCoordinatesSmoke
                 }
                 var world=(TextureTransform)typeof(TextureCompositor).GetMethod("GetCanvasTransform",F).Invoke(doc,new object[]{layer});
                 world.ToMatrix(64,64).TryInverse(out var inverse);
-                var texture=doc.Compose();
+                var texture=doc.ComposeCanvas();
                 try
                 {
                     for(int y=0;y<64;y++) for(int x=0;x<64;x++)

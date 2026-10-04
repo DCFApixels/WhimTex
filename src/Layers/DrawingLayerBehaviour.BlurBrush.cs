@@ -6,6 +6,7 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class DrawingLayerBehaviour
     {
+        private static readonly Vector4[] BlurBrushKernel = new Vector4[GaussianKernel.Capacity];
         internal void BlurSegment(Vector2 fromSourceUv, Vector2 toSourceUv, int outputWidth, int outputHeight,
             float size, float hardness, float strength, RenderTexture sample, bool tiled = false)
         {
@@ -53,16 +54,12 @@ namespace DCFApixels.WhimTex
                 blur.SetFloat("_Strength", 1f);
                 blur.SetTexture("_SourceTex", null);
                 float radius = Mathf.Max(1f, size * .5f);
-                blur.SetFloat("_CenterWeight", .2f);
-                blur.SetInt("_PairCount", 5);
-                blur.SetVectorArray("_Kernel", new[]
-                {
-                    new Vector4(Mathf.Max(1f, radius * .15f), .12f, 0f, 0f),
-                    new Vector4(Mathf.Max(2f, radius * .30f), .10f, 0f, 0f),
-                    new Vector4(Mathf.Max(3f, radius * .45f), .08f, 0f, 0f),
-                    new Vector4(Mathf.Max(4f, radius * .60f), .06f, 0f, 0f),
-                    new Vector4(Mathf.Max(5f, radius * .80f), .04f, 0f, 0f)
-                });
+                BlurBrushKernel[0] = new Vector4(Mathf.Max(1f, radius * .15f), .12f, 0f, 0f);
+                BlurBrushKernel[1] = new Vector4(Mathf.Max(2f, radius * .30f), .10f, 0f, 0f);
+                BlurBrushKernel[2] = new Vector4(Mathf.Max(3f, radius * .45f), .08f, 0f, 0f);
+                BlurBrushKernel[3] = new Vector4(Mathf.Max(4f, radius * .60f), .06f, 0f, 0f);
+                BlurBrushKernel[4] = new Vector4(Mathf.Max(5f, radius * .80f), .04f, 0f, 0f);
+                GaussianKernel.Upload(blur, .2f, 5, BlurBrushKernel);
                 blur.SetVector("_Direction", new Vector4(1f / outputWidth, 0f, 0f, 0f));
                 Graphics.Blit(source, scratch, blur, 2);
                 blur.SetVector("_Direction", new Vector4(0f, 1f / outputHeight, 0f, 0f));
@@ -76,7 +73,6 @@ namespace DCFApixels.WhimTex
                 Graphics.Blit(output, surface);
                 paintSurfaceDirty = true;
                 unchecked { paintSurfaceRevision++; }
-                originalImageUrl = null;
             }
             finally
             {

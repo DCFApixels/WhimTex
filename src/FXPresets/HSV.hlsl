@@ -1,7 +1,6 @@
 // @whimtex-effect Color/HSV
 // @control(_Opacity)
 // @group
-// @formerlyserializedas(_Amount)
 // @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.
 // @param float _Hue = 0 [-180 .. 180] // Hue shift in degrees; 0 leaves the hue unchanged.
 // @param float _Saturation = 1 [0 .. ~4] // Saturation multiplier; 0 removes color, 1 is unchanged.

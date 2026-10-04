@@ -53,7 +53,7 @@ report.Append("layers=").Append(doc.layers.Count).Append(" drawingPixels=").Appe
 
 // --- save into the new format ---
 phase = "save";
-var before = doc.Compose();
+var before = doc.ComposeCanvas();
 var beforeSamples = Sample(before);
 UnityEngine.Object.DestroyImmediate(before);
 string path = DCFApixels.WhimTex.WhimTexDocumentFile.Save(doc, dir + "/roundtrip-test");
@@ -104,7 +104,7 @@ Check(ReferenceEquals(embeddedList[0], modifiers[0]), "the effect is one shared 
 
 // --- the composite renders the same ---
 phase = "compose";
-var after = loaded.Compose();
+var after = loaded.ComposeCanvas();
 var afterSamples = Sample(after);
 UnityEngine.Object.DestroyImmediate(after);
 Check(beforeSamples.Count == afterSamples.Count, "composite sample count");

@@ -12,8 +12,7 @@ public static class PortableIncludesSmoke
     {
         const BindingFlags F = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
         var builder = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXSourceBuilder");
-        var expand = builder.GetMethod("ExportPortableIncludes", F);
-        var validate = builder.GetMethod("ValidatePortableSource", F);
+        var expand = builder.GetMethod("ExportIncludes", F);
         string folder = "Packages/com.dcfapixels.whimtex/Tests~/portable-" + Guid.NewGuid().ToString("N");
         Directory.CreateDirectory(folder);
         var doc = ScriptableObject.CreateInstance<TextureCompositor>();
@@ -35,9 +34,9 @@ public static class PortableIncludesSmoke
             Check(code.Contains("return Helper(x) + Helper(x);"), "Function calls must not be inlined");
             Check(!code.Contains("#include"), "Nested includes expanded");
             Check(code.Contains("#ifndef PORTABLE_LEAF"), "Include guards retained");
-            validate.Invoke(null, new object[] { "#define MULTIPLY(x) \\\n ((x) * 2)\n#if 1\n#endif\n" }); checks++;
-            string builtins = "#include \"UnityCG.cginc\"\n#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ThirdParty/FastNoiseLite.hlsl\"\n#include \"Packages/com.dcfapixels.whimtex/src/Shaders/Dither.cginc\"\n";
-            Check(Expand(builtins) == builtins, "Built-ins remain references");
+            Check(Expand("#include \"UnityCG.cginc\"\n").Trim() == "#include \"UnityCG.cginc\"", "Engine include remains a dependency");
+            string macros = "#define MULTIPLY(x) \\\n ((x) * 2)\n#if 1\n#endif\n";
+            Check(Expand(macros).Replace("\r\n", "\n").Trim() == macros.Trim(), "Preprocessor definitions preserved");
             string original = "#include \"" + folder + "/parent.hlsl\"\nfloat4 ApplyFX(float2 uv, float4 color) { return Twice(color.r); }";
             var fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.TextureCompositor), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { doc, original, new List<ShaderFXParameter>() });
             effects.Add(fx);
@@ -48,18 +47,15 @@ public static class PortableIncludesSmoke
             Check(!json.Contains(folder) && json.Contains("float Helper"), "Writer expands original file references");
             using (var data = (IDisposable)typeof(WhimTexApi).GetMethod("ReadProceduralClipboard", F).Invoke(null, new object[] { json, 32, 32 }))
             { data.GetType().GetMethod("Compile", F).Invoke(data, null); checks++; }
-            foreach (string invalid in new[] { "#include \"Assets/private.hlsl\"", "#include FILE", "#include_with_pragmas \"UnityCG.cginc\"", "#pragma target 5.0", "#line 1 \"Assets/private.hlsl\"", "#inc\\\nlude \"Assets/private.hlsl\"", "#include <../file.hlsl>" })
-                Reject(() => validate.Invoke(null, new object[] { invalid }), invalid);
             File.WriteAllText(folder + "/cycle.hlsl", "#include \"cycle.hlsl\"\n");
             Reject(() => Expand("#include \"cycle.hlsl\""), "cycle");
-            Reject(() => Expand("#include \"missing.hlsl\""), "missing include");
-            File.WriteAllText(folder + "/large.hlsl", new string(' ', 65537));
+            Reject(() => Expand("#include \"./missing.hlsl\""), "missing include");
+            File.WriteAllText(folder + "/large.hlsl", new string(' ', 2 * 1024 * 1024 + 1));
             Reject(() => Expand("#include \"large.hlsl\""), "large file");
-            var repeats = new StringBuilder(); for (int i = 0; i < 1000; i++) repeats.AppendLine("#include \"leaf.hlsl\"");
+            var repeats = new StringBuilder(); for (int i = 0; i < 30000; i++) repeats.AppendLine("#include \"leaf.hlsl\"");
             Reject(() => Expand(repeats.ToString()), "aggregate size");
-            for (int i = 0; i < 9; i++) File.WriteAllText(folder + "/depth" + i + ".hlsl", i == 8 ? "float Leaf;" : "#include \"depth" + (i+1) + ".hlsl\"");
+            for (int i = 0; i < 34; i++) File.WriteAllText(folder + "/depth" + i + ".hlsl", i == 33 ? "float Leaf;" : "#include \"depth" + (i+1) + ".hlsl\"");
             Reject(() => Expand("#include \"depth0.hlsl\""), "depth");
-            Reject(() => validate.Invoke(null, new object[] { "//" + new string('界', 22000) }), "UTF-8 size");
             return "PASS: " + checks + " include expansion, preserved calls, built-ins, directives, roundtrip compilation and limits.";
         }
         catch (TargetInvocationException error) { throw error.GetBaseException(); }

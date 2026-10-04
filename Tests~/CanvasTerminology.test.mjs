@@ -14,31 +14,32 @@ const aliases = [
 ];
 for (const [part, oldName, newName] of aliases) {
   const source = read(`src/TextureCompositorWindow.${part}.cs`);
-  assert.match(source, new RegExp(`FormerlySerializedAs\\("${oldName}"\\)\\]\\s*\\[SerializeField\\] private [^;\\n]+\\b${newName}\\b`), oldName);
+  assert.doesNotMatch(source, /FormerlySerializedAs/);
+  assert.match(source, new RegExp(`\\[SerializeField\\] private [^;\\n]+\\b${newName}\\b`), newName);
 }
 for (const [part, oldName, newName] of [
   ['Guides', 'PreviewGuide', 'CanvasGuide'],
   ['GuideCommands', 'PreviewGuideSettingsWindow', 'CanvasGuideSettingsWindow'],
 ]) {
   const source = read(`src/TextureCompositorWindow.${part}.cs`);
-  assert.ok(source.includes(`sourceClassName: "TextureCompositorWindow+${oldName}"`));
+  assert.doesNotMatch(source, /MovedFrom/);
   assert.match(source, new RegExp(`(?:class|struct) ${newName}\\b`));
 }
 const settings = read('src/WhimTexUserSettings.cs');
 for (const suffix of ['CheckerLight', 'CheckerDark', 'InvalidPixels', 'CheckerSize', 'ShowManta', 'PostFxBackground', 'PostFxBackgroundMode'])
-  assert.ok(settings.includes(`"DCFApixels.WhimTex.Preview.${suffix}"`), suffix);
-assert.ok(read('src/TextureCompositorWindow.cs').includes('"DCFApixels.WhimTex.PaintingPreviewScale"'));
+  assert.ok(settings.includes(`"DCFApixels.WhimTex.CanvasView.${suffix}"`), suffix);
+assert.ok(read('src/TextureCompositorWindow.cs').includes('"DCFApixels.WhimTex.Canvas.PaintingScale"'));
 const tools = read('src/TextureCompositorWindow.Tools.cs');
-for (const key of ['PreviewTool', 'PreviewTransformReturnTool'])
+for (const key of ['Canvas.Tool', 'Canvas.TransformReturnTool'])
   assert.ok(tools.includes(`"DCFApixels.WhimTex.${key}"`));
 
 const color = read('src/Editor/WhimTexColorField.cs');
 assert.match(color, /public bool UseCanvasChannels \{ get; set; \}/);
-assert.match(color, /\[Obsolete\("Use UseCanvasChannels instead\."\)\][\s\S]*?public bool UsePreviewChannels \{ get => UseCanvasChannels; set => UseCanvasChannels = value; \}/);
+assert.doesNotMatch(color, /\bUsePreviewChannels\b/);
 const utils = read('src/Utils.cs');
-assert.ok(utils.includes('protected virtual string LayerPreviewTitle => PreviewTitle;'));
-assert.ok(utils.includes('protected virtual bool ImmediateLayerPreviewUpdates => ImmediatePreviewUpdates;'));
-assert.ok(utils.includes('protected void RequestPreview(bool immediate = false) => RequestLayerPreview(immediate);'));
+assert.ok(utils.includes('protected virtual string LayerPreviewTitle => "Layer Preview";'));
+assert.ok(utils.includes('protected virtual bool ImmediateLayerPreviewUpdates => false;'));
+assert.doesNotMatch(utils, /protected (?:virtual string PreviewTitle|virtual bool ImmediatePreviewUpdates|void RequestPreview)\b/);
 assert.ok(utils.includes('{ tooltip = LayerPreviewTitle }'));
 assert.ok(utils.includes('immediate || ImmediateLayerPreviewUpdates'));
 
@@ -59,4 +60,4 @@ assert.ok(utils.includes('public static Material DisplayChannels'));
 assert.ok(read('src/Shaders/DisplayChannels.shader').includes('Shader "Hidden/TextureCompositor/DisplayChannels"'));
 for (const file of ['src/TextureCompositorWindow.Channels.cs', 'src/Editor/LayerPreviewPanel.cs'])
   assert.ok(read(file).includes('new ChannelDragManipulator('), file);
-console.log('Canvas terminology: migration aliases, persistent preference keys, API bridges, selectors and GUIDs passed.');
+console.log('Canvas terminology: canonical fields, preference keys, canonical API without obsolete bridges, selectors and GUIDs passed.');

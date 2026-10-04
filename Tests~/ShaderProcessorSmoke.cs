@@ -14,7 +14,7 @@ void SetPixels(UnityEngine.Color value)
 }
 UnityEngine.Color Render()
 {
-    var output = document.Compose();
+    var output = document.ComposeCanvas();
     try { return output.GetPixel(4, 4); }
     finally { UnityEngine.Object.DestroyImmediate(output); }
 }

@@ -17,7 +17,7 @@ node Tests~/AgentDocumentation.test.mjs
 node Tests~/AgentCommandInventory.test.mjs
 node Tests~/ProceduralClipboard.test.mjs
 node Tests~/MakeSeamless.test.mjs
-node Documentation~/scripts/build-clipboard-schema.mjs --check
+node Documentation~/scripts/build-agent-fields-schema.mjs --check
 node Documentation~/scripts/check-docs.mjs source
 ```
 

@@ -38,7 +38,7 @@ void Use(params DCFApixels.WhimTex.Layer[] values)
 }
 Color Pixel()
 {
-    var rendered = doc.Compose();
+    var rendered = doc.ComposeCanvas();
     try { return rendered.GetPixel(4, 4); }
     finally { UnityEngine.Object.DestroyImmediate(rendered); }
 }
@@ -85,7 +85,7 @@ try
             Near(Pixel(), linear, "Drawing storage round-trip " + range);
         }
         Use(fill);
-        var composed = doc.Compose(); objects.Add(composed);
+        var composed = doc.ComposeCanvas(); objects.Add(composed);
         var ldr = (Texture2D)Static("ToLdr", composed, false); objects.Add(ldr);
         Near(ldr.GetPixel(4, 4), color, "LDR export encoding");
         var png = new Texture2D(2, 2); objects.Add(png);
@@ -129,7 +129,7 @@ try
     Call(hdrDrawing, "PaintPoint", new Vector2(.5625f, .5625f), 8, 8, Call(hdrDrawing, "GetStrokeParameters", false));
     Near(Pixel(), Decode(hdrColor), "Signed HDR brush", .015f);
 
-    // Huge picker intensities must stay colored without changing Drawing/Compose storage formats.
+    // Huge picker intensities must stay colored without changing Drawing/ComposeCanvas storage formats.
     foreach (Color input in new[] { new Color(128, 64, -32, 1), new Color(float.MaxValue, float.MaxValue / 2, 0, 1) })
     {
         Color bounded = (Color)Static("DecodePaintColor", input);
@@ -145,9 +145,9 @@ try
         Near(Pixel(), bounded, "Bright HDR brush is not black", 64f);
         Call(drawing, "SyncSurfaceToTexture"); Call(drawing, "InvalidatePaintSurface");
         Near(Pixel(), bounded, "Bright brush half storage round-trip", 64f);
-        var composed = doc.Compose(); objects.Add(composed);
+        var composed = doc.ComposeCanvas(); objects.Add(composed);
         checks++;
-        if (composed.format != TextureFormat.RGBAHalf) failures.Add("Compose must retain RGBAHalf output");
+        if (composed.format != TextureFormat.RGBAHalf) failures.Add("ComposeCanvas must retain RGBAHalf output");
     }
     Near((Color)Static("DecodePaintColor", hdrColor), Decode(hdrColor), "In-range paint remains unchanged");
 

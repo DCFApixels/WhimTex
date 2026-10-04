@@ -1,10 +1,8 @@
 using System;
 using UnityEngine;
-using UnityEngine.Scripting.APIUpdating;
 
 namespace DCFApixels.WhimTex
 {
-    [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "SharpenLayerBehaviour")]
     [Serializable]
     public sealed class SharpenLayerBehaviour : TargetedLayerBehaviour
     {

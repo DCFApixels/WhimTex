@@ -98,7 +98,6 @@ namespace DCFApixels.WhimTex
                         {
                             drawing.InitializeCanvas(compositor.width, compositor.height);
                             drawing.InvalidatePaintSurface();
-                            drawing.MakeTexturePersistent(compositor);
                             Undo.RegisterCreatedObjectUndo(drawing.StoredTexture, "Add Layers Inside Groups");
                         }
                         catch

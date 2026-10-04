@@ -96,7 +96,7 @@ try
 
     // Inline HLSL is compiled by these opt-in calls, never as a project compilation.
     var shaderJob=Begin();
-    string shaderSpec="\"layer\":{\"type\":\"shaderProcessor\",\"fx\":[{\"code\":\"float4 ApplyFX(float2 uv, float4 color) { color.rgb *= _Gain; return color; }\",\"parameters\":[{\"name\":\"_Gain\",\"type\":\"Float\",\"value\":1.25}]}]}";
+    string shaderSpec="\"layer\":{\"type\":\"shaderProcessor\",\"fx\":[{\"code\":\"// @param float _Gain = 1.25\\nfloat4 ApplyFX(float2 uv, float4 color) { color.rgb *= _Gain; return color; }\"}]}";
     string beforeShader=UnityEditor.EditorJsonUtility.ToJson(document);
     int shaderUndo=UnityEditor.Undo.GetCurrentGroup();
     Call("\"op\":\"preview\","+jobFields(shaderJob)+","+shaderSpec+",\"maxSize\":8");

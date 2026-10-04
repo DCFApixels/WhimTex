@@ -21,7 +21,7 @@ public static class LightingBevelSmoke
         ShaderFXParameter P(ShaderFX fx,string name) => ((List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters",F).GetValue(fx)).Find(p=>p.name==name);
         Color[] Render()
         {
-            var image=doc.Compose();
+            var image=doc.ComposeCanvas();
             try {var pixels=image.GetPixels(); foreach(var p in pixels)Check(!float.IsNaN(p.r)&&!float.IsInfinity(p.r),"finite output");return pixels;}
             finally{UnityEngine.Object.DestroyImmediate(image);}
         }

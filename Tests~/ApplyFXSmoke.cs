@@ -39,7 +39,7 @@ public static class ApplyFXSmoke
         }
         Color[] Pixels(TextureCompositor doc)
         {
-            var tex = doc.Compose();
+            var tex = doc.ComposeCanvas();
             try { return tex.GetPixels(); }
             finally { UnityEngine.Object.DestroyImmediate(tex); }
         }

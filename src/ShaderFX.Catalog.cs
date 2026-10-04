@@ -13,7 +13,6 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private HashSet<string> catalogDependencies;
         [NonSerialized] private bool catalogReloadPending;
         internal bool IsCatalogLinked => !string.IsNullOrEmpty(catalogGuid);
-        internal bool UsesCodeParameters => IsCatalogLinked || ShaderFXMetadata.HasDeclarations(code) || parameters.Exists(p => p != null && p.declaredInCode);
         internal string CatalogPath => IsCatalogLinked ? AssetDatabase.GUIDToAssetPath(catalogGuid) : null;
 
         private void SetCatalogDependencies(HashSet<string> dependencies)
@@ -49,16 +48,9 @@ namespace DCFApixels.WhimTex
 
         internal void PrepareParameterDeclarations()
         {
-            if (UsesCodeParameters)
-            {
-                var next = ShaderFXMetadata.Parse(code, IsCatalogLinked, out _);
-                ShaderFXMetadata.PreserveValues(next, parameters);
-                // Explicit legacy/API parameters may initialize declarations, but may not silently disappear.
-                foreach (var old in parameters)
-                    if (old != null && !old.declaredInCode && !next.Exists(p => ShaderFXMetadata.MatchesNameOrFormerName(p, old.name, old.type)))
-                        throw new FormatException("Code declarations must include the existing parameter: " + old.name);
-                parameters = next;
-            }
+            var next = ShaderFXMetadata.Parse(code, IsCatalogLinked, out _);
+            ShaderFXMetadata.PreserveValues(next, parameters);
+            parameters = next;
             var ids = new HashSet<string>(StringComparer.Ordinal);
             foreach (var p in parameters)
             {

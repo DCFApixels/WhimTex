@@ -21,7 +21,7 @@ public static class ProceduralClipboardSmoke
     static void Render(TextureCompositor document)
     {
         RenderTexture previous = RenderTexture.active;
-        var rendered = (RenderTexture)typeof(TextureCompositor).GetMethod("RenderPreview", Hidden).Invoke(document, new object[] { 64 });
+        var rendered = (RenderTexture)typeof(TextureCompositor).GetMethod("RenderCanvas", Hidden).Invoke(document, new object[] { 64 });
         try { Check(rendered != null && rendered.width > 0, "Preview render failed."); Check(RenderTexture.active == previous, "Render target leaked."); }
         finally { if (rendered != null) RenderTexture.ReleaseTemporary(rendered); }
     }
@@ -43,79 +43,30 @@ public static class ProceduralClipboardSmoke
             Check(Document(data).layers.Count > 0, file + " did not create layers.");
             Render(Document(data));
         }
-        const string head = "{\"format\":\"whimtex.layers\",\"version\":1,\"layers\":";
-        foreach (string mode in new[] { "Point", "Bilinear", "Trilinear" })
-        {
-            using var filtered = (IDisposable)Build(head + "[{\"type\":\"color\"}],\"canvas\":{\"width\":64,\"height\":96,\"filter\":\"" + mode + "\"}}");
-            Check(filtered.GetType().GetField("CanvasFilter", Hidden).GetValue(filtered).ToString() == mode, "Canvas filter parsing failed.");
-        }
-        Reject(head + "[{\"type\":\"color\"}],\"canvas\":{\"width\":64,\"height\":96,\"filter\":\"Source\"}}");
-        Reject(head + "[{\"type\":\"color\"}],\"canvas\":{\"width\":64,\"height\":96,\"filter\":null}}");
-        Reject(head + "[]}");
-        // A Drawing layer is either empty or points at a link that is fetched before the paste.
-        Reject(head + "[{\"type\":\"drawing\",\"url\":\"ftp://example.com/a.png\"}]}");
-        Reject(head + "[{\"type\":\"drawing\",\"url\":\"/local/a.png\"}]}");
-        Reject(head + "[{\"type\":\"drawing\",\"url\":\"not a link\"}]}");
-        Reject(head + "[{\"type\":\"color\",\"url\":\"https://example.com/a.png\"}]}");
-        using (var scaled = (IDisposable)Build(head + "[{\"type\":\"drawing\",\"url\":\"https://example.com/a.png\",\"transform\":{\"scale\":[2,2]}}]}"))
-            Check(Document(scaled).layers[0].transform.scale.x == 2, "Explicit linked-image scale is preserved.");
-        using (var empty = (IDisposable)Build(head + "[{\"type\":\"drawing\"}]}"))
-            Check(Document(empty).layers.Count == 1, "An empty Drawing layer is allowed.");
-        using (var linked = (IDisposable)Build(head + "[{\"type\":\"drawing\",\"url\":\"https://example.com/a.png\"},{\"type\":\"color\"}]}"))
-        {
-            var images = (IList)linked.GetType().GetField("Images", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(linked);
-            Check(images != null && images.Count == 1, "A Drawing layer link is queued for download.");
-            Check(Document(linked).layers.Count == 2, "The link keeps its place in the tree.");
-        }
-        string LinkLayers(int count)
-        {
-            var text = new System.Text.StringBuilder(head + "[");
-            for (int i = 0; i < count; i++)
-            {
-                if (i > 0) text.Append(',');
-                text.Append("{\"type\":\"drawing\",\"url\":\"https://example.com/a.png\"}");
-            }
-            return text.Append("]}").ToString();
-        }
-        Reject(LinkLayers(17));
-        using (var sixteen = (IDisposable)Build(LinkLayers(16)))
-            Check(((IList)sixteen.GetType().GetField("Images", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(sixteen)).Count == 16,
-                "Sixteen linked images are accepted.");
-        Reject(head + "[{\"type\":\"file\",\"properties\":{\"source\":\"Assets/x.png\"}}]}");
-        Reject(head + "[{\"type\":\"color\",\"properties\":{\"opacity\":2}}]}");
-        Reject(head + "[{\"type\":\"color\",\"properties\":{\"unknown\":1}}]}");
-        Reject(head + "[{\"type\":\"noise\",\"properties\":{\"noise\":{\"noiseType\":\"Fake\"}}}]}");
-        Reject(head + "[{\"type\":\"blur\",\"target\":\"missing\"}]}");
-        Reject(head + "[{\"type\":\"blur\",\"id\":\"self\",\"target\":\"self\"}]}");
-        Reject(head + "[{\"type\":\"blur\",\"id\":\"a\",\"target\":\"b\"},{\"type\":\"blur\",\"id\":\"b\",\"target\":\"a\"}]}");
-        Reject(head + "[{\"type\":\"group\",\"id\":\"g\",\"children\":[{\"type\":\"blur\",\"target\":\"g\"}]}]}");
-        Reject(head + "[{\"type\":\"color\",\"id\":\"a\"},{\"type\":\"color\",\"id\":\"a\"}]}");
-        Reject(head + "[{\"type\":\"color\",\"children\":[]}]}");
-        Reject(head + "[{\"type\":\"color\",\"transform\":{\"scale\":[0,1]}}]}");
-        Reject(head + "[{\"type\":\"color\",\"type\":\"noise\"}]}");
-        Reject(head + "[{\"type\":\"color\"}],\"canvas\":{\"width\":16384,\"height\":16384}}");
-        Reject(head + "[{\"type\":\"color\"}],\"canvas\":{\"width\":512}}");
-        Reject(head + "[{\"type\":\"shaderProcessor\",\"fx\":[{\"code\":\"#include something\"}]}]}");
-        Reject(head + "[{\"type\":\"shaderProcessor\",\"fx\":[{\"code\":\"// @param texture2D _Tex = guid:abc\"}]}]}");
-        Reject(head + "[{\"type\":\"color\"}],\"version\":2}");
-        Reject(head + "[" + string.Join(",", new string[129]).Replace(",", "{\"type\":\"color\"},") + "{\"type\":\"color\"}]}");
-        Reject(new string(' ', 1024 * 1024 + 1));
-        string nested = "{\"type\":\"color\"}";
-        for (int i = 0; i < 9; i++) nested = "{\"type\":\"group\",\"children\":[" + nested + "]}";
-        Reject(head + "[" + nested + "]}");
-        using (var fenced = (IDisposable)Build("```json\n" + head + "[{\"type\":\"color\"}]}\n```"))
+        const string plain = "{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}}]}";
+        Check((bool)typeof(WhimTexApi).GetMethod("IsProceduralClipboard", BindingFlags.NonPublic | BindingFlags.Static)
+            .Invoke(null, new object[] { "{'format':'whimtex.layers','version':1,'layers':[{'type':'color'}]}" }),
+            "Retired JSON must route to rejection, not fall back to a stale native layer copy.");
+        Reject("{\"format\":\"whimtex.layers\",\"version\":1,\"layers\":[{\"type\":\"color\"}]}");
+        Reject(plain.Replace("whimtex.document", "unknown.document"));
+        Reject(plain.Replace("\"version\":1", "\"version\":2"));
+        Reject(plain.Replace("\"ColorFillLayerBehaviour\"", "\"UnknownLayerBehaviour\""));
+        Reject(plain.Replace("\"id\":\"color\"", "\"id\":\"\""));
+        Reject(plain.Replace("\"id\":\"color\"", "\"id\":\"color\",\"unexpected\":1"));
+        Reject(plain.Replace("\"version\":1", "\"version\":1,\"version\":1"));
+        Reject("{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"blur\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"Specific\",\"targetLayerId\":\"missing\"}}]}");
+        Reject("{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"blur\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"Specific\",\"targetLayerId\":\"blur\"}}]}");
+        Reject("{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"a\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"Specific\",\"targetLayerId\":\"b\"}},{\"id\":\"b\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\",\"inputMode\":\"Specific\",\"targetLayerId\":\"a\"}}]}");
+        Reject("{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}},{\"id\":\"color\",\"behaviour\":{\"$type\":\"NoiseLayerBehaviour\"}}]}");
+        Reject("{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"drawing\",\"behaviour\":{\"$type\":\"DrawingLayerBehaviour\"},\"url\":\"https://example.com/a.png\"}]}");
+        using (var fenced = (IDisposable)Build("```json\n" + plain + "\n```"))
             Check(Document(fenced).layers.Count == 1, "Fenced JSON failed.");
-        foreach (string type in new[] { "outline", "sdf", "normalMap", "blur", "makeSeamless" })
+        using (var bom = (IDisposable)Build("\uFEFF" + plain))
+            Check(Document(bom).layers.Count == 1, "BOM JSON failed.");
+        using (var inherited = (IDisposable)Build(plain))
         {
-            using var effect = (IDisposable)Build(head + "[{\"type\":\"" + type + "\",\"target\":\"base\"},{\"type\":\"shape\",\"id\":\"base\"}]}");
-            Render(Document(effect));
-        }
-        using (var badShader = (IDisposable)Build(head + "[{\"type\":\"shaderProcessor\",\"fx\":[{\"code\":\"float4 ApplyFX(float2 uv, float4 color) { return missing_symbol; }\"}]}]}"))
-        {
-            Compile(badShader);
-            var warnings = (IList)badShader.GetType().GetField("Warnings", Hidden).GetValue(badShader);
-            Check(warnings.Count == 1, "Invalid shader must produce a recoverable warning.");
-            Render(Document(badShader));
+            Check(Document(inherited).width == 128 && Document(inherited).height == 128, "Omitted dimensions inherit destination.");
+            Check(!(bool)inherited.GetType().GetField("HasCanvas", Hidden).GetValue(inherited), "Omitted size must not prompt.");
         }
 
         var destination = ScriptableObject.CreateInstance<TextureCompositor>();
@@ -181,22 +132,22 @@ public static class ProceduralClipboardSmoke
             var document = (TextureCompositor)typeof(TextureCompositorWindow).GetField("compositor", Hidden).GetValue(window);
             int oldWidth = document.width, oldHeight = document.height;
             FilterMode oldFilter = document.outputFilter;
-            using var data = (IDisposable)Build("{\"format\":\"whimtex.layers\",\"version\":1,\"canvas\":{\"width\":64,\"height\":96},\"layers\":[{\"type\":\"color\"}]}");
+            using var data = (IDisposable)Build("{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}}],\"document\":{\"width\":64,\"height\":96,\"outputFilter\":\"Point\"}}");
             var method = typeof(TextureCompositorWindow).GetMethod("PasteCopiedLayers", Hidden);
-            method.Invoke(window, new object[] { Document(data), true, FilterMode.Point });
-            Check(document.outputFilter == FilterMode.Point, "Canvas filter paste failed.");
+            method.Invoke(window, new object[] { Document(data), true });
+            Check(document.outputFilter == oldFilter, "JSON paste must preserve destination output filter.");
             Check(document.width == 64 && document.height == 96 && document.layers.Count == 1, "Window resize paste failed.");
             Undo.PerformUndo();
             Check(document.outputFilter == oldFilter, "Canvas filter Undo failed.");
             Check(document.width == oldWidth && document.height == oldHeight && document.layers.Count == 0, "Window paste Undo failed.");
             Undo.PerformRedo();
-            Check(document.outputFilter == FilterMode.Point, "Canvas filter Redo failed.");
+            Check(document.outputFilter == oldFilter, "Redo changed destination filter.");
             Check(document.width == 64 && document.layers.Count == 1, "Window paste Redo failed.");
             Document(data).width = 32;
-            method.Invoke(window, new object[] { Document(data), false, null });
-            Check(document.outputFilter == FilterMode.Point, "Omitted filter changed canvas.");
-            method.Invoke(window, new object[] { Document(data), false, FilterMode.Trilinear });
-            Check(document.width == 64 && document.outputFilter == FilterMode.Trilinear, "Filter without resizing failed.");
+            method.Invoke(window, new object[] { Document(data), false });
+            Check(document.outputFilter == oldFilter, "Keep-size paste changed filter.");
+            method.Invoke(window, new object[] { Document(data), false });
+            Check(document.width == 64 && document.outputFilter == oldFilter, "Keep-size paste changed document context.");
             Undo.PerformUndo();
             Check(document.width == 64 && document.layers.Count == 2, "Keep-size paste failed.");
             Undo.ClearUndo(document);
@@ -211,7 +162,7 @@ public static class ProceduralClipboardSmoke
         linkedDestination.width = 64; linkedDestination.height = 64;
         try
         {
-            using (var data = (IDisposable)Build(head + "[{\"type\":\"drawing\",\"url\":\"https://example.com/a.png\"}]}"))
+            using (var data = (IDisposable)Build("{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"drawing\",\"behaviour\":{\"$type\":\"DrawingLayerBehaviour\"}}]}"))
             {
                 Layer linked = Document(data).layers[0];
                 var image = new Texture2D(96, 48, TextureFormat.RGBA32, false, false) { hideFlags = HideFlags.HideAndDontSave };

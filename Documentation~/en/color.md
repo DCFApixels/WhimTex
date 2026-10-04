@@ -170,6 +170,9 @@ Deleted presets can be recovered from **Gradients/.trash**. Built-in Unity gradi
 [gradient JSON value](../AI/README.md#standalone-gradient-json), then right-click the gradient field
 or the gradient strip in its editor and choose **Paste**.
 
+Old gradient JSON is no longer accepted. Copy it again in 0.12.5 before upgrading;
+presets saved by 0.12.5 remain supported.
+
 ### Shape the gradient on canvas
 
 Select a Gradient layer to activate **Gradient Handles**, the contextual hand tool. Square handles change its geometry;
@@ -186,7 +189,7 @@ New Color Fill, Gradient and Noise layers use **Unbounded** tiling by default.
 
 ### How Rounded smoothing behaves
 
-**Rounded** is the built-in algorithm for both new and old gradients. There is no Transition setting; older artwork may look different without needing migration or resaving.
+**Rounded** is built in; there is no Transition setting.
 **Rounded** prioritizes a smooth shoulder where the gradient meets a constant color.
 It spreads the compensating speed change up to the adjacent midpoint, reducing visible shoulders within the fade.
 Use **Perceptual** and **100% Smoothness** for the rounded color progression.

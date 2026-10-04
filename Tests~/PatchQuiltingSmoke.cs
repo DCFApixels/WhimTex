@@ -224,7 +224,7 @@ public static class PatchQuiltingSmoke
         object Entry()=>entries[effect.Id+"/quilting"];
         Color[] Render(bool cached)
         {
-            var rt=(RenderTexture)(cached?Call(doc,"RenderCachedPreview",64,cache,false,null):Call(doc,"RenderAllLayers",64,48));
+            var rt=(RenderTexture)(cached?Call(doc,"RenderCanvasWithCache",64,cache,false,null):Call(doc,"RenderCanvasAtSize",64,48));
             try{return Read(rt);}finally{RenderTexture.ReleaseTemporary(rt);}
         }
         try
@@ -280,30 +280,30 @@ public static class PatchQuiltingSmoke
         try
         {
             Call(doc,"NormalizeModel");effect.TargetLayerId=source.Id;
-            var expected=Render("RenderAllLayers",64,48);
-            Same(Render("RenderPreview",64),expected,"Composite");
+            var expected=Render("RenderCanvasAtSize",64,48);
+            Same(Render("RenderCanvas",64),expected,"Composite");
             Same(Render("RenderLayerPreview",effect.Owner,64),expected,"Target layer");
-            Same(Render("RenderThumbnailLayer",effect.Owner,64,cache),expected,"Thumbnail");
-            Same(Render("RenderCachedPreview",64,cache,false,null),expected,"Cache");
+            Same(Render("RenderLayerThumbnail",effect.Owner,64,cache),expected,"Thumbnail");
+            Same(Render("RenderCanvasWithCache",64,cache,false,null),expected,"Cache");
             int hits=(int)cache.GetType().GetProperty("Hits",F).GetValue(cache);
-            Same(Render("RenderCachedPreview",64,cache,false,null),expected,"Cached reuse");
+            Same(Render("RenderCanvasWithCache",64,cache,false,null),expected,"Cached reuse");
             Check((int)cache.GetType().GetProperty("Hits",F).GetValue(cache)>hits,"Cache hits");
             var changed=(Color[])input.Clone();for(int i=0;i<changed.Length;i++)changed[i].r*=.6f;
             t.SetPixels(changed);t.Apply();
-            Same(Render("RenderCachedPreview",64,cache,false,null),Render("RenderAllLayers",64,48),"Source change invalidates cache");
+            Same(Render("RenderCanvasWithCache",64,cache,false,null),Render("RenderCanvasAtSize",64,48),"Source change invalidates cache");
             t.SetPixels(input);t.Apply();
             foreach(var edge in new[]{0,1,2,3})foreach(bool correction in new[]{false,true})
             {
                 effect.quiltingEdges=(MakeSeamlessLayerBehaviour.PoissonEdges)edge;effect.quiltingSeamCorrection=correction;
                 effect.quiltingSeed+=13;effect.quiltingChannels=MakeSeamlessLayerBehaviour.QuiltingChannels.Independent;
                 effect.quiltingWidth=.35f;effect.quiltingFeather=7;effect.quiltingPoissonEdges=(MakeSeamlessLayerBehaviour.PoissonEdges)edge;
-                Same(Render("RenderCachedPreview",64,cache,false,null),Render("RenderAllLayers",64,48),"Settings invalidate cache");
+                Same(Render("RenderCanvasWithCache",64,cache,false,null),Render("RenderCanvasAtSize",64,48),"Settings invalidate cache");
             }
             effect.quiltingSeamCorrection=false;
             effect.quiltingEdges=MakeSeamlessLayerBehaviour.PoissonEdges.AllEdges;
-            expected=Render("RenderAllLayers",64,48);
+            expected=Render("RenderCanvasAtSize",64,48);
             var group=new GroupLayerBehaviour{compositing=GroupCompositing.Isolated};doc.layers.Remove(source.Owner);group.layers.Add(source);doc.layers.Add(group);effect.TargetLayerId=group.Id;
-            Call(doc,"NormalizeModel");Same(Render("RenderAllLayers",64,48),expected,"Group target");
+            Call(doc,"NormalizeModel");Same(Render("RenderCanvasAtSize",64,48),expected,"Group target");
             effect.clippingMask=true;Same(Render("RenderLayerPreview",effect.Owner,64),expected,"Clipped target");effect.clippingMask=false;
             for(int mask=0;mask<16;mask++)
             {

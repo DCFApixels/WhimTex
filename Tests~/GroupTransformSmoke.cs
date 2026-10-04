@@ -44,9 +44,9 @@ public static class GroupTransformSmoke
                 foreach(var mode in new[]{GroupCompositing.PassThrough,GroupCompositing.Isolated})
                 {
                     outer.compositing=mode;
-                    var nested=doc.Compose();
+                    var nested=doc.ComposeCanvas();
                     doc.layers.Clear(); doc.layers.Add(leaf); leaf.transform=world;
-                    var flat=doc.Compose();
+                    var flat=doc.ComposeCanvas();
                     try
                     {
                         var a=nested.GetPixels(); var b=flat.GetPixels();

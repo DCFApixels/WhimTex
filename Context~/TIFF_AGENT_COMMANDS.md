@@ -5,8 +5,7 @@
 содержимое слоя. Batch также читает/сохраняет JSON. Headless Live пока остаётся TIFF-пайплайном.
 Контракт: [JSON_FORMAT](../Documentation~/JSON_FORMAT.md).
 
-TIFF — основной формат документа с 0.11.0. Legacy `.asset` доступен только для чтения,
-диагностики, dry-run и явной миграции. Создание и сохранение `.asset` запрещены.
+TIFF — основной формат документа с 0.11.0. Документы `.asset` не поддерживаются; до обновления преобразуйте их в TIFF через WhimTex 0.12.5.
 Это карта команд, а не отдельная версия протокола. Полный контракт и лимиты находятся в
 [AgentAPI](../Documentation~/AgentAPI.md) и [LiveAgentAPI](../Documentation~/LiveAgentAPI.md).
 
@@ -42,7 +41,7 @@ TIFF — основной формат документа с 0.11.0. Legacy `.as
 Для существующего TIFF или JSON сначала `whimtex_document_inspect`, затем его `document.revision`
 в `expectedRevision`. При создании поле `expectedRevision` отсутствует, а не равно `null`.
 `dryRun:true` проверяет операции на копии без записи; это не проверка GPU/нового HLSL/диска.
-Legacy `.asset` можно передать в Batch только с `create:false`, `dryRun:true`.
+Пути документов `.asset` отвергаются с `invalid_path`, в том числе для чтения и dry-run.
 
 `save:false` не сохраняет рабочую сессию и не меняет окно: для этого нужны Headless или Assistant.
 Пустой batch с `save:true` пересохраняет дисковый документ; это не способ сохранить изменения
@@ -91,13 +90,7 @@ Assistant или восстановить потерянный кандидат 
 | `whimtex_document_recover` | Проверка staged TIFF и восстановление в новый destination без перезаписи исходника. |
 | `whimtex_document_export` | Плоский PNG/JPEG/TGA/EXR в `Temp/WhimTex`. |
 | `whimtex_image_import` | Копирование локального PNG/JPEG в новый asset, не создание документа. |
-| `whimtex_document_migrate` | Legacy `.asset` → новый TIFF; оригинал и ссылки на него не меняются. |
 
-Миграция принимает прямые аргументы команды, не JSON Batch:
-
-```powershell
-unity command whimtex_document_migrate --sourcePath 'Assets/Legacy/Stone.asset' --destinationPath 'Assets/Art/Stone.tiff' --overwrite false --project-path 'D:/Projects/MyGame' --format json
-```
 
 Настройки импорта принадлежат штатному `TextureImporter` и `.meta`, не модели документа.
 Ни экспорт, ни диагностический PNG, ни GPU Live Update не доказывают сохранение редактируемого TIFF.

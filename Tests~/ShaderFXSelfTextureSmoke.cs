@@ -20,7 +20,7 @@ public static class ShaderFXSelfTextureSmoke
         void Check(bool ok,string message){if(!ok)throw new Exception(message);checks++;}
         void Pixel(Color expected)
         {
-            var image=doc.Compose();
+            var image=doc.ComposeCanvas();
             try { var p=image.GetPixel(8,8); Check(Mathf.Abs(p.r-expected.r)<.005 && Mathf.Abs(p.g-expected.g)<.005 && Mathf.Abs(p.b-expected.b)<.005 && Mathf.Abs(p.a-expected.a)<.005,"Pixel "+p+" expected "+expected); }
             finally { UnityEngine.Object.DestroyImmediate(image); }
         }

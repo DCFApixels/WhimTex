@@ -31,7 +31,8 @@ public static class GradientPresetsSmoke
             string json = (string)Call("WhimTexGradientClipboard", "Write", g);
             Check(g.Equals(Read(json)), "Roundtrip " + mode);
             Check(g.Equals(Read("```json\n" + json + "\n```")), "Fenced JSON");
-            Check(g.Equals(Read("WhimTex.Gradient/1\n" + JsonUtility.ToJson(g))), "Legacy Copy");
+            Check(g.Equals(Read("```\n" + json + "\n```")), "Plain fence");
+            Check(g.Equals(Read("\uFEFF" + json)), "BOM");
         }
         var copy = Read((string)Call("WhimTexGradientClipboard", "Write", g));
         copy.SetMidpoint(false, 0, .8f);
@@ -42,7 +43,12 @@ public static class GradientPresetsSmoke
         foreach (string invalid in new[] {"{}", "[]", "{\"colors\":[],\"colors\":[]}",
             "{\"colors\":" + stops + ",\"unknown\":1}",
             "{\"format\":\"whimtex.gradient\",\"version\":2,\"gradient\":{\"colors\":" + stops + "}}",
-            "[{\"time\":0,\"color\":[99999,0,0,1]}]", stops + " trailing"})
+            "[{\"time\":0,\"color\":[99999,0,0,1]}]", stops + " trailing",
+            "WhimTex.Gradient/1\n" + JsonUtility.ToJson(g), JsonUtility.ToJson(g),
+            "{\"colors\":" + stops + ",\"mode\":5}",
+            "{\"colors\":" + stops + ",\"wrapMode\":1}",
+            "{\"colors\":" + stops + ",\"colorSpace\":0}",
+            "{\"colors\":" + stops + ",\"transition\":\"Rounded\"}"})
         {
             object[] args = { invalid, null };
             Check(!(bool)Call("WhimTexGradientClipboard", "TryRead", args), "Accepted invalid JSON: " + invalid);
@@ -81,6 +87,6 @@ public static class GradientPresetsSmoke
             if (existed) EditorPrefs.SetString(pref, previous); else EditorPrefs.DeleteKey(pref);
             if (Directory.Exists(temporary)) Directory.Delete(temporary, true);
         }
-        return "PASS: all interpolation modes, HDR, alpha/midpoints, independent copy, legacy/fenced/bare JSON, invalid JSON, GUID presets, recoverable removal; user preferences restored.";
+        return "PASS: all interpolation modes, HDR, alpha/midpoints, independent copy, modern/fenced/bare JSON, rejected legacy inputs, invalid JSON, GUID presets, recoverable removal; user preferences restored.";
     }
 }

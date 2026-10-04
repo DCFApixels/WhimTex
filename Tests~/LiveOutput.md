@@ -1,16 +1,10 @@
 # Live output checks
 
-Run `LiveOutputSmoke.cs` as an opt-in eval body only after the user has compiled the package.
-It requires a graphics device and creates temporary textures only; no scenes, materials or assets
-are modified. Run in both Gamma and Linear projects when available.
-
-The smoke checks HDR and LDR output, transparency, different preview dimensions, mipmapped targets,
-unchanged texture identity and CPU pixels, restoration, repeated disposal and a subsequent saved image.
-
-GPU publishing must never call ReadPixels, SetPixels, Apply, SetDirty or AssetDatabase.SaveAssets.
-Its source is a RenderTexture, so CopyTexture updates the destination GPU data only. The retained CPU
-pixels remain the serialization source. Stop intentionally uploads that unchanged CPU image with Apply;
-it must not generate mipmaps or discard CPU data. Save stops publishing before replacing serialized pixels.
+Run `DocumentLiveUpdateSmoke.cs` with Unity Pipeline `eval_file` after compilation.
+It creates only a unique test-owned TIFF and checks native importer settings, GPU publication,
+saved texture identity and restoration. `DocumentReliabilitySmoke.cs` adds save/HDR/reload
+recovery checks. `OutputDependenciesSmoke.cs` tests notification routing, cycle guards and
+lazy cache invalidation on temporary models; it does not test a Live Update backend.
 
 ## Editor integration
 
@@ -26,9 +20,9 @@ Use a disposable test document and material; do not modify a production prefab f
 5. Close with Discard, switch documents, reset window settings, or manually reload scripts. Verify restoration
    and unchanged references. Reopen/restart Unity and verify the saved texture remains assigned.
 6. Resize the canvas without saving: the result fits the old output dimensions. Save: the existing texture
-   gets the new dimensions without changing GUID/fileID. Check the Output Sprite too.
+   gets the new dimensions without changing GUID/fileID. Check native imported sprites too.
 7. Save As creates a new asset; the old material reference and old saved image remain unchanged.
-8. Reimport the compositor while Live Update is enabled. Its output should resume updating without
-   replacing the material reference. Delete a disposable compositor while open: Live Update becomes unavailable.
+8. Reimport the TIFF while Live Update is enabled. Its output should resume updating without
+   replacing the material reference. Delete a disposable TIFF while open: Live Update becomes unavailable.
 9. Force a save failure or cancel Save As. No material reference may change, and disabling/closing must still
    restore the last successfully saved output.

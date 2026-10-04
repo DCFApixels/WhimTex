@@ -5,7 +5,9 @@ const read = p => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 // New controls are not a restyle of the existing cascade.
 // Canonicalize only the approved terminology migration. Values, specificity and
 // conflicting declaration order still compare against a frozen baseline.
-// Baseline: committed USS at e8070f0 (new inspector, Healing, scrollable tools,
+// Baseline: committed USS at e8070f0, with only unused legacy Output rules removed
+// (shared Layer Preview selectors and Brush preset styles are retained).
+// Original (new inspector, Healing, scrollable tools,
 // seamless controls and FX groups reviewed separately from the glossary rename).
 const terminology = [
     ['.whimtex-canvas-view-', '.whimtex-preview-'],

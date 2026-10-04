@@ -34,8 +34,10 @@ public static class DocumentReliabilitySmoke
     }
     static byte[] Encode(object value, WhimTexDocumentContainer container) => (byte[])Call(Serializer, null, "Serialize", value, container);
     // Optional C# arguments are not optional when selecting a method through reflection.
-    static object Decode(byte[] bytes, WhimTexDocumentContainer container, Type type) =>
+    static object ReadResult(byte[] bytes, WhimTexDocumentContainer container, Type type) =>
         Call(Serializer, null, "Deserialize", bytes, container, type, null, false);
+    static object Property(object result, string name) => result.GetType().GetProperty(name, Any).GetValue(result);
+    static object Decode(byte[] bytes, WhimTexDocumentContainer container, Type type) => Property(ReadResult(bytes, container, type), "Model");
     static bool Live(TextureCompositor doc) => (bool)Call(Session, null, "IsLiveFor", doc);
     static Color ReadGpu(Texture texture)
     {
@@ -68,7 +70,7 @@ public static class DocumentReliabilitySmoke
         {
             using (var container = new WhimTexDocumentContainer())
             {
-                Check((Type)Call(Serializer, null, "ResolveType", "DCFApixels.SpriteEditor.DrawingLayerBehaviour") == typeof(DrawingLayerBehaviour), "MovedFrom namespace/class metadata");
+                Check((Type)Call(Serializer, null, "ResolveType", typeof(DrawingLayerBehaviour).FullName) == typeof(DrawingLayerBehaviour), "canonical file type name");
                 container.Set("document", new byte[500]); container.Set("carrier", new byte[] { 1 });
                 byte[] payload = container.Serialize();
                 Check(WhimTexDocumentContainer.TryReadBlock(payload, "carrier", out byte[] flags, out _) && flags.SequenceEqual(new byte[] { 1 }), "non-first directory block");
@@ -82,7 +84,7 @@ public static class DocumentReliabilitySmoke
             }
 
             var doc = Document(new Color(.18f, .3f, .5f, .25f));
-            var reference = doc.Compose(); Owned.Add(reference);
+            var reference = doc.ComposeCanvas(); Owned.Add(reference);
             Color expected = ReadGpu(reference);
             string path = WhimTexDocumentFile.Save(doc, folder + "/A.tiff");
             string guid = AssetDatabase.AssetPathToGUID(path);
@@ -139,7 +141,7 @@ public static class DocumentReliabilitySmoke
             Check(!((TextureImporter)AssetImporter.GetAtPath(path)).sRGBTexture && Near(ReadGpu(image), expected), "linear data save");
             ((ColorFillLayerBehaviour)doc.layers[0].Behaviour).color = new Color(2, .2f, .3f, .25f);
             WhimTexDocumentFile.Save(doc, path);
-            var hdr = doc.Compose(); Owned.Add(hdr);
+            var hdr = doc.ComposeCanvas(); Owned.Add(hdr);
             Check(Near(ReadGpu(image), ReadGpu(hdr)), "HDR transition preserves RGB/alpha");
             Check(AssetDatabase.AssetPathToGUID(path) == guid, "HDR transition keeps GUID");
             using (var referenceStream = new MemoryStream())
@@ -147,8 +149,9 @@ public static class DocumentReliabilitySmoke
             {
                 using (var writer = new BinaryWriter(referenceStream, Encoding.UTF8, true))
                 { writer.Write(1); writer.Write((byte)27); writer.Write(guid); writer.Write(long.MaxValue); }
-                Check(Decode(referenceStream.ToArray(), container, typeof(Texture2D)) == null, "missing subasset never falls back to the main texture");
-                Check(((System.Collections.ICollection)Serializer.GetProperty("LastUnresolvedReferences", Any).GetValue(null)).Count == 1, "missing subasset is reported");
+                var read = ReadResult(referenceStream.ToArray(), container, typeof(Texture2D));
+                Check(Property(read, "Model") == null, "missing subasset never falls back to the main texture");
+                Check(((System.Collections.ICollection)Property(read, "UnresolvedReferences")).Count == 1, "missing subasset is reported");
             }
 
             var paintDoc = Document(Color.clear);
@@ -161,7 +164,7 @@ public static class DocumentReliabilitySmoke
             // Deliberately do NOT finish the stroke or synchronize the CPU texture here.
             string paintPath = WhimTexDocumentFile.Save(paintDoc, folder + "/Painting.tiff");
             var paintLoaded = WhimTexDocumentFile.Load(paintPath); Owned.Add(paintLoaded);
-            var drawn = paintLoaded.Compose(); Owned.Add(drawn);
+            var drawn = paintLoaded.ComposeCanvas(); Owned.Add(drawn);
             Check(ReadGpu(drawn).r > .9f && ReadGpu(drawn).a > .9f, "unfinished GPU Drawing pixels survive save/load");
             Texture2D pixels = (Texture2D)typeof(DrawingLayerBehaviour).GetField("pixels", Any).GetValue(drawing);
             pixels.filterMode = FilterMode.Point; pixels.wrapModeU = TextureWrapMode.Mirror; pixels.wrapModeV = TextureWrapMode.Clamp;

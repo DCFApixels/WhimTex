@@ -76,7 +76,7 @@ try
     placement.scale = new UnityEngine.Vector2(.25f, .25f);
     drawing.transform = placement;
     document.layers.Add(drawing);
-    rendered = document.Compose();
+    rendered = document.ComposeCanvas();
     Check(source.width == 2 && source.height == 2, "source resolution retained");
     Check(rendered.GetPixel(0, 0).a < .001f, "centered image does not fill canvas");
     Check(rendered.GetPixel(3, 3).r > .99f, "image is visible at native pixel size");

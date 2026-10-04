@@ -41,7 +41,6 @@ namespace DCFApixels.WhimTex
                 if (execute && added?.Behaviour is DrawingLayerBehaviour drawing)
                 {
                     drawing.InitializeCanvas(document.width, document.height);
-                    drawing.MakeTexturePersistent(document);
                     Undo.RegisterCreatedObjectUndo(drawing.StoredTexture, UndoName);
                 }
                 return added;
@@ -293,7 +292,7 @@ namespace DCFApixels.WhimTex
         {
             if (token is JObject data)
             {
-                Keys(data, "colors", "alphas", "mode", "wrapMode", "smoothness", "colorSpace", "transition");
+                Keys(data, "colors", "alphas", "mode", "wrapMode", "smoothness", "colorSpace");
                 var result = ReadGradient(data["colors"], defaultMode, maximumColor);
                 result.Mode = Enum(data, "mode", defaultMode);
                 result.WrapMode = Enum(data, "wrapMode", WhimTexGradientWrapMode.Clamp);

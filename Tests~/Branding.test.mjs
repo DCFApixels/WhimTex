@@ -22,7 +22,7 @@ const commands = read('src/Automation/Pipeline/WhimTexCommands.cs');
 const canonicalCommands = [
   'whimtex_assistant_begin', 'whimtex_assistant_lock', 'whimtex_assistant_sessions', 'whimtex_assistant_live',
   'whimtex_describe', 'whimtex_document_inspect', 'whimtex_batch_execute', 'whimtex_image_import',
-  'whimtex_document_render', 'whimtex_document_migrate', 'whimtex_storage_inspect',
+  'whimtex_document_render', 'whimtex_storage_inspect',
   'whimtex_document_validate',
   'whimtex_fx_compile', 'whimtex_document_status', 'whimtex_document_compare',
   'whimtex_document_recover', 'whimtex_document_export', 'whimtex_headless_live'
@@ -38,27 +38,15 @@ for (const id of [
 for (const [file, key] of [
   ['src/WhimTexColorInputs.cs', 'DCFApixels.WhimTex.HdrColorInputs'],
   ['src/WhimTexUserSettings.cs', 'DCFApixels.WhimTex.PresetsFolder'],
-  ['src/TextureCompositorWindow.Tools.cs', 'DCFApixels.WhimTex.PaintToolSettings']
-]) assert.ok(read(file).includes(`"${key}"`), `Retain persisted preference: ${key}`);
-const LEGACY_FOLDER_FALLBACK = /^\s*private const string LegacyDataFolder = "SpriteEditor";$/m;
+  ['src/TextureCompositorWindow.Tools.cs', 'DCFApixels.WhimTex.Canvas.PaintToolSettings']
+]) assert.ok(read(file).includes(`"${key}"`), `Current preference: ${key}`);
 function scan(dir) {
   for (const entry of readdirSync(path.join(root, dir), { withFileTypes: true })) {
     const file = path.join(dir, entry.name);
-    // Legacy migration and Unity's optional Sprite Editor integration retain
-    // these compatibility names intentionally; they are not stale product
-    // branding or a second active document format.
-    if (entry.isDirectory() && file.replaceAll('\\', '/') !== 'src/Editor/Legacy') scan(file);
+    if (entry.isDirectory()) scan(file);
     else if (file.endsWith('.cs')) {
-      const normalized = file.replaceAll('\\', '/');
-      const compatibilitySurface = normalized.startsWith('src/Integrations/SpriteEditor/') ||
-        normalized.endsWith('/Editor/TextureCompositorEditor.cs') ||
-        normalized.endsWith('/Editor/WhimTexSpriteEditorBridge.cs') ||
-        normalized.endsWith('/TextureCompositor.Sprites.cs');
-      // `MovedFrom` markers are required compatibility data, and the preset-folder fallback in
-      // WhimTexUserSettings.cs is the only other line allowed to spell the old name.
-      let source = read(file).replace(/^\s*\[MovedFrom\(.*$/gm, '');
-      if (LEGACY_FOLDER_FALLBACK.test(source)) source = source.replace(LEGACY_FOLDER_FALLBACK, '');
-      if (!compatibilitySurface) {
+      const source = read(file);
+      {
         assert.ok(!/SpriteEditor/.test(source), `Old type or identifier name: ${file}`);
         assert.ok(!/Sprite Editor/.test(source), `Old display name: ${file}`);
       }
@@ -109,7 +97,7 @@ assert.match(read('src/WhimTexSplitView.uss'), /\.whimtex-canvas-view-backdrop\s
 assert.match(read('src/WhimTexSplitView.uss'), /\.whimtex-canvas\s*\{[^}]*overflow: hidden;/);
 const backdropLayout = previewUI.split('private void UpdateBackdropLayout()')[1].split('public void SetToolCursor')[0];
 assert.ok(!/viewport\.|ImageRect|documentWidth|documentHeight/.test(backdropLayout), 'Background placement is independent of document transforms and zoom');
-console.log('WhimTex branding and legacy package/API/preference identity checks passed (Unity not executed).');
+console.log('WhimTex branding and package/API/current preference identity checks passed (Unity not executed).');
 
 const presentation = read('src/TextureCompositorWindow.UI.cs').split('private void UpdateToolkitCanvasPresentation()')[1].split('private void OnCanvasPointerEnter')[0];
 const toolSource = read('src/TextureCompositorWindow.Tools.cs');

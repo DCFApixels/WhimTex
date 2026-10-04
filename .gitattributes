@@ -1,2 +1,8 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+
+# Frozen file bytes must match their captured hashes on every checkout.
+Tests~/Fixtures/Compatibility0125/** -text
+# FX source baselines use the exact LF-normalized blobs from the release tag.
+Tests~/Fixtures/ShaderFX0125/*.hlsl text eol=lf

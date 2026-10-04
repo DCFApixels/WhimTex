@@ -20,7 +20,7 @@ public static class NoiseIntegrationSmoke
         };
         noise.Scale=new Vector2(6.3f,10.7f);doc.layers.Add(noise);
         if(oneD){noise.dimensions=NoiseLayerBehaviour.NoiseDimensions.OneD;noise.periodic1D=true;noise.direction=37;}
-        Color[] Read(){var texture=doc.Compose();try{return texture.GetPixels();}finally{UnityEngine.Object.DestroyImmediate(texture);}}
+        Color[] Read(){var texture=doc.ComposeCanvas();try{return texture.GetPixels();}finally{UnityEngine.Object.DestroyImmediate(texture);}}
         double Difference(Color[] a,Color[] b){double sum=0;for(int p=0;p<a.Length;p++)sum+=Math.Abs(a[p].r-b[p].r);return sum/a.Length;}
         try
         {
@@ -53,7 +53,7 @@ public static class NoiseIntegrationSmoke
             }
             noise.warpScaleY=3;var changedWarp=Read();
             Check(Difference(b,changedWarp)>.001,"Specific target tracks Warp Scale Y");
-            var export=doc.Compose();var decoded=new Texture2D(2,2);
+            var export=doc.ComposeCanvas();var decoded=new Texture2D(2,2);
             try
             {
                 Check(decoded.LoadImage(export.EncodeToPNG()),"PNG export decodes");

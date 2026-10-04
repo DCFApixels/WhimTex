@@ -2,19 +2,13 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 const read = name => readFileSync(new URL(`../src/${name}`, import.meta.url), 'utf8');
 const asset = read('TextureCompositor.Assets.cs');
-const legacy = read('Editor/Legacy/TextureCompositor.LegacyAssetWriter.cs');
+const session = read('Editor/WhimTexDocumentSession.cs');
 const window = read('TextureCompositorWindow.cs');
 const live = read('TextureCompositorWindow.LiveOutput.cs');
 const change = read('CompositorOutputChange.cs');
-assert.match(asset, /liveOutput.Publish\(source\);\s*NotifyOutputTextureChanged\(\)/);
-assert.match(asset, /previous\?\.Dispose\(\);\s*if \(previous != null\) NotifyOutputTextureChanged\(\)/);
-// Legacy .asset writing is intentionally isolated from the TIFF/runtime path.
-// Keep this assertion so the migration fixture remains available, while ensuring
-// the normal asset code cannot accidentally regain the retired writer flow.
-assert.match(legacy, /AssetDatabase.ImportAsset\(path,[\s\S]*?NotifyOutputTextureChanged\(\);\s*Changed\?\.Invoke\(this\)/);
-assert.match(legacy, /SaveLegacyAssetForCompatibility/);
+assert.match(asset, /OutputTextureChanged\?\.Invoke\(new CompositorOutputChange\(this\)\)/);
+assert.match(session, /NotifyOutputTextureChanged\(\)/);
 assert.doesNotMatch(asset, /SaveLegacyAssetForCompatibility|AssetDatabase\.CreateAsset\(/);
-assert.match(asset, /source == null \|\| outputTexture == null/);
 for (const op of ['+=', '-=']) assert.ok(window.includes(`TextureCompositor.OutputTextureChanged ${op} OnOutputTextureChanged`));
 assert.match(live, /!change.ShouldRefresh\(compositor\)/);
 assert.match(live, /outputDependencyDirty = true;\s*RequestCanvasRender\(\)/);
@@ -24,6 +18,6 @@ assert.match(change, /layer\?\.IsGroup == true && UsesTexture\(layer.layers, tex
 assert.match(change, /visited.Add\(dependency\)/);
 assert.match(change, /return !DependsOnTexture\(source.layers, consumer.OutputTexture/);
 assert.ok(!/AssetDatabase|EditorPrefs|MarkChanged|SetDirty|Undo\./.test(change));
-const handler = live.split('private void OnOutputTextureChanged')[1].split('private bool CanPublishLiveOutput')[0];
+const handler = live.split('private void OnOutputTextureChanged')[1].split('private bool HasDocumentFile')[0];
 assert.ok(!/MarkChanged|SetDirty|Undo\.|UpdateCanvasRender\(|ReleaseEffectCache\(/.test(handler));
 console.log('Output notifications, lazy cache invalidation, File/group matching and cycle guard source contracts passed.');

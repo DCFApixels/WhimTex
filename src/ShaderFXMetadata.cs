@@ -45,7 +45,6 @@ namespace DCFApixels.WhimTex
             return result;
         }
 
-        internal static bool HasDeclarations(string source) => Regex.IsMatch(source ?? "", @"(?m)^\s*//\s*@param\b");
 
         internal static string ReadControl(string source, out string warnings)
         {
@@ -227,7 +226,7 @@ namespace DCFApixels.WhimTex
                     string name = match.Groups[2].Value;
                     if (pendingFormerNames.Contains(name))
                         throw new FormatException("A parameter cannot list its current name as a former name: " + name);
-                    var p = new ShaderFXParameter { name = name, declaredInCode = true, floatValue = 0f, colorValue = Color.clear };
+                    var p = new ShaderFXParameter { name = name, floatValue = 0f, colorValue = Color.clear };
                     string value = match.Groups[3].Value.Trim();
                     bool explicitDefault = match.Groups[3].Success;
                     bool bounded = match.Groups[4].Success;
@@ -604,10 +603,7 @@ namespace DCFApixels.WhimTex
                 foreach (var old in previous)
                     if (old != null && old.name == p.name && (Compatible(old.type, p.type) || old.type == ShaderFXParameterType.Vector && p.type == ShaderFXParameterType.Vector3))
                     {
-                        // If a legacy hand-authored value and a previous code
-                        // declaration coexist, migrate the hand-authored value
-                        // into the single declaration-driven parameter.
-                        if (match == null || match.declaredInCode && !old.declaredInCode)
+                        if (match == null)
                             match = old;
                     }
                 if (match == null)
@@ -615,7 +611,7 @@ namespace DCFApixels.WhimTex
                         if (old != null && HasFormerName(p, old.name) &&
                             (Compatible(old.type, p.type) || old.type == ShaderFXParameterType.Vector && p.type == ShaderFXParameterType.Vector3))
                         {
-                            if (match == null || match.declaredInCode && !old.declaredInCode)
+                            if (match == null)
                                 match = old;
                         }
                 // A rename in place keeps identity. Do not guess across insertions/removals or reorders.
@@ -628,7 +624,7 @@ namespace DCFApixels.WhimTex
                 }
                 if (match == null) continue;
                 p.id = match.id;
-                p.floatValue = p.controls.Count > 0 ? match.floatValue : p.Clamp(match.floatValue);
+                p.floatValue = match.floatValue;
                 p.colorValue = match.colorValue;
                 p.vectorValue = match.vectorValue;
                 p.textureValue = match.textureValue;

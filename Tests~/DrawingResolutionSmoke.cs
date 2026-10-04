@@ -31,7 +31,7 @@ public static class DrawingResolutionSmoke
             transform.scale = new Vector2(4, 4);
             layer.transform = transform;
             document.layers.Add(layer);
-            output = (RenderTexture)typeof(TextureCompositor).GetMethod("RenderPreview", hidden)
+            output = (RenderTexture)typeof(TextureCompositor).GetMethod("RenderCanvas", hidden)
                 .Invoke(document, new object[] { 64 });
             if (RenderTexture.active != previous) throw new Exception("Render target leaked.");
             RenderTexture.active = output;

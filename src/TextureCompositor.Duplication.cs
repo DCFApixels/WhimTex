@@ -77,10 +77,6 @@ namespace DCFApixels.WhimTex
                     undoGroup = Undo.GetCurrentGroup();
                     Undo.SetCurrentGroupName(undoName);
                 }
-                foreach (DrawingLayerBehaviour drawing in drawings)
-                    drawing.MakeTexturePersistent(this);
-                foreach (ShaderFX effect in effects.Values)
-                    effect.PersistEmbedded(this);
                 if (recordUndo)
                 {
                     foreach (Texture2D texture in textures)

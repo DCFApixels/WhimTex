@@ -42,8 +42,8 @@ namespace DCFApixels.WhimTex
                     if (render)
                     {
                         RequireGraphics();
-                        leftPreview = leftDocument.ComposePreview(maxSize);
-                        rightPreview = rightDocument.ComposePreview(maxSize);
+                        leftPreview = leftDocument.ComposeCanvas(maxSize);
+                        rightPreview = rightDocument.ComposeCanvas(maxSize);
                         Require(leftPreview != null && rightPreview != null, "One of the documents produced no preview.", "render_failed");
                         string leftRender = TextureHash(leftPreview);
                         string rightRender = TextureHash(rightPreview);

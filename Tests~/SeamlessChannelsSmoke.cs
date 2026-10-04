@@ -63,9 +63,9 @@ public static class SeamlessChannelsSmoke
                     var expected=(Color[])full.Clone();
                     for(int i=0;i<expected.Length;i++)for(int c=0;c<4;c++)if((mask&(1<<c))==0)expected[i][c]=original[i][c];
                     Same(Render("RenderLayerPreview",effect.Owner,32),expected,"Layer "+variant+"/"+mask);
-                    Same(Render("RenderCachedPreview",32,cache,false,null),expected,"Cache mask change");
-                    Same(Render("RenderThumbnailLayer",effect.Owner,32,cache),expected,"Thumbnail");
-                    Same(Render("RenderAllLayers",32,16),expected,"Export/composite");
+                    Same(Render("RenderCanvasWithCache",32,cache,false,null),expected,"Cache mask change");
+                    Same(Render("RenderLayerThumbnail",effect.Owner,32,cache),expected,"Thumbnail");
+                    Same(Render("RenderCanvasAtSize",32,16),expected,"Export/composite");
                 }
             }
             effect.processRed=false;effect.processGreen=true;effect.processBlue=false;effect.processAlpha=false;

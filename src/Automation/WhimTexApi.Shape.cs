@@ -19,7 +19,6 @@ namespace DCFApixels.WhimTex
             if (value["roundness"] != null)
             {
                 layer.roundness = Number(value, "roundness", layer.roundness, 0f, 1f);
-                layer.cornerRoundness = UnityEngine.Vector4.one * layer.roundness;
             }
             if (value["cornerRoundness"] != null)
             {

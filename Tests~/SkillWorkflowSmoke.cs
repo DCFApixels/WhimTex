@@ -44,7 +44,7 @@ public static class SkillWorkflowSmoke
         string Fx(string layer, string edit) => "{\"op\":\"fx\",\"layer\":" + Encode(layer) + ",\"edits\":[" + edit + "]}";
         string Job(Node job) => "\"jobId\":" + Encode(job["jobId"].ToString());
         void Cancel(Node job) => Live("\"op\":\"cancel\"," + scope + ",\"layerId\":" + Encode(job["layerId"].ToString()));
-        Color[] Pixels() { var t = doc.Compose(); try { return t.GetPixels(); } finally { Object.DestroyImmediate(t); } }
+        Color[] Pixels() { var t = doc.ComposeCanvas(); try { return t.GetPixels(); } finally { Object.DestroyImmediate(t); } }
         string Link(string layer) => (string)typeof(ShaderFX).GetProperty("CatalogPath", Any).GetValue(doc.layers.First(l => l.Id == layer).modifiers[0]);
         var files = new List<string>();
         try

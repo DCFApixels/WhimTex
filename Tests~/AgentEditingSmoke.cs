@@ -49,7 +49,7 @@ public static class AgentEditingSmoke
         string code = "// @param float _Amount = 1 [0 .. 1]\nfloat4 ApplyFX(float2 uv,float4 color){return float4(color.rgb * _Amount,color.a);}";
         string add = "{\"op\":\"add\",\"type\":\"color\",\"as\":\"fill\",\"settings\":{\"color\":[1,0.5,0.25,1]}}";
         string addFx = FxEdit("@fill", "{\"op\":\"add\",\"code\":" + Q(code) + "}");
-        Color[] Pixels() { var image = document.Compose(); try { return image.GetPixels(); } finally { UnityEngine.Object.DestroyImmediate(image); } }
+        Color[] Pixels() { var image = document.ComposeCanvas(); try { return image.GetPixels(); } finally { UnityEngine.Object.DestroyImmediate(image); } }
         float Difference(Color[] a, Color[] b) { float total = 0; for (int i = 0; i < a.Length; i++) total += Mathf.Abs(a[i].r - b[i].r) + Mathf.Abs(a[i].a - b[i].a); return total; }
         try
         {

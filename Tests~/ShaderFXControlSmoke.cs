@@ -63,9 +63,9 @@ public static class ShaderFXControlSmoke
             Check(!handle.HasPointerCapture(PointerId.mousePointerId),"Symbol releases pointer after drag");
             Undo.PerformUndo();Refresh(header);Check(Mathf.Approximately(header.Q<FloatField>().value,.25f),"Symbol drag is undoable");
             var writer=assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetWriter");
-            var portable=(string)writer.GetMethod("BuildPortableSource",F).Invoke(null,new object[]{effect});
-            Check(portable.StartsWith("// @whimtex-effect Portable Effect\n// @control(_Opacity)"),"Portable export places directive second");
-            Check(Read(portable,out warning)=="_Opacity"&&warning=="","Portable control survives");
+            var portable=(string)writer.GetMethod("BuildSource",F).Invoke(null,new object[]{effect,"Clipboard Test"});
+            Check(portable.StartsWith("// @whimtex-effect Clipboard Test\n// @control(_Opacity)"),"Preset export places directive second");
+            Check(Read(portable,out warning)=="_Opacity"&&warning=="","Preset control survives");
             folder="Assets/WhimTexControlSmoke_"+Guid.NewGuid().ToString("N");
             AssetDatabase.CreateFolder("Assets",System.IO.Path.GetFileName(folder));
             loaded=WhimTexDocumentFile.Load(WhimTexDocumentFile.Save(doc,folder+"/control.tiff"));
@@ -106,7 +106,7 @@ public static class ShaderFXControlSmoke
             using(var evt=PointerDownEvent.GetPooled(new Event{type=EventType.MouseDown,button=0,mousePosition=Vector2.one}))
             { evt.target=main.Q<FloatField>();main.Q<FloatField>().SendEvent(evt); }
             Check(!toolbar.HasPointerCapture(PointerId.mousePointerId),"Editing control does not start FX dragging");
-            return "PASS ShaderFXControlSmoke: "+checks+" checks; parser warnings, header fields, shared values, Undo/Redo, portable export, TIFF and drag exclusion.";
+            return "PASS ShaderFXControlSmoke: "+checks+" checks; parser warnings, header fields, shared values, Undo/Redo, preset export, TIFF and drag exclusion.";
         }
         finally
         {

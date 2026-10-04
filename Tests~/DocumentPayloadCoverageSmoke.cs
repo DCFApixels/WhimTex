@@ -31,6 +31,8 @@ System.Collections.Generic.List<System.Reflection.FieldInfo> Fields(Type type)
             if (field.Name == "id" || field.Name.EndsWith("Id", StringComparison.Ordinal) ||
                 field.Name.EndsWith("Guid", StringComparison.Ordinal)) continue;
             if (derived.Contains(field.Name)) continue;
+            if (type == typeof(DCFApixels.WhimTex.TextureCompositor) &&
+                (field.Name == "outputSettings" || field.Name == "savedOutputSettings" || field.Name == "spriteSlices")) continue;
             list.Add(field);
         }
     }

@@ -123,7 +123,7 @@ public static class NoiseSmallScaleExperiment
     const string Output = "Temp/WhimTex/noise-small-scale";
     static Material Prepare(TextureCompositor doc)
     {
-        var image = doc.Compose();
+        var image = doc.ComposeCanvas();
         UnityEngine.Object.DestroyImmediate(image);
         var type = typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.WhimTexMaterials");
         var shared = (Material)type.GetProperty("Noise", Flags).GetValue(null);

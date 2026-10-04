@@ -10,10 +10,18 @@ permalink: /reference/json-format/
 
 `whimtex.document`, version **1**, is the shared editable format for `.json` files,
 layer clipboard data and agent serialization. It stores settings, not rendered pixels.
-TIFF remains the image-backed format; its binary model is unchanged.
+TIFF remains the image-backed format; its tagged binary encoding remains version 1.
 New saves and exports use `.json`; existing `.whimtex.json` names remain readable without renaming.
-The old `whimtex.layers` envelope is accepted only by the compatibility clipboard reader.
+The old `whimtex.layers` clipboard envelope is unsupported. Paste it in 0.12.5 and save
+as TIFF or export `whimtex.document` JSON before upgrading.
 New exports and Copy as JSON use this format. Brush and gradient preset formats remain separate.
+
+Compatibility during legacy cleanup covers files written by package **0.12.5**, not
+its C# or agent APIs. Readers accept retired compositor output/slice metadata and
+Drawing source-URL/revision bookkeeping at their original owner types; current writers
+omit it. Unknown settings outside that explicit allowlist remain errors. The schema
+marks `document.spriteSlices` as deprecated input-only metadata. The version-1 default
+snapshot is unchanged, so omitted values in existing Compact files retain their meaning.
 
 ## Write modes
 
@@ -91,7 +99,7 @@ Fields match the persistent model: `behaviour` contains type-specific settings; 
 `modifiers` and `children` belong to the layer. Layer order is top to bottom. `$type` selects an
 allowlisted model type, not an arbitrary assembly-qualified runtime type. Unity vectors and colors
 are fixed-length numeric arrays; transform `Double2` values use objects with `x` and `y`.
-Use the schema's exact component count; binary TIFF vector widening is not a JSON shorthand.
+Use exact component counts. TIFF and JSON no longer expand historical scalar/vector field types.
 Shader FX have `$type: "ShaderFX"`, source `code`, `parameters`, `active` and optional
 `$name`. Shared FX use `$id`/`$ref`; these IDs are distinct from layer IDs.
 
@@ -104,8 +112,7 @@ only those layers, with source-canvas settings. The caller's operation determine
 - Insert/paste adds layers with remapped IDs; it does not replace existing layers or apply source output settings.
 - Replace changes only the explicitly selected layer through the API; content never requests replacement itself.
 
-New output never includes root `kind`. The obsolete optional root string field is ignored when reading earlier
-exports, regardless of its value, and is not returned by the JSON API. It does not select an operation.
+Root `kind` is rejected; 0.12.5 writers already omit it. The caller chooses the operation.
 The required `format` and `version` fields still identify the format and its version.
 This does not remove type-specific fields such as Shape's `behaviour.kind`.
 
@@ -158,7 +165,12 @@ representable by their stored type; integer fields reject fractions. Value types
 Errors identify the field or component path. Curve tangents alone also accept `"Infinity"` and
 `"-Infinity"` for stepped keys. Vector/color components follow their numeric types.
 These are storage checks, not the stricter agent-property patch/UI slider bounds: finite persisted values
-and native sentinels (such as Noise `scaleY: 0`) remain supported, with the model's existing rendering clamps.
+are retained, with the model's rendering clamps. The 0.12.5 reader normalizes zero Y axes and
+negative Shape corner values into explicit coordinates; those sentinels are no longer runtime modes.
+Saved manual FX parameters become `@param` declarations with their values and references preserved.
+The read-only `declaredInCode` metadata distinguishes them from intentionally removed code declarations.
+Manual scalar values outside their hard range become the effective clamped value used by 0.12.5.
+Current writers do not emit `declaredInCode` or Shape's former uniform `roundness` field.
 The generated schema describes per-field constraints; graph dependencies, total layer count and the
 combined canvas pixel budget additionally require the reader/API validator.
 The reader does not silently discard invalid data. JSON limits are 64 MiB characters, depth 128,

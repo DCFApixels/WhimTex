@@ -14,11 +14,6 @@ using UnityEditorInternal;
 using UnityEngine;
 using UnityEngine.Profiling;
 using Object = UnityEngine.Object;
-#if UNITY_6000_4_OR_NEWER
-using ProjectDrawCallback = UnityEditor.EditorApplication.ProjectWindowItemByEntityIdCallback;
-#else
-using ProjectDrawCallback = UnityEditor.EditorApplication.ProjectWindowItemInstanceCallback;
-#endif
 
 public static class DocumentSaveTailProbe
 {
@@ -63,16 +58,6 @@ public static class DocumentSaveTailProbe
         Directory.CreateDirectory(Path.GetDirectoryName(path));
         string json = (string)Type.GetType("Newtonsoft.Json.JsonConvert, Newtonsoft.Json").GetMethod("SerializeObject", new[] { typeof(object) }).Invoke(null, new[] { value });
         File.WriteAllText(path, json);
-    }
-    static void LegacyCallback(ProjectDrawCallback callback, bool attach)
-    {
-#if UNITY_6000_4_OR_NEWER
-        if (attach) EditorApplication.projectWindowItemByEntityIdOnGUI += callback;
-        else EditorApplication.projectWindowItemByEntityIdOnGUI -= callback;
-#else
-        if (attach) EditorApplication.projectWindowItemInstanceOnGUI += callback;
-        else EditorApplication.projectWindowItemInstanceOnGUI -= callback;
-#endif
     }
     static async Task NextUpdate()
     {
@@ -136,9 +121,6 @@ public static class DocumentSaveTailProbe
         var report = new Report { source = source, unity = Application.unityVersion, profiling = profiling, folder = "Assets/WhimTexSaveTailProbe_" + Guid.NewGuid().ToString("N") };
         TextureCompositor doc = null;
         TextureCompositorWindow window = null;
-        var legacyDraw = (ProjectDrawCallback)T("TextureCompositorProjectPreview")
-            .GetMethod("DrawProjectIcon", Any).CreateDelegate(typeof(ProjectDrawCallback));
-        bool legacyDetached = false;
         string path = report.folder + "/Probe.tiff";
         AssetDatabase.CreateFolder("Assets", Path.GetFileName(report.folder));
         try
@@ -165,13 +147,8 @@ public static class DocumentSaveTailProbe
             await NextUpdate();
             int iteration = 0;
             for (int repeat = 0; repeat < repeats; repeat++)
-            foreach (string mode in new[] { "real-window", "split-full-tail", "split-no-selection-ping-log", "real-window-no-legacy-icons" })
+            foreach (string mode in new[] { "real-window", "split-full-tail", "split-no-selection-ping-log" })
             {
-                if (mode == "real-window-no-legacy-icons")
-                {
-                    LegacyCallback(legacyDraw, false);
-                    legacyDetached = true;
-                }
                 var trial = new Trial { mode = mode };
                 report.trials.Add(trial);
                 fill.color = new Color((++iteration % 7) / 7f, .5f, .2f, .02f);
@@ -221,11 +198,6 @@ public static class DocumentSaveTailProbe
                     last = now;
                 }
                 if (profiling) Frames(trial, startFrame, ProfilerDriver.lastFrameIndex);
-                if (legacyDetached)
-                {
-                    LegacyCallback(legacyDraw, true);
-                    legacyDetached = false;
-                }
             }
         }
         finally
@@ -233,7 +205,6 @@ public static class DocumentSaveTailProbe
             ProfilerDriver.enabled = false;
             ProfilerDriver.profileEditor = profileEditor;
             ProfilerDriver.SetAreaEnabled(ProfilerArea.CPU, profileCpu);
-            if (legacyDetached) LegacyCallback(legacyDraw, true);
             if (window != null) Object.DestroyImmediate(window);
             if (doc != null) Object.DestroyImmediate(doc);
             Selection.objects = selection;

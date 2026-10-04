@@ -13,9 +13,10 @@ object Serialize(object document, DCFApixels.WhimTex.WhimTexDocumentContainer co
     serializerType.GetMethod("Serialize", Static).Invoke(null, new[] { document, container });
 object Deserialize(byte[] model, DCFApixels.WhimTex.WhimTexDocumentContainer container) =>
     serializerType.GetMethod("Deserialize", Static).Invoke(null, new object[] { model, container, typeof(DCFApixels.WhimTex.TextureCompositor), null, false });
-string[] MissingTypes()
+object Property(object read, string name) => read.GetType().GetProperty(name, Hidden).GetValue(read);
+string[] MissingTypes(object read)
 {
-    var list = (System.Collections.Generic.IReadOnlyList<string>)serializerType.GetProperty("LastMissingTypes", Static).GetValue(null);
+    var list = (System.Collections.Generic.IReadOnlyList<string>)Property(read, "MissingTypes");
     var result = new string[list.Count];
     for (int i = 0; i < list.Count; i++) result[i] = list[i];
     return result;
@@ -57,7 +58,8 @@ report.Append("payload=").Append(model.Length).Append("B");
 // --- simulate a build without that type ---
 string known = typeof(DCFApixels.WhimTex.ColorFillLayerBehaviour).FullName;
 byte[] damaged = Patch(model, known, known.Substring(0, known.Length - 1) + "X");
-var loaded = (DCFApixels.WhimTex.TextureCompositor)Deserialize(damaged, container);
+var firstRead = Deserialize(damaged, container);
+var loaded = (DCFApixels.WhimTex.TextureCompositor)Property(firstRead, "Model");
 Check(loaded != null, "the document still loads");
 Check(loaded.layers.Count == 3, "all layers survive, got " + loaded.layers.Count);
 Check(loaded.layers[0].layerName == "vanishing" && loaded.layers[0].Behaviour == null,
@@ -70,16 +72,22 @@ Check(System.Math.Abs(loaded.layers[1].opacity - .5f) < .0001f, "values parsed a
 var outlineLoaded = loaded.layers[2].Behaviour as DCFApixels.WhimTex.OutlineLayerBehaviour;
 Check(outlineLoaded != null, "the outline survives");
 Check(outlineLoaded.TargetLayerId == doc.layers[2].Id, "a string field parsed after the unknown object is intact");
-var missing = MissingTypes();
+var missing = MissingTypes(firstRead);
 Check(missing.Length == 1 && missing[0] == known.Substring(0, known.Length - 1) + "X", "the missing type is reported: " + string.Join(", ", missing));
 report.Append(" missing=").Append(missing.Length);
 
 // --- the loaded document must be writable again without corruption ---
 var second = new DCFApixels.WhimTex.WhimTexDocumentContainer();
 byte[] again = (byte[])Serialize(loaded, second);
-var reloaded = (DCFApixels.WhimTex.TextureCompositor)Deserialize(again, second);
+var secondRead = Deserialize(again, second);
+var reloaded = (DCFApixels.WhimTex.TextureCompositor)Property(secondRead, "Model");
 Check(reloaded.layers.Count == 3, "the document can be saved and loaded again");
 Check(reloaded.layers[1].children.Count == 1 && reloaded.layers[2].Behaviour is DCFApixels.WhimTex.OutlineLayerBehaviour,
     "structure survives a second pass");
-Check(MissingTypes().Length == 0, "a document without unknown types reports nothing");
+Check(MissingTypes(secondRead).Length == 0, "a document without unknown types reports nothing");
+Check(MissingTypes(firstRead).Length == 1, "first read retains its diagnostics after another read");
+UnityEngine.Object.DestroyImmediate(reloaded);
+UnityEngine.Object.DestroyImmediate(loaded);
+UnityEngine.Object.DestroyImmediate(doc);
+container.Dispose(); second.Dispose();
 return "PASS: missing type checks=" + checks + ", " + report;

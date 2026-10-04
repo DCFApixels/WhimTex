@@ -91,7 +91,7 @@ namespace DCFApixels.WhimTex
             {
                 if (format == TextureExportFormat.Asset && !CanExportTextureAsset(path))
                     return false;
-                texture = compositor.Compose();
+                texture = compositor.ComposeCanvas();
                 if (format == TextureExportFormat.Asset)
                 {
                     SaveExportedTextureAsset(texture, path);
@@ -135,7 +135,7 @@ namespace DCFApixels.WhimTex
             Texture2D texture = null;
             try
             {
-                texture = compositor.Compose();
+                texture = compositor.ComposeCanvas();
                 if (format == TextureExportFormat.Asset)
                 {
                     SaveExportedTextureAsset(texture, sourceImagePath);
@@ -190,19 +190,16 @@ namespace DCFApixels.WhimTex
 
         private static byte[] EncodeExportTextureWithOptions(Texture2D texture, TextureExportFormat format, int jpegQuality, Texture2D.EXRFlags exrFlags)
         {
-            if (format == TextureExportFormat.Exr) return texture.EncodeToEXR(exrFlags);
-            Texture2D ldr = HdrUtility.ToLdr(texture, format == TextureExportFormat.Jpeg);
-            try
+            RasterImageFormat rasterFormat;
+            switch (format)
             {
-                switch (format)
-                {
-                    case TextureExportFormat.Png: return ldr.EncodeToPNG();
-                    case TextureExportFormat.Tga: return ldr.EncodeToTGA();
-                    case TextureExportFormat.Jpeg: return ldr.EncodeToJPG(jpegQuality);
-                    default: throw new ArgumentOutOfRangeException(nameof(format));
-                }
+                case TextureExportFormat.Png: rasterFormat = RasterImageFormat.Png; break;
+                case TextureExportFormat.Jpeg: rasterFormat = RasterImageFormat.Jpeg; break;
+                case TextureExportFormat.Tga: rasterFormat = RasterImageFormat.Tga; break;
+                case TextureExportFormat.Exr: rasterFormat = RasterImageFormat.Exr; break;
+                default: throw new ArgumentOutOfRangeException(nameof(format));
             }
-            finally { DestroyImmediate(ldr); }
+            return WhimTexRasterEncoder.Encode(texture, rasterFormat, jpegQuality, exrFlags);
         }
 
         private static bool CanExportTextureAsset(string path)

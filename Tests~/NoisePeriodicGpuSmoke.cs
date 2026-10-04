@@ -46,7 +46,7 @@ public static class NoisePeriodicGpuSmoke
                         noise.octaves=profile==3?4:8;noise.lacunarity=profile==3?1.73f:4;noise.gain=profile==3?.7f:1;
                         noise.weightedStrength=0;noise.warpStrength=100;
                     }
-                    image=doc.Compose(); config=key;
+                    image=doc.ComposeCanvas(); config=key;
                     foreach(var error in ShaderUtil.GetShaderMessages(Shader.Find("Hidden/TextureCompositor/Noise")))
                         if(error.severity.ToString()=="Error")throw new Exception(error.message);
                 }

@@ -61,7 +61,7 @@ namespace DCFApixels.WhimTex
         }
 
         // The caller owns/disposes the returned preview, independently of the session.
-        internal Texture2D Render() { Prepare(); return Document.Compose(); }
+        internal Texture2D Render() { Prepare(); return Document.ComposeCanvas(); }
         internal string Save(string path) { Prepare(); return WhimTexDocumentFile.Save(Document, path); }
 
         public void Dispose()

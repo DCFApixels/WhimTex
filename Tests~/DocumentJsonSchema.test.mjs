@@ -53,9 +53,13 @@ for (const file of files) {
   validate(recipe, schema, file);
 }
 const clipboardDirectory = path.join(root, 'Documentation~/Examples/Clipboard');
-const clipboardFiles = fs.readdirSync(clipboardDirectory).filter(f => f.endsWith('.json') && f !== 'stone-wall-retro.json');
+const clipboardFiles = fs.readdirSync(clipboardDirectory).filter(f => f.endsWith('.json'));
 assert.equal(clipboardFiles.length, 9);
 for (const file of clipboardFiles) validate(JSON.parse(fs.readFileSync(path.join(clipboardDirectory, file))), schema, file);
+const compatibilityDirectory = path.join(root, 'Tests~/Fixtures/Compatibility0125');
+const compatibilityFiles = ['procedural-Full.json', 'procedural-FullOptimized.json', 'procedural-Compact.json', 'fragment.json'];
+for (const file of compatibilityFiles) validate(JSON.parse(fs.readFileSync(path.join(compatibilityDirectory, file))), schema, file);
+assert.equal(schema.$defs.TextureCompositor.properties.spriteSlices.deprecated, true);
 for (const file of ['Documentation~/AI/README.md', 'Documentation~/JSON_FORMAT.md'])
   for (const match of fs.readFileSync(path.join(root, file), 'utf8').matchAll(/\x60\x60\x60json\s*\n([\s\S]*?)\x60\x60\x60/g)) {
     const value = JSON.parse(match[1]);
@@ -69,8 +73,8 @@ for (const document of [{}, { width: 64 }, { height: 32 }, { outputSrgb: false }
   validate({ ...empty, document }, schema);
 for (const document of [null, [], 'invalid', 1])
   assert.throws(() => validate({ ...empty, document }, schema));
-for (const kind of ['document', 'fragment', 'layers']) validate({ ...empty, kind }, schema);
-assert.equal(schema.properties.kind.deprecated, true);
+for (const kind of ['document', 'fragment', 'layers']) assert.throws(() => validate({ ...empty, kind }, schema));
+assert.equal(schema.properties.kind, undefined);
 assert.throws(() => validate({ ...empty, kind: 1 }, schema));
 assert.throws(() => validate({ ...empty, format: 'whimtex.layers' }, schema));
 assert.throws(() => validate({ ...empty, document: { unknown: 1 } }, schema));
@@ -89,4 +93,4 @@ const curve = (key) => ({ ...empty, layers: [{ id: 'curve', behaviour: { $type: 
 validate(curve([0, 1, 'Infinity', '-Infinity', 0.3, 0.3, 'Both']), schema);
 for (const key of [[0, 1, 'NaN', 0, 0, 0, 'None'], [0, 1, 0, 0, 0, 0, '999'], ['Infinity', 1, 0, 0, 0, 0, 'None']])
   assert.throws(() => validate(curve(key), schema));
-console.log(`PASS: ${files.length} sample documents and ${clipboardFiles.length} clipboard recipes conform to the generated schema.`);
+console.log(`PASS: ${files.length} sample documents, ${clipboardFiles.length} clipboard recipes and ${compatibilityFiles.length} frozen 0.12.5 documents conform to the generated schema.`);

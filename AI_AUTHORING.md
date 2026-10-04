@@ -22,8 +22,9 @@ No Unity connection is needed to return JSON for the user to copy and paste with
 
 Drawing pixels are not stored in JSON. Exported nonempty Drawing layers become warned placeholders.
 Use verified `$asset` identities for existing project assets; do not invent GUIDs or paths.
-Old `whimtex.layers` payloads, including Drawing `url` imports, remain accepted only through the
-[compatibility clipboard reader](Documentation~/AI/LEGACY_LAYERS.md), not as the format for new output.
+Old `whimtex.layers` payloads are unsupported. Before upgrading, paste them in 0.12.5
+and save as TIFF (for Drawing pixels) or export `whimtex.document` JSON.
+Plain image URL paste remains available separately; URLs are not document JSON fields.
 
 **Generating a brush?** Read the [brush contract](Documentation~/AI/BRUSHES.md),
 [brush examples](Documentation~/Examples/Brushes/README.md) and

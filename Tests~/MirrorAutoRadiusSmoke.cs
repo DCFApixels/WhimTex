@@ -22,7 +22,7 @@ public static class MirrorAutoRadiusSmoke
         var cache = (IDisposable)Activator.CreateInstance(typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.EffectRenderCache"), true);
         Color[] Render(bool cached, bool thumbnail = false)
         {
-            string method = thumbnail ? "RenderThumbnailLayer" : cached ? "RenderCachedPreview" : "RenderAllLayers";
+            string method = thumbnail ? "RenderLayerThumbnail" : cached ? "RenderCanvasWithCache" : "RenderCanvasAtSize";
             object[] args = thumbnail ? new object[] { layer.Owner, 48, cache } : cached ? new object[] { 48, cache, false, null } : new object[] { 48, 32 };
             var rt = (RenderTexture)typeof(TextureCompositor).GetMethod(method, F).Invoke(doc, args);
             var previous = RenderTexture.active;

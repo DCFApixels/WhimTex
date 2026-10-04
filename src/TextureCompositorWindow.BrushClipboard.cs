@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
@@ -23,7 +22,7 @@ namespace DCFApixels.WhimTex
                     if(!EditorUtility.DisplayDialog("Download Brush Tip","Download a brush texture from "+new Uri(url).Host+"?","Download","Cancel"))return true;
                     string snapshot=JsonUtility.ToJson(paintSettings);
                     bool adopted=false;
-                    BeginImageUrlBatch(compositor,new List<(string,Func<Texture2D,bool>)>{(url,texture=>
+                    BeginImageUrlDownload(compositor,url,texture=>
                     {
                         if(snapshot!=JsonUtility.ToJson(paintSettings))
                             throw new InvalidOperationException("The brush changed during download. Paste again to replace it.");
@@ -31,7 +30,7 @@ namespace DCFApixels.WhimTex
                             throw new InvalidOperationException("Brush texture exceeds 16 megapixels.");
                         incoming.AdoptClipboardTip(texture);
                         ApplyGeneratedBrush(incoming);adopted=true;return true;
-                    })},ok=>{if(!adopted)incoming.ReleasePresetTip();});
+                    },ok=>{if(!adopted)incoming.ReleasePresetTip();});
                     generated=null;
                 }
                 else

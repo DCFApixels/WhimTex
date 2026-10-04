@@ -8,8 +8,13 @@ public static class DocumentJsonSmoke
 {
     public static string Run(int start = 0, int count = 8)
     {
-        var files = Directory.GetFiles("Assets/Learn/Pass", "*.tiff");
+        // Package-owned 0.12.5 fixtures; never depend on the user's sample assets.
+        var files = new[] {
+            "Packages/com.dcfapixels.whimtex/Tests~/Fixtures/Compatibility0125/procedural.tiff",
+            "Packages/com.dcfapixels.whimtex/Tests~/Fixtures/BASE_Gradient_128.tiff"
+        };
         Array.Sort(files, StringComparer.Ordinal);
+        if (start < 0 || start >= files.Length || count <= 0) throw new ArgumentOutOfRangeException("start/count");
         int checkedCount = 0;
         long characters = 0;
         for (int i = start; i < Math.Min(files.Length, start + count); i++)
@@ -20,7 +25,7 @@ public static class DocumentJsonSmoke
             Texture2D baseline = null;
             try
             {
-                baseline = source.Compose();
+                baseline = source.ComposeCanvas();
                 var expected = baseline.GetPixels();
                 foreach (WhimTexJsonWriteMode mode in Enum.GetValues(typeof(WhimTexJsonWriteMode)))
                 {
@@ -40,7 +45,7 @@ public static class DocumentJsonSmoke
                     if (read.Warnings.Count != 0) throw new Exception(files[i] + ": " + string.Join(",", read.Warnings));
                     if (read.Document.outputSrgb != source.outputSrgb || read.Document.outputFilter != source.outputFilter || read.Document.outputPrecision != source.outputPrecision)
                         throw new Exception("Output settings changed: " + files[i]);
-                    Texture2D actual = read.Document.Compose();
+                    Texture2D actual = read.Document.ComposeCanvas();
                     try
                     {
                         var pixels = actual.GetPixels();

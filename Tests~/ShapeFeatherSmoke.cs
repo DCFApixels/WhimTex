@@ -23,7 +23,7 @@ public static class ShapeFeatherSmoke
         }
         Texture2D Render()
         {
-            var tex = doc.Compose();
+            var tex = doc.ComposeCanvas();
             foreach (var c in tex.GetPixels()) Check(!float.IsNaN(c.a) && c.a >= 0 && c.a <= 1, "finite bounded alpha");
             return tex;
         }
@@ -107,7 +107,7 @@ public static class ShapeFeatherSmoke
             var full = Render();
             try
             {
-                var preview = (Texture2D)typeof(TextureCompositor).GetMethod("ComposePreview", flags).Invoke(doc, new object[] { 64 });
+                var preview = (Texture2D)typeof(TextureCompositor).GetMethod("ComposeCanvas", flags).Invoke(doc, new object[] { 64 });
                 try { for (int x = 32; x < 60; x++) Check(Mathf.Abs(preview.GetPixel(x,32).a - Coverage(2*x+1-96,16,shape.featherPosition)) < .002f, "preview canvas pixel width"); }
                 finally { UnityEngine.Object.DestroyImmediate(preview); }
                 var thumb = shape.GetPreviewTexture(128);

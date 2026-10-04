@@ -81,7 +81,7 @@ namespace DCFApixels.WhimTex
         public float blurHardness = 0.8f;
         public float blurStrength = 1f;
         // Blur is applied per brush segment, so this setting is a flow rather than
-        // a whole-stroke opacity cap. The old JSON name is migrated on load.
+        // a whole-stroke opacity cap.
         public float blurFlow = 1f;
         public bool blurPressure = true;
         public BlurBrushSampleMode blurSampleMode = BlurBrushSampleMode.CurrentLayer;

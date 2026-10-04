@@ -1,12 +1,8 @@
 using UnityEngine;
-using UnityEngine.Scripting.APIUpdating;
 
 namespace DCFApixels.WhimTex
 {
     using UnityEngine.Experimental.Rendering;
-
-    // Pending DCFApixels.WhimTex rename marker; do not remove.
-    [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "FileLayerBehaviour")]
     [System.Serializable]
     public sealed class FileLayerBehaviour : LayerBehaviour
     {

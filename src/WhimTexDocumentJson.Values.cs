@@ -187,7 +187,7 @@ namespace DCFApixels.WhimTex
                 if (field == "featherPosition") return shape.feather != 0;
                 if (field == "innerRadius") return shape.kind == ShapeLayerBehaviour.ShapeKind.Star;
                 if (field == "sides") return shape.kind == ShapeLayerBehaviour.ShapeKind.Polygon || shape.kind == ShapeLayerBehaviour.ShapeKind.Star;
-                if (field == "cornerRoundness" || field == "roundness" || field == "linkCorners") return shape.kind == ShapeLayerBehaviour.ShapeKind.Rectangle;
+                if (field == "cornerRoundness" || field == "linkCorners") return shape.kind == ShapeLayerBehaviour.ShapeKind.Rectangle;
             }
             if (value is ColorFillLayerBehaviour fill && field == "pattern") return fill.mode != ColorFillLayerBehaviour.FillMode.Color;
             if (value is MakeSeamlessLayerBehaviour seam)

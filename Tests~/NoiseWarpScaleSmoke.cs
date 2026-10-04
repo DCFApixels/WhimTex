@@ -17,7 +17,7 @@ public static class NoiseWarpScaleSmoke
         void Check(bool ok,string message) { if(!ok)throw new Exception(message);checks++; }
         Color[] Render()
         {
-            var image=doc.Compose();
+            var image=doc.ComposeCanvas();
             try { var pixels=image.GetPixels();foreach(var c in pixels)Check(!float.IsNaN(c.r)&&!float.IsInfinity(c.r),"Finite render");return pixels; }
             finally { UnityEngine.Object.DestroyImmediate(image); }
         }

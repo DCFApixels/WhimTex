@@ -61,9 +61,9 @@ namespace DCFApixels.WhimTex
         {
             "compiledShader", "appliedCode", "appliedSource", "appliedParameters", "diagnostics",
             "lastApplyFailed", "shaderCreationRecorded", "embeddedOwner", "transformCache", "jsonWriteMode",
-            "outputTexture", "outputSprite", "sliceOutputs", "documentLoadWarning", "documentBinding",
-            "embeddedShaderFX", "pixelsRevision", "originalImageUrl", "originalImageRevision", "jsonMissingAssets",
-            "catalogGuid", "catalogSourcePath", "catalogDependencyHash", "documentIncludeBasePath", "outputSettings", "savedOutputSettings"
+            "outputTexture", "documentLoadWarning", "documentBinding",
+            "embeddedShaderFX", "jsonMissingAssets",
+            "catalogGuid", "catalogSourcePath", "catalogDependencyHash", "documentIncludeBasePath"
         };
         private static readonly Dictionary<Type, FieldInfo[]> FieldCache = new();
         private static readonly ConditionalWeakTable<object, Dictionary<string, JToken>> MissingAssets = new();
@@ -126,7 +126,7 @@ namespace DCFApixels.WhimTex
         private static WhimTexJsonReadResult ReadCore(string json, bool prepareEffects, Vector2Int? fallbackCanvas)
         {
             JObject root = Parse(json);
-            CheckKeys(root, "format", "version", "kind", "document", "layers", "writeMode");
+            CheckKeys(root, "format", "version", "document", "layers", "writeMode");
             var mode = WhimTexJsonWriteMode.FullOptimized;
             if (root.TryGetValue("writeMode", out var modeToken) &&
                 (modeToken.Type != JTokenType.String || !Enum.TryParse((string)modeToken, out mode) ||
@@ -134,10 +134,7 @@ namespace DCFApixels.WhimTex
                 throw new WhimTexDocumentException("writeMode must be Full, FullOptimized or Compact.");
             if ((string)ReadScalar(root["format"], typeof(string)) != Format || (int)ReadScalar(root["version"], typeof(int)) != Version)
                 throw new WhimTexDocumentException("Expected whimtex.document version 1.");
-            // Older exports included a discriminator. Only the caller's operation chooses
-            // whether this content is opened, inserted or used to replace selected layers.
-            if (root.TryGetValue("kind", out var legacyKind) && legacyKind.Type != JTokenType.String)
-                throw new WhimTexDocumentException("The obsolete kind field must be a string or omitted.");
+            // The caller selects open, insert or replace; file content never selects an action.
             ValidateLayerReferences(root);
             var context = new Reader();
             var result = new WhimTexJsonReadResult();
@@ -217,7 +214,8 @@ namespace DCFApixels.WhimTex
             for (var current = type; current != null && current.Assembly == typeof(TextureCompositor).Assembly; current = current.BaseType)
                 foreach (var field in current.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
                 {
-                    if (field.IsStatic || field.IsInitOnly || field.IsNotSerialized || TransientFields.Contains(field.Name)) continue;
+                    if (field.IsStatic || field.IsInitOnly || field.IsNotSerialized || TransientFields.Contains(field.Name) ||
+                        WhimTexFileCompatibility0125.IsRetiredField(type, field.Name)) continue;
                     if (!field.IsPublic && !field.IsDefined(typeof(SerializeField)) && !field.IsDefined(typeof(SerializeReference))) continue;
                     fields.Add(field);
                 }
@@ -350,7 +348,7 @@ namespace DCFApixels.WhimTex
                 var node = new JObject();
                 foreach (var field in Fields(value.GetType()))
                 {
-                    if (value is ShaderFXParameter parameter && parameter.declaredInCode &&
+                    if (value is ShaderFXParameter parameter && parameter.controls.Count > 0 &&
                         (field.Name == "controls" || field.Name == "hasMinimum" || field.Name == "hasMaximum" ||
                          field.Name == "softMinimum" || field.Name == "softMaximum" || field.Name == "minimum" || field.Name == "maximum")) continue;
                     if (value is TextureCompositor && field.Name == "layers") continue;
@@ -365,6 +363,17 @@ namespace DCFApixels.WhimTex
                     }
                     if (options.Mode != WhimTexJsonWriteMode.Full && !IsActive(value, field.Name)) continue;
                     object item = field.GetValue(value);
+                    if (value is ShaderFX effect && field.Name == "parameters")
+                    {
+                        // Store the valid draft's declarations without mutating its applied state.
+                        try
+                        {
+                            var declared = ShaderFXMetadata.Parse(effect.Code, false, out _);
+                            ShaderFXMetadata.PreserveValues(declared, effect.Parameters);
+                            item = declared;
+                        }
+                        catch (FormatException) { /* Broken drafts keep their stored values. */ }
+                    }
                     JToken encoded;
                     if (IsNull(item) && MissingAssets.TryGetValue(value, out var missing) && missing.TryGetValue(field.Name, out var identity))
                         encoded = identity.DeepClone();
@@ -518,6 +527,8 @@ namespace DCFApixels.WhimTex
                 foreach (var property in node.Properties())
                 {
                     if (property.Name == "$type" || property.Name == "$id" || property.Name == "$name") continue;
+                    if (WhimTexFileCompatibility0125.IsRetiredField(type, property.Name) ||
+                        WhimTexFileCompatibility0125.IsReadOnlyField(type, property.Name)) continue;
                     if (property.Name == "contentOmitted" && result is DrawingLayerBehaviour)
                     {
                         if (property.Value.Type != JTokenType.Boolean || !(bool)property.Value)
@@ -535,6 +546,14 @@ namespace DCFApixels.WhimTex
                     if (value != null) field.SetValue(result, Value(value, field.FieldType, result, field.Name));
                     else if (defaults != null && field.Name != "id" && field.Name != "recoveryId" && field.Name != "shaderKey")
                         field.SetValue(result, field.FieldType.IsValueType ? Activator.CreateInstance(field.FieldType) : null);
+                }
+                if (result is ShapeLayerBehaviour && (node["roundness"] ?? defaults?["roundness"]) is JToken roundness)
+                    WhimTexFileCompatibility0125.Normalize(result, (float)Value(roundness, typeof(float), result, "roundness"));
+                else
+                {
+                    if (result is ShaderFXParameter parameter && node["declaredInCode"] is JToken flag)
+                        WhimTexFileCompatibility0125.ReadDeclarationFlag(parameter, (bool)Value(flag, typeof(bool), result, "declaredInCode"));
+                    WhimTexFileCompatibility0125.Normalize(result);
                 }
                 return result;
             }

@@ -58,7 +58,7 @@ public static class AgentSamplesSmoke
                 using var recipe = WhimTexDocumentJson.Read(File.ReadAllText(Folder + entry.recipe));
                 var generated = recipe.Document;
                 Check(generated.outputFilter.ToString() == entry.canvas.filter && generated.outputSrgb == entry.outputSrgb, "Stored output settings differ.");
-                rendered = generated.Compose();
+                rendered = generated.ComposeCanvas();
                 Check(CheckLayers(generated.layers) == entry.layers, entry.title + " layer count.");
                 Check(rendered.width == width && rendered.height == height, entry.title + " render dimensions.");
                 double alpha = 0;

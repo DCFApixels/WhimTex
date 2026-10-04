@@ -4,8 +4,8 @@
 int checks = 0;
 const System.Reflection.BindingFlags InstanceHidden = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
 var type = typeof(DCFApixels.WhimTex.TextureCompositor);
-var renderPreview = type.GetMethod("RenderPreview", InstanceHidden);
-var composePreview = type.GetMethod("ComposePreview", InstanceHidden);
+var renderPreview = type.GetMethod("RenderCanvas", InstanceHidden);
+var composePreview = type.GetMethod("ComposeCanvas", InstanceHidden);
 var copy = type.GetMethod("CopyToTexture2D", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
 void Check(bool condition, string message)
 {

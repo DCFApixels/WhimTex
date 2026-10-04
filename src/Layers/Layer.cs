@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Scripting.APIUpdating;
 
 namespace DCFApixels.WhimTex
 {
@@ -38,9 +37,6 @@ namespace DCFApixels.WhimTex
             this.transformFxCoordinates = transformFxCoordinates ?? applyTransform;
         }
     }
-
-    // Pending DCFApixels.WhimTex rename marker; do not remove.
-    [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "Layer")]
     [Serializable]
     public sealed class Layer
     {
@@ -416,9 +412,6 @@ namespace DCFApixels.WhimTex
             }
         }
     }
-
-    // Pending DCFApixels.WhimTex rename marker; do not remove.
-    [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "LayerBehaviour")]
     [Serializable]
     public abstract class LayerBehaviour
     {
@@ -467,9 +460,6 @@ namespace DCFApixels.WhimTex
         internal virtual void ReleaseTransientResources() { }
         internal virtual void OnDetached() => ReleaseTransientResources();
     }
-
-    // Pending DCFApixels.WhimTex rename marker; do not remove.
-    [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "TargetedLayerBehaviour")]
     [Serializable]
     public abstract class TargetedLayerBehaviour : LayerBehaviour
     {

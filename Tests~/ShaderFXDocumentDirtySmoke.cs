@@ -57,8 +57,9 @@ public static class ShaderFXDocumentDirtySmoke
     {
         using var container = new WhimTexDocumentContainer();
         byte[] model = (byte[])Invoke(Type("WhimTexDocumentSerializer"), null, "Serialize", source, container);
-        var doc = (TextureCompositor)Invoke(Type("WhimTexDocumentSerializer"), null, "Deserialize", model, container,
+        var read = Invoke(Type("WhimTexDocumentSerializer"), null, "Deserialize", model, container,
             typeof(TextureCompositor), null, false);
+        var doc = (TextureCompositor)read.GetType().GetProperty("Model", Any).GetValue(read);
         owned.Add(doc); doc.hideFlags = HideFlags.HideAndDontSave;
         // Only creates an in-memory binding; the path is never written or imported.
         Invoke(Type("WhimTexDocumentService"), null, "Bind", doc, "Temp/WhimTex/DirtySmoke-" + Guid.NewGuid().ToString("N") + ".tiff");
@@ -147,7 +148,7 @@ public static class ShaderFXDocumentDirtySmoke
                 foreach (ShaderFX effect in doc.layers[0].modifiers) Drain(effect);
                 AssertDirty(window, doc, false, preset + " after delayed notification");
                 Check(changes == 0 && refreshes == (preset == null ? 0 : 1), preset + ": render-only notification");
-                var expected = source.Compose(); var actual = doc.Compose();
+                var expected = source.ComposeCanvas(); var actual = doc.ComposeCanvas();
                 try { Check((expected.GetPixel(8, 8) - actual.GetPixel(8, 8)).maxColorComponent < .002f &&
                     (actual.GetPixel(8, 8) - expected.GetPixel(8, 8)).maxColorComponent < .002f, preset + ": restored render matches"); }
                 finally { Object.DestroyImmediate(expected); Object.DestroyImmediate(actual); }

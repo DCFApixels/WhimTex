@@ -1,58 +1,163 @@
-// Unity Pipeline run_script, entry ImageUrlPasteSmoke.Main. No persistent assets or network requests.
+// Pipeline run_script entry ImageUrlPasteSmoke.Run. Loopback only; no assets or clipboard writes.
 using System;
+using System.Net;
+using System.Net.Sockets;
 using System.Reflection;
-using UnityEngine;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using DCFApixels.WhimTex;
+using UnityEditor;
+using UnityEngine;
+using Object = UnityEngine.Object;
 
 public static class ImageUrlPasteSmoke
 {
+    const BindingFlags F = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
+    static object Call(object obj, string name, params object[] args) => obj.GetType().GetMethod(name, F).Invoke(obj, args);
+    static object Field(object obj, string name) => obj.GetType().GetField(name, F).GetValue(obj);
+    static bool Pending(TextureCompositorWindow window) => (bool)window.GetType().GetProperty("HasPendingImageUrl", F).GetValue(window);
     static int checks;
-    static void Check(bool value, string message) { checks++; if (!value) throw new Exception(message); }
-    public static string Main()
+    static void Check(bool yes, string message) { checks++; if (!yes) throw new Exception(message); }
+    sealed class ImageServer : IDisposable
     {
-        var type = typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.ImageClipboard");
-        var decode = type.GetMethod("DecodeWebImage", BindingFlags.NonPublic | BindingFlags.Static);
-        Texture2D Read(byte[] bytes) => (Texture2D)decode.Invoke(null, new object[] { bytes });
-        void Reject(byte[] bytes)
+        readonly TcpListener listener = new TcpListener(IPAddress.Loopback, 0);
+        readonly CancellationTokenSource cancellation = new CancellationTokenSource(8000);
+        public readonly Task Served;
+        public readonly string Url;
+        public ImageServer(byte[] png)
         {
-            try { var unexpected = Read(bytes); UnityEngine.Object.DestroyImmediate(unexpected); }
-            catch (TargetInvocationException e) when (e.InnerException is InvalidOperationException) { checks++; return; }
-            throw new Exception("Invalid image accepted.");
+            listener.Start(1);
+            Url = "http://127.0.0.1:" + ((IPEndPoint)listener.LocalEndpoint).Port + "/image.png";
+            Served = Task.Run(async () =>
+            {
+                try
+                {
+                    using var client = await listener.AcceptTcpClientAsync();
+                    using var stream = client.GetStream();
+                    var buffer = new byte[1024];
+                    string request = "";
+                    while (!request.Contains("\r\n\r\n"))
+                    {
+                        int length = await stream.ReadAsync(buffer, 0, buffer.Length, cancellation.Token);
+                        if (length == 0 || request.Length > 16384) throw new Exception("Invalid loopback request.");
+                        request += Encoding.ASCII.GetString(buffer, 0, length);
+                    }
+                    byte[] header = Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\nContent-Type: image/png\r\nContent-Length: " + png.Length + "\r\nConnection: close\r\n\r\n");
+                    await stream.WriteAsync(header, 0, header.Length, cancellation.Token);
+                    await stream.WriteAsync(png, 0, png.Length, cancellation.Token);
+                }
+                catch (Exception) when (cancellation.IsCancellationRequested) { }
+            });
         }
-        var source = new Texture2D(8, 4, TextureFormat.RGBA32, false);
+        public void Dispose() { cancellation.Cancel(); listener.Stop(); }
+    }
+    static async Task WaitDownload(TextureCompositorWindow window)
+    {
+        for (int i = 0; i < 300 && Pending(window); i++) await Task.Delay(20);
+        Check(!Pending(window), "Loopback download did not finish.");
+    }
+    public static async Task<string> Run()
+    {
+        checks = 0;
+        Undo.IncrementCurrentGroup();
+        var window = ScriptableObject.CreateInstance<TextureCompositorWindow>();
+        var doc = (TextureCompositor)Field(window, "compositor");
+        var source = new Texture2D(32, 16, TextureFormat.RGBA32, false, false);
         try
         {
-            var pixels = new Color32[32];
-            for (int i = 0; i < pixels.Length; i++) pixels[i] = new Color32(200, 40, 80, 128);
-            source.SetPixels32(pixels); source.Apply();
+            var colors = new Color32[32 * 16];
+            for (int i = 0; i < colors.Length; i++) colors[i] = new Color32((byte)i, 31, 127, (byte)(i % 255));
+            source.SetPixels32(colors); source.Apply();
             byte[] png = source.EncodeToPNG();
-            var image = Read(png);
-            try
+            Check(!(bool)Call(window, "TryPasteImageUrl", "ftp://example.com/a.png"), "Non-HTTP URL accepted.");
+            Check(!(bool)Call(window, "TryPasteImageUrl", "not a URL"), "Plain text accepted.");
+            using (var server = new ImageServer(png))
             {
-                Check(image.width == 8 && image.height == 4, "PNG dimensions lost.");
-                Check(image.isReadable && image.GetPixels32()[0].a == 128, "PNG alpha/readability lost.");
+                Check((bool)Call(window, "TryPasteImageUrl", server.Url), "HTTP image URL not handled.");
+                Check(Pending(window), "Download not tracked.");
+                Check((bool)Call(window, "TryPasteImageUrl", server.Url), "Repeated paste not handled.");
+                await WaitDownload(window);
+                await server.Served;
             }
-            finally { UnityEngine.Object.DestroyImmediate(image); }
-            image = Read(source.EncodeToJPG());
-            try { Check(image.width == 8 && image.height == 4 && image.isReadable, "JPEG decoding failed."); }
-            finally { UnityEngine.Object.DestroyImmediate(image); }
-            Reject(null); Reject(new byte[0]); Reject(System.Text.Encoding.UTF8.GetBytes("<html>not an image</html>"));
-            Reject(new byte[] { 255, 216, 255, 192, 0, 8 });
-            png[16] = 127; // Oversize IHDR must be rejected before decoding (and before checking its CRC).
-            Reject(png);
-            var handlerType = typeof(TextureCompositorWindow).GetNestedType("ImageUrlDownload", BindingFlags.NonPublic);
-            var handler = (IDisposable)Activator.CreateInstance(handlerType);
-            try
+            Check(doc.width == 32 && doc.height == 16 && doc.layers.Count == 1, "Empty canvas did not adopt image dimensions.");
+            var drawing = (DrawingLayerBehaviour)doc.layers[0].Behaviour;
+            var stored = (Texture2D)drawing.GetType().GetProperty("StoredTexture", F).GetValue(drawing);
+            Check(stored.width == 32 && stored.height == 16, "Source pixels resampled.");
+            var restored = stored.GetPixels32();
+            for (int i = 0; i < colors.Length; i++) Check(restored[i].Equals(colors[i]), "Pixel/alpha changed at " + i);
+            Undo.FlushUndoRecordObjects();
+            Undo.IncrementCurrentGroup();
+            Undo.PerformUndo();
+            Check(doc.layers.Count == 0, "Image URL paste Undo failed.");
+            Undo.PerformRedo();
+            Check(doc.layers.Count == 1, "Image URL paste Redo failed; layers=" + doc.layers.Count + ", documentAlive=" + (doc != null));
+            doc.width = doc.height = 64;
+            using (var server = new ImageServer(png))
             {
-                var receive = handlerType.GetMethod("ReceiveData", BindingFlags.NonPublic | BindingFlags.Instance);
-                Check((bool)receive.Invoke(handler, new object[] { new byte[] { 1, 2 }, 2 }), "Download rejected bytes.");
-                Check(((byte[])handlerType.GetProperty("Bytes").GetValue(handler)).Length == 2, "Download lost bytes.");
-                handlerType.GetMethod("ReceiveContentLengthHeader", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(handler, new object[] { 65UL * 1024 * 1024 });
-                Check(!(bool)receive.Invoke(handler, new object[] { new byte[1], 1 }), "Download size cap ignored.");
+                Call(window, "TryPasteImageUrl", server.Url);
+                await WaitDownload(window);
+                await server.Served;
             }
-            finally { handler.Dispose(); }
+            Check(doc.width == 64 && doc.height == 64 && doc.layers.Count == 2, "Nonempty canvas resized.");
+            var fitted = doc.layers[0];
+            Check(fitted.transform.scale == new Double2(1, .5), "Source aspect ratio not fitted to canvas.");
+            var fittedPixels = (Texture2D)fitted.Behaviour.GetType().GetProperty("StoredTexture", F).GetValue(fitted.Behaviour);
+            Check(fittedPixels.width == 32 && fittedPixels.height == 16, "Fitting resampled source image.");
+            using (var server = new ImageServer(png))
+            {
+                Texture2D declined = null;
+                bool? completed = null;
+                Call(window, "BeginImageUrlDownload", doc, server.Url,
+                    (Func<Texture2D, bool>)(image => { declined = image; return false; }),
+                    (Action<bool>)(ok => completed = ok));
+                await WaitDownload(window);
+                await server.Served;
+                Check(completed == true, "Single-image consumer callback did not finish.");
+                Check(declined == null, "Declined decoded texture was not destroyed.");
+                Check(doc.layers.Count == 2, "A non-layer consumer inserted layers.");
+            }
+            using (var server = new ImageServer(png))
+            {
+                bool? completed = null;
+                int applies = 0;
+                Call(window, "BeginImageUrlDownload", doc, server.Url,
+                    (Func<Texture2D, bool>)(image => { applies++; return false; }),
+                    (Action<bool>)(ok => completed = ok));
+                Call(window, "CancelImageUrlPaste");
+                Check(!Pending(window) && completed == false && applies == 0, "Cancellation applied image or lost cleanup.");
+                Check(Field(window, "imageUrlApply") == null && Field(window, "imageUrlFinished") == null, "Canceled callbacks retained.");
+                Call(window, "CancelImageUrlPaste");
+                server.Dispose();
+                await server.Served;
+            }
+            using (var server = new ImageServer(png))
+            {
+                bool? completed = null;
+                Call(window, "BeginImageUrlDownload", doc, server.Url,
+                    (Func<Texture2D, bool>)(image => { throw new Exception("Applied to switched document."); }),
+                    (Action<bool>)(ok => completed = ok));
+                Undo.ClearUndo(doc);
+                var next = ScriptableObject.CreateInstance<TextureCompositor>();
+                Call(window, "SetCompositor", next);
+                doc = next;
+                Check(!Pending(window) && completed == false && doc.layers.Count == 0, "Document switch did not cancel download.");
+                server.Dispose();
+                await server.Served;
+            }
+            var downloadType = window.GetType().GetNestedType("ImageUrlDownload", F);
+            using var download = (UnityEngine.Networking.DownloadHandler)Activator.CreateInstance(downloadType, true);
+            Call(download, "ReceiveContentLengthHeader", (ulong)(64 * 1024 * 1024 + 1));
+            Check((bool)downloadType.GetProperty("TooLarge").GetValue(download), "64 MB header limit removed.");
+            Check(!(bool)Call(download, "ReceiveData", new byte[1], 1), "Oversized download still accepts data.");
+            return "PASS: " + checks + " loopback URL download, pixels/alpha, Undo/Redo, ownership, cancellation and limits.";
         }
-        finally { UnityEngine.Object.DestroyImmediate(source); }
-        return checks + " image URL checks passed";
+        finally
+        {
+            Call(window, "CancelImageUrlPaste");
+            Undo.ClearUndo(doc);
+            Object.DestroyImmediate(window);
+            Object.DestroyImmediate(source);
+        }
     }
 }

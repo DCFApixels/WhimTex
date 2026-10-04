@@ -32,9 +32,8 @@ namespace DCFApixels.WhimTex
             Require(path.StartsWith("Assets/", StringComparison.Ordinal) && !path.StartsWith("Assets/StreamingAssets/", StringComparison.OrdinalIgnoreCase),
                 "Destinations must be inside Assets, outside StreamingAssets.", "invalid_path");
             string extension = Path.GetExtension(path);
-            Require(string.Equals(extension, ".asset", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(extension, WhimTexTiffCarrier.Extension, StringComparison.OrdinalIgnoreCase) || WhimTexDocumentJson.IsJsonPath(path),
-                "Expected a WhimTex .asset, .tiff or .json destination.", "invalid_path");
+            Require(string.Equals(extension, WhimTexTiffCarrier.Extension, StringComparison.OrdinalIgnoreCase) || WhimTexDocumentJson.IsJsonPath(path),
+                "Expected a WhimTex .tiff or .json destination.", "invalid_path");
             ValidateSegments(path);
             RejectLinks(FullPath(path));
             return path;
@@ -102,14 +101,8 @@ namespace DCFApixels.WhimTex
 
         private static TextureCompositor Load(string path)
         {
-            if (IsTiffPath(path) || WhimTexDocumentJson.IsJsonPath(path))
-            {
-                Require(WhimTexDocumentFile.IsDocument(path), "No WhimTex TIFF document at " + path, "document_not_found");
-                return WhimTexDocumentFile.Load(path);
-            }
-            TextureCompositor document = TextureCompositor.FindDocument(AssetDatabase.LoadMainAssetAtPath(path));
-            Require(document != null, "No WhimTex document at " + path, "document_not_found");
-            return document;
+            Require(WhimTexDocumentFile.IsDocument(path), "No WhimTex document at " + path, "document_not_found");
+            return WhimTexDocumentFile.Load(path);
         }
 
         public static string ImportImage(string sourcePath, string assetPath)
@@ -183,7 +176,7 @@ namespace DCFApixels.WhimTex
                     RejectLinks(full);
                     Require(overwrite || !File.Exists(full), "Preview exists; choose a new path or explicitly set overwrite=true.", "already_exists");
                     RequireGraphics();
-                    preview = document.ComposePreview(maxSize);
+                    preview = document.ComposeCanvas(maxSize);
                     Require(preview != null, "No preview was generated.", "render_failed");
                     byte[] bytes;
                     Texture2D encoded = HdrUtility.ToLdr(preview);

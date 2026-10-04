@@ -35,8 +35,8 @@ public static class DocumentSaveCacheSmoke
         signature = Signature(c);
         using var parsed = WhimTexDocumentContainer.Parse(c.Serialize());
         // Optional C# arguments are explicit when invoking through reflection.
-        var restored = (Texture2D)Serializer.GetMethod("Deserialize", Any).Invoke(null,
-            new object[] { parsed.Get("document"), parsed, typeof(Texture2D), null, false });
+        var readResult = Serializer.GetMethod("Deserialize", Any).Invoke(null, new object[] { parsed.Get("document"), parsed, typeof(Texture2D), null, false });
+        var restored = (Texture2D)readResult.GetType().GetProperty("Model", Any).GetValue(readResult);
         try { return restored.GetRawTextureData<byte>().ToArray(); }
         finally { Object.DestroyImmediate(restored); }
     }

@@ -287,7 +287,7 @@ namespace DCFApixels.WhimTex
                 if (!hadPixels) Undo.RegisterCreatedObjectUndo(layer.StoredTexture, "Healing Brush");
                 layer.ApplyHealingPatch(patch, mask, bounds, compositor.width, compositor.height, transform, tiled);
                 compositor.MarkChanged();
-                temporaryDocumentDirty |= !AssetDatabase.Contains(compositor);
+                temporaryDocumentDirty = true;
                 effectInteractiveUntil = 0;
                 Undo.FlushUndoRecordObjects();
                 Undo.CollapseUndoOperations(group);

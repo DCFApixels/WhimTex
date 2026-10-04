@@ -166,6 +166,101 @@ namespace DCFApixels.WhimTex
             return Int(spec, "index", -1, 0, layer.modifiers.Count - 1);
         }
 
+        private static ShaderFXParameter ReadFxParameterValue(ShaderFXParameter target, JToken token, TextureCompositor owner)
+        {
+            var value = target.Copy();
+            var spec = new JObject { ["value"] = token };
+                switch (value.type)
+                {
+                    case ShaderFXParameterType.Curve:
+                        Require(spec["value"].Type == JTokenType.String, "Curve value must be linear, easeIn, easeOut, easeInOut, one or a keys(...) string.");
+                        value.curveValue = WhimTexCurveTexture.Parse((string)spec["value"]);
+                        break;
+                    case ShaderFXParameterType.Gradient: value.gradientValue = ReadGradient(spec["value"]); break;
+                    case ShaderFXParameterType.Bool:
+                        Require(spec["value"].Type == JTokenType.Boolean, "Bool value must be true or false.");
+                        value.floatValue = (bool)spec["value"] ? 1f : 0f;
+                        break;
+                    case ShaderFXParameterType.Enum:
+                    case ShaderFXParameterType.Float: value.floatValue = Number(spec["value"], "value", -1000000, 1000000); break;
+                    case ShaderFXParameterType.Color: value.colorValue = AgentJson.Color(spec["value"]); break;
+                    case ShaderFXParameterType.Vector2:
+                    case ShaderFXParameterType.Point:
+                    case ShaderFXParameterType.Vector3:
+                    case ShaderFXParameterType.Normal:
+                        int components = value.type == ShaderFXParameterType.Vector2 || value.type == ShaderFXParameterType.Point ? 2 : 3;
+                        Require(spec["value"] is JArray values && values.Count == components, "Wrong vector component count.");
+                        value.vectorValue = Vector4.zero;
+                        for (int i=0;i<components;i++) value.vectorValue[i] = Number(spec["value"][i], "component", -1000000, 1000000);
+                        if (value.type == ShaderFXParameterType.Point)
+                            Require(value.vectorValue.x >= 0 && value.vectorValue.x <= 1 && value.vectorValue.y >= 0 && value.vectorValue.y <= 1,
+                                "Point coordinates must be in the normalized canvas range 0..1.");
+                        if (value.type == ShaderFXParameterType.Normal) value.vectorValue = ShaderFXParameter.NormalizeNormal(value.vectorValue);
+                        break;
+                    case ShaderFXParameterType.Vector:
+                        Require(spec["value"] is JArray vector && vector.Count == 4, "Vector value must have four components.");
+                        value.vectorValue = new Vector4(Number(spec["value"][0], "x", -1000000, 1000000), Number(spec["value"][1], "y", -1000000, 1000000),
+                            Number(spec["value"][2], "z", -1000000, 1000000), Number(spec["value"][3], "w", -1000000, 1000000));
+                        break;
+                    case ShaderFXParameterType.Texture2D:
+                        if (spec["value"] is JObject layerSource)
+                        {
+                            Keys(layerSource, "layer");
+                            string layerId = Text(layerSource, "layer");
+                            Require(owner != null && owner.FindLayer(layerId)?.Behaviour != null, "Texture source layer not found.", "invalid_target");
+                            value.textureSource = ShaderFXTextureSource.Layer;
+                            value.textureLayerId = layerId;
+                            break;
+                        }
+                        string path = Text(spec, "value");
+                        if (path == "self" || path == "none")
+                        {
+                            value.textureSource = path == "self" ? ShaderFXTextureSource.Self : ShaderFXTextureSource.None;
+                            break;
+                        }
+                        value.textureSource = ShaderFXTextureSource.Texture;
+                        Require(path.StartsWith("Assets/", StringComparison.Ordinal) || path.StartsWith("Packages/", StringComparison.Ordinal), "Texture value must be a project asset path.");
+                        ValidateSegments(path);
+                        value.textureValue = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+                        Require(value.textureValue != null, "Texture parameter asset not found.");
+                        Require(!string.Equals(path, DocumentAssetPath(owner), StringComparison.OrdinalIgnoreCase), "An FX cannot sample its own document output.", "invalid_target");
+                        break;
+                    case ShaderFXParameterType.Transform2D:
+                        JObject area = Obj(spec["value"], "Transform2D value");
+                        Keys(area, "position", "size", "rotation", "matrix");
+                        var dimensions = owner != null ? new Vector2(owner.width, owner.height) : Vector2.one;
+                        if (area["matrix"] != null)
+                        {
+                            Require(area["position"] == null && area["size"] == null && area["rotation"] == null,
+                                "matrix cannot be combined with position, size or rotation.");
+                            Require(area["matrix"] is JArray && ((JArray)area["matrix"]).Count == 9, "matrix must contain nine row-major numbers.");
+                            var a = (JArray)area["matrix"];
+                            var m = new ProjectiveMatrix {
+                                m00=TransformNumber(a[0]),m01=TransformNumber(a[1]),m02=TransformNumber(a[2]),
+                                m10=TransformNumber(a[3]),m11=TransformNumber(a[4]),m12=TransformNumber(a[5]),
+                                m20=TransformNumber(a[6]),m21=TransformNumber(a[7]),m22=TransformNumber(a[8]) };
+                            Require(value.transformValue.TrySetMatrix(m), "Transform2D matrix must be invertible with no horizon crossing its rectangle.");
+                            break;
+                        }
+                        foreach (string field in new[] { "position", "size" })
+                        {
+                            if (area[field] == null) continue;
+                            Require(area[field] is JArray pair && pair.Count == 2, field + " must have two components.");
+                            var v = TransformVector(area[field], field);
+                            if (field == "position") value.transformValue.EditPosition(v, dimensions);
+                            else
+                            {
+                                Require(Math.Abs(v.x) >= 0.00001 && Math.Abs(v.y) >= 0.00001, "Transform2D size cannot be zero.");
+                                value.transformValue.EditSize(v, dimensions);
+                            }
+                        }
+                        if (area["rotation"] != null) value.transformValue.EditRotation(TransformNumber(area["rotation"]), dimensions);
+                        break;
+                }
+
+            return value;
+        }
+
         private static void SetFxValues(ShaderFX effect, JToken token, TextureCompositor document)
         {
             if (token == null) return;
@@ -174,8 +269,7 @@ namespace DCFApixels.WhimTex
             {
                 var target = effect.Parameters.FirstOrDefault(p => p.name == property.Name);
                 Require(target != null, "Unknown FX parameter: " + property.Name);
-                var parsed = ReadLiveFxParameters(new JArray(new JObject { ["name"] = target.name,
-                    ["type"] = target.type.ToString(), ["value"] = property.Value.DeepClone() }), document)[0];
+                var parsed = ReadFxParameterValue(target, property.Value.DeepClone(), document);
                 if (target.type == ShaderFXParameterType.Float || target.type == ShaderFXParameterType.Enum)
                 {
                     Require(target.Clamp(parsed.floatValue) == parsed.floatValue, "Parameter outside its hard range: " + target.name);

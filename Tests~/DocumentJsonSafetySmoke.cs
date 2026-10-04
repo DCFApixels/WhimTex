@@ -91,7 +91,7 @@ public static class DocumentJsonSafetySmoke
             {
                 string fragment = WhimTexDocumentJson.WriteLayers(doc, doc.layers, new WhimTexJsonWriteOptions { Mode = mode }).Json;
                 using var clipboard = (IDisposable)typeof(WhimTexApi).GetMethod("ReadProceduralClipboard", F).Invoke(null, new object[] { fragment, 32, 32 });
-                Check(clipboard.GetType().GetField("CanvasFilter", F).GetValue(clipboard) == null, "Clipboard requests source filter override.");
+                Check(clipboard.GetType().GetField("CanvasFilter", F) == null, "Retired source-filter override is still exposed.");
                 var destination = ScriptableObject.CreateInstance<TextureCompositor>();
                 destination.width = destination.height = 32;
                 destination.outputFilter = FilterMode.Trilinear;

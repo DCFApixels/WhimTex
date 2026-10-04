@@ -9,7 +9,7 @@ public static class NoisePeriodic1DSmoke
     const int Size = 17;
     static Material Prepare(TextureCompositor doc)
     {
-        var image = doc.Compose(); UnityEngine.Object.DestroyImmediate(image);
+        var image = doc.ComposeCanvas(); UnityEngine.Object.DestroyImmediate(image);
         var type = typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.WhimTexMaterials");
         var shared = (Material)type.GetProperty("Noise", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic).GetValue(null);
         var m = new Material(shared);

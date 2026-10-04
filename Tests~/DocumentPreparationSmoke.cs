@@ -99,8 +99,9 @@ public static class DocumentPreparationSmoke
                 using var writer = new BinaryWriter(legacyBytes, Encoding.UTF8, true);
                 writer.Write(Encoding.ASCII.GetBytes("WHIMTEXD")); writer.Write(1); writer.Write(1);
                 writer.Write(8); writer.Write(Encoding.ASCII.GetBytes("document")); writer.Write(0); writer.Write(1L); writer.Write(1L); writer.Write((byte)77);
-                using var old = WhimTexDocumentContainer.Parse(legacyBytes.ToArray());
-                Check(old.Get("document")[0] == 77, "old container without checksum still readable");
+                Reject(() => WhimTexDocumentContainer.Parse(legacyBytes.ToArray()), "pre-0.12.5 container without checksum rejected");
+                using var oldStream = new MemoryStream(legacyBytes.ToArray());
+                Reject(() => Call(typeof(WhimTexDocumentContainer), null, "Open", oldStream, 0L, oldStream.Length), "streamed container without checksum rejected");
             }
 
             var doc = Document();
@@ -166,36 +167,24 @@ public static class DocumentPreparationSmoke
             Check(externalLoaded.layers[0].modifiers[0] == external, "external FX identity preserved");
             Check(EditorUtility.GetDirtyCount(external) == externalDirty && File.ReadAllBytes(externalPath).SequenceEqual(externalBytes), "loading TIFF does not mutate external FX");
 
-            // Legacy root is Texture2D, not the document. Drawing belongs to the model nonetheless.
-            var legacy = Document(); legacy.layers.Clear();
-            var drawing = new DrawingLayerBehaviour(); legacy.layers.Add(new Layer(drawing));
-            Call(typeof(TextureCompositor), legacy, "NormalizeModel");
+            // Drawing is owned by the in-memory model and embedded into TIFF, never a sub-asset.
+            var painted = Document(); painted.layers.Clear();
+            var drawing = new DrawingLayerBehaviour(); painted.layers.Add(new Layer(drawing));
+            Call(typeof(TextureCompositor), painted, "NormalizeModel");
             Call(typeof(DrawingLayerBehaviour), drawing, "PaintPoint", new Vector2(.5f, .5f), 64, 32,
                 Call(typeof(DrawingLayerBehaviour), drawing, "GetStrokeParameters", false));
-            string legacyPath = folder + "/Legacy.asset";
-            legacy.hideFlags = HideFlags.None;
-            Call(typeof(TextureCompositor), legacy, "SaveLegacyAssetForCompatibility", legacyPath);
-            Check(AssetDatabase.LoadMainAssetAtPath(legacyPath) is Texture2D, "legacy main object is the output texture");
-            Texture2D oldOutput = legacy.OutputTexture;
-            byte[] oldBytes = File.ReadAllBytes(legacyPath);
-            var migrated = WhimTexDocumentFile.Save(legacy, folder + "/Migrated.tiff");
-            Check(legacy.OutputTexture == oldOutput && File.ReadAllBytes(legacyPath).SequenceEqual(oldBytes), "migration leaves legacy asset and output intact");
-            var migratedDoc = Load(migrated);
-            // Drawing pixels are opened lazily from the TIFF block; materialize before inspecting the field.
-            Call(typeof(DrawingLayerBehaviour), migratedDoc.layers[0].Behaviour, "GetPreviewTexture", 64);
-            var copiedPixels = (Texture2D)typeof(DrawingLayerBehaviour).GetField("pixels", Any).GetValue(migratedDoc.layers[0].Behaviour);
-            Check(copiedPixels != null && !AssetDatabase.Contains(copiedPixels), "legacy Drawing embedded rather than GUID reference");
+            string paintedPath = WhimTexDocumentFile.Save(painted, folder + "/Painted.tiff");
+            var independent = Load(paintedPath);
+            Call(typeof(DrawingLayerBehaviour), independent.layers[0].Behaviour, "GetPreviewTexture", 64);
+            var independentPixels = (Texture2D)typeof(DrawingLayerBehaviour).GetField("pixels", Any).GetValue(independent.layers[0].Behaviour);
+            Check(independentPixels != null && !AssetDatabase.Contains(independentPixels), "Drawing embedded rather than GUID reference");
+            Check(independentPixels.GetPixels32().Any(c => c.a > 200), "Drawing survives TIFF reopen");
             using (var cached = new WhimTexDocumentContainer())
             {
-                Call(Type("WhimTexDocumentSerializer"), null, "Serialize", migratedDoc, cached);
+                Call(Type("WhimTexDocumentSerializer"), null, "Serialize", independent, cached);
                 Check(((System.Collections.IDictionary)typeof(WhimTexDocumentContainer).GetField("_native", Any).GetValue(cached)).Count == 0,
                     "unchanged Drawing reuses compressed cache without native pixel snapshot");
             }
-            AssetDatabase.DeleteAsset(legacyPath);
-            var independent = Load(migrated);
-            Call(typeof(DrawingLayerBehaviour), independent.layers[0].Behaviour, "GetPreviewTexture", 64);
-            var independentPixels = (Texture2D)typeof(DrawingLayerBehaviour).GetField("pixels", Any).GetValue(independent.layers[0].Behaviour);
-            Check(independentPixels.GetPixels32().Any(c => c.a > 200), "Drawing survives removal of original legacy asset");
 
             // Merely previewing a Drawing layer must not rewrite/quantize its source pixels on Save.
             var untouched = Document(); untouched.layers.Clear();

@@ -31,7 +31,7 @@ public static class ShaderFXTextureLayersSmoke
             void CheckColor(Color expected)
             {
                 expected = expected.linear;
-                var image = doc.Compose();
+                var image = doc.ComposeCanvas();
                 try {
                     var actual = image.GetPixel(16,16);
                     if (Mathf.Abs(actual.r-expected.r)>.02 || Mathf.Abs(actual.g-expected.g)>.02 ||

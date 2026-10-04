@@ -65,7 +65,7 @@ namespace DCFApixels.WhimTex
             try
             {
                 drawing.PrepareStroke(width, height, UndoName);
-                sample = source == "AllLayers" ? document.RenderAllLayers(width, height) :
+                sample = source == "AllLayers" ? document.RenderCanvasAtSize(width, height) :
                     source == "CurrentAndBelow" ? document.RenderLayerAndBelow(target, width, height) :
                     healing ? target.Render(new LayerRenderContext(document, null, width, height, 1, applyModifiers: false)) : drawing.CaptureBlurSource(width, height);
                 Require(sample != null, "No repair source available.");

@@ -1,0 +1,1427 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WhimTex live API field definitions",
+  "description": "Reusable field shapes for live API patches and brush authoring. Not a document or clipboard envelope; use document.schema.json for stored layers.",
+  "$defs": {
+    "fillPattern": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "shape": {
+          "type": "string",
+          "enum": [
+            "Triangles",
+            "Squares",
+            "Hexagons",
+            "Circles"
+          ]
+        },
+        "circleLayout": {
+          "type": "string",
+          "enum": [
+            "Square",
+            "Dense"
+          ]
+        },
+        "size": {
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 16384
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 1,
+                "maximum": 16384
+              },
+              "minItems": 2,
+              "maxItems": 2
+            }
+          ]
+        },
+        "linkSize": {
+          "type": "boolean"
+        },
+        "rotation": {
+          "type": "number",
+          "minimum": -360000,
+          "maximum": 360000
+        },
+        "offset": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": -1000000,
+            "maximum": 1000000
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "seamless": {
+          "type": "boolean"
+        },
+        "gap": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.99
+        },
+        "roundness": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "bulge": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "distanceRange": {
+          "type": "number",
+          "minimum": 0.001,
+          "maximum": 16
+        },
+        "position": {
+          "type": "string",
+          "enum": [
+            "Outside",
+            "Inside",
+            "Center",
+            "Signed"
+          ]
+        },
+        "inverted": {
+          "type": "boolean"
+        },
+        "profile": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "gradient": {
+          "$ref": "#/$defs/gradient"
+        },
+        "cellColor": {
+          "type": "string",
+          "enum": [
+            "Uniform",
+            "Random",
+            "Pattern"
+          ]
+        },
+        "colorBlend": {
+          "type": "string",
+          "enum": [
+            "Multiply",
+            "ReplaceRGB"
+          ]
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "variation": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "palette": {
+          "$ref": "#/$defs/gradient"
+        }
+      }
+    },
+    "color": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "number",
+          "minimum": -107,
+          "maximum": 107
+        },
+        {
+          "type": "number",
+          "minimum": -107,
+          "maximum": 107
+        },
+        {
+          "type": "number",
+          "minimum": -107,
+          "maximum": 107
+        },
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      ],
+      "items": false,
+      "minItems": 4,
+      "maxItems": 4
+    },
+    "gradientStops": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "time": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "color": {
+            "type": "array",
+            "prefixItems": [
+              {
+                "type": "number",
+                "minimum": -107,
+                "maximum": 107
+              },
+              {
+                "type": "number",
+                "minimum": -107,
+                "maximum": 107
+              },
+              {
+                "type": "number",
+                "minimum": -107,
+                "maximum": 107
+              },
+              {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            ],
+            "items": false,
+            "minItems": 4,
+            "maxItems": 4
+          },
+          "midpoint": {
+            "type": "number",
+            "minimum": 0.01,
+            "maximum": 0.99
+          },
+          "alphaMidpoint": {
+            "type": "number",
+            "minimum": 0.01,
+            "maximum": 0.99
+          }
+        },
+        "required": [
+          "time",
+          "color"
+        ]
+      },
+      "description": "Stops must have strictly increasing times."
+    },
+    "gradient": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/gradientStops"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "colors": {
+              "$ref": "#/$defs/gradientStops"
+            },
+            "alphas": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 64,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "time": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "alpha": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "midpoint": {
+                    "type": "number",
+                    "minimum": 0.01,
+                    "maximum": 0.99
+                  }
+                },
+                "required": [
+                  "time",
+                  "alpha"
+                ]
+              }
+            },
+            "mode": {
+              "type": "string",
+              "enum": [
+                "Classic",
+                "Linear",
+                "Perceptual",
+                "Fixed"
+              ]
+            },
+            "wrapMode": {
+              "type": "string",
+              "enum": [
+                "Clamp",
+                "Repeat",
+                "Mirror"
+              ]
+            },
+            "smoothness": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "colorSpace": {
+              "type": "string",
+              "enum": [
+                "Gamma",
+                "Linear"
+              ]
+            }
+          },
+          "required": [
+            "colors"
+          ]
+        }
+      ]
+    },
+    "noise": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "noiseType": {
+          "type": "string",
+          "enum": [
+            "OpenSimplex2",
+            "OpenSimplex2S",
+            "Cellular",
+            "Perlin",
+            "ValueCubic",
+            "Value",
+            "WhiteNoise",
+            "BlueNoise"
+          ]
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "scale": {
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0.01,
+              "maximum": 1000
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0.01,
+                "maximum": 1000
+              },
+              "minItems": 2,
+              "maxItems": 2
+            }
+          ],
+          "default": [
+            8,
+            8
+          ],
+          "description": "Scalar sets X and Y equally; [x,y] sets axes independently. Units span the shorter canvas side. Ignored by White/Blue. Seamless fits complete lattice cells per octave/warp, so small Scale changes can quantize."
+        },
+        "linkScale": {
+          "type": "boolean",
+          "default": true,
+          "description": "Scale chain in the UI. Explicit API scale values are applied literally, even when linked."
+        },
+        "periodic": {
+          "type": "string",
+          "enum": [
+            "None",
+            "X",
+            "Y",
+            "XY"
+          ],
+          "default": "None",
+          "description": "UI Seamless: X joins left/right, Y joins top/bottom, XY joins both. Ignored in OneD and White/Blue Noise; retained when inactive. Z never repeats."
+        },
+        "periodic1D": {
+          "type": "boolean",
+          "default": false,
+          "description": "UI Seamless in OneD: repeat along the projected noise axis, including Fractal and Warp. Independent of periodic; ignored outside OneD and for White/Blue. Angled stripes need not tile at canvas edges."
+        },
+        "offset": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": -10000,
+            "maximum": 10000
+          },
+          "minItems": 2,
+          "maxItems": 3,
+          "default": [
+            0,
+            0,
+            0
+          ],
+          "description": "[x,y] preserves Z in updates; [x,y,z] sets all axes. Z selects a ThreeD slice. XY uses noise-space units, or canvas pixels for White/Blue."
+        },
+        "fractal": {
+          "type": "string",
+          "enum": [
+            "None",
+            "FBm",
+            "Ridged",
+            "PingPong"
+          ]
+        },
+        "octaves": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "lacunarity": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 4
+        },
+        "gain": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "weightedStrength": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "pingPongStrength": {
+          "type": "number",
+          "minimum": 0.01,
+          "maximum": 8
+        },
+        "cellularDistance": {
+          "type": "string",
+          "enum": [
+            "Euclidean",
+            "EuclideanSquared",
+            "Manhattan",
+            "Hybrid"
+          ]
+        },
+        "cellularReturn": {
+          "type": "string",
+          "enum": [
+            "CellValue",
+            "Distance",
+            "Distance2",
+            "Distance2Add",
+            "Distance2Sub",
+            "Distance2Mul",
+            "Distance2Div"
+          ]
+        },
+        "cellularJitter": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "warp": {
+          "type": "string",
+          "enum": [
+            "None",
+            "OpenSimplex2",
+            "OpenSimplex2Reduced",
+            "BasicGrid"
+          ]
+        },
+        "warpStrength": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "warpScale": {
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0.01,
+              "maximum": 1000
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0.01,
+                "maximum": 1000
+              },
+              "minItems": 2,
+              "maxItems": 2
+            }
+          ],
+          "default": [
+            1,
+            1
+          ],
+          "description": "X/Y multipliers of Noise Scale. Z frequency unchanged. Seamless fits the resulting warp periods."
+        },
+        "linkWarpScale": {
+          "type": "boolean",
+          "default": true,
+          "description": "Warp Scale chain: UI and Random All preserve proportions; explicit API axes apply literally."
+        },
+        "encoding": {
+          "type": "string",
+          "enum": [
+            "ColorValues",
+            "LinearData",
+            "Gradient"
+          ],
+          "default": "LinearData",
+          "description": "UI Output. Gradient maps monochrome noise through its RGBA/HDR palette. Color White/Blue temporarily renders stored Gradient as ColorValues."
+        },
+        "inverted": {
+          "type": "boolean",
+          "default": false,
+          "description": "Reverses noise values in all outputs, before gradient sampling."
+        },
+        "gradient": {
+          "$ref": "#/$defs/gradient",
+          "description": "Default opaque black at 0, white at 1, Perceptual interpolation. Replaces the complete palette; does not change encoding. Retained in other output modes."
+        },
+        "dimensions": {
+          "type": "string",
+          "enum": [
+            "TwoD",
+            "OneD",
+            "ThreeD"
+          ],
+          "default": "TwoD",
+          "description": "OneD stripes, TwoD field or ThreeD slice at Offset Z. White/Blue temporarily renders stored ThreeD as TwoD."
+        },
+        "direction": {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180
+        },
+        "whiteNoiseColor": {
+          "type": "string",
+          "enum": [
+            "Monochrome",
+            "Color"
+          ]
+        },
+        "whiteNoiseSize": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 1024
+        }
+      }
+    },
+    "blur": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "Gaussian",
+            "Linear",
+            "Circular"
+          ]
+        },
+        "strength": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "radius": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 256
+        },
+        "distance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 512
+        },
+        "angle": {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180
+        },
+        "arc": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 360
+        },
+        "center": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "direction": {
+          "type": "string",
+          "enum": [
+            "Centered",
+            "Forward",
+            "Backward"
+          ]
+        },
+        "edges": {
+          "type": "string",
+          "enum": [
+            "Transparent",
+            "Clamp",
+            "Repeat",
+            "Mirror"
+          ]
+        }
+      }
+    },
+    "sharpen": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "algorithm": {
+          "type": "string",
+          "enum": [
+            "Gaussian",
+            "Adaptive"
+          ]
+        },
+        "strength": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "radius": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 32
+        },
+        "threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "noiseReduction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "haloSuppression": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "channelMode": {
+          "type": "string",
+          "enum": [
+            "RGB",
+            "Luminance"
+          ]
+        },
+        "edges": {
+          "type": "string",
+          "enum": [
+            "Transparent",
+            "Clamp",
+            "Repeat",
+            "Mirror"
+          ]
+        }
+      }
+    },
+    "shape": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "Rectangle",
+            "Ellipse",
+            "Polygon",
+            "Star",
+            "Line"
+          ]
+        },
+        "fill": {
+          "type": "boolean"
+        },
+        "fillColor": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "type": "number",
+              "minimum": -107,
+              "maximum": 107
+            },
+            {
+              "type": "number",
+              "minimum": -107,
+              "maximum": 107
+            },
+            {
+              "type": "number",
+              "minimum": -107,
+              "maximum": 107
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          ],
+          "items": false,
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "stroke": {
+          "type": "boolean"
+        },
+        "strokeColor": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "type": "number",
+              "minimum": -107,
+              "maximum": 107
+            },
+            {
+              "type": "number",
+              "minimum": -107,
+              "maximum": 107
+            },
+            {
+              "type": "number",
+              "minimum": -107,
+              "maximum": 107
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          ],
+          "items": false,
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "strokeWidth": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 8192
+        },
+        "feather": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 8192,
+          "default": 0
+        },
+        "featherPosition": {
+          "type": "string",
+          "enum": [
+            "Inside",
+            "Outside",
+            "Centered"
+          ],
+          "default": "Centered"
+        },
+        "roundness": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "cornerRoundness": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "linkCorners": {
+          "type": "boolean"
+        },
+        "sides": {
+          "type": "integer",
+          "minimum": 3,
+          "maximum": 32
+        },
+        "innerRadius": {
+          "type": "number",
+          "minimum": 0.01,
+          "maximum": 1
+        }
+      }
+    },
+    "makeSeamless": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "poissonEdges": {
+          "type": "string",
+          "enum": [
+            "AllEdges",
+            "TopAndBottom",
+            "LeftAndRight",
+            "None"
+          ],
+          "default": "AllEdges",
+          "description": "Paired edges: TopAndBottom for vertical tiling, LeftAndRight for horizontal tiling. None bypasses only this pass, independently of other passes."
+        },
+        "mirrorPoissonEdges": {
+          "type": "string",
+          "enum": [
+            "AllEdges",
+            "TopAndBottom",
+            "LeftAndRight",
+            "None"
+          ],
+          "default": "AllEdges",
+          "description": "Paired edges: TopAndBottom for vertical tiling, LeftAndRight for horizontal tiling. None bypasses only this pass, independently of other passes."
+        },
+        "offsetPoissonEdges": {
+          "type": "string",
+          "enum": [
+            "AllEdges",
+            "TopAndBottom",
+            "LeftAndRight",
+            "None"
+          ],
+          "default": "AllEdges",
+          "description": "Paired edges: TopAndBottom for vertical tiling, LeftAndRight for horizontal tiling. None bypasses only this pass, independently of other passes."
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "Mirror",
+            "ScreenedPoisson",
+            "OffsetBlend",
+            "PatchQuilting"
+          ],
+          "default": "OffsetBlend",
+          "description": "Method. Inactive method settings are retained, not transferred or reset."
+        },
+        "processRed": {
+          "type": "boolean",
+          "default": true,
+          "description": "Channels: false restores this input channel after seam processing, before normal layer modifiers/FX/compositing. All false bypasses seam processing."
+        },
+        "processGreen": {
+          "type": "boolean",
+          "default": true,
+          "description": "Channels: false restores this input channel after seam processing, before normal layer modifiers/FX/compositing. All false bypasses seam processing."
+        },
+        "processBlue": {
+          "type": "boolean",
+          "default": true,
+          "description": "Channels: false restores this input channel after seam processing, before normal layer modifiers/FX/compositing. All false bypasses seam processing."
+        },
+        "processAlpha": {
+          "type": "boolean",
+          "default": true,
+          "description": "Channels: false restores this input channel after seam processing, before normal layer modifiers/FX/compositing. All false bypasses seam processing."
+        },
+        "horizontal": {
+          "type": "string",
+          "enum": [
+            "Off",
+            "LeftToRight",
+            "RightToLeft"
+          ],
+          "default": "LeftToRight"
+        },
+        "vertical": {
+          "type": "string",
+          "enum": [
+            "Off",
+            "BottomToTop",
+            "TopToBottom"
+          ],
+          "default": "BottomToTop"
+        },
+        "blendWidth": {
+          "type": "number",
+          "minimum": 0.001,
+          "maximum": 0.5,
+          "default": 0.2,
+          "description": "Mirror Blend Width: fraction of each corresponding canvas dimension."
+        },
+        "mirrorTransitionStart": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 0.95,
+          "default": -0.25,
+          "description": "Mirror Transition Start: fraction of Blend Width, not the canvas. Negative values may reopen the seam; changing this does not toggle Poisson correction."
+        },
+        "falloff": {
+          "type": "number",
+          "minimum": 0.25,
+          "maximum": 4,
+          "default": 1
+        },
+        "mirrorContrastCompensation": {
+          "type": "boolean",
+          "default": false
+        },
+        "mirrorContrast": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 1
+        },
+        "mirrorSeamCorrection": {
+          "type": "boolean",
+          "default": true
+        },
+        "mirrorAutoRadius": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatic Radius uses max(0.005, blendWidth/4); the manual radius remains stored."
+        },
+        "mirrorCorrectionRadius": {
+          "type": "number",
+          "minimum": 0.005,
+          "maximum": 0.25,
+          "default": 0.05,
+          "description": "Poisson Radius: fraction of the smaller canvas dimension. Global correction, not a hard band. Manual correction radii are unused while their Automatic Radius is enabled."
+        },
+        "leftEdge": {
+          "type": "boolean",
+          "default": true
+        },
+        "rightEdge": {
+          "type": "boolean",
+          "default": true
+        },
+        "bottomEdge": {
+          "type": "boolean",
+          "default": true
+        },
+        "topEdge": {
+          "type": "boolean",
+          "default": true
+        },
+        "screeningRadius": {
+          "type": "number",
+          "minimum": 0.005,
+          "maximum": 0.25,
+          "default": 0.05,
+          "description": "Poisson Radius: fraction of the smaller canvas dimension. Global correction, not a hard band. Manual correction radii are unused while their Automatic Radius is enabled."
+        },
+        "edgeWidth": {
+          "type": "number",
+          "minimum": 0.02,
+          "maximum": 0.5,
+          "default": 0.2,
+          "description": "Offset Blend Width: fraction of each corresponding canvas dimension, at least two pixels."
+        },
+        "offsetTransitionStart": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 0.95,
+          "default": -0.25,
+          "description": "Offset Transition Start: fraction of Blend Width, not the canvas. Negative values may reopen the seam; changing this does not toggle Poisson correction."
+        },
+        "quiltingEdges": {
+          "type": "string",
+          "enum": [
+            "AllEdges",
+            "TopAndBottom",
+            "LeftAndRight",
+            "None"
+          ],
+          "default": "AllEdges",
+          "description": "Paired edges: TopAndBottom for vertical tiling, LeftAndRight for horizontal tiling. None bypasses only this pass, independently of other passes."
+        },
+        "quiltingWidth": {
+          "type": "number",
+          "minimum": 0.02,
+          "maximum": 0.45,
+          "default": 0.2,
+          "description": "Patch Width: fraction of each corresponding canvas dimension."
+        },
+        "quiltingAlongSearch": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.25,
+          "default": 0,
+          "description": "Along-Seam Search: fraction of usable strip length. Donor displacement tapers to zero at the ends, without wrapping."
+        },
+        "quiltingFeather": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 50,
+          "description": "Feather is 0..100 percent, not a 0..1 fraction or pixels. Share of each cut's available safe transition width; not a texture blur."
+        },
+        "quiltingContrastCompensation": {
+          "type": "boolean",
+          "default": false
+        },
+        "quiltingContrast": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 1
+        },
+        "quiltingQuality": {
+          "type": "string",
+          "enum": [
+            "Draft",
+            "Normal",
+            "High"
+          ],
+          "default": "Normal"
+        },
+        "quiltingSeed": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647,
+          "default": 0
+        },
+        "quiltingChannels": {
+          "type": "string",
+          "enum": [
+            "Linked",
+            "Independent"
+          ],
+          "default": "Linked",
+          "description": "Channel Matching: Linked uses one donor/cut for checked premultiplied channels; Independent searches each checked straight channel separately for packed maps."
+        },
+        "quiltingSeamCorrection": {
+          "type": "boolean",
+          "default": false
+        },
+        "quiltingPoissonEdges": {
+          "type": "string",
+          "enum": [
+            "AllEdges",
+            "TopAndBottom",
+            "LeftAndRight",
+            "None"
+          ],
+          "default": "AllEdges",
+          "description": "Paired edges: TopAndBottom for vertical tiling, LeftAndRight for horizontal tiling. None bypasses only this pass, independently of other passes."
+        },
+        "quiltingCorrectionRadius": {
+          "type": "number",
+          "minimum": 0.005,
+          "maximum": 0.25,
+          "default": 0.05,
+          "description": "Poisson Radius: fraction of the smaller canvas dimension. Global correction, not a hard band. Manual correction radii are unused while their Automatic Radius is enabled."
+        },
+        "histogramContrast": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 1
+        },
+        "offsetContrastCompensation": {
+          "type": "boolean",
+          "default": true
+        },
+        "offsetSeamCorrection": {
+          "type": "boolean",
+          "default": true
+        },
+        "offsetAutoRadius": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatic Radius uses max(0.005, edgeWidth/4); the manual radius remains stored."
+        },
+        "offsetCorrectionRadius": {
+          "type": "number",
+          "minimum": 0.005,
+          "maximum": 0.25,
+          "default": 0.05,
+          "description": "Poisson Radius: fraction of the smaller canvas dimension. Global correction, not a hard band. Manual correction radii are unused while their Automatic Radius is enabled."
+        }
+      },
+      "description": "Targeted seam-processing layer. Defaults apply to new layers; omitted fields in updates retain their values. Main-pass edges and Poisson correction edges are independent. Percentage UI values use fractions except quiltingFeather."
+    },
+    "normalMap": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "HeightMap",
+            "Texture"
+          ]
+        },
+        "sourceChannel": {
+          "type": "string",
+          "enum": [
+            "Luminance",
+            "Red",
+            "Green",
+            "Blue",
+            "Alpha",
+            "Maximum"
+          ]
+        },
+        "inputSpace": {
+          "type": "string",
+          "enum": [
+            "ColorValues",
+            "Linear"
+          ]
+        },
+        "edges": {
+          "type": "string",
+          "enum": [
+            "Clamp",
+            "Repeat",
+            "Mirror"
+          ]
+        },
+        "derivative": {
+          "type": "string",
+          "enum": [
+            "Sobel",
+            "Scharr",
+            "CentralDifference"
+          ]
+        },
+        "alphaMode": {
+          "type": "string",
+          "enum": [
+            "Opaque",
+            "Source"
+          ]
+        },
+        "output": {
+          "type": "string",
+          "enum": [
+            "Normal",
+            "Height"
+          ]
+        },
+        "encoding": {
+          "type": "string",
+          "enum": [
+            "PackedColor",
+            "LinearData"
+          ]
+        },
+        "strength": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 128
+        },
+        "blackLevel": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "whiteLevel": {
+          "type": "number",
+          "minimum": 0.0001,
+          "maximum": 16
+        },
+        "gamma": {
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 8
+        },
+        "smoothing": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 64
+        },
+        "mediumRadius": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 128
+        },
+        "largeRadius": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 512
+        },
+        "fineDetail": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 8
+        },
+        "mediumDetail": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 8
+        },
+        "largeDetail": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 8
+        },
+        "lightRemoval": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "inverted": {
+          "type": "boolean"
+        },
+        "flipX": {
+          "type": "boolean"
+        },
+        "flipY": {
+          "type": "boolean"
+        },
+        "ignoreTransparent": {
+          "type": "boolean"
+        }
+      }
+    },
+    "transform": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "position": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": -1000000,
+            "maximum": 1000000
+          },
+          "minItems": 2,
+          "maxItems": 2,
+          "description": "Parent-local offset in canvas-pixel units; default [0,0], X right, Y up."
+        },
+        "scale": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": -1000000,
+            "maximum": 1000000
+          },
+          "minItems": 2,
+          "maxItems": 2,
+          "description": "Each absolute component must be at least 0.00001."
+        },
+        "pivot": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": -1000000,
+            "maximum": 1000000
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "rotation": {
+          "type": "number",
+          "minimum": -360000,
+          "maximum": 360000
+        },
+        "matrix": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": -1000000000000000,
+            "maximum": 1000000000000000
+          },
+          "minItems": 9,
+          "maxItems": 9
+        },
+        "tiling": {
+          "type": "string",
+          "enum": [
+            "Clip",
+            "Repeat",
+            "Mirror",
+            "Source",
+            "Clamp",
+            "Unbounded"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "matrix"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "position"
+                  ]
+                },
+                {
+                  "required": [
+                    "scale"
+                  ]
+                },
+                {
+                  "required": [
+                    "rotation"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "sdf": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "metric": {
+          "type": "string",
+          "enum": [
+            "EuclideanExact",
+            "EuclideanApproximate",
+            "Manhattan",
+            "Chebyshev",
+            "EuclideanAntialiased"
+          ]
+        },
+        "sourceChannel": {
+          "type": "string",
+          "enum": [
+            "Alpha",
+            "Red",
+            "Green",
+            "Blue",
+            "Luminance"
+          ]
+        },
+        "threshold": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "distancePosition": {
+          "type": "string",
+          "enum": [
+            "Outside",
+            "Inside",
+            "Center",
+            "Signed"
+          ]
+        },
+        "inverted": {
+          "type": "boolean"
+        },
+        "maxDistance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 16384
+        },
+        "sourceOffset": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": -16384,
+            "maximum": 16384
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "sourceEdges": {
+          "type": "string",
+          "enum": [
+            "Transparent",
+            "Clamp",
+            "Repeat",
+            "Mirror"
+          ]
+        },
+        "contourOffset": {
+          "type": "number",
+          "minimum": -16384,
+          "maximum": 16384
+        },
+        "insideDistance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 16384
+        },
+        "outsideDistance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 16384
+        },
+        "profile": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "encoding": {
+          "type": "string",
+          "enum": [
+            "LinearData",
+            "Gradient"
+          ],
+          "default": "Gradient"
+        },
+        "gradient": {
+          "$ref": "#/$defs/gradient"
+        }
+      }
+    },
+    "blend": {
+      "type": "string",
+      "enum": [
+        "Normal",
+        "Multiply",
+        "Overwrite",
+        "None",
+        "Add",
+        "Subtract",
+        "Divide",
+        "Screen",
+        "Overlay",
+        "Darken",
+        "Lighten",
+        "Dodge",
+        "Burn",
+        "LinearDodge",
+        "LinearBurn",
+        "LinearLight",
+        "LinearLightAddSub",
+        "VividLight",
+        "PinLight",
+        "HardMix",
+        "HardLight",
+        "SoftLight",
+        "Difference",
+        "Exclusion",
+        "Negation",
+        "Hue",
+        "Saturation",
+        "Color",
+        "Luminosity"
+      ]
+    }
+  }
+}

@@ -74,7 +74,13 @@ public static class WhimTexGradientContractSmoke
         Check(!json.Contains("transition"), "Clipboard still writes transition");
         Check(((WhimTexGradient)clipboard.GetMethod("Read", Flags).Invoke(null, new object[] {json})).Equals(g), "Clipboard/API roundtrip");
         string raw = JsonUtility.ToJson(g);
-        Check(((WhimTexGradient)clipboard.GetMethod("Read", Flags).Invoke(null, new object[] {raw})).Equals(g), "Serialized clipboard enum");
+        void RejectClipboard(string input, string reason)
+        {
+            object[] args = {input, null};
+            Check(!(bool)clipboard.GetMethod("TryRead", Flags).Invoke(null, args), reason);
+            Check(args[1] == null, "Rejected clipboard has no gradient");
+        }
+        RejectClipboard(raw, "Raw Unity JSON is not gradient clipboard JSON");
         foreach (var value in new[] {g, new WhimTexGradient()})
         {
             var document = ScriptableObject.CreateInstance<TextureCompositor>();
@@ -89,20 +95,10 @@ public static class WhimTexGradientContractSmoke
             }
             finally { UnityEngine.Object.DestroyImmediate(document); }
         }
-        var setOptions = typeof(WhimTexApi).GetMethod("SetClipboardGradient", Flags);
-        var parseObject = setOptions.GetParameters()[1].ParameterType.GetMethod("Parse", new[] {typeof(string)});
         foreach (string value in new[] {"0","1","2","3","4","5","999","null","\"Standard\"","\"Soft\"","\"Soft2\"","\"Soft3\"","\"Rational\"","\"Rounded\""})
         {
-            string serialized = raw.Insert(1, "\"transition\":" + value + ",");
-            Check(JsonUtility.FromJson<WhimTexGradient>(serialized).Equals(g), "Serialized ignored transition " + value);
-            var read = (WhimTexGradient)clipboard.GetMethod("Read", Flags).Invoke(null, new object[] {serialized});
-            Check(read.Equals(g), "Clipboard ignores transition " + value);
             string portable = json.Replace("\"mode\":", "\"transition\":" + value + ",\"mode\":");
-            Check(((WhimTexGradient)clipboard.GetMethod("Read", Flags).Invoke(null, new object[] {portable})).Equals(g), "Portable ignores transition");
-            Layer optionsLayer = new GradientLayerBehaviour();
-            var expected = ((GradientLayerBehaviour)optionsLayer.Behaviour).gradient.Clone();
-            setOptions.Invoke(null, new object[] {optionsLayer, parseObject.Invoke(null, new object[] {"{\"transition\":" + value + "}"})});
-            Check(((GradientLayerBehaviour)optionsLayer.Behaviour).gradient.Equals(expected), "Options ignore transition");
+            RejectClipboard(portable, "Retired transition rejected: " + value);
         }
         var single = new WhimTexGradient();
         single.SetKeys(new[] {new GradientColorKey(new Color(-2, 4, .3f), .4f)}, new[] {new GradientAlphaKey(.3f, .7f)});
@@ -119,8 +115,9 @@ public static class WhimTexGradientContractSmoke
         using (var container = new WhimTexDocumentContainer())
         {
             var bytes = (byte[])serializer.GetMethod("Serialize", Flags).Invoke(null, new object[] {g, container});
-            var copy = (WhimTexGradient)serializer.GetMethod("Deserialize", Flags).Invoke(null, new object[] {bytes, container, typeof(WhimTexGradient), null, false});
-            Check(copy.Equals(g), "Document serializer transition");
+            var readResult = serializer.GetMethod("Deserialize", Flags).Invoke(null, new object[] {bytes, container, typeof(WhimTexGradient), null, false});
+            var copy = (WhimTexGradient)readResult.GetType().GetProperty("Model", Flags).GetValue(readResult);
+            Check(copy.Equals(g), "Document serializer roundtrip");
         }
         using (var lut = new WhimTexGradientTexture())
         {
@@ -163,6 +160,6 @@ public static class WhimTexGradientContractSmoke
             Check(!smoothField.enabledSelf, "Fixed disables Smoothness");
         }
         finally { Undo.ClearUndo(editor); Undo.IncrementCurrentGroup(); editor.Close(); if (previousFocus != null) previousFocus.Focus(); }
-        return "Rounded: " + checks + " checks passed (curves, compatibility, serialization, clipboard/API, cache, UI).";
+        return "Rounded: " + checks + " checks passed (curves, strict clipboard, serialization, cache, UI).";
     }
 }

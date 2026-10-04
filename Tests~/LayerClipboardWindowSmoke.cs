@@ -7,6 +7,11 @@ var second = ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureComposito
 var source = (DCFApixels.WhimTex.TextureCompositor)type.GetField("compositor", Flags).GetValue(first);
 var target = (DCFApixels.WhimTex.TextureCompositor)type.GetField("compositor", Flags).GetValue(second);
 string savedClipboard = GUIUtility.systemCopyBuffer;
+
+var priorClipboardSnapshot = clipboard.GetField("snapshot", Flags).GetValue(null);
+var priorClipboardMarker = clipboard.GetField("marker", Flags).GetValue(null);
+var priorClipboardRevision = clipboard.GetField("revision", Flags).GetValue(null);
+clipboard.GetField("snapshot", Flags).SetValue(null, null);
 object savedArea = type.GetField("areaClipboard", Flags).GetValue(null);
 int checks = 0;
 Undo.IncrementCurrentGroup();
@@ -74,6 +79,11 @@ finally
 {
     clipboard.GetMethod("Clear", Flags).Invoke(null, null);
     GUIUtility.systemCopyBuffer = savedClipboard;
+    clipboard.GetField("snapshot", Flags).SetValue(null, priorClipboardSnapshot);
+    clipboard.GetField("marker", Flags).SetValue(null, priorClipboardMarker);
+    clipboard.GetField("revision", Flags).SetValue(null,
+        (string)priorClipboardMarker == savedClipboard
+            ? typeof(DCFApixels.WhimTex.TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.ImageClipboard", true).GetProperty("Revision", Flags).GetValue(null) : priorClipboardRevision);
     type.GetField("areaClipboard", Flags).SetValue(null, savedArea);
     Undo.RevertAllDownToGroup(testGroup);
     if (first != null) { typeof(EditorWindow).GetProperty("hasUnsavedChanges", Flags).SetValue(first, false); UnityEngine.Object.DestroyImmediate(first); }

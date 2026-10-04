@@ -10,7 +10,7 @@ int checks = 0;
 void Check(bool ok, string message) { if (!ok) throw new System.Exception(message); checks++; }
 void Render(System.Action<UnityEngine.Texture2D> check)
 {
-    var pixels = document.Compose();
+    var pixels = document.ComposeCanvas();
     try
     {
         foreach (var c in pixels.GetPixels())
@@ -33,7 +33,7 @@ try
     // Low-quality preview must keep the same document-space placement and stroke width.
     var instanceFlags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
     var preview = (UnityEngine.Texture2D)typeof(DCFApixels.WhimTex.TextureCompositor)
-        .GetMethod("ComposePreview", instanceFlags).Invoke(document, new object[] { 64 });
+        .GetMethod("ComposeCanvas", instanceFlags).Invoke(document, new object[] { 64 });
     try
     {
         Check(preview.width == 64 && preview.height == 48, "preview dimensions");

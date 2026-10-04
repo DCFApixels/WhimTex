@@ -356,7 +356,6 @@ namespace DCFApixels.WhimTex
                         placement.scale = new Vector2((float)w / canvasWidth, (float)h / canvasHeight);
                         placement.position = new Vector2(fillBounds.x + w * .5f - canvasWidth * .5f, fillBounds.y + h * .5f - canvasHeight * .5f);
                         layer.transform = placement;
-                        layer.MakeTexturePersistent(document);
                         Undo.RegisterCreatedObjectUndo(output, "Content-Aware Fill");
                         // Creating a Unity object flushes pending snapshots; record the model after it.
                         Undo.RegisterCompleteObjectUndo(document, "Content-Aware Fill");

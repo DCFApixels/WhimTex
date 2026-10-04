@@ -64,7 +64,7 @@ namespace DCFApixels.WhimTex
         {
             "compiledShader", "appliedCode", "appliedSource", "appliedParameters", "diagnostics",
             "lastApplyFailed", "shaderCreationRecorded", "embeddedOwner", "transformCache",
-            "outputTexture", "outputSprite", "sliceOutputs", "documentLoadWarning", "documentBinding", "outputSrgb"
+            "outputTexture", "documentLoadWarning", "documentBinding", "outputSrgb"
         };
 
         private static readonly Dictionary<string, Type> KnownTypes = new Dictionary<string, Type>(StringComparer.Ordinal);
@@ -83,7 +83,7 @@ namespace DCFApixels.WhimTex
             return stream.ToArray();
         }
 
-        public static object Deserialize(byte[] bytes, WhimTexDocumentContainer container, Type expectedType,
+        public static ModelReadResult Deserialize(byte[] bytes, WhimTexDocumentContainer container, Type expectedType,
             string sourcePath = null, bool deferDrawingTextures = false)
         {
             using var stream = new MemoryStream(bytes, false);
@@ -91,11 +91,6 @@ namespace DCFApixels.WhimTex
             int version = reader.ReadInt32();
             if (version != FormatVersion)
                 throw new WhimTexDocumentException("Unsupported document payload version: " + version + ".");
-            _missingTypes.Clear();
-            _missingTypeNames.Clear();
-            _skippedFieldNames.Clear();
-            _skippedFields.Clear();
-            _unresolvedReferences.Clear();
             var context = new Reader(reader, container, sourcePath, deferDrawingTextures);
             try
             {
@@ -103,7 +98,7 @@ namespace DCFApixels.WhimTex
                 if (result != null && expectedType != null && !expectedType.IsInstanceOfType(result))
                     throw new WhimTexDocumentException("Unexpected document root type.");
                 if (stream.Position != stream.Length) throw new WhimTexDocumentException("Unexpected trailing model data.");
-                return result;
+                return context.Result(result);
             }
             catch (OperationCanceledException)
             {
@@ -114,6 +109,23 @@ namespace DCFApixels.WhimTex
             {
                 context.ReleaseCreatedObjects();
                 throw new WhimTexDocumentException("Cannot read the document model: " + error.Message, error);
+            }
+        }
+
+        internal sealed class ModelReadResult
+        {
+            internal object Model { get; }
+            internal IReadOnlyList<string> SkippedFields { get; }
+            internal IReadOnlyList<string> MissingTypes { get; }
+            internal IReadOnlyList<string> UnresolvedReferences { get; }
+
+            internal ModelReadResult(object model, List<string> skippedFields, List<string> missingTypes,
+                List<string> unresolvedReferences)
+            {
+                Model = model;
+                SkippedFields = Array.AsReadOnly(skippedFields.ToArray());
+                MissingTypes = Array.AsReadOnly(missingTypes.ToArray());
+                UnresolvedReferences = Array.AsReadOnly(unresolvedReferences.ToArray());
             }
         }
 
@@ -136,7 +148,7 @@ namespace DCFApixels.WhimTex
                     // and the whole layer behaviour polymorphism relies on it.
                     if (!field.IsPublic && field.GetCustomAttribute<SerializeField>() == null &&
                         field.GetCustomAttribute<SerializeReference>() == null) continue;
-                    if (SkippedFields.Contains(field.Name)) continue;
+                    if (SkippedFields.Contains(field.Name) || WhimTexFileCompatibility0125.IsRetiredField(type, field.Name)) continue;
                     fields.Add(field);
                 }
             }
@@ -152,25 +164,11 @@ namespace DCFApixels.WhimTex
             return space.StartsWith("UnityEngine", StringComparison.Ordinal) || space.StartsWith("UnityEditor", StringComparison.Ordinal);
         }
 
-        // --- migrations: the payload stores names, so names are what keeps old documents loadable ---
+        // --- canonical file names and diagnostics ---
 
         private static readonly Dictionary<Type, Dictionary<string, FieldInfo>> FieldNames =
             new Dictionary<Type, Dictionary<string, FieldInfo>>();
-        private static readonly Dictionary<string, Type> MovedTypeNames = new Dictionary<string, Type>(StringComparer.Ordinal);
-        private static readonly List<string> _skippedFields = new List<string>();
-        private static readonly HashSet<string> _skippedFieldNames = new HashSet<string>(StringComparer.Ordinal);
-
-        /// <summary>Fields the last loaded document carried but this build no longer declares.</summary>
-        public static IReadOnlyList<string> LastSkippedFields => _skippedFields;
-
-        /// <summary>How many fields the automatic pass writes for a type. Used to check generated code.</summary>
-        internal static int ReflectedFieldCount(Type type) => Fields(type).Length;
-
-        /// <summary>
-        /// Every name a field was ever serialized under. Field order never mattered because the value
-        /// carries its name, and a renamed field keeps loading because [FormerlySerializedAs] names are
-        /// part of the map.
-        /// </summary>
+        /// <summary>Canonical names written by 0.12.5 and the current writer; order is irrelevant.</summary>
         private static Dictionary<string, FieldInfo> FieldNameMap(Type type)
         {
             lock (FieldNames)
@@ -181,108 +179,10 @@ namespace DCFApixels.WhimTex
             foreach (FieldInfo field in Fields(type))
             {
                 if (!map.ContainsKey(field.Name)) map[field.Name] = field;
-                foreach (object old in AttributesNamed(field, "FormerlySerializedAsAttribute"))
-                {
-                    string former = StringMember(old, "name");
-                    if (string.IsNullOrEmpty(former) || map.ContainsKey(former)) continue;
-                    map[former] = field;
-                }
             }
             lock (FieldNames) FieldNames[type] = map;
             return map;
         }
-
-        private static void RecordSkippedField(Type type, string name)
-        {
-            if (type == typeof(WhimTexGradient) && name == "transition") return;
-            string label = type.Name + "." + name;
-            if (_skippedFieldNames.Add(label)) _skippedFields.Add(label);
-        }
-
-        /// <summary>
-        /// A type is stored by name, so a renamed or moved type is found through its [MovedFrom] markers.
-        /// This runs only when a plain lookup failed, which is exactly the migration case.
-        /// </summary>
-        private static Type FindMovedType(string name)
-        {
-            lock (MovedTypeNames)
-            {
-                if (MovedTypeNames.TryGetValue(name, out Type cached)) return cached;
-            }
-            string simple = name;
-            string space = null;
-            int dot = name.LastIndexOf('.');
-            if (dot > 0)
-            {
-                space = name.Substring(0, dot);
-                simple = name.Substring(dot + 1);
-            }
-            Type found = null;
-            foreach (Assembly assembly in GetLoadedAssemblies())
-            {
-                Type[] types;
-                try { types = assembly.GetTypes(); }
-                catch (Exception) { continue; }
-                foreach (Type type in types)
-                {
-                    if (!MatchesMovedName(type, name, simple, space)) continue;
-                    found = type;
-                    break;
-                }
-                if (found != null) break;
-            }
-            lock (MovedTypeNames) MovedTypeNames[name] = found;
-            return found;
-        }
-
-        /// <summary>
-        /// MovedFrom lives in a namespace that moved between Unity versions and its members differ too, so
-        /// the attribute and its strings are read by name instead of by type.
-        /// </summary>
-        private static bool MatchesMovedName(Type type, string name, string simple, string space)
-        {
-            foreach (CustomAttributeData attribute in type.GetCustomAttributesData())
-            {
-                if (attribute.AttributeType != typeof(UnityEngine.Scripting.APIUpdating.MovedFromAttribute)) continue;
-                var args = attribute.ConstructorArguments;
-                string oldName = args.Count == 4 ? args[3].Value as string : null;
-                string oldSpace = args.Count == 4 ? args[1].Value as string : args.Count == 1 ? args[0].Value as string : null;
-                if (string.IsNullOrEmpty(oldName)) oldName = type.Name;
-                if (oldSpace == null) oldSpace = type.Namespace;
-                if ((string.IsNullOrEmpty(oldSpace) ? oldName : oldSpace + "." + oldName) == name) return true;
-            }
-            return false;
-        }
-
-        /// <summary>Attributes are matched by type name: a rename or a namespace move must not break a load.</summary>
-        private static IEnumerable<object> AttributesNamed(MemberInfo member, string attributeName)
-        {
-            object[] attributes;
-            try { attributes = member.GetCustomAttributes(false); }
-            catch (Exception) { yield break; }
-            foreach (object attribute in attributes)
-                if (attribute != null && attribute.GetType().Name == attributeName) yield return attribute;
-        }
-
-        private static string StringMember(object attribute, string namePart)
-        {
-            foreach (PropertyInfo property in attribute.GetType().GetProperties(
-                         BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
-            {
-                if (property.PropertyType != typeof(string)) continue;
-                if (property.Name.IndexOf(namePart, StringComparison.OrdinalIgnoreCase) < 0) continue;
-                if (property.GetValue(attribute) is string value && !string.IsNullOrEmpty(value)) return value;
-            }
-            return null;
-        }
-
-        /// <summary>Types the last loaded document referenced but this build does not have.</summary>
-        public static IReadOnlyList<string> LastMissingTypes => _missingTypes;
-        public static IReadOnlyList<string> LastUnresolvedReferences => _unresolvedReferences;
-        private static readonly List<string> _unresolvedReferences = new List<string>();
-
-        private static readonly List<string> _missingTypes = new List<string>();
-        private static readonly HashSet<string> _missingTypeNames = new HashSet<string>(StringComparer.Ordinal);
 
         /// <summary>
         /// Returns null for a type this build does not know. A document written by another version of
@@ -291,7 +191,7 @@ namespace DCFApixels.WhimTex
         /// </summary>
         private static Type ResolveType(string name)
         {
-            if (KnownTypes.TryGetValue(name, out Type known)) return known;
+            lock (KnownTypes) if (KnownTypes.TryGetValue(name, out Type known)) return known;
             Type resolved = typeof(WhimTexDocumentSerializer).Assembly.GetType(name);
             if (resolved == null)
                 foreach (Assembly assembly in GetLoadedAssemblies())
@@ -299,13 +199,8 @@ namespace DCFApixels.WhimTex
                     resolved = assembly.GetType(name);
                     if (resolved != null) break;
                 }
-            if (resolved == null) resolved = FindMovedType(name);
-            if (resolved == null)
-            {
-                if (_missingTypeNames.Add(name)) _missingTypes.Add(name);
-                return null;
-            }
-            KnownTypes[name] = resolved;
+            if (resolved == null) return null;
+            lock (KnownTypes) KnownTypes[name] = resolved;
             return resolved;
         }
 
@@ -715,10 +610,9 @@ namespace DCFApixels.WhimTex
                 texture.LoadRawTextureData(raw);
                 texture.Apply(false, false);
                 string sampling = info.block + ":sampling";
-                if (container.Contains(sampling))
+                if (container.LengthOf(sampling) == 24)
                 {
-                    if (container.LengthOf(sampling) != 24)
-                        throw new WhimTexDocumentException("Invalid texture sampling settings.");
+
                     using var stream = new MemoryStream(container.Get(sampling), false);
                     using var settings = new BinaryReader(stream);
                     texture.filterMode = (FilterMode)settings.ReadInt32();
@@ -728,6 +622,7 @@ namespace DCFApixels.WhimTex
                     texture.anisoLevel = settings.ReadInt32();
                     texture.mipMapBias = settings.ReadSingle();
                 }
+                else throw new WhimTexDocumentException("Invalid texture sampling settings.");
                 return texture;
             }
             catch
@@ -741,6 +636,28 @@ namespace DCFApixels.WhimTex
 
         private sealed class Reader : IWhimTexDocumentReader
         {
+            private readonly List<string> _skippedFields = new List<string>();
+            private readonly HashSet<string> _skippedFieldNames = new HashSet<string>(StringComparer.Ordinal);
+            private readonly List<string> _missingTypes = new List<string>();
+            private readonly HashSet<string> _missingTypeNames = new HashSet<string>(StringComparer.Ordinal);
+            private readonly List<string> _unresolvedReferences = new List<string>();
+
+            internal ModelReadResult Result(object model) => new ModelReadResult(model,
+                _skippedFields, _missingTypes, _unresolvedReferences);
+
+            private void RecordSkippedField(Type type, string name)
+            {
+                string label = type.Name + "." + name;
+                if (_skippedFieldNames.Add(label)) _skippedFields.Add(label);
+            }
+
+            private Type ResolveReadType(string name)
+            {
+                Type type = ResolveType(name);
+                if (type == null && _missingTypeNames.Add(name)) _missingTypes.Add(name);
+                return type;
+            }
+
             private readonly BinaryReader _reader;
             private readonly WhimTexDocumentContainer _container;
             private readonly string _sourcePath;
@@ -749,6 +666,7 @@ namespace DCFApixels.WhimTex
             private int _depth, _values;
             private long _textureBytes;
             private const int MaxValues = 1000000;
+            private static readonly object DiscardedObject = new object();
 
             private sealed class DeferredTextureReference
             {
@@ -813,52 +731,19 @@ namespace DCFApixels.WhimTex
                     case TagSByte: return _reader.ReadSByte();
                     case TagShort: return _reader.ReadInt16();
                     case TagUShort: return _reader.ReadUInt16();
-                    case TagInt:
-                        int integer = _reader.ReadInt32();
-                        if (declared == typeof(Vector2Int)) return new Vector2Int(integer, 0);
-                        if (declared == typeof(Vector3Int)) return new Vector3Int(integer, 0, 0);
-                        return integer;
+                    case TagInt: return _reader.ReadInt32();
                     case TagUInt: return _reader.ReadUInt32();
                     case TagLong: return _reader.ReadInt64();
                     case TagULong: return _reader.ReadUInt64();
-                    case TagFloat:
-                        float scalar = _reader.ReadSingle();
-                        if (declared == typeof(Vector2)) return new Vector2(scalar, 0f);
-                        if (declared == typeof(Vector3)) return new Vector3(scalar, 0f, 0f);
-                        if (declared == typeof(Vector4)) return new Vector4(scalar, 0f, 0f, 0f);
-                        return scalar;
+                    case TagFloat: return _reader.ReadSingle();
                     case TagDouble: return _reader.ReadDouble();
                     case TagChar: return _reader.ReadChar();
                     case TagString: return ReadText();
-                    case TagVector2:
-                        var vector2 = new Vector2(_reader.ReadSingle(), _reader.ReadSingle());
-                        // Widen by component order; the normal writer will persist the current field type.
-                        if (declared == typeof(Vector3)) return new Vector3(vector2.x, vector2.y, 0f);
-                        if (declared == typeof(Vector4)) return new Vector4(vector2.x, vector2.y, 0f, 0f);
-                        return vector2;
-                    case TagVector3:
-                        var vector3 = new Vector3(_reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle());
-                        if (declared == typeof(Vector4)) return new Vector4(vector3.x, vector3.y, vector3.z, 0f);
-                        return vector3;
+                    case TagVector2: return new Vector2(_reader.ReadSingle(), _reader.ReadSingle());
+                    case TagVector3: return new Vector3(_reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle());
                     case TagVector4: return new Vector4(_reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle());
-                    case TagVector2Int:
-                        var vector2Int = new Vector2Int(_reader.ReadInt32(), _reader.ReadInt32());
-                        if (declared == typeof(Vector3Int)) return new Vector3Int(vector2Int.x, vector2Int.y, 0);
-                        if (IsExactFloat(vector2Int.x) && IsExactFloat(vector2Int.y))
-                        {
-                            if (declared == typeof(Vector2)) return new Vector2(vector2Int.x, vector2Int.y);
-                            if (declared == typeof(Vector3)) return new Vector3(vector2Int.x, vector2Int.y, 0f);
-                            if (declared == typeof(Vector4)) return new Vector4(vector2Int.x, vector2Int.y, 0f, 0f);
-                        }
-                        return vector2Int;
-                    case TagVector3Int:
-                        var vector3Int = new Vector3Int(_reader.ReadInt32(), _reader.ReadInt32(), _reader.ReadInt32());
-                        if (IsExactFloat(vector3Int.x) && IsExactFloat(vector3Int.y) && IsExactFloat(vector3Int.z))
-                        {
-                            if (declared == typeof(Vector3)) return new Vector3(vector3Int.x, vector3Int.y, vector3Int.z);
-                            if (declared == typeof(Vector4)) return new Vector4(vector3Int.x, vector3Int.y, vector3Int.z, 0f);
-                        }
-                        return vector3Int;
+                    case TagVector2Int: return new Vector2Int(_reader.ReadInt32(), _reader.ReadInt32());
+                    case TagVector3Int: return new Vector3Int(_reader.ReadInt32(), _reader.ReadInt32(), _reader.ReadInt32());
                     case TagQuaternion: return new Quaternion(_reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle());
                     case TagColor: return new Color(_reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle());
                     case TagColor32: return new Color32(_reader.ReadByte(), _reader.ReadByte(), _reader.ReadByte(), _reader.ReadByte());
@@ -875,16 +760,11 @@ namespace DCFApixels.WhimTex
                     case TagObjectRef:
                         int id = _reader.ReadInt32();
                         if (id < 0 || id >= _objects.Count) throw new WhimTexDocumentException("Invalid object reference " + id + " in the document.");
+                        if (ReferenceEquals(_objects[id], DiscardedObject))
+                            throw new WhimTexDocumentException("An active field references a retired 0.12.5 object.");
                         return _objects[id] is DeferredTextureReference deferred ? deferred.Resolve() : _objects[id];
                     default: throw new WhimTexDocumentException("Unknown value tag " + tag + " in the document.");
                 }
-            }
-
-            // Compare in double: int -> float -> int can overflow and hide boundary rounding.
-            private static bool IsExactFloat(int value)
-            {
-                float converted = value;
-                return (double)converted == value;
             }
 
             private object ReadCurve()
@@ -910,7 +790,7 @@ namespace DCFApixels.WhimTex
                 string name = ReadText();
                 long number = _reader.ReadInt64();
                 if (declared == null) return null;
-                Type type = ResolveType(typeName);
+                Type type = ResolveReadType(typeName);
                 if (type == null) return null;
                 if (!type.IsEnum) throw new WhimTexDocumentException("Invalid enum type: " + typeName);
                 return Enum.IsDefined(type, name) ? Enum.Parse(type, name) : Enum.ToObject(type, number);
@@ -971,9 +851,9 @@ namespace DCFApixels.WhimTex
                 texture.LoadRawTextureData(raw);
                 texture.Apply(false, false);
                 string sampling = block + ":sampling";
-                if (_container.Contains(sampling))
+                if (_container.LengthOf(sampling) == 24)
                 {
-                    if (_container.LengthOf(sampling) != 24) throw new WhimTexDocumentException("Invalid texture sampling settings.");
+
                     using var stream = new MemoryStream(_container.Get(sampling), false);
                     using var settings = new BinaryReader(stream);
                     texture.filterMode = (FilterMode)settings.ReadInt32();
@@ -982,6 +862,7 @@ namespace DCFApixels.WhimTex
                     texture.wrapModeW = (TextureWrapMode)settings.ReadInt32();
                     texture.anisoLevel = settings.ReadInt32(); texture.mipMapBias = settings.ReadSingle();
                 }
+                else throw new WhimTexDocumentException("Invalid texture sampling settings.");
                 // The texture owns the pixels now, so the inflated copy can be collected.
                 _container.Remove(block);
                 return texture;
@@ -1012,6 +893,8 @@ namespace DCFApixels.WhimTex
                 var file = new FileInfo(_sourcePath);
                 if (!file.Exists)
                     throw new WhimTexDocumentException("The TIFF disappeared while loading its Drawing metadata.");
+                if (_container.LengthOf(block + ":sampling") != 24)
+                    throw new WhimTexDocumentException("Invalid texture sampling settings.");
                 drawing.SetDeferredTexture(new DeferredTextureInfo(_sourcePath, block, width, height, format, mipCount, linear,
                     file.Length, file.LastWriteTimeUtc.Ticks));
                 // The writer registered the texture before emitting TagTexture. Keep the same object-table
@@ -1042,7 +925,7 @@ namespace DCFApixels.WhimTex
 
             private object ReadObjectValue(Type declared)
             {
-                Type type = ResolveType(ReadText());
+                Type type = ResolveReadType(ReadText());
                 if (type == null || declared == null)
                 {
                     // Keep the object numbering in step with the writer, then consume the values.
@@ -1083,6 +966,7 @@ namespace DCFApixels.WhimTex
                 {
                     ReadAutomaticFields(instance);
                 }
+                WhimTexFileCompatibility0125.Normalize(instance);
                 if (instance is ISerializationCallbackReceiver receiver) receiver.OnAfterDeserialize();
                 // This reader reconstructs a file/copy, not a Unity Undo operation. Keep the
                 // deserialization hooks, but establish a clean baseline for later Undo events.
@@ -1091,10 +975,10 @@ namespace DCFApixels.WhimTex
                 return instance;
             }
 
-            private static FieldInfo FindField(Type type, string name)
+            private FieldInfo FindField(Type type, string name)
             {
                 // Index and base type are irrelevant: the value in the payload carries its field name, and
-                // the map answers to former names too. An unknown name is reported, never dropped quietly.
+                // only canonical field names are accepted. Unknown names are reported, never dropped quietly.
                 if (FieldNameMap(type).TryGetValue(name, out FieldInfo known)) return known;
                 RecordSkippedField(type, name);
                 return null;
@@ -1223,14 +1107,87 @@ namespace DCFApixels.WhimTex
                 Read(null);
             }
 
+            // Consume the bounded encoding without resolving retired CLR types, GUIDs or textures.
+            // Keep object slots aligned with the writer so later live back-references remain valid.
+            private void DiscardRetiredValue()
+            {
+                if (++_values > MaxValues || ++_depth > 128)
+                    throw new WhimTexDocumentException("Document graph exceeds safety limits.");
+                try
+                {
+                    byte tag = _reader.ReadByte();
+                    switch (tag)
+                    {
+                        case TagObject:
+                            ReadText();
+                            _objects.Add(DiscardedObject);
+                            int fields = ReadCount(65536, 2);
+                            for (int i = 0; i < fields; i++) { ReadText(); DiscardRetiredValue(); }
+                            break;
+                        case TagList:
+                            int count = ReadCount(MaxValues, 1);
+                            for (int i = 0; i < count; i++) DiscardRetiredValue();
+                            break;
+                        case TagObjectRef:
+                            int id = _reader.ReadInt32();
+                            if (id < 0 || id >= _objects.Count)
+                                throw new WhimTexDocumentException("Invalid object reference " + id + " in the document.");
+                            break;
+                        case TagReference:
+                            ReadText(); _reader.ReadInt64();
+                            break;
+                        case TagTexture:
+                            int width = _reader.ReadInt32(), height = _reader.ReadInt32();
+                            string formatName = ReadText();
+                            int mips = _reader.ReadInt32();
+                            bool linear = _reader.ReadBoolean();
+                            string block = ReadText();
+                            if (width <= 0 || height <= 0 || width > 16384 || height > 16384 || mips < 1 ||
+                                mips > 1 + (int)Math.Floor(Math.Log(Math.Max(width, height), 2)) ||
+                                !Enum.TryParse(formatName, out TextureFormat format) || !Enum.IsDefined(typeof(TextureFormat), format))
+                                throw new WhimTexDocumentException("Invalid retired texture metadata.");
+                            long length = _container.LengthOf(block);
+                            WhimTexDocumentLimits.CheckTexture(length, ref _textureBytes, "Retired 0.12.5 texture");
+                            if (WhimTexDocumentLimits.ExpectedBytes(width, height, format, mips, linear) != length)
+                                throw new WhimTexDocumentException("Retired texture byte count does not match its dimensions.");
+                            _objects.Add(DiscardedObject);
+                            break;
+                        default:
+                            ReadTagged(tag, null);
+                            break;
+                    }
+                }
+                finally { _depth--; }
+            }
+
             /// <summary>The automatic pass: reads a value count and assigns every value to its field by name.</summary>
             public void ReadAutomaticFields(object value)
             {
                 Type type = value.GetType();
                 int count = ReadCount(65536, 2);
+                float? uniformRoundness = null;
                 for (int i = 0; i < count; i++)
                 {
                     string fieldName = ReadText();
+                    if (value is ShaderFXParameter parameter && fieldName == "declaredInCode")
+                    {
+                        object flag = Read(typeof(bool));
+                        if (flag is bool declared) WhimTexFileCompatibility0125.ReadDeclarationFlag(parameter, declared);
+                        else RecordSkippedField(type, fieldName);
+                        continue;
+                    }
+                    if (WhimTexFileCompatibility0125.IsReadOnlyField(type, fieldName))
+                    {
+                        object scalar = Read(typeof(float));
+                        if (scalar is float roundness) uniformRoundness = roundness;
+                        else RecordSkippedField(type, fieldName);
+                        continue;
+                    }
+                    if (WhimTexFileCompatibility0125.IsRetiredField(type, fieldName))
+                    {
+                        DiscardRetiredValue();
+                        continue;
+                    }
                     FieldInfo field = FindField(type, fieldName);
                     object fieldValue = type == typeof(DrawingLayerBehaviour) && field?.FieldType == typeof(Texture2D) &&
                         string.Equals(field.Name, "pixels", StringComparison.Ordinal) && _deferDrawingTextures
@@ -1244,6 +1201,7 @@ namespace DCFApixels.WhimTex
                     catch (ArgumentException) { RecordSkippedField(type, fieldName); }
                     catch (InvalidCastException) { RecordSkippedField(type, fieldName); }
                 }
+                if (value is ShapeLayerBehaviour) WhimTexFileCompatibility0125.Normalize(value, uniformRoundness);
             }
         }
 

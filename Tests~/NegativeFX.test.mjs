@@ -7,7 +7,7 @@ const source = readFileSync(new URL('../src/FXPresets/Negative.hlsl', import.met
 test('negative preset is catalogued with blend strength and optional alpha inversion', () => {
     assert.equal(source.split('\n')[0], '// @whimtex-effect Color/Negative');
     assert.match(source, /@control\(_Opacity\)/);
-    assert.match(source, /@formerlyserializedas\(_Amount\)/);
+    assert.doesNotMatch(source, /@formerlyserializedas/);
     assert.match(source, /@param hidden float _Opacity = 1 \[0 \.\. 1\]/);
     assert.match(source, /float amount = saturate\(_Opacity\)/);
     assert.match(source, /@param bool _InvertAlpha = false/);

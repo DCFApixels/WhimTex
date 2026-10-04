@@ -74,9 +74,9 @@ Set("{\"scale\":7}");
 Check(layer.Scale.x == 7 && layer.Scale.y == 7, "Scalar scale sets both axes");
 foreach (string invalid in new[] { "{\"scale\":[1]}", "{\"scale\":[1,1001]}", "{\"offset\":[0,0,10001]}", "{\"offset\":[0,0,0,0]}",
     "{\"periodic\":\"Z\"}", "{\"dimensions\":\"FourD\"}", "{\"linkScale\":1}" }) Reject(invalid);
-var legacy = UnityEngine.JsonUtility.FromJson<DCFApixels.WhimTex.NoiseLayerBehaviour>("{\"scale\":3.25,\"offset\":{\"x\":1,\"y\":2}}");
-Check(legacy.Scale.x == 3.25f && legacy.Scale.y == 3.25f && legacy.offset.z == 0, "Existing scalar scale and XY offset retain their appearance");
-Check(legacy.WarpScale == UnityEngine.Vector2.one, "Absent Warp Scale uses multiplier 1");
+var current = new DCFApixels.WhimTex.NoiseLayerBehaviour();
+Check(current.Scale == new UnityEngine.Vector2(8,8), "Runtime defaults store both scale axes explicitly");
+Check(current.WarpScale == UnityEngine.Vector2.one, "Runtime Warp Scale defaults to multiplier 1");
 Check(DCFApixels.WhimTex.WhimTexApi.Describe().Contains("noisePeriodicAxes"), "Periodicity discovery");
 Set("{\"linkScale\":true,\"scale\":[4,9],\"encoding\":\"LinearData\",\"gradient\":{\"colors\":[{\"time\":0,\"color\":[0,0,0,0.25]},{\"time\":1,\"color\":[2,1,0,1]}],\"mode\":\"Linear\"}}");
 Check(layer.Scale == new UnityEngine.Vector2(4,9), "API axes are literal even with chain enabled");

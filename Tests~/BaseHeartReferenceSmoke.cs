@@ -37,7 +37,7 @@ public static class BaseHeartReferenceSmoke
         {
             Check(document != null && document.width == 512 && document.height == 512, "document canvas is 512x512");
             Check(document.layers != null && document.layers.Count > 0, "document contains the reference layer stack");
-            Texture2D composed = document.Compose();
+            Texture2D composed = document.ComposeCanvas();
             try
             {
                 Check(composed != null && composed.width == 512 && composed.height == 512, "reference document composes at native size");

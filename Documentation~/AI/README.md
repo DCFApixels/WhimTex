@@ -171,7 +171,7 @@ is absent. Missing assets warn rather than preventing opening, and their identit
 The [example index](../Examples/Clipboard/README.md) contains nine current procedural recipes:
 neon ring, shock wave, car wheel, forked lightning, heart, mystic fog, seamless noise,
 retro processor and local distortion. Schema checks cover their structures; Unity tests read,
-compile and compare their rendered results with the original recipes.
+compile and compare their renders before and after saving/reopening.
 
 A schema check alone does not test dependencies, shader compilation or visual quality.
 Use the connected API's document JSON validation when available, then inspect an actual render.
@@ -197,13 +197,12 @@ Command envelopes are separate from content; see the [JSON agent API](../AgentAP
 | ShaderLab, GLSL `mix`, invented helpers | HLSL `ApplyFX`, `lerp`, documented helpers below |
 | `fx[].code` or live API operations inside stored content | `modifiers[].code` and native parameter values |
 
-## Legacy input compatibility
+## Upgrading old clipboard data
 
-Existing `whimtex.layers` data remains readable by the clipboard compatibility reader.
-Its `type/properties`, Drawing `url`, limits and schema are described only in the
-[legacy input reference](LEGACY_LAYERS.md). These are not an alternative format for new exports.
-The linked-image example remains an explicitly labeled legacy fixture because unified JSON
-does not download Drawing pixels. Brush and standalone gradient formats below are unaffected.
+The `whimtex.layers` reader is removed. Before upgrading, paste old payloads in **0.12.5**
+and save as TIFF or export `whimtex.document` JSON. Choose TIFF for Drawing pixels.
+Plain image URL paste, brush-tip URL downloads and standalone gradient presets remain available.
+See the [upgrade note](LEGACY_LAYERS.md).
 
 ## Standalone gradient JSON
 
@@ -240,10 +239,11 @@ If `alphas` is omitted, color alpha components define the alpha track. Interpola
 `Classic`, `Linear`, `Perceptual`, `Fixed`; default `Perceptual`. `colorSpace`: `Gamma` (default)
 or `Linear`. `smoothness`: 0..1, default 1. `midpoint`: 0.01..0.99, default 0.5;
 the last key's midpoint has no following segment. Rounded is the built-in algorithm, not a serialized setting.
-The retired `transition` input field is ignored in old JSON/documents; it is not converted,
-validated as a mode, exposed in UI, or written to new output. Old documents render through
-Rounded directly without migration or resaving. Older artwork may therefore look different.
-Other unknown fields are still rejected.
+Modes use string names and colors use RGBA arrays. The old `WhimTex.Gradient/1` prefix,
+color objects, numeric enums and retired `transition` field are not accepted.
+Unknown fields are rejected. Files saved by 0.12.5 already use the current gradient
+model; convert older files through 0.12.5 before upgrading. The standalone clipboard
+format is not the internal gradient representation in `whimtex.document` files.
 Rounded partitions the curve at complete equal-color intervals and uses monotone cubic
 interpolation with adjacent-secant boundary slopes on each nonconstant block. In Perceptual,
 opposing chroma is reduced by `0.5*(1-|a+b|/(|a|+|b|))`, where a/b are the neighboring
@@ -430,7 +430,5 @@ To encode HLSL inside JSON, use a string with `\n` for newlines; escape quotes n
 is decoded before compilation. Keep generated FX self-contained and use the built-in helpers.
 Copy as JSON expands project includes when possible; an expansion failure preserves the original
 source for repair, so unresolved dependencies can still prevent compilation on another machine.
-The restrictions of the [legacy clipboard reader](LEGACY_LAYERS.md#legacy-shader-restrictions)
-are not the storage contract for unified JSON.
 
 For additional engine-specific authoring details, see [Shader authoring](../ShaderFX.md).

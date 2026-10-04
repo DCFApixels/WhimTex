@@ -24,7 +24,7 @@ DCFApixels.WhimTex.DrawingLayerBehaviour Merge(DCFApixels.WhimTex.TextureComposi
 }
 Color Pixel(DCFApixels.WhimTex.TextureCompositor doc)
 {
-    var pixels = doc.Compose();
+    var pixels = doc.ComposeCanvas();
     try { return pixels.GetPixel(4, 4); }
     finally { UnityEngine.Object.DestroyImmediate(pixels); }
 }

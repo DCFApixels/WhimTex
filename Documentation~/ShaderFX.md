@@ -18,6 +18,10 @@ stack below a position, add a **Shader Processor** layer instead.
 
 ## Shader FX: a first snippet, parameters and reusable code
 
+Parameters are authored only with `// @param` in HLSL. When reading a 0.12.5 document or
+Shader FX asset preset, saved manual uniforms are converted to declarations while retaining
+their values and references. This file conversion does not restore a manual authoring mode.
+
 Declare the parameter in the code, then click **Apply**:
 
 ```hlsl
@@ -119,7 +123,7 @@ Missing or invalid source retains the last applied shader and reports diagnostic
 **Embed Copy** disconnects the source and enables local code editing, retaining the original include base.
 Included files remain external dependencies even after embedding.
 Standalone Shader FX assets also appear in the catalog and are copied, not shared.
-The legacy **+ Reference** workflow is unchanged. ShaderLab shaders are not auto-enrolled by this HLSL catalog.
+**+ Reference** also accepts existing Material and Shader FX assets. ShaderLab shaders are not auto-enrolled by this HLSL catalog.
 
 The user library's `ShaderFX` subfolder is also scanned recursively when opening the catalog.
 The same first-line marker is required. These external presets are embedded copies, not GUID-linked
@@ -168,7 +172,12 @@ Use `// @if _Mode == 1` or `// @if _Mode != 1` before one or more `// @param` li
 // @endif
 ```
 
-Use `// @header(Lighting)` before a `// @param` declaration to add a bold, non-collapsible heading above that control. Use `// @helpbox(Your hint text.)` to show an informational help box above the parameter instead. `// @formerlyserializedas(_OldName)` declares an old parameter name for the next declaration; when the new name is applied, compatible saved values and parameter identity migrate from the old name. Repeat the directive to support multiple previous names. This is useful when renaming a uniform: update the HLSL code to use the new name and leave the old name as migration metadata. All three directives are UI/serialization metadata, not uniforms; they are preserved when saving or exporting presets. Directives without a following parameter are ignored. HLSL brushes support these decorations and rename aliases too.
+Use `// @header(Lighting)` before a `// @param` declaration to add a bold, non-collapsible heading above that control. Use `// @helpbox(Your hint text.)` to show an informational help box above the parameter instead. `// @formerlyserializedas(_OldName)` declares an old parameter name for the next declaration; when the new name is applied, compatible saved values and parameter identity migrate from the old name. Repeat the directive to support multiple previous names. This is useful when renaming a uniform: update the HLSL code to use the new name and leave the old name as migration metadata. All three directives are UI/serialization metadata, not uniforms; they are preserved when saving or exporting presets. A rename directive must be followed by a parameter declaration; headings and help boxes without one are ignored. HLSL brushes support these decorations and rename aliases too.
+
+Built-in Color Filter, Negative, Mask, Gradient Map and HSV use `_Opacity`, as they already did in 0.12.5;
+pre-0.12.5 `_Amount`/`_Density` aliases are removed. The user-authored rename directive remains supported,
+including in saved 0.12.5 FX/brush sources. It is independent of Unity migration attributes, which are no
+longer used by the document reader.
 
 ```hlsl
 // @header(Lighting)

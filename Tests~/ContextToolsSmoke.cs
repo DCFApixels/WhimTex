@@ -29,7 +29,7 @@ public static class ContextToolsSmoke
 
     public static async Task<string> Main()
     {
-        string[] prefs = { "DCFApixels.WhimTex.PreviewTool", "DCFApixels.WhimTex.PreviewTransformReturnTool" };
+        string[] prefs = { "DCFApixels.WhimTex.Canvas.Tool", "DCFApixels.WhimTex.Canvas.TransformReturnTool" };
         var previousPrefs = new string[prefs.Length];
         for (int i = 0; i < prefs.Length; i++) previousPrefs[i] = EditorPrefs.HasKey(prefs[i]) ? EditorPrefs.GetString(prefs[i]) : null;
         var previousFocus = EditorWindow.focusedWindow;

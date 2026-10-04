@@ -1,7 +1,7 @@
 # Layer composition verification
 
-The pre-refactor checkpoint is `598b104`. The package version remains `0.9.0`.
-This refactor intentionally does not migrate documents using inherited Layer types.
+Historical verification of the `598b104` layer refactor (package 0.9.0 at that checkpoint).
+Current file compatibility starts at 0.12.5; compositor `.asset` documents are not supported.
 
 ## Automated checks
 
@@ -21,7 +21,7 @@ For example:
 unity command eval_file --file "<package>/Tests~/LayerCompositionSmoke.cs" --project-path "<project>" --format json
 ```
 
-After source edits, let the user compile manually under the current project rules.
+After source edits, compile through the connected Unity Editor/Pipeline under the current project rules.
 Check both the transport result and the nested command result when executing smoke scripts.
 
 ## Baseline verification before the follow-up
@@ -70,15 +70,12 @@ payload and representative nested/vector/list/string forms. The latter are parse
 not proof of Unity's native format for every type. Unsupported object-reference formats must
 keep defaults, not fabricate or clear texture references.
 
-To finish native recovery/save/reopen verification, obtain permission for a disposable asset:
-
-1. Copy `Fixtures/CompositionMissingTestBehaviour.cs.txt` into `src` as a temporary `.cs` file.
-   The user compiles, then run `LayerPersistenceSetup.cs` through Pipeline.
-2. Remove only the temporary source/meta; the user compiles again.
-3. Run `LayerPersistenceVerify.cs` to verify recovery, Undo/Redo, save/reopen and unsaved pixels.
-4. Run `LayerPersistenceCleanup.cs` even after a failed verification. It checks fixture
-   ownership before deleting the asset and closes only its own window.
-
-Do not repurpose an existing user document or hand-edit its YAML for this test.
+The old LayerPersistence setup/verify/cleanup scripts and native compositor `.asset` route
+were retired during legacy cleanup. They are not current test instructions.
+Current coverage uses `DocumentMissingTypeSmoke` and `Compatibility0125ReaderSmoke` for bounded
+unknown-type decoding and save protection, `DocumentRoundTripSmoke` for TIFF pixels/IDs/FX,
+`DocumentReloadSmoke.Prepare` → real domain reload → `Verify` for file binding and unsaved state,
+and `MissingLayerDataSmoke` for the native recovery parser.
+The historical outcomes above are retained; they do not claim that old assets are supported.
 Finally, manually drag a layer near both list edges with short/long lists and expanded groups.
 The bounds were verified in UI Toolkit; a full interactive drag gesture remains a visual check.

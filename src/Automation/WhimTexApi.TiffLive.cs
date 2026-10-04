@@ -328,7 +328,7 @@ namespace DCFApixels.WhimTex
             Texture2D preview = null;
             try
             {
-                preview = document.ComposePreview(maxSize);
+                preview = document.ComposeCanvas(maxSize);
                 Require(preview != null, "The document produced no preview.", "render_failed");
                 Texture2D encoded = HdrUtility.ToLdr(preview);
                 byte[] bytes;

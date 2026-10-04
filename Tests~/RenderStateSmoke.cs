@@ -65,7 +65,7 @@ try
     foreach (bool srgb in new[] { false, true })
     {
         var expected = useSentinel ? sentinel : null;
-        Probe("RenderPreview", new object[] { 16 }, expected, srgb);
+        Probe("RenderCanvas", new object[] { 16 }, expected, srgb);
         foreach (var layer in new[] { leaf, group })
         {
             Probe("RenderLayerPreview", new object[] { layer, 16 }, expected, srgb);

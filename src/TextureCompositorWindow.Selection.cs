@@ -363,7 +363,7 @@ namespace DCFApixels.WhimTex
                 if (active != null && copies.TryGetValue(active, out Layer activeCopy))
                     ActivateSelectedLayer(activeCopy.Id);
                 selectionAnchorId = selectedLayerId;
-                temporaryDocumentDirty |= !AssetDatabase.Contains(compositor);
+                temporaryDocumentDirty = true;
                 lineAnchorLayer = null;
                 RequestCanvasRender();
             }
@@ -379,11 +379,11 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private void PasteCopiedLayers(TextureCompositor snapshot, bool resizeCanvas = false, FilterMode? canvasFilter = null)
-            => PasteCopiedLayersAt(snapshot, null, 0, null, resizeCanvas, canvasFilter);
+        private void PasteCopiedLayers(TextureCompositor snapshot, bool resizeCanvas = false)
+            => PasteCopiedLayersAt(snapshot, null, 0, null, resizeCanvas);
 
         private void PasteCopiedLayersAt(TextureCompositor snapshot, List<Layer> destination, int index,
-            Layer expand, bool resizeCanvas = false, FilterMode? canvasFilter = null)
+            Layer expand, bool resizeCanvas = false)
         {
             applyingToolkitChange = true;
             Undo.IncrementCurrentGroup();
@@ -391,15 +391,13 @@ namespace DCFApixels.WhimTex
             Undo.SetCurrentGroupName("Paste Layers");
             try
             {
-                if (resizeCanvas || canvasFilter.HasValue)
+                if (resizeCanvas)
                     Undo.RegisterCompleteObjectUndo(compositor, "Paste Layers");
                 if (resizeCanvas)
                 {
                     compositor.width = snapshot.width;
                     compositor.height = snapshot.height;
                 }
-                if (canvasFilter.HasValue)
-                    compositor.outputFilter = canvasFilter.Value;
                 Dictionary<Layer, Layer> copies = compositor.PasteLayers(snapshot);
                 if (destination != null)
                 {
@@ -421,7 +419,7 @@ namespace DCFApixels.WhimTex
                 foreach (Layer copy in copies.Values)
                     if (copy.IsGroup) groupExpansion[copy.Id] = true;
                 selectionAnchorId = selectedLayerId;
-                temporaryDocumentDirty |= !AssetDatabase.Contains(compositor);
+                temporaryDocumentDirty = true;
                 lineAnchorLayer = null;
                 RequestCanvasRender();
             }
@@ -470,7 +468,7 @@ namespace DCFApixels.WhimTex
             {
                 DrawingLayerBehaviour merged = compositor.MergeLayers(layers, keepSources);
                 SelectOnlyLayer(merged.Id);
-                temporaryDocumentDirty |= !AssetDatabase.Contains(compositor);
+                temporaryDocumentDirty = true;
                 lineAnchorLayer = null;
             }
             catch (System.Exception exception)

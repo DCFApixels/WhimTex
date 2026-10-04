@@ -63,13 +63,13 @@ namespace DCFApixels.WhimTex
             get => EditorPrefs.GetInt(ImageOpenLayerKey, 0) == 1 ? ImageOpenLayer.File : ImageOpenLayer.Drawing;
             set { EditorPrefs.SetInt(ImageOpenLayerKey, (int)value); Changed?.Invoke(); }
         }
-        private const string LightKey = "DCFApixels.WhimTex.Preview.CheckerLight";
-        private const string DarkKey = "DCFApixels.WhimTex.Preview.CheckerDark";
-        private const string ErrorKey = "DCFApixels.WhimTex.Preview.InvalidPixels";
-        private const string SizeKey = "DCFApixels.WhimTex.Preview.CheckerSize";
-        private const string ShowMantaKey = "DCFApixels.WhimTex.Preview.ShowManta";
-        private const string PostFxBackgroundKey = "DCFApixels.WhimTex.Preview.PostFxBackground";
-        private const string PostFxBackgroundModeKey = "DCFApixels.WhimTex.Preview.PostFxBackgroundMode";
+        private const string LightKey = "DCFApixels.WhimTex.CanvasView.CheckerLight";
+        private const string DarkKey = "DCFApixels.WhimTex.CanvasView.CheckerDark";
+        private const string ErrorKey = "DCFApixels.WhimTex.CanvasView.InvalidPixels";
+        private const string SizeKey = "DCFApixels.WhimTex.CanvasView.CheckerSize";
+        private const string ShowMantaKey = "DCFApixels.WhimTex.CanvasView.ShowManta";
+        private const string PostFxBackgroundKey = "DCFApixels.WhimTex.CanvasView.PostFxBackground";
+        private const string PostFxBackgroundModeKey = "DCFApixels.WhimTex.CanvasView.PostFxBackgroundMode";
         private const string PresetsFolderKey = "DCFApixels.WhimTex.PresetsFolder";
         private const string LayerPickAlphaKey = "DCFApixels.WhimTex.LayerPickAlphaThreshold";
         private const string SnapRadiusKey = "DCFApixels.WhimTex.SnapRadius";
@@ -144,21 +144,9 @@ namespace DCFApixels.WhimTex
                 Changed?.Invoke();
             }
         }
-        // Presets saved before the rename live in the legacy sibling folder. Keep using it while the
-        // new folder is absent, so renaming the package does not hide the user's brushes and effects.
-        private const string LegacyDataFolder = "SpriteEditor";
-        internal static string DefaultPresetsFolder
-        {
-            get
-            {
-                string root = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DCFApixels");
-                string folder = Path.Combine(root, "WhimTex", "Presets");
-                if (Directory.Exists(folder)) return folder;
-                string legacy = Path.Combine(root, LegacyDataFolder, "Presets");
-                return Directory.Exists(legacy) ? legacy : folder;
-            }
-        }
+        internal static string DefaultPresetsFolder => Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "DCFApixels", "WhimTex", "Presets");
         internal static string PresetsFolder => EditorPrefs.GetString(PresetsFolderKey, DefaultPresetsFolder);
 
         internal static bool TrySetPresetsFolder(string value, out string error)

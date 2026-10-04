@@ -11,13 +11,9 @@ public static class CompactPortableClipboardSmoke
     {
         int checks = 0;
         void Check(bool ok, string message) { if (!ok) throw new Exception(message); checks++; }
-        const string legacy = "{'format':'whimtex.layers','version':1,'canvas':{'width':256,'height':128,'filter':'Point'},'layers':" +
-            "[{'type':'drawing'},{'type':'file'},{'type':'color'},{'type':'gradient'},{'type':'noise'},{'type':'shape'}," +
-            "{'type':'outline'},{'type':'sdf'},{'type':'normalMap'},{'type':'blur'},{'type':'sharpen'}," +
-            "{'type':'makeSeamless'},{'type':'shaderProcessor'},{'type':'group'},{'type':'color'}]}";
-        using var input = (IDisposable)typeof(WhimTexApi).GetMethod("ReadProceduralClipboard", F).Invoke(null, new object[] { legacy, 256, 128 });
+        const string json = "{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"layer0\",\"behaviour\":{\"$type\":\"DrawingLayerBehaviour\"}},{\"id\":\"layer1\",\"behaviour\":{\"$type\":\"FileLayerBehaviour\"}},{\"id\":\"layer2\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}},{\"id\":\"layer3\",\"behaviour\":{\"$type\":\"GradientLayerBehaviour\"}},{\"id\":\"layer4\",\"behaviour\":{\"$type\":\"NoiseLayerBehaviour\"}},{\"id\":\"layer5\",\"behaviour\":{\"$type\":\"ShapeLayerBehaviour\"}},{\"id\":\"layer6\",\"behaviour\":{\"$type\":\"OutlineLayerBehaviour\"}},{\"id\":\"layer7\",\"behaviour\":{\"$type\":\"SDFLayerBehaviour\"}},{\"id\":\"layer8\",\"behaviour\":{\"$type\":\"NormalMapLayerBehaviour\"}},{\"id\":\"layer9\",\"behaviour\":{\"$type\":\"BlurLayerBehaviour\"}},{\"id\":\"layer10\",\"behaviour\":{\"$type\":\"SharpenLayerBehaviour\"}},{\"id\":\"layer11\",\"behaviour\":{\"$type\":\"MakeSeamlessLayerBehaviour\"}},{\"id\":\"layer12\",\"behaviour\":{\"$type\":\"ShaderProcessorLayerBehaviour\"}},{\"id\":\"layer13\",\"behaviour\":{\"$type\":\"GroupLayerBehaviour\"},\"group\":true},{\"id\":\"layer14\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}}],\"document\":{\"width\":256,\"height\":128,\"outputFilter\":\"Point\"}}";
+        using var input = (IDisposable)typeof(WhimTexApi).GetMethod("ReadProceduralClipboard", F).Invoke(null, new object[] { json, 256, 128 });
         var document = (TextureCompositor)input.GetType().GetField("Document", F).GetValue(input);
-        document.outputFilter = FilterMode.Point; // Legacy clipboard carries this separately for the paste destination.
         var noise = (NoiseLayerBehaviour)document.layers[4].Behaviour;
         noise.seed = 731; noise.warp = NoiseLayerBehaviour.WarpType.None; noise.warpStrength = 73;
         document.layers[4].enabled = false;

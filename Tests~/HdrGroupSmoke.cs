@@ -9,7 +9,7 @@ object Call(object target, string name, params object[] args) => target.GetType(
 Texture2D Stored() => (Texture2D)drawing.GetType().GetProperty("StoredTexture", flags).GetValue(drawing);
 Color Pixel()
 {
-    var texture = document.Compose();
+    var texture = document.ComposeCanvas();
     try { Check(texture.format == TextureFormat.RGBAHalf, "Composition stores linear half-float"); return texture.GetPixel(2, 2); }
     finally { UnityEngine.Object.DestroyImmediate(texture); }
 }

@@ -22,14 +22,19 @@ public static class UIRefreshSmoke
         {
             var parameters = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", Hidden).GetValue(effect);
             parameters.Clear();
-            for (int i = 0; i < 32; i++)
-                parameters.Add(new ShaderFXParameter { name = "_Value" + i, floatValue = i });
+            var metadata = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata", true);
+            string code = "";
+            for (int i = 0; i < 32; i++) code += "// @param float _Value" + i + " = " + i + "\n";
+            parameters.AddRange((List<ShaderFXParameter>)metadata.GetMethod("Parse", BindingFlags.Static | BindingFlags.NonPublic)
+                .Invoke(null, new object[] { code, false, null }));
             var condition = new ShaderFXParameterControl { type = ShaderFXParameterType.Float,
                 visibleIfParameter = "_Value0", visibleIfValue = 1, headers = new[] { "Conditional" } };
-            parameters[1].controls.Add(condition);
+            condition.order = parameters[1].controls[0].order;
+            parameters[1].controls[0] = condition;
             var mode = new ShaderFXParameterControl { type = ShaderFXParameterType.Enum,
                 optionNames = new[] { "First", "Second" }, optionValues = new[] { 0f, 1f } };
-            parameters[2].controls.Add(mode);
+            mode.order = parameters[2].controls[0].order;
+            parameters[2].controls[0] = mode;
             var type = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXParameterView", true);
             var view = (VisualElement)Activator.CreateInstance(type, Hidden, null, new object[] { effect }, null);
             var refresh = (Action)Delegate.CreateDelegate(typeof(Action), view, type.GetMethod("Refresh", Hidden));
@@ -40,11 +45,14 @@ public static class UIRefreshSmoke
             refresh();
             Check(ReferenceEquals(first, view[0]), "Value update rebuilt controls");
             Check(conditional.style.display.value == DisplayStyle.Flex, "Condition failed to show");
-            parameters[0] = new ShaderFXParameter { id = parameters[0].id, name = "_Value0", floatValue = 0 };
+            var replaced = parameters[0];
+            parameters[0] = new ShaderFXParameter { id = replaced.id, name = "_Value0", floatValue = 0 };
+            parameters[0].controls.AddRange(replaced.controls);
             refresh();
             Check(ReferenceEquals(first, view[0]), "Model replacement rebuilt an unchanged layout");
             Check(conditional.style.display.value == DisplayStyle.None, "Condition uses stale model object");
-            Check(((FloatField)first).value == 0, "Field uses stale model object");
+            var number = first as FloatField ?? first.Q<FloatField>();
+            Check(number != null && number.value == 0, "Field uses stale model object");
 
             Action<Action, string> expectRebuild = (edit, description) => {
                 var before = view[0]; edit(); refresh();
@@ -55,10 +63,11 @@ public static class UIRefreshSmoke
             expectRebuild(() => mode.optionNames[1] = "Changed", "enum label edit");
             expectRebuild(() => mode.optionValues[1] = 2, "enum value edit");
             expectRebuild(() => condition.tooltip = "Updated tooltip", "tooltip edit");
-            expectRebuild(() => parameters[3].maximum = 10, "range edit");
+            expectRebuild(() => { parameters[3].controls[0].hasMaximum = true; parameters[3].controls[0].maximum = 10; }, "range edit");
             expectRebuild(() => parameters.Reverse(), "reorder");
             expectRebuild(() => parameters.RemoveAt(0), "remove");
-            expectRebuild(() => parameters.Add(new ShaderFXParameter { name = "_Added" }), "add");
+            expectRebuild(() => parameters.Add((ShaderFXParameter)((List<ShaderFXParameter>)metadata.GetMethod("Parse", BindingFlags.Static | BindingFlags.NonPublic)
+                .Invoke(null, new object[] { "// @param float _Added", false, null }))[0]), "add");
             first = view[0];
             for (int i = 0; i < 20; i++) refresh();
             Check(ReferenceEquals(first, view[0]), "Idle refresh rebuilt controls");

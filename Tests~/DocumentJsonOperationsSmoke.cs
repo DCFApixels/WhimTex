@@ -63,7 +63,7 @@ public static class DocumentJsonOperationsSmoke
                 Check(!validated.Contains("\"kind\""), "Validation returns obsolete kind.");
 
                 // Exercise the file-open loader directly, without opening a window or touching user documents.
-                foreach (string oldKind in new[] { null, "document", "fragment", "layers" })
+                foreach (string oldKind in new string[] { null })
                 {
                     string input = oldKind == null ? json : json.Insert(1, "\"kind\":\"" + oldKind + "\",");
                     File.WriteAllText(selectedPath, input);

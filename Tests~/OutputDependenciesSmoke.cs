@@ -30,7 +30,6 @@ void Check(bool ok, string label) { if (!ok) throw new System.Exception(label); 
 var a = NewDocument(); var b = NewDocument(); var c = NewDocument();
 var previousFocus = UnityEditor.EditorWindow.focusedWindow;
 DCFApixels.WhimTex.TextureCompositorWindow window = null;
-System.IDisposable session = null;
 UnityEngine.RenderTexture gpu = null;
 var previousTarget = UnityEngine.RenderTexture.active;
 var sample = new UnityEngine.Texture2D(1, 1, UnityEngine.TextureFormat.RGBAFloat, false, true);
@@ -71,19 +70,17 @@ try
     Check(RenderPixel().r < .01f, "initial cached blur is black");
     requested.SetValue(window, false);
     string original = UnityEditor.EditorJsonUtility.ToJson(b);
-    var liveType = assembly.GetType("DCFApixels.WhimTex.LiveOutputSession", true);
-    session = (System.IDisposable)liveType.GetConstructor(instance, null, new[] { typeof(UnityEngine.Texture2D) }, null).Invoke(new object[] { a.OutputTexture });
     gpu = UnityEngine.RenderTexture.GetTemporary(16, 16, 0, UnityEngine.RenderTextureFormat.ARGBFloat, UnityEngine.RenderTextureReadWrite.Linear);
     UnityEngine.RenderTexture.active = gpu; UnityEngine.GL.Clear(false, true, UnityEngine.Color.red);
     UnityEngine.RenderTexture.active = previousTarget;
-    liveType.GetMethod("Publish", instance).Invoke(session, new object[] { gpu });
+    UnityEngine.Graphics.CopyTexture(gpu, a.OutputTexture);
     for (int i = 0; i < 5; i++) notify.Invoke(a, null);
     Check((bool)dirty.GetValue(window) && (bool)requested.GetValue(window), "notifications queue refresh");
     Check(UnityEditor.EditorJsonUtility.ToJson(b) == original, "notifications do not edit receiver");
     var red = RenderPixel();
     Check(red.r > .99f && red.g < .01f, "new GPU pixels reach File layer and cached blur");
     Check(!(bool)dirty.GetValue(window), "cache invalidation consumed once");
-    session.Dispose(); session = null; notify.Invoke(a, null);
+    a.OutputTexture.Apply(false, false); notify.Invoke(a, null);
     Check(RenderPixel().r < .01f, "stop restores saved CPU pixels through receiver cache");
     var blue = new UnityEngine.Color[256];
     for (int i = 0; i < blue.Length; i++) blue[i] = UnityEngine.Color.blue;
@@ -94,7 +91,6 @@ try
 }
 finally
 {
-    session?.Dispose();
     UnityEngine.RenderTexture.active = previousTarget;
     if (gpu != null) UnityEngine.RenderTexture.ReleaseTemporary(gpu);
     if (window != null) window.Close();

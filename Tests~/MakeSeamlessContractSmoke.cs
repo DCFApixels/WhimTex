@@ -67,7 +67,7 @@ public static class MakeSeamlessContractSmoke
         var description = Parse(WhimTexApi.Describe());
         Check((bool)description["success"].Scalar, "Describe failed");
         var defaults = description["makeSeamlessDefaults"];
-        var schema = Parse(File.ReadAllText(Root + "Documentation~/AI/layers.schema.json"))["$defs"]["makeSeamless"]["properties"];
+        var schema = Parse(File.ReadAllText(Root + "Documentation~/AI/agent-fields.schema.json"))["$defs"]["makeSeamless"]["properties"];
         Check(defaults.Count == schema.Count, "Default/schema field count");
         foreach (var field in schema.Children())
         {
@@ -146,7 +146,7 @@ public static class MakeSeamlessContractSmoke
             RenderTexture rendered = null;
             try
             {
-                rendered = (RenderTexture)typeof(TextureCompositor).GetMethod("RenderPreview", instance).Invoke(doc, new object[] { 64 });
+                rendered = (RenderTexture)typeof(TextureCompositor).GetMethod("RenderCanvas", instance).Invoke(doc, new object[] { 64 });
                 Check(rendered != null && rendered.width == 64 && rendered.height == 64, "Recipe render");
                 Check(RenderTexture.active == previous && GL.sRGBWrite == srgb, "Render state restored");
             }

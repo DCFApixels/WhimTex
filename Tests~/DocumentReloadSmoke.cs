@@ -49,7 +49,11 @@ public static class DocumentReloadSmoke
         string path = AssetDatabase.GUIDToAssetPath(EditorPrefs.GetString(Key + ".guid", ""));
         TextureCompositorWindow found = null;
         foreach (var window in Resources.FindObjectsOfTypeAll<TextureCompositorWindow>())
-            if ((string)typeof(TextureCompositorWindow).GetField("documentFileGuid", Any).GetValue(window) == EditorPrefs.GetString(Key + ".guid", "")) found = window;
+            {
+                var document = (TextureCompositor)typeof(TextureCompositorWindow).GetField("compositor", Any).GetValue(window);
+                var service = typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.WhimTexDocumentService");
+                if ((string)service.GetMethod("PathOf", Any).Invoke(null, new object[] { document }) == path) found = window;
+            }
         if (found == null)
         {
             // Unity may close utility windows created by an ephemeral test assembly during a

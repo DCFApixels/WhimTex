@@ -51,6 +51,8 @@ namespace DCFApixels.WhimTex
 
         private static WhimTexJsonWriteResult WriteJsonFile(TextureCompositor document, string path, WhimTexJsonWriteOptions options)
         {
+            if (document == null || AssetDatabase.Contains(document))
+                throw new WhimTexDocumentException("Editable documents must be in-memory models, not Unity assets.");
             var result = WhimTexDocumentJson.Write(document, options);
             using (WhimTexDocumentJson.Read(result.Json, false)) { }
             byte[] data = new UTF8Encoding(false).GetBytes(result.Json);

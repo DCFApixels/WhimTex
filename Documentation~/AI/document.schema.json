@@ -15,11 +15,6 @@
     "version": {
       "const": 1
     },
-    "kind": {
-      "type": "string",
-      "deprecated": true,
-      "description": "Obsolete, ignored on read and never written. The caller's operation selects open, insert or replace."
-    },
     "writeMode": {
       "type": "string",
       "enum": [
@@ -46,6 +41,15 @@
       "properties": {
         "$type": {
           "const": "TextureCompositor"
+        },
+        "spriteSlices": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "deprecated": true,
+          "description": "Ignored 0.12.5 file metadata; never written by current writers.",
+          "items": {}
         },
         "colorHistory": {
           "type": [
@@ -83,22 +87,6 @@
           "type": "integer",
           "minimum": -2147483648,
           "maximum": 2147483647
-        },
-        "spriteSlices": {
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/TextureCompositor+SpriteSlice"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
         },
         "width": {
           "type": "integer",
@@ -198,57 +186,6 @@
           "type": "integer",
           "minimum": -2147483648,
           "maximum": 2147483647
-        }
-      }
-    },
-    "TextureCompositor+SpriteSlice": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "$type": {
-          "const": "TextureCompositor+SpriteSlice"
-        },
-        "id": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "name": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "rect": {
-          "type": "array",
-          "minItems": 4,
-          "maxItems": 4,
-          "items": {
-            "type": "number",
-            "minimum": -3.40282347E+38,
-            "maximum": 3.40282347E+38
-          }
-        },
-        "pivot": {
-          "type": "array",
-          "minItems": 2,
-          "maxItems": 2,
-          "items": {
-            "type": "number",
-            "minimum": -3.40282347E+38,
-            "maximum": 3.40282347E+38
-          }
-        },
-        "border": {
-          "type": "array",
-          "minItems": 4,
-          "maxItems": 4,
-          "items": {
-            "type": "number",
-            "minimum": -3.40282347E+38,
-            "maximum": 3.40282347E+38
-          }
         }
       }
     },
@@ -813,6 +750,11 @@
         "$type": {
           "const": "ShaderFXParameter"
         },
+        "declaredInCode": {
+          "type": "boolean",
+          "deprecated": true,
+          "description": "0.12.5 input; distinguishes saved manual parameters from removed code declarations. Never written by current writers."
+        },
         "name": {
           "type": [
             "string",
@@ -1041,9 +983,6 @@
             "string",
             "null"
           ]
-        },
-        "declaredInCode": {
-          "type": "boolean"
         },
         "hasMinimum": {
           "type": "boolean"
@@ -3351,6 +3290,11 @@
         "$type": {
           "const": "ShapeLayerBehaviour"
         },
+        "roundness": {
+          "type": "number",
+          "deprecated": true,
+          "description": "0.12.5 input; normalized to explicit cornerRoundness."
+        },
         "kind": {
           "type": "string",
           "enum": [
@@ -3404,11 +3348,6 @@
             "Outside",
             "Centered"
           ]
-        },
-        "roundness": {
-          "type": "number",
-          "minimum": -3.40282347E+38,
-          "maximum": 3.40282347E+38
         },
         "cornerRoundness": {
           "type": "array",

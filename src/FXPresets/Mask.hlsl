@@ -1,6 +1,5 @@
 // @whimtex-effect Color/Mask
 // @control(_Opacity)
-// @formerlyserializedas(_Amount)
 // @param hidden float _Opacity = 1 [0 .. 1] // Blend between the original and corrected colors.
 // @group(Mask Channel; _MaskChannel)
 // @param hidden enum _MaskChannel = R {Alpha: 0, Luminance: 1, R: 2, G: 3, B: 4}

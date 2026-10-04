@@ -3,10 +3,22 @@
 Статус: TIFF — основной формат редактируемых документов WhimTex с версии 0.11.0.
 Этот файл описывает TIFF-контракт хранения. Для текстовых документов и clipboard действует
 отдельный [единый JSON-контракт](../Documentation~/JSON_FORMAT.md), без пикселей Drawing.
-Legacy `.asset` поддерживается для чтения
-и явной миграции в TIFF; создание и сохранение документов в старом формате запрещены.
+Документы `.asset` не поддерживаются: ни чтения, ни записи, ни миграции. До обновления
+преобразуйте их в TIFF через WhimTex 0.12.5. `TextureCompositor` остаётся моделью в памяти.
 
 ## Файл и импорт
+
+Граница очистки легаси — **TIFF/JSON и пресеты `0.12.5`**, без композиторов `.asset`, не старые API и состояния окон.
+Зафиксированные образцы и команды проверки: [Compatibility0125](../Tests~/Fixtures/Compatibility0125/README.md).
+Это начальная выборка, а не доказательство совместимости всех расширений и ассетов.
+Tagged encoding остаётся версии 1. Новые writer не записывают `TextureCompositor`
+поля `outputSettings`, `savedOutputSettings`, `spriteSlices` и `DrawingLayerBehaviour`
+поля `originalImageUrl`, `originalImageRevision`, `pixelsRevision`. В TIFF/JSON это снятые
+служебные данные, не исходные пиксели и не настройки нативного TIFF-импортёра.
+Reader допускает их только у указанных владельцев. В binary он ограниченно потребляет
+старое значение, сохраняя номера объектов, без создания снятых типов/текстур и поиска GUID.
+Ссылка активного поля на снятый объект отклоняется. Остальные неизвестные данные
+по-прежнему диагностируются и защищены от потери при Save. Старый `.asset` backend удалён.
 
 - Один `Name.tiff` и его обычный Unity `.meta`.
 - Пиксели TIFF — готовая композиция; после них находятся контейнер модели и пиксели Drawing.
@@ -28,8 +40,7 @@ Legacy `.asset` поддерживается для чтения
   Чужой `userData` сохраняется; маркер WhimTex дописывается к нему.
 - Слоистые PNG/EXR удалены: ни чтения, ни записи, ни миграции. Обычный экспорт изображения остаётся.
 - TIFF нельзя пересохранять внешним графическим редактором: дополнительные данные документа могут исчезнуть.
-- Старый `.asset`-путь остаётся только для чтения и миграции; настройки встроенного output не управляют TIFF-импортёром.
-- Output выбирает TIFF для штатного Inspector Unity. Отдельное окно настроек оставлено только legacy-ассетам.
+- Output выбирает TIFF для штатного Inspector Unity. Отдельное окно старых Output Settings удалено.
 
 Реализация: `WhimTexTiffImage`, `WhimTexTiffCarrier`, `WhimTexDocumentFile`,
 `WhimTexDocumentPostprocessor`.
@@ -57,7 +68,7 @@ Compression 0 = исходные байты, 1 = raw Deflate. TIFF-полосы 
 Если файл изменился после открытия, отложенная загрузка отклоняется и требует переоткрыть документ.
 Новые контейнеры содержат `integrity:sha256`: count + BinaryWriter string(name) + 32 байта SHA-256
 **хранимых** байтов каждого прочего блока. Проверка выполняется перед распаковкой, включая сырой Drawing.
-Старые TIFF-контейнеры без manifest читаются; checksum не является подписью и не защищает от намеренной подмены.
+Manifest обязателен: writer 0.12.5 всегда записывает его. Старые контейнеры без него отвергаются; checksum не является подписью и не защищает от намеренной подмены.
 
 Ограничения: файл до 4 ГиБ, контейнер до Int32.MaxValue; 65536 блоков с manifest, имя до 512 байт, размер блока не больше Int32.MaxValue,
 сумма объявленных размеров до 8 ГиБ. Загрузчик модели дополнительно ограничен:
@@ -77,27 +88,21 @@ Apply FX сохраняет в Drawing необязательные `hasBakedPix
 Unity-типы обрабатываются явно. Типы хранятся по полному имени; наследование и ссылочная
 идентичность восстанавливаются. Double остаётся double.
 
-- `[FormerlySerializedAs]` и публичные аргументы `[MovedFrom]` сохраняют переименования.
-- Векторные поля мягко расширяются с сохранением порядка X/Y/Z/W и заполнением отсутствующих
-  компонентов нулями: `float → Vector2/3/4`, `Vector2 → Vector3/4`, `Vector3 → Vector4`,
-  `int → Vector2Int/3Int`, `Vector2Int → Vector3Int`. Правило общее для автоматического
-  и ручного чтения, включая элементы массивов/списков.
-  `Vector2Int → Vector2/3/4` и `Vector3Int → Vector3/4` допустимы, только если каждый
-  исходный компонент точно представим во float. Сужение, float → int и потеря точности
-  не допускаются; несовместимые поля по-прежнему блокируют Save.
-  Следующее сохранение использует обычный тег целевого типа и все его компоненты;
-  версия формата и writer не меняются. Color и Quaternion не считаются векторами.
+- Reader разрешает канонические имена типов/полей из файлов 0.12.5. Общий поиск исторических имён
+  через Unity-атрибуты удалён; снятые не влияющие на изображение поля обрабатывает узкий
+  `WhimTexFileCompatibility0125`. Неизвестные данные по-прежнему блокируют потерю при Save.
+- Векторные поля читаются с точным типом тега. Старое расширение scalar/vector/int-vector удалено;
+  несовместимые поля диагностируются и блокируют Save. Типы и компоненты writer 0.12.5 не менялись.
 - Неизвестные поля/типы и отсутствующие GUID/local ID диагностируются. Документ можно осмотреть,
   но **его сохранение, включая Save As, блокируется**, чтобы не уничтожить непрочитанные данные.
   Это защита, не lossless-перенос неизвестных объектов. Нужно восстановить нужную версию/зависимости и открыть файл снова.
 - Ошибка загрузки освобождает уже созданные transient Unity objects.
 - Внешний asset хранится как GUID/local ID; отсутствующий subasset не заменяется случайным главным asset.
-- Drawing: сырые пиксели, размеры, формат, mip count, linear-флаг. Новый необязательный блок
+- Drawing: сырые пиксели, размеры, формат, mip count, linear-флаг. Обязательный блок
   `texture:n:sampling` сохраняет фильтр, wrap U/V/W, aniso и mip bias без изменения версии payload.
-- Владение Drawing определяется обходом слоёв, не типом main asset: у legacy `.asset` главный объект — Texture2D.
-  Сам root legacy-документа тоже пишется значением, не GUID-ссылкой на исходник.
+- Владение Drawing определяется обходом слоёв модели в памяти; пиксели записываются в контейнер.
 - Незавершённая GPU-рисовка синхронизируется перед сериализацией. Окно завершает активный жест перед Save.
-- Встроенные Shader FX принадлежат документу, в том числе при сохранении из legacy-asset.
+- Встроенные Shader FX принадлежат документу в памяти.
   После загрузки owner восстанавливается; относительные include в записываемом коде нормализуются к
   project/package paths без inline методов. Внешние FX остаются ссылками и не мутируются при загрузке.
   Окно подготавливает встроенные шейдеры; независимая build-сессия — лениво при Render/Save.
@@ -132,7 +137,7 @@ Unity-типы обрабатываются явно. Типы хранятся 
 - Новые блоки сжимаются и хешируются совместно, максимум четырьмя worker jobs с ограничением
   суммарного одновременно обрабатываемого raw input примерно 256 МиБ. Это не общий лимит памяти:
   snapshots, compressed buffers, output и GPU-текстуры учитываются отдельно. После подготовки
-  native snapshots освобождаются до Compose/TIFF encode. Сигнатура Save строится по SHA-256
+  native snapshots освобождаются до ComposeCanvas/TIFF encode. Сигнатура Save строится по SHA-256
   фактически сохранённых блоков, а не быстрым cache keys. In-memory copy пропускает storage cache.
 - Save не является O(1): синхронизация изменённой рисовки, сериализация/хеширование, рендер и импорт
   остаются пропорциональны данным, когда они действительно требуются. Первый/изменённый большой документ
@@ -162,7 +167,6 @@ Unity-типы обрабатываются явно. Типы хранятся 
 восстановление незапущенного/неполного Save; модель не пересериализуется, unknown fields не теряются.
 `Retry Live Update Recovery` повторяет существующее journal-восстановление после возвращения asset/
 исправления importer, не сбрасывая неуспешный journal. Реальный crash/power-loss не моделировался убийством Editor.
-- Копирование legacy `.asset` в TIFF оставляет исходник и его output неизменными; ссылки не мигрируются автоматически.
 
 ## Live Update
 
@@ -199,25 +203,24 @@ Unity-типы обрабатываются явно. Типы хранятся 
 Unity Editor 6000.7, DX12. Запускать через подключённый Unity Pipeline, не отдельный сборщик:
 
 - `Tests~/DocumentVectorWideningSmoke.cs` — `run_script`, entry `DocumentVectorWideningSmoke.Run`.
-  In-memory проверки расширения Vector/VectorInt, ручного/автоматического чтения,
+  In-memory проверки точных Vector/VectorInt тегов и отказа от исторических coercion, ручного/автоматического чтения,
   сохранения целевого типа и компонентов, защиты от сужения, потери точности и неизвестных полей.
   Assets не создаёт.
 - `Tests~/DocumentReliabilitySmoke.cs` — `run_script`, entry `DocumentReliabilitySmoke.Run`.
   Уникальная временная папка Assets, cleanup в finally. Проверяет контейнер, Bounds, лимиты,
   sRGB/alpha/HDR, незавершённую рисовку, FX ownership, sampling, GUID/окна и lifecycle Live Update.
-- `Tests~/DocumentPayloadCoverageSmoke.cs` — `eval_file`. 14 поведений, 694 поля, 46 проверок.
+- `Tests~/DocumentPayloadCoverageSmoke.cs` — `eval_file`. 15 поведений, 826 изменённых значений, 49 проверок.
   Уникальные временные assets удаляются в finally.
 - `Tests~/DocumentReloadSmoke.cs` — `run_script`: `DocumentReloadSmoke.Prepare`, затем реальная
   перекомпиляция Unity и `DocumentReloadSmoke.Verify`. 8 проверок привязки, несохранённого содержимого,
   восстановления Read/Write и сохранения после reload. Verify удаляет только окно и папку этого теста.
 - `Tests~/DocumentPreparationSmoke.cs` — `run_script`, entry `DocumentPreparationSmoke.Run`: checksum,
-  streaming, external-write conflict, Undo/disk revision, independent authoring, Drawing migration,
+  streaming, external-write conflict, Undo/disk revision, independent authoring, Drawing round-trip,
   external FX, pending code, relative includes, Live→Save→Live.
 - `Tests~/AgentApiSmoke.cs` — `eval_file`: TIFF batch API, рисование, группы, рендер и Undo/Redo.
   Использует уникальную папку, удаляет свои assets и временные PNG в finally.
 - `Tests~/TiffAgentApiSmoke.cs` — создание/inspect/render TIFF через path-based API, metadata-only
-  storage inspection, validation/status, dry-run и явная миграция legacy `.asset` с проверкой
-  сохранности исходника.
+  storage inspection, validation/status, dry-run и отказ от `.asset` document paths.
 - `Tests~/TiffLiveSmoke.cs` — независимая TIFF live-сессия без окна: begin/preview/status/render,
   atomic complete, создание нового TIFF и внешний revision conflict.
 - `Tests~/DocumentRoundTripSmoke.cs` и `Tests~/DocumentLiveUpdateSmoke.cs` — дополнительные
@@ -236,4 +239,4 @@ Unity Editor 6000.7, DX12. Запускать через подключённы�
 
 Независимая сборка и адаптер path-based агентских команд: [TIFF_AUTHORING.md](TIFF_AUTHORING.md)
 и [TIFF_AGENT_COMMANDS.md](TIFF_AGENT_COMMANDS.md). Новые batch-документы используют `.tiff` или `.json`;
-legacy `.asset` допускается для чтения, диагностики, миграции и batch-проверки `dryRun`, без записи.
+документы `.asset` отвергаются, включая чтение и `dryRun`. До обновления конвертируйте их в TIFF через 0.12.5.

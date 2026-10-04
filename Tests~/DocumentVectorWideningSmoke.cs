@@ -103,9 +103,14 @@ public static class DocumentVectorWideningSmoke
         return stream.ToArray();
     }
 
+    const BindingFlags Instance = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+    static object readResult;
     static object Read(byte[] bytes, Type type, WhimTexDocumentContainer container)
-        => Serializer.GetMethod("Deserialize", Flags).Invoke(null, new object[] { bytes, container, type, null, false });
-    static IReadOnlyList<string> Skipped => (IReadOnlyList<string>)Serializer.GetProperty("LastSkippedFields", Flags).GetValue(null);
+    {
+        readResult = Serializer.GetMethod("Deserialize", Flags).Invoke(null, new object[] { bytes, container, type, null, false });
+        return readResult.GetType().GetProperty("Model", Instance).GetValue(readResult);
+    }
+    static IReadOnlyList<string> Skipped => (IReadOnlyList<string>)readResult.GetType().GetProperty("SkippedFields", Instance).GetValue(readResult);
     static Vector3 Offset(object value) => (Vector3)value.GetType().GetField("offset").GetValue(value);
 
     static byte[] Write(object value, WhimTexDocumentContainer container)
@@ -113,6 +118,7 @@ public static class DocumentVectorWideningSmoke
 
     static void FieldCase(Type type, string name, object source, object expected, WhimTexDocumentContainer container)
     {
+        if (source.GetType() != type.GetField(name).FieldType) expected = null;
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream);
         writer.Write(1);
@@ -154,6 +160,12 @@ public static class DocumentVectorWideningSmoke
                 for (int i = 0; i < tags.Length; i++)
                 {
                     object value = Read(Payload(type, tags[i], values[i]), type, container);
+                    if (tags[i] != 16)
+                    {
+                        Check(Skipped.Count == 1 && Skipped[0] == type.Name + ".offset", "Historical coercion rejected");
+                        Check((int)type.GetField("tail").GetValue(value) == 1234, "Rejected value stream alignment");
+                        continue;
+                    }
                     var expected = new Vector3(values[i][0], i > 0 ? values[i][1] : 0, i > 1 ? values[i][2] : 0);
                     Check(Offset(value).Equals(expected), type.Name + " component order / zero filling");
                     Check(Skipped.Count == 0, "Compatible field must not block Save");
@@ -175,8 +187,8 @@ public static class DocumentVectorWideningSmoke
             }
 
             var noise = (NoiseLayerBehaviour)Read(Payload(typeof(NoiseLayerBehaviour), 15, 4.5f, -7.25f), typeof(NoiseLayerBehaviour), container);
-            Check(noise.offset.Equals(new Vector3(4.5f, -7.25f, 0)), "Actual Noise offset upgrade");
-            Check(Skipped.Count == 1 && Skipped[0] == "NoiseLayerBehaviour.tail", "Unrelated unknown field still protected");
+            Check(noise.offset == Vector3.zero, "Noise does not expand an obsolete Vector2 offset");
+            Check(Skipped.Count == 2 && System.Linq.Enumerable.Contains(Skipped, "NoiseLayerBehaviour.offset") && System.Linq.Enumerable.Contains(Skipped, "NoiseLayerBehaviour.tail"), "Both obsolete and unknown fields protected");
             foreach (Type type in new[] { typeof(VectorFields), typeof(ManualVectorFields) })
             {
                 FieldCase(type, "v2", -1.25f, new Vector2(-1.25f, 0), container);
@@ -213,7 +225,7 @@ public static class DocumentVectorWideningSmoke
                 FieldCase(type, "v4", new Color(1, 2, 3, 4), null, container);
                 FieldCase(type, "v4", new Quaternion(1, 2, 3, 4), null, container);
             }
-            return "PASS: " + assertions + " assertions; all float/int vector widening paths, scalar expansion, automatic/manual readers, typed roundtrips, component retention and incompatible-field guards.";
+            return "PASS: " + assertions + " assertions; exact vector tags, automatic/manual readers, typed roundtrips and rejected historical coercions.";
         }
         catch (TargetInvocationException error) { throw error.InnerException ?? error; }
     }

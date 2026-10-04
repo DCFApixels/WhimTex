@@ -120,7 +120,7 @@ namespace DCFApixels.WhimTex
                 using var output = new NativeArray<Color>(length, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
                 if (paintSettings.fillSampleMode == FillSampleMode.AllLayers)
                 {
-                    composite = compositor.Compose();
+                    composite = compositor.ComposeCanvas();
                     using var compositePixels = HdrUtility.ReadPixels(composite, Allocator.TempJob);
                     new HdrFloodFillUtility.ProjectReferenceJob
                     {
@@ -147,7 +147,7 @@ namespace DCFApixels.WhimTex
                 Undo.SetCurrentGroupName("Fill Drawing Layer");
                 Undo.RecordObject(compositor, "Fill Drawing Layer");
                 layer.ApplyFillPixels(output, width, height, "Fill Drawing Layer");
-                temporaryDocumentDirty |= !AssetDatabase.Contains(compositor);
+                temporaryDocumentDirty = true;
                 compositor.MarkChanged();
                 Undo.FlushUndoRecordObjects();
                 Undo.CollapseUndoOperations(undoGroup);

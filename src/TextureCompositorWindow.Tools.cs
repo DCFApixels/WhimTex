@@ -16,9 +16,9 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private CanvasTool canvasTool = CanvasTool.None;
         [NonSerialized] private CanvasTool canvasTransformReturnTool = CanvasTool.None;
         [NonSerialized] private PaintToolSettings paintSettings = new PaintToolSettings();
-        private const string PaintToolSettingsPrefKey = "DCFApixels.WhimTex.PaintToolSettings";
-        private const string CanvasToolPrefKey = "DCFApixels.WhimTex.PreviewTool";
-        private const string CanvasTransformReturnToolPrefKey = "DCFApixels.WhimTex.PreviewTransformReturnTool";
+        private const string PaintToolSettingsPrefKey = "DCFApixels.WhimTex.Canvas.PaintToolSettings";
+        private const string CanvasToolPrefKey = "DCFApixels.WhimTex.Canvas.Tool";
+        private const string CanvasTransformReturnToolPrefKey = "DCFApixels.WhimTex.Canvas.TransformReturnTool";
         [NonSerialized] private bool conversionPromptOpen;
         [NonSerialized] private RenderTexture blurSampleTexture;
         [NonSerialized] private float paintingPressure = 1f;
@@ -83,11 +83,7 @@ namespace DCFApixels.WhimTex
             {
                 if (EditorPrefs.HasKey(PaintToolSettingsPrefKey))
                 {
-                    // Keep settings saved before the Blur Brush field was renamed.
-                    string saved = EditorPrefs.GetString(PaintToolSettingsPrefKey);
-                    if (saved.IndexOf("\"blurOpacity\"", StringComparison.Ordinal) >= 0)
-                        saved = saved.Replace("\"blurOpacity\"", "\"blurFlow\"");
-                    JsonUtility.FromJsonOverwrite(saved, paintSettings);
+                    JsonUtility.FromJsonOverwrite(EditorPrefs.GetString(PaintToolSettingsPrefKey), paintSettings);
                 }
             }
             catch (ArgumentException)

@@ -8,8 +8,8 @@ assert.ok(settings.includes('EditorPrefs.SetString(PresetsFolderKey, value)'));
 assert.ok(settings.includes('Environment.SpecialFolder.LocalApplicationData'));
 assert.ok(settings.includes('"DCFApixels"') && settings.includes('"WhimTex", "Presets"'),
   'Renamed default preset folder');
-assert.ok(settings.includes('Directory.Exists(legacy) ? legacy : folder'),
-  'Presets saved before the rename stay discoverable until they are moved by hand');
+assert.doesNotMatch(settings, /LegacyDataFolder|Directory\.Exists\(|Directory\.GetParent\(/,
+  'Default library path is independent of historical folders');
 assert.ok(settings.includes('Path.IsPathFullyQualified(value)'));
 assert.ok(settings.indexOf('Path.GetFullPath(value)') < settings.indexOf('EditorPrefs.SetString(PresetsFolderKey, value)'));
 assert.ok(settings.indexOf('File.Exists(value)') < settings.indexOf('EditorPrefs.SetString(PresetsFolderKey, value)'));

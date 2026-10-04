@@ -13,8 +13,7 @@ namespace DCFApixels.WhimTex
         {
             public float height = 220f;
             public bool collapsed;
-            public int channel;
-            public int channelMask = -1;
+            public int channelMask = 15;
         }
 
         private const float HeaderHeight = 20f;
@@ -48,7 +47,7 @@ namespace DCFApixels.WhimTex
             var grip = new VisualElement { pickingMode = PickingMode.Ignore };
             grip.AddToClassList("whimtex-output-preview-grip");
             header.Add(grip);
-            state.channelMask = state.channelMask < 0 ? (state.channel == 1 ? 7 : state.channel == 2 ? 8 : 15) : state.channelMask & 15;
+            state.channelMask &= 15;
             channels = new VisualElement { name = "layer-preview-channels" };
             channels.AddToClassList("whimtex-layer-preview-channels");
             string[] labels = { "R", "G", "B", "A" };

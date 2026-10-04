@@ -14,7 +14,7 @@ public static class TilingSmoke
         RenderTexture rt = null; Texture2D pixels = null;
         try
         {
-            rt = (RenderTexture)typeof(TextureCompositor).GetMethod("RenderPreview", BindingFlags.NonPublic | BindingFlags.Instance)
+            rt = (RenderTexture)typeof(TextureCompositor).GetMethod("RenderCanvas", BindingFlags.NonPublic | BindingFlags.Instance)
                 .Invoke(doc, new object[] { 64 });
             Check(RenderTexture.active == previous, "Leaked active render target");
             RenderTexture.active = rt;

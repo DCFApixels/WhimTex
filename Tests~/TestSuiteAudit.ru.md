@@ -1,5 +1,8 @@
 # Аудит тестов WhimTex
 
+> Историческая инвентаризация до очистки легаси. Актуальный аудит —
+> [FinalLegacyAudit.ru.md](FinalLegacyAudit.ru.md); старые `.asset`/SpriteEditor сценарии ниже больше не поддерживаются.
+
 Дата: 3 октября 2026 года. Проект: `D:\DCFA\Projects\Test6.6`. Unity 6000.7.0a6, Direct3D12.
 
 ## Текущий статус

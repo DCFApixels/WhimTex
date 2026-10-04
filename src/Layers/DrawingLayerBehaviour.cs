@@ -3,12 +3,9 @@ using System.Collections.Generic;
 using UnityEditor;
 using Unity.Collections;
 using UnityEngine;
-using UnityEngine.Scripting.APIUpdating;
 
 namespace DCFApixels.WhimTex
 {
-    // Pending DCFApixels.WhimTex rename marker; do not remove.
-    [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "DrawingLayerBehaviour")]
     [Serializable]
     public sealed partial class DrawingLayerBehaviour : LayerBehaviour
     {
@@ -61,19 +58,7 @@ namespace DCFApixels.WhimTex
             hasBakedPixelFrame = true;
             bakedCanvasToLayer = canvasToLayer;
         }
-        [SerializeField, HideInInspector] private int pixelsRevision;
-        [SerializeField, HideInInspector] private string originalImageUrl;
-        [SerializeField, HideInInspector] private int originalImageRevision;
         [NonSerialized] private WhimTexDocumentSerializer.DeferredTextureInfo? deferredTexture;
-        // A deferred TIFF still represents the same untouched source image. Do not force a full
-        // materialization merely to preserve its portable URL during clipboard/export operations.
-        internal string PortableImageUrl => (pixels != null || deferredTexture.HasValue) &&
-            pixelsRevision == originalImageRevision ? originalImageUrl : null;
-        internal void RememberImageUrl(string url)
-        {
-            originalImageUrl = url;
-            originalImageRevision = pixelsRevision;
-        }
 
         public PaintToolMode tool = PaintToolMode.Brush;
         public Color brushColor = Color.white;
@@ -154,7 +139,6 @@ namespace DCFApixels.WhimTex
             if ((applyTransform || source.IsGroup) && source.transformCache?.parent != null)
                 result.transform.TrySetMatrix(source.transformCache.parentInverse);
             result.pixels = texture;
-            result.originalImageUrl = null;
             // Source settings must survive conversion from a File layer to owned pixels.
             Texture samplingSource = source.SamplingSource;
             texture.filterMode = source.ResolveFilterMode();
@@ -243,7 +227,6 @@ namespace DCFApixels.WhimTex
 
         internal void PrepareStroke(int width, int height, string undoName)
         {
-            unchecked { pixelsRevision++; }
             EnsureHdrStorage();
             EnsurePaintSurface(width, height);
             if (pixels == null)
@@ -428,7 +411,6 @@ namespace DCFApixels.WhimTex
             if (segmentStamps.Count > 0)
             {
                 unchecked { paintSurfaceRevision++; }
-                originalImageUrl = null;
             }
             PaintBrushRenderer.Draw(
                 isolatedStroke ? advancedStroke : surface,
@@ -498,7 +480,6 @@ namespace DCFApixels.WhimTex
 
         internal void ClearSurface(int width, int height)
         {
-            originalImageUrl = null;
             RenderTexture surface = EnsurePaintSurface(width, height);
             if (surface == null)
                 return;
@@ -590,13 +571,11 @@ namespace DCFApixels.WhimTex
         internal void AdoptStoredTexture(Texture2D texture)
         {
             deferredTexture = null;
-            originalImageUrl = null;
             if (pixels != null && !AssetDatabase.Contains(pixels))
                 UnityEngine.Object.DestroyImmediate(pixels);
             pixels = texture;
             if (pixels == null)
                 return;
-            unchecked { pixelsRevision++; }
             pixels.name = GetTextureName();
             pixels.hideFlags = HideFlags.HideAndDontSave;
             ReleasePaintSurface();
@@ -613,27 +592,6 @@ namespace DCFApixels.WhimTex
             pixels.name = GetTextureName();
             pixels.hideFlags = HideFlags.HideAndDontSave;
             ReleasePaintSurface();
-        }
-
-        internal bool MakeTexturePersistent(TextureCompositor owner)
-        {
-            if (owner == null || !AssetDatabase.Contains(owner))
-                return false;
-            EnsureDeferredTexture();
-            if (pixels == null)
-            {
-                EnsurePaintSurface(owner.width, owner.height);
-                SyncSurfaceToTexture();
-            }
-            if (pixels == null || AssetDatabase.Contains(pixels))
-                return false;
-
-            pixels.name = GetTextureName();
-            pixels.hideFlags = HideFlags.HideInHierarchy;
-            AssetDatabase.AddObjectToAsset(pixels, owner);
-            EditorUtility.SetDirty(pixels);
-            EditorUtility.SetDirty(owner);
-            return true;
         }
 
         internal void DestroyStoredTextureWithUndo()

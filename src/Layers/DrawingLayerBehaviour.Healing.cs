@@ -126,7 +126,6 @@ namespace DCFApixels.WhimTex
                 Graphics.Blit(result, surface);
                 paintSurfaceDirty = true;
                 unchecked { paintSurfaceRevision++; }
-                originalImageUrl = null;
                 SyncSurfaceToTexture();
             }
             finally

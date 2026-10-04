@@ -65,7 +65,7 @@ for (const file of ['README.md', 'README-RU.md', 'README-ZH.md']) {
   const entry = read(file);
   assert.ok(entry.includes('Documentation~/AI/document.schema.json'), `${file}: current document schema entry point`);
   assert.ok(!entry.includes('Documentation~/AI/layers.schema.json'), `${file}: no legacy schema as the primary contract`);
-  assert.ok(entry.includes('legacy URL-input fixture'), `${file}: linked-image example is compatibility-only`);
+  assert.ok(!entry.includes('legacy URL-input fixture'), `${file}: removed linked-image fixture is not advertised`);
 }
 assert.match(api, /\| `assetPath` \|[^\n]*\*\.tiff[^\n]*\*\.json/, 'Batch path table must document both storage formats');
 assert.ok(api.includes('not a `whimtex.document` file'), 'Batch command envelopes are distinguished from document content');
@@ -74,7 +74,7 @@ assert.ok(shaders.includes('textureLayerId'), 'Unified JSON exposes stored FX la
 assert.ok(!shaders.includes('Clipboard JSON does not expose these bindings'), 'No obsolete FX binding restriction');
 assert.ok(!shaders.includes('retains the last working shader'), 'Failed Apply must not promise rendering a stale shader');
 for (const lang of ['en', 'ru', 'zh']) {
-  assert.ok(read(`Documentation~/${lang}/selection.md`).includes('AI/LEGACY_LAYERS.md'), `${lang}: URL-in-JSON support is legacy-only`);
+  assert.ok(read(`Documentation~/${lang}/selection.md`).includes('AI/LEGACY_LAYERS.md'), `${lang}: old clipboard upgrade route is documented`);
   assert.ok(read(`Documentation~/${lang}/tiff-format.md`).includes('JSON'), `${lang}: editable documents are not TIFF-only`);
 }
 assert.ok(!read('Documentation~/TIFF_FORMAT.md').includes('documents are TIFF-only'), 'Technical TIFF reference must acknowledge JSON');
@@ -84,7 +84,7 @@ for (const file of ['AI_AUTHORING.md', 'Documentation~/AI/README.md', 'Documenta
   assert.ok(text.includes('whimtex.document') && text.includes('document.schema.json'), `${file}: current authoring contract`);
   assert.ok(!text.includes('Copy as Portable'), `${file}: obsolete menu name`);
 }
-assert.ok(authoring.includes('LEGACY_LAYERS.md'), 'Compatibility input is documented separately');
+assert.ok(authoring.includes('LEGACY_LAYERS.md'), 'Old clipboard upgrade route is documented separately');
 assert.ok(authoring.includes('compilation failure does not reject') && !authoring.includes('successful compilation before insertion'), 'Paste documents recoverable FX errors');
 assert.ok(!authoring.includes('"format": "whimtex.layers",'), 'No new recipe teaches legacy output');
 const layerMenu = read('src/TextureCompositorWindow.cs');

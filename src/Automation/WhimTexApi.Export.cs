@@ -29,20 +29,14 @@ namespace DCFApixels.WhimTex
                 RequireGraphics();
                 TextureCompositor document = Load(path);
                 Texture2D image = null;
-                Texture2D encoded = null;
                 try
                 {
                     Require(!TextureCompositorWindow.IsDocumentBusyForApi(document), "Finish the current paint/transform gesture first.", "document_busy");
-                    image = maxSize == 0 ? document.Compose() : document.ComposePreview(maxSize);
+                    image = maxSize == 0 ? document.ComposeCanvas() : document.ComposeCanvas(maxSize);
                     Require(image != null, "The document produced no export image.", "render_failed");
-                    byte[] bytes;
-                    if (extension == ".exr") bytes = image.EncodeToEXR(Texture2D.EXRFlags.CompressZIP);
-                    else
-                    {
-                        encoded = HdrUtility.ToLdr(image, extension == ".jpg" || extension == ".jpeg");
-                        bytes = extension == ".png" ? encoded.EncodeToPNG() :
-                            extension == ".tga" ? encoded.EncodeToTGA() : encoded.EncodeToJPG(95);
-                    }
+                    RasterImageFormat format = extension == ".exr" ? RasterImageFormat.Exr :
+                        extension == ".png" ? RasterImageFormat.Png : extension == ".tga" ? RasterImageFormat.Tga : RasterImageFormat.Jpeg;
+                    byte[] bytes = WhimTexRasterEncoder.Encode(image, format);
                     Directory.CreateDirectory(Path.GetDirectoryName(full));
                     using (var stream = new FileStream(full, overwrite ? FileMode.Create : FileMode.CreateNew, FileAccess.Write))
                         stream.Write(bytes, 0, bytes.Length);
@@ -58,7 +52,6 @@ namespace DCFApixels.WhimTex
                 }
                 finally
                 {
-                    if (encoded != null) Object.DestroyImmediate(encoded);
                     if (image != null) Object.DestroyImmediate(image);
                     ReleaseTransientDocument(document);
                 }

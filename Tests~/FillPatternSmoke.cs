@@ -55,11 +55,12 @@ public static class FillPatternSmoke
         }
         try
         {
-            fill.pattern.size = 29;
-            Check(fill.pattern.Size == new Vector2(29,29), "Legacy scalar inherits both axes");
-            var legacy = JsonUtility.FromJson<FillPatternSettings>("{\"size\":37}");
-            Check(legacy.Size == new Vector2(37,37), "Legacy serialized scalar inherits both axes");
-            legacy.Dispose();
+            fill.pattern.Size = new Vector2(29,29);
+            Check(fill.pattern.Size == new Vector2(29,29), "Explicit axes");
+            using (var legacyFile = WhimTexDocumentJson.Read("{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"pattern\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"pattern\":{\"size\":37}}}]}", false))
+                Check(((ColorFillLayerBehaviour)legacyFile.Document.layers[0].Behaviour).pattern.Size == new Vector2(37,37),
+                    "0.12.5 file scalar normalized at read");
+            Check(new FillPatternSettings().Size == new Vector2(64,64), "Modern explicit defaults");
             fill.pattern.Size = new Vector2(29,17); fill.pattern.seamless = true;
             fill.pattern.offset = new Vector2(13.2f,-7.3f);
             var transform = layer.transform;
@@ -195,11 +196,11 @@ public static class FillPatternSmoke
             var shiftedX=gx;var shiftedY=gy;shiftedX.z+=gx.x;shiftedY.z+=gy.x;
             material.SetVector("_PatternRow0",shiftedX);material.SetVector("_PatternRow1",shiftedY);
             Same(grouped,Render(),"Group transform periodicity");
-            var groupImage=doc.Compose();
+            var groupImage=doc.ComposeCanvas();
             try { Check(groupImage!=null,"Group composite"); }
             finally { UnityEngine.Object.DestroyImmediate(groupImage); }
             doc.layers.Clear();doc.layers.Add(layer);
-            Texture2D composite=doc.Compose();
+            Texture2D composite=doc.ComposeCanvas();
             try { Check(composite!=null && composite.width==127,"Composite"); }
             finally { UnityEngine.Object.DestroyImmediate(composite); }
             Check(fill.GetPreviewTexture(32)!=null,"Thumbnail");
@@ -214,7 +215,7 @@ public static class FillPatternSmoke
             loaded = WhimTexDocumentFile.Load(saved);
             var restored = (ColorFillLayerBehaviour)loaded.layers[0].Behaviour;
             Check(restored.mode == fill.mode && JsonUtility.ToJson(restored.pattern) == JsonUtility.ToJson(fill.pattern), "TIFF settings roundtrip");
-            var before = doc.Compose(); var after = loaded.Compose();
+            var before = doc.ComposeCanvas(); var after = loaded.ComposeCanvas();
             try { Same(before.GetPixels(), after.GetPixels(), "TIFF pixels"); }
             finally { UnityEngine.Object.DestroyImmediate(before); UnityEngine.Object.DestroyImmediate(after); }
             var portable = (string)api.GetMethod("WritePortableClipboard",F).Invoke(null,new object[]{doc,new System.Collections.Generic.List<Layer>{layer}});
@@ -234,12 +235,12 @@ public static class FillPatternSmoke
                 new System.Collections.Generic.List<ShaderFXParameter>()});
             typeof(ShaderFX).GetMethod("ApplyAgentDraft",F).Invoke(effect,null);
             layer.modifiers.Add(effect);
-            var withFx=doc.Compose();
+            var withFx=doc.ComposeCanvas();
             layer.modifiers.Clear();
             group.modifiers.Add(effect);
             doc.layers.Clear();doc.layers.Add(group);
             group.transform=TextureTransform.Default;
-            var groupFx=doc.Compose();
+            var groupFx=doc.ComposeCanvas();
             try { Same(withFx.GetPixels(),groupFx.GetPixels(),"Layer/group FX",.006f); }
             finally { UnityEngine.Object.DestroyImmediate(withFx);UnityEngine.Object.DestroyImmediate(groupFx); }
             var exported=(Texture2D)typeof(TextureCompositor).GetMethod("RenderPsdGroupContent",F).Invoke(doc,new object[]{group});
@@ -248,17 +249,17 @@ public static class FillPatternSmoke
             group.modifiers.Clear();doc.layers.Clear();doc.layers.Add(layer);
             layer.clippingMask=true;
             doc.layers.Add(new ColorFillLayerBehaviour { color=new Color(0,0,0,.5f) });
-            var clipped=doc.Compose();
+            var clipped=doc.ComposeCanvas();
             try { Check(Mathf.Abs(clipped.GetPixel(63,45).a-.5f)<.01f,"Clipping preserves base alpha"); }
             finally { UnityEngine.Object.DestroyImmediate(clipped); }
             layer.clippingMask=false;doc.layers.RemoveAt(1);
             var savedTransform=layer.transform;layer.transform=TextureTransform.Default;
             fill.mode=ColorFillLayerBehaviour.FillMode.Color;fill.color=new Color(.25f,.5f,.75f,1);
-            var solid=doc.Compose();
+            var solid=doc.ComposeCanvas();
             try { Check(Mathf.Abs(solid.GetPixel(63,45).r-Mathf.GammaToLinearSpace(.25f))<.01f,"Existing Color mode"); }
             finally { UnityEngine.Object.DestroyImmediate(solid); }
             fill.mode=ColorFillLayerBehaviour.FillMode.UV;
-            var uvImage=doc.Compose();
+            var uvImage=doc.ComposeCanvas();
             try { Check(Mathf.Abs(uvImage.GetPixel(63,45).r-.5f)<.01f,"Existing UV mode"); }
             finally { UnityEngine.Object.DestroyImmediate(uvImage); }
             fill.mode=ColorFillLayerBehaviour.FillMode.Pattern;layer.transform=savedTransform;

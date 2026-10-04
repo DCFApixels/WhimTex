@@ -29,7 +29,11 @@ namespace DCFApixels.WhimTex
 
         /// <summary>True when the file carries a WhimTex document, used to distinguish documents from plain images.</summary>
         public static bool IsDocument(string assetPath) => WhimTexDocumentJson.IsJsonPath(assetPath)
-            ? WhimTexDocumentJson.IsDocumentFile(assetPath) : WhimTexTiffCarrier.IsDocument(assetPath);
+            ? WhimTexDocumentJson.IsDocumentFile(assetPath) : IsTiffDocumentPath(assetPath) && WhimTexTiffCarrier.IsDocument(assetPath);
+
+        private static bool IsTiffDocumentPath(string path) =>
+            string.Equals(Path.GetExtension(path), ".tiff", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(Path.GetExtension(path), ".tif", StringComparison.OrdinalIgnoreCase);
 
         internal static (int blocks, long modelBytes, long textureBytes, string[] names, long[] sizes) InspectStorage(string path)
         {
@@ -59,13 +63,8 @@ namespace DCFApixels.WhimTex
                 throw new WhimTexDocumentException("Saving is blocked to prevent data loss. Reopen this document with all required types, fields and assets available. " + document.documentLoadWarning);
             WhimTexDocumentOperation.Report("Checking document limits", .02f);
             WhimTexDocumentLimits.Validate(document);
-            // Converting a legacy asset must never rebind or mutate that asset's output.
             if (AssetDatabase.Contains(document))
-            {
-                var copy = CreateEditableCopy(document);
-                try { return Save(copy, path, deferImport); }
-                finally { UnityEngine.Object.DestroyImmediate(copy); }
-            }
+                throw new WhimTexDocumentException("Editable documents must be in-memory models, not Unity assets.");
             path = WhimTexDocumentService.NormalizeDestination(path);
             using var writeLease = WhimTexDocumentService.BeginWrite(document, path);
             ValidateEffectsForSave(document);
@@ -104,7 +103,7 @@ namespace DCFApixels.WhimTex
             try
             {
                 WhimTexDocumentOperation.Report("Rendering composite", .4f);
-                composite = document.Compose();
+                composite = document.ComposeCanvas();
                 if (composite == null) throw new WhimTexDocumentException("The document produced no composite image.");
                 if (!composite.isReadable)
                     throw new WhimTexDocumentException("The composite image of the document is not readable and cannot be saved.");
@@ -217,27 +216,29 @@ namespace DCFApixels.WhimTex
             EditorApplication.update += Verify;
         }
 
-        /// <summary>Independent working copy, also used to migrate legacy assets without changing them.</summary>
+        /// <summary>Independent in-memory document snapshot with its own Drawing pixels and FX.</summary>
         internal static TextureCompositor CreateEditableCopy(TextureCompositor source)
         {
             if (source == null || !string.IsNullOrEmpty(source.documentLoadWarning))
                 throw new WhimTexDocumentException("An incomplete document cannot be copied safely.");
+            if (AssetDatabase.Contains(source))
+                throw new WhimTexDocumentException("Editable documents must be in-memory models, not Unity assets.");
             ValidateEffectsForSave(source);
             source.SyncDrawingLayerTextures();
             // An independent in-memory copy needs raw snapshots, not compressed-cache lookup/inflation.
             using var container = new WhimTexDocumentContainer { ReusePixelCache = false };
             var model = WhimTexDocumentSerializer.Serialize(source, container);
-            var copy = (TextureCompositor)WhimTexDocumentSerializer.Deserialize(model, container, typeof(TextureCompositor));
+            var read = WhimTexDocumentSerializer.Deserialize(model, container, typeof(TextureCompositor));
+            var copy = (TextureCompositor)read.Model;
             if (copy == null || copy == source || AssetDatabase.Contains(copy))
                 throw new WhimTexDocumentException("The document copy did not produce an independent working model.");
             try
             {
-                if (WhimTexDocumentSerializer.LastSkippedFields.Count != 0 || WhimTexDocumentSerializer.LastMissingTypes.Count != 0 ||
-                    WhimTexDocumentSerializer.LastUnresolvedReferences.Count != 0)
+                if (read.SkippedFields.Count != 0 || read.MissingTypes.Count != 0 ||
+                    read.UnresolvedReferences.Count != 0)
                     throw new WhimTexDocumentException("The document cannot be copied without losing data.");
                 copy.hideFlags = HideFlags.HideAndDontSave;
                 copy.name = source.name;
-                copy.SpriteOutputSettings.linkedTextureGuid = null;
                 // Resolve relative includes against the source until the new document is saved.
                 BindImportedComposite(copy, AssetDatabase.GetAssetPath(source.OutputTexture));
                 copy.outputSrgb = GetOutputSrgb(source);
@@ -277,6 +278,11 @@ namespace DCFApixels.WhimTex
             if (WhimTexDocumentJson.IsJsonPath(path)) return TryLoadJson(path, out document, out error, prepareEffects, out loadWarnings);
             document = null;
             error = null;
+            if (!IsTiffDocumentPath(path))
+            {
+                error = "Editable documents use TIFF or JSON files.";
+                return false;
+            }
             if (string.IsNullOrEmpty(path) || !File.Exists(path))
             {
                 error = "The document file was not found: " + path;
@@ -294,27 +300,28 @@ namespace DCFApixels.WhimTex
                     error = "The document has no model block.";
                     return false;
                 }
-                document = WhimTexDocumentSerializer.Deserialize(model, container, typeof(TextureCompositor),
-                    Path.GetFullPath(path), deferDrawingTextures: true) as TextureCompositor;
+                var read = WhimTexDocumentSerializer.Deserialize(model, container, typeof(TextureCompositor),
+                    Path.GetFullPath(path), deferDrawingTextures: true);
+                document = read.Model as TextureCompositor;
                 if (document == null)
                 {
                     error = "The document model could not be reconstructed.";
                     return false;
                 }
-                if (WhimTexDocumentSerializer.LastSkippedFields.Count > 0)
+                if (read.SkippedFields.Count > 0)
                     Debug.LogWarning("WhimTex: the document carries fields this build no longer declares: " +
-                        string.Join(", ", WhimTexDocumentSerializer.LastSkippedFields) +
+                        string.Join(", ", read.SkippedFields) +
                         ". Saving is blocked to protect the original data.");
-                if (WhimTexDocumentSerializer.LastMissingTypes.Count > 0)
+                if (read.MissingTypes.Count > 0)
                     Debug.LogWarning("WhimTex: the document references layer types this build does not have: " +
-                        string.Join(", ", WhimTexDocumentSerializer.LastMissingTypes) +
+                        string.Join(", ", read.MissingTypes) +
                         ". Saving is blocked to protect the original data.");
                 var warnings = new List<string>();
-                warnings.AddRange(WhimTexDocumentSerializer.LastSkippedFields);
-                warnings.AddRange(WhimTexDocumentSerializer.LastMissingTypes);
-                warnings.AddRange(WhimTexDocumentSerializer.LastUnresolvedReferences);
+                warnings.AddRange(read.SkippedFields);
+                warnings.AddRange(read.MissingTypes);
+                warnings.AddRange(read.UnresolvedReferences);
                 document.documentLoadWarning = warnings.Count == 0 ? null : string.Join(", ", warnings);
-                if (WhimTexDocumentSerializer.LastUnresolvedReferences.Count > 0)
+                if (read.UnresolvedReferences.Count > 0)
                     Debug.LogWarning("WhimTex: some referenced assets are missing. Saving is blocked until they are restored: " + document.documentLoadWarning);
                 document.hideFlags = HideFlags.HideAndDontSave;
                 document.name = Path.GetFileNameWithoutExtension(path);

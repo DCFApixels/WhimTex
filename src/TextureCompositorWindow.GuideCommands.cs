@@ -7,11 +7,8 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
-        [UnityEngine.Serialization.FormerlySerializedAs("previewGuidesHidden")]
         [SerializeField] private bool canvasGuidesHidden;
-        [UnityEngine.Serialization.FormerlySerializedAs("previewGuidesLocked")]
         [SerializeField] private bool canvasGuidesLocked;
-        [UnityEngine.Serialization.FormerlySerializedAs("previewGuidesSnap")]
         [SerializeField] private bool canvasGuidesSnap = true;
         private int selectedCanvasGuide = -1, canvasGuidesRevision;
         private readonly List<CanvasGuide[]> canvasGuideUndo = new List<CanvasGuide[]>();
@@ -197,7 +194,6 @@ namespace DCFApixels.WhimTex
             return true;
         }
 
-        [UnityEngine.Scripting.APIUpdating.MovedFrom(true, sourceNamespace: "DCFApixels.WhimTex", sourceAssembly: null, sourceClassName: "TextureCompositorWindow+PreviewGuideSettingsWindow")]
         private sealed class CanvasGuideSettingsWindow : EditorWindow
         {
             private TextureCompositorWindow owner;

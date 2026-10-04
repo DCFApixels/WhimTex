@@ -56,7 +56,7 @@ public static class ShaderFXVectorsSmoke
             fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.TextureCompositor), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null,new object[]{doc,code,new List<ShaderFXParameter>()});
             typeof(ShaderFX).GetMethod("ApplyAgentDraft",F).Invoke(fx,null);
             Layer layer=new ColorFillLayerBehaviour(); layer.modifiers.Add(fx); doc.layers.Add(layer);
-            var image=doc.Compose();
+            var image=doc.ComposeCanvas();
             try { var c=image.GetPixel(8,8); Check(Mathf.Abs(c.r-.2f)<.005 && Mathf.Abs(c.g-.5f)<.005 && Mathf.Abs(c.b-1)<.005 && Mathf.Abs(c.a-.37f)<.005,"GPU uniforms"); }
             finally{UnityEngine.Object.DestroyImmediate(image);}
             string preset=(string)assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetWriter").GetMethod("BuildSource",F).Invoke(null,new object[]{fx,"Test/Vectors"});

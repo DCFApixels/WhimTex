@@ -23,7 +23,7 @@ public static class BuiltinFXFieldsSmoke
         ShaderFXParameter P(ShaderFX fx,string name) => Parameters(fx).Find(p=>p.name==name);
         float Render()
         {
-            var image=doc.Compose();
+            var image=doc.ComposeCanvas();
             try { return image.GetPixel(8,8).r; } finally { UnityEngine.Object.DestroyImmediate(image); }
         }
         try
@@ -57,7 +57,7 @@ public static class BuiltinFXFieldsSmoke
             var channels=FX("float4 ApplyFX(float2 uv,float4 c){return float4(.1,.3,.7,.4);}");
             layer.modifiers[0]=channels;
             P(levels,"_Gamma").floatValue=1; P(levels,"_OutBlack").floatValue=0; P(levels,"_OutWhite").floatValue=1;
-            var result=doc.Compose();
+            var result=doc.ComposeCanvas();
             try
             {
                 var pixel=result.GetPixel(8,8);

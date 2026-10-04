@@ -22,7 +22,7 @@ public static class UnifiedLightingSmoke
             return fx;
         }
         ShaderFXParameter P(ShaderFX fx,string name)=>((List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters",F).GetValue(fx)).Find(p=>p.name==name);
-        Color[] Render(){var t=doc.Compose();try{return t.GetPixels();}finally{UnityEngine.Object.DestroyImmediate(t);}}
+        Color[] Render(){var t=doc.ComposeCanvas();try{return t.GetPixels();}finally{UnityEngine.Object.DestroyImmediate(t);}}
         try
         {
             var normal=FX(File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/NormalLighting.hlsl"));
@@ -55,15 +55,15 @@ public static class UnifiedLightingSmoke
                 Check(Mathf.Abs(blend[i].a-(overlay[i].a+surface[i].a)*.5f)<.004,"alpha crossfade");
                 for(int c=0;c<3;c++)Check(Mathf.Abs(blend[i][c]*blend[i].a-(overlay[i][c]*overlay[i].a+surface[i][c]*surface[i].a)*.5f)<.006,"premultiplied crossfade without dark fringe");
             }
-            // Shared helper must survive portable include expansion, not require new host support.
+            // Shared helper must survive preset include expansion, not require new host support.
             var writer=typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetWriter");
             foreach(var fx in new[]{normal,bevel})
             {
-                string source=(string)writer.GetMethod("BuildPortableSource",F).Invoke(null,new object[]{fx});
-                Check(source.Contains("float4 WhimTexSurfaceLighting("),"portable helper definition retained");
+                string source=(string)writer.GetMethod("BuildSource",F).Invoke(null,new object[]{fx,"Lighting Test"});
+                Check(source.Contains("float4 WhimTexSurfaceLighting("),"preset helper definition retained");
                 FX(source);
             }
-            return "PASS: "+checks+" unified lighting, both render modes, component selection and portable include checks.";
+            return "PASS: "+checks+" unified lighting, both render modes, component selection and preset include checks.";
         }
         finally{foreach(var fx in effects)UnityEngine.Object.DestroyImmediate(fx);UnityEngine.Object.DestroyImmediate(doc);}
     }

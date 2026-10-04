@@ -55,7 +55,7 @@ try
     var missingClone = UnityEngine.Object.Instantiate(doc);
     temporary.Add(missingClone);
     Check(missingClone.layers[0].Behaviour == null && Find(missingClone, id) != null, "Missing group remains traversable after serialization");
-    var image = doc.Compose(); temporary.Add(image);
+    var image = doc.ComposeCanvas(); temporary.Add(image);
     Check(image.GetPixel(4,4).a == 0, "Missing group does not render descendants implicitly");
     group.SetBehaviour(new DCFApixels.WhimTex.GroupLayerBehaviour());
     Check(group.children[0] == child && group.opacity == .7f, "Group recovery preserves children and compositing settings");

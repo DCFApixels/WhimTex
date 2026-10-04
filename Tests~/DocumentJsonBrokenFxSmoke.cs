@@ -21,7 +21,7 @@ public static class DocumentJsonBrokenFxSmoke
     static void Log(string text, string stack, LogType type) { if (type == LogType.Warning && text.StartsWith("WhimTex: Broken fixture:")) warnings++; }
     static Color Pixel(TextureCompositor document)
     {
-        var texture = document.Compose();
+        var texture = document.ComposeCanvas();
         try { return texture.GetPixel(8, 8); }
         finally { Object.DestroyImmediate(texture); }
     }
@@ -91,7 +91,7 @@ public static class DocumentJsonBrokenFxSmoke
             }
             finally { Object.DestroyImmediate(loaded); }
 
-            Call(fx, "SetDraftCode", Good);
+            Call(fx, "SetDraftCode", "// @param float _Amount\n" + Good);
             Check((bool)Call(fx, "Apply"), "Repair did not compile.");
             Check(!Flag(fx, "IsUnavailable"), "Repair left unavailable state.");
             var view = root.Q(className: "whimtex-layer-fx");
@@ -100,7 +100,7 @@ public static class DocumentJsonBrokenFxSmoke
             var bindings = typeof(TextureCompositorWindow).GetField("toolkitInspectorBindings", F).GetValue(window);
             Call(bindings, "Refresh", true);
             Check(section.Q(className: "whimtex-fx-section-warning").ClassListContains("whimtex-hidden"), "Repair did not clear section warning.");
-            Call(fx, "SetDraftCode", Broken);
+            Call(fx, "SetDraftCode", "// @param float _Amount\n" + Broken);
             Check(!(bool)Call(fx, "Apply") && Flag(fx, "HasAppliedShader") && Flag(fx, "IsUnavailable"), "Failed edit must skip even a previously compiled FX.");
 
             Call(fx, "SetDraftCode", "// @param float _Amount = invalid\n" + Good);

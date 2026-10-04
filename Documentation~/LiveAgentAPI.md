@@ -83,7 +83,7 @@ WhimTexApi.LiveJson(requestJson);
 Use the `DCFApixels.WhimTex` namespace. Check the returned JSON `success` as well as transport
 success. Read-only discovery returns `sessions`, each with `sessionId`, name, assetPath, dimensions
 and focused status, plus `focusOrder` (0 means no recorded focus). `assetPath` identifies the bound TIFF
-or legacy document, not its temporary in-memory compositor. A blank path means no saved document
+or JSON document, not its temporary in-memory compositor. A blank path means no saved document
 binding; a source image opened for editing is not necessarily a saved layered document. If multiple documents are open, use
 the user's requested document; ask when ambiguous. Do not guess from a layer name.
 
@@ -261,8 +261,7 @@ just that layer. Reserve with `begin` first, then preview or complete with code 
 {
   "apiVersion":1,"op":"complete","jobId":"RESERVATION",
   "layer":{"type":"shaderProcessor","fx":[{
-    "code":"float4 ApplyFX(float2 uv, float4 color) { color.rgb *= _Gain; return color; }",
-    "parameters":[{"name":"_Gain","type":"Float","value":1.25}]
+    "code":"// @param float _Gain = 1.25\\nfloat4 ApplyFX(float2 uv, float4 color) { color.rgb *= _Gain; return color; }"
   }]}
 }
 ```
@@ -276,7 +275,7 @@ Add appends by default, or inserts at the specified index. Replace/remove requir
 from the layer's `fx` snapshot. Indices refer to the entire modifier list, including Material references,
 and each operation uses the list after the preceding operation. Unmentioned entries stay unchanged.
 Replace copies the new code into a fresh embedded FX; it never edits a shared external asset.
-Remove accepts only op/index. Add/replace accept `code` and optional `parameters`.
+Remove accepts only op/index. Add/replace accept `code`; define parameters with HLSL `@param` declarations.
 
 - Code: 1..65,536 characters of HLSL with `float4 ApplyFX(float2 uv, float4 color)`.
 - `color` and `SampleInput(uv)` are straight RGBA in linear working space. Return straight RGBA;

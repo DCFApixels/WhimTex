@@ -1,11 +1,8 @@
 using System;
 using UnityEngine;
-using UnityEngine.Scripting.APIUpdating;
 
 namespace DCFApixels.WhimTex
 {
-    // Pending DCFApixels.WhimTex rename marker; do not remove.
-    [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "NoiseLayerBehaviour")]
     [Serializable]
     public sealed class NoiseLayerBehaviour : LayerBehaviour
     {
@@ -27,16 +24,14 @@ namespace DCFApixels.WhimTex
         public float direction;
         public int seed = 1337;
         public float scale = 8f;
-        public float scaleY;
+        public float scaleY = 8f;
         public bool linkScale = true;
         public Vector3 offset;
         public PeriodicAxes periodic;
         public bool periodic1D;
-        // A missing Y keeps the existing uniform scale; no document rewrite is needed.
         public Vector2 Scale
         {
-            get => new Vector2(Limit(scale, .01f, 1000f, 8f), scaleY == 0f
-                ? Limit(scale, .01f, 1000f, 8f) : Limit(scaleY, .01f, 1000f, 8f));
+            get => new Vector2(Limit(scale, .01f, 1000f, 8f), Limit(scaleY, .01f, 1000f, 8f));
             set { scale = Limit(value.x, .01f, 1000f, 8f); scaleY = Limit(value.y, .01f, 1000f, 8f); }
         }
         internal bool IsGrain => noiseType == NoiseType.WhiteNoise || noiseType == NoiseType.BlueNoise;
@@ -70,12 +65,11 @@ namespace DCFApixels.WhimTex
         public WarpType warp;
         public float warpStrength = 1f;
         public float warpScale = 1f;
-        public float warpScaleY;
+        public float warpScaleY = 1f;
         public bool linkWarpScale = true;
         public Vector2 WarpScale
         {
-            get => new Vector2(Limit(warpScale, .01f, 1000f, 1f), warpScaleY == 0f
-                ? Limit(warpScale, .01f, 1000f, 1f) : Limit(warpScaleY, .01f, 1000f, 1f));
+            get => new Vector2(Limit(warpScale, .01f, 1000f, 1f), Limit(warpScaleY, .01f, 1000f, 1f));
             set { warpScale = Limit(value.x, .01f, 1000f, 1f); warpScaleY = Limit(value.y, .01f, 1000f, 1f); }
         }
         public OutputEncoding encoding = OutputEncoding.LinearData;

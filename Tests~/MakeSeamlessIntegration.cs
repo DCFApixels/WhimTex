@@ -79,29 +79,29 @@ public static class MakeSeamlessIntegration
             Check((int)effect.mode==1,"Render does not migrate");
             effect.mode=testedMode;
             Same(RenderCall("RenderLayerPreview",effect.Owner,32),expected,"Layer preview");
-            Same(RenderCall("RenderThumbnailLayer",effect.Owner,32,cache),expected,"Thumbnail render");
+            Same(RenderCall("RenderLayerThumbnail",effect.Owner,32,cache),expected,"Thumbnail render");
             source.enabled=false;
-            Same(RenderCall("RenderPreview",32),expected,"Composite with hidden input");
-            Same(RenderCall("RenderAllLayers",32,16),expected,"Full resolution export render");
-            Same(RenderCall("RenderCachedPreview",32,cache,false,null),expected,"Cached render");
+            Same(RenderCall("RenderCanvas",32),expected,"Composite with hidden input");
+            Same(RenderCall("RenderCanvasAtSize",32,16),expected,"Full resolution export render");
+            Same(RenderCall("RenderCanvasWithCache",32,cache,false,null),expected,"Cached render");
             int before=(int)cache.GetType().GetProperty("Hits",all).GetValue(cache);
-            Same(RenderCall("RenderCachedPreview",32,cache,false,null),expected,"Cache reuse");
+            Same(RenderCall("RenderCanvasWithCache",32,cache,false,null),expected,"Cache reuse");
             Check((int)cache.GetType().GetProperty("Hits",all).GetValue(cache)>before,"Cache did not hit");
             var modified=(Color[])pixels.Clone();
             for(int i=0;i<modified.Length;i++) modified[i].b+=.1f;
             input.SetPixels(modified);input.Apply(false,false);
-            Same(RenderCall("RenderCachedPreview",32,cache,false,null),Expected(modified),"Source edit invalidates cache");
+            Same(RenderCall("RenderCanvasWithCache",32,cache,false,null),Expected(modified),"Source edit invalidates cache");
             input.SetPixels(pixels);input.Apply(false,false);
             effect.mode=MakeSeamlessLayerBehaviour.SeamlessMode.Mirror;
-            var mirrored=RenderCall("RenderCachedPreview",32,cache,false,null);
+            var mirrored=RenderCall("RenderCanvasWithCache",32,cache,false,null);
             Check(Math.Abs(mirrored[0].r-expected[0].r)>.02,"Mode did not invalidate cache");
             effect.mode=testedMode;
             effect.horizontal=MakeSeamlessLayerBehaviour.HorizontalDirection.Off;
             effect.vertical=MakeSeamlessLayerBehaviour.VerticalDirection.Off;
-            Same(RenderCall("RenderCachedPreview",32,cache,false,null),expected,"Screened Poisson ignores mirror settings");
+            Same(RenderCall("RenderCanvasWithCache",32,cache,false,null),expected,"Screened Poisson ignores mirror settings");
             effect.leftEdge=false;effect.topEdge=false;effect.bottomEdge=false;
             effect.screeningRadius=.12f;effect.edgeWidth=.4f;effect.histogramContrast=.3f;
-            Same(RenderCall("RenderCachedPreview",32,cache,false,null),Expected(pixels),"Configured settings invalidate cache");
+            Same(RenderCall("RenderCanvasWithCache",32,cache,false,null),Expected(pixels),"Configured settings invalidate cache");
             if(testedMode==MakeSeamlessLayerBehaviour.SeamlessMode.OffsetBlend)
             {
                 for(int options=0;options<8;options++)
@@ -109,8 +109,8 @@ public static class MakeSeamlessIntegration
                     effect.offsetContrastCompensation=(options&1)!=0;effect.offsetSeamCorrection=(options&2)!=0;
                     effect.offsetAutoRadius=(options&4)!=0;effect.offsetCorrectionRadius=.12f;
                     var configured=Expected(pixels);
-                    Same(RenderCall("RenderCachedPreview",32,cache,false,null),configured,"Offset options invalidate cache");
-                    Same(RenderCall("RenderAllLayers",32,16),configured,"Offset options export");
+                    Same(RenderCall("RenderCanvasWithCache",32,cache,false,null),configured,"Offset options invalidate cache");
+                    Same(RenderCall("RenderCanvasAtSize",32,16),configured,"Offset options export");
                 }
                 effect.offsetContrastCompensation=effect.offsetSeamCorrection=effect.offsetAutoRadius=true;effect.offsetCorrectionRadius=.05f;
             }
@@ -125,8 +125,8 @@ public static class MakeSeamlessIntegration
             foreach(MakeSeamlessLayerBehaviour.PoissonEdges direction in Enum.GetValues(typeof(MakeSeamlessLayerBehaviour.PoissonEdges)))
             {
                 effect.poissonEdges=direction;effect.offsetPoissonEdges=direction;
-                Same(RenderCall("RenderCachedPreview",32,cache,false,null),Expected(pixels),"Independent direction invalidates cache");
-                Same(RenderCall("RenderAllLayers",32,16),Expected(pixels),"Direction export");
+                Same(RenderCall("RenderCanvasWithCache",32,cache,false,null),Expected(pixels),"Independent direction invalidates cache");
+                Same(RenderCall("RenderCanvasAtSize",32,16),Expected(pixels),"Direction export");
             }
             effect.poissonEdges=effect.offsetPoissonEdges=MakeSeamlessLayerBehaviour.PoissonEdges.AllEdges;
             effect.leftEdge=effect.rightEdge=effect.topEdge=effect.bottomEdge=true;
@@ -135,7 +135,7 @@ public static class MakeSeamlessIntegration
             source.enabled=true;document.layers.Remove(source.Owner);group.layers.Add(source);group.enabled=false;
             document.layers.Add(group);effect.TargetLayerId=group.Id;
             Call(document,"NormalizeModel");
-            Same(RenderCall("RenderPreview",32),expected,"Group target");
+            Same(RenderCall("RenderCanvas",32),expected,"Group target");
             group.enabled=true;
             effect.clippingMask=true;
             Same(RenderCall("RenderLayerPreview",effect.Owner,32),expected,"Clipped effect on opaque group");

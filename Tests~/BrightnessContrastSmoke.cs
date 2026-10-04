@@ -106,7 +106,7 @@ public static class BrightnessContrastSmoke
                 for (int c = 0; c < 4; c++) if (Math.Abs(actual[c] - expected[c]) > .01f) throw new Exception(label + ": " + actual + " != " + expected);
                 checks++;
             }
-            var composite = doc.Compose();
+            var composite = doc.ComposeCanvas();
             try { Near(composite.GetPixel(w / 2, h / 2), expectedColor, "Group composite"); }
             finally { UnityEngine.Object.DestroyImmediate(composite); }
             var thumbnail = (RenderTexture)typeof(TextureCompositor).GetMethod("RenderAgentLayerPreview", F).Invoke(doc, new object[] { group, w });
@@ -121,7 +121,7 @@ public static class BrightnessContrastSmoke
             finally { UnityEngine.Object.DestroyImmediate(exported); }
             group.clippingMask = true;
             doc.layers.Add(new ColorFillLayerBehaviour { color = Color.black });
-            composite = doc.Compose();
+            composite = doc.ComposeCanvas();
             Color display = expectedColor.gamma;
             try { Near(composite.GetPixel(w / 2, h / 2), new Color(display.r * .37f, display.g * .37f, display.b * .37f, 1).linear, "Clipped group (standard blend)"); }
             finally { UnityEngine.Object.DestroyImmediate(composite); }

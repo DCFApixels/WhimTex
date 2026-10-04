@@ -38,8 +38,7 @@ reopen or use **Save As**.
 ## Compatibility
 
 Do not resave a WhimTex TIFF in an external image editor: it may discard the appended container and
-leave only the composite image. Legacy `.asset` documents remain readable for inspection and
-migration, but cannot be saved as new legacy documents. Migration creates TIFF without overwriting the source.
+leave only the composite image. Legacy `.asset` documents are unsupported. Convert them to TIFF using WhimTex 0.12.5 before upgrading.
 [JSON documents](saving.md#json-documents) are an editable text alternative, without Drawing pixels or a Unity texture.
 PNG, JPEG, TGA and EXR contain the exported image without editable layers. PSD can retain some
 layers and effects, but does not replace the original WhimTex document.

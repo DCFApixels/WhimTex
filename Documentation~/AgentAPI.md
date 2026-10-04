@@ -62,7 +62,6 @@ Import/save commands do import the specific image or compositor asset they write
 | `whimtex_image_import` | `sourcePath`, `assetPath` | Imported texture path, GUID, dimensions |
 | `whimtex_batch_execute` | `requestPath` | Batch result, created IDs, updated document |
 | `whimtex_document_render` | `assetPath`, `outputPath`, optional `maxSize=1024`, `overwrite=false` | Absolute PNG path and dimensions |
-| `whimtex_document_migrate` | `sourcePath`, `destinationPath`, optional `overwrite=false` | Copies legacy `.asset` to TIFF without mutating the source |
 | `whimtex_storage_inspect` | `assetPath` (`.tiff`) | Metadata-only block catalog, sizes and disk revision |
 | `whimtex_document_validate` | `assetPath`, optional `render=false` | Structure, limits, references and Shader FX validation; no save |
 | `whimtex_fx_compile` | Exactly one of `presetPath` or `source`; optional `includeBasePath` | Compile a preset or raw HLSL in Unity; return diagnostics without editing a document |
@@ -119,9 +118,7 @@ unity command whimtex_fx_compile --source $fx --project-path 'D:/Projects/MyGame
 ```
 
 `whimtex_describe` also returns `agentModes` and `storagePolicy`. New documents use TIFF or unified JSON:
-`whimtex_batch_execute` creates and saves `*.tiff` or `*.json`, while an existing legacy `.asset`
-can only be inspected, rendered, validated, exported or migrated. Passing a legacy `.asset` to a
-batch is allowed only with `dryRun:true`; applying or saving it returns `legacy_read_only`.
+`whimtex_batch_execute` creates and saves `*.tiff` or `*.json`. Document paths ending in `.asset` return `invalid_path`, including read and dry-run requests. Convert old documents to TIFF in WhimTex 0.12.5 before upgrading.
 
 Direct C# entry points, all on Unity's main thread, return a JSON string:
 
@@ -132,7 +129,6 @@ WhimTexApi.ExecuteJson(requestJson);
 WhimTexApi.ExecuteFile(absoluteRequestPath);
 WhimTexApi.ImportImage(absolutePngPath, "Assets/Art/Source.png");
 WhimTexApi.Render("Assets/Art/Icon.tiff", "Temp/WhimTex/icon.png", 1024, false);
-WhimTexApi.Migrate("Assets/Legacy/Icon.asset", "Assets/Art/Icon.tiff", false);
 WhimTexApi.InspectStorage("Assets/Art/Icon.tiff");
 WhimTexApi.Validate("Assets/Art/Icon.tiff", false);
 WhimTexApi.Status("Assets/Art/Icon.tiff");
@@ -199,7 +195,7 @@ The existing `whimtex_assistant_live` remains the open-window API.
 `WhimTexApi.DocumentJsonFile(path)` and `WhimTexApi.DocumentJson(requestJson)`.
 Content uses the [shared document format](JSON_FORMAT.md); commands are only an operation envelope.
 There is no required `kind`: the same content can be opened, written, inserted or used for an explicit
-layer replacement. Earlier exports' optional string `kind` is ignored and never returned or written.
+layer replacement. Root `kind` is rejected; 0.12.5 writers already omit it.
 The `document` object and its fields are optional. Open/write use version-1 defaults for missing
 settings (512 × 512 canvas). Insert/replace use destination dimensions for each omitted source axis,
 without resizing or changing destination output settings. Standalone validate uses format defaults.
@@ -258,24 +254,24 @@ Output encoding is stored in each JSON document. The three packed-data previews 
 must be imported with sRGB disabled; generic diagnostic PNG renders instead use sRGB preview encoding.
 
 WhimTex is installed as `com.dcfapixels.whimtex`, its namespace is `DCFApixels.WhimTex` and its
-assemblies are `DCFApixels.WhimTex*` (previously `com.dcfa_pixels.sprite-editor` and
-`DCFApixels.SpriteEditor`). The 0.10.0 rename preserves documents from the preceding
-Layer/Behaviour format through `MovedFrom` markers. It does not migrate documents from before
-that redesign. Update integrations to the `WhimTexApi` type and `whimtex_*` commands;
-the JSON command contract remains v1.
-Preference keys were renamed to `DCFApixels.WhimTex.*` without migrating old values, so user
-settings revert to defaults. Presets in the old default folder remain discoverable while the
-new default folder does not exist; a custom preset-folder path must be selected again.
+assemblies are `DCFApixels.WhimTex*`. File compatibility covers TIFF/JSON documents and presets
+saved by 0.12.5, using their canonical type and field names. There is no historical-name scan through
+Unity migration attributes. Convert older files with 0.12.5 before upgrading; compositor `.asset`
+documents must be saved as TIFF. Public C#/agent aliases and old window layouts are not retained.
+Use `WhimTexApi` and the `whimtex_*` commands; the JSON command contract remains v1.
+User settings are outside file compatibility and may reset after upgrades, without migration.
+Canvas tool preferences use `DCFApixels.WhimTex.Canvas.*`; appearance preferences use
+`DCFApixels.WhimTex.CanvasView.*`. The default library is the user's local application-data
+`DCFApixels/WhimTex/Presets` folder; historical folders are not searched automatically.
+Select an existing library explicitly in User Settings. Changing/resetting the path does not move,
+rewrite or delete preset files; an existing custom folder setting is still read directly.
 
 
 The API edits the same model and uses the same renderer, brush and save path as the window.
 For reservations, generation and selected-region edits in an open (possibly unsaved) document,
 use the [live editing API](LiveAgentAPI.md). The path-based batch contract below remains unchanged.
 No WhimTex window or active selection is required. New agent documents may use a TIFF or JSON
-`assetPath`, such as `Assets/Art/Icon.tiff` or `Assets/Art/Icon.json`. A legacy `.asset` may still be inspected or
-passed to the explicit migration command, but agents should not create new `.asset` documents.
-The retired ScriptableObject writer is kept only as an internal migration/regression fixture; it is
-not reachable from the window or agent API.
+`assetPath`, such as `Assets/Art/Icon.tiff` or `Assets/Art/Icon.json`. Old `.asset` documents are unsupported; convert them in WhimTex 0.12.5 before upgrading.
 TIFF batches use a transient `WhimTexDocumentBuild` and the common TIFF writer; they do not create
 or select a WhimTex window.
 
@@ -532,7 +528,7 @@ stretches a non-square source to the full canvas; omit scale to preserve the ini
 | Request field | Meaning |
 |---|---|
 | `apiVersion` | Required integer `1` |
-| `assetPath` | Required project-relative `Assets/.../*.tiff` or `Assets/.../*.json` for new documents; legacy `.asset` is read/migrate-only |
+| `assetPath` | Required project-relative `Assets/.../*.tiff` or `Assets/.../*.json` for documents |
 | `create` | Default false. True creates a new document |
 | `width`, `height` | Create only; integers, default 512 each, 1..16384 and at most 16,777,216 total pixels |
 | `expectedRevision` | Required for existing documents; copy the latest persisted document revision from inspect/successful save. Omit entirely on create; null is rejected. Do not use a discarded save:false candidate's revision |
@@ -556,7 +552,7 @@ Persistent layer IDs are returned per operation and in `document.layers`.
 
 `document.layers` is flat, with `parent` and sibling `index`. Index zero is visually topmost.
 `settings` contains editable values; hierarchy, target and transform have separate fields/operations.
-`gradientKeys` contains separate color/alpha keys, interpolation, smoothness and midpoints. Rounded is built in; the retired transition field is ignored on input and omitted from output.
+`gradientKeys` contains separate color/alpha keys, interpolation, smoothness and midpoints. Rounded is built in; `transition` is not an accepted input field. Gradient input uses RGBA arrays and string enum names; it does not convert old color objects or numeric enums.
 `Rounded` prioritizes smooth constant-region joins at full smoothness; values at interior held-boundary stops may be approximate. See the [gradient contract](AI/README.md) for its independent RGB/alpha maps and limits.
 ### Color and gradient input
 
@@ -1370,7 +1366,7 @@ staggered grids retain complete row pairs. Changing palette colors does not chan
   the window if persistence is wanted. An empty TIFF Batch does not save unsaved Assistant edits.
 - Internal rollback of a failed Batch is not a user Undo contract for the written TIFF.
 - A revision hashes serialized model state, materialized Drawing pixels and modifier state;
-  legacy asset-backed models also include their AssetDatabase dependency hash. It is not a complete
+  it is not a complete
   guarantee against changes to every external texture or include file.
   It is an opaque optimistic-concurrency token, not a portable version-control ID. Re-inspect after
   Undo, save, import or domain reload. Do not cache it across sessions.

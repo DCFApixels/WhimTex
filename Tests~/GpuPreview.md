@@ -1,7 +1,7 @@
 # GPU preview regression checks
 
-Run `GpuPreviewSmoke.cs` as an opt-in eval body only after manually compiling in
-Unity, with a graphics device available. It creates no saved assets and does not
+Run `GpuPreviewSmoke.cs` as an opt-in Pipeline eval body after Unity Editor
+compilation, with a graphics device available. It creates no saved assets and does not
 modify Undo. It checks empty, Drawing, SDF and Outline compositions at multiple
 resolutions, including 1 pixel and a return to the original size. It compares GPU
 preview readback with the CPU preview API, compares readback with/without upload,
@@ -9,9 +9,9 @@ and verifies restoration of the active render target. These are correctness
 checks, not performance measurements; the test deliberately reads pixels back.
 
 The window and Properties previews own pooled render textures returned by
-`RenderPreview` / `RenderLayerPreview` until replacement or close, then detach
+`RenderCanvas` / `RenderLayerPreview` until replacement or close, then detach
 their UI images and call `RenderTexture.ReleaseTemporary`. CPU consumers retain
-`Compose`, `ComposePreview` and the default uploading `CopyToTexture2D` path.
+`ComposeCanvas()`, `ComposeCanvas(maxSize)` and the default uploading `CopyToTexture2D` path.
 SDF/Outline input readback opts out of upload; their output upload is unchanged.
 
 After compilation, check in the Editor:

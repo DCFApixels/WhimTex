@@ -83,7 +83,7 @@ public static class HealingBrushSmoke
             "Uniform axis keeps compact single-seam crop without another buffer");
 
         var focused = EditorWindow.focusedWindow;
-        const string pref = "DCFApixels.WhimTex.PreviewTool";
+        const string pref = "DCFApixels.WhimTex.Canvas.Tool";
         bool hadPref = EditorPrefs.HasKey(pref); string oldPref = EditorPrefs.GetString(pref);
         TextureCompositorWindow window = null;
         TextureCompositor document = null;

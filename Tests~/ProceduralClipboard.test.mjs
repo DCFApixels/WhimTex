@@ -5,9 +5,9 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = p => fs.readFileSync(path.join(root, p), 'utf8');
 process.argv.push('--check');
-await import('../Documentation~/scripts/build-clipboard-schema.mjs');
+await import('../Documentation~/scripts/build-agent-fields-schema.mjs');
 process.argv.pop();
-const schema = JSON.parse(read('Documentation~/AI/layers.schema.json'));
+const schema = JSON.parse(read('Documentation~/AI/agent-fields.schema.json'));
 // Deliberately only the schema vocabulary emitted by our generator, not a general JSON Schema implementation.
 function matches(rule, value) {
   if (typeof rule === 'boolean') return rule;
@@ -27,39 +27,6 @@ function matches(rule, value) {
     (rule.type !== 'integer' || Number.isInteger(value)) && value >= rule.minimum && value <= rule.maximum;
   return true;
 }
-const directory = path.join(root, 'Tests~/Fixtures/LegacyClipboard');
-for (const file of fs.readdirSync(directory).filter(f => f.endsWith('.json')))
-  assert.ok(matches(schema, JSON.parse(fs.readFileSync(path.join(directory, file), 'utf8'))), file + ' does not match the schema');
-const samples = path.join(root, 'Samples~/AgentTextures');
-for (const file of fs.readdirSync(samples).filter(f => f.endsWith('.layers.json')))
-  assert.ok(matches(schema, JSON.parse(fs.readFileSync(path.join(samples, file), 'utf8'))), file + ' does not match the schema');
-assert.equal(matches(schema.$defs.fx, {code:'float4 ApplyFX(float2 uv, float4 color) { return color; }', textures:{_Map:{layer:'noise'}}}), true);
-assert.equal(matches(schema.$defs.fx, {code:'x', textures:{_Map:{asset:'external'}}}), false);
-assert.equal(matches(schema.$defs.fx, {code:'x', gradients:{_Tint:'invalid'}}), false);
-const guide = read('Documentation~/AI/LEGACY_LAYERS.md');
-for (const type of ['outline', 'sdf', 'normalMap', 'blur', 'sharpen', 'makeSeamless']) {
-  assert.equal(matches(schema.$defs.layer, { type, input: 'AllBelow' }), true);
-  assert.equal(matches(schema.$defs.layer, { type, input: 'Unknown' }), false);
-  const branch = schema.$defs.layer.oneOf.find(rule => rule.properties.type.const === type);
-  assert.deepEqual(branch.properties.input.enum, ['Previous', 'Specific', 'AllBelow']);
-  assert.equal(branch.allOf.length, 2, 'Target/input constraints are emitted');
-}
-assert.equal(matches(schema.$defs.layer, { type: 'noise', input: 'AllBelow' }), false);
-for (const filter of ['Point', 'Bilinear', 'Trilinear']) {
-  assert.ok(matches(schema, { format: 'whimtex.layers', version: 1,
-    canvas: { width: 64, height: 96, filter }, layers: [{ type: 'color' }] }));
-}
-for (const filter of ['Source', 'point', 0, null]) {
-  assert.equal(matches(schema, { format: 'whimtex.layers', version: 1,
-    canvas: { width: 64, height: 96, filter }, layers: [{ type: 'color' }] }), false);
-}
-assert.match(read('src/Automation/WhimTexApi.Clipboard.cs'), /result.CanvasFilter = Enum\(canvas, "filter", FilterMode.Bilinear\)/);
-assert.match(read('src/TextureCompositorWindow.ImageUrl.cs'), /clipboardPasteResize, data.CanvasFilter/);
-for (const match of guide.matchAll(/```json\s*\n([\s\S]*?)\n```/g)) {
-  const example = JSON.parse(match[1]);
-  if (example.format === 'whimtex.gradient') continue; // Validated by GradientPresetsSmoke in Unity.
-  assert.ok(matches(schema, example), 'Guide JSON does not match schema');
-}
 for (const [name, file] of Object.entries({ noise: 'Noise', shape: 'Shape', blur: 'Blur', normalMap: 'NormalMap', makeSeamless: 'MakeSeamless', fillPattern: 'FillPattern' })) {
   const source = read(`src/Automation/WhimTexApi.${file}.cs`);
   const declared = [...source.match(/Keys\(value,([\s\S]*?)\);/)[1].matchAll(/"([^"]+)"/g)].map(m => m[1]).sort();
@@ -75,34 +42,37 @@ assert.match(paste, /IsTextInputTarget\(target\)/);
 assert.match(paste, /resize && HasCanvasLayers/);
 assert.ok(paste.indexOf('generated.Compile()') < paste.indexOf('PasteProceduralClipboard(generated, resize)'),
   'Effects compile before the tree is handed to the paste');
-assert.match(paste, /if \(!handedOver\) generated\.Dispose\(\)/, 'A refused paste releases its temporary document');
+assert.match(paste, /finally \{ generated.Dispose\(\); \}/, 'Every parsed tree is disposed after paste/cancel');
 const linked = read('src/TextureCompositorWindow.ImageUrl.cs');
-assert.match(linked, /TryGetOriginalAspectTransform\(/, 'A downloaded image is fitted, not resampled to the canvas');
-assert.ok(!linked.includes('placement.scale'), 'The hand-rolled fit math is gone');
+assert.match(linked, /TryGetOriginalAspectTransform\(/, 'A downloaded image is fitted, not resampled');
 assert.match(linked, /ImageUrlMaximumBytes = 64 \* 1024 \* 1024/);
-assert.match(linked, /jsonPasteData|clipboardPasteData/, 'Linked images are pasted by the download batch');
+assert.match(linked, /BeginImageUrlDownload\(compositor, uri.AbsoluteUri, InsertDownloadedImage\)/);
+assert.match(linked, /EditorApplication.update -= PollImageUrl/);
+assert.match(linked, /imageUrlApply = null/);
+assert.match(read('src/TextureCompositorWindow.BrushClipboard.cs'), /BeginImageUrlDownload\(compositor,url/);
+assert.doesNotMatch(linked, /clipboardPasteData|BeginImageUrlBatch|imageUrlJobs|DescribeImageHosts/);
 const parser = read('src/Automation/WhimTexApi.Clipboard.cs');
-assert.match(parser, /TryPrepareDocumentEffect\(out string warning\)/, 'Clipboard shares the soft document FX preparation path');
-assert.match(parser, /!Warnings.Contains\(warning\)/, 'Repeated preparation does not duplicate paste warnings');
-assert.ok(linked.indexOf('"Paste with warnings"') < linked.indexOf('PasteCopiedLayers(data.Document'), 'Warning confirmation precedes insertion');
-assert.match(linked, /string.Join\("\\n\\n", data.Warnings\), "Paste", "Cancel"\)\) return false;/, 'Cancel must leave before insertion');
-assert.match(parser, /url is only supported on Drawing layers/);
-assert.match(linked, /if \(fit && layer.TryGetOriginalAspectTransform/);
-assert.match(parser, /link\.Scheme == "http" \|\| link\.Scheme == "https"/);
-assert.equal(matches(schema, { format: 'whimtex.layers', version: 1, layers: [{ type: 'drawing', url: 'https://example.com/a.png' }] }), true);
-assert.equal(matches(schema, { format: 'whimtex.layers', version: 1, layers: [{ type: 'drawing', url: 'ftp://example.com/a.png' }] }), false);
-assert.equal(matches(schema, { format: 'whimtex.layers', version: 1, layers: [{ type: 'drawing', url: 'https://example.com/a.png', transform: { scale: [2, 2] } }] }), true,
-  'An explicit scale preserves portable linked-layer placement');
+assert.match(parser, /ReadForInsertion\(text, width, height, false\)/);
+assert.match(parser, /TryPrepareDocumentEffect\(out string warning\)/);
+assert.match(parser, /!Warnings.Contains\(warning\)/);
+assert.doesNotMatch(parser, /whimtex\.layers|SetClipboardGradient|FindPortableParameter|ReadPortableFileAsset|CanvasFilter|Images/);
+assert.ok(linked.indexOf('"Paste with warnings"') < linked.indexOf('PasteCopiedLayers(data.Document'), 'Warnings precede insertion');
+assert.match(linked, /"Paste", "Cancel"\)\) return;/);
+assert.doesNotMatch(read('src/TextureCompositorWindow.Selection.cs'), /canvasFilter/);
+for (const name of ['ValidatePortableSource', 'ExportPortableIncludes', 'PortableMaximumBytes'])
+  assert.ok(!read('src/ShaderFXSourceBuilder.cs').includes(name), name + ' retired');
+assert.ok(!read('src/ShaderFXPresetWriter.cs').includes('BuildPortableSource'));
+for (const name of ['PortableImageUrl', 'RememberImageUrl', 'pixelsRevision', 'originalImageRevision', 'originalImageUrl'])
+  assert.ok(!read('src/Layers/DrawingLayerBehaviour.cs').includes(name), name + ' retired from working model');
+assert.ok(!fs.existsSync(path.join(root, 'Documentation~/AI/layers.schema.json')), 'Old envelope schema retired');
+assert.ok(!fs.existsSync(path.join(root, 'Tests~/Fixtures/LegacyClipboard')) || fs.readdirSync(path.join(root, 'Tests~/Fixtures/LegacyClipboard')).length === 0, 'Old fixtures retired');
 for (const name of ['README.md', 'README-RU.md']) {
   assert.match(read(name), /^<!--[\s\S]*?AI_AUTHORING\.md[\s\S]*?-->/);
   assert.match(read(name).replace(/<!--[\s\S]*?-->/g, ''), /\]\(AI_AUTHORING\.md\)/);
 }
-assert.equal(matches(schema, { format: 'whimtex.layers', version: 1, layers: [{ type: 'file' }] }), true);
-assert.equal(matches(schema, { format: 'whimtex.layers', version: 1, layers: [{ type: 'noise', properties: { noise: { scale: '3' } } }] }), false);
-// A linked Drawing layer must be discoverable from every entry point an AI reads first.
-for (const file of ['README.md', 'README-RU.md', 'AI_AUTHORING.md', 'AGENTS.md'])
-  assert.match(read(file), /url/, file + ' must name the linked Drawing layer (url)');
-assert.match(guide, /A Drawing layer owns its pixels/, 'Legacy URL inputs remain documented');
+const guide = read('Documentation~/AI/README.md');
+assert.match(guide, /reader is removed/);
+assert.match(guide, /0\.12\.5/);
 for (const [name, text] of [['AI/README.md', guide],
                             ['en/ai-authoring.md', read('Documentation~/en/ai-authoring.md')],
                             ['ru/ai-authoring.md', read('Documentation~/ru/ai-authoring.md')]]) {

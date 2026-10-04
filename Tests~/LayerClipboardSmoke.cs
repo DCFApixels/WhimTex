@@ -7,6 +7,11 @@ DCFApixels.WhimTex.TextureCompositor snapshot = null;
 DCFApixels.WhimTex.TextureCompositor orphanSnapshot = null;
 var clipboard = docType.Assembly.GetType("DCFApixels.WhimTex.LayerClipboard", true);
 string savedClipboard = GUIUtility.systemCopyBuffer;
+
+var priorClipboardSnapshot = clipboard.GetField("snapshot", Flags).GetValue(null);
+var priorClipboardMarker = clipboard.GetField("marker", Flags).GetValue(null);
+var priorClipboardRevision = clipboard.GetField("revision", Flags).GetValue(null);
+clipboard.GetField("snapshot", Flags).SetValue(null, null);
 Undo.IncrementCurrentGroup();
 int testGroup = Undo.GetCurrentGroup();
 int checks = 0;
@@ -122,6 +127,11 @@ finally
 {
     clipboard.GetMethod("Clear", Flags).Invoke(null, null);
     GUIUtility.systemCopyBuffer = savedClipboard;
+    clipboard.GetField("snapshot", Flags).SetValue(null, priorClipboardSnapshot);
+    clipboard.GetField("marker", Flags).SetValue(null, priorClipboardMarker);
+    clipboard.GetField("revision", Flags).SetValue(null,
+        (string)priorClipboardMarker == savedClipboard
+            ? typeof(DCFApixels.WhimTex.TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.ImageClipboard", true).GetProperty("Revision", Flags).GetValue(null) : priorClipboardRevision);
     Undo.RevertAllDownToGroup(testGroup);
     if (snapshot != null) UnityEngine.Object.DestroyImmediate(snapshot);
     if (orphanSnapshot != null) UnityEngine.Object.DestroyImmediate(orphanSnapshot);

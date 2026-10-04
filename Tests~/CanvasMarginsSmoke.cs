@@ -28,7 +28,7 @@ try
     Call(drawing, "BeginStroke", point);
     Call(drawing, "PaintPoint", point, 64, 64, parameters);
     Call(drawing, "EndStroke");
-    var image = document.Compose();
+    var image = document.ComposeCanvas();
     try
     {
         Check(image.GetPixel(0, 32).a > .9f, "Overlapping brush tip paints at the edge");
@@ -40,7 +40,7 @@ try
     Call(drawing, "BeginStroke", point);
     Call(drawing, "PaintPoint", point, 64, 64, parameters);
     Call(drawing, "EndStroke");
-    image = document.Compose();
+    image = document.ComposeCanvas();
     try
     {
         bool clear = true;
