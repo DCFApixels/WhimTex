@@ -1,0 +1,759 @@
+{
+  "version": 1,
+  "scope": "Authorized bounded UnityB ReloadOrchestration read-only editor_status process-timeout handling; all protocol cases mocked. No Unity execution, asset/source fixture writes or native coverage inferred.",
+  "recordedAtUtc": "2026-10-04T15:49:40.063Z",
+  "filesChanged": [
+    "Tests~/Cases/UnityB/ReloadOrchestration.mjs",
+    "Tests~/Cases/UnityB/ReloadOrchestration.test.mjs"
+  ],
+  "sourceDependencies": [
+    {
+      "file": "Tests~/Cases/UnityB/ReloadOrchestration.mjs",
+      "sha256": "af4e6da41b4539bb380df254cfb6103e8ea38231f75d4269bdde87f4ff5c06a3"
+    },
+    {
+      "file": "Tests~/Cases/UnityB/ReloadOrchestration.test.mjs",
+      "sha256": "4c998c24e0940be4549e8bc19400b7392a56b986eae8b82efe0a83e828168652"
+    },
+    {
+      "file": "Tests~/Cases/UnityB/ReloadSupport.cs",
+      "sha256": "05e9e40bfa22f5c5a3c649b13082cf5322cfb9da7796b46b0a5afce6fb31d826"
+    },
+    {
+      "file": "Tests~/Cases/UnityB/DocumentReloadTests.cs",
+      "sha256": "3caa10e4709378b23cb6ea30ca8e851e81d641150c81e78651b688f50a4b972a"
+    },
+    {
+      "file": "Tests~/Cases/UnityB/GuideReloadTests.cs",
+      "sha256": "387b4e0a9aa7983739cad963ab8b25c99c876ea929f65dc7b8099763a6dd4044"
+    },
+    {
+      "file": "Tests~/Cases/UnityB/DocumentReloadTests.mjs",
+      "sha256": "41b0b203034aafd4e2c7014b43e7721ef653680ec51fa2a044b5654efd9a8e55"
+    },
+    {
+      "file": "Tests~/Cases/UnityB/GuideReloadTests.mjs",
+      "sha256": "9d034e749331e38bee85859ad158a5797f02fa29e6821734ba2a841df05e8b4f"
+    },
+    {
+      "file": "Tests~/Framework/test-api.mjs",
+      "sha256": "a7db26b76a8e3b60c2b0c85034145b37526d7f7916f9e62f2d6976e756b3780a"
+    },
+    {
+      "file": "Tests~/scripts/run-tests.mjs",
+      "sha256": "ce026dddb9e65820de28bf9c9c95d85ee7d0dc8c0923619f46207adc5bccc493"
+    },
+    {
+      "file": "Tests~/Cases/UnityB/ExportWindowTests.cs",
+      "sha256": "8e2f090b7501c684206b07eadd402ea5eeab01f5b42cef9a70f94a368f6768cf"
+    },
+    {
+      "file": "Tests~/Cases/UnityB/GradientHistoryTests.cs",
+      "sha256": "17e10ef6f16d82b331ebaf478691a8d8362fd84d9d9686c8586b50a3796a53ff"
+    }
+  ],
+  "protocol": {
+    "status": "passed",
+    "cases": 82,
+    "checks": 2839,
+    "failures": [],
+    "caseNames": [
+      "DocumentReloadTests single native trigger, structured object/string: false",
+      "DocumentReloadTests single native trigger, structured object/string: true",
+      "GuideReloadTests single native trigger, structured object/string: false",
+      "GuideReloadTests single native trigger, structured object/string: true",
+      "busy intervals issue only editor_status; no script compilation during native compilation/reload",
+      "stale idle waits for queued -> issued -> beforeReload -> old domain gone, then Verify",
+      "expected native endpoint restart reconnects with ONLY read-only status requests",
+      "gap immediately after acknowledged Trigger is expected even if compilation was between status samples",
+      "persistent native endpoint loss expires within original deadline and retains lock/fixtures",
+      "read-only process timeout recognizer is identical to strict D helper and never overrides reply evidence",
+      "DocumentReloadTests observed compile -> 8s empty status timeout -> 4s reload interval -> original native proof: false",
+      "DocumentReloadTests observed compile -> 8s empty status timeout -> 4s reload interval -> original native proof: true",
+      "GuideReloadTests observed compile -> 8s empty status timeout -> 4s reload interval -> original native proof: false",
+      "GuideReloadTests observed compile -> 8s empty status timeout -> 4s reload interval -> original native proof: true",
+      "persistent observed-compilation status process timeout exhausts original deadline, no proof/cleanup retry",
+      "timeout before Trigger/without actual compiling flag never reconnects: {\"injectReplies\":[{\"phase\":\"editor_status\",\"occurrence\":1,\"durationMs\":8000,\"value\":{\"code\":null,\"stdout\":\"\",\"stderr\":\"\",\"timedOut\":true}}]}",
+      "timeout before Trigger/without actual compiling flag never reconnects: {\"injectReplies\":[{\"phase\":\"editor_status\",\"occurrence\":2,\"durationMs\":8000,\"value\":{\"code\":null,\"stdout\":\"\",\"stderr\":\"\",\"timedOut\":true}}]}",
+      "timeout before Trigger/without actual compiling flag never reconnects: {\"injectReplies\":[{\"phase\":\"editor_status\",\"occurrence\":3,\"durationMs\":8000,\"value\":{\"code\":null,\"stdout\":\"\",\"stderr\":\"\",\"timedOut\":true}}]}",
+      "timeout before Trigger/without actual compiling flag never reconnects: {\"busyStates\":[\"reloading\"],\"injectReplies\":[{\"phase\":\"editor_status\",\"occurrence\":4,\"durationMs\":8000,\"value\":{\"code\":null,\"stdout\":\"\",\"stderr\":\"\",\"timedOut\":true}}]}",
+      "Begin timeout cannot use read-only reconnect exemption",
+      "Trigger timeout cannot use read-only reconnect exemption",
+      "ReloadPoll timeout cannot use read-only reconnect exemption",
+      "Verify timeout cannot use read-only reconnect exemption",
+      "Cleanup timeout cannot use read-only reconnect exemption",
+      "no reconnect after full native markers, even before Verify: {\"code\":null,\"stdout\":\"\",\"stderr\":\"\",\"timedOut\":true}",
+      "no reconnect after full native markers, even before Verify: {\"code\":6,\"stdout\":\"{\\\"success\\\":false,\\\"command\\\":\\\"unity command editor_status\\\",\\\"data\\\":null,\\\"errors\\\":[{\\\"code\\\":\\\"COMMAND_FAILED\\\",\\\"message\\\":\\\"Failed to execute command 'editor_status': Network error: An error occurred while sending the request.\\\"}],\\\"warnings\\\":[]}\"}",
+      "malformed/mismatched/play status after timeout stays terminal: {\"code\":0,\"stdout\":\"not JSON\"}",
+      "malformed/mismatched/play status after timeout stays terminal: {\"code\":0,\"stdout\":\"{\\\"success\\\":true,\\\"data\\\":{\\\"success\\\":true,\\\"result\\\":{\\\"projectPath\\\":\\\"D:\\\\\\\\DCFA\\\\\\\\Projects\\\\\\\\Test6.6\\\\\\\\different-project\\\",\\\"compiling\\\":false,\\\"domainReloadInProgress\\\":false,\\\"playMode\\\":\\\"stopped\\\"}}}\"}",
+      "malformed/mismatched/play status after timeout stays terminal: {\"code\":0,\"stdout\":\"{\\\"success\\\":true,\\\"data\\\":{\\\"success\\\":true,\\\"result\\\":{\\\"projectPath\\\":\\\"D:\\\\\\\\DCFA\\\\\\\\Projects\\\\\\\\Test6.6\\\",\\\"compiling\\\":\\\"false\\\",\\\"domainReloadInProgress\\\":false,\\\"playMode\\\":\\\"stopped\\\"}}}\"}",
+      "malformed/mismatched/play status after timeout stays terminal: {\"code\":0,\"stdout\":\"{\\\"success\\\":true,\\\"data\\\":{\\\"success\\\":true,\\\"result\\\":{\\\"projectPath\\\":\\\"D:\\\\\\\\DCFA\\\\\\\\Projects\\\\\\\\Test6.6\\\",\\\"compiling\\\":false,\\\"domainReloadInProgress\\\":false,\\\"playMode\\\":\\\"playing\\\"}}}\"}",
+      "generic status exception after observed compilation is not own process-timeout evidence",
+      "reconnected idle still cannot Verify before the owned markers",
+      "network gap is NOT a broad command/C# retry permission: {\"replaceReply\":{\"phase\":\"editor_status\",\"value\":{\"code\":6,\"stdout\":\"{\\\"success\\\":false,\\\"command\\\":\\\"unity command editor_status\\\",\\\"data\\\":null,\\\"errors\\\":[{\\\"code\\\":\\\"COMMAND_FAILED\\\",\\\"message\\\":\\\"Failed to execute command 'editor_status': Network error: An error occurred while sending the request.\\\"}],\\\"warnings\\\":[]}\"}}}",
+      "network gap is NOT a broad command/C# retry permission: {\"lostPhase\":\"Trigger\",\"networkGaps\":3}",
+      "network gap is NOT a broad command/C# retry permission: {\"lostPhase\":\"ReloadPoll\",\"networkGaps\":2,\"busyStates\":[\"compiling\"]}",
+      "network gap is NOT a broad command/C# retry permission: {\"networkGaps\":1,\"busyStates\":[\"compiling\"],\"wrongProjectAfterReconnect\":true}",
+      "network gap is NOT a broad command/C# retry permission: {\"networkGaps\":1,\"busyStates\":[\"compiling\"],\"unknownAfterReconnect\":true}",
+      "network gap is NOT a broad command/C# retry permission: {\"networkGaps\":1,\"busyStates\":[\"compiling\"],\"badReconnectReply\":{\"code\":6,\"stdout\":\"{\\\"success\\\":false,\\\"command\\\":\\\"unity command editor_status\\\",\\\"data\\\":null,\\\"errors\\\":[{\\\"code\\\":\\\"COMMAND_FAILED\\\",\\\"message\\\":\\\"Other native failure\\\"}],\\\"warnings\\\":[]}\"}}",
+      "network gap is NOT a broad command/C# retry permission: {\"networkGaps\":1,\"busyStates\":[\"compiling\"],\"badReconnectReply\":{\"code\":6,\"stdout\":\"{\\\"success\\\":false,\\\"command\\\":\\\"unity command run_script\\\",\\\"data\\\":null,\\\"errors\\\":[{\\\"code\\\":\\\"COMMAND_FAILED\\\",\\\"message\\\":\\\"Failed to execute command 'editor_status': Network error: An error occurred while sending the request.\\\"}],\\\"warnings\\\":[]}\"}}",
+      "network gap is NOT a broad command/C# retry permission: {\"networkGaps\":1,\"busyStates\":[\"compiling\"],\"badReconnectReply\":{\"code\":6,\"stdout\":\"not JSON\"}}",
+      "unexecuted callback is cancelled by known-idle Cleanup at the bounded deadline",
+      "issued/busy timeout retains lock without pretending native cancellation: {\"neverReload\":true,\"slow\":true}",
+      "issued/busy timeout retains lock without pretending native cancellation: {\"busyForever\":true,\"slow\":true}",
+      "explicit idle native request/compiler failure is failed and cleans ownership: {\"failedRequest\":true}",
+      "explicit idle native request/compiler failure is failed and cleans ownership: {\"compilerErrors\":true}",
+      "carrier-only green fallback remains explicitly partial",
+      "known Begin assertion failure is not erased by zero-check Cleanup",
+      "known Trigger assertion failure is not erased by zero-check Cleanup",
+      "known Verify assertion failure is not erased by zero-check Cleanup",
+      "cleanup failure preserves the primary assertion failure and requests recovery",
+      "transport/unknown Editor or marker uncertainty: {\"lostPhase\":\"Begin\"}",
+      "transport/unknown Editor or marker uncertainty: {\"lostPhase\":\"Trigger\"}",
+      "transport/unknown Editor or marker uncertainty: {\"lostPhase\":\"ReloadPoll\"}",
+      "transport/unknown Editor or marker uncertainty: {\"lostPhase\":\"Verify\"}",
+      "transport/unknown Editor or marker uncertainty: {\"lostPhase\":\"Cleanup\"}",
+      "transport/unknown Editor or marker uncertainty: {\"unknownEditor\":true}",
+      "transport/unknown Editor or marker uncertainty: {\"wrongProject\":true}",
+      "transport/unknown Editor or marker uncertainty: {\"busyBeforeBegin\":true}",
+      "transport/unknown Editor or marker uncertainty: {\"playing\":true}",
+      "transport/unknown Editor or marker uncertainty: {\"replaceReply\":{\"phase\":\"Trigger\",\"value\":null}}",
+      "transport/unknown Editor or marker uncertainty: {\"replaceReply\":{\"phase\":\"Trigger\",\"value\":{\"code\":0,\"stdout\":\"null\"}}}",
+      "transport/unknown Editor or marker uncertainty: {\"replaceReply\":{\"phase\":\"Trigger\",\"value\":{\"code\":0,\"stdout\":\"not JSON\"}}}",
+      "transport/unknown Editor or marker uncertainty: {\"replaceReply\":{\"phase\":\"Trigger\",\"error\":\"transport disconnected\"}}",
+      "transport/unknown Editor or marker uncertainty: {\"replaceReply\":{\"phase\":\"Begin\",\"value\":{\"code\":0,\"stdout\":\"{\\\"success\\\":true,\\\"data\\\":{\\\"success\\\":true,\\\"result\\\":{\\\"success\\\":true,\\\"result\\\":\\\"{\\\\\\\"status\\\\\\\":\\\\\\\"passed\\\\\\\",\\\\\\\"checks\\\\\\\":0,\\\\\\\"message\\\\\\\":\\\\\\\"empty oracle\\\\\\\",\\\\\\\"failures\\\\\\\":[]}\\\"}}}\"}}}",
+      "transport/unknown Editor or marker uncertainty: {\"replaceReply\":{\"phase\":\"Trigger\",\"value\":{\"code\":0,\"stdout\":\"{\\\"success\\\":true,\\\"data\\\":{\\\"success\\\":true,\\\"result\\\":{\\\"success\\\":true,\\\"result\\\":\\\"{\\\\\\\"status\\\\\\\":\\\\\\\"passed\\\\\\\",\\\\\\\"checks\\\\\\\":0,\\\\\\\"message\\\\\\\":\\\\\\\"empty oracle\\\\\\\",\\\\\\\"failures\\\\\\\":[]}\\\"}}}\"}}}",
+      "transport/unknown Editor or marker uncertainty: {\"replaceReply\":{\"phase\":\"ReloadPoll\",\"value\":{\"code\":0,\"stdout\":\"{\\\"success\\\":true,\\\"data\\\":{\\\"success\\\":true,\\\"result\\\":{\\\"success\\\":true,\\\"result\\\":\\\"{\\\\\\\"status\\\\\\\":\\\\\\\"passed\\\\\\\",\\\\\\\"checks\\\\\\\":0,\\\\\\\"message\\\\\\\":\\\\\\\"empty oracle\\\\\\\",\\\\\\\"failures\\\\\\\":[]}\\\"}}}\"}}}",
+      "transport/unknown Editor or marker uncertainty: {\"replaceReply\":{\"phase\":\"ReloadPoll\",\"value\":{\"code\":0,\"stdout\":\"{\\\"success\\\":true,\\\"data\\\":{\\\"success\\\":true,\\\"result\\\":{\\\"success\\\":true,\\\"result\\\":\\\"{\\\\\\\"status\\\\\\\":\\\\\\\"passed\\\\\\\",\\\\\\\"checks\\\\\\\":5,\\\\\\\"message\\\\\\\":\\\\\\\"forged status\\\\\\\",\\\\\\\"failures\\\\\\\":[],\\\\\\\"requestQueued\\\\\\\":false,\\\\\\\"requestCount\\\\\\\":1,\\\\\\\"beforeReload\\\\\\\":0,\\\\\\\"oldDomainGone\\\\\\\":false,\\\\\\\"compilationErrors\\\\\\\":[]}\\\"}}}\"}}}",
+      "transport/unknown Editor or marker uncertainty: {\"replaceReply\":{\"phase\":\"ReloadPoll\",\"value\":{\"code\":0,\"stdout\":\"{\\\"success\\\":true,\\\"data\\\":{\\\"success\\\":true,\\\"result\\\":{\\\"success\\\":true,\\\"result\\\":\\\"{\\\\\\\"status\\\\\\\":\\\\\\\"running\\\\\\\",\\\\\\\"checks\\\\\\\":5,\\\\\\\"message\\\\\\\":\\\\\\\"bad markers\\\\\\\",\\\\\\\"failures\\\\\\\":[],\\\\\\\"requestQueued\\\\\\\":true,\\\\\\\"requestCount\\\\\\\":1,\\\\\\\"beforeReload\\\\\\\":0,\\\\\\\"oldDomainGone\\\\\\\":false,\\\\\\\"compilationErrors\\\\\\\":[]}\\\"}}}\"}}}",
+      "transport/unknown Editor or marker uncertainty: {\"replaceReply\":{\"phase\":\"ReloadPoll\",\"value\":{\"code\":0,\"stdout\":\"{\\\"success\\\":true,\\\"data\\\":{\\\"success\\\":true,\\\"result\\\":{\\\"success\\\":true,\\\"result\\\":\\\"{\\\\\\\"status\\\\\\\":\\\\\\\"running\\\\\\\",\\\\\\\"checks\\\\\\\":5,\\\\\\\"message\\\\\\\":\\\\\\\"missing markers\\\\\\\",\\\\\\\"failures\\\\\\\":[]}\\\"}}}\"}}}",
+      "transport/unknown Editor or marker uncertainty: {\"replaceReply\":{\"phase\":\"ReloadPoll\",\"value\":{\"code\":0,\"stdout\":\"{\\\"success\\\":true,\\\"data\\\":{\\\"success\\\":true,\\\"result\\\":{\\\"success\\\":true,\\\"result\\\":\\\"{\\\\\\\"status\\\\\\\":\\\\\\\"running\\\\\\\",\\\\\\\"checks\\\\\\\":0,\\\\\\\"message\\\\\\\":\\\\\\\"no real assertions\\\\\\\",\\\\\\\"failures\\\\\\\":[],\\\\\\\"requestQueued\\\\\\\":true,\\\\\\\"requestCount\\\\\\\":0,\\\\\\\"beforeReload\\\\\\\":0,\\\\\\\"oldDomainGone\\\\\\\":false,\\\\\\\"compilationErrors\\\\\\\":[]}\\\"}}}\"}}}",
+      "transport/unknown Editor or marker uncertainty: {\"replaceReply\":{\"phase\":\"ReloadPoll\",\"value\":{\"code\":0,\"stdout\":\"{\\\"success\\\":true,\\\"data\\\":{\\\"success\\\":true,\\\"result\\\":{\\\"success\\\":true,\\\"result\\\":\\\"{\\\\\\\"status\\\\\\\":\\\\\\\"running\\\\\\\",\\\\\\\"checks\\\\\\\":5,\\\\\\\"message\\\\\\\":\\\\\\\"no callback\\\\\\\",\\\\\\\"failures\\\\\\\":[],\\\\\\\"requestQueued\\\\\\\":false,\\\\\\\"requestCount\\\\\\\":0,\\\\\\\"beforeReload\\\\\\\":0,\\\\\\\"oldDomainGone\\\\\\\":false,\\\\\\\"compilationErrors\\\\\\\":[]}\\\"}}}\"}}}",
+      "transport/unknown Editor or marker uncertainty: {\"replaceReply\":{\"phase\":\"ReloadPoll\",\"value\":{\"code\":0,\"stdout\":\"{\\\"success\\\":true,\\\"data\\\":{\\\"success\\\":true,\\\"result\\\":{\\\"success\\\":true,\\\"result\\\":\\\"{\\\\\\\"status\\\\\\\":\\\\\\\"running\\\\\\\",\\\\\\\"checks\\\\\\\":5,\\\\\\\"message\\\\\\\":\\\\\\\"domain gone without before event\\\\\\\",\\\\\\\"failures\\\\\\\":[],\\\\\\\"requestQueued\\\\\\\":false,\\\\\\\"requestCount\\\\\\\":1,\\\\\\\"beforeReload\\\\\\\":0,\\\\\\\"oldDomainGone\\\\\\\":true,\\\\\\\"compilationErrors\\\\\\\":[]}\\\"}}}\"}}}",
+      "transport/unknown Editor or marker uncertainty: {\"replaceReply\":{\"phase\":\"ReloadPoll\",\"value\":{\"code\":0,\"stdout\":\"{\\\"success\\\":true,\\\"data\\\":{\\\"success\\\":true,\\\"result\\\":{\\\"success\\\":true,\\\"result\\\":\\\"{\\\\\\\"status\\\\\\\":\\\\\\\"passed\\\\\\\",\\\\\\\"checks\\\\\\\":5,\\\\\\\"message\\\\\\\":\\\\\\\"malformed compiler diagnostics\\\\\\\",\\\\\\\"failures\\\\\\\":[],\\\\\\\"requestQueued\\\\\\\":false,\\\\\\\"requestCount\\\\\\\":1,\\\\\\\"beforeReload\\\\\\\":1,\\\\\\\"oldDomainGone\\\\\\\":true,\\\\\\\"compilationErrors\\\\\\\":\\\\\\\"none\\\\\\\"}\\\"}}}\"}}}",
+      "known API rejection is non-green but can run independently acknowledged cleanup",
+      "temporary source cleanup rejects redirected/unowned paths without recursive deletion",
+      "source bundle contains only supported native trigger, real markers and cancellable deferred work",
+      "two stable-ID Node scenarios validate against current catalog v2, timeout 60000",
+      "C# local recovery envelopes are uncertain, including object/string payloads",
+      "Contradictory C# passed plus retained journal is never green",
+      "Nested manual cleanup failure preserves primary recovery without generic cleanup replay",
+      "Export exact-journal absence recovery and acquired-only local envelope source guards",
+      "Gradient own acquisition receipt and terminal cleanup recovery source guards"
+    ]
+  },
+  "constraints": [
+    "Exact strict D timeout recognizer verified by function-source equality and malformed/reply-evidence rejection matrix.",
+    "Process timeout reconnect only for own editor_status after acknowledged Trigger and observed compiling=true, before full native marker proof.",
+    "Unchanged45000 body/55000 cleanup deadlines; 8s timeout then4s native interval recovery covered with fake clock.",
+    "No mutating/C# retry, no budget extension, no reconnect after native proof, no cleanup retry; uncertainty retains lock/fixtures.",
+    "No new B C# changes: all13 owned raw hashes remain frozen. Shared C# helpers, D helper, globals/catalog/registry unchanged."
+  ],
+  "nativeStatus": "pending-parent-validation",
+  "reportsReadOnly": [
+    {
+      "file": "Temp/WhimTex/test-runs/2026-10-04T14-31-43.376Z-123928.json",
+      "sha256": "22793fc7230e7e750dff427161b76faf4d0f88c30ba6422d9e5073c5748d5d3b",
+      "success": true,
+      "results": [
+        {
+          "id": "export-window-smoke-v2",
+          "status": "passed"
+        },
+        {
+          "id": "gradient-history-smoke-picker-recency-v2",
+          "status": "passed"
+        },
+        {
+          "id": "gradient-history-smoke-history-v2",
+          "status": "passed"
+        }
+      ],
+      "inputs": [
+        {
+          "id": "export-window-smoke-v2",
+          "sha256": "08ad122edd814b49769efab9588893c9aaa3f19405d0e4e3d5d19e2474def8cf",
+          "currentBundledSha256": "08ad122edd814b49769efab9588893c9aaa3f19405d0e4e3d5d19e2474def8cf",
+          "matchesCurrentBundle": true
+        },
+        {
+          "id": "gradient-history-smoke-picker-recency-v2",
+          "sha256": "70735bcb72d77a332c400e9890cba8b2c2df6a3581effc0965454d293d360fd0",
+          "currentBundledSha256": "70735bcb72d77a332c400e9890cba8b2c2df6a3581effc0965454d293d360fd0",
+          "matchesCurrentBundle": true
+        },
+        {
+          "id": "gradient-history-smoke-history-v2",
+          "sha256": "70735bcb72d77a332c400e9890cba8b2c2df6a3581effc0965454d293d360fd0",
+          "currentBundledSha256": "70735bcb72d77a332c400e9890cba8b2c2df6a3581effc0965454d293d360fd0",
+          "matchesCurrentBundle": true
+        }
+      ]
+    },
+    {
+      "file": "Temp/WhimTex/test-runs/2026-10-04T14-10-29.201Z-123168.json",
+      "sha256": "6cf97fbba066bdf66e622d8292334f3c71679df8e056343a0e3cd89474a83cab",
+      "success": true,
+      "results": [
+        {
+          "id": "gradient-key-picker-smoke-focus-lifecycle-v2",
+          "status": "passed"
+        },
+        {
+          "id": "gradient-key-picker-smoke-interactions-v2",
+          "status": "passed"
+        },
+        {
+          "id": "gradient-library-sections-smoke-v2",
+          "status": "passed"
+        },
+        {
+          "id": "gradient-map-smoke-v2",
+          "status": "passed"
+        },
+        {
+          "id": "gradient-presets-smoke-v2",
+          "status": "passed"
+        },
+        {
+          "id": "gradient-soft-fx-smoke-v2",
+          "status": "passed"
+        },
+        {
+          "id": "group-fx-smoke-v2",
+          "status": "passed"
+        },
+        {
+          "id": "group-transform-smoke-v2",
+          "status": "passed"
+        },
+        {
+          "id": "guide-settings-smoke-v2",
+          "status": "passed"
+        },
+        {
+          "id": "hsv-smoke-v2",
+          "status": "passed"
+        },
+        {
+          "id": "hdr-group-smoke-v2",
+          "status": "passed"
+        },
+        {
+          "id": "hdr-stage-smoke-v2",
+          "status": "passed"
+        },
+        {
+          "id": "healing-brush-smoke-v2",
+          "status": "passed"
+        },
+        {
+          "id": "healing-perimeter-smoke-v2",
+          "status": "passed"
+        },
+        {
+          "id": "healing-stroke-color-smoke-v2",
+          "status": "passed"
+        },
+        {
+          "id": "hidden-effect-input-smoke-v2",
+          "status": "passed"
+        },
+        {
+          "id": "histogram-seamless-smoke-v2",
+          "status": "passed"
+        },
+        {
+          "id": "history-hdr-filter-smoke-v2",
+          "status": "passed"
+        },
+        {
+          "id": "hlsl-effect-drop-smoke-v2",
+          "status": "passed"
+        },
+        {
+          "id": "hlsl-noise-smoke-v2",
+          "status": "passed"
+        },
+        {
+          "id": "image-clipboard-smoke-v2",
+          "status": "passed"
+        },
+        {
+          "id": "image-url-paste-smoke-v2",
+          "status": "passed"
+        }
+      ],
+      "inputs": [
+        {
+          "id": "gradient-key-picker-smoke-focus-lifecycle-v2",
+          "sha256": "f93ac3e260f602fe1960d536fa462d498dfdee9a78da4e6ff84ab0c3344c8acb",
+          "currentBundledSha256": "f93ac3e260f602fe1960d536fa462d498dfdee9a78da4e6ff84ab0c3344c8acb",
+          "matchesCurrentBundle": true
+        },
+        {
+          "id": "gradient-key-picker-smoke-interactions-v2",
+          "sha256": "f93ac3e260f602fe1960d536fa462d498dfdee9a78da4e6ff84ab0c3344c8acb",
+          "currentBundledSha256": "f93ac3e260f602fe1960d536fa462d498dfdee9a78da4e6ff84ab0c3344c8acb",
+          "matchesCurrentBundle": true
+        },
+        {
+          "id": "gradient-library-sections-smoke-v2",
+          "sha256": "0978ff757aaa96558bd8579e1a877f0acc241dcf20259c4bb9635cd1672181d4",
+          "currentBundledSha256": "0978ff757aaa96558bd8579e1a877f0acc241dcf20259c4bb9635cd1672181d4",
+          "matchesCurrentBundle": true
+        },
+        {
+          "id": "gradient-map-smoke-v2",
+          "sha256": "511377fbd3855603a19a240e05d87f605505e7801cbd3c3798eccec4084ff4d8",
+          "currentBundledSha256": "511377fbd3855603a19a240e05d87f605505e7801cbd3c3798eccec4084ff4d8",
+          "matchesCurrentBundle": true
+        },
+        {
+          "id": "gradient-presets-smoke-v2",
+          "sha256": "e6144530ba08758f9b1e541e7871e386cb3a4e0e039b81814b025c1281783d97",
+          "currentBundledSha256": "e6144530ba08758f9b1e541e7871e386cb3a4e0e039b81814b025c1281783d97",
+          "matchesCurrentBundle": true
+        },
+        {
+          "id": "gradient-soft-fx-smoke-v2",
+          "sha256": "4fe0c5f6c3dbc2e8accb711d7181cd87acaf06005c971526cdd9b9c85375a9aa",
+          "currentBundledSha256": "4fe0c5f6c3dbc2e8accb711d7181cd87acaf06005c971526cdd9b9c85375a9aa",
+          "matchesCurrentBundle": true
+        },
+        {
+          "id": "group-fx-smoke-v2",
+          "sha256": "b58b67d3d19cfad8f25126a805fcdf42344bfdce601e71244ff2ff9cc506817d",
+          "currentBundledSha256": "b58b67d3d19cfad8f25126a805fcdf42344bfdce601e71244ff2ff9cc506817d",
+          "matchesCurrentBundle": true
+        },
+        {
+          "id": "group-transform-smoke-v2",
+          "sha256": "d94ad54ec6c00f27a14f2cf5b438bffcc83df591bc9a54f960766287bd466713",
+          "currentBundledSha256": "d94ad54ec6c00f27a14f2cf5b438bffcc83df591bc9a54f960766287bd466713",
+          "matchesCurrentBundle": true
+        },
+        {
+          "id": "guide-settings-smoke-v2",
+          "sha256": "8d7f88775315ad88dc2c48b0fa813beed87fd5ac7e0bd6805e12d036acb5bc44",
+          "currentBundledSha256": "8d7f88775315ad88dc2c48b0fa813beed87fd5ac7e0bd6805e12d036acb5bc44",
+          "matchesCurrentBundle": true
+        },
+        {
+          "id": "hsv-smoke-v2",
+          "sha256": "a985fd80c8dbe3c978747cbfbdefe24512ba60f83cdc6c30a8cc9bbee6f0061b",
+          "currentBundledSha256": "a985fd80c8dbe3c978747cbfbdefe24512ba60f83cdc6c30a8cc9bbee6f0061b",
+          "matchesCurrentBundle": true
+        },
+        {
+          "id": "hdr-group-smoke-v2",
+          "sha256": "f8bcd3722384b8a3eca1a5f20887f0d5762eb0bf68be8a5684c5a04714175590",
+          "currentBundledSha256": "f8bcd3722384b8a3eca1a5f20887f0d5762eb0bf68be8a5684c5a04714175590",
+          "matchesCurrentBundle": true
+        },
+        {
+          "id": "hdr-stage-smoke-v2",
+          "sha256": "5cc945755df621fba5b899bdc3c944a466877ab67de72c8c9123b011efc9b6a6",
+          "currentBundledSha256": "5cc945755df621fba5b899bdc3c944a466877ab67de72c8c9123b011efc9b6a6",
+          "matchesCurrentBundle": true
+        },
+        {
+          "id": "healing-brush-smoke-v2",
+          "sha256": "9725fcc4dd29d181f169967d5ec2d1f18de7676153f5b0b210316d9036d97aab",
+          "currentBundledSha256": "9725fcc4dd29d181f169967d5ec2d1f18de7676153f5b0b210316d9036d97aab",
+          "matchesCurrentBundle": true
+        },
+        {
+          "id": "healing-perimeter-smoke-v2",
+          "sha256": "cb8e53176d81798e4b24acdb642a4799f596f95234c14e52d2a74284d981250c",
+          "currentBundledSha256": "cb8e53176d81798e4b24acdb642a4799f596f95234c14e52d2a74284d981250c",
+          "matchesCurrentBundle": true
+        },
+        {
+          "id": "healing-stroke-color-smoke-v2",
+          "sha256": "65f7fb046a10fef8e56828066167203dac80452e564a5d80c980186d14fe0ac6",
+          "currentBundledSha256": "65f7fb046a10fef8e56828066167203dac80452e564a5d80c980186d14fe0ac6",
+          "matchesCurrentBundle": true
+        },
+        {
+          "id": "hidden-effect-input-smoke-v2",
+          "sha256": "ef792aef07dbfaf16dc906e1a38c6eb4f0bcb463eaefd4b08e4176d3328b391c",
+          "currentBundledSha256": "ef792aef07dbfaf16dc906e1a38c6eb4f0bcb463eaefd4b08e4176d3328b391c",
+          "matchesCurrentBundle": true
+        },
+        {
+          "id": "histogram-seamless-smoke-v2",
+          "sha256": "84ed642089d46b1e895c3f3d4d2e4703a92ec6a4900faeb14e469bd6f0c8b586",
+          "currentBundledSha256": "84ed642089d46b1e895c3f3d4d2e4703a92ec6a4900faeb14e469bd6f0c8b586",
+          "matchesCurrentBundle": true
+        },
+        {
+          "id": "history-hdr-filter-smoke-v2",
+          "sha256": "c385aba12171da32c0b5b5910dc8014e01014e4895b7dd613a493a9a52a60059",
+          "currentBundledSha256": "c385aba12171da32c0b5b5910dc8014e01014e4895b7dd613a493a9a52a60059",
+          "matchesCurrentBundle": true
+        },
+        {
+          "id": "hlsl-effect-drop-smoke-v2",
+          "sha256": "d14eec1d5e6ad96c0749d5fcf8da1ee2fa9866aeeb008c6e50329d9ad8c9e41b",
+          "currentBundledSha256": "d14eec1d5e6ad96c0749d5fcf8da1ee2fa9866aeeb008c6e50329d9ad8c9e41b",
+          "matchesCurrentBundle": true
+        },
+        {
+          "id": "hlsl-noise-smoke-v2",
+          "sha256": "dd2273ef5a408699b51e31fc082598e46231c625650d50e85f5823df88dc7397",
+          "currentBundledSha256": "dd2273ef5a408699b51e31fc082598e46231c625650d50e85f5823df88dc7397",
+          "matchesCurrentBundle": true
+        },
+        {
+          "id": "image-clipboard-smoke-v2",
+          "sha256": "4a7cfe7b94f362e6ea2469dbabc47396c3d758a99ce489f70945c6704dc17306",
+          "currentBundledSha256": "4a7cfe7b94f362e6ea2469dbabc47396c3d758a99ce489f70945c6704dc17306",
+          "matchesCurrentBundle": true
+        },
+        {
+          "id": "image-url-paste-smoke-v2",
+          "sha256": "59319ac694cc7bfd756d3770bfd85c5cf66bff4b7c4eddb1d8b792dff10208a3",
+          "currentBundledSha256": "59319ac694cc7bfd756d3770bfd85c5cf66bff4b7c4eddb1d8b792dff10208a3",
+          "matchesCurrentBundle": true
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "existingReloadReviewFilesAlreadyContainChangedWrapper": true,
+    "proposedAdditionalReviewFiles": [
+      "Tests~/Cases/UnityB/ReloadOrchestration.test.mjs"
+    ],
+    "instruction": "Parent gate binds changed wrapper fingerprint plus pure protocol result and actual native reload receipt. No catalog/global edit here."
+  },
+  "localLifecycleProof": {
+    "recoveryNote": "Final RecoverVisual is general strict-N journal recovery only: five nonempty/distinct recorded identities, original-window exclusion snapshot/focus validation, public all-Object identity scan. All five absent -> erase only unchanged exact journal without object mutations. Otherwise require exact owned owner/document/window, single Drawing-held recorded nonasset pixels reference before name restoration and strict CloseVisual. No historical hardcoded run/IDs, Post FX probe/retention/window-detachment bypass remains. VisualSequence retains primary+cleanup AggregateException and acquired-only serializable recovery envelope; final native validation pending parent.",
+    "envelopeNote": "Local serializable envelope copies TestResult status/checks/message/failures plus recoveryRequired. Export fresh precheck prevents duplicate acquisition; records acquisition even on ShowVisual exception, retains primary+cleanup AggregateException and flags only acquired journal remaining. Gradient SetupOwned records GUID workflow token only AFTER new journal save; validates same token before manual cleanup, retains both errors, and terminal Poll/Cancel/CleanupRun flags acquired receipt+journal remaining. Duplicate CaptureWorkflow returns recoveryRequired=false; running is not terminal recovery; passed+retained journal is converted to failed. No shared helper/TestApi edit.",
+    "scope": "Existing permanent five local recovery-envelope/protocol/source-guard cases plus77 reload cases; mocks/source inspection only, NOT Unity/native execution."
+  },
+  "historicalNativeBindingsNote": "Old B3/remainder report matches were observed at earlier recorded time, not a current freeze assertion. Export/Gradient/Histogram source has changed since those historical inputs; parent must rerun/bind affected current bundles.",
+  "temporaryRecoveryRetired": {
+    "status": "removed-after-parent-confirmed-success",
+    "parentReportedNativeRecovery": "PASS; readonly probe showed boxed CLR nonnull Unity-null texture, null backend; unrecorded data IDs/state preserved and old journal erased.",
+    "scope": "Historical exact-ID branch, InactiveRecoveryReference, InspectRecoveryPostFx, RecoverReloadedWindows and both TEMP-specific source guard cases removed from repository. General RecoverVisual strict journal/exclusion/all-five-absent/ordinary document-owned pixels proof and VisualResult remain. Gradient unchanged. No runtime operations by agent.",
+    "evidence": "Historical source/report retained by parent under scoped Temp/WhimTex/test-runs; no permanent executable GUID/ID special case or Post FX retention mechanism remains.",
+    "finalValidation": "Native9 current bundles PASS, Node83 and CI11 PASS; owned pure82/2839 remains mock/source proof. Final parent gate/manual oracle verdict distinct."
+  },
+  "finalNative9Evidence": {
+    "file": "D:/DCFA/Projects/Test6.6/Temp/WhimTex/test-runs/2026-10-04T15-42-43.469Z-124936.json",
+    "sha256": "824d25c54eff97d917797e84a5ca5cf0e67f84507c0173daa55af6dec8fc77c5",
+    "runId": "a81dca33-199d-4c9c-948e-e3189552c451",
+    "finishedAt": "2026-10-04T15:42:54.509Z",
+    "status": "passed",
+    "selected": 9,
+    "notRun": [],
+    "recoveryRequired": false,
+    "parentReportedCleanup": "Known idle; recoveryRequired=false. Agent read report/bundles only, no live Unity query.",
+    "results": [
+      {
+        "id": "export-window-smoke-v2",
+        "file": "Tests~/Cases/UnityB/ExportWindowTests.cs",
+        "status": "passed",
+        "checks": 69,
+        "uncertain": false,
+        "cleanup": []
+      },
+      {
+        "id": "export-window-visual-sequence-v2",
+        "file": "Tests~/Cases/UnityB/ExportWindowTests.cs",
+        "status": "passed",
+        "checks": 3,
+        "uncertain": false,
+        "cleanup": []
+      },
+      {
+        "id": "histogram-seamless-smoke-v2",
+        "file": "Tests~/Cases/UnityB/HistogramSeamlessTests.cs",
+        "status": "passed",
+        "checks": 2773394,
+        "uncertain": false,
+        "cleanup": []
+      },
+      {
+        "id": "histogram-seamless-preview-v2",
+        "file": "Tests~/Cases/UnityB/HistogramSeamlessTests.cs",
+        "status": "passed",
+        "checks": 2,
+        "uncertain": false,
+        "cleanup": []
+      },
+      {
+        "id": "histogram-seamless-benchmark-v2",
+        "file": "Tests~/Cases/UnityB/HistogramSeamlessTests.cs",
+        "status": "passed",
+        "checks": 3,
+        "uncertain": false,
+        "cleanup": []
+      },
+      {
+        "id": "histogram-seamless-reference-fixtures-v2",
+        "file": "Tests~/Cases/UnityB/HistogramSeamlessTests.cs",
+        "status": "passed",
+        "checks": 3,
+        "uncertain": false,
+        "cleanup": []
+      },
+      {
+        "id": "gradient-history-smoke-picker-recency-v2",
+        "file": "Tests~/Cases/UnityB/GradientHistoryTests.cs",
+        "status": "passed",
+        "checks": 3,
+        "uncertain": false,
+        "cleanup": []
+      },
+      {
+        "id": "gradient-history-smoke-history-v2",
+        "file": "Tests~/Cases/UnityB/GradientHistoryTests.cs",
+        "status": "passed",
+        "checks": 19,
+        "uncertain": false,
+        "cleanup": [
+          {
+            "status": "passed",
+            "message": "Owned cleanup completed; primary verdict: {\"status\":\"passed\",\"checks\":19,\"message\":\"GradientHistoryTests.History\",\"failures\":[]}",
+            "checks": 0,
+            "failures": [],
+            "recoveryRequired": false
+          }
+        ]
+      },
+      {
+        "id": "gradient-history-capture-v2",
+        "file": "Tests~/Cases/UnityB/GradientHistoryTests.cs",
+        "status": "passed",
+        "checks": 2,
+        "uncertain": false,
+        "cleanup": [
+          {
+            "status": "passed",
+            "message": "Owned cleanup completed; primary verdict: {\"status\":\"passed\",\"checks\":2,\"message\":\"GradientHistoryTests.CaptureWorkflow\",\"failures\":[]}",
+            "checks": 0,
+            "failures": [],
+            "recoveryRequired": false
+          }
+        ]
+      }
+    ],
+    "inputs": [
+      {
+        "id": "export-window-smoke-v2",
+        "sha256": "eb7d6d7406d2f47131a3a405371522422e61d8c7fc8f35eca9f4823ef34a27bd",
+        "sources": [
+          {
+            "file": "Tests~/Cases/UnityB/ExportWindowTests.cs",
+            "sha256": "8e2f090b7501c684206b07eadd402ea5eeab01f5b42cef9a70f94a368f6768cf"
+          },
+          {
+            "file": "Tests~/Framework/TestApi.cs",
+            "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+          },
+          {
+            "file": "Tests~/Cases/UnityB/UnityBSupport.cs",
+            "sha256": "5107b85a00b8456f0cddc81247698cc824773dc2f7ece6f1d5a8c42c246ae486"
+          }
+        ],
+        "currentBundleHashMatches": true
+      },
+      {
+        "id": "export-window-visual-sequence-v2",
+        "sha256": "eb7d6d7406d2f47131a3a405371522422e61d8c7fc8f35eca9f4823ef34a27bd",
+        "sources": [
+          {
+            "file": "Tests~/Cases/UnityB/ExportWindowTests.cs",
+            "sha256": "8e2f090b7501c684206b07eadd402ea5eeab01f5b42cef9a70f94a368f6768cf"
+          },
+          {
+            "file": "Tests~/Framework/TestApi.cs",
+            "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+          },
+          {
+            "file": "Tests~/Cases/UnityB/UnityBSupport.cs",
+            "sha256": "5107b85a00b8456f0cddc81247698cc824773dc2f7ece6f1d5a8c42c246ae486"
+          }
+        ],
+        "currentBundleHashMatches": true
+      },
+      {
+        "id": "histogram-seamless-smoke-v2",
+        "sha256": "f9303fe0ce5888cd525e9ab257e93d837738eb5ecfa2beeddff3d28f0642e94f",
+        "sources": [
+          {
+            "file": "Tests~/Cases/UnityB/HistogramSeamlessTests.cs",
+            "sha256": "8de20a8eeec96fa981bd16b74916dea0681368c5ba161142442da94bdd4d5596"
+          },
+          {
+            "file": "Tests~/Framework/TestApi.cs",
+            "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+          },
+          {
+            "file": "Tests~/Cases/UnityB/UnityBSupport.cs",
+            "sha256": "5107b85a00b8456f0cddc81247698cc824773dc2f7ece6f1d5a8c42c246ae486"
+          }
+        ],
+        "currentBundleHashMatches": true
+      },
+      {
+        "id": "histogram-seamless-preview-v2",
+        "sha256": "f9303fe0ce5888cd525e9ab257e93d837738eb5ecfa2beeddff3d28f0642e94f",
+        "sources": [
+          {
+            "file": "Tests~/Cases/UnityB/HistogramSeamlessTests.cs",
+            "sha256": "8de20a8eeec96fa981bd16b74916dea0681368c5ba161142442da94bdd4d5596"
+          },
+          {
+            "file": "Tests~/Framework/TestApi.cs",
+            "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+          },
+          {
+            "file": "Tests~/Cases/UnityB/UnityBSupport.cs",
+            "sha256": "5107b85a00b8456f0cddc81247698cc824773dc2f7ece6f1d5a8c42c246ae486"
+          }
+        ],
+        "currentBundleHashMatches": true
+      },
+      {
+        "id": "histogram-seamless-benchmark-v2",
+        "sha256": "f9303fe0ce5888cd525e9ab257e93d837738eb5ecfa2beeddff3d28f0642e94f",
+        "sources": [
+          {
+            "file": "Tests~/Cases/UnityB/HistogramSeamlessTests.cs",
+            "sha256": "8de20a8eeec96fa981bd16b74916dea0681368c5ba161142442da94bdd4d5596"
+          },
+          {
+            "file": "Tests~/Framework/TestApi.cs",
+            "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+          },
+          {
+            "file": "Tests~/Cases/UnityB/UnityBSupport.cs",
+            "sha256": "5107b85a00b8456f0cddc81247698cc824773dc2f7ece6f1d5a8c42c246ae486"
+          }
+        ],
+        "currentBundleHashMatches": true
+      },
+      {
+        "id": "histogram-seamless-reference-fixtures-v2",
+        "sha256": "f9303fe0ce5888cd525e9ab257e93d837738eb5ecfa2beeddff3d28f0642e94f",
+        "sources": [
+          {
+            "file": "Tests~/Cases/UnityB/HistogramSeamlessTests.cs",
+            "sha256": "8de20a8eeec96fa981bd16b74916dea0681368c5ba161142442da94bdd4d5596"
+          },
+          {
+            "file": "Tests~/Framework/TestApi.cs",
+            "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+          },
+          {
+            "file": "Tests~/Cases/UnityB/UnityBSupport.cs",
+            "sha256": "5107b85a00b8456f0cddc81247698cc824773dc2f7ece6f1d5a8c42c246ae486"
+          }
+        ],
+        "currentBundleHashMatches": true
+      },
+      {
+        "id": "gradient-history-smoke-picker-recency-v2",
+        "sha256": "4d553560d7bc3058627131ad959f37846fea7a6e363e38d8b2eec8d79adc13fa",
+        "sources": [
+          {
+            "file": "Tests~/Cases/UnityB/GradientHistoryTests.cs",
+            "sha256": "17e10ef6f16d82b331ebaf478691a8d8362fd84d9d9686c8586b50a3796a53ff"
+          },
+          {
+            "file": "Tests~/Framework/TestApi.cs",
+            "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+          },
+          {
+            "file": "Tests~/Cases/UnityB/UnityBSupport.cs",
+            "sha256": "5107b85a00b8456f0cddc81247698cc824773dc2f7ece6f1d5a8c42c246ae486"
+          }
+        ],
+        "currentBundleHashMatches": true
+      },
+      {
+        "id": "gradient-history-smoke-history-v2",
+        "sha256": "4d553560d7bc3058627131ad959f37846fea7a6e363e38d8b2eec8d79adc13fa",
+        "sources": [
+          {
+            "file": "Tests~/Cases/UnityB/GradientHistoryTests.cs",
+            "sha256": "17e10ef6f16d82b331ebaf478691a8d8362fd84d9d9686c8586b50a3796a53ff"
+          },
+          {
+            "file": "Tests~/Framework/TestApi.cs",
+            "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+          },
+          {
+            "file": "Tests~/Cases/UnityB/UnityBSupport.cs",
+            "sha256": "5107b85a00b8456f0cddc81247698cc824773dc2f7ece6f1d5a8c42c246ae486"
+          }
+        ],
+        "currentBundleHashMatches": true
+      },
+      {
+        "id": "gradient-history-capture-v2",
+        "sha256": "4d553560d7bc3058627131ad959f37846fea7a6e363e38d8b2eec8d79adc13fa",
+        "sources": [
+          {
+            "file": "Tests~/Cases/UnityB/GradientHistoryTests.cs",
+            "sha256": "17e10ef6f16d82b331ebaf478691a8d8362fd84d9d9686c8586b50a3796a53ff"
+          },
+          {
+            "file": "Tests~/Framework/TestApi.cs",
+            "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+          },
+          {
+            "file": "Tests~/Cases/UnityB/UnityBSupport.cs",
+            "sha256": "5107b85a00b8456f0cddc81247698cc824773dc2f7ece6f1d5a8c42c246ae486"
+          }
+        ],
+        "currentBundleHashMatches": true
+      }
+    ],
+    "limit": "Current native execution proof for selected9 only; actual visual verdict, diagnostic artifact/external oracle checks, final gate binding remains pending. Historical failure/recovery evidence is separate."
+  },
+  "node83Validation": {
+    "file": "D:/DCFA/Projects/Test6.6/Temp/WhimTex/test-runs/2026-10-04T15-43-27.537Z-126276.json",
+    "sha256": "7016616e0e87afc400ed7d87668a329d6ba554ecf82d845ab1634957a6f5a862",
+    "selected": 83,
+    "status": "passed",
+    "finishedAt": "2026-10-04T15:43:53.614Z",
+    "recoveryRequired": false,
+    "notRun": 0,
+    "sourceFrozen": true,
+    "receipt": "read-only-verified",
+    "protocolResults": [
+      {
+        "id": "framework",
+        "status": "passed",
+        "cases": 43,
+        "checks": 171
+      },
+      {
+        "id": "reload-transport-b",
+        "status": "passed",
+        "cases": 82,
+        "checks": 2839
+      },
+      {
+        "id": "reload-transport-d",
+        "status": "passed",
+        "cases": 31,
+        "checks": 4139
+      }
+    ],
+    "note": "83 selected Node scenarios PASS. Owned B pure protocol82 cases/2839 checks remains mock/source-guard proof, not native reload equivalence. Final parent gate/manual visual or external-oracle binding distinct."
+  },
+  "ci11Validation": {
+    "file": "D:/DCFA/Projects/Test6.6/Temp/WhimTex/test-runs/2026-10-04T15-44-23.493Z-106752.json",
+    "sha256": "2c7d5f058baf3e7e24367e5ed8d72ab6a1ae4fd809ae4f68593e79a9e6a6b6b9",
+    "selected": 11,
+    "status": "passed",
+    "finishedAt": "2026-10-04T15:44:25.057Z",
+    "recoveryRequired": false,
+    "notRun": 0
+  }
+}

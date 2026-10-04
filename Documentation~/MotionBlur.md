@@ -83,4 +83,4 @@ memory. No CPU pixel readback, serialized derived textures or new pixel Undo sto
 ## Automation and validation
 
 - [Agent parameters](AgentAPI.md#motion-blur-settings)
-- [Tests and manual checks](https://github.com/DCFApixels/WhimTex/blob/main/Tests~/MotionBlur.md)
+- [Tests and manual checks](https://github.com/DCFApixels/WhimTex/blob/main/Tests~/Legacy/MotionBlur.md)

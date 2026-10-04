@@ -15,7 +15,7 @@
 Текущие входы рендера: публичный `ComposeCanvas()` и internal `ComposeCanvas(maxSize)`
 дают читаемый HDR Texture2D; `RenderCanvas(maxSize)` и `RenderCanvasWithCache` —
 временный RenderTexture. `RenderCanvasAtSize(width, height)` сохраняет точные размеры
-и прежний scaleMultiplier = 1. [Сопоставление имён и проверки](../Tests~/CanvasRenderNaming.ru.md).
+и прежний scaleMultiplier = 1. [Сопоставление имён и проверки](../Tests~/Legacy/CanvasRenderNaming.ru.md).
 
 - `Layer` — стабильные ID, имя, общие настройки, дети, FX; `[SerializeReference] LayerBehaviour` — заменяемое поведение.
   Подмена поведения сохраняет оболочку слоя. Missing Reference не должен лишать доступа к общим данным.
@@ -63,7 +63,7 @@
 | Clipboard слоёв / кистей | [WhimTexApi.Clipboard.cs](../src/Automation/WhimTexApi.Clipboard.cs), [WhimTexApi.BrushClipboard.cs](../src/Automation/WhimTexApi.BrushClipboard.cs) |
 | Контракты ИИ | [AI_AUTHORING.md](../AI_AUTHORING.md), [AI/README](../Documentation~/AI/README.md), [AI/BRUSHES](../Documentation~/AI/BRUSHES.md), [примеры](../Documentation~/Examples/Clipboard/README.md) |
 | Живое редактирование | [skill](../Skills~/whimtex-live/SKILL.md), [LiveAgentAPI](../Documentation~/LiveAgentAPI.md), [AgentAPI](../Documentation~/AgentAPI.md) |
-| Проверки | [opt-in профили и запуск](../Tests~/RUNNING_TESTS.md), [Tests~/](../Tests~/), [финальный аудит после очистки](../Tests~/FinalLegacyAudit.ru.md), [building.md](../Documentation~/building.md), [генератор схемы JSON](../Documentation~/scripts/DocumentJsonSchema.cs); [схема полей API/кистей](../Documentation~/scripts/build-agent-fields-schema.mjs) — не формат документа |
+| Проверки | [профили и общий Test API](../Tests~/RUNNING_TESTS.md), [полный перенос и ограничения проверки](../Tests~/MigrationFull.ru.md), [три пилотные пары](../Tests~/MigrationPilot.ru.md), [карта покрытия](../Tests~/migration.json), [Tests~/Cases](../Tests~/Cases/), [архивный аудит после очистки](../Tests~/Legacy/FinalLegacyAudit.ru.md), [building.md](../Documentation~/building.md), [генератор схемы JSON](../Documentation~/scripts/DocumentJsonSchema.cs); [схема полей API/кистей](../Documentation~/scripts/build-agent-fields-schema.mjs) — не формат документа |
 
 Unity-маркеры исторических имён и общий attribute-based reader удалены. Встроенные FX
 используют канонический `_Opacity` 0.12.5 без прежних aliases; пользовательская директива
@@ -98,7 +98,7 @@ Drawing brush settings и PaintToolSettings — действующие наст�
 Blur/Sharpen и полный upload 128 элементов (веса Blur Brush прежние); WhimTexRasterEncoder общий
 для оконного/API растрового экспорта. Binary Deserialize возвращает ModelReadResult с независимыми
 read-only диагностическими снимками вместо Last*-списков. Writer/файловая база не менялись.
-[Результаты и границы проверки](../Tests~/RefactoringR01R04.ru.md).
+[Результаты и границы проверки](../Tests~/Legacy/RefactoringR01R04.ru.md).
 
 ## Как продолжать
 

@@ -7,11 +7,7 @@ on:
       - 'Documentation~/**'
       - 'Context~/TIFF_AGENT_COMMANDS.md'
       - 'src/Automation/**'
-      - 'Tests~/AgentDocumentation.test.mjs'
-      - 'Tests~/AgentCommandInventory.test.mjs'
-      - 'Tests~/DocumentJsonSchema.test.mjs'
-      - 'Tests~/Compatibility0125.test.mjs'
-      - 'Tests~/Fixtures/Compatibility0125/**'
+      - 'Tests~/**'
       - '.github/workflows/documentation.yml'
       - 'README*.md'
       - 'package.json'
@@ -20,11 +16,7 @@ on:
       - 'Documentation~/**'
       - 'Context~/TIFF_AGENT_COMMANDS.md'
       - 'src/Automation/**'
-      - 'Tests~/AgentDocumentation.test.mjs'
-      - 'Tests~/AgentCommandInventory.test.mjs'
-      - 'Tests~/DocumentJsonSchema.test.mjs'
-      - 'Tests~/Compatibility0125.test.mjs'
-      - 'Tests~/Fixtures/Compatibility0125/**'
+      - 'Tests~/**'
       - '.github/workflows/documentation.yml'
       - 'README*.md'
       - 'package.json'
@@ -53,19 +45,7 @@ jobs:
       - name: Check documentation sources
         run: node scripts/check-docs.mjs source
       - name: Check agent documentation contracts
-        run: |
-          node ../Tests~/AgentDocumentation.test.mjs
-          node ../Tests~/DocumentJsonSchema.test.mjs
-          node ../Tests~/Compatibility0125.test.mjs
-          node ../Tests~/RenameMarkerCleanup.test.mjs
-          node ../Tests~/UserSettingsCleanup.test.mjs
-          node ../Tests~/GradientClipboardCleanup.test.mjs
-          node ../Tests~/RemainingLegacyCleanup.test.mjs
-          node ../Tests~/AgentCommandInventory.test.mjs
-          node ../Tests~/MakeSeamlessContract.test.mjs
-          node ../Tests~/ProceduralClipboard.test.mjs
-      - name: Check brush schema and examples
-        run: node ../Tests~/BrushClipboard.test.mjs
+        run: node ../Tests~/scripts/ci-docs.mjs
       - name: Initialize theme search
         run: bundle exec just-the-docs rake search:init
       - name: Build site

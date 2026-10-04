@@ -216,7 +216,7 @@ managed SHA-256. Первое сохранение и изменённый сл�
 
 ## Изолированные замеры
 
-`Tests~/DocumentSaveCostProbe.cs`, Unity Pipeline `run_script`, оптимизированная ephemeral-компиляция.
+`Tests~/Legacy/DocumentSaveCostProbe.cs`, Unity Pipeline `run_script`, оптимизированная ephemeral-компиляция.
 Проба не создаёт ассеты/сцены и не меняет открытые документы. Container пишет в счётчик
 байтов без диска и импорта, поэтому результаты не являются замером полного Save.
 Проба использует настоящий глобальный compressed cache: может вытеснить его содержимое,
@@ -378,7 +378,7 @@ reserve/patch directory или временный spool, а не удержан�
 - Ограничить CPU/managed/private memory, измерять UI stall отдельно от total Save; не снимать
   прежние защиты ради красивой цифры.
 
-Повторить: `run_script`, файл `Tests~/DocumentSaveCostProbe.cs`, entries `Hashes([64])`,
+Повторить: `run_script`, файл `Tests~/Legacy/DocumentSaveCostProbe.cs`, entries `Hashes([64])`,
 `Container([4,true])`, `Container([3,true])`, `Tiff([4096])`, `CacheSafety([])` последовательно.
 Явно задавать `--project-path D:/DCFA/Projects/Test6.6`, timeout не менее 90 с для Hashes/Container.
 Reflection в пробе обращается только к собственным internal методам WhimTex, не к private Unity API.

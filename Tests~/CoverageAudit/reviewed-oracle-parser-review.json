@@ -1,0 +1,158 @@
+{
+  "version": 1,
+  "scope": "ReviewedOracle.Load only; source-reviewed fix for interpreted nested DTO registration loss",
+  "file": "Tests~/Cases/UnityC/ReviewedOracle.cs",
+  "previousSha256": "986a5df6e6bddae54f8fac0f9659e6cebbf78b5fee6388bc72ed8d7aa7e219e4",
+  "sha256": "56c8da8d7b1c38ef50c30d96ecb29cdde80dc02a078d132d867b13784acf7b92",
+  "sourceFrozen": true,
+  "reviewStatus": "source-reviewed",
+  "runtimeStatus": "pending-parent-validation",
+  "subsequentImageRepair": { "review": "Tests~/CoverageAudit/reviewed-oracle-image-review.json", "currentSourceSha256": "0a7383618feea3c2a4ba780738bbc0e3831ef78b7199ea0887f4ca4f71dc68e5", "note": "Load remains unchanged. Final C28 binds current helper and verifies registered-input raw artifact delivery. Earlier pre-Image-fix evidence remains historical; manual visual equivalence is not established." },
+  "parentRuntimeEvidence": {
+    "review": "Tests~/CoverageAudit/unity-c28-runtime-review.json",
+    "reportSha256": "45dba1600cdcb928f6871af1ed0fff306518dee9d8608d3147bcf1f2246c07ad",
+    "proof": "All28 persisted native inputs match report and current source bundles. Both registered-image Preview entries now complete their diagnostic producer path, confirming actual registration parsing in the assigned Editor. Original missing live4/screened/snapshot branches still skip honestly. Fifteen selected regression entries passed; three regression entries remain external-input skips. No whole-profile, manual visual or performance correctness claim.",
+    "artifactLimitation": "Both raw Preview payloads omit retained artifacts; GUID directories are absent after owned cleanup. Native producer completion is not independently inspectable artifact or visual verification."
+  },
+  "failedParentEvidence": {
+    "file": "D:/DCFA/Projects/Test6.6/Temp/WhimTex/test-runs/2026-10-04T15-19-37.151Z-48140.json",
+    "sha256": "5ba6b9ed6fec943b85b8a89b502f8838a2aa1f243e9fd1d3f783e5098b6f4ef9",
+    "ids": [
+      "mirror-enhancements-preview-v2",
+      "seamless-controls-preview-v2"
+    ],
+    "verdict": "Both skipped zero checks, reporting missing image registration despite the explicit active manifest. Do not reinterpret those skips as successful visual coverage."
+  },
+  "review": [
+    "Replaced only Load's JsonUtility nested-DTO deserialize with public existing Newtonsoft JObject.Parse/JToken.Type/JObject string indexer APIs. No Unity internal reflection.",
+    "Explicitly constructs FileRecord objects and typed arrays; integer manifest version1 required; record Object, String scalar fields and Array container kinds checked; missing/null registration collections remain empty external prerequisites.",
+    "Read's exact byte authentication/hash/length checks, Live binary decode/dimension checks,252 original snapshot combinations,2e-5 comparisons and both Preview algorithm/output/cleanup bodies remain unchanged.",
+    "Reviewed the actual written Load and active input manifest; no scan/current-golden/copy/overwrite, no product or other native source change."
+  ],
+  "referenceReview": {
+    "requested": "GibbsPlayerParse successful native517 example",
+    "status": "not-located-in-package-or-owned-temp-evidence",
+    "fallback": "Read existing AgentResizeTests public Assembly.Load/Newtonsoft JObject.Parse usage and AgentApiTests public token/indexer helpers. No claim to have inspected the missing named example."
+  },
+  "affectedScenarios": [
+    {
+      "id": "mirror-enhancements-v2",
+      "category": "regression"
+    },
+    {
+      "id": "mirror-enhancements-transition-v2",
+      "category": "regression"
+    },
+    {
+      "id": "mirror-enhancements-integration-v2",
+      "category": "regression"
+    },
+    {
+      "id": "mirror-enhancements-preview-v2",
+      "category": "diagnostic"
+    },
+    {
+      "id": "patch-quilting-contrast-v2",
+      "category": "regression"
+    },
+    {
+      "id": "patch-quilting-contrast-variance-v2",
+      "category": "regression"
+    },
+    {
+      "id": "patch-quilting-contrast-capture-v2",
+      "category": "diagnostic"
+    },
+    {
+      "id": "patch-quilting-contrast-memory-v2",
+      "category": "regression"
+    },
+    {
+      "id": "patch-quilting-equivalence-v2",
+      "category": "regression"
+    },
+    {
+      "id": "patch-quilting-equivalence-managed-v2",
+      "category": "regression"
+    },
+    {
+      "id": "patch-quilting-equivalence-benchmark-v2",
+      "category": "regression"
+    },
+    {
+      "id": "patch-quilting-equivalence-current-timing-v2",
+      "category": "diagnostic"
+    },
+    {
+      "id": "patch-quilting-feather-v2",
+      "category": "regression"
+    },
+    {
+      "id": "patch-quilting-feather-rendering-v2",
+      "category": "regression"
+    },
+    {
+      "id": "patch-quilting-feather-capture-v2",
+      "category": "diagnostic"
+    },
+    {
+      "id": "quilting-along-search-v2",
+      "category": "regression"
+    },
+    {
+      "id": "quilting-along-search-capture-v2",
+      "category": "diagnostic"
+    },
+    {
+      "id": "screened-seamless-v2",
+      "category": "regression"
+    },
+    {
+      "id": "screened-seamless-preview-v2",
+      "category": "diagnostic"
+    },
+    {
+      "id": "screened-seamless-large-v2",
+      "category": "regression"
+    },
+    {
+      "id": "screened-seamless-benchmark-v2",
+      "category": "diagnostic"
+    },
+    {
+      "id": "seamless-controls-v2",
+      "category": "regression"
+    },
+    {
+      "id": "seamless-controls-preview-v2",
+      "category": "diagnostic"
+    },
+    {
+      "id": "seamless-optimization-capture-v2",
+      "category": "diagnostic"
+    },
+    {
+      "id": "seamless-optimization-compare-v2",
+      "category": "regression"
+    },
+    {
+      "id": "seamless-optimization-audit-v2",
+      "category": "regression"
+    },
+    {
+      "id": "seamless-optimization-paired-poisson-v2",
+      "category": "regression"
+    },
+    {
+      "id": "seamless-optimization-benchmark-v2",
+      "category": "diagnostic"
+    }
+  ],
+  "execution": {
+    "unity": false,
+    "compilation": false,
+    "assetsMutation": false,
+    "wholeRunnerTests": false
+  },
+  "proofLevel": "Source review plus final bound parent native registered-input parsing and retained-artifact protocol evidence. Missing original inputs and manual visual equivalence remain unresolved."
+}

@@ -202,35 +202,35 @@ Unity-типы обрабатываются явно. Типы хранятся 
 
 Unity Editor 6000.7, DX12. Запускать через подключённый Unity Pipeline, не отдельный сборщик:
 
-- `Tests~/DocumentVectorWideningSmoke.cs` — `run_script`, entry `DocumentVectorWideningSmoke.Run`.
+- `Tests~/Legacy/DocumentVectorWideningSmoke.cs` — `run_script`, entry `DocumentVectorWideningSmoke.Run`.
   In-memory проверки точных Vector/VectorInt тегов и отказа от исторических coercion, ручного/автоматического чтения,
   сохранения целевого типа и компонентов, защиты от сужения, потери точности и неизвестных полей.
   Assets не создаёт.
-- `Tests~/DocumentReliabilitySmoke.cs` — `run_script`, entry `DocumentReliabilitySmoke.Run`.
+- `Tests~/Legacy/DocumentReliabilitySmoke.cs` — `run_script`, entry `DocumentReliabilitySmoke.Run`.
   Уникальная временная папка Assets, cleanup в finally. Проверяет контейнер, Bounds, лимиты,
   sRGB/alpha/HDR, незавершённую рисовку, FX ownership, sampling, GUID/окна и lifecycle Live Update.
-- `Tests~/DocumentPayloadCoverageSmoke.cs` — `eval_file`. 15 поведений, 826 изменённых значений, 49 проверок.
+- `Tests~/Legacy/DocumentPayloadCoverageSmoke.cs` — `eval_file`. 15 поведений, 826 изменённых значений, 49 проверок.
   Уникальные временные assets удаляются в finally.
-- `Tests~/DocumentReloadSmoke.cs` — `run_script`: `DocumentReloadSmoke.Prepare`, затем реальная
+- `Tests~/Legacy/DocumentReloadSmoke.cs` — `run_script`: `DocumentReloadSmoke.Prepare`, затем реальная
   перекомпиляция Unity и `DocumentReloadSmoke.Verify`. 8 проверок привязки, несохранённого содержимого,
   восстановления Read/Write и сохранения после reload. Verify удаляет только окно и папку этого теста.
-- `Tests~/DocumentPreparationSmoke.cs` — `run_script`, entry `DocumentPreparationSmoke.Run`: checksum,
+- `Tests~/Legacy/DocumentPreparationSmoke.cs` — `run_script`, entry `DocumentPreparationSmoke.Run`: checksum,
   streaming, external-write conflict, Undo/disk revision, independent authoring, Drawing round-trip,
   external FX, pending code, relative includes, Live→Save→Live.
-- `Tests~/AgentApiSmoke.cs` — `eval_file`: TIFF batch API, рисование, группы, рендер и Undo/Redo.
+- `Tests~/Legacy/AgentApiSmoke.cs` — `eval_file`: TIFF batch API, рисование, группы, рендер и Undo/Redo.
   Использует уникальную папку, удаляет свои assets и временные PNG в finally.
-- `Tests~/TiffAgentApiSmoke.cs` — создание/inspect/render TIFF через path-based API, metadata-only
+- `Tests~/Legacy/TiffAgentApiSmoke.cs` — создание/inspect/render TIFF через path-based API, metadata-only
   storage inspection, validation/status, dry-run и отказ от `.asset` document paths.
-- `Tests~/TiffLiveSmoke.cs` — независимая TIFF live-сессия без окна: begin/preview/status/render,
+- `Tests~/Legacy/TiffLiveSmoke.cs` — независимая TIFF live-сессия без окна: begin/preview/status/render,
   atomic complete, создание нового TIFF и внешний revision conflict.
-- `Tests~/DocumentRoundTripSmoke.cs` и `Tests~/DocumentLiveUpdateSmoke.cs` — дополнительные
+- `Tests~/Legacy/DocumentRoundTripSmoke.cs` и `Tests~/Legacy/DocumentLiveUpdateSmoke.cs` — дополнительные
   `eval_file` smoke-тесты round-trip и Live Update. Они создают уникальные папки
   `Assets/WhimTexRoundTrip_<guid>` / `Assets/WhimTexLive_<guid>` и удаляют их в `finally`;
   запускать их нужно именно через `eval_file`, не через `run_script`.
 
-- `Tests~/DocumentReleaseValidation.cs` + `Fixtures/WhimTexPlayerProbe.cs` — разрешённый Windows Player
+- `Tests~/Legacy/DocumentReleaseValidation.cs` + `Fixtures/WhimTexPlayerProbe.cs` — разрешённый Windows Player
   build, artifact/runtime проверки, сбои staged-записи, импорта и восстановление journal.
-- `Tests~/DocumentPerformanceProbe.cs` — замеры Drawing LDR/HDR, first/unchanged/changed Save и Open.
+- `Tests~/Legacy/DocumentPerformanceProbe.cs` — замеры Drawing LDR/HDR, first/unchanged/changed Save и Open.
 
 Результаты, команды и ограничения: [TIFF_VALIDATION.md](TIFF_VALIDATION.md).
 Проверен Windows64 Mono/DX12 Player; не проверены все платформенные компрессоры, AssetBundles/Addressables,

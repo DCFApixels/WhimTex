@@ -21,7 +21,7 @@ Windows Editor / Burst 2.0 проверены; остальные ОС, Burst 1.
 ## Дополнение 2026-09-20: точность, отмена, streaming, recovery
 
 Unity **6000.7.0a6 / DX12**. Компиляция через подключённый Editor без ошибок.
-Новый `Tests~/DocumentProductionSmoke.cs`, entry `DocumentProductionSmoke.Run`: **68 проверок**:
+Новый `Tests~/Legacy/DocumentProductionSmoke.cs`, entry `DocumentProductionSmoke.Run`: **68 проверок**:
 
 - Auto / EightBit / Float32: bit depth, сохранение настройки, неизменный GUID, no-op timestamp;
   Float32 сохраняет точные значения half-float композиции внутри 0–1.
@@ -161,7 +161,7 @@ LDR: независимые RGB-каналы и непрозрачная аль�
 
 Через подключённый Unity CLI/Pipeline с явным `--project-path`:
 
-1. `run_script`, файл `Tests~/DocumentReleaseValidation.cs`, entry `DocumentReleaseValidation.Install`.
+1. `run_script`, файл `Tests~/Legacy/DocumentReleaseValidation.cs`, entry `DocumentReleaseValidation.Install`.
    Затем штатная перекомпиляция и проверка `recompile_status`.
 2. `DocumentReleaseValidation.Faults`.
 3. `DocumentReleaseValidation.PrepareDeferredFailure`, затем отдельным вызовом `VerifyDeferredFailure`.
@@ -171,7 +171,7 @@ LDR: независимые RGB-каналы и непрозрачная аль�
 5. `DocumentReleaseValidation.InspectBuild`. Запустить полученный Player с
    `-batchmode -logFile <свой каталог>/player.log --whimtex-probe-output <свой каталог>/runtime.json`.
    Нужен GPU; не использовать `-nographics`.
-6. `run_script`, `Tests~/DocumentPerformanceProbe.cs`, entry `DocumentPerformanceProbe.Run`,
+6. `run_script`, `Tests~/Legacy/DocumentPerformanceProbe.cs`, entry `DocumentPerformanceProbe.Run`,
    `args: [2048,4,false,true]`, `[4096,4,false,true]`, `[4096,2,true,true]` по очереди.
 7. `DocumentReleaseValidation.Cleanup`, штатная перекомпиляция после удаления временных scripts.
 

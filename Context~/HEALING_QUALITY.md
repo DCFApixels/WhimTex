@@ -270,7 +270,7 @@ worker, not `fb7f6c5`. The bounded cache replaced an initial uncached version me
 at 995 / 1,084 ms. Timings fluctuate and are not performance guarantees. Actual complete
 strokes in the final integration run took about 0.89–1.00 seconds including polling.
 
-`Tests~/ContentAwareQualitySmoke.cs` is a standalone Pipeline `run_script` test,
+`Tests~/Legacy/ContentAwareQualitySmoke.cs` is a standalone Pipeline `run_script` test,
 entry `ContentAwareQualitySmoke.Main`. It generates all images in memory and writes
 reports and a comparison under `Temp/WhimTex/FillQuality`, never Assets. It runs all
 three qualities, compares repeated runs for determinism, and checks quality over three

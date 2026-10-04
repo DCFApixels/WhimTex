@@ -87,4 +87,4 @@ The cache is an optimization: cold, warm and evicted results must match at the s
 ## Validation
 
 After manually compiling in Unity, run the opt-in checks described in
-[Gaussian Blur tests](https://github.com/DCFApixels/WhimTex/blob/main/Tests~/GaussianBlur.md). No build or automatic project compilation is needed.
+[Gaussian Blur tests](https://github.com/DCFApixels/WhimTex/blob/main/Tests~/Legacy/GaussianBlur.md). No build or automatic project compilation is needed.

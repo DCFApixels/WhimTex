@@ -1,0 +1,105 @@
+{
+  "version": 1,
+  "scope": "Independent release Faults/Deferred and native import-failure fixture subset. Separate from the frozen Player audit; no claim of whole-file runtime equivalence.",
+  "ownedFiles": ["Tests~/Cases/UnityB/FaultFixture.cs", "Tests~/Cases/UnityB/FaultWorkflow.mjs", "Tests~/CoverageAudit/fault.json"],
+  "files": [
+    {
+      "legacyFile": "DocumentReleaseValidation.cs",
+      "newFile": "Tests~/Cases/UnityB/FaultFixture.cs",
+      "scenarioIds": ["fault-release-workflow-v2"],
+      "legacyEntries": ["Faults()", "PrepareDeferredFailure()", "VerifyDeferredFailure()", "Fault-related Install()/Cleanup() responsibilities"],
+      "coverage": [
+        "Interrupted existing write, cancelled first save, external concurrent write, locked destination, staging cleanup and inert hard-exit orphan retain original byte fixtures.",
+        "32x32 green saved document/red unsaved live state: build guard ends own live session, preserves exact meta/saved bytes/red edits, is idempotent, preserves originally readable settings and rejects build during save.",
+        "Simulated crash recovery, missing GUID, unresolved journal, failed recovery import and successful retry preserve original guard/journal assertions.",
+        "Native import failure after successful disk write retains file/GUID; identical-byte retry repairs import and retains red content; external blue replacement with future timestamp rejects stale save.",
+        "Deferred green-to-red save uses the installed native fault postprocessor, waits for Editor update, verifies retryable dirty binding and repairs import on retry.",
+        "Standalone wrapper owns installation, two test bodies, removal and both native compilation/reload proofs. No caller-installed global probe is required."
+      ],
+      "gaps": [
+        "RUNTIME SUBSET: native installation/removal, MonoScript.GetClass identity, Faults/Deferred bodies and exact post-reload class absence passed in nativeRuntimeEvidence. This does not cover Player entries or constitute a paired frozen-Legacy run.",
+        "PARENT NOTE: deliberate combined-entry selection runs both original subsets serially under one GUID-owned install/compile/test/remove/compile lifecycle. Public Faults/StartDeferred/PollDeferred replacement bodies retain the original Faults/PrepareDeferredFailure/VerifyDeferredFailure assertions and remain callable. Parent catalog selects fault-release-workflow-v2 for the requested limited set; full original assertions and deferred branches are retained. Selection history is retained in gapHistory.",
+        "METADATA: parent owns final catalog/profile/batch supersession and fresh review fingerprints. The saved report fingerprint is historical evidence, not a claim that later global metadata has the same fingerprint.",
+        "PreparePlayer/RestartPlayerLive/InspectBuild and runtime Player probe belong only to CoverageAudit/player.json."
+      ],
+      "gapHistory": [
+        {"originalGap": "No individual Faults-only/Deferred-only CLI modes are implemented; this one selectable workflow covers both bodies serially under one fixture lifecycle.", "disposition": "Intentional combined-entry selection, not missing source coverage. Separate CLI modes remain unimplemented; public original-subset replacement bodies remain callable. No assertion or deferred branch was removed."},
+        {"priorGapWithProvenance": "SELECTION RESPONSIBILITY (not a missing source branch): one selectable fault-release-workflow-v2 deliberately runs both original subsets serially under one GUID-owned install/compile/test/remove/compile lifecycle. Public Faults/StartDeferred/PollDeferred replacement bodies remain callable and retain the original Faults/PrepareDeferredFailure/VerifyDeferredFailure assertions; parent catalog owns combined selection. Provenance: this row previously said 'No individual Faults-only/Deferred-only CLI modes are implemented'; separate CLI modes remain unimplemented, but the requested limited-set selection is the combined workflow, not a coverage omission.", "disposition": "Moved verbatim out of current gaps at parent's explicit request; semantic review and all provenance retained."}
+      ],
+      "reviewStatus": "source-reviewed",
+      "runtimeStatus": "passed",
+      "runtimeEvidenceRef": "nativeRuntimeEvidence",
+      "sourceHashes": {
+        "legacy": "37a061934e9b9571627db63ba49361cbe84d9891e572c3a7b4c63e922637ae3e",
+        "replacement": "c1ef258f5f653e8bd03c57914c16f9152523b7003fff94953bd600f7b24bec5b",
+        "support": {
+          "Tests~/Cases/UnityB/FaultWorkflow.mjs": "77d56214c31ae5110a2b0970e4e1ceb0ad4694a34ef40395fb125084d93ce730",
+          "Tests~/Cases/UnityB/PlayerWorkflow.mjs": "92940cd76b97ec134d036936b9b800596ecdfccfe48ddaf9cb7654dedd4740ba",
+          "Tests~/Cases/UnityB/PlayerRelease.mjs": "ccd5e79de30f383b2278a5b115af615c882de03ad8fabbb92b7d7df436bd5b90"
+        }
+      }
+    },
+    {
+      "legacyFile": "Fixtures/WhimTexImportFailureProbe.cs",
+      "newFile": "Tests~/Cases/UnityB/FaultFixture.cs",
+      "scenarioIds": ["fault-release-workflow-v2"],
+      "legacyEntries": ["WhimTexImportFailureProbe.OnPreprocessTexture()"],
+      "coverage": [
+        "Setup generates an AssetPostprocessor native Editor script using the same .failimport/error mechanism, scoped to this exact GUID folder.",
+        "Supported AssetDatabase installation/removal; native event/reload and old BCL carrier-loss evidence; exact script GUID and MonoScript.GetClass match on install; exact GUID class absent from every loaded assembly after removal reload.",
+        "Borrowed selection/focus restored; only own document live session/recovery cleared; all runtime outputs stay under project Temp/WhimTex/fault-release/GUID."
+      ],
+      "gaps": ["Native postprocessor activation/removal passed for the exact recorded GUID; no cross-project/platform or concurrent-user-operation claim. Final selection metadata remains parent-owned. Generated source is never bundled as an ephemeral Pipeline class."],
+      "reviewStatus": "source-reviewed",
+      "runtimeStatus": "passed",
+      "runtimeEvidenceRef": "nativeRuntimeEvidence",
+      "sourceHashes": {
+        "legacy": "419d487289894124d6e270ca5a50884c7d3744f19cfce10c3775d5212b1f4e11",
+        "replacement": "c1ef258f5f653e8bd03c57914c16f9152523b7003fff94953bd600f7b24bec5b",
+        "support": {"Tests~/Cases/UnityB/FaultWorkflow.mjs": "77d56214c31ae5110a2b0970e4e1ceb0ad4694a34ef40395fb125084d93ce730"}
+      }
+    }
+  ],
+  "selectionHandoff": {
+    "newId": "fault-release-workflow-v2",
+    "metadata": "Exported catalogCandidate in Tests~/Cases/UnityB/FaultWorkflow.mjs; parent integrates active catalog/batches/profiles.",
+    "supersedesAfterNativeVerification": ["document-release-validation-faults-v2", "document-release-validation-deferred-v2"],
+    "gate": "Native gate satisfied by nativeRuntimeEvidence: install verification, both bodies and removal verification passed without uncertainty/recoveryRequired. Parent may now retire the two obsolete ordinary IDs and update subset mappings. Their earlier SKIPs are not coverage; whole DocumentReleaseValidation runtime remains pending Player proof and final metadata review.",
+    "preserve": "Do not edit DocumentReleaseValidationTests.cs here, weaken guards or alter frozen Legacy. Source handoff is explicit; Player remains a separate required subset."
+  },
+  "ownershipSupersessionReview": {
+    "method": "Explicit semantic assertion/input/lifecycle review against frozen Legacy, not exact token/helper/message matching. Shared DocumentReleaseValidationTests.cs and the parent unity-b-public audit are untouched here; parent applies this split-source handoff.",
+    "reviewedSources": ["Tests~/Legacy/DocumentReleaseValidation.cs", "Tests~/Cases/UnityB/FaultFixture.cs", "Tests~/Cases/UnityB/PlayerReleaseTests.cs"],
+    "adaptations": [
+      {"legacy": "Folder() ownership assertion at Legacy:42", "replacement": "FaultFixture.Id/Read/Owned and PlayerReleaseTests.Id/Read/OwnedFolder", "decision": "Accept contextual adaptation: lowercase N GUID, exact connected Test6.6 root, exact Assets/WhimTexTestMigration/GUID path, no redirected ancestors and recorded AssetDatabase folder GUID replace prefix/filename-length checks. Old folder spelling is not a required predicate."},
+      {"legacy": "Install() no prior fixture at Legacy:53 and SessionState Key/Key.output lifecycle", "replacement": "Fresh GUID assets/meta/output checks, CreateNew journals/bundles, exact persisted runId/phase and BCL event carriers", "decision": "Accept scoped lifecycle replacement: never reuse an existing ownership journal or overwrite prior fixture paths; reject user live/recovery state. Global SessionState Key is not recreated. Cleaned journal/evidence remains in project Temp; owned transient callback carriers disappear on actual native reload."},
+      {"legacy": "Cleanup() owned DeleteAsset assertion at Legacy:261", "replacement": "FaultFixture.Cleanup/VerifyNativeCompile and PlayerReleaseTests.Cleanup/VerifyNativeCompile", "decision": "Accept guarded deletion: exact journal folder plus recorded GUID, no tree redirects, supported AssetDatabase.DeleteAsset success assertion, and absent owned script/folder after native removal reload. Player additionally rejects in-flight build, drains only its live document and closes only its recorded scene. No broad root or unresolved-path deletion."},
+      {"legacy": "Cleanup document enumeration at Legacy:260 and live stop", "replacement": "Exact GUID-marked nonasset document lookup and StopFor(document); Player also checks live path plus IsLiveFor and recorded scene GUID", "decision": "Accept narrowed ownership enumeration: identify/destroy only the exact owned document rather than literal loop text or global Stop. Borrowed selection/focus is restored. Fault clears only its recorded document/simulated recovery GUID, preserving unrelated recovery."}
+    ],
+    "parentRowDisposition": "Old token mismatch notes at Legacy:42/53/260/261 are reviewed safety adaptations, not unresolved missing oracles. The ordinary uninstalled-global-probe prerequisite is superseded by the verified owned native fixture lifecycle; absence after successful cleanup is expected, not a reason to SKIP future selectable workflows.",
+    "wholeLegacyFile": {"sourceReview": "reviewed split between FaultFixture and PlayerReleaseTests plus native probes", "faultSubset": "native passed", "playerSubset": "install/removal native proofs passed; scene prerequisite resolved by parent, retry exposed stale-CPU-pixel fixture oracle now corrected to GPU readback; corrected native preparation/build/runtime pending; see player.json:nativePreparationRetry", "wholeFileRuntime": "not yet complete; no whole-file equivalence or current-global-fingerprint claim"}
+  },
+  "nativeRuntimeEvidence": {
+    "report": "D:/DCFA/Projects/Test6.6/Temp/WhimTex/test-runs/2026-10-04T14-42-31.321Z-123636.json",
+    "reportSha256": "96cff9bf8940e1c31f3233b1411d1a6f783cc47a9806d792d556a8d6387afaaa",
+    "scenarioId": "fault-release-workflow-v2", "runId": "36db2bc4a0974d92863533e4aeadbae2",
+    "startedAt": "2026-10-04T14:42:31.321Z", "finishedAt": "2026-10-04T14:43:44.787Z", "scenarioDurationMs": 73157,
+    "status": "passed", "success": true, "uncertain": false, "recoveryRequired": false, "totalChecks": 433,
+    "entryChecks": {"Setup": 4, "VerifyNativeCompile.install": 3, "Faults": 32, "StartDeferred": 2, "PollDeferred": 3, "Cleanup": 3, "VerifyNativeCompile.cleanup": 376},
+    "bundleSha256": "ecea9a87717b00eecd0d746e4c14db0938b663569b713953fa11c5e467d94039",
+    "currentFaultSourceBundleMatchesExecutedBundle": true,
+    "installProof": {"compilationStarted": 1, "compilationFinished": 1, "beforeReload": 1, "errors": [], "oldDomainGone": true, "nativeCompilationComplete": true, "explicitRequests": 0, "scriptGuid": "a419087031075964399c045fb9171754", "className": "WhimTexFaultProbe_36db2bc4a0974d92863533e4aeadbae2", "MonoScriptGetClass": "exact recorded class passed"},
+    "cleanupProof": {"compilationStarted": 1, "compilationFinished": 1, "beforeReload": 1, "errors": [], "oldDomainGone": true, "nativeCompilationComplete": true, "explicitRequests": 0, "classAbsence": "exact GUID class absent from every loaded assembly", "phase": "cleaned", "assetsAbsentOnRead": true, "bundleAbsentOnRead": true, "inputRemoved": true, "lockReleased": "parent-reported after completed runner"},
+    "ownedStatusTimeouts": {"count": 4, "install": 3, "cleanup": 1, "budgetMs": 10000, "elapsedMs": [10038, 10040, 10054, 10048], "outcome": "only read-only status polling continued; both native proofs succeeded within original 180000ms budget"},
+    "retainedArtifacts": [
+      {"file": "Temp/WhimTex/fault-release/36db2bc4a0974d92863533e4aeadbae2/state.json", "sha256": "481229978327fb0e5df3c113b3c63e3d561739299f6a5757746e841e913f767d"},
+      {"file": "Temp/WhimTex/fault-release/36db2bc4a0974d92863533e4aeadbae2/install-compile.json", "sha256": "1d583325891c5867b619afbdd1e4dca1bdf631d44f0b6e856646f01fcd29a6de"},
+      {"file": "Temp/WhimTex/fault-release/36db2bc4a0974d92863533e4aeadbae2/cleanup-compile.json", "sha256": "a7d7775458e110f34b05b9ecde7b82f4b9cf6323ed0baaba46da28983533699f"},
+      {"file": "Temp/WhimTex/fault-release/36db2bc4a0974d92863533e4aeadbae2/deferred-result.json", "sha256": "53da46c183ca9caf6c877384c379b6893e9cfee3752f5c8aa002ea86355a51c0"}
+    ],
+    "historicalFingerprints": {"review": "9f593465293c5cfbbd362b73fcea86b965586e6eef5bc56486d06f02c09ec5a3", "production": "a3da14871f6e0bf5c49a6f077b1026720e0fb2d3c28a49213dd715f3dd2b7738", "archiveManifest": "c70816ea4220d9ebe08d4d2d087d7e5297bd943405bb3297e24f4b69756a6194", "binding": "Recorded report values only. Final active selection/supersession metadata and current global fingerprint require parent review; no equality asserted here."}
+  },
+  "scopedStatusTimeouts": "Only finishNativeCompile may tolerate editor_status/recompile_status process timeouts after own GUID compilationStarted>0 or beforeReload>0. Require timedOut===true, present stdout/stderr strings both exactly empty, absent error field, present code null or safe integer, and no keys outside code/stdout/stderr/timedOut/error. Timeout reply, proof and original remaining deadline persist in facts. Missing fields, any stderr/error/target key, pre-trigger/mutation timeouts, malformed JSON and project mismatch stop; no Setup/C#/recompile/build replay.",
+  "nativeFixtureBudget": {"workflow": "native-fixture", "requiresUnity": true, "defaultMs": 180000, "maxMs": 180000, "minMs": 15000, "resultReserveMs": 5000, "processCeilingMs": 10000, "cliTimeout": "Each native request gets exactly one global --timeout ceil(processBudgetMs/1000); C# commandArgs already provides it. Timing/replies and original remaining deadline are retained in facts."},
+  "verification": {"unityCommands": 0, "pureProtocolCases": 25, "pureProtocolStatus": "passed", "nativeRuntime": "passed-parent-selected-workflow; see nativeRuntimeEvidence", "priorParentRecovery": {"runId": "4a2e6db84a59464682cbefbc20602e78", "reported": "Parent verified installation and recovered removal with native events 1/1/1, oldDomainGone and exact class/asset absence; original failed run retained and not counted as coverage PASS."}}
+}

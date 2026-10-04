@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "scope": "Read-only dispatcher safety review for owned D support; no global edits",
+  "file": "Tests~/scripts/run-tests.mjs",
+  "previousPinnedSha256": "883c026f82df2ccb14eae632bdd37da44a5b2bdfeb73567ae7bcc816370dd0be",
+  "candidateSha256": "ce026dddb9e65820de28bf9c9c95d85ee7d0dc8c0923619f46207adc5bccc493",
+  "historicalRejectedSha256": "5205e047e013f09c3a8f18a54367236bae6972d517af4e8722ca3184b50b494f",
+  "reviewedRanges": [
+    "143..160 classifyStructured",
+    "236..282 runScenario",
+    "native/classifyReply and outer lock-retention paths"
+  ],
+  "approval": "approved-scoped-recovery-debt-support-rebind",
+  "rebindPerformed": true,
+  "safeObserved": "Current classifier computes explicit non-false recovery debt before base validation. Its invalid helper retains uncertain:true and recoveryRequired:true for malformed/zero-check rejection. Contradictory passed+true and malformed boolean rejection also retain the result-level debt. runScenario consults result and payload flags before generic cancel/cleanup. Seven focused mocked native-envelope runs issued Start only, retained uncertainty and never dispatched Cancel/Cleanup.",
+  "historicalIssue": "Superseded rejected candidate returned a bare protocol-error verdict for passed+recoveryRequired:true, dropping the raw flag/testResult. Its runScenario computed innerRecovery only from result.testResult?.recoveryRequired===true, invoking generic Cancel and Cleanup despite explicit inner recovery debt. Preserved as historical evidence, not a current unresolved claim.",
+  "historicalMockEvidence": [
+    {
+      "inputStatus": "failed",
+      "recoveryRequired": true,
+      "calls": [
+        "Start"
+      ],
+      "outputStatus": "assertion-failed",
+      "uncertain": true
+    },
+    {
+      "inputStatus": "passed",
+      "recoveryRequired": true,
+      "calls": [
+        "Start",
+        "Cancel",
+        "Cleanup"
+      ],
+      "outputStatus": "protocol-error",
+      "uncertain": true
+    },
+    {
+      "inputStatus": "failed",
+      "recoveryRequired": "true",
+      "calls": [
+        "Start",
+        "Cancel",
+        "Cleanup"
+      ],
+      "outputStatus": "protocol-error",
+      "uncertain": true
+    }
+  ],
+  "pureMockEvidence": [
+    { "inputStatus": "failed", "checks": 1, "failures": ["debt"], "recoveryRequired": true, "calls": ["Start"], "outputStatus": "assertion-failed", "uncertain": true },
+    { "inputStatus": "passed", "checks": 1, "failures": [], "recoveryRequired": true, "calls": ["Start"], "outputStatus": "protocol-error", "uncertain": true },
+    { "inputStatus": "failed", "checks": 1, "failures": ["debt"], "recoveryRequired": "true", "calls": ["Start"], "outputStatus": "protocol-error", "uncertain": true },
+    { "inputStatus": "passed", "checks": 0, "failures": [], "recoveryRequired": true, "calls": ["Start"], "outputStatus": "protocol-error", "uncertain": true },
+    { "inputStatus": "passed", "checks": 0, "failures": [], "recoveryRequired": "true", "calls": ["Start"], "outputStatus": "protocol-error", "uncertain": true },
+    { "inputStatus": "passed", "checks": 1, "failures": ["unknown"], "recoveryRequired": true, "calls": ["Start"], "outputStatus": "protocol-error", "uncertain": true },
+    { "inputStatus": "failed", "checks": 1, "failures": [], "recoveryRequired": true, "calls": ["Start"], "outputStatus": "protocol-error", "uncertain": true }
+  ],
+  "malformedFlagNote": "Malformed flags remain protocol errors, not success or trusted ownership proof. Conservatively retained debt prevents implicit mutations and keeps explicit parent recovery required.",
+  "parentNegativeGuardReview": {
+    "file": "Tests~/Framework/Runner.test.mjs",
+    "sha256": "146fa0ba34530ee9cfb9f03e876ba869759950870d2655e17bc1ec81b71211eb",
+    "range": "255..275",
+    "coverage": "Source reviewed full runScenario guards for failed+true, contradictory passed+true, malformed boolean, passed zero checks+true, failed empty failures+true. Each asserts uncertainty and no generic cleanup calls.",
+    "executedByWorker": false
+  },
+  "runtimeStatus": "pending-parent-validation",
+  "scopeLimit": "Approve only this recovery-debt dispatcher delta as owned D support. No global mutation or whole-runner/native equivalence claim; parent owns complete pure-runner and D native reruns.",
+  "nativeDCaseSourcesChanged": false,
+  "noUnityExecution": true,
+  "noAssetsMutation": true,
+  "proofLevel": "Source review plus pure injected native-envelope/dispatch mocks only"
+}

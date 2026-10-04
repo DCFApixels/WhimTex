@@ -1,0 +1,2337 @@
+{
+  "version": 1,
+  "baselineCommit": "1269df51866959744a4b0763453eb667aefe6d8e",
+  "scope": "Complete Tests~ tree captured before migration; Legacy is immutable.",
+  "files": [
+    {
+      "file": "AgentApiSmoke.cs",
+      "sha256": "140bbba26cb2175ac699561cdd4dd28fe889bbb213021e2c48cb50acfe2313c3",
+      "bytes": 8592
+    },
+    {
+      "file": "AgentCommandInventory.test.mjs",
+      "sha256": "f69220d3e2a12058a19deefd541d6d1eeede505ec27c9eb9a4750f10e1b724e9",
+      "bytes": 1721
+    },
+    {
+      "file": "AgentDocumentation.test.mjs",
+      "sha256": "aa49a9663a0e0a2176ea63130e36bdd40da5f1d0c3546784a180d71d9edbc9d9",
+      "bytes": 6687
+    },
+    {
+      "file": "AgentEditingSmoke.cs",
+      "sha256": "f75239016cd6e389c458c8e822e7da682994f91a417d9a7f7c08cef6cb39dc89",
+      "bytes": 19607
+    },
+    {
+      "file": "AgentResizeSmoke.cs",
+      "sha256": "2eb09f6b836b8523430ea1ecff61a929dfc7351b3504ad5bbcfce6a15e80a3b1",
+      "bytes": 9568
+    },
+    {
+      "file": "AgentSamples.test.mjs",
+      "sha256": "db4a78e8cfda66f552f090bc8da68ed5ff4c1da2a8450fd06c6d542faeecd5de",
+      "bytes": 4099
+    },
+    {
+      "file": "AgentSamplesSmoke.cs",
+      "sha256": "8a7e2f9fee067c852adbbcba56615c7ffd4a5f6b7eb00ad69495295729f4aad7",
+      "bytes": 6671
+    },
+    {
+      "file": "AllBelowInput.md",
+      "sha256": "f58f99b6bbc904b4a4cb2e3f7c1134c9eb40d23d3d9ed041ce3b475e6f437222",
+      "bytes": 2304
+    },
+    {
+      "file": "AllBelowInputSmoke.cs",
+      "sha256": "31df30bcd0a1e2035600f68f082971157f2f9ceb24acac8508271fbc3e9620cf",
+      "bytes": 18792
+    },
+    {
+      "file": "ApplyFXSmoke.cs",
+      "sha256": "54ce60159d2d80ad6607ff1dfceb3476f5547a8b3e463d02b59353b89114bd07",
+      "bytes": 19148
+    },
+    {
+      "file": "AreaSelection.md",
+      "sha256": "a53312269669c5bfe14f2f548213832792509e51b55d04f7d0126a5727d962e4",
+      "bytes": 2994
+    },
+    {
+      "file": "AreaSelectionPaintSmoke.cs",
+      "sha256": "e217b85c4ea4175a47cf61fdeadda6bcc8a59c7a66a0a5c7f448bff5de37417f",
+      "bytes": 5335
+    },
+    {
+      "file": "BaseHeartReferenceSmoke.cs",
+      "sha256": "1770343a102f0ed84be6e65b4a51c97d451dfe2fb3856e803d926895de91e956",
+      "bytes": 2631
+    },
+    {
+      "file": "BlueNoise.test.mjs",
+      "sha256": "b17bcf8ace31ff904e29f02565303dfbeba6396b6d9f87acebe84325f47a7531",
+      "bytes": 3333
+    },
+    {
+      "file": "BlueNoiseSmoke.cs",
+      "sha256": "780acb98e6955085dd6e37720c984b5f294fb04398d871db155b2d52f8e72d74",
+      "bytes": 5836
+    },
+    {
+      "file": "BlurAndNoise1D.test.mjs",
+      "sha256": "bbace8021c9abf3e477aca5887510d26252663da806ecb41a674d12b64d1c8c5",
+      "bytes": 5453
+    },
+    {
+      "file": "BoolFXSmoke.cs",
+      "sha256": "b4537c3bea72192861047c91165a4d80007f6b770bf19720fc21c19a54192604",
+      "bytes": 5338
+    },
+    {
+      "file": "BranchlessFX.test.mjs",
+      "sha256": "bc66c3c2b89cb198c1f14ec5566f598835d172a85e74de0680ed05f9a2bd4e13",
+      "bytes": 1360
+    },
+    {
+      "file": "Branding.test.mjs",
+      "sha256": "4246da4f56d034841ed80e984c9adcf32302143698a4312f2995836629d156b1",
+      "bytes": 9628
+    },
+    {
+      "file": "BrightnessContrastSmoke.cs",
+      "sha256": "94e9346a5ff18465a85ae52727f5b4ba84afa4bde4324f2b7e99db08ca1d6cfc",
+      "bytes": 10445
+    },
+    {
+      "file": "BrushClipboard.test.mjs",
+      "sha256": "7a78a207b87a9337801b448e49e0676bf909e4d902ccae976e831276f91cbf0e",
+      "bytes": 3351
+    },
+    {
+      "file": "BrushDynamics.md",
+      "sha256": "421bd4a2462f9cb2d45dd35b5e8951e3c5108535ff1979afde2e2b38a467e9de",
+      "bytes": 8384
+    },
+    {
+      "file": "BrushDynamicsMath.test.mjs",
+      "sha256": "5a5ab6e6696bcc169c8d897317d114417912f03372b040eb81a8ff8a683a5a67",
+      "bytes": 16348
+    },
+    {
+      "file": "BrushDynamicsSmoke.cs",
+      "sha256": "13149d0bfb27ba73df13b7d6cb12ff09412c6076f1007bc054052f38fe3b962b",
+      "bytes": 19030
+    },
+    {
+      "file": "BrushFlip.test.mjs",
+      "sha256": "00bc418c500d2444737ade12893d019b61ac401bfcdbeeaaf882d567ae7e8496",
+      "bytes": 3225
+    },
+    {
+      "file": "BrushHeaderLayout.md",
+      "sha256": "b037b772252c0903d3e29aa588229e3f04e3c73ab43dd26d688e21fcc9e3efbe",
+      "bytes": 1094
+    },
+    {
+      "file": "BrushHeaderLayoutSmoke.cs",
+      "sha256": "21ba4d5b6d188a3a9b9083cd3264604946a4f1fe835dfc4267253714bb1785ed",
+      "bytes": 7322
+    },
+    {
+      "file": "BrushHlslSmoke.cs",
+      "sha256": "b69db359329db2555405f2bd47f632872d1bfc4a8c2be525ee67391683582f66",
+      "bytes": 7690
+    },
+    {
+      "file": "BrushPresetAssetSmoke.cs",
+      "sha256": "43f926b3bab4cf381919224e759838463ebe05076a6b311e5ab2dbd36fea3692",
+      "bytes": 5076
+    },
+    {
+      "file": "BrushPresets.md",
+      "sha256": "7f6932d23f95445c92a1123560227f5989c48331d1e0fbc56b3a7f252bf83431",
+      "bytes": 3007
+    },
+    {
+      "file": "BrushPresets.test.mjs",
+      "sha256": "727d74b1a2989e5986078c0c1ee2fcaabd96ba1b36e18e169c7aa7f29adc16a6",
+      "bytes": 7033
+    },
+    {
+      "file": "BrushSdf.test.mjs",
+      "sha256": "daf0b1dccc358f480e80c6821dacec6f468fac88b36b011fd25eb80f16726403",
+      "bytes": 8554
+    },
+    {
+      "file": "BrushStampBlend.test.mjs",
+      "sha256": "e50ed0d924a8e36fb85f0541c6ec1d08810bfb747240a629326240bf1618f949",
+      "bytes": 5299
+    },
+    {
+      "file": "BrushStrokePreview.test.mjs",
+      "sha256": "d71f2bcf0b9f26a93b68bf67d9b772ae08d9ccb7a67557d464bdaad7e071846f",
+      "bytes": 3131
+    },
+    {
+      "file": "BrushTipPersistence.test.mjs",
+      "sha256": "4cab2523b40cf110ca76f68eb5c419b92b83e2cb4f6bcfeec32380cdd53e03d5",
+      "bytes": 5549
+    },
+    {
+      "file": "BrushVertexTransportSmoke.cs",
+      "sha256": "25a1227d938a204157411db86f8d626cec1c9045b9454bdb3d35b1c9ba3f17ff",
+      "bytes": 4000
+    },
+    {
+      "file": "BuiltinFXFieldsSmoke.cs",
+      "sha256": "86bf18bb338e5e87892e8302d8fbf33cc165776b5a585911b88f042ee8799422",
+      "bytes": 5056
+    },
+    {
+      "file": "CanvasFilterSmoke.cs",
+      "sha256": "c607560a005b167505c2a10ed9adaecb0af575adcc57f4889ed6ac464438393c",
+      "bytes": 6101
+    },
+    {
+      "file": "CanvasMarginsSmoke.cs",
+      "sha256": "7c150b74871550b330f33e62748497eb8857c2eb3218dce8a79a9ca441204a15",
+      "bytes": 2832
+    },
+    {
+      "file": "CanvasRenderNaming.results.json",
+      "sha256": "1f67e4abb7e8e79600f827de827050c5536ff7e01f1269b7658ca1fe5b09d334",
+      "bytes": 104694
+    },
+    {
+      "file": "CanvasRenderNaming.ru.md",
+      "sha256": "8e248965fd2614c2aee70e1f9b3267f49f353393f2f09aab4968f876bc5695f1",
+      "bytes": 5289
+    },
+    {
+      "file": "CanvasRenderNaming.test.mjs",
+      "sha256": "3f2766a2f6d99d1c559910d26d6c8e6558e6b89d859be18fe2cd8c16ac132c53",
+      "bytes": 2364
+    },
+    {
+      "file": "CanvasRenderNamingSmoke.cs",
+      "sha256": "88cfed703dbe39b16e5d0ac176006412534666a7c6880c5682f8d13496337487",
+      "bytes": 7130
+    },
+    {
+      "file": "CanvasSelectionSmoke.cs",
+      "sha256": "a3bdce208ffb86d78f29a54107bd0f07712be7bab3191e5f74f10a640c4770d4",
+      "bytes": 5682
+    },
+    {
+      "file": "CanvasTerminology.md",
+      "sha256": "091705a748bda7540634ae98c9854ad90fdfd7ed078a64316b001ae9c1da9026",
+      "bytes": 23492
+    },
+    {
+      "file": "CanvasTerminology.test.mjs",
+      "sha256": "b9a684f386f6ac064fa68e289517cc4cebacb641c351ef7da4514e420261a5f4",
+      "bytes": 4020
+    },
+    {
+      "file": "CanvasTerminologyMigrationSmoke.cs",
+      "sha256": "4f28bb5cc012494ebb8dec52ad01f72524c426a58723ea8b73be8a0c1e5c7673",
+      "bytes": 4190
+    },
+    {
+      "file": "CanvasToolbarSmoke.cs",
+      "sha256": "0d825d5378fe8dc02529ebe4c133705a4d78d2f3117a0cfc594a6ef9f1f8c10a",
+      "bytes": 2530
+    },
+    {
+      "file": "CanvasViewBackdrop.test.mjs",
+      "sha256": "1583023cfc3297730604434a195a581d6f0b9a0250792f8f888386f8d538be5d",
+      "bytes": 2980
+    },
+    {
+      "file": "CanvasViewFooterHintResize.cs",
+      "sha256": "1506e6b5d8b1eca808efc3b7fe7ce26ad8ae99b8242ac1521d1f86479d1940f0",
+      "bytes": 1538
+    },
+    {
+      "file": "CanvasViewFooterSetup.cs",
+      "sha256": "d024677d12743414f253d3644ff5724cb6cbe69b8baf907737f0fe822d95df56",
+      "bytes": 1280
+    },
+    {
+      "file": "CanvasViewFooterSmoke.cs",
+      "sha256": "5604b1ae0060764f9a0c1d2b6c972c0834ed2f6fe38d765372053e5003d1d2d7",
+      "bytes": 4756
+    },
+    {
+      "file": "CanvasViewGuides.test.mjs",
+      "sha256": "6cb0f378a4b74c301ac1747a491c5e38c3ee8e2817a8aea5e60e82638711f37d",
+      "bytes": 12567
+    },
+    {
+      "file": "CanvasViewHeaderRefreshSmoke.cs",
+      "sha256": "fddfc287d7d68be66452041889679f87f5ba3177b59aca950ce90ee39959a9fc",
+      "bytes": 3472
+    },
+    {
+      "file": "CanvasViewRotation.test.mjs",
+      "sha256": "4819ec2151d6bea8819003dd0e60587b91e31d3aaa7afd4739b1d2c4594a2411",
+      "bytes": 9808
+    },
+    {
+      "file": "CanvasViewZoomSmoke.cs",
+      "sha256": "4aea845f4368eac93dab4abf581458dc47f20b115cb5f27b1ad73245f3e2f6ff",
+      "bytes": 7832
+    },
+    {
+      "file": "ChromaticAberration.test.mjs",
+      "sha256": "7439975dd0c24ec182fe423f9cf5f982258b76a67094ff78165fd674bee064fc",
+      "bytes": 1212
+    },
+    {
+      "file": "ClipboardBrokenFxSmoke.cs",
+      "sha256": "5a44e3d67c39e63209cb2295516bb1342183f9691abe6b9bbc600bcf31343aa7",
+      "bytes": 7024
+    },
+    {
+      "file": "ClipboardExamplesSmoke.cs",
+      "sha256": "73795e68f22cd18b7a7e9bdecf35f6b13efcfac41d7336dfb4a23e4f7b2f9701",
+      "bytes": 3162
+    },
+    {
+      "file": "ClippingMask.md",
+      "sha256": "1309341308e4513bf44b891bf4ae94230651aae2a4871f5eba6bc4b3cf6ac2b1",
+      "bytes": 1716
+    },
+    {
+      "file": "ClippingMaskSmoke.cs",
+      "sha256": "ac90f9145c8117c82b3734bdb39717a647cd79677e8ec32754741c63a2ff1424",
+      "bytes": 11749
+    },
+    {
+      "file": "ColorBlendModesSmoke.cs",
+      "sha256": "c2b6c7c397181caabb522fa57a07f385856e6d65ab8468c88def7449379b6995",
+      "bytes": 8916
+    },
+    {
+      "file": "ColorInputModeSmoke.cs",
+      "sha256": "95d597a2d5f25fa16d1212a30bad16dee15fae9d0bb19c2c3a1f77c2b0703586",
+      "bytes": 4518
+    },
+    {
+      "file": "ColorPicker.md",
+      "sha256": "b0e77c8c85e9fcefc866afe587ec5a5d61998e16efbde33be33b3f49e2ded2a1",
+      "bytes": 11681
+    },
+    {
+      "file": "ColorPickerApiSmoke.cs",
+      "sha256": "0194063947348683c20ebb075ea6b80eb46cca5fcbe1bfa050e11f133b4478a1",
+      "bytes": 464
+    },
+    {
+      "file": "ColorPickerChannelsSmoke.cs",
+      "sha256": "13005f5a388ab94e72ec8dd004a0216ec5b20676b970b2356fd79440b428ce27",
+      "bytes": 11529
+    },
+    {
+      "file": "ColorPickerEyedropperSmoke.cs",
+      "sha256": "6f5f42aa393eb57b1d04c9d104b6d00f5fbfd6a1f9d4aabb293faa14d6342be5",
+      "bytes": 12718
+    },
+    {
+      "file": "ColorPickerHexSmoke.cs",
+      "sha256": "883ac3957e11836ebcb2e9d4d72c0632ec7301da9485dfe16eeb00055ea6a779",
+      "bytes": 5349
+    },
+    {
+      "file": "ColorPickerModeSmoke.cs",
+      "sha256": "33bd38469d4a0171bc3eba0c83456fedfa3de2f04a99ce9b43bde129110e35f5",
+      "bytes": 3597
+    },
+    {
+      "file": "ColorPickerPreviewSmoke.cs",
+      "sha256": "5fff4b378a21c0a1a02756de0f4e4d055ff42968c43762fdb3926898cc93a299",
+      "bytes": 7849
+    },
+    {
+      "file": "ColorPickerRingSmoke.cs",
+      "sha256": "b01576165f42d3e6674894fbbb560d6c4421ec6d46d3f63a0ce54921a1a3efb2",
+      "bytes": 6140
+    },
+    {
+      "file": "ColorPickerSmoke.cs",
+      "sha256": "bfbfbbdcf3fb0718bb8c429754a8a0a91e252b53218ced8dccb377ee1a724f82",
+      "bytes": 27681
+    },
+    {
+      "file": "ColorPipelineSmoke.cs",
+      "sha256": "60925e45da66bfb661058c4388042519cb2d58d6483082307247c0925ef46d29",
+      "bytes": 14678
+    },
+    {
+      "file": "ColorPresetsSmoke.cs",
+      "sha256": "3a1db19d6140a1046edb03121250686cb4a06f2067756c4aad21d01299ee0071",
+      "bytes": 10934
+    },
+    {
+      "file": "CompactPortableClipboardSmoke.cs",
+      "sha256": "1c481c3b1b930a156a52a2bfba023b1e861d3e3bbc252e10a5382f7e3b565e12",
+      "bytes": 4334
+    },
+    {
+      "file": "Compatibility0125.test.mjs",
+      "sha256": "c2d255775d3b24cb61763d6ee31ed39213cd7db3440de558728b4b830a6b531d",
+      "bytes": 2606
+    },
+    {
+      "file": "Compatibility0125ReaderSmoke.cs",
+      "sha256": "11fd3beb1f48f321be5a1064d05cf5c2d4613916c19c354d0a9e21644055e3dc",
+      "bytes": 8518
+    },
+    {
+      "file": "Compatibility0125Smoke.cs",
+      "sha256": "2eae6013c37419aa58c665e9a430de7f2882ae7bbef2dccb6d502e3176c0f27c",
+      "bytes": 9547
+    },
+    {
+      "file": "ContentAwareCostSmoke.cs",
+      "sha256": "bd31fa382d32deeb11fccc2e518e6490918f07caacdaed459064d750bbd3a8af",
+      "bytes": 4687
+    },
+    {
+      "file": "ContentAwareFill.md",
+      "sha256": "e7e0d9dbf3f47b65f3b116522e3dfb30f04863889275f2cfdcff958dc791b82d",
+      "bytes": 2964
+    },
+    {
+      "file": "ContentAwareFillSmoke.cs",
+      "sha256": "81719fba5c09be07ce5b8b5599a7b44b214b3740c5a0c69a06c04f22d7c92a47",
+      "bytes": 6416
+    },
+    {
+      "file": "ContentAwareOnionSmoke.cs",
+      "sha256": "75c8a67c175c91d8de5b1a263226c6871a5966439a49c571e34ff4fab9732e39",
+      "bytes": 7400
+    },
+    {
+      "file": "ContentAwarePyramidSmoke.cs",
+      "sha256": "0e813d43c9b6a0f29299e8c20cd2e942c41d34db3237d39da6150cbbddf2e88d",
+      "bytes": 4713
+    },
+    {
+      "file": "ContentAwareQualitySmoke.cs",
+      "sha256": "18b146e5fe47f6f24be30ffcd3315f244755a1a8f5ae7e6dbdcd7e8cdc65dfd8",
+      "bytes": 10859
+    },
+    {
+      "file": "ContentAwareReconstructionSmoke.cs",
+      "sha256": "2156a98c5a0928bafaab6928ad30c55debffb52e11670483487f5fbf01cc6436",
+      "bytes": 6114
+    },
+    {
+      "file": "ContentAwareReuseSmoke.cs",
+      "sha256": "db1389bd8a5bae9ea62a9a9f7eca8b7aceb680ed422a318b26b3ec9105c5aebd",
+      "bytes": 8646
+    },
+    {
+      "file": "ContentFillUiCapture.cs",
+      "sha256": "c6f13cb56e3551b896d3896a6c7f1a0878971bfb3745f86c907942921371b951",
+      "bytes": 1316
+    },
+    {
+      "file": "ContentFillUiSetup.cs",
+      "sha256": "46899aff8d6b738100ea4349962c738fb52546a43c90a78b89b1e0915a63594d",
+      "bytes": 2519
+    },
+    {
+      "file": "ContentFillUiSmoke.cs",
+      "sha256": "46fb9fe83ae150c062fc7e04d9813f236772ca2a23909a428f2d7b7ae50cc22a",
+      "bytes": 11130
+    },
+    {
+      "file": "ContextToolsSmoke.cs",
+      "sha256": "24d750db3a760d883a9c8eca22d13ac269b390128dcc1c2fdf3128cea9f2f762",
+      "bytes": 19796
+    },
+    {
+      "file": "DeferredDrawingSmoke.cs",
+      "sha256": "7a48b2de0e6926fe133b115650339bd318246d70c564ab849e9f41fcef67da87",
+      "bytes": 3498
+    },
+    {
+      "file": "DigitalGlitch.test.mjs",
+      "sha256": "dc19c7c7eb3500e6498c7b6ab1c12bca55b643d3b40e6e9f2dd0f4f197ca743e",
+      "bytes": 4565
+    },
+    {
+      "file": "DisplayChannelsSmoke.cs",
+      "sha256": "6c6453d6651ae4ac3a7eac06985180373ea6d7e7572b24be4cf546acae88dc70",
+      "bytes": 3520
+    },
+    {
+      "file": "DistanceField.test.mjs",
+      "sha256": "9ceb86628ce56072374f3d2ad86b1a0e0b0cc05b854809c16f18186faeb690bb",
+      "bytes": 12648
+    },
+    {
+      "file": "DistanceFieldSmoke.cs",
+      "sha256": "25548319297fd3a4a6342f1dcb841af2534fee948792f67e3cd967a371d84b80",
+      "bytes": 2801
+    },
+    {
+      "file": "DistortionPresets.test.mjs",
+      "sha256": "f4e9e80b52a8b16fdd43b8c2fa02592271114a7ed010b3634682f82de98fc02f",
+      "bytes": 9251
+    },
+    {
+      "file": "DocumentBurstHashProbe.cs",
+      "sha256": "52d9e4d9f205653ed1f5e0ce239377f26f79c17252b822a95fda7f93beec29e5",
+      "bytes": 8024
+    },
+    {
+      "file": "DocumentBurstIntegritySmoke.cs",
+      "sha256": "193025a191d10031014b465519c254a835b50c32381d4e1ef901da6b6bf3e272",
+      "bytes": 5706
+    },
+    {
+      "file": "DocumentJsonApiSmoke.cs",
+      "sha256": "9e7e839cec2ad4b2fa33a6aacdd57757abc72f43a03dde91c92b6ec5cb30936e",
+      "bytes": 4397
+    },
+    {
+      "file": "DocumentJsonBrokenFxSmoke.cs",
+      "sha256": "667c109a25b1eda9c9b55431e137b35774ba29cd02fe36f3cf8962ce23a3a984",
+      "bytes": 8468
+    },
+    {
+      "file": "DocumentJsonContractSmoke.cs",
+      "sha256": "28bfeb62950652ebb488a4b2c6d1b4771d2e4024b7a2744777a81d65e45b7267",
+      "bytes": 8560
+    },
+    {
+      "file": "DocumentJsonOperationsSmoke.cs",
+      "sha256": "d4c3caf40d68e42ef9277c8c0790590134e593efadcb97afadc28dde0436c8e9",
+      "bytes": 7720
+    },
+    {
+      "file": "DocumentJsonOptionalSettingsSmoke.cs",
+      "sha256": "b3df58d0a03a6ce2147e582596a9a8dba3ac61f7aba4b5df7784bf6ef8379a8d",
+      "bytes": 8233
+    },
+    {
+      "file": "DocumentJsonSafetySmoke.cs",
+      "sha256": "5be8de6ce1712afd9a63e02affd1f33abb7c05f329b93f36da252de55afa7b5a",
+      "bytes": 8090
+    },
+    {
+      "file": "DocumentJsonSchema.test.mjs",
+      "sha256": "c537c8e93af789380829e818036bed104196ba7d5c3677b0adc3d6ec5741eadd",
+      "bytes": 6639
+    },
+    {
+      "file": "DocumentJsonSmoke.cs",
+      "sha256": "1ba2ea30e27d0db0f5b9652f4e1ea0218c3980637c5e0648cf3fd98db7455520",
+      "bytes": 4516
+    },
+    {
+      "file": "DocumentJsonValidationSmoke.cs",
+      "sha256": "f89d7be50676f74fea9e6e3748e84b595a8f7de78147da8f6046e3cf6b197de6",
+      "bytes": 7495
+    },
+    {
+      "file": "DocumentLiveUpdateSmoke.cs",
+      "sha256": "9373e5c69dcc06b62ea87e5b5f211039329119f1f129de8f9a8d4dc3b07a76ad",
+      "bytes": 8134
+    },
+    {
+      "file": "DocumentMigrationProbe.cs",
+      "sha256": "14554cad4e792cb599421f47195a6824e9c05bc2cfdf5a8900a5c7162d5170d6",
+      "bytes": 2715
+    },
+    {
+      "file": "DocumentMissingTypeSmoke.cs",
+      "sha256": "f3782b63c86c02058be41b763097b0cda7d499d1e6090a0fe85b419b40aa6557",
+      "bytes": 6465
+    },
+    {
+      "file": "DocumentOperationWaitSmoke.cs",
+      "sha256": "ed8a9907148dfa5b06ef2a08d6d342080b4c2d56da486c5a7b1898a009b05dc5",
+      "bytes": 8250
+    },
+    {
+      "file": "DocumentPayloadCoverageSmoke.cs",
+      "sha256": "72cdf2620021d0e5eea4c240a9b7f79245ff06b3b291dde2d6cabc84ea7b3ff5",
+      "bytes": 12027
+    },
+    {
+      "file": "DocumentPerformanceProbe.cs",
+      "sha256": "4147471b402f63fcb8ee090057400d3afb9dfd2dd0417b36f23dd902fd20db97",
+      "bytes": 9694
+    },
+    {
+      "file": "DocumentPreparationSmoke.cs",
+      "sha256": "64419c04177a79a86cfc5503294803744172e0344df2ae6719e70b31c5c9a719",
+      "bytes": 17677
+    },
+    {
+      "file": "DocumentProductionSmoke.cs",
+      "sha256": "ace8fc53c2186095e30a07cc0e3c6832d46ac1bc77d412913c9419386d908947",
+      "bytes": 16528
+    },
+    {
+      "file": "DocumentReleaseValidation.cs",
+      "sha256": "37a061934e9b9571627db63ba49361cbe84d9891e572c3a7b4c63e922637ae3e",
+      "bytes": 19451
+    },
+    {
+      "file": "DocumentReliabilitySmoke.cs",
+      "sha256": "7f0e1b749fb1d9dc8d0840649934ae3096b1e39bda01b821acf305d7875b4362",
+      "bytes": 18172
+    },
+    {
+      "file": "DocumentReloadSmoke.cs",
+      "sha256": "bbf16650fcf49b39b53e8b1f01931d8793247cce600216e4c695ddf22b5c1848",
+      "bytes": 6535
+    },
+    {
+      "file": "DocumentRoundTripSmoke.cs",
+      "sha256": "b532a4292b976f305c0cfb7fea9facacc960dfaed11ff1e159398fe99f7596d1",
+      "bytes": 9866
+    },
+    {
+      "file": "DocumentSaveCacheSmoke.cs",
+      "sha256": "dccf6abead6cf0592d648cf37d3f408617fc4afc85c3ac760a73615154169d46",
+      "bytes": 12762
+    },
+    {
+      "file": "DocumentSaveCostProbe.cs",
+      "sha256": "342f7ac97b89a878a0a69474378cdbff55395323015c282bbe0cfd6ba03758b7",
+      "bytes": 11135
+    },
+    {
+      "file": "DocumentSaveTailProbe.cs",
+      "sha256": "9422a1d14848ab9b117772773c044e4f99dbb5f46180155557e5c70b96dfbc7d",
+      "bytes": 13317
+    },
+    {
+      "file": "DocumentStorageBoundarySmoke.cs",
+      "sha256": "eb16aa98a7e426378f23aefae894fda0e57ab092afa38154b3159d0b5bf0e265",
+      "bytes": 3538
+    },
+    {
+      "file": "DocumentTitle.test.mjs",
+      "sha256": "8afde169b7ddef867871ecaf0b897c171e9767ad0b4c8117ef54895731b5572f",
+      "bytes": 1166
+    },
+    {
+      "file": "DocumentVectorWideningSmoke.cs",
+      "sha256": "22419997b9ce235aee7cc77138e6091a84ea4062190c9eb316af9a130cb31fcc",
+      "bytes": 12890
+    },
+    {
+      "file": "DrawingPatternSmoke.cs",
+      "sha256": "b8f073344b75ac8acd54ddb31123fe46cc57c39d805fcaafcfdb9b483b698707",
+      "bytes": 13523
+    },
+    {
+      "file": "DrawingReload.test.mjs",
+      "sha256": "78a9334bebb142ed26d6c9a52df66177ade95a67e32ce0e5568149916f9df7c4",
+      "bytes": 4900
+    },
+    {
+      "file": "DrawingReloadSmoke.cs",
+      "sha256": "eb2f23a936e8382ffce4d81002babc97264484b84b27805efcbce30a8d9e0e44",
+      "bytes": 3653
+    },
+    {
+      "file": "DrawingResolutionSmoke.cs",
+      "sha256": "a7ac0fe6eae87ca507c0f72c33174639d5be4da17883407b2534d8c79d2e493e",
+      "bytes": 3045
+    },
+    {
+      "file": "EdgeSelectorSmoke.cs",
+      "sha256": "64896390c8a4517fb5eeb69f244b572f0bbc097bae65ec7c1e058e6e982dfbea",
+      "bytes": 6454
+    },
+    {
+      "file": "EffectCacheSmoke.cs",
+      "sha256": "dec81d732007385d18e9cd3d086ceafc8a8359995db42dc3f0d61650134c7b68",
+      "bytes": 7992
+    },
+    {
+      "file": "EffectThumbnailsSmoke.cs",
+      "sha256": "67b7a9cfe0ddab83528d55a54cd2fc9900d062abd22448055fa1f4f30a7ec500",
+      "bytes": 9104
+    },
+    {
+      "file": "EmptyDocumentSave.test.mjs",
+      "sha256": "4e6165f49d55d62cbb6b5e9f2d5ee49b1b3c2a2a4819b03e8cad41d8c32eb4eb",
+      "bytes": 1596
+    },
+    {
+      "file": "EnumFXSmoke.cs",
+      "sha256": "bcae7487e2dc46d3fd03c0c340c61c7c85efd422a2ca544e0949f2fe8e81955d",
+      "bytes": 8697
+    },
+    {
+      "file": "ExportWindowSmoke.cs",
+      "sha256": "f842d5fb19aa75329f474da65dc25347616b5d6d38fabdc93de4dc4fe55b4136",
+      "bytes": 12919
+    },
+    {
+      "file": "Eyedropper.test.mjs",
+      "sha256": "f8e5cfd97893f04283a7dc020ffe43227ed8caab3e5220c035311b8cd1a5c5ac",
+      "bytes": 13642
+    },
+    {
+      "file": "EyedropperCursorSmoke.cs",
+      "sha256": "9e9b4eefebf978ab9c63a5ecfd703125bc875984e5275b0fdd386abd76a2bb14",
+      "bytes": 2806
+    },
+    {
+      "file": "EyedropperLifecycle.test.mjs",
+      "sha256": "6769eff301ffb4a67b9d449119ce1ffab6c91695343b0b81574727c0e995813d",
+      "bytes": 8168
+    },
+    {
+      "file": "EyedropperSmoke.cs",
+      "sha256": "84979a72e7c697c5c78d2e3740863981fbc0a1371cb27499d04d4cf6014bddf9",
+      "bytes": 3677
+    },
+    {
+      "file": "FileLayerCanvas.test.mjs",
+      "sha256": "3022784c9dc51578d794c8497316c1ce5141a893cc76b954adb662c8f8717f64",
+      "bytes": 3440
+    },
+    {
+      "file": "FileLayerHdrSmoke.cs",
+      "sha256": "b110f656f11026754fc1b2277a4742f1825bf5c229fdd253a52c4f4427998cf4",
+      "bytes": 2401
+    },
+    {
+      "file": "FileNavigation.test.mjs",
+      "sha256": "59e664e8249aa11ca902c7a78db6314affa003dd790a0d6707b5ec739c13bd64",
+      "bytes": 2371
+    },
+    {
+      "file": "FileNavigationSmoke.cs",
+      "sha256": "7b360b5ee61fd52ee21922f97d7f2f7308d5d640f113386aa5eada2645ab18aa",
+      "bytes": 5183
+    },
+    {
+      "file": "FillPatternSmoke.cs",
+      "sha256": "8a593adbb0d973ca55b2f2124ca3aba2b9e947aab9a54beb69877b72b0d3bce5",
+      "bytes": 24333
+    },
+    {
+      "file": "FinalLegacyAudit.results.json",
+      "sha256": "16895eba1b9b25b9e2ebdc168d420c5b6d56540a48717c271db9a68d8af88985",
+      "bytes": 318873
+    },
+    {
+      "file": "FinalLegacyAudit.ru.md",
+      "sha256": "c3593b4bdbee7f1386c28340f8dc3e05c64b2ad757efc253a5747704b893f345",
+      "bytes": 21867
+    },
+    {
+      "file": "FinalLegacyAudit.test.mjs",
+      "sha256": "5bd16f424dedef390f8e0ce6e3c28ffed8f50db38adbbf8d6732e50ac6e1b815",
+      "bytes": 2616
+    },
+    {
+      "file": "Fixtures/BASE_Drawing_128.tiff",
+      "sha256": "778d2d7e5a0272733bbb06f3fd14d854aa4391e7cd5511813d17e26d31a7a4f8",
+      "bytes": 3730
+    },
+    {
+      "file": "Fixtures/BASE_Gradient_128.tiff",
+      "sha256": "e81a61d2df86cd35d9fd55685408e71aabfd8c368a939ab27c1fea6d72faab51",
+      "bytes": 16117
+    },
+    {
+      "file": "Fixtures/BASE_Heart.tiff",
+      "sha256": "0091ed87fd76729d8f3f7124754852145ff6e629cb28f1e75180c3121ed211a6",
+      "bytes": 23260
+    },
+    {
+      "file": "Fixtures/Compatibility0125/brush.sebrush",
+      "sha256": "0f71796d89d74a0bac744e869fd6b21404676b907a0581fda6e8bfda01ac0228",
+      "bytes": 630
+    },
+    {
+      "file": "Fixtures/Compatibility0125/compositor.asset",
+      "sha256": "253e895804c08b653fcde6a33c523a30eccff830421047f657d7170d4e30e939",
+      "bytes": 51247
+    },
+    {
+      "file": "Fixtures/Compatibility0125/compositor.asset.meta",
+      "sha256": "efefcb1c77e60635944a9aed3637b702c214764aeb1f5306b563b3d7310df293",
+      "bytes": 199
+    },
+    {
+      "file": "Fixtures/Compatibility0125/compositor.asset.png",
+      "sha256": "89d026bbf8e344f759b3cb611e56b88d85fdc620784dd3a2dece5b5086849478",
+      "bytes": 1652
+    },
+    {
+      "file": "Fixtures/Compatibility0125/compositor.asset.rgba32f",
+      "sha256": "6b63865909195c4a1364700d03f7b5d7535ccda0e8d2986b2a898f82c21be6be",
+      "bytes": 12288
+    },
+    {
+      "file": "Fixtures/Compatibility0125/drawing-hdr.tiff",
+      "sha256": "c8e0942a8392c51ffb5e050bd36ba410bb4327bbecc740cf17b94c8dcc24e62f",
+      "bytes": 3266
+    },
+    {
+      "file": "Fixtures/Compatibility0125/drawing-hdr.tiff.meta",
+      "sha256": "5a649143279b2d04ffb47352d699c10e0361b08b6c7fe10112d99f14c55e46cd",
+      "bytes": 3087
+    },
+    {
+      "file": "Fixtures/Compatibility0125/drawing-hdr.tiff.png",
+      "sha256": "8c1cf85c4fc131e7e6d8751b5f7af7db7893630e8c3e16e1dff940cd3afb2f7c",
+      "bytes": 316
+    },
+    {
+      "file": "Fixtures/Compatibility0125/drawing-hdr.tiff.rgba32f",
+      "sha256": "aabb3aba65d0cc54ba2f609070807edb00854d6c5f38a3ae87b07d0183c8dfc0",
+      "bytes": 12288
+    },
+    {
+      "file": "Fixtures/Compatibility0125/drawing-sdr.tiff",
+      "sha256": "9c018689afe5fd59a2418c9351269c9a4247fa1c8f4f6685719c1dc3820d6bde",
+      "bytes": 3486
+    },
+    {
+      "file": "Fixtures/Compatibility0125/drawing-sdr.tiff.meta",
+      "sha256": "e794164db2b1eeaa90c42a114d8af27586d70cfc51c0d1e82061160e7ac72095",
+      "bytes": 3087
+    },
+    {
+      "file": "Fixtures/Compatibility0125/drawing-sdr.tiff.png",
+      "sha256": "066802fb6272dad4936cf8fb91bb8ab232e141adf85df31aea0f3adb68fddfcb",
+      "bytes": 612
+    },
+    {
+      "file": "Fixtures/Compatibility0125/drawing-sdr.tiff.rgba32f",
+      "sha256": "232c524416ae9e0aa436869469ca49a0dcf263c33792f4cd1f781e683ac94a96",
+      "bytes": 12288
+    },
+    {
+      "file": "Fixtures/Compatibility0125/fragment.json",
+      "sha256": "7cabbe2696b42fd5ad6133f8eff0ab310b8755da8e56eb21e09f87be56292573",
+      "bytes": 6848
+    },
+    {
+      "file": "Fixtures/Compatibility0125/fragment.json.png",
+      "sha256": "89d026bbf8e344f759b3cb611e56b88d85fdc620784dd3a2dece5b5086849478",
+      "bytes": 1652
+    },
+    {
+      "file": "Fixtures/Compatibility0125/fragment.json.rgba32f",
+      "sha256": "6b63865909195c4a1364700d03f7b5d7535ccda0e8d2986b2a898f82c21be6be",
+      "bytes": 12288
+    },
+    {
+      "file": "Fixtures/Compatibility0125/gradient.json",
+      "sha256": "b96f149b649a4075c28ce0a6c343f3b75402b4c9f7bbf068e5d03f98b01df07b",
+      "bytes": 728
+    },
+    {
+      "file": "Fixtures/Compatibility0125/manifest.json",
+      "sha256": "da1b1446bdab38a36f970e42ededb524a1e708c81defba8b0831282e535f9613",
+      "bytes": 12201
+    },
+    {
+      "file": "Fixtures/Compatibility0125/procedural-Compact.json",
+      "sha256": "7cabbe2696b42fd5ad6133f8eff0ab310b8755da8e56eb21e09f87be56292573",
+      "bytes": 6848
+    },
+    {
+      "file": "Fixtures/Compatibility0125/procedural-Compact.json.png",
+      "sha256": "89d026bbf8e344f759b3cb611e56b88d85fdc620784dd3a2dece5b5086849478",
+      "bytes": 1652
+    },
+    {
+      "file": "Fixtures/Compatibility0125/procedural-Compact.json.rgba32f",
+      "sha256": "6b63865909195c4a1364700d03f7b5d7535ccda0e8d2986b2a898f82c21be6be",
+      "bytes": 12288
+    },
+    {
+      "file": "Fixtures/Compatibility0125/procedural-Full.json",
+      "sha256": "decb5a8a673de578c7ba5ddccba80b2015b4b472c6da00c4c938ee03ab26fa41",
+      "bytes": 15865
+    },
+    {
+      "file": "Fixtures/Compatibility0125/procedural-Full.json.png",
+      "sha256": "89d026bbf8e344f759b3cb611e56b88d85fdc620784dd3a2dece5b5086849478",
+      "bytes": 1652
+    },
+    {
+      "file": "Fixtures/Compatibility0125/procedural-Full.json.rgba32f",
+      "sha256": "6b63865909195c4a1364700d03f7b5d7535ccda0e8d2986b2a898f82c21be6be",
+      "bytes": 12288
+    },
+    {
+      "file": "Fixtures/Compatibility0125/procedural-FullOptimized.json",
+      "sha256": "5614ec3dfbb36d661a85ea1b824aa71bfdf721f5b98ada892f8bdd31c1e2adf0",
+      "bytes": 9707
+    },
+    {
+      "file": "Fixtures/Compatibility0125/procedural-FullOptimized.json.png",
+      "sha256": "89d026bbf8e344f759b3cb611e56b88d85fdc620784dd3a2dece5b5086849478",
+      "bytes": 1652
+    },
+    {
+      "file": "Fixtures/Compatibility0125/procedural-FullOptimized.json.rgba32f",
+      "sha256": "6b63865909195c4a1364700d03f7b5d7535ccda0e8d2986b2a898f82c21be6be",
+      "bytes": 12288
+    },
+    {
+      "file": "Fixtures/Compatibility0125/procedural.tiff",
+      "sha256": "1146151592c9eed4d0e80818b1b7d528aababb6edddcd77ea69d604718b84f50",
+      "bytes": 5028
+    },
+    {
+      "file": "Fixtures/Compatibility0125/procedural.tiff.meta",
+      "sha256": "cb933d23bfc8e6d872857a3502c12f28bf49f35eeecf581f5385443528b42c64",
+      "bytes": 3087
+    },
+    {
+      "file": "Fixtures/Compatibility0125/procedural.tiff.png",
+      "sha256": "89d026bbf8e344f759b3cb611e56b88d85fdc620784dd3a2dece5b5086849478",
+      "bytes": 1652
+    },
+    {
+      "file": "Fixtures/Compatibility0125/procedural.tiff.rgba32f",
+      "sha256": "6b63865909195c4a1364700d03f7b5d7535ccda0e8d2986b2a898f82c21be6be",
+      "bytes": 12288
+    },
+    {
+      "file": "Fixtures/Compatibility0125/README.md",
+      "sha256": "64bfd0a15131917b01f822ddb642d030500256829a6471e22e0df4cf86194dbb",
+      "bytes": 4178
+    },
+    {
+      "file": "Fixtures/CompositionMissingTestBehaviour.cs.txt",
+      "sha256": "da289ff1aa13fcec047e9738130a9ef8374f52e76b18f9cf5dd262cad7383949",
+      "bytes": 425
+    },
+    {
+      "file": "Fixtures/ShaderFX0125/ColorFilter.hlsl",
+      "sha256": "769fe493ff753ea17d44d3b194e45bd1944bfd51e9a5d6c20d6a605a8dcaf9c7",
+      "bytes": 1131
+    },
+    {
+      "file": "Fixtures/ShaderFX0125/GradientMap.hlsl",
+      "sha256": "a03d31fb6a5dfa81054b03f0da36ebd1b204b8cb7a39f410ff6cf7949c88586c",
+      "bytes": 1553
+    },
+    {
+      "file": "Fixtures/ShaderFX0125/HSV.hlsl",
+      "sha256": "20bbacd6297ffbfc416e7e2714ae2ce2b197bd28d1a9e13f87a7ae2dbb6783aa",
+      "bytes": 1504
+    },
+    {
+      "file": "Fixtures/ShaderFX0125/manifest.json",
+      "sha256": "d038da78a25a79f2ae0fa624cc123944e1d9981bafec95e1643c12f83280aaa7",
+      "bytes": 720
+    },
+    {
+      "file": "Fixtures/ShaderFX0125/Mask.hlsl",
+      "sha256": "c900a9a1f63192e11465f0d60a36742337c381c0fdca01cbaf4529bce10bee15",
+      "bytes": 2021
+    },
+    {
+      "file": "Fixtures/ShaderFX0125/Negative.hlsl",
+      "sha256": "f0652532aa602261f394eea09176bd30756b280cede003add6daddfdaa463fb6",
+      "bytes": 571
+    },
+    {
+      "file": "Fixtures/ShaderFX0125/README.md",
+      "sha256": "0dc28d6738804b3708e25a657f906654ff54baeb2029a0f33b4ba16a3ccca33f",
+      "bytes": 1503
+    },
+    {
+      "file": "Fixtures/WhimTexImportFailureProbe.cs",
+      "sha256": "419d487289894124d6e270ca5a50884c7d3744f19cfce10c3775d5212b1f4e11",
+      "bytes": 434
+    },
+    {
+      "file": "Fixtures/WhimTexPlayerProbe.cs",
+      "sha256": "a1affa2a8d9a5cd5a45317eba18d2bf5152a01ece792eaeacaa51a2fb7358588",
+      "bytes": 3596
+    },
+    {
+      "file": "FloodFillSmoke.cs",
+      "sha256": "5d3aa6064fb4e998cc527f17e8bd327e3a06344c3c39257e2f301a42ee4adbb7",
+      "bytes": 8609
+    },
+    {
+      "file": "GaussianBlur.md",
+      "sha256": "506136bb966d587da79b0645659bca0e33965b3c8307294f560d7915ff866668",
+      "bytes": 2876
+    },
+    {
+      "file": "GaussianBlurApiSmoke.cs",
+      "sha256": "c65f1e983cbb811f514679c45e25b6a208e4f8e5efec70c1178a8171d28c6ec3",
+      "bytes": 2025
+    },
+    {
+      "file": "GaussianBlurSmoke.cs",
+      "sha256": "c3a15b246303f669471c396cf5e6a69f695481d6768275e92be8e0425c106e31",
+      "bytes": 5632
+    },
+    {
+      "file": "GaussianKernelMath.mjs",
+      "sha256": "def02cf23c7b15f4d476a28d243bb6118ef12f857e96afc5916cd4e327764e6e",
+      "bytes": 2703
+    },
+    {
+      "file": "GaussianSharedKernelSmoke.cs",
+      "sha256": "c6496c0f980ac851eefbbb9b082dd1ccc32e80f1818641b943c6fad38cfba280",
+      "bytes": 4246
+    },
+    {
+      "file": "GaussianStrength.test.mjs",
+      "sha256": "4f28c16e49a4c320c11905a70c608addab86872bd4ae77a2b8cb55e3c9c60c50",
+      "bytes": 2680
+    },
+    {
+      "file": "GenerateBlueNoise.mjs",
+      "sha256": "bd86cd3f75d56e4fd35da28ce78ba7ac7302f4f496eb93b9094b2cc1e28e7e72",
+      "bytes": 3954
+    },
+    {
+      "file": "GpuPreview.md",
+      "sha256": "848a12435b0e7b554b469c0681f321a28b38ea10960fa7825a4283e454499ed2",
+      "bytes": 1933
+    },
+    {
+      "file": "GpuPreviewSmoke.cs",
+      "sha256": "34e4b8f4925202e05b364c87e41c356e2a168b02fda5e7a50a31d78ab6324f6f",
+      "bytes": 4807
+    },
+    {
+      "file": "GradientCanvasSmoke.cs",
+      "sha256": "08856b36290e939d2f0d044659c1ceec13470488cd6be64aa4c6240029e18d5e",
+      "bytes": 5739
+    },
+    {
+      "file": "GradientClipboardCleanup.test.mjs",
+      "sha256": "cb092dacf125c653d916033bb857e40795f257b9090ed0375b34cc4dbd9afd3e",
+      "bytes": 2175
+    },
+    {
+      "file": "GradientClipboardCleanupSmoke.cs",
+      "sha256": "3e8ef211e658799688d69def55ca9ac805489679d4b77f3d358755c0f163db2c",
+      "bytes": 11987
+    },
+    {
+      "file": "GradientDefaults.md",
+      "sha256": "a52d3682d0a95dd223c9dd81f6af0a4f10996ae5d90818945f75b5d70ed3c0fc",
+      "bytes": 1462
+    },
+    {
+      "file": "GradientDefaultsSmoke.cs",
+      "sha256": "67b49e32c0cd47c7aaa19c59ea054fe8bf02b091115503e447f62351c31dd43c",
+      "bytes": 7605
+    },
+    {
+      "file": "GradientFXSmoke.cs",
+      "sha256": "cd8fa25f4ebf599d6125b2957e3a2e19e3315efc89172d96b3ae20895221806d",
+      "bytes": 12679
+    },
+    {
+      "file": "GradientGpu.md",
+      "sha256": "582ab41b8a585ee59db2b8facfc27431e9e78955f773575d087452705413ec80",
+      "bytes": 5173
+    },
+    {
+      "file": "GradientGpu.test.mjs",
+      "sha256": "44196e2e57ac6487f6c137e1fbc19a899c26d6dc9a00a6fcd3c168e969006736",
+      "bytes": 3008
+    },
+    {
+      "file": "GradientGpuRunSmoke.cs",
+      "sha256": "edead242627aa5aa882b3c876acf494b4045c85809174fff20707bb15195d93b",
+      "bytes": 10886
+    },
+    {
+      "file": "GradientGpuSmoke.cs",
+      "sha256": "f7b5a6391bbc4de930616a7e3c7bb75e5b4e659dee3a99aff1823038071ce123",
+      "bytes": 13736
+    },
+    {
+      "file": "GradientHistorySmoke.cs",
+      "sha256": "ce90d666df872462d809c6cfbacb314ae45cd5745cd3aaf505348008f399d034",
+      "bytes": 8126
+    },
+    {
+      "file": "GradientKeyPickerSmoke.cs",
+      "sha256": "43778c0644e34160d2ab09e5355ac058a60448b7812a7410cf44f4141f728f2b",
+      "bytes": 8914
+    },
+    {
+      "file": "GradientLibrarySectionsSmoke.cs",
+      "sha256": "64fc38f6818f47689a1f8d01f9530ab76c31e40a87668245e5904f488d683f68",
+      "bytes": 4962
+    },
+    {
+      "file": "GradientMapSmoke.cs",
+      "sha256": "cc972261ef21e7db665c9c26609f990839b6ffeca59b9f435d6d5235af344192",
+      "bytes": 6455
+    },
+    {
+      "file": "GradientPresetsSmoke.cs",
+      "sha256": "032bcf8870a4e8e9cbf7f24a9573474ae4ce8ae1b4c7ec567d2b363428f0e51a",
+      "bytes": 5873
+    },
+    {
+      "file": "GradientSoftFXSmoke.cs",
+      "sha256": "e6158c309875e64f883090f56fc4a792469d4116ce9ae35b54b5bf3678ccee05",
+      "bytes": 4558
+    },
+    {
+      "file": "GroupFXSmoke.cs",
+      "sha256": "685351c6389c13c54fbc584f903796ea81ee037aaae32dc1cea620a39896aad4",
+      "bytes": 7348
+    },
+    {
+      "file": "GroupTransformSmoke.cs",
+      "sha256": "f2f3d2bfe3ca587420e505118653e46c6db9e625d07e241a64fdd7660413a1cd",
+      "bytes": 5879
+    },
+    {
+      "file": "GuideReloadSmoke.cs",
+      "sha256": "ab2026df9d116239a131e461273fa6d29fb85761f9c512be242da7bb9d27c050",
+      "bytes": 5171
+    },
+    {
+      "file": "GuideSettings.test.mjs",
+      "sha256": "bf3a0d3064eb7c7cbdebed23b09cc6eecd88235dcb08c9b4b8cfce7142146cff",
+      "bytes": 2103
+    },
+    {
+      "file": "GuideSettingsSmoke.cs",
+      "sha256": "ca57ebbc2df74c8a9c1e7ac92e8aabf132464113b3078453e37a26e5d75ad198",
+      "bytes": 1571
+    },
+    {
+      "file": "GuideSnapping.test.mjs",
+      "sha256": "36de50b09b810aecc5a0def8eba05c67f3b003e8fc060d5cda308cebaabf34f0",
+      "bytes": 26899
+    },
+    {
+      "file": "HdrGroupSmoke.cs",
+      "sha256": "7251abd910362df72b40e6d3b2633e2dc327e31e412f49f6b44e3c2911b9ce86",
+      "bytes": 6896
+    },
+    {
+      "file": "HdrStageSmoke.cs",
+      "sha256": "b64cc8d95ec9dba7c42477b7d0bb2cf661a2cdb6d585dea54a42b82b8f8cf75a",
+      "bytes": 3717
+    },
+    {
+      "file": "HealingBrushSmoke.cs",
+      "sha256": "93a7fdf5cf5a87493017fd55053cbc51454ea90900f8f3ee6d514b32fc594463",
+      "bytes": 29035
+    },
+    {
+      "file": "HealingNoiseSeamDiagnostic.cs",
+      "sha256": "4b219d1b65ec9a328249b28503cb8bf13e82788b5d488af7d4654ca4ce2ff2ac",
+      "bytes": 12853
+    },
+    {
+      "file": "HealingPerimeterSmoke.cs",
+      "sha256": "3ef2d77560a12b4812c0af95813d12e7c2b3c0ed65717f52f6a5e0bc3c32915a",
+      "bytes": 9454
+    },
+    {
+      "file": "HealingStrokeColorSmoke.cs",
+      "sha256": "053749847ec08eb8a31332ad9b60a994f588fbe0ee91b49b7f912f7746fc8b7a",
+      "bytes": 3380
+    },
+    {
+      "file": "HiddenEffectInputSmoke.cs",
+      "sha256": "fa3809560e44af4811d77c2bac49078215ff17d3b5c4a80ef18074e81754db35",
+      "bytes": 4677
+    },
+    {
+      "file": "HistogramArithmeticAudit.cs",
+      "sha256": "7a89ca539b2db1976bc0dc8ee094276454be34473bf599e28b341a21526f286a",
+      "bytes": 4995
+    },
+    {
+      "file": "HistogramSeamless.md",
+      "sha256": "fec7edc6457e79dd0fb10cca7c845a319b2ea11ac6856df375b9a73f51002511",
+      "bytes": 5659
+    },
+    {
+      "file": "HistogramSeamlessSmoke.cs",
+      "sha256": "4ee8904035d8dcb2228b6dff8fde92594775f6f00d335c0cf380c63f1b798223",
+      "bytes": 7688
+    },
+    {
+      "file": "HistoryHdrFilterSmoke.cs",
+      "sha256": "9ee6919ddfb8d0eee819535966eab02b0e2fa803d5cb1dc62eab2c4c5f801b0c",
+      "bytes": 6061
+    },
+    {
+      "file": "HlslEffectDropSmoke.cs",
+      "sha256": "837e06606e4cfebc9cdbc0fed624509e9ade279fc03ca209e8ea8e5956dc4ac1",
+      "bytes": 2310
+    },
+    {
+      "file": "HlslNoiseSmoke.cs",
+      "sha256": "d2055b129e6d525afd4f8356fbec55042df71270f20ebf575624a0d3a2f337a4",
+      "bytes": 2755
+    },
+    {
+      "file": "HSVSmoke.cs",
+      "sha256": "45a83397f5b1b9d3599746488508d359b55ebd1fb085fe22dd74d6a08d28b37b",
+      "bytes": 5019
+    },
+    {
+      "file": "ImageClipboardSmoke.cs",
+      "sha256": "6e1f91205f5727932e6a94e634cc4ca9f2fd4368fa94779a724d4ad14d6d106d",
+      "bytes": 5457
+    },
+    {
+      "file": "ImageUrlPasteSmoke.cs",
+      "sha256": "388244985018781b13acaea846e73474f83ec64356e22f4239bdaf84063a748f",
+      "bytes": 9131
+    },
+    {
+      "file": "LayerAutoScroll.md",
+      "sha256": "2ccf9dbb4eebd8e99ec7b8becf4f7d07168df57c7b64d060e15438401d163c7e",
+      "bytes": 1141
+    },
+    {
+      "file": "LayerAutoScroll.test.mjs",
+      "sha256": "ebfebab3d5e3fb3fc05ff0b68dc2d46040deb931471124fae39047503a251a49",
+      "bytes": 4271
+    },
+    {
+      "file": "LayerBehaviourSwapSmoke.cs",
+      "sha256": "48ce5d6df0e74591f86d55e25fd39c12ed504cfb83dce6b9d6bc83cc9668e64a",
+      "bytes": 2877
+    },
+    {
+      "file": "LayerClipboardSmoke.cs",
+      "sha256": "67773ea937eead4d9fd048de720bfa8809e91fb6d7da7665d7b0e0642c6ec184",
+      "bytes": 10914
+    },
+    {
+      "file": "LayerClipboardWindowSmoke.cs",
+      "sha256": "489b2148e6aa85a05e1f6533d32c143ca31cc02e4b11e8df1172667f5353d0ef",
+      "bytes": 6290
+    },
+    {
+      "file": "LayerColorSettings.test.mjs",
+      "sha256": "9a8dedf51689c70714f18f3b20e7a55b93e6ca9e1c5997587f261c50dfbd9367",
+      "bytes": 1822
+    },
+    {
+      "file": "LayerComposition.md",
+      "sha256": "c0895f88223253d6f30bf34028fb53fcdd5e102e70c8a5a36117ecacba7bbb58",
+      "bytes": 4762
+    },
+    {
+      "file": "LayerComposition.test.mjs",
+      "sha256": "9a76c4e3bd952b1e4464bd15dfb67be6afebca0d5463d59e3fa88ddf3b048e37",
+      "bytes": 7761
+    },
+    {
+      "file": "LayerCompositionSmoke.cs",
+      "sha256": "8bd726a5df2a1cd6adee8bacf134c64f5bf581ed23475a576212ec4a04e4615c",
+      "bytes": 7283
+    },
+    {
+      "file": "LayerCompositionWindowSmoke.cs",
+      "sha256": "4e0b6d446a49597ccf1c762bb8e4e2a05644eaafe73bd8e9615e2e0632032bca",
+      "bytes": 3237
+    },
+    {
+      "file": "LayerNavigation.test.mjs",
+      "sha256": "94a6dce32b5f678bb122b1dfab4f720a6216fbcee600de80a7ac76506468d811",
+      "bytes": 1838
+    },
+    {
+      "file": "LayerPicking.test.mjs",
+      "sha256": "14140a65b08aefa19e068cd9fee58f2461c697d82bcb779680d708ccfd97f37c",
+      "bytes": 3093
+    },
+    {
+      "file": "LayerPickingSmoke.cs",
+      "sha256": "12ddb8eb98bdc022aad43de6b3d729635ddca3716ea52e9b304befe22531c0eb",
+      "bytes": 7161
+    },
+    {
+      "file": "LayerPresentation.test.mjs",
+      "sha256": "d24bcdf93aeaf4a072d121cf511a839e8d5a426f728a4b00ad214003dac361b1",
+      "bytes": 5488
+    },
+    {
+      "file": "LayerPreviewPanel.md",
+      "sha256": "d00a98483d8cf95a0bb236a3aeffae7f652f665c18e695d921ec61af9fbe4565",
+      "bytes": 6477
+    },
+    {
+      "file": "LayerPreviewPanelSmoke.cs",
+      "sha256": "0ffbacfb402e09bc6a7fbaaffd44ba363e1eb3216a1a5ceae6d29d1e32886ab9",
+      "bytes": 24224
+    },
+    {
+      "file": "LayerPreviewReuseSmoke.cs",
+      "sha256": "b36fe3e261e72b532ab2c5a34c0fb473c59097a1e9da603f6d7e617ed341ccc1",
+      "bytes": 12011
+    },
+    {
+      "file": "LayerScrollViewSmoke.cs",
+      "sha256": "75ca06d3306f92377d3d76136ff9033f261b798bb3da2c369a07319adcfea381",
+      "bytes": 1475
+    },
+    {
+      "file": "LayerSelectionSmoke.cs",
+      "sha256": "55cc839c4b35adc2863cfa51f8003f6ff4c2938888f64f10a77715f4229c87f3",
+      "bytes": 9036
+    },
+    {
+      "file": "LayerTransferSmoke.cs",
+      "sha256": "5905c9bc7268b89c96dd5f6ac3df29dddd2bddcc30acb0445b1039c31b35b781",
+      "bytes": 13637
+    },
+    {
+      "file": "LayerTypeRegistry.test.mjs",
+      "sha256": "380051604de19512ff83ca4fb1a765e3b9eff01b6a783d2d42b9e5f7b68e14cd",
+      "bytes": 1973
+    },
+    {
+      "file": "LegacySavePolicy.test.mjs",
+      "sha256": "805e530df195ca3ff089f0b126948b1382d35cce16e7e914b7c1b0aa72f80a3e",
+      "bytes": 1284
+    },
+    {
+      "file": "LightingBevelSmoke.cs",
+      "sha256": "479e8d06c2b495b9340d17c1e8696615b7c176103848a472ab6b9e81715b5dab",
+      "bytes": 6687
+    },
+    {
+      "file": "LiveAgent.md",
+      "sha256": "ca33a84bd630c3ac3ff39e5d34a12385e101dba1fa50c1e66a83da8a700897a4",
+      "bytes": 6116
+    },
+    {
+      "file": "LiveAgent.test.mjs",
+      "sha256": "ae3fb0127eb7aee0d2457c998a6793dd6f3094f68a102af506d03a48e490458e",
+      "bytes": 15005
+    },
+    {
+      "file": "LiveAgentSmoke.cs",
+      "sha256": "55be98b21f32f9400df65b0e0053a79d47a73e441a0b9fa5fe63e75992359027",
+      "bytes": 20278
+    },
+    {
+      "file": "LiveOutput.md",
+      "sha256": "0852e05149d97fb13e527c3718500d41f95cd21b74ec42df8bae80ec1eff89eb",
+      "bytes": 2152
+    },
+    {
+      "file": "LiveShaderFx.test.mjs",
+      "sha256": "0faba8127554700f636fdf6a75a5669caf38e7fae93a33e442d761512393bc00",
+      "bytes": 6910
+    },
+    {
+      "file": "MakeSeamless.md",
+      "sha256": "d93de78224c357122a0470f944603ddc900fa7028ddf4f5eb64670df9aeaa59f",
+      "bytes": 3065
+    },
+    {
+      "file": "MakeSeamless.test.mjs",
+      "sha256": "05df72b84b180410ee1279e7edf5e3855cbd62d9a3dc4ef2f7d9fe552ada7a47",
+      "bytes": 9299
+    },
+    {
+      "file": "MakeSeamlessContract.md",
+      "sha256": "16b833e4a36d363068d3dafb48dd5f3f545f2dac6b1c821e5f45349b0d90bd32",
+      "bytes": 2908
+    },
+    {
+      "file": "MakeSeamlessContract.test.mjs",
+      "sha256": "81128b28f7e869c498f704e461e037b1a075f2458fc13b5ededb799bc71acf4a",
+      "bytes": 3680
+    },
+    {
+      "file": "MakeSeamlessContractSmoke.cs",
+      "sha256": "46e6b72c3ab19678d60e45b0983813f71f0dff5ae1dd70be18ccb6bc1eb913d5",
+      "bytes": 9685
+    },
+    {
+      "file": "MakeSeamlessIntegration.cs",
+      "sha256": "655eb281e52396f73a3bc0bd0908f83f81a933e3368428a2b98245438f09e51e",
+      "bytes": 18054
+    },
+    {
+      "file": "MakeSeamlessSmoke.cs",
+      "sha256": "fe61bea12a6988b90680ad9dc9d56389c7422b67f70322c88720f502984f3f17",
+      "bytes": 4144
+    },
+    {
+      "file": "MarqueeConstraints.test.mjs",
+      "sha256": "231b528fbdfa57720c47bc7e9620f7cc93cf34188d27567aed3e08db2334cb80",
+      "bytes": 3192
+    },
+    {
+      "file": "MergeLayersSmoke.cs",
+      "sha256": "028bb539633e92ceaa2dec15b95a8fc39886a9361d6eca8f2e1eebcd8c316e35",
+      "bytes": 6832
+    },
+    {
+      "file": "MirrorAutoRadius.md",
+      "sha256": "e2ec43ea2e5e0c899724cf8f543f7532a7c703f7f3aacb5f4ebef17c3ad839ac",
+      "bytes": 1131
+    },
+    {
+      "file": "MirrorAutoRadiusSmoke.cs",
+      "sha256": "bfe5211fc5d50c0c15679dfa6de882cb195af5a24974e5726b397123646a9522",
+      "bytes": 5388
+    },
+    {
+      "file": "MirrorEnhancements.md",
+      "sha256": "75ff9945ac8b34446ff7cea7fc6dfe87edc5c78813e46965951b3e037398bc3b",
+      "bytes": 2059
+    },
+    {
+      "file": "MirrorEnhancementsSmoke.cs",
+      "sha256": "3a7ff8772403a965169e154f9475839ff6e5a2596be3f199ce9c8f4afb9b9586",
+      "bytes": 18933
+    },
+    {
+      "file": "MissingLayerDataSmoke.cs",
+      "sha256": "96dbaa4aa8128f822574f8ec241a89e9c8428c98e99aff707644f6fa276d6b5a",
+      "bytes": 3289
+    },
+    {
+      "file": "MissingLayerRecovery.md",
+      "sha256": "da70fa89e8b7feadcc44c736bdf41d1fdc8fc06fe1c916b9263a9248b5296a27",
+      "bytes": 2125
+    },
+    {
+      "file": "ModelSerializationBenchmark.cs",
+      "sha256": "8f8315404b9daa16bc89af3b29fd0fdb4dacbc2a1a6d4e7ddcf123d614efcdf0",
+      "bytes": 2516
+    },
+    {
+      "file": "MotionBlur.md",
+      "sha256": "67e15110a2dbe611409f8cf270114c95689dcd35949482983ffcf7aa2b73d2e2",
+      "bytes": 2515
+    },
+    {
+      "file": "MotionBlurApiSmoke.cs",
+      "sha256": "63a127a183a9c2202e8d336d1661bf105bf4e619412afc951f34883354e401d5",
+      "bytes": 4636
+    },
+    {
+      "file": "MotionBlurMath.test.mjs",
+      "sha256": "988cf720d1d100a18a09521eec2d701f43e9bcc4372e5a92cfd1d5cddf32b0c4",
+      "bytes": 9520
+    },
+    {
+      "file": "MotionBlurSmoke.cs",
+      "sha256": "ba2cf2e24daff0a92c5caf859f5cc66b5e26e6e2dcc67249172d216842348ed1",
+      "bytes": 6408
+    },
+    {
+      "file": "MultiLayerTransformSmoke.cs",
+      "sha256": "33cc450725dee179100109a3704cf85edbc5e4e5d76c281017b30c2691671d9d",
+      "bytes": 6107
+    },
+    {
+      "file": "NativeManualFxFileSmoke.cs",
+      "sha256": "7ea18d7d01c0f04728eb0b3e9e8310dce70397f0dcc5df19b1719c6ebe078106",
+      "bytes": 5434
+    },
+    {
+      "file": "NegativeFX.test.mjs",
+      "sha256": "c7cf8b7ada4ce2c35a7e18064f0f1b3b5256babb25819244bf806f3f430d8ae0",
+      "bytes": 1746
+    },
+    {
+      "file": "NewDocumentWindowSmoke.cs",
+      "sha256": "7ca09b1aca3bb88bbb7971b0354c38547a3448c0c790560a1f8e7058bc1e7c0c",
+      "bytes": 3294
+    },
+    {
+      "file": "Noise.md",
+      "sha256": "7791ffdd57f11a82ffd58d1d1a29157abf19324a28f07386f9cc2395cbf51690",
+      "bytes": 11169
+    },
+    {
+      "file": "NoiseApiSmoke.cs",
+      "sha256": "db01eba7e533e6f937c28f9f9cde8776cef798efc3cc63d2587e767976c526f9",
+      "bytes": 9446
+    },
+    {
+      "file": "NoiseContract.test.mjs",
+      "sha256": "57a9b134db8f8189cc1393fbc48f1616a0c945a619037fa91c85a212e6d3356d",
+      "bytes": 7332
+    },
+    {
+      "file": "NoiseControlsSmoke.cs",
+      "sha256": "c1ece2befb00c5e682a9a55af2972b48db7f438d418e5bcf54c1b8c6c4df6fef",
+      "bytes": 9392
+    },
+    {
+      "file": "NoiseIntegrationSmoke.cs",
+      "sha256": "25c3e970afe61a0f9fc96da80c611f96e4a35e039ead1209f2893414a374100e",
+      "bytes": 3718
+    },
+    {
+      "file": "NoiseLatticePrecisionSmoke.cs",
+      "sha256": "e5c77bc7fb53242b9e50d17a4c0227e238865a5437872cfd272c6c1fc32ae9db",
+      "bytes": 3279
+    },
+    {
+      "file": "NoisePeriodic1DSmoke.cs",
+      "sha256": "f20cd389153ec49b886ef3bc67a463fb2a0bc878e2a664afee84773d913f1753",
+      "bytes": 5964
+    },
+    {
+      "file": "NoisePeriodicGpuSmoke.cs",
+      "sha256": "fbff9a282325395428df5d2ff4b06491d567cd4422c87744847a6b51a5559e62",
+      "bytes": 7845
+    },
+    {
+      "file": "NoisePeriodicReference.csv",
+      "sha256": "918ad8bfccecce0d3c109eda79bd7a22fed01543e35f695e0f6b12237bdeea20",
+      "bytes": 166642
+    },
+    {
+      "file": "NoisePeriodicReference.stress.csv",
+      "sha256": "c6bc2c59f45935a409a620ddc6515ab57d2233eb421f98cf693c524a38a4b3a6",
+      "bytes": 44384
+    },
+    {
+      "file": "NoiseRandomizeSmoke.cs",
+      "sha256": "5b5e9d8f3a46095493c7b94f425c1a5d69ff305b81f3b60604873c6e7a97721f",
+      "bytes": 13090
+    },
+    {
+      "file": "NoiseScaleDistributionSmoke.cs",
+      "sha256": "51dfb475948c5e749e507f5bd4e289dd7f5508c6ecfe321b578ad39462ca97b7",
+      "bytes": 4853
+    },
+    {
+      "file": "NoiseSmallScaleExperiment.cs",
+      "sha256": "ad0fbc7306541a2e14dde6b9dfdaa014fc551fd53ef0f2d8dfe3d4a042e9728a",
+      "bytes": 16223
+    },
+    {
+      "file": "NoiseSmallScaleExperiment.md",
+      "sha256": "23167da954fd5f0a26d6273166378bd61a6bb46deaa983f0c7e211648e941e30",
+      "bytes": 3775
+    },
+    {
+      "file": "NoiseSmoke.cs",
+      "sha256": "b5ac0bc62a2bc5b2662a69f8789e3aa1593e4d926fea1a69b33e0d3206dbbdf3",
+      "bytes": 8547
+    },
+    {
+      "file": "NoiseWarpPeriodSmoke.cs",
+      "sha256": "e93534fc95cf50f68bd123ebb80210e0ba9ac418b6d1310265f27e7512fc0697",
+      "bytes": 5784
+    },
+    {
+      "file": "NoiseWarpScaleSmoke.cs",
+      "sha256": "9580506699f9023717b13604be6e1f4382d0398440e5fa7ebcd0122860407224",
+      "bytes": 4342
+    },
+    {
+      "file": "NormalizeFX.test.mjs",
+      "sha256": "856ab29794091fc923fdb5c9cf8261fa5f815154e577309ed439f6b1e9defed5",
+      "bytes": 1990
+    },
+    {
+      "file": "NormalMap.md",
+      "sha256": "5702cc642f0f1bf29fcc314c1e9c4c17e2a0589ac610baeb71756d8850a8aeb9",
+      "bytes": 2512
+    },
+    {
+      "file": "NormalMapApiSmoke.cs",
+      "sha256": "a1c9e4a176cf9cbe87af16059954361a1f8dbc517282a53e38a4c2998d85a18e",
+      "bytes": 2166
+    },
+    {
+      "file": "NormalMapSmoke.cs",
+      "sha256": "17e0b75d71a9835d238004dfdd7668b4e11c254885f78b15a0431b8e8ea5dc42",
+      "bytes": 5685
+    },
+    {
+      "file": "NormalNormalizeSmoke.cs",
+      "sha256": "12c399681ddd372552b8064f61d1de9b4c0b6fcaa207b28e92555b42bef8be66",
+      "bytes": 4175
+    },
+    {
+      "file": "OffsetOptionsSmoke.cs",
+      "sha256": "e5112a4e2f08ba51791dce1226dea99d84745c5216f93b44646ab4bcb5600fc7",
+      "bytes": 11011
+    },
+    {
+      "file": "OptionalLayerGradientSmoke.cs",
+      "sha256": "8d022d1156d7653ca36abe5547f59844721004ee309d81db902ced9989b3c22b",
+      "bytes": 16822
+    },
+    {
+      "file": "OutputDependencies.test.mjs",
+      "sha256": "2fc3ab4d570aff7abac8e62ea85fcbf421e61419cfea85b26dcb87e23dfc5e10",
+      "bytes": 1785
+    },
+    {
+      "file": "OutputDependenciesSmoke.cs",
+      "sha256": "8457d0ee47a8ff784cfe1e5be6e11c271b5b1ca279540aa9c8729f188941f6a7",
+      "bytes": 6475
+    },
+    {
+      "file": "OutputEncodingSmoke.cs",
+      "sha256": "8ec6966712a9055a62240710c267d590706e6d667c2750cc072d48e92ceadf7f",
+      "bytes": 16267
+    },
+    {
+      "file": "PaintStrokeParameters.md",
+      "sha256": "e6e1fb890c50843359769d56f1722442e9b3a04915fb3d3f7662a8f0d659e563",
+      "bytes": 1309
+    },
+    {
+      "file": "PaintStrokeParametersSmoke.cs",
+      "sha256": "c0550026bdf7b318be59bb7ef542b43a108bfa9d0ad3ce3c4e26a1d1492e02a3",
+      "bytes": 7362
+    },
+    {
+      "file": "PaintToolSettingsSmoke.cs",
+      "sha256": "ab90eae4be0ea51873592aef4ecdb5c74765498e685e8bb2a29241aa90440b5b",
+      "bytes": 4567
+    },
+    {
+      "file": "PatchQuilting.md",
+      "sha256": "a55084889b2ef17ada0beee4685817795e7838bf7312c70b2465cbd2c3e7b22b",
+      "bytes": 12803
+    },
+    {
+      "file": "PatchQuiltingContrast.md",
+      "sha256": "2ab907ebb739e8ac29c3ef4eb50d99e9dd36b9d0184a9b1820e2b5386ad08941",
+      "bytes": 1618
+    },
+    {
+      "file": "PatchQuiltingContrastSmoke.cs",
+      "sha256": "fc3fe2ea29c4600c1d7c40c12597e175edf92099443c11e55237501f792c0a8b",
+      "bytes": 9687
+    },
+    {
+      "file": "PatchQuiltingEquivalence.cs",
+      "sha256": "0f5e7b3424693afd0fea7982db136c09e16d7f872e42bcd241db9e72602ece38",
+      "bytes": 20239
+    },
+    {
+      "file": "PatchQuiltingFeatherSmoke.cs",
+      "sha256": "5f1f09acad80028fb632e9030a8677cde752278e7df34de901d309ef368c3fb3",
+      "bytes": 12639
+    },
+    {
+      "file": "PatchQuiltingSmoke.cs",
+      "sha256": "aa2eeb61bcd479674748f094e488bc0b6acac351185625f30a1feeb2e89fde34",
+      "bytes": 29770
+    },
+    {
+      "file": "PencilCursorSmoke.cs",
+      "sha256": "8d955f01aa0443e4f261738db1252b0ff6c2fb296fab2d7deaaa5e9f6ee4cefc",
+      "bytes": 4959
+    },
+    {
+      "file": "PencilSmoke.cs",
+      "sha256": "7d9370c710610e4e3f81e934d9052e287165415933bc3a1f027d1d805042ce25",
+      "bytes": 6321
+    },
+    {
+      "file": "PolarCoordinates.test.mjs",
+      "sha256": "a706ef4a6d04435fffea60a18b28791059cc9d3848f496a474acdc6dcb714394",
+      "bytes": 3601
+    },
+    {
+      "file": "PolarCoordinatesSmoke.cs",
+      "sha256": "3cb26375f9612c37b62818db86b3b51ff459b4357a5bf517a503eccf82729206",
+      "bytes": 8321
+    },
+    {
+      "file": "PortableClipboardSmoke.cs",
+      "sha256": "bb5f86e35c0d5272c33d21753691f74ccdf685b541a9dc10007da1ebbacc1184",
+      "bytes": 8025
+    },
+    {
+      "file": "PortableIncludesSmoke.cs",
+      "sha256": "dd6fac18e06330e8a4ebd938c727ed516e6d05a1d3d308132677c3cdb05cd020",
+      "bytes": 5220
+    },
+    {
+      "file": "PostFxBackgroundSettingsSmoke.cs",
+      "sha256": "334361805a5570565fe7a8d2311be2728278b3b9cb231a21f78ec2afecdac496",
+      "bytes": 5214
+    },
+    {
+      "file": "PostFxPresentationSmoke.cs",
+      "sha256": "bdf7e4c9be6c5ae7268d99121311ca7bc6764718d79c23d427c212c9b78f1f6c",
+      "bytes": 3686
+    },
+    {
+      "file": "PostFxPreview.md",
+      "sha256": "3b4772c75e86fc8a325a7bd80925d1200d0c5e29eaf8faebe7a3dbc3f8da13eb",
+      "bytes": 7050
+    },
+    {
+      "file": "PostFxSurfaceMath.test.mjs",
+      "sha256": "133677cc4e8e0e28549fe3b987b9c0312532baaaaa5339860c0e9f5659286e64",
+      "bytes": 5554
+    },
+    {
+      "file": "PresetsFolder.md",
+      "sha256": "bd476e44a85d3b2e1fe93310398ffaf1373f9c5724501428b3147e45e1a73453",
+      "bytes": 1162
+    },
+    {
+      "file": "PresetsFolder.test.mjs",
+      "sha256": "10df64435aad1aa4f5cb7c88525c6a164bf2113cc454c2cdc44c0e31d611ad15",
+      "bytes": 3661
+    },
+    {
+      "file": "ProceduralClipboard.test.mjs",
+      "sha256": "c7e30d31e15e5fc85fcbded96716fbe6b5155e0d35473101a64fcacc5379ea92",
+      "bytes": 6881
+    },
+    {
+      "file": "ProceduralClipboardSmoke.cs",
+      "sha256": "5f7385005262e960c47880fa0234fa0c5d89b8d43c8c8a610aa051a53b68971d",
+      "bytes": 13317
+    },
+    {
+      "file": "ProceduralThumbnailsSmoke.cs",
+      "sha256": "488118fe547557ccfd93fe03554c6cf88a4d5908225df027466600a8b54a9583",
+      "bytes": 4434
+    },
+    {
+      "file": "ProjectiveTransformSmoke.cs",
+      "sha256": "c7a948093115250be6b14101538db0cc7dc6e1a74acf05a381b2922146f0ce77",
+      "bytes": 11789
+    },
+    {
+      "file": "PsdExportSmoke.cs",
+      "sha256": "41b29dd6cda6816a2e891362d61d2fdd3cab27afc31ea982e0e6bee2f52c9725",
+      "bytes": 5060
+    },
+    {
+      "file": "PsdWriter/Program.cs",
+      "sha256": "2301aeb2537b7b218bac3c8159a33df9981414be06a8d09df3eb06a5cb9c99ca",
+      "bytes": 8297
+    },
+    {
+      "file": "PsdWriter/PsdWriter.Tests.csproj",
+      "sha256": "d5b00919f01230562c643cda10f1a9d4443b33c15f55851ff9c75688f2b6a134",
+      "bytes": 342
+    },
+    {
+      "file": "PsdWriter/read-fixture.cjs",
+      "sha256": "9b4a8f2a7c9a61cb8a5e5099c6138f97929ff8744c0eebbf269bd70dd25366c0",
+      "bytes": 2314
+    },
+    {
+      "file": "QuiltingAlongSearchSmoke.cs",
+      "sha256": "a72e560cd89142b05c344d4ac51a1443162689d9f7ddf3fc078b5c5750454cf7",
+      "bytes": 7987
+    },
+    {
+      "file": "QuiltingSeedLayoutSmoke.cs",
+      "sha256": "591f928ac196b3fb24385fd39afa368e507678ee30d81cafc74e15d36c4f6717",
+      "bytes": 3836
+    },
+    {
+      "file": "RedTestsFixes.results.json",
+      "sha256": "ab73fd2f82dc2e0543f3308bbf638d2f87a4f87f3dd210d04c8b27c412e1587b",
+      "bytes": 602686
+    },
+    {
+      "file": "RedTestsFixes.ru.md",
+      "sha256": "b62bfca4777d94d22ed0f9b2def6a8f6430cbd077ae2d9e8087b07d45550d92f",
+      "bytes": 10315
+    },
+    {
+      "file": "RefactoringR01R04.results.json",
+      "sha256": "b9c5f7b8886c555b066b4fe34dc683037ae8dab540cba4eb7be0ebaab7ad7cf8",
+      "bytes": 37076
+    },
+    {
+      "file": "RefactoringR01R04.ru.md",
+      "sha256": "0f4e70e70fde901650b9296fedd6a3958dddd25c47d5302ea2c28d2d1003fb33",
+      "bytes": 11575
+    },
+    {
+      "file": "RefactoringR01R04.test.mjs",
+      "sha256": "c1c7c9fdd94db92206f9d2325d72d8a227284f2a7dd70602d4adb8673d585a3a",
+      "bytes": 2603
+    },
+    {
+      "file": "RefactoringR01R04Smoke.cs",
+      "sha256": "0e25a1c43682f9d3fe378ce0f7494192c02d4e54e25546371f55d748735f9c81",
+      "bytes": 25251
+    },
+    {
+      "file": "RemainingLegacyCleanup.test.mjs",
+      "sha256": "09eb0988ba756d31d3d12fcf7111ecbc3feee1cdd4f58d1f60c57f3a79fd6d1f",
+      "bytes": 3051
+    },
+    {
+      "file": "RemainingLegacyCleanupSmoke.cs",
+      "sha256": "33da7d89349bafc71974c3aa90e02ab816a742301d995651fe314d1caf3441bf",
+      "bytes": 10595
+    },
+    {
+      "file": "RenameMarkerCleanup.test.mjs",
+      "sha256": "311c94b134479257549c3f84ce9544da9d7fd44fea8795db3885a7976a38382b",
+      "bytes": 2511
+    },
+    {
+      "file": "RenderStateSmoke.cs",
+      "sha256": "76b09ef1183b0c2d5247561318e93f63f66fe2dc274182791b744018871a91eb",
+      "bytes": 5406
+    },
+    {
+      "file": "ResourceLifecycle.md",
+      "sha256": "39821ae61f5f0b1c6e1fbc6e9844440875c91a3337c7e0156dfb3b0d397d8651",
+      "bytes": 2631
+    },
+    {
+      "file": "ResourceLifecycleSmoke.cs",
+      "sha256": "2d1c803e7bbd182b9ec17efc708244383af6e1f762758f18aaf3e663831020d7",
+      "bytes": 7117
+    },
+    {
+      "file": "RunnerProtocolSmoke.cs",
+      "sha256": "bd76011292dbbcca1b47055ecb47a4b9cc5c5b108775f23bc0607b2bd9df52db",
+      "bytes": 1763
+    },
+    {
+      "file": "RUNNING_TESTS.md",
+      "sha256": "2a06648370e9b60ff71d4a6acdc3a6aa84e87db58f0d173e363dabef30847d64",
+      "bytes": 7131
+    },
+    {
+      "file": "ScopedUndo.md",
+      "sha256": "ad8bbb80ff46933264ee7834ba46d9f1b37ae50d9bd0cfbded180ebd38922e35",
+      "bytes": 1764
+    },
+    {
+      "file": "ScopedUndoSmoke.cs",
+      "sha256": "18d80b0437c55f47c8014e7b18b4a2df4d410559409f41bbb1b55b6874ac6b44",
+      "bytes": 7357
+    },
+    {
+      "file": "ScreenedSeamless.md",
+      "sha256": "8a5a6d5236a6399f52950409545c4be8f41043a43aa5fa794a5aea37879ec725",
+      "bytes": 5126
+    },
+    {
+      "file": "ScreenedSeamlessSmoke.cs",
+      "sha256": "36992c227ab74eb5c9bf889fd6613ff795f7937d32a250431c3db3894cc93a18",
+      "bytes": 11444
+    },
+    {
+      "file": "scripts/audit-sources.mjs",
+      "sha256": "1b766fe970571abe33ac057256a5d15d51571e9c2bdb37370a2bfdfc2937552f",
+      "bytes": 4430
+    },
+    {
+      "file": "scripts/run-tests.mjs",
+      "sha256": "03f5365dcf63d3af3d28c21d31edbc2df85474868f90a7276017fa4be77de229",
+      "bytes": 19637
+    },
+    {
+      "file": "scripts/test-catalog.json",
+      "sha256": "1d3d3b51401006a55ef7f37e68f3796b1f2d3e47345e82a8f66a58b8f22ad9e0",
+      "bytes": 8644
+    },
+    {
+      "file": "SdfControlsSmoke.cs",
+      "sha256": "d402d218b62c416641491e5117cbbb6cf8eb0acc0f6b3a86f33621636ee2089f",
+      "bytes": 5475
+    },
+    {
+      "file": "SdfGradientGpuSmoke.cs",
+      "sha256": "cf66cecfd627d05a56af910d19ee8549366a5d939ad7833e5d0a635417f2a812",
+      "bytes": 4461
+    },
+    {
+      "file": "SeamlessChannelsSmoke.cs",
+      "sha256": "b9607e51c1198bd08cdd466c47e7c4c0490f03d3558a2a30b0ccba38d3fa12fb",
+      "bytes": 8309
+    },
+    {
+      "file": "SeamlessControls.md",
+      "sha256": "c1a9dbc547214eb25ec8de9b29123fc331a99823166424c5436bb388199d268e",
+      "bytes": 2182
+    },
+    {
+      "file": "SeamlessControlsSmoke.cs",
+      "sha256": "fe80a91681c47f524225896e8fec252ae98dbdd91069d43d57707e9ac4f0ce24",
+      "bytes": 6940
+    },
+    {
+      "file": "SeamlessDefaultsSmoke.cs",
+      "sha256": "7233803e0c57e2a792686aa29f9d4c418c4eaa5ff8ca868aa7600f5cd61dc78c",
+      "bytes": 5651
+    },
+    {
+      "file": "SeamlessEmptyEdgesSmoke.cs",
+      "sha256": "3e354d06e96b3c7b9c7b4e1172ae23a9cd754974f2d22c065f112f8982311931",
+      "bytes": 7646
+    },
+    {
+      "file": "SeamlessOptimization.md",
+      "sha256": "c9eaa43d1105b2a7618a760bf48a2a7643a69a92747facc9c15262af0bb92dcf",
+      "bytes": 5698
+    },
+    {
+      "file": "SeamlessOptimizationSmoke.cs",
+      "sha256": "0119e5ab42d7c0c8a90dc5b494a57f3efcf03bac0357e9ca0c396657ecadd5cc",
+      "bytes": 16027
+    },
+    {
+      "file": "SeamlessRelease.md",
+      "sha256": "bcd2955629fc3dbc01d178cfed3737ea81eb5d5bfdedc850d2f50ef58bac7c74",
+      "bytes": 6715
+    },
+    {
+      "file": "SeamlessReleaseSmoke.cs",
+      "sha256": "ad18190672ad9e5403c86815ce631f32ce652018b8a3c911d6da574da5a54c4c",
+      "bytes": 16476
+    },
+    {
+      "file": "SeamlessUIPolish.md",
+      "sha256": "ccfe7f6c5fc802f8670cc7abe4054ab4741485700ffbb2dd56c1d9321d5ba038",
+      "bytes": 2969
+    },
+    {
+      "file": "SeamlessUIPolishSmoke.cs",
+      "sha256": "4813d30f9cea1eaafa90b185240aa72f0e9b8f49d751448dbee4e8ab9483c295",
+      "bytes": 12634
+    },
+    {
+      "file": "ShaderFX0125PresetSmoke.cs",
+      "sha256": "4601c436443180a4aaea662f393d759464915aaa077212c37ff0d683170319ba",
+      "bytes": 7780
+    },
+    {
+      "file": "ShaderFXActivitySmoke.cs",
+      "sha256": "033988dd1811de856f4274ec2ea682a1cf766f2fae1bb3e6cbc13f28ccd9e853",
+      "bytes": 2577
+    },
+    {
+      "file": "ShaderFXCatalog.md",
+      "sha256": "793af7998e2cff70ec903e625f84c35f0148dae6a1294744817c5e6d7b48e836",
+      "bytes": 3317
+    },
+    {
+      "file": "ShaderFXCatalogPerformanceSmoke.cs",
+      "sha256": "7534a78c3ecbca00d4b700a8fb0016f43902f1fea36a45f7be125173dc245660",
+      "bytes": 2549
+    },
+    {
+      "file": "ShaderFXCatalogSmoke.cs",
+      "sha256": "77864a2e8f412bc5131c2c7f29ce4dca4ced2d4d1f6a5a62682594ba00f7b3bb",
+      "bytes": 10712
+    },
+    {
+      "file": "ShaderFXClipboard.test.mjs",
+      "sha256": "542e24c55c053634d69c48023acc3c034f5f2b11b0a62441b7c7432fe50bec41",
+      "bytes": 4014
+    },
+    {
+      "file": "ShaderFXConditionalParametersSmoke.cs",
+      "sha256": "d609bac19b17de699061bd222925f9db64743fa05e0daa8406d0b64622bb2ae6",
+      "bytes": 22449
+    },
+    {
+      "file": "ShaderFXControlSmoke.cs",
+      "sha256": "c3f36693f2f70a9f0e8ecfba36eca3a2c88d119e0b345d9322eca7586f4c0042",
+      "bytes": 9604
+    },
+    {
+      "file": "ShaderFXCurveSmoke.cs",
+      "sha256": "f43d80655b2e7e26cf0e84d0b89a50b907c056022f0c0cd242a3b2c400d344b3",
+      "bytes": 8235
+    },
+    {
+      "file": "ShaderFXDocumentDirtySmoke.cs",
+      "sha256": "a8f193896a7d0466051193f63948b08a28d6a9bfb55803c694b81221085fc821",
+      "bytes": 14078
+    },
+    {
+      "file": "ShaderFXDragSmoke.cs",
+      "sha256": "00e4e24805317ac6980c1f0f6af9ca9af1bb619f10053a01e3c143405c3fb750",
+      "bytes": 5872
+    },
+    {
+      "file": "ShaderFXExternalCode.test.mjs",
+      "sha256": "43c2d5d7db16065b9131f7c501cc1899291439fa2574a7e174db15d2ee0de57a",
+      "bytes": 6462
+    },
+    {
+      "file": "ShaderFXExternalCodeCacheSmoke.cs",
+      "sha256": "f6125fe5d7e0f8769746b929534481228b046d7838f69c3c6235d8fd36c54bfe",
+      "bytes": 4932
+    },
+    {
+      "file": "ShaderFXExternalCodeSmoke.cs",
+      "sha256": "fdc74e3fe7d6a2cb6679e4f1ecfb9097da850c7e90201d57b366abcce1fb4ddf",
+      "bytes": 5390
+    },
+    {
+      "file": "ShaderFXFormerlySerializedAsSmoke.cs",
+      "sha256": "e1dacffba04daddbbd6b5daa4c8129926d925c23a0997c7cc3f6260fdade08b5",
+      "bytes": 5601
+    },
+    {
+      "file": "ShaderFXGroupSmoke.cs",
+      "sha256": "f3e0f7e11d0b01a8ce6e2a2784c1c17612e088cb89e556dde9a93ec979a54b42",
+      "bytes": 22588
+    },
+    {
+      "file": "ShaderFXLocalCoordinatesSmoke.cs",
+      "sha256": "3797555c1228042760bb077c301e6c201f7fad3b67760abc7cd660a31f76db9d",
+      "bytes": 3088
+    },
+    {
+      "file": "ShaderFXProjectiveSmoke.cs",
+      "sha256": "aca0ed225d7cbeea6b15245963b837d218bbfa908aad0f3e86734adc83c76faf",
+      "bytes": 9687
+    },
+    {
+      "file": "ShaderFXSelfTextureSmoke.cs",
+      "sha256": "e07f15bab89b6d97eb4971609eca2d1a0615ae0477d01212a565a00f275e76b8",
+      "bytes": 3625
+    },
+    {
+      "file": "ShaderFXTextureLayersSmoke.cs",
+      "sha256": "291470f1a31d8f68a4aaf8537a79b8a403d8825e1edc387f0373424a98f9d14e",
+      "bytes": 3476
+    },
+    {
+      "file": "ShaderFXTiffCatalogSmoke.cs",
+      "sha256": "3e205484ae6fd7e52702c4fc0b3c45d19fcdc022f4da82259500f2c01c1123a8",
+      "bytes": 6193
+    },
+    {
+      "file": "ShaderFXVectorsSmoke.cs",
+      "sha256": "923ce9ebaadd4779398fc66ba0f70c6842f6dfa1b4e0927197c0126801592914",
+      "bytes": 6864
+    },
+    {
+      "file": "ShaderFXVSCodeGrammar.test.mjs",
+      "sha256": "e68c6b4eceb3cab85c618044447e7747e6e59c4b218677e88299c91852296c0d",
+      "bytes": 4568
+    },
+    {
+      "file": "ShaderFXVSCodeMetadata.cases.json",
+      "sha256": "74be1ac8ead5c24b46e214f034adf5ee0d8ae231630a637a807dc46654793d4f",
+      "bytes": 18714
+    },
+    {
+      "file": "ShaderFXVSCodeMetadata.test.mjs",
+      "sha256": "d498a454c8654be693523ac33de0a54fd64879e20143c4173cbb615451a55630",
+      "bytes": 3022
+    },
+    {
+      "file": "ShaderFXVSCodeMetadataSmoke.cs",
+      "sha256": "0d5bb65cc53221a93e5d3adcf2c851fbd737ec8709f133da7a1a5903d2031234",
+      "bytes": 2259
+    },
+    {
+      "file": "ShaderFXVSCodeSnippets.test.mjs",
+      "sha256": "c503f184823bb3772368a00584f4e93d691d69521d60bbe4973db068017cdd9c",
+      "bytes": 2920
+    },
+    {
+      "file": "ShaderProcessorSmoke.cs",
+      "sha256": "cbb4e49aec354608439ed93b5569f4c92021f70fc64e614e3c509cc4a1ce91da",
+      "bytes": 5451
+    },
+    {
+      "file": "ShaderProcessorVisibility.test.mjs",
+      "sha256": "15bd2714e93cf391fe27c6b9ae086da948b87a0d26823bf1f3c10a02d1481dab",
+      "bytes": 1613
+    },
+    {
+      "file": "Shape.test.mjs",
+      "sha256": "8f534d1ec5b0e4c4caf55973aaf08800ef407bae9b0e73e42040135af7941b28",
+      "bytes": 4190
+    },
+    {
+      "file": "ShapeCorners.test.mjs",
+      "sha256": "efcfdf8d2ef1ef7540df42dc3d43b3b45b17233f52746cafe6710175d2e41352",
+      "bytes": 2997
+    },
+    {
+      "file": "ShapeFeatherSmoke.cs",
+      "sha256": "53dd582b901e7c7f184d9518b9e4fa65051f79ae3eb39cfae63964c89a68738a",
+      "bytes": 11329
+    },
+    {
+      "file": "ShapeNamingSmoke.cs",
+      "sha256": "87eb7c42b7baba693b052a067425bd7ee8189c30ccd364b13d1f39ba27968ad7",
+      "bytes": 3098
+    },
+    {
+      "file": "ShapePicker.test.mjs",
+      "sha256": "5e1d679449fd15f2b69a415f6beec9ad2c9e692ca19344b668b578036409958d",
+      "bytes": 3762
+    },
+    {
+      "file": "ShapeSmoke.cs",
+      "sha256": "e7721b5be05c1b0c24ae1d06a81d4fda82c0f4cb23a5187cdf67c8735d5e99fa",
+      "bytes": 8399
+    },
+    {
+      "file": "SharedPresetLibraries.md",
+      "sha256": "659d33616d8f9ae253a503c5863668a8c63fe8a7ab0ce9b50f16af853fc46f48",
+      "bytes": 1498
+    },
+    {
+      "file": "SharedPresetLibrariesSmoke.cs",
+      "sha256": "f66c3f97777bbff8c6ec7eba1172d691f058d09f27d0d682d738b12dc1979db5",
+      "bytes": 12061
+    },
+    {
+      "file": "SignalFX.test.mjs",
+      "sha256": "4b6c44495ffca0fefa578837e55b42809754322e149b1908b9ddbac081920f68",
+      "bytes": 2021
+    },
+    {
+      "file": "SkillWorkflowSmoke.cs",
+      "sha256": "f27a45f9019bb795bcdb5b8f3e9db55fcfdb4f72ea9fc033e1b7eb5bb5edcdf7",
+      "bytes": 10399
+    },
+    {
+      "file": "SmallDocumentSaveProbe.cs",
+      "sha256": "6861148234a16324879e5f04212212c2b60a797ec4cfae4d8cde12b26d1dc845",
+      "bytes": 13648
+    },
+    {
+      "file": "SoftRangeSmoke.cs",
+      "sha256": "e041676a28347469901fe197f032f30e345d7d356f3893f97d9bef486cbd72cc",
+      "bytes": 7756
+    },
+    {
+      "file": "SwizzleMath.test.mjs",
+      "sha256": "3ba5ba5004d2c5d5b41fa6ebe8e3615be0e8a198f1dba67dd15ca2e230ddf4b9",
+      "bytes": 2521
+    },
+    {
+      "file": "SwizzleSmoke.cs",
+      "sha256": "6b33142dce1ce8d3c417961abcf17a509ac93693728122822af0493558ed20c6",
+      "bytes": 6968
+    },
+    {
+      "file": "TestRunner.results.json",
+      "sha256": "6c4d4e3c36134e11903ea0f17040f051d4f74ca8fbbcfde442ed9431642422ca",
+      "bytes": 80226
+    },
+    {
+      "file": "TestRunner.ru.md",
+      "sha256": "247e106f46963f2307cd08b39bb5bd3e6242e75324378515fdaf6e169534bdc6",
+      "bytes": 8026
+    },
+    {
+      "file": "TestRunner.test.mjs",
+      "sha256": "14b0a02e549ad67c1a37c3ea8d720deeac53b19808ce9112641d89a040e538d7",
+      "bytes": 9567
+    },
+    {
+      "file": "TestRunnerLive.test.mjs",
+      "sha256": "5c11ce118a9fa45ad0398840abe709dac81e3d94493c40df9e9b9878cd5da900",
+      "bytes": 2136
+    },
+    {
+      "file": "TestSuiteAudit.results.json",
+      "sha256": "e839aae939b481df1bb2984558128f0e6158ce19aaa98382451e9e6adaaec364",
+      "bytes": 514114
+    },
+    {
+      "file": "TestSuiteAudit.ru.md",
+      "sha256": "90327a61cd3d71410bbe7a9deb11945dcfd84963ccceaa1ce4c7c663fb0c396c",
+      "bytes": 18623
+    },
+    {
+      "file": "TiffAgentApiSmoke.cs",
+      "sha256": "88dc6295792ed062763841e81b89959c871b88a44c41c4b16443919444a2c5dd",
+      "bytes": 5221
+    },
+    {
+      "file": "TiffAgentDiagnosticsSmoke.cs",
+      "sha256": "4b719b0af38defd576739438d071d5819adab28bcdd6939c21bbddb62579dffc",
+      "bytes": 3308
+    },
+    {
+      "file": "TiffCompactReferenceSmoke.cs",
+      "sha256": "40a0a1ec71fb88454a7668ad323c0400a829f8ff909a6ee29d26d0f1ea858abc",
+      "bytes": 3320
+    },
+    {
+      "file": "TiffLiveSmoke.cs",
+      "sha256": "38eeffa4e72686a7ebede0608e11ac3583d02652938e8c4f3b0f710b9ddb244f",
+      "bytes": 8031
+    },
+    {
+      "file": "TiledCanvasSmoke.cs",
+      "sha256": "e483bd757cb04abcee8ebeed5c73cf8e05a2ebad7316b2e96ed7b61c5206ddfe",
+      "bytes": 8187
+    },
+    {
+      "file": "TilingSmoke.cs",
+      "sha256": "dea39c40bc1b8fe1563b95c024ea610cee8dcfdcebb928f556f88316313507e7",
+      "bytes": 3294
+    },
+    {
+      "file": "ToolIconCompatibilitySmoke.cs",
+      "sha256": "69b9dea267e7ebbdd6ce2bf88891157936915f07b22cec583e841657bb096e53",
+      "bytes": 3183
+    },
+    {
+      "file": "TwoChoiceDropdownSmoke.cs",
+      "sha256": "a9dc5b6c5d70ed67a5442a63c1e1e1fad2389a520ec09c28fa5bd63cb9d9fc23",
+      "bytes": 15295
+    },
+    {
+      "file": "UiRefactor.md",
+      "sha256": "307c2499e4157fbb162489659ef633b61100dd792ed014ddc2f94b91104e9d11",
+      "bytes": 1825
+    },
+    {
+      "file": "UiRefactor.test.mjs",
+      "sha256": "b58b4984b89cd1361ecb0c071be6e0619884ea26a8b0d94b877cd5175c3cad10",
+      "bytes": 5169
+    },
+    {
+      "file": "UIRefreshSmoke.cs",
+      "sha256": "390d9d3cd0470b7fac07a99bb1815494adeccf28c46795c6aff0ea521c835ae4",
+      "bytes": 8328
+    },
+    {
+      "file": "UnifiedLightingSmoke.cs",
+      "sha256": "5d0b6f7e229f3b3d58fe0aa968f08e3420a894c06f3b1be88f99f6ab1b378816",
+      "bytes": 4615
+    },
+    {
+      "file": "UserSettingsCleanup.test.mjs",
+      "sha256": "eba15e3e20391d9b6a5663165b8f86a13bc50d1f25630abfe69b64e0f6e31f0f",
+      "bytes": 2112
+    },
+    {
+      "file": "UserSettingsCleanupSmoke.cs",
+      "sha256": "4e8089fe5bf6e83cc38ea820f391bc482a4377cf3173724be9d514cdb201c59c",
+      "bytes": 12244
+    },
+    {
+      "file": "UssCascadeBaseline.json",
+      "sha256": "6735559bf15c9ef01dcad7df0025de0cc0b3b0ebec041f31eb361a79e4c91b8b",
+      "bytes": 6492
+    },
+    {
+      "file": "UssCascadeSnapshot.mjs",
+      "sha256": "5b1fb7d3a3c3be28eaa94117d68ea59f56adf226a5e13800c4ae3baa38f828ef",
+      "bytes": 2060
+    },
+    {
+      "file": "UvIslands.md",
+      "sha256": "6574d58b423c18ff4fd6719972cdc5caa57a29f6cfcd397f8833af49eca7d432",
+      "bytes": 2236
+    },
+    {
+      "file": "UvIslands.test.mjs",
+      "sha256": "64c9ed40acc24dc1e30b0724052c1f009895ada439fc86695f7b0de1ccd2408e",
+      "bytes": 2299
+    },
+    {
+      "file": "UvIslandsSmoke.cs",
+      "sha256": "b314bda7758e96db6db1ea8aa7054aaaf352a04760507ee9302495791d33741b",
+      "bytes": 8791
+    },
+    {
+      "file": "UvMeshSourceSmoke.cs",
+      "sha256": "a586cccc38d96d4ac1b1bd3441f007361b6f575b826389339ba6a0d8fd1c0829",
+      "bytes": 1644
+    },
+    {
+      "file": "UvUiCapture.cs",
+      "sha256": "a6928576119e792ca02cd614376f8b88a921261eb1056b70b5a80fade7b55623",
+      "bytes": 879
+    },
+    {
+      "file": "UvUiSetup.cs",
+      "sha256": "886936ac06bec4d5696c0c3867be46d1bdc25dbdcb75afadad7e1ca84c754ccc",
+      "bytes": 2687
+    },
+    {
+      "file": "UvUiSmoke.cs",
+      "sha256": "0f6614a18b830e650526933a13bd032d330f70e08a9de3550765c3c953e2b0be",
+      "bytes": 5107
+    },
+    {
+      "file": "WhimTexGradientContractSmoke.cs",
+      "sha256": "36c7773e13ec9db37b5e00ae14e35066468f018623f6e7ffd38be6faa7d06b75",
+      "bytes": 10419
+    },
+    {
+      "file": "WhimTexGradientIntegrationSmoke.cs",
+      "sha256": "e02149528d2ffcba6c60182836a05a8610a5cf3da5c5ed0cbb33cdbae4f97841",
+      "bytes": 6558
+    },
+    {
+      "file": "WhimTexGradientMidpointSmoke.cs",
+      "sha256": "fd560b185d843a5a0d23bd76420eb3c546e599d313bdcc5ed575f76dceffc02f",
+      "bytes": 2033
+    },
+    {
+      "file": "WhimTexGradientPipelineSmoke.cs",
+      "sha256": "cf684125a2688f31edfa3f4c5a0b6bdf3677e924852a3b066eb93c620a526a3e",
+      "bytes": 4131
+    },
+    {
+      "file": "WhimTexGradientProductSmoke.cs",
+      "sha256": "32535eb66c44e3dcbac36575c2081e99986da5e55f32533afd5a3cbff4badc2d",
+      "bytes": 2988
+    },
+    {
+      "file": "WhimTexGradientReloadSmoke.cs",
+      "sha256": "71482446b6cb46cd730ebc165b1d68a20c588866b6179da2f88fdd28e74df980",
+      "bytes": 2767
+    },
+    {
+      "file": "WhimTexGradientRetiredFieldSmoke.cs",
+      "sha256": "66dfc277f9ccb995729c7ef3c7a9f24dac6954aa64e7f59847b525f0f864884b",
+      "bytes": 9353
+    },
+    {
+      "file": "WhimTexGradientRoundedSmoke.cs",
+      "sha256": "e442cb832a38ecd8500173778bf6cf0e0a2d7e850fcc7c7f6b2733e625ec9113",
+      "bytes": 4521
+    },
+    {
+      "file": "WhimTexGradientSmoke.cs",
+      "sha256": "3a293c102e239b6e178e2682f532f94a47e4962efb3be1ef2fb4158bc6c80626",
+      "bytes": 3868
+    },
+    {
+      "file": "WhimTexGradientWindowSmoke.cs",
+      "sha256": "e45f710933b738009e202798fe921b3011448e77c34604860cd885677736df1a",
+      "bytes": 4651
+    }
+  ]
+}

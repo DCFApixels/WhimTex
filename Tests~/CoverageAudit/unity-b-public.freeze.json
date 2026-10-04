@@ -1,0 +1,1994 @@
+{
+  "version": 1,
+  "scope": "UnityB owned-source freeze receipt; raw source bytes and explicit bounded read-only ReloadOrchestration.mjs status-timeout grant. No C# shared helpers/global/catalog/registry/batch edits. Native evidence is parent-owned, not agent execution or full equivalence.",
+  "recordedAtUtc": "2026-10-04T15:49:41.534Z",
+  "root": "D:/DCFA/Projects/Test6.6/Packages/com.dcfapixels.whimtex",
+  "sourceStatus": "frozen",
+  "runtimeStatus": "pending-parent-validation",
+  "unityExecuted": false,
+  "archive": {
+    "fileCount": 466,
+    "allRawHashesAndLengthsVerified": true,
+    "manifestFile": "Tests~/legacy-manifest.json",
+    "manifestSha256": "c70816ea4220d9ebe08d4d2d087d7e5297bd943405bb3297e24f4b69756a6194"
+  },
+  "ownedFiles": [
+    {
+      "file": "Tests~/Cases/UnityB/DocumentBurstHashTests.cs",
+      "sha256": "afefff02aeaf14201fa4911c6df4a3d2128203ced7203c7d4d3a863fa4bd13d8"
+    },
+    {
+      "file": "Tests~/Cases/UnityB/DocumentJsonApiTests.cs",
+      "sha256": "088c400bb822c11b857e8b044a446651995fe0415853f972bfcdbebf3759db64"
+    },
+    {
+      "file": "Tests~/Cases/UnityB/DocumentJsonContractTests.cs",
+      "sha256": "61f79b4c3554736f888749823226c93c38cb0f340d8da6bc0c562dd3f6e7664d"
+    },
+    {
+      "file": "Tests~/Cases/UnityB/DocumentPerformanceTests.cs",
+      "sha256": "dfe7fe864a896314066781ea4adedc5f3c3960b1d5bf27fa7e8b54d88438defa"
+    },
+    {
+      "file": "Tests~/Cases/UnityB/DocumentSaveCostTests.cs",
+      "sha256": "e5136472f813d7a86632714e8a9a62b922ec70ba712490e1a6060fc8f8b7e919"
+    },
+    {
+      "file": "Tests~/Cases/UnityB/ExportWindowTests.cs",
+      "sha256": "8e2f090b7501c684206b07eadd402ea5eeab01f5b42cef9a70f94a368f6768cf"
+    },
+    {
+      "file": "Tests~/Cases/UnityB/FillPatternTests.cs",
+      "sha256": "973e6e2e88ac2ccea98254cefa58d6d175974b44c10392662b70c133393ed8ca"
+    },
+    {
+      "file": "Tests~/Cases/UnityB/GradientHistoryTests.cs",
+      "sha256": "17e10ef6f16d82b331ebaf478691a8d8362fd84d9d9686c8586b50a3796a53ff"
+    },
+    {
+      "file": "Tests~/Cases/UnityB/HealingBrushTests.cs",
+      "sha256": "c39c3578b8d93816bc1dcd777a4b3c00201b42fdf289c3b3c2dce8318106f589"
+    },
+    {
+      "file": "Tests~/Cases/UnityB/HealingNoiseSeamDiagnosticTests.cs",
+      "sha256": "0b2782f7dd180720ed51004e8ab8ecb3bc1e8f58398a798d6e7470022201b766"
+    },
+    {
+      "file": "Tests~/Cases/UnityB/HealingPerimeterTests.cs",
+      "sha256": "324dd8d01db4af952be8d16f439a83eb0f30368bba08c2ee566a4b43fe984dbc"
+    },
+    {
+      "file": "Tests~/Cases/UnityB/HistogramArithmeticAuditTests.cs",
+      "sha256": "728423f3e772b0e86562b9b5bcf5063bf811817329b2452652b477248993d795"
+    },
+    {
+      "file": "Tests~/Cases/UnityB/HistogramSeamlessTests.cs",
+      "sha256": "8de20a8eeec96fa981bd16b74916dea0681368c5ba161142442da94bdd4d5596"
+    }
+  ],
+  "affectedScenarioIds": [
+    "document-burst-hash-probe-v2",
+    "document-json-api-smoke-v2",
+    "document-json-contract-smoke-v2",
+    "document-performance-probe-ldr-random-v2",
+    "document-performance-probe-hdr-random-v2",
+    "document-performance-probe-ldr-constant-v2",
+    "document-performance-probe-hdr-constant-v2",
+    "document-save-cost-probe-hashes-v2",
+    "document-save-cost-probe-fast-fingerprint-v2",
+    "document-save-cost-probe-tiff-v2",
+    "document-save-cost-probe-tiff-2048-v2",
+    "document-save-cost-probe-container-1-opaque-v2",
+    "document-save-cost-probe-container-1-alpha-v2",
+    "document-save-cost-probe-container-2-opaque-v2",
+    "document-save-cost-probe-container-2-alpha-v2",
+    "document-save-cost-probe-container-3-opaque-v2",
+    "document-save-cost-probe-container-3-alpha-v2",
+    "document-save-cost-probe-container-4-opaque-v2",
+    "document-save-cost-probe-container-4-alpha-v2",
+    "document-save-cost-probe-cache-safety-v2",
+    "export-window-smoke-v2",
+    "fill-pattern-smoke-v2",
+    "gradient-history-smoke-picker-recency-v2",
+    "gradient-history-smoke-history-v2",
+    "healing-brush-smoke-v2",
+    "healing-noise-seam-diagnostic-v2",
+    "healing-perimeter-smoke-v2",
+    "histogram-arithmetic-audit-v2",
+    "histogram-arithmetic-audit-main-v2",
+    "histogram-seamless-smoke-v2"
+  ],
+  "supportSnapshots": [
+    {
+      "file": "Tests~/Framework/TestApi.cs",
+      "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
+      "ownership": "parent; read-only fingerprint, rerun must bind current input bundle"
+    },
+    {
+      "file": "Tests~/Cases/UnityB/UnityBSupport.cs",
+      "sha256": "5107b85a00b8456f0cddc81247698cc824773dc2f7ece6f1d5a8c42c246ae486",
+      "ownership": "parent; read-only fingerprint, rerun must bind current input bundle"
+    }
+  ],
+  "audit": {
+    "file": "Tests~/CoverageAudit/unity-b-public.json",
+    "sha256": "1af98d417119169965f061123fa6b62fb55b327ac5dcb713db50577a2805aacf",
+    "rowCount": 75,
+    "runtimeStatus": "pending-parent-validation",
+    "parentOverrideRowsWithChangedSources": []
+  },
+  "proposal": {
+    "file": "Tests~/CoverageAudit/unity-b-public.proposal.json",
+    "sha256": "a481b2ef83965f3428ed4bf4a4340d09c469a4a374b643a61593c7d9c6bd330e",
+    "originalTenPreserved": true,
+    "appendScenarioIds": [
+      "export-window-visual-sequence-v2",
+      "gradient-history-capture-v2",
+      "histogram-seamless-preview-v2",
+      "histogram-seamless-benchmark-v2",
+      "histogram-seamless-reference-fixtures-v2"
+    ],
+    "requiredExistingEffectsUpdates": [
+      {
+        "file": "Tests~/Cases/UnityB/DocumentBurstHashTests.cs",
+        "scenarioIds": [
+          "document-burst-hash-probe-v2"
+        ],
+        "addEffects": [
+          "temp-files"
+        ],
+        "reason": "Actual diagnostic JSON/PNG/text/binary evidence now retained by parent-owned EvidencePath; transient resources still cleaned."
+      },
+      {
+        "file": "Tests~/Cases/UnityB/DocumentPerformanceTests.cs",
+        "scenarioIds": [
+          "document-performance-probe-ldr-random-v2",
+          "document-performance-probe-hdr-random-v2",
+          "document-performance-probe-ldr-constant-v2",
+          "document-performance-probe-hdr-constant-v2"
+        ],
+        "addEffects": [
+          "temp-files"
+        ],
+        "reason": "Actual diagnostic JSON/PNG/text/binary evidence now retained by parent-owned EvidencePath; transient resources still cleaned."
+      },
+      {
+        "file": "Tests~/Cases/UnityB/ExportWindowTests.cs",
+        "scenarioIds": [
+          "export-window-smoke-v2"
+        ],
+        "addEffects": [
+          "temp-files"
+        ],
+        "reason": "Actual diagnostic JSON/PNG/text/binary evidence now retained by parent-owned EvidencePath; transient resources still cleaned."
+      },
+      {
+        "file": "Tests~/Cases/UnityB/FillPatternTests.cs",
+        "scenarioIds": [
+          "fill-pattern-smoke-v2"
+        ],
+        "addEffects": [
+          "temp-files"
+        ],
+        "reason": "Actual diagnostic JSON/PNG/text/binary evidence now retained by parent-owned EvidencePath; transient resources still cleaned."
+      },
+      {
+        "file": "Tests~/Cases/UnityB/HealingBrushTests.cs",
+        "scenarioIds": [
+          "healing-brush-smoke-v2"
+        ],
+        "addEffects": [
+          "temp-files"
+        ],
+        "reason": "Actual diagnostic JSON/PNG/text/binary evidence now retained by parent-owned EvidencePath; transient resources still cleaned."
+      },
+      {
+        "file": "Tests~/Cases/UnityB/HealingNoiseSeamDiagnosticTests.cs",
+        "scenarioIds": [
+          "healing-noise-seam-diagnostic-v2"
+        ],
+        "addEffects": [
+          "temp-files"
+        ],
+        "reason": "Actual diagnostic JSON/PNG/text/binary evidence now retained by parent-owned EvidencePath; transient resources still cleaned."
+      },
+      {
+        "file": "Tests~/Cases/UnityB/HealingPerimeterTests.cs",
+        "scenarioIds": [
+          "healing-perimeter-smoke-v2"
+        ],
+        "addEffects": [
+          "temp-files"
+        ],
+        "reason": "Actual diagnostic JSON/PNG/text/binary evidence now retained by parent-owned EvidencePath; transient resources still cleaned."
+      }
+    ],
+    "original15Preserved": true,
+    "parentReportedAll15Integrated": true,
+    "noDuplicateRegistrationNeeded": true
+  },
+  "manualWorkflows": [
+    {
+      "legacyFile": "ExportWindowSmoke.cs",
+      "guidPolicy": "New N-format GUID, keep same GUID across all steps. Never reuse earlier journal.",
+      "steps": [
+        "ExportWindowTests.ShowVisual(guid)",
+        "Inspect/capture actual JSON visual while window remains open",
+        "ExportWindowTests.ShowExrVisual(guid)",
+        "Inspect/capture actual EXR visual while window remains open",
+        "ExportWindowTests.CloseVisual(guid)"
+      ],
+      "prerequisites": "Idle graphical Editor. No pre-existing window acquired or closed. VisualSequence is not a screenshot oracle.",
+      "recovery": "Final RecoverVisual is general strict-N journal recovery only: five nonempty/distinct recorded identities, original-window exclusion snapshot/focus validation, public all-Object identity scan. All five absent -> erase only unchanged exact journal without object mutations. Otherwise require exact owned owner/document/window, single Drawing-held recorded nonasset pixels reference before name restoration and strict CloseVisual. No historical hardcoded run/IDs, Post FX probe/retention/window-detachment bypass remains. VisualSequence retains primary+cleanup AggregateException and acquired-only serializable recovery envelope; final native validation pending parent."
+    },
+    {
+      "legacyFile": "GradientHistorySmoke.cs",
+      "guidPolicy": "New N-format GUID; same GUID for setup/capture/poll/cleanup; do not call generic Run cleanup between phases.",
+      "steps": [
+        "GradientHistoryTests.Setup(guid)",
+        "Wait actual layout/repaint",
+        "GradientHistoryTests.Capture(guid)",
+        "GradientHistoryTests.PollCapture(guid) until terminal; inspect retained actual PNG",
+        "GradientHistoryTests.Cleanup(guid)"
+      ],
+      "prerequisites": "No user picker/gradient windows, supported visible graphical framebuffer. No PNG/layout golden specified; never fabricate one.",
+      "recovery": "Cleanup validates only journal-owned resources. PNG remains after successful cleanup."
+    }
+  ],
+  "currentSources": [
+    {
+      "legacyFile": "DocumentBurstHashProbe.cs",
+      "newFile": "Tests~/Cases/UnityB/DocumentBurstHashTests.cs",
+      "scenarioIds": [
+        "document-burst-hash-probe-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "52d9e4d9f205653ed1f5e0ce239377f26f79c17252b822a95fda7f93beec29e5",
+        "replacement": "afefff02aeaf14201fa4911c6df4a3d2128203ced7203c7d4d3a863fa4bd13d8"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "DocumentBurstIntegritySmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/DocumentBurstIntegrityTests.cs",
+      "scenarioIds": [
+        "document-burst-integrity-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "193025a191d10031014b465519c254a835b50c32381d4e1ef901da6b6bf3e272",
+        "replacement": "c1b54dfe1de2cf3ffac8b7bff15c7acd395a0a24d9061926e8fbbded2363ef3d"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "DocumentJsonApiSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/DocumentJsonApiTests.cs",
+      "scenarioIds": [
+        "document-json-api-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "9e7e839cec2ad4b2fa33a6aacdd57757abc72f43a03dde91c92b6ec5cb30936e",
+        "replacement": "088c400bb822c11b857e8b044a446651995fe0415853f972bfcdbebf3759db64"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "DocumentJsonBrokenFxSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/DocumentJsonBrokenFxTests.cs",
+      "scenarioIds": [
+        "document-json-broken-fx-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "667c109a25b1eda9c9b55431e137b35774ba29cd02fe36f3cf8962ce23a3a984",
+        "replacement": "9795df0d14dd61cc1e27e07ebcb76e969f2da1b0f2aa2b9c33f73f87dc8cf3df"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "DocumentJsonContractSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/DocumentJsonContractTests.cs",
+      "scenarioIds": [
+        "document-json-contract-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "28bfeb62950652ebb488a4b2c6d1b4771d2e4024b7a2744777a81d65e45b7267",
+        "replacement": "61f79b4c3554736f888749823226c93c38cb0f340d8da6bc0c562dd3f6e7664d"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "DocumentJsonOperationsSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/DocumentJsonOperationsTests.cs",
+      "scenarioIds": [
+        "document-json-operations-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "d4c3caf40d68e42ef9277c8c0790590134e593efadcb97afadc28dde0436c8e9",
+        "replacement": "82ee4f54483017514321244c64b49043d72ce494e0643cbf1fd3995849b40727"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "DocumentJsonOptionalSettingsSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/DocumentJsonOptionalSettingsTests.cs",
+      "scenarioIds": [
+        "document-json-optional-settings-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "b3df58d0a03a6ce2147e582596a9a8dba3ac61f7aba4b5df7784bf6ef8379a8d",
+        "replacement": "9daabd62cac61ffa2753649ec4995a62f436ba0876ca387087c4b43b9984009f"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "DocumentJsonSafetySmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/DocumentJsonSafetyTests.cs",
+      "scenarioIds": [
+        "document-json-safety-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "5be8de6ce1712afd9a63e02affd1f33abb7c05f329b93f36da252de55afa7b5a",
+        "replacement": "a5e148905011aeca17bb8e54fef98be4ad9c1fe85eccaa9ff0674270fbb353ad"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "DocumentJsonSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/DocumentJsonTests.cs",
+      "scenarioIds": [
+        "document-json-smoke-v2",
+        "document-json-smoke-range-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "1ba2ea30e27d0db0f5b9652f4e1ea0218c3980637c5e0648cf3fd98db7455520",
+        "replacement": "089ebe9007ce61be3920033a38edcfbb115286e2c815b86f0de663a3f2a68f6d"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "DocumentJsonValidationSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/DocumentJsonValidationTests.cs",
+      "scenarioIds": [
+        "document-json-validation-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "f89d7be50676f74fea9e6e3748e84b595a8f7de78147da8f6046e3cf6b197de6",
+        "replacement": "7326dd853c8ce3957b58141cc0e54b295fde2174f6518fbca010ff81d18d03ab"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "DocumentLiveUpdateSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/DocumentLiveUpdateTests.cs",
+      "scenarioIds": [
+        "document-live-update-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "9373e5c69dcc06b62ea87e5b5f211039329119f1f129de8f9a8d4dc3b07a76ad",
+        "replacement": "bce9e2c80e05968c55a3ed96ee6170b74adae5c8da382bee35c86348c03d5467"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "DocumentMissingTypeSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/DocumentMissingTypeTests.cs",
+      "scenarioIds": [
+        "document-missing-type-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "f3782b63c86c02058be41b763097b0cda7d499d1e6090a0fe85b419b40aa6557",
+        "replacement": "892101cb6d31300e2fd06ae5b4e4855589b5686d318e52b67015b84d76accb95"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "DocumentOperationWaitSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/DocumentOperationWaitTests.cs",
+      "scenarioIds": [
+        "document-operation-wait-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "ed8a9907148dfa5b06ef2a08d6d342080b4c2d56da486c5a7b1898a009b05dc5",
+        "replacement": "144583f4e508c5de20d8ea5eced307191ad75f51bbdd27fa31e6c50b3e282c12"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "DocumentPayloadCoverageSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/DocumentPayloadCoverageTests.cs",
+      "scenarioIds": [
+        "document-payload-coverage-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "72cdf2620021d0e5eea4c240a9b7f79245ff06b3b291dde2d6cabc84ea7b3ff5",
+        "replacement": "8e88e137f9015c95043966aafe3ef6e64dfa2cd31b27d7708a87b33947f3bf41"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "DocumentPerformanceProbe.cs",
+      "newFile": "Tests~/Cases/UnityB/DocumentPerformanceTests.cs",
+      "scenarioIds": [
+        "document-performance-probe-ldr-random-v2",
+        "document-performance-probe-hdr-random-v2",
+        "document-performance-probe-ldr-constant-v2",
+        "document-performance-probe-hdr-constant-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "4147471b402f63fcb8ee090057400d3afb9dfd2dd0417b36f23dd902fd20db97",
+        "replacement": "dfe7fe864a896314066781ea4adedc5f3c3960b1d5bf27fa7e8b54d88438defa"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "DocumentPreparationSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/DocumentPreparationTests.cs",
+      "scenarioIds": [
+        "document-preparation-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "64419c04177a79a86cfc5503294803744172e0344df2ae6719e70b31c5c9a719",
+        "replacement": "6cc7bf57b0002747d70d08aac80a008d5ab3b900f3f7f75900fd2767dcd21179"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "DocumentProductionSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/DocumentProductionTests.cs",
+      "scenarioIds": [
+        "document-production-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "ace8fc53c2186095e30a07cc0e3c6832d46ac1bc77d412913c9419386d908947",
+        "replacement": "7e9ab638318d436a928f2ce1e1a5d211be1d51d1bd7687deb6efe82442fa3dd9"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "DocumentReleaseValidation.cs",
+      "newFile": "Tests~/Cases/UnityB/DocumentReleaseValidationTests.cs",
+      "scenarioIds": [
+        "document-release-validation-faults-v2",
+        "document-release-validation-deferred-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "37a061934e9b9571627db63ba49361cbe84d9891e572c3a7b4c63e922637ae3e",
+        "replacement": "604be7ab9e840801bd0ff92084fa7cbaa31cce8e0faed6bb820db593a3c246d5"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "DocumentReliabilitySmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/DocumentReliabilityTests.cs",
+      "scenarioIds": [
+        "document-reliability-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "7f0e1b749fb1d9dc8d0840649934ae3096b1e39bda01b821acf305d7875b4362",
+        "replacement": "45bfb70978a1b685d02d06f6173e15739997430ad2d838253a760d7bd2736f6d"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "DocumentReloadSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/DocumentReloadTests.cs",
+      "scenarioIds": [
+        "document-reload-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "bbf16650fcf49b39b53e8b1f01931d8793247cce600216e4c695ddf22b5c1848",
+        "replacement": "3caa10e4709378b23cb6ea30ca8e851e81d641150c81e78651b688f50a4b972a"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "DocumentRoundTripSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/DocumentRoundTripTests.cs",
+      "scenarioIds": [
+        "document-round-trip-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "b532a4292b976f305c0cfb7fea9facacc960dfaed11ff1e159398fe99f7596d1",
+        "replacement": "45d862ebe72504311e2e1a46f8be51406c94578d2d7f471c9597a5e1da09b733"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "DocumentSaveCacheSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/DocumentSaveCacheTests.cs",
+      "scenarioIds": [
+        "document-save-cache-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "dccf6abead6cf0592d648cf37d3f408617fc4afc85c3ac760a73615154169d46",
+        "replacement": "cea71529b4d38a2c785d6a7d6dd56c169d92ee2accd81724668263599d261cba"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "DocumentSaveCostProbe.cs",
+      "newFile": "Tests~/Cases/UnityB/DocumentSaveCostTests.cs",
+      "scenarioIds": [
+        "document-save-cost-probe-hashes-v2",
+        "document-save-cost-probe-fast-fingerprint-v2",
+        "document-save-cost-probe-tiff-v2",
+        "document-save-cost-probe-tiff-2048-v2",
+        "document-save-cost-probe-container-1-opaque-v2",
+        "document-save-cost-probe-container-1-alpha-v2",
+        "document-save-cost-probe-container-2-opaque-v2",
+        "document-save-cost-probe-container-2-alpha-v2",
+        "document-save-cost-probe-container-3-opaque-v2",
+        "document-save-cost-probe-container-3-alpha-v2",
+        "document-save-cost-probe-container-4-opaque-v2",
+        "document-save-cost-probe-container-4-alpha-v2",
+        "document-save-cost-probe-cache-safety-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "342f7ac97b89a878a0a69474378cdbff55395323015c282bbe0cfd6ba03758b7",
+        "replacement": "e5136472f813d7a86632714e8a9a62b922ec70ba712490e1a6060fc8f8b7e919"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "DocumentSaveTailProbe.cs",
+      "newFile": "Tests~/Cases/UnityB/DocumentSaveTailTests.cs",
+      "scenarioIds": [
+        "document-save-tail-probe-no-profiler-v2",
+        "document-save-tail-probe-profile-v2",
+        "document-save-tail-read-profile-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "9422a1d14848ab9b117772773c044e4f99dbb5f46180155557e5c70b96dfbc7d",
+        "replacement": "9a0f55459b6e785a9bcb104f3946a6a7092e9cd575ca3b3857c85a36595c51f6"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "DocumentStorageBoundarySmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/DocumentStorageBoundaryTests.cs",
+      "scenarioIds": [
+        "document-storage-boundary-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "eb16aa98a7e426378f23aefae894fda0e57ab092afa38154b3159d0b5bf0e265",
+        "replacement": "d90848aa99797055a2d8490da635fd06a7f9ffd6c5e268012aced40c46c486ed"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "DocumentVectorWideningSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/DocumentVectorWideningTests.cs",
+      "scenarioIds": [
+        "document-vector-widening-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "22419997b9ce235aee7cc77138e6091a84ea4062190c9eb316af9a130cb31fcc",
+        "replacement": "4fc180ec04b5e011f07a6895027cbea7be99f10c4c0d705e14b6810deafa9262"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "DrawingPatternSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/DrawingPatternTests.cs",
+      "scenarioIds": [
+        "drawing-pattern-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "b8f073344b75ac8acd54ddb31123fe46cc57c39d805fcaafcfdb9b483b698707",
+        "replacement": "ac73f2138f0407a7eeba605c30cbc6eed9e674ad72ee47868b9aa35d4d1cda08"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "DrawingReloadSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/DrawingReloadTests.cs",
+      "scenarioIds": [
+        "drawing-reload-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "eb2f23a936e8382ffce4d81002babc97264484b84b27805efcbce30a8d9e0e44",
+        "replacement": "04bd73cefb80102866b58b445a322466dfefb47dfb4dae32c6fc2a8ccb7169bb"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "DrawingResolutionSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/DrawingResolutionTests.cs",
+      "scenarioIds": [
+        "drawing-resolution-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "a7ac0fe6eae87ca507c0f72c33174639d5be4da17883407b2534d8c79d2e493e",
+        "replacement": "da3b293fd779298a1a0954b39c7f4f340f01287636f15b4a9e74b7ecc2c1bbf1"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "EdgeSelectorSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/EdgeSelectorTests.cs",
+      "scenarioIds": [
+        "edge-selector-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "64896390c8a4517fb5eeb69f244b572f0bbc097bae65ec7c1e058e6e982dfbea",
+        "replacement": "a5d896494738d92df7ac23e2823f3d332ec08599e5577331046aa8ff43e5ea46"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "EffectCacheSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/EffectCacheTests.cs",
+      "scenarioIds": [
+        "effect-cache-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "dec81d732007385d18e9cd3d086ceafc8a8359995db42dc3f0d61650134c7b68",
+        "replacement": "8b1002a135e825203090878ba002a1b8a9addc0fc1a84bcaf4de88b3a809c832"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "EffectThumbnailsSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/EffectThumbnailsTests.cs",
+      "scenarioIds": [
+        "effect-thumbnails-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "67b7a9cfe0ddab83528d55a54cd2fc9900d062abd22448055fa1f4f30a7ec500",
+        "replacement": "bad88fb31d578fc05982a4969e1caded1f8bdd14ff4e5de649c8f4b9851c064e"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "EnumFXSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/EnumFXTests.cs",
+      "scenarioIds": [
+        "enum-fx-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "bcae7487e2dc46d3fd03c0c340c61c7c85efd422a2ca544e0949f2fe8e81955d",
+        "replacement": "116b7105b1bb82cd4df26f35b5be1bf6bc9ee1a334579ee6b4af4b01d194618c"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "ExportWindowSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/ExportWindowTests.cs",
+      "scenarioIds": [
+        "export-window-smoke-v2",
+        "export-window-visual-sequence-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "f842d5fb19aa75329f474da65dc25347616b5d6d38fabdc93de4dc4fe55b4136",
+        "replacement": "8e2f090b7501c684206b07eadd402ea5eeab01f5b42cef9a70f94a368f6768cf"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "EyedropperCursorSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/EyedropperCursorTests.cs",
+      "scenarioIds": [
+        "eyedropper-cursor-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "9e9b4eefebf978ab9c63a5ecfd703125bc875984e5275b0fdd386abd76a2bb14",
+        "replacement": "bc740a50c3eb8ca13cd090670f2c2de37e813b8cf852a34e3f5daebd01e332a3"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "EyedropperSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/EyedropperTests.cs",
+      "scenarioIds": [
+        "eyedropper-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "84979a72e7c697c5c78d2e3740863981fbc0a1371cb27499d04d4cf6014bddf9",
+        "replacement": "a1830c4cb2fb003b58a063a19e37d322534e9e088e62a06d9f38b9e470329596"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "FileLayerHdrSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/FileLayerHdrTests.cs",
+      "scenarioIds": [
+        "file-layer-hdr-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "b110f656f11026754fc1b2277a4742f1825bf5c229fdd253a52c4f4427998cf4",
+        "replacement": "6fa6364feea21aaf3424c6f804fcbe25b6ad23d5099c350bd5f116e124243d32"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "FileNavigationSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/FileNavigationTests.cs",
+      "scenarioIds": [
+        "file-navigation-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "7b360b5ee61fd52ee21922f97d7f2f7308d5d640f113386aa5eada2645ab18aa",
+        "replacement": "d8801fe5ebc45cc4271c02a449ffa44017165cc3db6338c170d1057f445fc9b4"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "FillPatternSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/FillPatternTests.cs",
+      "scenarioIds": [
+        "fill-pattern-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "8a593adbb0d973ca55b2f2124ca3aba2b9e947aab9a54beb69877b72b0d3bce5",
+        "replacement": "973e6e2e88ac2ccea98254cefa58d6d175974b44c10392662b70c133393ed8ca"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "FloodFillSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/FloodFillTests.cs",
+      "scenarioIds": [
+        "flood-fill-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "5d3aa6064fb4e998cc527f17e8bd327e3a06344c3c39257e2f301a42ee4adbb7",
+        "replacement": "71126c3936b5df7c090a7bd5923ba9684ec404d940a7817cec1d73884dce498e"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "GaussianBlurApiSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/GaussianBlurApiTests.cs",
+      "scenarioIds": [
+        "gaussian-blur-api-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "c65f1e983cbb811f514679c45e25b6a208e4f8e5efec70c1178a8171d28c6ec3",
+        "replacement": "d423b1eec34621060927f4f74c58d02b46989a0b4965d463f9424a569019d770"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "GaussianBlurSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/GaussianBlurTests.cs",
+      "scenarioIds": [
+        "gaussian-blur-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "c3a15b246303f669471c396cf5e6a69f695481d6768275e92be8e0425c106e31",
+        "replacement": "86182a4aa53bf65d1978f3c6b6d1d17ce1560afd7a9813e8edf7616b633a55a0"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "GaussianSharedKernelSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/GaussianSharedKernelTests.cs",
+      "scenarioIds": [
+        "gaussian-shared-kernel-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "c6496c0f980ac851eefbbb9b082dd1ccc32e80f1818641b943c6fad38cfba280",
+        "replacement": "4a5b33eddf7707a0d5aba8b92883bc981923a675a77bd4415a59d88fcaa87603"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "GpuPreviewSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/GpuPreviewTests.cs",
+      "scenarioIds": [
+        "gpu-preview-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "34e4b8f4925202e05b364c87e41c356e2a168b02fda5e7a50a31d78ab6324f6f",
+        "replacement": "cbcc30cca68100f3e6c1a7687642f1a580b96653b23d0b1ec1f2b3dd32667b15"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "GradientCanvasSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/GradientCanvasTests.cs",
+      "scenarioIds": [
+        "gradient-canvas-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "08856b36290e939d2f0d044659c1ceec13470488cd6be64aa4c6240029e18d5e",
+        "replacement": "3bccfbafc5d8b27290e565c025c3ad35ca6b7624e1366333b41dc63622c60fed"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "GradientClipboardCleanupSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/GradientClipboardCleanupTests.cs",
+      "scenarioIds": [
+        "gradient-clipboard-cleanup-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "3e8ef211e658799688d69def55ca9ac805489679d4b77f3d358755c0f163db2c",
+        "replacement": "5b7db6bfb0217f55e70b2453893d95c1030266b83c9dc84663d3f6eb887cf0e4"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "GradientDefaultsSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/GradientDefaultsTests.cs",
+      "scenarioIds": [
+        "gradient-defaults-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "67b49e32c0cd47c7aaa19c59ea054fe8bf02b091115503e447f62351c31dd43c",
+        "replacement": "5ffbcef53fe9267d3646531b027d16948b4f2486604a2fffa02602f103b5e74e"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "GradientFXSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/GradientFXTests.cs",
+      "scenarioIds": [
+        "gradient-fx-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "cd8fa25f4ebf599d6125b2957e3a2e19e3315efc89172d96b3ae20895221806d",
+        "replacement": "c1de5e223580296a86136a008450587dc7215a267b3a8418e4c91474da17ffc8"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "GradientGpuRunSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/GradientGpuRunTests.cs",
+      "scenarioIds": [
+        "gradient-gpu-run-smoke-main-v2",
+        "gradient-gpu-run-smoke-rounded-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "edead242627aa5aa882b3c876acf494b4045c85809174fff20707bb15195d93b",
+        "replacement": "efa6976dc74dd4600ae1c9d66ee8a39d05947b26622e6eccdb507ce654ba000d"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "GradientGpuSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/GradientGpuTests.cs",
+      "scenarioIds": [
+        "gradient-gpu-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "f7b5a6391bbc4de930616a7e3c7bb75e5b4e659dee3a99aff1823038071ce123",
+        "replacement": "dacc16eaa3e7f3e7de07b4d4487621eb43ce8701a7f97595874d48ff13143eb8"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "GradientHistorySmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/GradientHistoryTests.cs",
+      "scenarioIds": [
+        "gradient-history-smoke-picker-recency-v2",
+        "gradient-history-smoke-history-v2",
+        "gradient-history-capture-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "ce90d666df872462d809c6cfbacb314ae45cd5745cd3aaf505348008f399d034",
+        "replacement": "17e10ef6f16d82b331ebaf478691a8d8362fd84d9d9686c8586b50a3796a53ff"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "GradientKeyPickerSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/GradientKeyPickerTests.cs",
+      "scenarioIds": [
+        "gradient-key-picker-smoke-focus-lifecycle-v2",
+        "gradient-key-picker-smoke-interactions-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "43778c0644e34160d2ab09e5355ac058a60448b7812a7410cf44f4141f728f2b",
+        "replacement": "87aa6bedd5c28535591c09e0ff45bd14f70bb7cbb3cfeb26a60f9b971d390ade"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "GradientLibrarySectionsSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/GradientLibrarySectionsTests.cs",
+      "scenarioIds": [
+        "gradient-library-sections-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "64fc38f6818f47689a1f8d01f9530ab76c31e40a87668245e5904f488d683f68",
+        "replacement": "3481ea7a636783220b43e02e722850bc9b44858eb950c20e9c0a2b791feb7ac9"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "GradientMapSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/GradientMapTests.cs",
+      "scenarioIds": [
+        "gradient-map-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "cc972261ef21e7db665c9c26609f990839b6ffeca59b9f435d6d5235af344192",
+        "replacement": "f9729c63a6d1108b164b18f7c920a191f97b7b692112cb74177b47af519e531b"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "GradientPresetsSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/GradientPresetsTests.cs",
+      "scenarioIds": [
+        "gradient-presets-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "032bcf8870a4e8e9cbf7f24a9573474ae4ce8ae1b4c7ec567d2b363428f0e51a",
+        "replacement": "4af2bf5ddcc33fea7413d5c358a4c92a3430261ba96db37f8fe862d878ddb4ca"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "GradientSoftFXSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/GradientSoftFXTests.cs",
+      "scenarioIds": [
+        "gradient-soft-fx-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "e6158c309875e64f883090f56fc4a792469d4116ce9ae35b54b5bf3678ccee05",
+        "replacement": "5622ea9d68a0a8066d73df4f640f2c0026e437cd804c74cc13595b8e6a19ae3b"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "GroupFXSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/GroupFXTests.cs",
+      "scenarioIds": [
+        "group-fx-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "685351c6389c13c54fbc584f903796ea81ee037aaae32dc1cea620a39896aad4",
+        "replacement": "fbd840f968531ace42325c119a9881bf93039d7bf401385a1dc1ecef2db3a345"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "GroupTransformSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/GroupTransformTests.cs",
+      "scenarioIds": [
+        "group-transform-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "f2f3d2bfe3ca587420e505118653e46c6db9e625d07e241a64fdd7660413a1cd",
+        "replacement": "88a9ef71d05f123897bb1e7c6d059eb1b167b719b1796338792247d2d8e2c004"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "GuideReloadSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/GuideReloadTests.cs",
+      "scenarioIds": [
+        "guide-reload-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "ab2026df9d116239a131e461273fa6d29fb85761f9c512be242da7bb9d27c050",
+        "replacement": "387b4e0a9aa7983739cad963ab8b25c99c876ea929f65dc7b8099763a6dd4044"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "GuideSettingsSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/GuideSettingsTests.cs",
+      "scenarioIds": [
+        "guide-settings-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "ca57ebbc2df74c8a9c1e7ac92e8aabf132464113b3078453e37a26e5d75ad198",
+        "replacement": "b3dc36795b2350e161c5f6f703a09e9987c216b4fb4b2066b9f20b6919afbb6a"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "HSVSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/HSVTests.cs",
+      "scenarioIds": [
+        "hsv-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "45a83397f5b1b9d3599746488508d359b55ebd1fb085fe22dd74d6a08d28b37b",
+        "replacement": "be59ac20dcf53b9d7546b4577c7ca08a30f5b4b49b97aaae6b8cfa4c8e1f85a0"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "HdrGroupSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/HdrGroupTests.cs",
+      "scenarioIds": [
+        "hdr-group-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "7251abd910362df72b40e6d3b2633e2dc327e31e412f49f6b44e3c2911b9ce86",
+        "replacement": "18f194ea3fb3523d747f57c29a09c1f1211da8362cc13e519648809f7f8ee008"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "HdrStageSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/HdrStageTests.cs",
+      "scenarioIds": [
+        "hdr-stage-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "b64cc8d95ec9dba7c42477b7d0bb2cf661a2cdb6d585dea54a42b82b8f8cf75a",
+        "replacement": "a0a072cc9f9d3f304340bc07e294f61fb96fa14a4d446fec715b09f321e0c28f"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "HealingBrushSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/HealingBrushTests.cs",
+      "scenarioIds": [
+        "healing-brush-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "93a7fdf5cf5a87493017fd55053cbc51454ea90900f8f3ee6d514b32fc594463",
+        "replacement": "c39c3578b8d93816bc1dcd777a4b3c00201b42fdf289c3b3c2dce8318106f589"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "HealingNoiseSeamDiagnostic.cs",
+      "newFile": "Tests~/Cases/UnityB/HealingNoiseSeamDiagnosticTests.cs",
+      "scenarioIds": [
+        "healing-noise-seam-diagnostic-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "4b219d1b65ec9a328249b28503cb8bf13e82788b5d488af7d4654ca4ce2ff2ac",
+        "replacement": "0b2782f7dd180720ed51004e8ab8ecb3bc1e8f58398a798d6e7470022201b766"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "HealingPerimeterSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/HealingPerimeterTests.cs",
+      "scenarioIds": [
+        "healing-perimeter-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "3ef2d77560a12b4812c0af95813d12e7c2b3c0ed65717f52f6a5e0bc3c32915a",
+        "replacement": "324dd8d01db4af952be8d16f439a83eb0f30368bba08c2ee566a4b43fe984dbc"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "HealingStrokeColorSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/HealingStrokeColorTests.cs",
+      "scenarioIds": [
+        "healing-stroke-color-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "053749847ec08eb8a31332ad9b60a994f588fbe0ee91b49b7f912f7746fc8b7a",
+        "replacement": "400ba69045265ce83f21ea262198176ff75635ba12da68c328847eac4fbddb6b"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "HiddenEffectInputSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/HiddenEffectInputTests.cs",
+      "scenarioIds": [
+        "hidden-effect-input-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "fa3809560e44af4811d77c2bac49078215ff17d3b5c4a80ef18074e81754db35",
+        "replacement": "95dc6158f1f59507a66ad343549c750403a032a1d4c0187f454d4c8c49a82444"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "HistogramArithmeticAudit.cs",
+      "newFile": "Tests~/Cases/UnityB/HistogramArithmeticAuditTests.cs",
+      "scenarioIds": [
+        "histogram-arithmetic-audit-v2",
+        "histogram-arithmetic-audit-main-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "7a89ca539b2db1976bc0dc8ee094276454be34473bf599e28b341a21526f286a",
+        "replacement": "728423f3e772b0e86562b9b5bcf5063bf811817329b2452652b477248993d795"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "HistogramSeamlessSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/HistogramSeamlessTests.cs",
+      "scenarioIds": [
+        "histogram-seamless-smoke-v2",
+        "histogram-seamless-preview-v2",
+        "histogram-seamless-benchmark-v2",
+        "histogram-seamless-reference-fixtures-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "4ee8904035d8dcb2228b6dff8fde92594775f6f00d335c0cf380c63f1b798223",
+        "replacement": "8de20a8eeec96fa981bd16b74916dea0681368c5ba161142442da94bdd4d5596"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "HistoryHdrFilterSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/HistoryHdrFilterTests.cs",
+      "scenarioIds": [
+        "history-hdr-filter-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "9ee6919ddfb8d0eee819535966eab02b0e2fa803d5cb1dc62eab2c4c5f801b0c",
+        "replacement": "032317fdfb79fcd4902b1a97d2e97a9ac7fa6c9eb0190f790aa3b20c3df7b1a2"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "HlslEffectDropSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/HlslEffectDropTests.cs",
+      "scenarioIds": [
+        "hlsl-effect-drop-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "837e06606e4cfebc9cdbc0fed624509e9ade279fc03ca209e8ea8e5956dc4ac1",
+        "replacement": "a0291b1af7cbd4b1446c5a3db9ac25c9510fa3d44fa429ec60c80b1da8f821dc"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "HlslNoiseSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/HlslNoiseTests.cs",
+      "scenarioIds": [
+        "hlsl-noise-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "d2055b129e6d525afd4f8356fbec55042df71270f20ebf575624a0d3a2f337a4",
+        "replacement": "c430f55a4c91e2cbc127760137e02c27182deea60c338d419a5fb0c0e7e0e5af"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "ImageClipboardSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/ImageClipboardTests.cs",
+      "scenarioIds": [
+        "image-clipboard-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "6e1f91205f5727932e6a94e634cc4ca9f2fd4368fa94779a724d4ad14d6d106d",
+        "replacement": "f7cbdd66e57ae77717ad75c57341e30783bdc65679dd98e4285cb9b56420801f"
+      },
+      "matchesAuditHash": true
+    },
+    {
+      "legacyFile": "ImageUrlPasteSmoke.cs",
+      "newFile": "Tests~/Cases/UnityB/ImageUrlPasteTests.cs",
+      "scenarioIds": [
+        "image-url-paste-smoke-v2"
+      ],
+      "sourceHashes": {
+        "legacy": "388244985018781b13acaea846e73474f83ec64356e22f4239bdaf84063a748f",
+        "replacement": "52e8da915d30cd8d2cbb2e60d92b2db48ac191c7a37d092128475d6c7c15606e"
+      },
+      "matchesAuditHash": true
+    }
+  ],
+  "manualAbilities": [
+    {
+      "file": "Tests~/Cases/UnityB/ExportWindowTests.cs",
+      "entries": [
+        "ShowVisual(string runId)",
+        "ShowExrVisual(string runId)",
+        "CloseVisual(string runId)",
+        "VisualSequence(string runId)",
+        "RecoverVisual(strict N runId)"
+      ],
+      "ownership": "Final RecoverVisual is general strict-N journal recovery only: five nonempty/distinct recorded identities, original-window exclusion snapshot/focus validation, public all-Object identity scan. All five absent -> erase only unchanged exact journal without object mutations. Otherwise require exact owned owner/document/window, single Drawing-held recorded nonasset pixels reference before name restoration and strict CloseVisual. No historical hardcoded run/IDs, Post FX probe/retention/window-detachment bypass remains. VisualSequence retains primary+cleanup AggregateException and acquired-only serializable recovery envelope; final native validation pending parent.",
+      "inputs": "16x16 Drawing,2x2 pixels; JSON format6 at420x280 then EXR format3 at360x240.",
+      "oracleLimit": "Sequence checks body/controls/owned cleanup, not screenshot/layout appearance. Manual steps keep window open until CloseVisual."
+    },
+    {
+      "file": "Tests~/Cases/UnityB/GradientHistoryTests.cs",
+      "entries": [
+        "Setup(string runId)",
+        "Capture(string runId)",
+        "PollCapture(string runId)",
+        "Cleanup(string runId)",
+        "CaptureWorkflow(string runId)"
+      ],
+      "ownership": "Local serializable envelope copies TestResult status/checks/message/failures plus recoveryRequired. Export fresh precheck prevents duplicate acquisition; records acquisition even on ShowVisual exception, retains primary+cleanup AggregateException and flags only acquired journal remaining. Gradient SetupOwned records GUID workflow token only AFTER new journal save; validates same token before manual cleanup, retains both errors, and terminal Poll/Cancel/CleanupRun flags acquired receipt+journal remaining. Duplicate CaptureWorkflow returns recoveryRequired=false; running is not terminal recovery; passed+retained journal is converted to failed. No shared helper/TestApi edit.",
+      "inputs": "40 HSV colors plus HDR,560x420 window; public Unity ImmediateRepaint+Texture2D.ReadPixels,actual nonempty PNG.",
+      "oracleLimit": "Supported visible framebuffer/repaint required; no OS native capture/private capture API or manufactured visual golden. Missing repaint is not success."
+    },
+    {
+      "file": "Tests~/Cases/UnityB/HistogramSeamlessTests.cs",
+      "entries": [
+        "Preview(string runId=null,string source=originalPath)",
+        "Benchmark()",
+        "ReferenceFixtures(string runId=null)"
+      ],
+      "inputs": {
+        "preview": "output/copy-blend-lab-2026-09-28/00_source.png (Test6.6 project working directory, exact original prerequisite; no substitute)",
+        "benchmark": "256/512/1024,linear RGBAFloat x/size,y/size,.3,1,one warmup+median3 Render/synchronous Read",
+        "fixtures": "sequential Random391,64x48/17x13/128x128,original random RGBA ranges; dimensions+float dumps"
+      },
+      "oracleLimit": "No generated comparison golden/performance threshold. Actual Preview input preserved byte-for-byte; reference dump size checked."
+    }
+  ],
+  "durableEvidence": {
+    "root": "Temp/WhimTex/diagnostics/<GUID>",
+    "runScopedPolicy": "Seven owned case files use parent-owned UnityBRun.EvidencePath inside Run. Returned path retained after transient cleanup; helper enforces scoped child/no overwrite/reparse-point guards.",
+    "runScopedFiles": [
+      "DocumentBurstHashTests.cs",
+      "DocumentPerformanceTests.cs",
+      "ExportWindowTests.cs",
+      "FillPatternTests.cs",
+      "HealingBrushTests.cs",
+      "HealingPerimeterTests.cs",
+      "HealingNoiseSeamDiagnosticTests.cs"
+    ],
+    "reports": [
+      "TiffValidationResults/burst-sha256.json",
+      "TiffValidationResults/perf-*.json",
+      "ExportSmoke-<token>/* raster outputs",
+      "FillPatternSmoke.png",
+      "FillPatternColors.png",
+      "HealingBrushSmoke.png",
+      "NoiseSeams/*.png",
+      "NoiseSeams/smooth.bin",
+      "NoiseSeams/fbm.bin",
+      "NoiseSeams/report.txt",
+      "NoiseSeams/perimeter-report.txt"
+    ],
+    "manualPolicy": "Gradient own GUID evidence retained. Histogram Preview/ReferenceFixtures share overall normalized N run GUID via distinct whitelisted per-entry folders; duplicate same entry/nooverwrite/link traversal rejected. Artifacts survive owned object cleanup.",
+    "manualReports": [
+      "gradient-history/gradient-history.png",
+      "histogram-seamless/preview/09_unity_input.bin",
+      "histogram-seamless/preview/09_unity_histogram.bin",
+      "histogram-seamless/preview/09_unity_histogram.png",
+      "histogram-seamless/reference-fixtures/reference_<width>x<height>_input.bin",
+      "histogram-seamless/reference-fixtures/reference_<width>x<height>_output.bin"
+    ],
+    "messageReports": "SaveCost, HistogramArithmetic.Main and HistogramSeamless.Benchmark preserve original diagnostics in structured result.message.",
+    "metadataRequired": "Parent-owned effects must include temp-files for retained filesystem output. Proposal only; no global/catalog/registry edits."
+  },
+  "validation": {
+    "rawHashes": true,
+    "legacyBytesVerified": 466,
+    "ownedFrozenFiles": 13,
+    "all75AuditReplacementHashesMatchCurrentBytes": true,
+    "manualEntriesSourceInspected": true,
+    "compile": false,
+    "runtime": false,
+    "fullEquivalence": false,
+    "changedThisTurn": [
+      "Tests~/CoverageAudit/unity-b-public.json",
+      "Tests~/CoverageAudit/unity-b-public.proposal.json",
+      "Tests~/CoverageAudit/unity-b-public.freeze.json",
+      "Tests~/CoverageAudit/unity-b-reload-protocol.json"
+    ],
+    "notes": "JSON-only finalized runtime notes: native9 current bundles previously verified PASS; final Node83 all PASS (framework43/171, reloadB82/2839, D31/4139), CI11 all PASS, both recoveryRequired=false. All sources remain frozen/unchanged; agent reads receipts only, no Unity. Manual visual/external-oracle review and parent final gate report remain distinct.",
+    "currentNativeSelectedProof": {
+      "passed": 9,
+      "sourceBundleHashesMatch": true,
+      "recoveryRequired": false,
+      "receipt": "D:/DCFA/Projects/Test6.6/Temp/WhimTex/test-runs/2026-10-04T15-42-43.469Z-124936.json"
+    },
+    "sourceEdited": false
+  },
+  "aggregateRunIdPolicy": "Aggregate runner GUID adaptation: incoming D/N runId parsed with Guid.Parse(...).ToString(\"N\") before strict-N manual/evidence helpers. VisualSequence normalizes before journal lookup; CaptureWorkflow retains original external bridge ID for Poll/Cancel/CleanupRun and normalizes only its owned manual lifecycle; Histogram Preview/ReferenceFixtures normalize non-null optional IDs, preserving null-generated GUID behavior. Ownership helpers remain strict N and no global runner behavior changes.",
+  "identityCompatibility": "Unity 6000.7 native CS0619 fix: object identities are serialized strings (including original-window snapshot array) with no EntityId-to-int cast. Identity(value) uses public GetEntityId().ToString() under UNITY_6000_4_OR_NEWER and invariant GetInstanceID().ToString() only in the older-Unity #else branch. Null/empty identity means no owned object. All create/lookup/original-window exclusion/focus restoration sites use Identity; strict GUID/name/asset ownership remains unchanged. Native compile/runtime and actual visual/capture proof require new parent bundle fingerprints.",
+  "nativeFailureEvidence": {
+    "file": "Temp/WhimTex/test-runs/2026-10-04T14-04-22.450Z-122288.json",
+    "sha256": "21c95d606561b3f88e0974f7a04e5ab905191be1fa9b677578a1c8005a940472",
+    "selectedCount": 71,
+    "resultCount": 49,
+    "passedCount": 46,
+    "notRunCount": 22,
+    "failed": [
+      {
+        "id": "export-window-smoke-v2",
+        "status": "execution-failed",
+        "detail": {
+          "diagnostics": [
+            {
+              "severity": "error",
+              "message": "'Object.GetInstanceID()' is obsolete: 'Use GetEntityId instead.'",
+              "line": 183,
+              "column": 16,
+              "id": "CS0619"
+            },
+            {
+              "severity": "error",
+              "message": "'Object.GetInstanceID()' is obsolete: 'Use GetEntityId instead.'",
+              "line": 205,
+              "column": 105,
+              "id": "CS0619"
+            },
+            {
+              "severity": "error",
+              "message": "'Object.GetInstanceID()' is obsolete: 'Use GetEntityId instead.'",
+              "line": 206,
+              "column": 61,
+              "id": "CS0619"
+            },
+            {
+              "severity": "error",
+              "message": "'Object.GetInstanceID()' is obsolete: 'Use GetEntityId instead.'",
+              "line": 210,
+              "column": 66,
+              "id": "CS0619"
+            },
+            {
+              "severity": "error",
+              "message": "'Object.GetInstanceID()' is obsolete: 'Use GetEntityId instead.'",
+              "line": 212,
+              "column": 111,
+              "id": "CS0619"
+            },
+            {
+              "severity": "error",
+              "message": "'Object.GetInstanceID()' is obsolete: 'Use GetEntityId instead.'",
+              "line": 214,
+              "column": 75,
+              "id": "CS0619"
+            },
+            {
+              "severity": "error",
+              "message": "'Object.GetInstanceID()' is obsolete: 'Use GetEntityId instead.'",
+              "line": 217,
+              "column": 103,
+              "id": "CS0619"
+            },
+            {
+              "severity": "error",
+              "message": "'Object.GetInstanceID()' is obsolete: 'Use GetEntityId instead.'",
+              "line": 225,
+              "column": 63,
+              "id": "CS0619"
+            },
+            {
+              "severity": "error",
+              "message": "'Object.GetInstanceID()' is obsolete: 'Use GetEntityId instead.'",
+              "line": 226,
+              "column": 84,
+              "id": "CS0619"
+            },
+            {
+              "severity": "error",
+              "message": "'Object.GetInstanceID()' is obsolete: 'Use GetEntityId instead.'",
+              "line": 265,
+              "column": 16,
+              "id": "CS0619"
+            }
+          ],
+          "compileMs": 110,
+          "executeMs": 0,
+          "assemblyName": "PipelineRunScript_input-927dba86-8dc0-47da-b8a7-60d1ef1134da-export-window-smoke-v2_c9cfcb4df47c4a2aa5e50365b86b86f9",
+          "success": false,
+          "error": "Compilation Failed",
+          "errorDetails": "The script failed to compile. See diagnostics for line/column details."
+        }
+      },
+      {
+        "id": "gradient-history-smoke-picker-recency-v2",
+        "status": "execution-failed",
+        "detail": {
+          "diagnostics": [
+            {
+              "severity": "error",
+              "message": "'Object.GetInstanceID()' is obsolete: 'Use GetEntityId instead.'",
+              "line": 69,
+              "column": 68,
+              "id": "CS0619"
+            },
+            {
+              "severity": "error",
+              "message": "'Object.GetInstanceID()' is obsolete: 'Use GetEntityId instead.'",
+              "line": 84,
+              "column": 113,
+              "id": "CS0619"
+            },
+            {
+              "severity": "error",
+              "message": "'Object.GetInstanceID()' is obsolete: 'Use GetEntityId instead.'",
+              "line": 86,
+              "column": 131,
+              "id": "CS0619"
+            },
+            {
+              "severity": "error",
+              "message": "'Object.GetInstanceID()' is obsolete: 'Use GetEntityId instead.'",
+              "line": 90,
+              "column": 122,
+              "id": "CS0619"
+            },
+            {
+              "severity": "error",
+              "message": "'Object.GetInstanceID()' is obsolete: 'Use GetEntityId instead.'",
+              "line": 96,
+              "column": 77,
+              "id": "CS0619"
+            },
+            {
+              "severity": "error",
+              "message": "'Object.GetInstanceID()' is obsolete: 'Use GetEntityId instead.'",
+              "line": 176,
+              "column": 75,
+              "id": "CS0619"
+            }
+          ],
+          "compileMs": 112,
+          "executeMs": 0,
+          "assemblyName": "PipelineRunScript_input-927dba86-8dc0-47da-b8a7-60d1ef1134da-gradient-history-smoke-picker-recency-v2_dcfa61cb8d714c72894266cc2b39c62d",
+          "success": false,
+          "error": "Compilation Failed",
+          "errorDetails": "The script failed to compile. See diagnostics for line/column details."
+        }
+      },
+      {
+        "id": "gradient-history-smoke-history-v2",
+        "status": "cleanup-failed",
+        "detail": {
+          "diagnostics": [
+            {
+              "severity": "error",
+              "message": "'Object.GetInstanceID()' is obsolete: 'Use GetEntityId instead.'",
+              "line": 69,
+              "column": 68,
+              "id": "CS0619"
+            },
+            {
+              "severity": "error",
+              "message": "'Object.GetInstanceID()' is obsolete: 'Use GetEntityId instead.'",
+              "line": 84,
+              "column": 113,
+              "id": "CS0619"
+            },
+            {
+              "severity": "error",
+              "message": "'Object.GetInstanceID()' is obsolete: 'Use GetEntityId instead.'",
+              "line": 86,
+              "column": 131,
+              "id": "CS0619"
+            },
+            {
+              "severity": "error",
+              "message": "'Object.GetInstanceID()' is obsolete: 'Use GetEntityId instead.'",
+              "line": 90,
+              "column": 122,
+              "id": "CS0619"
+            },
+            {
+              "severity": "error",
+              "message": "'Object.GetInstanceID()' is obsolete: 'Use GetEntityId instead.'",
+              "line": 96,
+              "column": 77,
+              "id": "CS0619"
+            },
+            {
+              "severity": "error",
+              "message": "'Object.GetInstanceID()' is obsolete: 'Use GetEntityId instead.'",
+              "line": 176,
+              "column": 75,
+              "id": "CS0619"
+            }
+          ],
+          "compileMs": 92,
+          "executeMs": 0,
+          "assemblyName": "PipelineRunScript_input-927dba86-8dc0-47da-b8a7-60d1ef1134da-gradient-history-smoke-history-v2_e29a42715b974e4b8e6be10dba823f75",
+          "success": false,
+          "error": "Compilation Failed",
+          "errorDetails": "The script failed to compile. See diagnostics for line/column details."
+        }
+      }
+    ],
+    "recoveryRequired": true,
+    "finishedAt": "2026-10-04T14:05:57.233Z",
+    "note": "Read-only finalized pre-fix report: compilation errors, executeMs=0; no TestContext runtime verdict. Report itself retained recoveryRequired=true. Parent subsequently reports helper-only exact-GUID noBridge/idle and cleared exact dead-PID lock; that recovery was NOT executed or independently validated here."
+  },
+  "rerunAfterIdentityFix": {
+    "affectedExistingScenarioIds": [
+      "export-window-smoke-v2",
+      "gradient-history-smoke-picker-recency-v2",
+      "gradient-history-smoke-history-v2"
+    ],
+    "alsoRevalidateAggregateIds": [
+      "export-window-visual-sequence-v2",
+      "gradient-history-capture-v2"
+    ],
+    "remainingSelectedNotRun": 22,
+    "unchangedPassedCount": 46,
+    "note": "Parent binds exact unchanged current input bundles for 46 passes; neither this source fix nor source-audit status counts as a runtime pass. Shared helper unchanged. No global/catalog/registry edits by this agent."
+  },
+  "latestManualFix": {
+    "changedSources": [
+      {
+        "file": "Tests~/Cases/UnityB/ExportWindowTests.cs",
+        "sha256": "8e2f090b7501c684206b07eadd402ea5eeab01f5b42cef9a70f94a368f6768cf"
+      },
+      {
+        "file": "Tests~/Cases/UnityB/HistogramSeamlessTests.cs",
+        "sha256": "8de20a8eeec96fa981bd16b74916dea0681368c5ba161142442da94bdd4d5596"
+      }
+    ],
+    "affectedScenarioIds": [
+      "export-window-smoke-v2",
+      "export-window-visual-sequence-v2",
+      "histogram-seamless-smoke-v2",
+      "histogram-seamless-preview-v2",
+      "histogram-seamless-benchmark-v2",
+      "histogram-seamless-reference-fixtures-v2"
+    ],
+    "evidencePaths": [
+      "histogram-seamless/preview/09_unity_input.bin",
+      "histogram-seamless/preview/09_unity_histogram.bin",
+      "histogram-seamless/preview/09_unity_histogram.png",
+      "histogram-seamless/reference-fixtures/reference_<width>x<height>_input.bin",
+      "histogram-seamless/reference-fixtures/reference_<width>x<height>_output.bin"
+    ],
+    "metadataEffects": [
+      "temp-files"
+    ],
+    "noNewScenarioIds": true
+  },
+  "recoveryEntries": [
+    {
+      "entry": "ExportWindowTests.RecoverVisual",
+      "args": [
+        "caller-owned strict N GUID"
+      ],
+      "file": "Tests~/Cases/UnityB/ExportWindowTests.cs",
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/UnityB/UnityBSupport.cs"
+      ],
+      "strictNManualGuid": true,
+      "execution": "Parent only; no Unity operations by agent",
+      "proof": "Final RecoverVisual is general strict-N journal recovery only: five nonempty/distinct recorded identities, original-window exclusion snapshot/focus validation, public all-Object identity scan. All five absent -> erase only unchanged exact journal without object mutations. Otherwise require exact owned owner/document/window, single Drawing-held recorded nonasset pixels reference before name restoration and strict CloseVisual. No historical hardcoded run/IDs, Post FX probe/retention/window-detachment bypass remains. VisualSequence retains primary+cleanup AggregateException and acquired-only serializable recovery envelope; final native validation pending parent.",
+      "runtimeStatus": "pending-parent-validation"
+    }
+  ],
+  "cleanupProtocolProposal": {
+    "implemented": false,
+    "ownership": "parent globals/helpers; no edits while native active",
+    "observed": "Export retained journal but manual5 report recoveryRequired=false. classifyReply honors recoveryRequired only for requiresUnity node, not structured run_script. Aggregate finally can mask primary failure; Gradient local manual journal cleanup is not registered in UnityBRun owned scope.",
+    "needed": [
+      "Preserve primary and cleanup failures independently; never emit passed cleanup while owned journal remains.",
+      "Use reviewed explicit cleanup callback/result or typed structured C# cleanup/recoveryRequired protocol honored by runner; retain lock until exact-GUID recovery proof. Extra payload field currently has no effect for run_script.",
+      "An aggregate that did not acquire a duplicate same-GUID manual journal must not clean it.",
+      "Add pure regression: retained manual journal/C# cleanup failure -> cleanup-failed/uncertain recoveryRequired; successful bridge CleanupRun must not erase nested manual cleanup failure. No automatic mutation retry/recovery replay/budget extension."
+    ],
+    "ownedLocalEnvelopesImplemented": true,
+    "parentReportedGlobalClassifierAndNoReplayFixed": true,
+    "remaining": "Historical recovery and current native9/Node83 PASS; parent final gate/manual visual or external-oracle binding remains distinct."
+  },
+  "boundedReloadDependencies": [
+    {
+      "file": "Tests~/Cases/UnityB/ReloadOrchestration.mjs",
+      "sha256": "af4e6da41b4539bb380df254cfb6103e8ea38231f75d4269bdde87f4ff5c06a3"
+    },
+    {
+      "file": "Tests~/Cases/UnityB/ReloadOrchestration.test.mjs",
+      "sha256": "4c998c24e0940be4549e8bc19400b7392a56b986eae8b82efe0a83e828168652"
+    },
+    {
+      "file": "Tests~/Cases/UnityB/ReloadSupport.cs",
+      "sha256": "05e9e40bfa22f5c5a3c649b13082cf5322cfb9da7796b46b0a5afce6fb31d826"
+    },
+    {
+      "file": "Tests~/Cases/UnityB/UnityBSupport.cs",
+      "sha256": "5107b85a00b8456f0cddc81247698cc824773dc2f7ece6f1d5a8c42c246ae486"
+    },
+    {
+      "file": "Tests~/Framework/TestApi.cs",
+      "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+    },
+    {
+      "file": "Tests~/CoverageAudit/unity-b-reload-protocol.json",
+      "sha256": "114076817092ee5f9a04b50e83d80490276eb1093c67b1eea730b559895bcc2d"
+    }
+  ],
+  "reloadProtocolProof": {
+    "file": "Tests~/CoverageAudit/unity-b-reload-protocol.json",
+    "sha256": "114076817092ee5f9a04b50e83d80490276eb1093c67b1eea730b559895bcc2d",
+    "pureCases": 82,
+    "pureChecks": 2839,
+    "status": "passed",
+    "nativeStatus": "pending-parent-validation"
+  },
+  "latestNativeManualEvidence": {
+    "file": "D:/DCFA/Projects/Test6.6/Temp/WhimTex/test-runs/2026-10-04T14-41-21.176Z-47572.json",
+    "sha256": "5df96f3d36ae8fce90b72a524a24468d7af9b127a891ea1cba2f7c023c5632bf",
+    "results": [
+      {
+        "id": "uv-ui-capture-v2",
+        "status": "skip",
+        "checks": 3,
+        "uncertain": false
+      },
+      {
+        "id": "export-window-visual-sequence-v2",
+        "status": "assertion-failed",
+        "checks": 3,
+        "uncertain": false
+      },
+      {
+        "id": "gradient-history-capture-v2",
+        "status": "passed",
+        "checks": 2,
+        "uncertain": false
+      },
+      {
+        "id": "histogram-seamless-preview-v2",
+        "status": "passed",
+        "checks": 2,
+        "uncertain": false
+      },
+      {
+        "id": "histogram-seamless-reference-fixtures-v2",
+        "status": "assertion-failed",
+        "checks": 0,
+        "uncertain": false
+      }
+    ],
+    "reportedRecoveryRequired": false,
+    "note": "Historical failure/capture report predates final source. Historical journal recovered successfully by parent; TEMP repository branch retired. Use finalNative9Evidence for current execution PASS, not this earlier receipt. Manual visual/external oracle verdict remains distinct."
+  },
+  "latestRecoveryEnvelopeFix": {
+    "sourceReviewed": true,
+    "runtimeStatus": "pending-parent-validation",
+    "sources": [
+      {
+        "file": "Tests~/Cases/UnityB/ExportWindowTests.cs",
+        "sha256": "8e2f090b7501c684206b07eadd402ea5eeab01f5b42cef9a70f94a368f6768cf"
+      },
+      {
+        "file": "Tests~/Cases/UnityB/GradientHistoryTests.cs",
+        "sha256": "17e10ef6f16d82b331ebaf478691a8d8362fd84d9d9686c8586b50a3796a53ff"
+      }
+    ],
+    "affectedScenarioIds": [
+      "export-window-smoke-v2",
+      "export-window-visual-sequence-v2",
+      "gradient-history-smoke-picker-recency-v2",
+      "gradient-history-smoke-history-v2",
+      "gradient-history-capture-v2"
+    ],
+    "recoveryNote": "Final RecoverVisual is general strict-N journal recovery only: five nonempty/distinct recorded identities, original-window exclusion snapshot/focus validation, public all-Object identity scan. All five absent -> erase only unchanged exact journal without object mutations. Otherwise require exact owned owner/document/window, single Drawing-held recorded nonasset pixels reference before name restoration and strict CloseVisual. No historical hardcoded run/IDs, Post FX probe/retention/window-detachment bypass remains. VisualSequence retains primary+cleanup AggregateException and acquired-only serializable recovery envelope; final native validation pending parent.",
+    "envelopeNote": "Local serializable envelope copies TestResult status/checks/message/failures plus recoveryRequired. Export fresh precheck prevents duplicate acquisition; records acquisition even on ShowVisual exception, retains primary+cleanup AggregateException and flags only acquired journal remaining. Gradient SetupOwned records GUID workflow token only AFTER new journal save; validates same token before manual cleanup, retains both errors, and terminal Poll/Cancel/CleanupRun flags acquired receipt+journal remaining. Duplicate CaptureWorkflow returns recoveryRequired=false; running is not terminal recovery; passed+retained journal is converted to failed. No shared helper/TestApi edit.",
+    "pureCases": 82,
+    "pureChecks": 2839,
+    "globalMetadataEdits": false,
+    "sharedHelperEdits": false,
+    "nativeSelectedStatus": "passed-final9-current-bundle",
+    "remaining": "Manual artifact/visual verdict and final gate binding pending; no obsolete historical recovery required."
+  },
+  "temporaryRecoveryRetired": {
+    "status": "removed-after-parent-confirmed-success",
+    "parentReportedNativeRecovery": "PASS; readonly probe showed boxed CLR nonnull Unity-null texture, null backend; unrecorded data IDs/state preserved and old journal erased.",
+    "scope": "Historical exact-ID branch, InactiveRecoveryReference, InspectRecoveryPostFx, RecoverReloadedWindows and both TEMP-specific source guard cases removed from repository. General RecoverVisual strict journal/exclusion/all-five-absent/ordinary document-owned pixels proof and VisualResult remain. Gradient unchanged. No runtime operations by agent.",
+    "evidence": "Historical source/report retained by parent under scoped Temp/WhimTex/test-runs; no permanent executable GUID/ID special case or Post FX retention mechanism remains.",
+    "finalValidation": "Repository TEMP helpers removed after parent-confirmed successful recovery; native9 current bundles PASS, Node83 and CI11 PASS. Source freeze unchanged; final gate/manual oracle binding remains parent-owned."
+  },
+  "finalRerunScenarioIds": [
+    "export-window-smoke-v2",
+    "export-window-visual-sequence-v2",
+    "histogram-seamless-smoke-v2",
+    "histogram-seamless-preview-v2",
+    "histogram-seamless-benchmark-v2",
+    "histogram-seamless-reference-fixtures-v2",
+    "gradient-history-smoke-picker-recency-v2",
+    "gradient-history-smoke-history-v2",
+    "gradient-history-capture-v2"
+  ],
+  "sourceFreezeSinceUtc": "2026-10-04T15:42:04.836Z",
+  "finalNative9Evidence": {
+    "file": "D:/DCFA/Projects/Test6.6/Temp/WhimTex/test-runs/2026-10-04T15-42-43.469Z-124936.json",
+    "sha256": "824d25c54eff97d917797e84a5ca5cf0e67f84507c0173daa55af6dec8fc77c5",
+    "runId": "a81dca33-199d-4c9c-948e-e3189552c451",
+    "finishedAt": "2026-10-04T15:42:54.509Z",
+    "status": "passed",
+    "selected": 9,
+    "notRun": [],
+    "recoveryRequired": false,
+    "parentReportedCleanup": "Known idle; recoveryRequired=false. Agent read report/bundles only, no live Unity query.",
+    "results": [
+      {
+        "id": "export-window-smoke-v2",
+        "file": "Tests~/Cases/UnityB/ExportWindowTests.cs",
+        "status": "passed",
+        "checks": 69,
+        "uncertain": false,
+        "cleanup": []
+      },
+      {
+        "id": "export-window-visual-sequence-v2",
+        "file": "Tests~/Cases/UnityB/ExportWindowTests.cs",
+        "status": "passed",
+        "checks": 3,
+        "uncertain": false,
+        "cleanup": []
+      },
+      {
+        "id": "histogram-seamless-smoke-v2",
+        "file": "Tests~/Cases/UnityB/HistogramSeamlessTests.cs",
+        "status": "passed",
+        "checks": 2773394,
+        "uncertain": false,
+        "cleanup": []
+      },
+      {
+        "id": "histogram-seamless-preview-v2",
+        "file": "Tests~/Cases/UnityB/HistogramSeamlessTests.cs",
+        "status": "passed",
+        "checks": 2,
+        "uncertain": false,
+        "cleanup": []
+      },
+      {
+        "id": "histogram-seamless-benchmark-v2",
+        "file": "Tests~/Cases/UnityB/HistogramSeamlessTests.cs",
+        "status": "passed",
+        "checks": 3,
+        "uncertain": false,
+        "cleanup": []
+      },
+      {
+        "id": "histogram-seamless-reference-fixtures-v2",
+        "file": "Tests~/Cases/UnityB/HistogramSeamlessTests.cs",
+        "status": "passed",
+        "checks": 3,
+        "uncertain": false,
+        "cleanup": []
+      },
+      {
+        "id": "gradient-history-smoke-picker-recency-v2",
+        "file": "Tests~/Cases/UnityB/GradientHistoryTests.cs",
+        "status": "passed",
+        "checks": 3,
+        "uncertain": false,
+        "cleanup": []
+      },
+      {
+        "id": "gradient-history-smoke-history-v2",
+        "file": "Tests~/Cases/UnityB/GradientHistoryTests.cs",
+        "status": "passed",
+        "checks": 19,
+        "uncertain": false,
+        "cleanup": [
+          {
+            "status": "passed",
+            "message": "Owned cleanup completed; primary verdict: {\"status\":\"passed\",\"checks\":19,\"message\":\"GradientHistoryTests.History\",\"failures\":[]}",
+            "checks": 0,
+            "failures": [],
+            "recoveryRequired": false
+          }
+        ]
+      },
+      {
+        "id": "gradient-history-capture-v2",
+        "file": "Tests~/Cases/UnityB/GradientHistoryTests.cs",
+        "status": "passed",
+        "checks": 2,
+        "uncertain": false,
+        "cleanup": [
+          {
+            "status": "passed",
+            "message": "Owned cleanup completed; primary verdict: {\"status\":\"passed\",\"checks\":2,\"message\":\"GradientHistoryTests.CaptureWorkflow\",\"failures\":[]}",
+            "checks": 0,
+            "failures": [],
+            "recoveryRequired": false
+          }
+        ]
+      }
+    ],
+    "inputs": [
+      {
+        "id": "export-window-smoke-v2",
+        "sha256": "eb7d6d7406d2f47131a3a405371522422e61d8c7fc8f35eca9f4823ef34a27bd",
+        "sources": [
+          {
+            "file": "Tests~/Cases/UnityB/ExportWindowTests.cs",
+            "sha256": "8e2f090b7501c684206b07eadd402ea5eeab01f5b42cef9a70f94a368f6768cf"
+          },
+          {
+            "file": "Tests~/Framework/TestApi.cs",
+            "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+          },
+          {
+            "file": "Tests~/Cases/UnityB/UnityBSupport.cs",
+            "sha256": "5107b85a00b8456f0cddc81247698cc824773dc2f7ece6f1d5a8c42c246ae486"
+          }
+        ],
+        "currentBundleHashMatches": true
+      },
+      {
+        "id": "export-window-visual-sequence-v2",
+        "sha256": "eb7d6d7406d2f47131a3a405371522422e61d8c7fc8f35eca9f4823ef34a27bd",
+        "sources": [
+          {
+            "file": "Tests~/Cases/UnityB/ExportWindowTests.cs",
+            "sha256": "8e2f090b7501c684206b07eadd402ea5eeab01f5b42cef9a70f94a368f6768cf"
+          },
+          {
+            "file": "Tests~/Framework/TestApi.cs",
+            "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+          },
+          {
+            "file": "Tests~/Cases/UnityB/UnityBSupport.cs",
+            "sha256": "5107b85a00b8456f0cddc81247698cc824773dc2f7ece6f1d5a8c42c246ae486"
+          }
+        ],
+        "currentBundleHashMatches": true
+      },
+      {
+        "id": "histogram-seamless-smoke-v2",
+        "sha256": "f9303fe0ce5888cd525e9ab257e93d837738eb5ecfa2beeddff3d28f0642e94f",
+        "sources": [
+          {
+            "file": "Tests~/Cases/UnityB/HistogramSeamlessTests.cs",
+            "sha256": "8de20a8eeec96fa981bd16b74916dea0681368c5ba161142442da94bdd4d5596"
+          },
+          {
+            "file": "Tests~/Framework/TestApi.cs",
+            "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+          },
+          {
+            "file": "Tests~/Cases/UnityB/UnityBSupport.cs",
+            "sha256": "5107b85a00b8456f0cddc81247698cc824773dc2f7ece6f1d5a8c42c246ae486"
+          }
+        ],
+        "currentBundleHashMatches": true
+      },
+      {
+        "id": "histogram-seamless-preview-v2",
+        "sha256": "f9303fe0ce5888cd525e9ab257e93d837738eb5ecfa2beeddff3d28f0642e94f",
+        "sources": [
+          {
+            "file": "Tests~/Cases/UnityB/HistogramSeamlessTests.cs",
+            "sha256": "8de20a8eeec96fa981bd16b74916dea0681368c5ba161142442da94bdd4d5596"
+          },
+          {
+            "file": "Tests~/Framework/TestApi.cs",
+            "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+          },
+          {
+            "file": "Tests~/Cases/UnityB/UnityBSupport.cs",
+            "sha256": "5107b85a00b8456f0cddc81247698cc824773dc2f7ece6f1d5a8c42c246ae486"
+          }
+        ],
+        "currentBundleHashMatches": true
+      },
+      {
+        "id": "histogram-seamless-benchmark-v2",
+        "sha256": "f9303fe0ce5888cd525e9ab257e93d837738eb5ecfa2beeddff3d28f0642e94f",
+        "sources": [
+          {
+            "file": "Tests~/Cases/UnityB/HistogramSeamlessTests.cs",
+            "sha256": "8de20a8eeec96fa981bd16b74916dea0681368c5ba161142442da94bdd4d5596"
+          },
+          {
+            "file": "Tests~/Framework/TestApi.cs",
+            "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+          },
+          {
+            "file": "Tests~/Cases/UnityB/UnityBSupport.cs",
+            "sha256": "5107b85a00b8456f0cddc81247698cc824773dc2f7ece6f1d5a8c42c246ae486"
+          }
+        ],
+        "currentBundleHashMatches": true
+      },
+      {
+        "id": "histogram-seamless-reference-fixtures-v2",
+        "sha256": "f9303fe0ce5888cd525e9ab257e93d837738eb5ecfa2beeddff3d28f0642e94f",
+        "sources": [
+          {
+            "file": "Tests~/Cases/UnityB/HistogramSeamlessTests.cs",
+            "sha256": "8de20a8eeec96fa981bd16b74916dea0681368c5ba161142442da94bdd4d5596"
+          },
+          {
+            "file": "Tests~/Framework/TestApi.cs",
+            "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+          },
+          {
+            "file": "Tests~/Cases/UnityB/UnityBSupport.cs",
+            "sha256": "5107b85a00b8456f0cddc81247698cc824773dc2f7ece6f1d5a8c42c246ae486"
+          }
+        ],
+        "currentBundleHashMatches": true
+      },
+      {
+        "id": "gradient-history-smoke-picker-recency-v2",
+        "sha256": "4d553560d7bc3058627131ad959f37846fea7a6e363e38d8b2eec8d79adc13fa",
+        "sources": [
+          {
+            "file": "Tests~/Cases/UnityB/GradientHistoryTests.cs",
+            "sha256": "17e10ef6f16d82b331ebaf478691a8d8362fd84d9d9686c8586b50a3796a53ff"
+          },
+          {
+            "file": "Tests~/Framework/TestApi.cs",
+            "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+          },
+          {
+            "file": "Tests~/Cases/UnityB/UnityBSupport.cs",
+            "sha256": "5107b85a00b8456f0cddc81247698cc824773dc2f7ece6f1d5a8c42c246ae486"
+          }
+        ],
+        "currentBundleHashMatches": true
+      },
+      {
+        "id": "gradient-history-smoke-history-v2",
+        "sha256": "4d553560d7bc3058627131ad959f37846fea7a6e363e38d8b2eec8d79adc13fa",
+        "sources": [
+          {
+            "file": "Tests~/Cases/UnityB/GradientHistoryTests.cs",
+            "sha256": "17e10ef6f16d82b331ebaf478691a8d8362fd84d9d9686c8586b50a3796a53ff"
+          },
+          {
+            "file": "Tests~/Framework/TestApi.cs",
+            "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+          },
+          {
+            "file": "Tests~/Cases/UnityB/UnityBSupport.cs",
+            "sha256": "5107b85a00b8456f0cddc81247698cc824773dc2f7ece6f1d5a8c42c246ae486"
+          }
+        ],
+        "currentBundleHashMatches": true
+      },
+      {
+        "id": "gradient-history-capture-v2",
+        "sha256": "4d553560d7bc3058627131ad959f37846fea7a6e363e38d8b2eec8d79adc13fa",
+        "sources": [
+          {
+            "file": "Tests~/Cases/UnityB/GradientHistoryTests.cs",
+            "sha256": "17e10ef6f16d82b331ebaf478691a8d8362fd84d9d9686c8586b50a3796a53ff"
+          },
+          {
+            "file": "Tests~/Framework/TestApi.cs",
+            "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+          },
+          {
+            "file": "Tests~/Cases/UnityB/UnityBSupport.cs",
+            "sha256": "5107b85a00b8456f0cddc81247698cc824773dc2f7ece6f1d5a8c42c246ae486"
+          }
+        ],
+        "currentBundleHashMatches": true
+      }
+    ],
+    "limit": "Current native execution proof for selected9 only; actual visual verdict, diagnostic artifact/external oracle checks, final gate binding remains pending. Historical failure/recovery evidence is separate."
+  },
+  "node83Validation": {
+    "file": "D:/DCFA/Projects/Test6.6/Temp/WhimTex/test-runs/2026-10-04T15-43-27.537Z-126276.json",
+    "sha256": "7016616e0e87afc400ed7d87668a329d6ba554ecf82d845ab1634957a6f5a862",
+    "selected": 83,
+    "status": "passed",
+    "finishedAt": "2026-10-04T15:43:53.614Z",
+    "recoveryRequired": false,
+    "notRun": 0,
+    "sourceFrozen": true,
+    "receipt": "read-only-verified",
+    "protocolResults": [
+      {
+        "id": "framework",
+        "status": "passed",
+        "cases": 43,
+        "checks": 171
+      },
+      {
+        "id": "reload-transport-b",
+        "status": "passed",
+        "cases": 82,
+        "checks": 2839
+      },
+      {
+        "id": "reload-transport-d",
+        "status": "passed",
+        "cases": 31,
+        "checks": 4139
+      }
+    ],
+    "note": "83 selected Node scenarios PASS. Owned B pure protocol82 cases/2839 checks remains mock/source-guard proof, not native reload equivalence. Final parent gate/manual visual or external-oracle binding distinct."
+  },
+  "ci11Validation": {
+    "file": "D:/DCFA/Projects/Test6.6/Temp/WhimTex/test-runs/2026-10-04T15-44-23.493Z-106752.json",
+    "sha256": "2c7d5f058baf3e7e24367e5ed8d72ab6a1ae4fd809ae4f68593e79a9e6a6b6b9",
+    "selected": 11,
+    "status": "passed",
+    "finishedAt": "2026-10-04T15:44:25.057Z",
+    "recoveryRequired": false,
+    "notRun": 0
+  }
+}

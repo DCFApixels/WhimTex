@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "report": "Temp/WhimTex/test-runs/2026-10-04T14-04-22.450Z-122288.json",
+  "runId": "927dba86-8dc0-47da-b8a7-60d1ef1134da",
+  "proofs": [
+    "History Start and CleanupRun both returned Compilation Failed CS0619 with executeMs:0; neither body loaded or executed",
+    "Previously verified current UnityBSupport bundle UnityBRun.Poll exact GUID returned No owned bridge",
+    "Direct editor_status confirmed matching idle stopped Test6.6",
+    "Original runner pid122288 absent; exact pid/report lock validated and removed"
+  ],
+  "originalFailureRetained": true,
+  "newRunRequired": true
+}

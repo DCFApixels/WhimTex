@@ -36,6 +36,9 @@ ExportedObj/
 .consulo/
 *.csproj
 !Tests~/PsdWriter/PsdWriter.Tests.csproj
+!Tests~/Legacy/PsdWriter/PsdWriter.Tests.csproj
+Tests~/Legacy/PsdWriter/bin/
+Tests~/Legacy/PsdWriter/obj/
 Tests~/PsdWriter/bin/
 Tests~/PsdWriter/obj/
 *.unityproj

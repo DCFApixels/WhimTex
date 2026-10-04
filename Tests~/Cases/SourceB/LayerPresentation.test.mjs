@@ -1,0 +1,75 @@
+// Independent Node assertions; no Unity commands or Legacy runtime dependencies.
+import { TestContext, finish } from '../../Framework/test-api.mjs';
+import { readFileSync } from 'node:fs';
+const context = new TestContext("LayerPresentation source/reference tests");
+const assert = context.assert;
+context.case("LayerPresentation original assertion inputs and source contracts", async () => {
+  const read = p => readFileSync(new URL('../../../src/' + p, import.meta.url), 'utf8');
+  const ghost = read('TextureCompositorWindow.LayerDragGhost.cs');
+  const ui = read('TextureCompositorWindow.UI.cs');
+  const window = read('TextureCompositorWindow.cs');
+  assert.match(read('WhimTexUI.cs'), /Properties \(\{TextureCompositor.LayerMenuName\(layer\)\}\)/);
+  assert.match(read('TextureCompositor.Naming.cs'), /LayerTypeRegistry.Find\(layer\?\.Behaviour\?\.GetType\(\)\)\?\.MenuName/);
+  const menu = window.slice(window.indexOf('private void ShowAddMenu'),window.indexOf('private void AddLayer'));
+  const prefixes = read('TextureCompositor.Naming.cs');
+  assert.match(menu, /foreach \(var descriptor in LayerTypeRegistry.Entries\)/);
+  assert.match(menu, /descriptor.MenuName/);
+  assert.match(prefixes, /LayerTypeRegistry.Find\(layer\?\.Behaviour\?\.GetType\(\)\)\?\.NamePrefix/);
+  assert.match(ui, /StartDrag\([^\n]+\);\s*owner.ShowLayerDragGhost\(target, layer, start, evt.position\);\s*Release\(\)/);
+  assert.match(ghost, /new Label\(layerName \?\? ""\)/);
+  assert.doesNotMatch(ghost, /new TextField|GetPreviewTexture|RenderTexture|Texture2D\(/);
+  assert.match(ghost, /image = thumbnail.image/);
+  assert.match(ghost, /position = rect.position - row.worldBound.position/);
+  assert.match(ghost, /style.translate = new Translate/);
+  assert.match(ghost, /pickingMode = PickingMode.Ignore/);
+  assert.match(ghost, /target.RegisterCallback<DragUpdatedEvent>\(OnUpdated, TrickleDown.TrickleDown\)/);
+  for (const event of ['DragUpdatedEvent','DragPerformEvent','DragExitedEvent','KeyDownEvent','DetachFromPanelEvent']) {
+      assert.ok(ghost.includes(`RegisterCallback<${event}>`));
+      assert.ok(ghost.includes(`UnregisterCallback<${event}>`));
+  }
+  assert.match(window, /private void ClearLayerDragData\(\)\s*\{\s*ClearLayerDragGhost\(\)/);
+  assert.match(window, /private void OnLostFocus\(\)\s*\{[\s\S]*?ClearLayerDragGhost\(\)/);
+  assert.match(ghost, /OnPerform\(DragPerformEvent evt\) => owner.ClearLayerDragGhost\(\)/);
+  assert.match(ghost, /new Color\(background.r, background.g, background.b, 0f\)/);
+  assert.match(read('WhimTexSplitView.uss'), /\.whimtex-layer-drag-ghost\s*\{[^}]*opacity: 0.6/);
+
+  const target = read('EffectTargetSettingsView.cs');
+  assert.match(target, /new PopupField<string>\("Target"/);
+  assert.match(target, /effectTargetLabels\[0\] = "None \(Layer\)"/);
+  assert.match(target, /targetInput.Insert\(0, icon\)/);
+  assert.match(target, /targetInput.Add\(selector\)/);
+  assert.match(target, /compositor\.GetLayerThumbnail\(source, 18\)/, 'Reuse document-aware layer-list thumbnails, including effects');
+  assert.match(target, /if \(preview.image != thumbnail\) preview.image = thumbnail/);
+  assert.match(target, /source\?\.IsGroup == true/);
+  assert.match(target, /Refresh\(\);\s*bindings.Add\(Refresh\)/);
+  assert.match(target, /bindings.Track\(target,/);
+  assert.match(target, /target.AddManipulator\(new TargetDropManipulator\(this, effect\)\)/);
+  assert.match(target, /GetDraggedLayerForDocument\(owner.compositor\)/);
+  assert.match(target, /IsUsableEffectTarget\(effect, source.Id\)/);
+  assert.match(target, /DragAndDropVisualMode.Link : DragAndDropVisualMode.Rejected/);
+  assert.match(target, /TextureCompositorWindow.ClearDraggedLayerReference\(\)/);
+  const styles = read('WhimTexSplitView.uss');
+  assert.match(styles, /\.unity-base-popup-field__arrow\.whimtex-effect-target-arrow\s*\{\s*display: none/);
+  assert.match(styles, /\.whimtex-effect-target\.whimtex-effect-target--drop > \.unity-base-field__input/);
+
+  const accent = ui.split('if (layer.Behaviour is FileLayerBehaviour fileLayer)')[1].split('if (layer.Behaviour == null)')[0];
+  assert.match(accent, /pickingMode = PickingMode.Ignore/);
+  assert.match(accent, /row.Add\(referenceAccent\)/);
+  assert.doesNotMatch(accent, /thumbnail.Add\(referenceAccent\)/);
+  assert.match(accent, /ReferenceEquals\(source, checkedSource\) && path == checkedPath\) return/);
+  assert.match(accent, /WhimTexDocumentService\.IsDocumentAsset\(source\)/);
+  assert.doesNotMatch(accent, /new (Label|Image|Button)|RegisterCallback/);
+  assert.match(styles, /\.whimtex-compositor-reference-accent \{\s*position: absolute;\s*left: 0;\s*top: 0;\s*bottom: 0;\s*width: 2px;\s*background-color: rgba\(224, 143, 70, 0.7\);/);
+
+  const thumbnails = read('LayerThumbnailCache.cs');
+  assert.match(ui, /thumbnail\.schedule\.Execute\(RefreshThumbnail\)\.Every\(200\)/, 'Deferred thumbnails finish after the last UI input');
+  assert.match(target, /target\.schedule\.Execute\(\(\) => RefreshThumbnail\(\)\)\.Every\(200\)/, 'Target previews follow shared thumbnail replacement');
+  assert.match(thumbnails, /if \(now < deferUntil\) return entry\?\.texture/);
+  assert.match(thumbnails, /entry\.stamp == stamp/);
+  assert.match(thumbnails, /BudgetBytes = 8L \* 1024 \* 1024/);
+  assert.match(window, /compositor\?\.ReleaseLayerThumbnails\(\)/);
+  assert.match(ui, /compositor\?\.RefreshThumbnailStructure\(\)/);
+
+});
+await finish(context);
+

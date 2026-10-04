@@ -1,0 +1,1883 @@
+{
+  "version": 1,
+  "batch": "node-b",
+  "coverageAudit": {
+    "file": "Tests~/CoverageAudit/node.json",
+    "reviewStatus": "source-reviewed",
+    "runtimeStatus": "pending-parent-validation",
+    "unresolvedLegacyFiles": [],
+    "note": "All original Node predicates, scalar formulas, parameterized inputs, branches and declared helpers/fixtures compared at source level. Raw hashes and reviewed wrapper/cleanup adaptations are recorded separately; direct check counts are not equivalence evidence."
+  },
+  "scope": "All top-level Legacy/*.test.mjs filenames alphabetically >= Layer except TestRunner.test.mjs and TestRunnerLive.test.mjs; independent UssCascadeSnapshot dependency additionally owned.",
+  "replacements": [
+    {
+      "legacyFile": "LayerAutoScroll.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/LayerAutoScroll.test.mjs",
+      "scenarios": [
+        {
+          "id": "layer-auto-scroll-v2",
+          "file": "Tests~/Cases/SourceB/LayerAutoScroll.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "reference-math"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. No Unity commands or asset writes.",
+          "teardown": "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs"
+          ]
+        }
+      ],
+      "coverage": [
+        "Execute production ClampOffset for high [-1000,-242,-1,0,1,300] and value [-900,-1,0,8,1000], plus exact short-list 0 and long-list 208 results.",
+        "Execute production IsBelowLayerList for all four endY values and eight pointer positions, bottom insertion and scrolled-row exclusion.",
+        "Execute EdgeSpeed with all original viewport edges/interior/outside positions, heights [0,1,20,64,400], 100 samples per height and absolute 480 bound.",
+        "Preserve drop finally cleanup, callback register/unregister, 16 ms schedule pause, panel picking, scroll limits and window Stop/source integration guards.",
+        "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 601,
+        "namedCases": 1,
+        "facts": {},
+        "phase": "preintegration"
+      }
+    },
+    {
+      "legacyFile": "LayerColorSettings.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/LayerColorSettings.test.mjs",
+      "scenarios": [
+        {
+          "id": "layer-color-settings-v2",
+          "file": "Tests~/Cases/SourceB/LayerColorSettings.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "source-guard",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "source-contracts"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. No Unity commands or asset writes.",
+          "teardown": "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs"
+          ]
+        }
+      ],
+      "coverage": [
+        "Preserve all 16 opacity/NaN/clamp, Undo callbacks, duplicate layer controls, group Pass Through/Isolated blend semantics and color range ordering assertions.",
+        "Source guards retain active opacity/blend controls in Pass Through and all shared row/view bindings.",
+        "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 16,
+        "namedCases": 1,
+        "facts": {},
+        "phase": "preintegration"
+      }
+    },
+    {
+      "legacyFile": "LayerComposition.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/LayerComposition.test.mjs",
+      "scenarios": [
+        {
+          "id": "layer-composition-v2",
+          "file": "Tests~/Cases/SourceB/LayerComposition.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "reference-math"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. No Unity commands or asset writes.",
+          "teardown": "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs"
+          ]
+        }
+      ],
+      "coverage": [
+        "Retain sealed shell, serialized common field ownership, behaviour recovery IDs, eight direct and five targeted behaviour type contracts.",
+        "Execute extracted SetBehaviour/DetachBehaviour/AdoptContent: same-instance no-op, shared-owner rejection, missing payload identity, failed detach rollback, validation before cleanup, group child preservation/non-group rejection, repaired group and all adopted identity/content fields.",
+        "Retain missing-data field/type/enum/float/gradient recovery checks, forbidden destructive recovery paths, inspector rebinding, async pending adoption and retired-field guards.",
+        "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 83,
+        "namedCases": 1,
+        "facts": {},
+        "phase": "preintegration"
+      }
+    },
+    {
+      "legacyFile": "LayerNavigation.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/LayerNavigation.test.mjs",
+      "scenarios": [
+        {
+          "id": "layer-navigation-v2",
+          "file": "Tests~/Cases/SourceB/LayerNavigation.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "reference-math"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. No Unity commands or asset writes.",
+          "teardown": "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs"
+          ]
+        }
+      ],
+      "coverage": [
+        "Execute extracted FindAdjacentLayerIndex for expanded/collapsed rows, forward/backward ends, null/deleted selection, empty/background-only/single lists and missing-behaviour rows.",
+        "Preserve all 21 navigation expected results plus production-body existence assertion; no Unity navigation input is simulated.",
+        "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 22,
+        "namedCases": 1,
+        "facts": {
+          "referenceChecks": 19
+        },
+        "phase": "preintegration"
+      }
+    },
+    {
+      "legacyFile": "LayerPicking.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/LayerPicking.test.mjs",
+      "scenarios": [
+        {
+          "id": "layer-picking-v2",
+          "file": "Tests~/Cases/SourceB/LayerPicking.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "reference-math"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. No Unity commands or asset writes.",
+          "teardown": "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs"
+          ]
+        }
+      ],
+      "coverage": [
+        "Execute actual alpha predicate at (0,0), (.0999756,.1), (.099,.1), (1,1), (NaN,.1) without changing inputs.",
+        "Preserve settings percentage conversion/default/persistence, exactly one pointer hook, modifier/button/target filters, tiled coordinates, selection/group expansion and GPU readback/cache restoration/clipping source guards.",
+        "Preserve absence of Undo/dirty/model mutations and Layer Select toolbar routing; actual GPU picking remains outside this Node source case.",
+        "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 38,
+        "namedCases": 1,
+        "facts": {},
+        "phase": "preintegration"
+      }
+    },
+    {
+      "legacyFile": "LayerPresentation.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/LayerPresentation.test.mjs",
+      "scenarios": [
+        {
+          "id": "layer-presentation-v2",
+          "file": "Tests~/Cases/SourceB/LayerPresentation.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "source-guard",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "source-contracts"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. No Unity commands or asset writes.",
+          "teardown": "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs"
+          ]
+        }
+      ],
+      "coverage": [
+        "Preserve registry-derived menu/properties naming, non-interactive thumbnail-reusing drag ghost, coordinate translation, opacity/background and all five paired callback lifecycle guards.",
+        "Preserve Target popup/icon/labels, shared 18 px thumbnail tracking, group icon, document lock/drop validation and drag reference cleanup.",
+        "Preserve File-only cached compositor accent geometry/color, 200 ms deferred thumbnail refresh, 8 MiB cache budget, stamps and lifecycle/structure invalidation.",
+        "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 58,
+        "namedCases": 1,
+        "facts": {},
+        "phase": "preintegration"
+      }
+    },
+    {
+      "legacyFile": "LayerTypeRegistry.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/LayerTypeRegistry.test.mjs",
+      "scenarios": [
+        {
+          "id": "layer-type-registry-v2",
+          "file": "Tests~/Cases/SourceB/LayerTypeRegistry.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "source-guard",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "source-contracts"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. No Unity commands or asset writes.",
+          "teardown": "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs"
+          ]
+        }
+      ],
+      "coverage": [
+        "Preserve exact ordered 14 API IDs, unique types, section array, all factory/type/label/prefix identities, Make Seamless-only default factory and pending exclusion.",
+        "Preserve immutable ordinal registry exposure and API creation/inspection/missing-type recovery consumers.",
+        "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 66,
+        "namedCases": 1,
+        "facts": {},
+        "phase": "preintegration"
+      }
+    },
+    {
+      "legacyFile": "LegacySavePolicy.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/LegacySavePolicy.test.mjs",
+      "scenarios": [
+        {
+          "id": "legacy-save-policy-v2",
+          "file": "Tests~/Cases/SourceB/LegacySavePolicy.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "source-guard",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "source-contracts"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. No Unity commands or asset writes.",
+          "teardown": "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs"
+          ]
+        }
+      ],
+      "coverage": [
+        "Preserve absence checks for all nine retired backend files and CreateAssetMenu/CreateAsset/document_migrate/.asset export policies.",
+        "Preserve explicit .asset document rejection and TIFF/JSON boundaries; read-only filesystem inspection.",
+        "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 15,
+        "namedCases": 1,
+        "facts": {},
+        "phase": "preintegration"
+      }
+    },
+    {
+      "legacyFile": "LiveAgent.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/LiveAgent.test.mjs",
+      "scenarios": [
+        {
+          "id": "live-agent-v2",
+          "file": "Tests~/Cases/SourceB/LiveAgent.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "reference-math"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. No Unity commands or asset writes.",
+          "teardown": "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs"
+          ]
+        }
+      ],
+      "coverage": [
+        "Execute extracted premultiplied coverage blending for all alpha/HDR/coverage inputs with strict <1e-9 component tolerance, hidden-RGB edge case, full replacement and zero no-op.",
+        "Execute NextContentLayer for counts 0..99 and all indices including pending/null/missing behaviours.",
+        "Preserve idempotency, completion, Undo refresh, dimensions/revision/reservation, source-resolution, PNG predecode limit and no refresh/compile/save source guards.",
+        "Retain fenced JSON validity, nested Noise example and complete skill frontmatter validation; JSON parsing now uses counted doesNotThrow assertions.",
+        "Execute stretch/contain for widths [16,512,2024,4096], heights [32,512,4096] and both crop regions; preserve aspect/centering/contain limits and invalid fit rejection.",
+        "Execute strict/guide selection capture defaults, padding bounds, bad requests/inactive selection, mask copy, all 2x2 coverage/outside positions and 4x4 new-image soft-alpha results.",
+        "Execute all explicit/focused/recency/ambiguous/closed-window selection branches, focus reload counter [76,77,78], idempotency-before-resolution and fork reservation/source-copy guards.",
+        "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 6873,
+        "namedCases": 1,
+        "facts": {
+          "referenceChecks": 6709
+        },
+        "phase": "preintegration"
+      }
+    },
+    {
+      "legacyFile": "LiveShaderFx.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/LiveShaderFx.test.mjs",
+      "scenarios": [
+        {
+          "id": "live-shader-fx-v2",
+          "file": "Tests~/Cases/SourceB/LiveShaderFx.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "reference-math"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. No Unity commands or asset writes.",
+          "teardown": "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs"
+          ]
+        }
+      ],
+      "coverage": [
+        "Execute lock predicate across editing/state/document/layer combinations and null layers, then idempotent cancellation preserving nonediting work.",
+        "Execute FX add/replace/remove/insertion/group operations, identity/order/created-owner results, every original invalid operation/code/key/index/resource case and failed shader rollback.",
+        "Preserve public 128 parameter budget, inclusive LIMIT and OVER rejection, trial compilation safety/order and edit transaction/revision guards.",
+        "Preserve fenced JSON syntax checks as counted assertions; all jobs/windows are stand-ins without Unity work.",
+        "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 115,
+        "namedCases": 1,
+        "facts": {},
+        "phase": "preintegration"
+      }
+    },
+    {
+      "legacyFile": "MakeSeamless.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/MakeSeamless.test.mjs",
+      "scenarios": [
+        {
+          "id": "make-seamless-v2",
+          "file": "Tests~/Cases/SourceB/MakeSeamless.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "reference-math"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. No Unity commands or asset writes.",
+          "teardown": "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs"
+          ]
+        }
+      ],
+      "coverage": [
+        "Execute shader Weight and original premultiplied bilinear mirror reference for sizes [[1,1],[1,9],[8,1],[2,2],[17,11],[32,23]], all 3x3 axis modes, fades [.001,.1,.2,.5] and falloffs [.25,1,4]; strict <1e-8 channels.",
+        "Preserve axis commutation, opposite edge equality, disabled identity, both-axis corner source selection, hidden RGB exclusion, falloff, exact endpoint results and all 101 transition samples for five starts and three falloffs with <2e-7 and monotonic 1e-10 tolerances.",
+        "Preserve Mirror/ScreenedPoisson/OffsetBlend/PatchQuilting enum/default/API snapshot/parser fields, quilting percent semantics, docs and all material/temporary/GL source cleanup guards.",
+        "Execute all four editor edge destination mappings and 3x3 current/other mode toggles; preserve bound selected styles, change action, inspector and histogram source guards.",
+        "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 489154,
+        "namedCases": 1,
+        "facts": {
+          "referenceChecks": 485916
+        },
+        "phase": "preintegration"
+      }
+    },
+    {
+      "legacyFile": "MakeSeamlessContract.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/MakeSeamlessContract.test.mjs",
+      "scenarios": [
+        {
+          "id": "make-seamless-contract-v2",
+          "file": "Tests~/Cases/SourceB/MakeSeamlessContract.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "source-guard",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "source-contracts"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. No Unity commands or asset writes.",
+          "teardown": "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs"
+          ]
+        }
+      ],
+      "coverage": [
+        "Preserve exact schema/parser/snapshot key equality and docs/default presence for every field.",
+        "Preserve ten enum field spelling/order/discovery arrays, complete numeric field set/minimum/maximum parity including int limits, feather default 50 and description, transition/correction docs and EN/RU/ZH links.",
+        "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 156,
+        "namedCases": 1,
+        "facts": {},
+        "phase": "preintegration"
+      }
+    },
+    {
+      "legacyFile": "MarqueeConstraints.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/MarqueeConstraints.test.mjs",
+      "scenarios": [
+        {
+          "id": "marquee-constraints-v2",
+          "file": "Tests~/Cases/SourceB/MarqueeConstraints.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "reference-math"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. No Unity commands or asset writes.",
+          "teardown": "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs"
+          ]
+        }
+      ],
+      "coverage": [
+        "Execute production geometry for x/y -20..20 at fractional origin [2.5,-7.25], preserving both equality assertions for each of 1681 pairs.",
+        "Execute all Shift/combine/rectangle transitions and preserve exactly two pointer hook calls, paired key callback lifecycle and dropdown-marker source geometry.",
+        "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 3374,
+        "namedCases": 1,
+        "facts": {
+          "referenceChecks": 1681
+        },
+        "phase": "preintegration"
+      }
+    },
+    {
+      "legacyFile": "MotionBlurMath.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/MotionBlurMath.test.mjs",
+      "scenarios": [
+        {
+          "id": "motion-blur-math-v2",
+          "file": "Tests~/Cases/SourceB/MotionBlurMath.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "reference-math"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. No Unity commands or asset writes.",
+          "teardown": "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs"
+          ]
+        }
+      ],
+      "coverage": [
+        "Preserve original trajectory/exposure matrices for widths [1,17,5000], heights [1,25,5000], both modes, three biases and interactive/full sample limits.",
+        "Preserve 1e-8 reference tolerances, impulse offsets -6..6 at 0/90 degrees, HDR/hidden RGB, zero amounts, fixed rotation center and forward direction.",
+        "Preserve constant Clamp/Repeat/Mirror images, seam wrap/clamp and direct-vs-recurrence long/nonsquare arc checks at 1e-6.",
+        "Preserve all shader uniform/recurrence/edge/sample/source-cache/UI/API contracts and strength gain [1,1.001,1.5,2,3,4] across seven alphas, monotonic 1e-12 bound, HDR/empty/opaque identities and original strength mix vectors.",
+        "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 34087,
+        "namedCases": 1,
+        "facts": {
+          "referenceChecks": 34048
+        },
+        "phase": "preintegration"
+      }
+    },
+    {
+      "legacyFile": "NegativeFX.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/NegativeFX.test.mjs",
+      "scenarios": [
+        {
+          "id": "negative-fx-v2",
+          "file": "Tests~/Cases/SourceB/NegativeFX.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "reference-math"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. No Unity commands or asset writes.",
+          "teardown": "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs"
+          ]
+        }
+      ],
+      "coverage": [
+        "Preserve all negative preset catalog/control/default/branchless alpha source assertions.",
+        "Preserve exact input [0.2,0.5,0.9,0.35] with zero, one, alpha-inverted one and half strengths, including original floating-point expected values.",
+        "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 14,
+        "namedCases": 2,
+        "facts": {},
+        "phase": "preintegration"
+      }
+    },
+    {
+      "legacyFile": "NoiseContract.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/NoiseContract.test.mjs",
+      "scenarios": [
+        {
+          "id": "noise-contract-v2",
+          "file": "Tests~/Cases/SourceB/NoiseContract.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "source-guard",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "source-contracts"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. No Unity commands or asset writes.",
+          "teardown": "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs"
+          ]
+        }
+      ],
+      "coverage": [
+        "Preserve guarded FastNoiseLite upstream SHA-256 275f0e558ea7fd967dd0a3f47f14397759e9e6da403d11c290484707dfb8c2cb and all five enum mappings/indices, including White/Blue append positions.",
+        "Preserve every material uniform, public field API/UI mapping, integer seed, white/blue bypass, visibility/preview/class/registry and no-readback/source contracts.",
+        "Preserve exact schema/parser/snapshot keys, six discovery enums, all Noise/SDF encoding/gradient/periodic/link/axis defaults and removed keys.",
+        "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 155,
+        "namedCases": 1,
+        "facts": {},
+        "phase": "preintegration"
+      }
+    },
+    {
+      "legacyFile": "NormalizeFX.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/NormalizeFX.test.mjs",
+      "scenarios": [
+        {
+          "id": "normalize-fx-v2",
+          "file": "Tests~/Cases/SourceB/NormalizeFX.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "reference-math"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. No Unity commands or asset writes.",
+          "teardown": "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs"
+          ]
+        }
+      ],
+      "coverage": [
+        "Preserve catalog, packed color, encoding and safe normalization source formulas.",
+        "Preserve six RGBA input cases, finite outputs, alpha identity, unit length and idempotence at <1e-12, zero/forward exact vectors and four packed-linear conversion round trips.",
+        "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 61,
+        "namedCases": 1,
+        "facts": {},
+        "phase": "preintegration"
+      }
+    },
+    {
+      "legacyFile": "OutputDependencies.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/OutputDependencies.test.mjs",
+      "scenarios": [
+        {
+          "id": "output-dependencies-v2",
+          "file": "Tests~/Cases/SourceB/OutputDependencies.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "source-guard",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "source-contracts"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. No Unity commands or asset writes.",
+          "teardown": "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs"
+          ]
+        }
+      ],
+      "coverage": [
+        "Preserve output event producer/subscriber attach/detach, lazy render/cache invalidation and handler no-eager-work/no-model-mutation guards.",
+        "Preserve recursive group/file lookup, visited dependency cycle protection and reciprocal texture-cycle exclusion.",
+        "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 14,
+        "namedCases": 1,
+        "facts": {},
+        "phase": "preintegration"
+      }
+    },
+    {
+      "legacyFile": "PolarCoordinates.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/PolarCoordinates.test.mjs",
+      "scenarios": [
+        {
+          "id": "polar-coordinates-v2",
+          "file": "Tests~/Cases/SourceB/PolarCoordinates.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "reference-math"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. No Unity commands or asset writes.",
+          "teardown": "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs"
+          ]
+        }
+      ],
+      "coverage": [
+        "Preserve all shader mode/parameter/frame/full-RGBA/unclamped finite-origin/offset source guards.",
+        "Preserve four cardinal directions, center and five angle offsets, outside frame and negative radii at <1e-9.",
+        "Preserve 5x4x5x5 forward/inverse coordinate matrix including offsets and exterior radii, angular seam and translated ring tests.",
+        "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 1035,
+        "namedCases": 4,
+        "facts": {},
+        "phase": "preintegration"
+      }
+    },
+    {
+      "legacyFile": "PostFxSurfaceMath.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/PostFxSurfaceMath.test.mjs",
+      "scenarios": [
+        {
+          "id": "post-fx-surface-math-v2",
+          "file": "Tests~/Cases/SourceB/PostFxSurfaceMath.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "reference-math"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. No Unity commands or asset writes.",
+          "teardown": "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs"
+          ]
+        }
+      ],
+      "coverage": [
+        "Preserve exact four-pass names, forward/depth-normal/oct/rendering-layer contracts, camera/depth/culling-copy order, GPU-only/readback prohibition, lifecycle/depth-before-checker and six checker positions.",
+        "Preserve AlphaHeight/invert/AlphaMask threshold expectations and all perspective/orthographic relief normals at sizes [64,512,2024], flat/slope/inverted/continuous-side edge dot thresholds >.99999.",
+        "Preserve 10000 deterministic spherical normals, both hemispheres and 12+12-bit octahedral payload round trips with original >.99999 dot tolerance.",
+        "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 10057,
+        "namedCases": 1,
+        "facts": {},
+        "phase": "preintegration"
+      }
+    },
+    {
+      "legacyFile": "PresetsFolder.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/PresetsFolder.test.mjs",
+      "scenarios": [
+        {
+          "id": "presets-folder-v2",
+          "file": "Tests~/Cases/SourceB/PresetsFolder.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "source-guard",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "source-contracts"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. No Unity commands or asset writes.",
+          "teardown": "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs"
+          ]
+        }
+      ],
+      "coverage": [
+        "Preserve canonical persisted/default qualified/normalized/file-rejected path, folder dialog/delayed controls and reset semantics.",
+        "Preserve all forbidden directory/file/AssetDatabase/application path mutations, Manta visibility preference and appearance reset, user-settings toolbar/icon/backdrop/source updates.",
+        "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 36,
+        "namedCases": 1,
+        "facts": {},
+        "phase": "preintegration"
+      }
+    },
+    {
+      "legacyFile": "ProceduralClipboard.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/ProceduralClipboard.test.mjs",
+      "scenarios": [
+        {
+          "id": "procedural-clipboard-v2",
+          "file": "Tests~/Cases/SourceB/ProceduralClipboard.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "source-guard",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "source-contracts"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. No Unity commands or asset writes.",
+          "teardown": "Borrowed process.argv restored in finally after read-only schema --check; no generated files.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs",
+            "Documentation~/scripts/build-agent-fields-schema.mjs"
+          ]
+        }
+      ],
+      "coverage": [
+        "Run current build-agent-fields-schema.mjs only with --check; restore borrowed process.argv contents in finally.",
+        "Preserve limited schema matcher and exact property parity for noise/shape/blur/normalMap/makeSeamless/fillPattern, both valid sizes and four invalid fill-pattern examples.",
+        "Preserve procedural paste ordering/compile/dispose/input-lock/resize, source-resolution image fitting/download limits/detach and warnings-before-insertion contracts.",
+        "Preserve removed portable members/envelope/fixtures, AI authoring links and EN/RU guidance image-capability restrictions.",
+        "Borrowed process.argv restored in finally after read-only schema --check; no generated files."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 64,
+        "namedCases": 1,
+        "facts": {},
+        "phase": "preintegration"
+      }
+    },
+    {
+      "legacyFile": "RefactoringR01R04.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/RefactoringR01R04.test.mjs",
+      "scenarios": [
+        {
+          "id": "refactoring-r01-r04-v2",
+          "file": "Tests~/Cases/SourceB/RefactoringR01R04.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "source-guard",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "source-contracts"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. No Unity commands or asset writes.",
+          "teardown": "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs"
+          ]
+        }
+      ],
+      "coverage": [
+        "Preserve canonical channelMask state, 128-capacity Gaussian buffer/upload, shared Gaussian/Sharpen/brush kernel and no-duplicate-formula contracts.",
+        "Preserve shared raster encoder formats/callers/finally disposal and operation-owned immutable serialization diagnostics, model-read return/version and file warning aggregation.",
+        "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 30,
+        "namedCases": 1,
+        "facts": {},
+        "phase": "preintegration"
+      }
+    },
+    {
+      "legacyFile": "RemainingLegacyCleanup.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/RemainingLegacyCleanup.test.mjs",
+      "scenarios": [
+        {
+          "id": "remaining-legacy-cleanup-v2",
+          "file": "Tests~/Cases/SourceB/RemainingLegacyCleanup.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "source-guard",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "source-contracts"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. No Unity commands or asset writes.",
+          "teardown": "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs"
+          ]
+        }
+      ],
+      "coverage": [
+        "Preserve canonical document service lookup, retired FX modes/drawers/live params/affine upgrades and file-only declaredInCode conversion.",
+        "Preserve exact binary float tags/no vector coercion/sampling aliases, JSON root keys, normalized Noise/Pattern/Shape runtime and required integrity manifest source guards.",
+        "Preserve schema kind absence/deprecated provenance/roundness and absence of legacy parameters in every live JSON effect example.",
+        "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 29,
+        "namedCases": 1,
+        "facts": {},
+        "phase": "preintegration"
+      }
+    },
+    {
+      "legacyFile": "RenameMarkerCleanup.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/RenameMarkerCleanup.test.mjs",
+      "scenarios": [
+        {
+          "id": "rename-marker-cleanup-v2",
+          "file": "Tests~/Cases/SourceB/RenameMarkerCleanup.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "source-guard",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "source-contracts"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. No Unity commands or asset writes.",
+          "teardown": "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs"
+          ]
+        }
+      ],
+      "coverage": [
+        "Recursively inspect every current src C# file for Unity rename attributes; preserve serializer unknown-data recording and removed historical scan guards.",
+        "Preserve 0.12.5 tag commit, exactly five manifest entries, basename containment and original git-blob SHA-1 for each source.",
+        "Preserve exact current preset text equality after removing only obsolete aliases, canonical _Opacity and supported user HLSL/brush rename directives.",
+        "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 302,
+        "namedCases": 1,
+        "facts": {},
+        "phase": "preintegration"
+      }
+    },
+    {
+      "legacyFile": "ShaderFXClipboard.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/ShaderFXClipboard.test.mjs",
+      "scenarios": [
+        {
+          "id": "shader-fx-clipboard-v2",
+          "file": "Tests~/Cases/SourceB/ShaderFXClipboard.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "source-guard",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "source-contracts"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. No Unity commands or asset writes.",
+          "teardown": "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs"
+          ]
+        }
+      ],
+      "coverage": [
+        "Preserve all three original named cases: copy/paste-new placement, document adoption/Undo/flush, clipboard cloning/texture-remap/source-marker/reload/quitting cleanup and model Undo refresh.",
+        "Preserve zero horizontal FX padding, inter-layer pointer reorder/capture/drop feedback, lock checks, move/removal/insertion and styles.",
+        "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 41,
+        "namedCases": 3,
+        "facts": {},
+        "phase": "preintegration"
+      }
+    },
+    {
+      "legacyFile": "ShaderFXExternalCode.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/ShaderFXExternalCode.test.mjs",
+      "scenarios": [
+        {
+          "id": "shader-fx-external-code-v2",
+          "file": "Tests~/Cases/SourceB/ShaderFXExternalCode.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "reference-math"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. No Unity commands or asset writes.",
+          "teardown": "Finally restores borrowed Module._load and the two package module cache entries; mock subscriptions and save writes are in-memory only.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs",
+            "ExternalTools~/WhimTexVSCode/extension.js",
+            "ExternalTools~/WhimTexVSCode/metadata.js",
+            "ExternalTools~/WhimTexVSCode/package.json",
+            "ExternalTools~/WhimTexVSCode/extension.vsixmanifest",
+            "ExternalTools~/WhimTexVSCode/whimtex-fx-tools.vsix",
+            "ExternalTools~/WhimTexVSCode/syntaxes/whimtex-hlsl.tmLanguage.json"
+          ]
+        }
+      ],
+      "coverage": [
+        "Preserve manifest/activation/untrusted workspace/no-language-injection/version 0.1.3/VSIX ZIP/header/installer/grammar contracts.",
+        "Preserve native @ completion text/range/block-snippet exclusion and actual mocked save callback .apply URI/data/WhimTex path classification inputs.",
+        "Preserve valid directive corpus and exact error/warning counts for invalid declarations/unmatched blocks.",
+        "Restore borrowed Module._load immediately after mock import and in run finally; isolate only extension.js/metadata.js cache entries and restore previous exports or delete owned entries.",
+        "Finally restores borrowed Module._load and the two package module cache entries; mock subscriptions and save writes are in-memory only."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 27,
+        "namedCases": 4,
+        "facts": {},
+        "phase": "preintegration"
+      },
+      "implementationDependencies": [
+        "ExternalTools~/WhimTexVSCode/extension.js",
+        "ExternalTools~/WhimTexVSCode/metadata.js",
+        "ExternalTools~/WhimTexVSCode/package.json",
+        "ExternalTools~/WhimTexVSCode/extension.vsixmanifest",
+        "ExternalTools~/WhimTexVSCode/whimtex-fx-tools.vsix",
+        "ExternalTools~/WhimTexVSCode/syntaxes/whimtex-hlsl.tmLanguage.json"
+      ]
+    },
+    {
+      "legacyFile": "ShaderFXVSCodeGrammar.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/ShaderFXVSCodeGrammar.test.mjs",
+      "scenarios": [
+        {
+          "id": "shader-fx-vs-code-grammar-v2",
+          "file": "Tests~/Cases/SourceB/ShaderFXVSCodeGrammar.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "reference-math"
+          ],
+          "prerequisites": "Node.js 22+; WHIMTEX_VSCODE_APP must point to an existing VS Code resources/app installation with HLSL, TextMate and Oniguruma. Missing configuration returns structured skipped.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. Uses existing installed grammar engines.",
+          "teardown": "Owned TextMate registry disposed in finally; no downloads or filesystem writes.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs",
+            "ExternalTools~/WhimTexVSCode/syntaxes/whimtex-hlsl.tmLanguage.json"
+          ]
+        }
+      ],
+      "coverage": [
+        "Preserve existing installed VS Code TextMate/Oniguruma module/asar loading, WASM initialization and exact HLSL injection engines.",
+        "Preserve all nine parameter token scopes, gradient/enum/catalog coloring, ordinary comment/block-comment/code noncoloring assertions.",
+        "Dispose owned TextMate registry in finally. Missing WHIMTEX_VSCODE_APP produces structured skipped with zero checks and nonzero exit, never regression success.",
+        "Owned TextMate registry disposed in finally; no downloads or filesystem writes."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 37,
+        "namedCases": 1,
+        "facts": {},
+        "phase": "preintegration",
+        "environment": {
+          "WHIMTEX_VSCODE_APP": "D:/Programs/Microsoft VS Code/07f806f999/resources/app"
+        },
+        "unconfiguredVerification": {
+          "status": "skipped",
+          "exitCode": 1,
+          "checks": 0,
+          "namedCases": 1
+        }
+      },
+      "reason": "Port complete; installed TextMate/Oniguruma verification passed with 37 assertions using only a scoped child-process app path. An unconfigured run still returns structured skipped with zero checks. Parent integration verification remains outstanding.",
+      "implementationDependencies": [
+        "ExternalTools~/WhimTexVSCode/syntaxes/whimtex-hlsl.tmLanguage.json"
+      ]
+    },
+    {
+      "legacyFile": "ShaderFXVSCodeMetadata.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/ShaderFXVSCodeMetadata.test.mjs",
+      "scenarios": [
+        {
+          "id": "shader-fx-vs-code-metadata-v2",
+          "file": "Tests~/Cases/SourceB/ShaderFXVSCodeMetadata.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "reference-math"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. Uses independent copy of every original metadata input case and current validator/VSIX builder.",
+          "teardown": "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs",
+            "Tests~/Framework/NodeSupportB/ShaderFXVSCodeMetadata.cases.json",
+            "ExternalTools~/WhimTexVSCode/metadata.js",
+            "ExternalTools~/WhimTexVSCode/build-vsix.mjs",
+            "ExternalTools~/WhimTexVSCode/[Content_Types].xml",
+            "ExternalTools~/WhimTexVSCode/extension.vsixmanifest",
+            "ExternalTools~/WhimTexVSCode/package.json",
+            "ExternalTools~/WhimTexVSCode/README.md",
+            "ExternalTools~/WhimTexVSCode/extension.js",
+            "ExternalTools~/WhimTexVSCode/syntaxes/whimtex-hlsl.tmLanguage.json",
+            "ExternalTools~/WhimTexVSCode/snippets/whimtex.json",
+            "ExternalTools~/WhimTexVSCode/whimtex-fx-tools.vsix"
+          ]
+        }
+      ],
+      "coverage": [
+        "Independent exact copy of all 119 original metadata cases: every name/source/valid expected value retained, including 129-control limit and malformed/default/alias/group/conditional/texture/transform cases.",
+        "Preserve every current bundled HLSL no-warning assertion, tooltip/comment handling, catalog placement and last-control-wins/invalid controls.",
+        "Preserve installer SHA/content-stamp guards and byte-for-byte bundled VSIX equality from current buildVsix() in memory; no archive regeneration.",
+        "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 162,
+        "namedCases": 125,
+        "facts": {},
+        "phase": "preintegration"
+      },
+      "implementationDependencies": [
+        "ExternalTools~/WhimTexVSCode/metadata.js",
+        "ExternalTools~/WhimTexVSCode/build-vsix.mjs",
+        "ExternalTools~/WhimTexVSCode/[Content_Types].xml",
+        "ExternalTools~/WhimTexVSCode/extension.vsixmanifest",
+        "ExternalTools~/WhimTexVSCode/package.json",
+        "ExternalTools~/WhimTexVSCode/README.md",
+        "ExternalTools~/WhimTexVSCode/extension.js",
+        "ExternalTools~/WhimTexVSCode/syntaxes/whimtex-hlsl.tmLanguage.json",
+        "ExternalTools~/WhimTexVSCode/snippets/whimtex.json",
+        "ExternalTools~/WhimTexVSCode/whimtex-fx-tools.vsix"
+      ]
+    },
+    {
+      "legacyFile": "ShaderFXVSCodeSnippets.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/ShaderFXVSCodeSnippets.test.mjs",
+      "scenarios": [
+        {
+          "id": "shader-fx-vs-code-snippets-v2",
+          "file": "Tests~/Cases/SourceB/ShaderFXVSCodeSnippets.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "reference-math"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. No Unity commands or asset writes.",
+          "teardown": "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs",
+            "ExternalTools~/WhimTexVSCode/metadata.js",
+            "ExternalTools~/WhimTexVSCode/package.json",
+            "ExternalTools~/WhimTexVSCode/snippets/whimtex.json"
+          ]
+        }
+      ],
+      "coverage": [
+        "Preserve exact HLSL contribution/configuration/prefixes, ordered conditional choices/body and both ==/!= expanded validators.",
+        "Preserve exact group placeholders and hidden header-binding/parameter expansions; preserve both snippets across four comment prefixes with suffix/spacing/end-marker assertions.",
+        "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 34,
+        "namedCases": 4,
+        "facts": {},
+        "phase": "preintegration"
+      },
+      "implementationDependencies": [
+        "ExternalTools~/WhimTexVSCode/metadata.js",
+        "ExternalTools~/WhimTexVSCode/package.json",
+        "ExternalTools~/WhimTexVSCode/snippets/whimtex.json"
+      ]
+    },
+    {
+      "legacyFile": "ShaderProcessorVisibility.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/ShaderProcessorVisibility.test.mjs",
+      "scenarios": [
+        {
+          "id": "shader-processor-visibility-v2",
+          "file": "Tests~/Cases/SourceB/ShaderProcessorVisibility.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "source-guard",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "source-contracts"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. No Unity commands or asset writes.",
+          "teardown": "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs"
+          ]
+        }
+      ],
+      "coverage": [
+        "Preserve disabled shader-processor effect-input bypass before Render/FinishStage, following-layer composition and main-stack enabled/opacity checks.",
+        "Preserve owned temporary input release vs caller-owned accumulated input and includeDisabled ordinary hidden-source support.",
+        "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 7,
+        "namedCases": 1,
+        "facts": {},
+        "phase": "preintegration"
+      }
+    },
+    {
+      "legacyFile": "Shape.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/Shape.test.mjs",
+      "scenarios": [
+        {
+          "id": "shape-v2",
+          "file": "Tests~/Cases/SourceB/Shape.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "source-guard",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "source-contracts"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. No Unity commands or asset writes.",
+          "teardown": "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs"
+          ]
+        }
+      ],
+      "coverage": [
+        "Preserve reservation-only Down (including empty document), rotated/snap coordinates, valid release distance >=9, exactly one transactional AddLayer/name capture/anchor and clear-before-release resource ownership.",
+        "Preserve all eight paired gesture callbacks, Escape/API/zoom cancellation, HDR float/decoded fill/pass transform and finally GL/RT/source cleanup guards.",
+        "Preserve cached 64 polygon vertices/no per-pixel trig/AA/stroke coverage/editor width and all original Shape snapshot/discovery/creation fields.",
+        "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 55,
+        "namedCases": 1,
+        "facts": {},
+        "phase": "preintegration"
+      }
+    },
+    {
+      "legacyFile": "ShapeCorners.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/ShapeCorners.test.mjs",
+      "scenarios": [
+        {
+          "id": "shape-corners-v2",
+          "file": "Tests~/Cases/SourceB/ShapeCorners.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "reference-math"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. No Unity commands or asset writes.",
+          "teardown": "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs"
+          ]
+        }
+      ],
+      "coverage": [
+        "Execute extracted AdjustCorner for all eight original reference vectors including zero, unlinked and NaN at strict <1e-6.",
+        "Preserve all 4x101x20 proportional/independent edits, every component finite/in-range, proportional cross-products and unlinked identity without lowering tolerances.",
+        "Preserve TL/TR/BR/BL labels, percentage bindings/Undo/link controls, API vectors and shader corner ordering.",
+        "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 88920,
+        "namedCases": 1,
+        "facts": {
+          "referenceChecks": 8080
+        },
+        "phase": "preintegration"
+      }
+    },
+    {
+      "legacyFile": "ShapePicker.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/ShapePicker.test.mjs",
+      "scenarios": [
+        {
+          "id": "shape-picker-v2",
+          "file": "Tests~/Cases/SourceB/ShapePicker.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "reference-math"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. No Unity commands or asset writes.",
+          "teardown": "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs"
+          ]
+        }
+      ],
+      "coverage": [
+        "Execute production ItemAt for counts [2,5], x=-5..40 and y=-5..165 at .5 increments, preserving all 62062 expected hit tests.",
+        "Execute idempotent Cancel with synchronous capture-out callback: pointer cleared before release, all owned state cleared and exact pause/remove/unregister/unregister/release order.",
+        "Preserve hold 160ms, drag/button/capture/click-selection mappings, all eight paired callbacks, zoom cancellation/icons and popup dimensions.",
+        "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 62100,
+        "namedCases": 1,
+        "facts": {
+          "referenceChecks": 62062
+        },
+        "phase": "preintegration"
+      }
+    },
+    {
+      "legacyFile": "SignalFX.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/SignalFX.test.mjs",
+      "scenarios": [
+        {
+          "id": "signal-fx-v2",
+          "file": "Tests~/Cases/SourceB/SignalFX.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "source-guard",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "source-contracts"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. No Unity commands or asset writes.",
+          "teardown": "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs"
+          ]
+        }
+      ],
+      "coverage": [
+        "Preserve CRT/VHS catalog markers, exact parameter lists, CRT dither hash/24 Hz time/branchless stripes and VHS seeded tracking/chroma samples.",
+        "Preserve explicit effect time and rejection of Unity implicit _Time in both presets.",
+        "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 32,
+        "namedCases": 2,
+        "facts": {},
+        "phase": "preintegration"
+      }
+    },
+    {
+      "legacyFile": "SwizzleMath.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/SwizzleMath.test.mjs",
+      "scenarios": [
+        {
+          "id": "swizzle-math-v2",
+          "file": "Tests~/Cases/SourceB/SwizzleMath.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "reference-math"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. No Unity commands or asset writes.",
+          "teardown": "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs"
+          ]
+        }
+      ],
+      "coverage": [
+        "Preserve all 13 stable channel enum IDs/labels and <=16 packing capacity.",
+        "Execute actual shader scalar channel for original four RGBA/HDR/alpha vectors and every channel; preserve multiply mapping/default identity and all 13^4=28561 packed mappings.",
+        "Preserve API label encode/discovery source guards; no Unity/GPU claim.",
+        "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 28623,
+        "namedCases": 1,
+        "facts": {},
+        "phase": "preintegration"
+      }
+    },
+    {
+      "legacyFile": "UiRefactor.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/UiRefactor.test.mjs",
+      "scenarios": [
+        {
+          "id": "ui-refactor-v2",
+          "file": "Tests~/Cases/SourceB/UiRefactor.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "reference-math"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. Uses independent frozen USS baseline and copied snapshot helper.",
+          "teardown": "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs",
+            "Tests~/Framework/NodeSupportB/UssCascadeSnapshot.mjs",
+            "Tests~/Framework/NodeSupportB/UssCascadeBaseline.json"
+          ]
+        }
+      ],
+      "coverage": [
+        "Independent copied UssCascadeSnapshot helper and frozen baseline: preserve palette resolution, selector canonicalization, ordered conflicts/specificity and SHA-256 property chains.",
+        "Preserve all original approved terminology/control rule filters and exact baseline equality plus surface/height mutation rejection.",
+        "Preserve target/inspector/model binding invalidation guards and all 99x16x16 seeded reachability/scratch-clear equivalence checks, including cycles.",
+        "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 25362,
+        "namedCases": 1,
+        "facts": {
+          "referenceChecks": 25344
+        },
+        "phase": "preintegration"
+      }
+    },
+    {
+      "legacyFile": "UserSettingsCleanup.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/UserSettingsCleanup.test.mjs",
+      "scenarios": [
+        {
+          "id": "user-settings-cleanup-v2",
+          "file": "Tests~/Cases/SourceB/UserSettingsCleanup.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "source-guard",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "source-contracts"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. No Unity commands or asset writes.",
+          "teardown": "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs"
+          ]
+        }
+      ],
+      "coverage": [
+        "Recursively inspect every current src C# for old Preview preference prefixes and LegacyDataFolder.",
+        "Preserve seven CanvasView and three Canvas preference suffixes plus PaintingScale, no blurOpacity migration and active PaintToolSettings deserialize.",
+        "Preserve default LocalApplicationData library boundary and prohibition of path search/asset/file moves/deletes.",
+        "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 555,
+        "namedCases": 1,
+        "facts": {},
+        "phase": "preintegration"
+      }
+    },
+    {
+      "legacyFile": "UvIslands.test.mjs",
+      "newFile": "Tests~/Cases/SourceB/UvIslands.test.mjs",
+      "scenarios": [
+        {
+          "id": "uv-islands-v2",
+          "file": "Tests~/Cases/SourceB/UvIslands.test.mjs",
+          "runner": "node",
+          "entry": null,
+          "args": [],
+          "category": "source-guard",
+          "timeoutMs": 30000,
+          "effects": [],
+          "groups": [
+            "source-b",
+            "node",
+            "source-contracts"
+          ],
+          "prerequisites": "Node.js 22+; read-only current package sources and declared independent test support; no Unity connection.",
+          "setup": "Async named assertion cases against current package sources; all original inputs, formulas, expected values, branches and tolerances retained. No Unity commands or asset writes.",
+          "teardown": "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Framework/test-api.mjs"
+          ]
+        }
+      ],
+      "coverage": [
+        "Preserve supported read-only mesh acquisition, seam/topology/winding/grid/size guards and prohibition of mesh/import/GPU mutation.",
+        "Preserve rotated selection/rasterize/UI ignore behavior, mesh/hash cache, 750ms refresh, 512 bounded batches and no expensive/reentrant DrawUvOverlay work.",
+        "Preserve dedicated UV tool routing, serialized mesh reference and OnDisable cache release.",
+        "No persistent state, detached work or owned Unity resources; only scoped in-memory stand-ins and read-only source/data."
+      ],
+      "state": "ported-unverified",
+      "nodeVerification": {
+        "status": "passed",
+        "exitCode": 0,
+        "checks": 23,
+        "namedCases": 1,
+        "facts": {},
+        "phase": "preintegration"
+      }
+    }
+  ],
+  "exclusions": [
+    {
+      "legacyFile": "UssCascadeSnapshot.mjs",
+      "kind": "support-helper",
+      "reason": "Fully read and independently copied unchanged algorithm. No standalone assertions: explicit review dependency of UiRefactor, not a regression scenario.",
+      "replacement": "Tests~/Framework/NodeSupportB/UssCascadeSnapshot.mjs"
+    },
+    {
+      "legacyFile": "UssCascadeBaseline.json",
+      "kind": "support-fixture",
+      "reason": "Independent frozen baseline copy; all property fingerprints unchanged. Consumed by UiRefactor with no Legacy runtime dependency.",
+      "replacement": "Tests~/Framework/NodeSupportB/UssCascadeBaseline.json"
+    },
+    {
+      "legacyFile": "ShaderFXVSCodeMetadata.cases.json",
+      "kind": "support-fixture",
+      "reason": "Independent copy of all 119 original name/source/valid objects; reviewed explicitly by metadata scenario.",
+      "replacement": "Tests~/Framework/NodeSupportB/ShaderFXVSCodeMetadata.cases.json"
+    }
+  ],
+  "verification": {
+    "kind": "direct-node",
+    "files": 39,
+    "passedFiles": 39,
+    "skippedFiles": 0,
+    "failedFiles": 0,
+    "passedNamedCases": 176,
+    "checks": 752433,
+    "unityCommandsRun": false,
+    "catalogIntegrationVerified": false,
+    "legacyEquivalenceRun": false,
+    "phase": "preintegration",
+    "grammarEnvironment": "WHIMTEX_VSCODE_APP=D:/Programs/Microsoft VS Code/07f806f999/resources/app in grammar child only",
+    "unconfiguredGrammarStatus": "skipped"
+  },
+  "integrationNotes": [
+    "All replacement states remain ported-unverified pending parent catalog integration and coverage comparison; direct Node passes are recorded separately.",
+    "Installed grammar engines passed with a scoped child-process WHIMTEX_VSCODE_APP; missing app configuration still produces a non-green structured skip. All direct Node evidence is preintegration.",
+    "ExternalTools implementation helpers and their current grammar/snippet/VSIX inputs are explicitly listed in scenario reviewFiles, supported by current catalog validation; installed VS Code runtime inputs remain an external prerequisite.",
+    "No production src, Legacy, legacy-manifest.json, catalog, migration registry, runner or documentation edits. No Unity calls, compile/build, generated schema writes, asset writes or detached jobs."
+  ]
+}

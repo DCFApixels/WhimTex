@@ -1,0 +1,160 @@
+// Independent migrated assertions; compiled and executed only by the parent runner.
+using WhimTex.Tests;
+using WhimTex.Tests.UnityD;
+using System;
+using System.Collections.Generic;
+using System.Reflection;
+using System.Threading.Tasks;
+using UnityEditor;
+using UnityEngine;
+using UnityEngine.UIElements;
+using DCFApixels.WhimTex;
+
+public static class UIRefreshTests
+{
+    static TestContext context;
+    static MigrationD fixture;
+
+    public static string Run() => TestContext.Run("UIRefreshTests.Run", runContext =>
+    {
+        context = runContext;
+        using (fixture = new MigrationD()) ExecuteMain();
+    });
+
+    public static string StartBindings(string runId) => AsyncD.Start(runId, ExecuteBindings);
+    public static string PollBindings(string runId) => AsyncD.Poll(runId);
+    public static Task<string> CancelBindings(string runId) => AsyncD.Cancel(runId);
+    public static Task<string> CleanupBindings(string runId) => AsyncD.Cleanup(runId);
+
+    const BindingFlags Hidden = BindingFlags.NonPublic | BindingFlags.Instance;
+    static void Check(bool condition, string message)
+    { context.True(condition, message); }
+
+    private static void ExecuteMain()
+    {
+        var effect = ScriptableObject.CreateInstance<ShaderFX>();
+        try
+        {
+            var parameters = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", Hidden).GetValue(effect);
+            parameters.Clear();
+            var metadata = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata", true);
+            string code = "";
+            for (int i = 0; i < 32; i++) code += "// @param float _Value" + i + " = " + i + "\n";
+            parameters.AddRange((List<ShaderFXParameter>)metadata.GetMethod("Parse", BindingFlags.Static | BindingFlags.NonPublic)
+                .Invoke(null, new object[] { code, false, null }));
+            var condition = new ShaderFXParameterControl { type = ShaderFXParameterType.Float,
+                visibleIfParameter = "_Value0", visibleIfValue = 1, headers = new[] { "Conditional" } };
+            condition.order = parameters[1].controls[0].order;
+            parameters[1].controls[0] = condition;
+            var mode = new ShaderFXParameterControl { type = ShaderFXParameterType.Enum,
+                optionNames = new[] { "First", "Second" }, optionValues = new[] { 0f, 1f } };
+            mode.order = parameters[2].controls[0].order;
+            parameters[2].controls[0] = mode;
+            var type = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXParameterView", true);
+            var view = (VisualElement)Activator.CreateInstance(type, Hidden, null, new object[] { effect }, null);
+            var refresh = (Action)Delegate.CreateDelegate(typeof(Action), view, type.GetMethod("Refresh", Hidden));
+            var first = view[0];
+            var conditional = view.Q(className: "whimtex-fx-conditional-parameter");
+            Check(conditional.style.display.value == DisplayStyle.None, "Condition should start hidden");
+            parameters[0].floatValue = 1;
+            refresh();
+            Check(ReferenceEquals(first, view[0]), "Value update rebuilt controls");
+            Check(conditional.style.display.value == DisplayStyle.Flex, "Condition failed to show");
+            var replaced = parameters[0];
+            parameters[0] = new ShaderFXParameter { id = replaced.id, name = "_Value0", floatValue = 0 };
+            parameters[0].controls.AddRange(replaced.controls);
+            refresh();
+            Check(ReferenceEquals(first, view[0]), "Model replacement rebuilt an unchanged layout");
+            Check(conditional.style.display.value == DisplayStyle.None, "Condition uses stale model object");
+            var number = first as FloatField ?? first.Q<FloatField>();
+            Check(number != null && number.value == 0, "Field uses stale model object");
+
+            Action<Action, string> expectRebuild = (edit, description) => {
+                var before = view[0]; edit(); refresh();
+                Check(!ReferenceEquals(before, view[0]), "Missing rebuild: " + description);
+            };
+            expectRebuild(() => condition.headers[0] = "Updated header", "header array edit");
+            expectRebuild(() => condition.visibleIfNotEqual = true, "visibility condition edit");
+            expectRebuild(() => mode.optionNames[1] = "Changed", "enum label edit");
+            expectRebuild(() => mode.optionValues[1] = 2, "enum value edit");
+            expectRebuild(() => condition.tooltip = "Updated tooltip", "tooltip edit");
+            expectRebuild(() => { parameters[3].controls[0].hasMaximum = true; parameters[3].controls[0].maximum = 10; }, "range edit");
+            expectRebuild(() => parameters.Reverse(), "reorder");
+            expectRebuild(() => parameters.RemoveAt(0), "remove");
+            expectRebuild(() => parameters.Add((ShaderFXParameter)((List<ShaderFXParameter>)metadata.GetMethod("Parse", BindingFlags.Static | BindingFlags.NonPublic)
+                .Invoke(null, new object[] { "// @param float _Added", false, null }))[0]), "add");
+            first = view[0];
+            for (int i = 0; i < 20; i++) refresh();
+            Check(ReferenceEquals(first, view[0]), "Idle refresh rebuilt controls");
+
+            long start = GC.GetAllocatedBytesForCurrentThread();
+            for (int i = 0; i < 200; i++) refresh();
+            long currentBytes = GC.GetAllocatedBytesForCurrentThread() - start;
+            start = GC.GetAllocatedBytesForCurrentThread();
+            string key = null;
+            for (int i = 0; i < 200; i++) key = LegacyLayoutKey(parameters);
+            long legacyKeyBytes = GC.GetAllocatedBytesForCurrentThread() - start;
+            GC.KeepAlive(key);
+            if (legacyKeyBytes > 0) Check(currentBytes < legacyKeyBytes, "Refresh allocation regression");
+            return;
+        }
+        finally { UnityEngine.Object.DestroyImmediate(effect); }
+    }
+
+    static string LegacyLayoutKey(List<ShaderFXParameter> parameters)
+    {
+        string key = "";
+        foreach (var p in parameters)
+            if (p != null)
+            {
+                key += $"{p.id}:{p.name}:{p.type}:{p.hasMinimum}:{p.minimum}:{p.hasMaximum}:{p.maximum}:{p.softMinimum}:{p.softMaximum}|";
+                foreach (var control in p.controls) key += JsonUtility.ToJson(control);
+            }
+        return key;
+    }
+
+    private static async Task ExecuteBindings(TestContext runContext, System.Threading.CancellationToken token)
+    {
+        context = runContext;
+        var previousWindow = EditorWindow.focusedWindow;
+        var window = ScriptableObject.CreateInstance<EditorWindow>();
+        window.titleContent = new GUIContent("UI bindings smoke");
+        try
+        {
+            window.ShowUtility();
+            var field = new IntegerField();
+            window.rootVisualElement.Add(field);
+            var ui = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.WhimTexUI", true);
+            var type = ui.GetNestedType("ValueBindings", BindingFlags.NonPublic);
+            var bindings = Activator.CreateInstance(type, true);
+            int model = 1, reads = 0;
+            type.GetMethod("Track").MakeGenericMethod(typeof(int)).Invoke(bindings,
+                new object[] { field, (Func<int>)(() => { reads++; return model; }) });
+            Action queue = () => {
+                using (var evt = PointerUpEvent.GetPooled()) { evt.target = field; field.SendEvent(evt); }
+            };
+            Func<Task> tick = () => AsyncD.Tick(window.rootVisualElement, token);
+            model = 2; reads = 0;
+            queue(); queue(); queue();
+            await tick();
+            Check(field.value == 2 && reads == 1, "Refreshes did not coalesce");
+            model = 3; reads = 0;
+            queue(); await tick();
+            Check(field.value == 3 && reads == 1, "Completed task did not restart");
+            model = 4; reads = 0;
+            queue(); field.RemoveFromHierarchy();
+            await tick();
+            Check(reads == 0, "Detached field still refreshed");
+            window.rootVisualElement.Add(field);
+            queue(); await tick();
+            Check(field.value == 4 && reads == 1, "Reattached field did not refresh");
+            return;
+        }
+        finally
+        {
+            AsyncD.CleanupOwned(
+                () => window.Close(),
+                () => { if (previousWindow != null) previousWindow.Focus(); });
+        }
+    }
+}

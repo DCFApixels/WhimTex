@@ -1,0 +1,115 @@
+using System;
+using System.Linq;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEditor;
+using UnityEngine.UIElements;
+using DCFApixels.WhimTex;
+public static class CanvasFilterTests
+{
+static WhimTex.Tests.TestContext T;
+static WhimTex.Tests.UnityA.UnityAScope Scope;
+static System.Threading.CancellationToken Cancellation;
+
+private static string BodyRun()
+{
+// Unity Pipeline eval_file; transient objects only, no saved assets or user documents.
+const System.Reflection.BindingFlags Hidden = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public;
+var type = typeof(DCFApixels.WhimTex.TextureCompositorWindow);
+var window = Scope.OwnWindow(ScriptableObject.CreateInstance<DCFApixels.WhimTex.TextureCompositorWindow>());
+window.name = Scope.Tag + "-canvas-filter";
+var document = (DCFApixels.WhimTex.TextureCompositor)type.GetField("compositor", Hidden).GetValue(window);
+var source = new Texture2D(4, 2, TextureFormat.RGBA32, false, true) { hideFlags = HideFlags.HideAndDontSave, filterMode = FilterMode.Point };
+var previous = RenderTexture.active;
+bool previousSrgb = GL.sRGBWrite;
+var render = typeof(DCFApixels.WhimTex.TextureCompositor).GetMethod("RenderCanvas", Hidden);
+int checks = 0;
+void Check(bool condition, string message) { T.True(condition, message); }
+float SampleUpscaled(Texture texture)
+{
+    var target = RenderTexture.GetTemporary(8, 4, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+    var pixels = new Texture2D(8, 4, TextureFormat.RGBAFloat, false, true);
+    try
+    {
+        GL.sRGBWrite = false;
+        Graphics.Blit(texture, target);
+        RenderTexture.active = target;
+        pixels.ReadPixels(new Rect(0, 0, 8, 4), 0, 0, false);
+        return pixels.GetPixel(3, 1).r;
+    }
+    finally { RenderTexture.active = previous; RenderTexture.ReleaseTemporary(target); UnityEngine.Object.DestroyImmediate(pixels); }
+}
+try
+{
+    Check(document.outputFilter == FilterMode.Bilinear, "Default remains Bilinear");
+    document.width = 4; document.height = 2;
+    source.SetPixels(new[] { Color.black, Color.black, Color.white, Color.white, Color.black, Color.black, Color.white, Color.white }); source.Apply();
+    document.layers.Add(new DCFApixels.WhimTex.Layer(new DCFApixels.WhimTex.FileLayerBehaviour { sourceTexture = source }));
+    var toolbar = new UnityEngine.UIElements.VisualElement();
+    type.GetField("toolkitCanvasToolbar", Hidden).SetValue(window, toolbar);
+    type.GetMethod("BuildToolkitCanvasToolbar", Hidden).Invoke(window, null);
+    var field = UnityEngine.UIElements.UQueryExtensions.Q<UnityEngine.UIElements.EnumField>(toolbar, "canvasOutputFilter");
+    Check(field != null && field.label == "Filter", "Canvas filter control exists");
+    float pointSample = 0, bilinearSample = 0;
+    foreach (FilterMode mode in new[] { FilterMode.Point, FilterMode.Bilinear, FilterMode.Trilinear })
+    {
+        document.outputFilter = mode;
+        var texture = document.ComposeCanvas();
+        var preview = (RenderTexture)render.Invoke(document, new object[] { 4 });
+        try
+        {
+            Check(texture.filterMode == mode, "ComposeCanvas sampling " + mode);
+            Check(preview.filterMode == mode, "Preview sampling " + mode);
+            Check(texture.mipmapCount == 1 && !preview.useMipMap, "No extra mipmaps allocated");
+            if (mode == FilterMode.Point) pointSample = SampleUpscaled(texture);
+            if (mode == FilterMode.Bilinear) bilinearSample = SampleUpscaled(texture);
+            var clone = UnityEngine.Object.Instantiate(document);
+            try { Check(clone.outputFilter == mode, "Cloning retains filter " + mode); }
+            finally { UnityEngine.Object.DestroyImmediate(clone); }
+            using (var serialized = new SerializedObject(document))
+                Check(serialized.FindProperty("outputFilter").intValue == (int)mode, "Serialized document setting");
+        }
+        finally { UnityEngine.Object.DestroyImmediate(texture); RenderTexture.ReleaseTemporary(preview); }
+    }
+    Check(pointSample < .05f && bilinearSample > .1f && bilinearSample < .5f, "GPU Point/Bilinear produce distinct edge sampling");
+    var canvasTexture = RenderTexture.GetTemporary(4, 2);
+    var channel = new RenderTexture(4, 2, 0);
+    var post = new RenderTexture(4, 2, 0);
+    try
+    {
+        type.GetField("canvasTexture", Hidden).SetValue(window, canvasTexture);
+        type.GetField("channelCanvasTexture", Hidden).SetValue(window, channel);
+        type.GetField("postFxTexture", Hidden).SetValue(window, post);
+        var toolField = type.GetField("canvasTool", Hidden);
+        document.outputFilter = FilterMode.Trilinear;
+        toolField.SetValue(window, Enum.Parse(toolField.FieldType, "Pencil"));
+        type.GetMethod("ApplyCanvasTextureFilter", Hidden).Invoke(window, null);
+        Check(canvasTexture.filterMode == FilterMode.Point && channel.filterMode == FilterMode.Point && post.filterMode == FilterMode.Point, "Pencil preview override");
+        Check(document.outputFilter == FilterMode.Trilinear, "Pencil leaves output setting intact");
+        toolField.SetValue(window, Enum.Parse(toolField.FieldType, "Brush"));
+        type.GetMethod("ApplyCanvasTextureFilter", Hidden).Invoke(window, null);
+        Check(canvasTexture.filterMode == FilterMode.Trilinear && channel.filterMode == FilterMode.Trilinear && post.filterMode == FilterMode.Trilinear, "Return to document filtering");
+    }
+    finally
+    {
+        type.GetField("canvasTexture", Hidden).SetValue(window, null);
+        type.GetField("channelCanvasTexture", Hidden).SetValue(window, null);
+        type.GetField("postFxTexture", Hidden).SetValue(window, null);
+        RenderTexture.ReleaseTemporary(canvasTexture); UnityEngine.Object.DestroyImmediate(channel); UnityEngine.Object.DestroyImmediate(post);
+    }
+    document.outputFilter = (FilterMode)123;
+    typeof(DCFApixels.WhimTex.TextureCompositor).GetMethod("NormalizeModel", Hidden).Invoke(document, null);
+    Check(document.outputFilter == FilterMode.Bilinear, "Invalid filter normalized");
+    return null;
+}
+finally
+{
+    RenderTexture.active = previous; GL.sRGBWrite = previousSrgb;
+    WhimTex.Tests.UnityA.UnityAScope.CloseOwned(window);
+    UnityEngine.Object.DestroyImmediate(source);
+}
+
+
+}
+public static string Run() => WhimTex.Tests.TestContext.Run("Run", context => WhimTex.Tests.UnityA.UnityAScope.RunOwned(scope => { T = context; Scope = scope; try { BodyRun(); } finally { T = null; Scope = null; } }));
+}

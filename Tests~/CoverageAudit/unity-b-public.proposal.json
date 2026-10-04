@@ -1,0 +1,1201 @@
+{
+  "version": 1,
+  "scope": "Metadata/history proposal and current owned-source freeze. Original15 proposals preserved unchanged; parent reports all15 IDs/effects integrated. No duplicate scenario registration, batch/catalog/global/shared C# helper edits. Latest Export/Histogram fixes and exact-journal Recovery require parent proof. Explicit bounded ReloadOrchestration.mjs status-timeout grant recorded separately.",
+  "changedFiles": [
+    "Tests~/Cases/UnityB/DocumentBurstHashTests.cs",
+    "Tests~/Cases/UnityB/DocumentJsonApiTests.cs",
+    "Tests~/Cases/UnityB/DocumentJsonContractTests.cs",
+    "Tests~/Cases/UnityB/DocumentPerformanceTests.cs",
+    "Tests~/Cases/UnityB/DocumentSaveCostTests.cs",
+    "Tests~/Cases/UnityB/ExportWindowTests.cs",
+    "Tests~/Cases/UnityB/FillPatternTests.cs",
+    "Tests~/Cases/UnityB/GradientHistoryTests.cs",
+    "Tests~/Cases/UnityB/HealingBrushTests.cs",
+    "Tests~/Cases/UnityB/HealingNoiseSeamDiagnosticTests.cs",
+    "Tests~/Cases/UnityB/HealingPerimeterTests.cs",
+    "Tests~/Cases/UnityB/HistogramArithmeticAuditTests.cs",
+    "Tests~/Cases/UnityB/HistogramSeamlessTests.cs",
+    "Tests~/CoverageAudit/audit-unity-b-public.mjs",
+    "Tests~/CoverageAudit/unity-b-public.json",
+    "Tests~/CoverageAudit/unity-b-public.proposal.json"
+  ],
+  "affectedExistingScenarioIds": [
+    "document-burst-hash-probe-v2",
+    "document-json-api-smoke-v2",
+    "document-json-contract-smoke-v2",
+    "document-performance-probe-ldr-random-v2",
+    "document-performance-probe-hdr-random-v2",
+    "document-performance-probe-ldr-constant-v2",
+    "document-performance-probe-hdr-constant-v2",
+    "document-save-cost-probe-hashes-v2",
+    "document-save-cost-probe-fast-fingerprint-v2",
+    "document-save-cost-probe-tiff-v2",
+    "document-save-cost-probe-tiff-2048-v2",
+    "document-save-cost-probe-container-1-opaque-v2",
+    "document-save-cost-probe-container-1-alpha-v2",
+    "document-save-cost-probe-container-2-opaque-v2",
+    "document-save-cost-probe-container-2-alpha-v2",
+    "document-save-cost-probe-container-3-opaque-v2",
+    "document-save-cost-probe-container-3-alpha-v2",
+    "document-save-cost-probe-container-4-opaque-v2",
+    "document-save-cost-probe-container-4-alpha-v2",
+    "document-save-cost-probe-cache-safety-v2",
+    "export-window-smoke-v2",
+    "fill-pattern-smoke-v2",
+    "gradient-history-smoke-picker-recency-v2",
+    "gradient-history-smoke-history-v2",
+    "healing-brush-smoke-v2",
+    "healing-noise-seam-diagnostic-v2",
+    "healing-perimeter-smoke-v2",
+    "histogram-arithmetic-audit-v2",
+    "histogram-arithmetic-audit-main-v2",
+    "histogram-seamless-smoke-v2"
+  ],
+  "proposedScenarios": [
+    {
+      "runner": "run_script",
+      "effects": [
+        "user-state"
+      ],
+      "groups": [
+        "unity-b",
+        "unity",
+        "independent-port"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/UnityB/UnityBSupport.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Parent-reviewed idle graphical Unity Editor explicitly targeted to D:/DCFA/Projects/Test6.6; no concurrent tests, compilation, Live Update, recovery or edits. Parent must re-review current case and shared-helper hashes before serialized compile/entry/runtime validation.",
+      "teardown": "UnityBRun scope restores borrowed package caches/LRU/serializer state and histogram workspace, destroys owned Unity objects; local using/finally disposes native arrays, streams, render textures and restores caller render state. No persistent asset or scene changes.",
+      "id": "document-save-cost-probe-container-1-opaque-v2",
+      "file": "Tests~/Cases/UnityB/DocumentSaveCostTests.cs",
+      "entry": "DocumentSaveCostTests.Container",
+      "args": [
+        1,
+        true
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 240000,
+      "setup": "Same Legacy 64 MiB seeded pixels per layer, three independent container stream writes, same cache-hit/size/timing reports. New assertions decode actual prepared raw/deflated storage in 65536-byte chunks and compare all input bytes, without retaining another complete container."
+    },
+    {
+      "runner": "run_script",
+      "effects": [
+        "user-state"
+      ],
+      "groups": [
+        "unity-b",
+        "unity",
+        "independent-port"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/UnityB/UnityBSupport.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Parent-reviewed idle graphical Unity Editor explicitly targeted to D:/DCFA/Projects/Test6.6; no concurrent tests, compilation, Live Update, recovery or edits. Parent must re-review current case and shared-helper hashes before serialized compile/entry/runtime validation.",
+      "teardown": "UnityBRun scope restores borrowed package caches/LRU/serializer state and histogram workspace, destroys owned Unity objects; local using/finally disposes native arrays, streams, render textures and restores caller render state. No persistent asset or scene changes.",
+      "id": "document-save-cost-probe-container-1-alpha-v2",
+      "file": "Tests~/Cases/UnityB/DocumentSaveCostTests.cs",
+      "entry": "DocumentSaveCostTests.Container",
+      "args": [
+        1,
+        false
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 240000,
+      "setup": "Same Legacy 64 MiB seeded pixels per layer, three independent container stream writes, same cache-hit/size/timing reports. New assertions decode actual prepared raw/deflated storage in 65536-byte chunks and compare all input bytes, without retaining another complete container."
+    },
+    {
+      "runner": "run_script",
+      "effects": [
+        "user-state"
+      ],
+      "groups": [
+        "unity-b",
+        "unity",
+        "independent-port"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/UnityB/UnityBSupport.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Parent-reviewed idle graphical Unity Editor explicitly targeted to D:/DCFA/Projects/Test6.6; no concurrent tests, compilation, Live Update, recovery or edits. Parent must re-review current case and shared-helper hashes before serialized compile/entry/runtime validation.",
+      "teardown": "UnityBRun scope restores borrowed package caches/LRU/serializer state and histogram workspace, destroys owned Unity objects; local using/finally disposes native arrays, streams, render textures and restores caller render state. No persistent asset or scene changes.",
+      "id": "document-save-cost-probe-container-2-opaque-v2",
+      "file": "Tests~/Cases/UnityB/DocumentSaveCostTests.cs",
+      "entry": "DocumentSaveCostTests.Container",
+      "args": [
+        2,
+        true
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 240000,
+      "setup": "Same Legacy 64 MiB seeded pixels per layer, three independent container stream writes, same cache-hit/size/timing reports. New assertions decode actual prepared raw/deflated storage in 65536-byte chunks and compare all input bytes, without retaining another complete container."
+    },
+    {
+      "runner": "run_script",
+      "effects": [
+        "user-state"
+      ],
+      "groups": [
+        "unity-b",
+        "unity",
+        "independent-port"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/UnityB/UnityBSupport.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Parent-reviewed idle graphical Unity Editor explicitly targeted to D:/DCFA/Projects/Test6.6; no concurrent tests, compilation, Live Update, recovery or edits. Parent must re-review current case and shared-helper hashes before serialized compile/entry/runtime validation.",
+      "teardown": "UnityBRun scope restores borrowed package caches/LRU/serializer state and histogram workspace, destroys owned Unity objects; local using/finally disposes native arrays, streams, render textures and restores caller render state. No persistent asset or scene changes.",
+      "id": "document-save-cost-probe-container-2-alpha-v2",
+      "file": "Tests~/Cases/UnityB/DocumentSaveCostTests.cs",
+      "entry": "DocumentSaveCostTests.Container",
+      "args": [
+        2,
+        false
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 240000,
+      "setup": "Same Legacy 64 MiB seeded pixels per layer, three independent container stream writes, same cache-hit/size/timing reports. New assertions decode actual prepared raw/deflated storage in 65536-byte chunks and compare all input bytes, without retaining another complete container."
+    },
+    {
+      "runner": "run_script",
+      "effects": [
+        "user-state"
+      ],
+      "groups": [
+        "unity-b",
+        "unity",
+        "independent-port"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/UnityB/UnityBSupport.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Parent-reviewed idle graphical Unity Editor explicitly targeted to D:/DCFA/Projects/Test6.6; no concurrent tests, compilation, Live Update, recovery or edits. Parent must re-review current case and shared-helper hashes before serialized compile/entry/runtime validation.",
+      "teardown": "UnityBRun scope restores borrowed package caches/LRU/serializer state and histogram workspace, destroys owned Unity objects; local using/finally disposes native arrays, streams, render textures and restores caller render state. No persistent asset or scene changes.",
+      "id": "document-save-cost-probe-container-3-opaque-v2",
+      "file": "Tests~/Cases/UnityB/DocumentSaveCostTests.cs",
+      "entry": "DocumentSaveCostTests.Container",
+      "args": [
+        3,
+        true
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 240000,
+      "setup": "Same Legacy 64 MiB seeded pixels per layer, three independent container stream writes, same cache-hit/size/timing reports. New assertions decode actual prepared raw/deflated storage in 65536-byte chunks and compare all input bytes, without retaining another complete container."
+    },
+    {
+      "runner": "run_script",
+      "effects": [
+        "user-state"
+      ],
+      "groups": [
+        "unity-b",
+        "unity",
+        "independent-port"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/UnityB/UnityBSupport.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Parent-reviewed idle graphical Unity Editor explicitly targeted to D:/DCFA/Projects/Test6.6; no concurrent tests, compilation, Live Update, recovery or edits. Parent must re-review current case and shared-helper hashes before serialized compile/entry/runtime validation.",
+      "teardown": "UnityBRun scope restores borrowed package caches/LRU/serializer state and histogram workspace, destroys owned Unity objects; local using/finally disposes native arrays, streams, render textures and restores caller render state. No persistent asset or scene changes.",
+      "id": "document-save-cost-probe-container-3-alpha-v2",
+      "file": "Tests~/Cases/UnityB/DocumentSaveCostTests.cs",
+      "entry": "DocumentSaveCostTests.Container",
+      "args": [
+        3,
+        false
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 240000,
+      "setup": "Same Legacy 64 MiB seeded pixels per layer, three independent container stream writes, same cache-hit/size/timing reports. New assertions decode actual prepared raw/deflated storage in 65536-byte chunks and compare all input bytes, without retaining another complete container."
+    },
+    {
+      "runner": "run_script",
+      "effects": [
+        "user-state"
+      ],
+      "groups": [
+        "unity-b",
+        "unity",
+        "independent-port"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/UnityB/UnityBSupport.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Parent-reviewed idle graphical Unity Editor explicitly targeted to D:/DCFA/Projects/Test6.6; no concurrent tests, compilation, Live Update, recovery or edits. Parent must re-review current case and shared-helper hashes before serialized compile/entry/runtime validation.",
+      "teardown": "UnityBRun scope restores borrowed package caches/LRU/serializer state and histogram workspace, destroys owned Unity objects; local using/finally disposes native arrays, streams, render textures and restores caller render state. No persistent asset or scene changes.",
+      "id": "document-save-cost-probe-container-4-opaque-v2",
+      "file": "Tests~/Cases/UnityB/DocumentSaveCostTests.cs",
+      "entry": "DocumentSaveCostTests.Container",
+      "args": [
+        4,
+        true
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 240000,
+      "setup": "Same Legacy 64 MiB seeded pixels per layer, three independent container stream writes, same cache-hit/size/timing reports. New assertions decode actual prepared raw/deflated storage in 65536-byte chunks and compare all input bytes, without retaining another complete container."
+    },
+    {
+      "runner": "run_script",
+      "effects": [
+        "user-state"
+      ],
+      "groups": [
+        "unity-b",
+        "unity",
+        "independent-port"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/UnityB/UnityBSupport.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Parent-reviewed idle graphical Unity Editor explicitly targeted to D:/DCFA/Projects/Test6.6; no concurrent tests, compilation, Live Update, recovery or edits. Parent must re-review current case and shared-helper hashes before serialized compile/entry/runtime validation.",
+      "teardown": "UnityBRun scope restores borrowed package caches/LRU/serializer state and histogram workspace, destroys owned Unity objects; local using/finally disposes native arrays, streams, render textures and restores caller render state. No persistent asset or scene changes.",
+      "id": "document-save-cost-probe-container-4-alpha-v2",
+      "file": "Tests~/Cases/UnityB/DocumentSaveCostTests.cs",
+      "entry": "DocumentSaveCostTests.Container",
+      "args": [
+        4,
+        false
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 240000,
+      "setup": "Same Legacy 64 MiB seeded pixels per layer, three independent container stream writes, same cache-hit/size/timing reports. New assertions decode actual prepared raw/deflated storage in 65536-byte chunks and compare all input bytes, without retaining another complete container."
+    },
+    {
+      "runner": "run_script",
+      "effects": [
+        "user-state"
+      ],
+      "groups": [
+        "unity-b",
+        "unity",
+        "independent-port"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/UnityB/UnityBSupport.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Parent-reviewed idle graphical Unity Editor explicitly targeted to D:/DCFA/Projects/Test6.6; no concurrent tests, compilation, Live Update, recovery or edits. Parent must re-review current case and shared-helper hashes before serialized compile/entry/runtime validation.",
+      "teardown": "UnityBRun scope restores borrowed package caches/LRU/serializer state and histogram workspace, destroys owned Unity objects; local using/finally disposes native arrays, streams, render textures and restores caller render state. No persistent asset or scene changes.",
+      "id": "document-save-cost-probe-cache-safety-v2",
+      "file": "Tests~/Cases/UnityB/DocumentSaveCostTests.cs",
+      "entry": "DocumentSaveCostTests.CacheSafety",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "setup": "Same Legacy texture updateCount observations and opaque/alpha native-cache cases. Assert unchanged hit, parse/byte oracle, mutated same-key miss, no stale block insertion and recovered original hit."
+    },
+    {
+      "runner": "run_script",
+      "effects": [
+        "user-state"
+      ],
+      "groups": [
+        "unity-b",
+        "unity",
+        "independent-port"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/UnityB/UnityBSupport.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Parent-reviewed idle graphical Unity Editor explicitly targeted to D:/DCFA/Projects/Test6.6; no concurrent tests, compilation, Live Update, recovery or edits. Parent must re-review current case and shared-helper hashes before serialized compile/entry/runtime validation.",
+      "teardown": "UnityBRun scope restores borrowed package caches/LRU/serializer state and histogram workspace, destroys owned Unity objects; local using/finally disposes native arrays, streams, render textures and restores caller render state. No persistent asset or scene changes.",
+      "id": "histogram-arithmetic-audit-main-v2",
+      "file": "Tests~/Cases/UnityB/HistogramArithmeticAuditTests.cs",
+      "entry": "HistogramArithmeticAuditTests.Main",
+      "args": [],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "setup": "Same Legacy Random(55), 17x13 RGBAFloat, scheduled Configure and managed Build.Execute for four channels; preserve difference report, assert finite values/statistics. No zero-difference threshold added."
+    },
+    {
+      "runner": "run_script",
+      "effects": [
+        "user-state",
+        "windows"
+      ],
+      "groups": [
+        "unity-b",
+        "unity",
+        "independent-port"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/UnityB/UnityBSupport.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Parent-reviewed idle graphical Unity Editor explicitly targeted to D:/DCFA/Projects/Test6.6; no concurrent tests, compilation, Live Update, recovery or edits. Parent must re-review current case and shared-helper hashes before serialized compile/entry/runtime validation.",
+      "teardown": "Persistent GUID journal validates all IDs/names/assets/original-window exclusion before cleanup. Finally closes only journal-owned windows/documents/pixels, restores previous focus, erases journal only after successful cleanup; failure retains recovery journal.",
+      "id": "export-window-visual-sequence-v2",
+      "file": "Tests~/Cases/UnityB/ExportWindowTests.cs",
+      "entry": "ExportWindowTests.VisualSequence",
+      "args": [
+        "$runId"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 240000,
+      "setup": "Original 16x16 Drawing/2x2 pixels; JSON format6 at420x280 then EXR format3 at360x240. Assert new owned window/controls/format/dimensions; pre-existing windows survive. Sequence validates bodies but does not prove visual appearance; use manual workflow for inspection."
+    },
+    {
+      "runner": "run_script",
+      "effects": [
+        "user-state",
+        "windows",
+        "temp-files"
+      ],
+      "groups": [
+        "unity-b",
+        "unity",
+        "independent-port"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/UnityB/UnityBSupport.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Parent-reviewed idle graphical Unity Editor explicitly targeted to D:/DCFA/Projects/Test6.6; no concurrent tests, compilation, Live Update, recovery or edits. Parent must re-review current case and shared-helper hashes before serialized compile/entry/runtime validation.",
+      "teardown": "Async finally validates/destroys only owned journal window/session/document, restores focus, clears journal on success. PNG retained in no-overwrite/link-guarded GUID diagnostics tree; late/missing repaint fails rather than passing.",
+      "id": "gradient-history-capture-v2",
+      "file": "Tests~/Cases/UnityB/GradientHistoryTests.cs",
+      "entry": "GradientHistoryTests.CaptureWorkflow",
+      "args": [
+        "$runId"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "setup": "Prerequisite no existing picker/gradient windows. Original40 HSV+HDR document,560x420 window; wait layout/repaint, supported public Unity ImmediateRepaint+ReadPixels framebuffer capture, actual nonempty PNG. No OS/private capture, no golden.",
+      "async": {
+        "entry": "GradientHistoryTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 200
+      },
+      "cancel": {
+        "entry": "GradientHistoryTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "GradientHistoryTests.CleanupRun",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "runner": "run_script",
+      "effects": [
+        "user-state",
+        "temp-files"
+      ],
+      "groups": [
+        "unity-b",
+        "unity",
+        "independent-port"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/UnityB/UnityBSupport.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Parent-reviewed idle graphical Unity Editor explicitly targeted to D:/DCFA/Projects/Test6.6; no concurrent tests, compilation, Live Update, recovery or edits. Parent must re-review current case and shared-helper hashes before serialized compile/entry/runtime validation.",
+      "teardown": "Dispose owned Unity textures/temporary targets, restore active target/sRGB state. Retain original-named files under unique GUID Temp/WhimTex/diagnostics tree, no previous artifact overwrite/link traversal.",
+      "id": "histogram-seamless-preview-v2",
+      "file": "Tests~/Cases/UnityB/HistogramSeamlessTests.cs",
+      "entry": "HistogramSeamlessTests.Preview",
+      "args": [
+        "$runId",
+        "output/copy-blend-lab-2026-09-28/00_source.png"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 240000,
+      "setup": "Exact original input required relative to Test6.6 project working directory (present at source review). No generated substitute. sRGB PNG load, linear ARGBFloat conversion/render, same input/output float dumps and gamma PNG; source bytes unchanged. Diagnostic outputs are not goldens."
+    },
+    {
+      "runner": "run_script",
+      "effects": [
+        "user-state"
+      ],
+      "groups": [
+        "unity-b",
+        "unity",
+        "independent-port"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/UnityB/UnityBSupport.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Parent-reviewed idle graphical Unity Editor explicitly targeted to D:/DCFA/Projects/Test6.6; no concurrent tests, compilation, Live Update, recovery or edits. Parent must re-review current case and shared-helper hashes before serialized compile/entry/runtime validation.",
+      "teardown": "Dispose owned textures and release temporary targets; restore caller active target. Report retained in structured result.message.",
+      "id": "histogram-seamless-benchmark-v2",
+      "file": "Tests~/Cases/UnityB/HistogramSeamlessTests.cs",
+      "entry": "HistogramSeamlessTests.Benchmark",
+      "args": [],
+      "category": "diagnostic",
+      "timeoutMs": 240000,
+      "setup": "Original256/512/1024 RGBAFloat linear x/size,y/size,.3,1 input; one warmup and three Render+synchronous Read samples, sorted median3. Finite/nonnegative time only; no fabricated speed threshold."
+    },
+    {
+      "runner": "run_script",
+      "effects": [
+        "user-state",
+        "temp-files"
+      ],
+      "groups": [
+        "unity-b",
+        "unity",
+        "independent-port"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/UnityB/UnityBSupport.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Parent-reviewed idle graphical Unity Editor explicitly targeted to D:/DCFA/Projects/Test6.6; no concurrent tests, compilation, Live Update, recovery or edits. Parent must re-review current case and shared-helper hashes before serialized compile/entry/runtime validation.",
+      "teardown": "Dispose owned textures/release render targets/restore active target. Retain GUID diagnostics files for external/manual original comparison.",
+      "id": "histogram-seamless-reference-fixtures-v2",
+      "file": "Tests~/Cases/UnityB/HistogramSeamlessTests.cs",
+      "entry": "HistogramSeamlessTests.ReferenceFixtures",
+      "args": [
+        "$runId"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 240000,
+      "setup": "Sequential original Random391,64x48/17x13/128x128 RGBA ranges; write independent input/output dimensions+float RGBA dumps. Check actual8+width*height*16 byte layout; not manufactured comparison goldens."
+    }
+  ],
+  "requiredBatchUpdates": [
+    {
+      "legacyFile": "DocumentSaveCostProbe.cs",
+      "change": "Replace diagnostic-baseline disposition for Container/CacheSafety with restored entries and explicit scenario/argument mapping. Existing Hashes/FastFingerprint/Tiff now retain measurement report in structured message."
+    },
+    {
+      "legacyFile": "HistogramArithmeticAudit.cs",
+      "change": "Replace Main diagnostic-baseline disposition with restored Main, distinct from existing Memory. The original difference report is preserved without treating arithmetic differences as a failure."
+    },
+    {
+      "legacyFile": "ExportWindowSmoke.cs",
+      "change": "Append VisualSequence scenario and preserve public manual three-step persistent-GUID ability. Replace prior SKIP disposition with source-restored manual workflow; visual inspection remains prerequisite."
+    },
+    {
+      "legacyFile": "GradientHistorySmoke.cs",
+      "change": "Append CaptureWorkflow async scenario with poll/cancel/cleanup bridge; retain manual Setup/Capture/PollCapture/Cleanup ability. Capture requires actual repaint PNG, not SKIP success."
+    },
+    {
+      "legacyFile": "HistogramSeamlessSmoke.cs",
+      "change": "Append Preview/Benchmark/ReferenceFixtures with exact args/seeds/sizes, diagnostic timeout240000; bind original Preview input prerequisite; no generated goldens."
+    }
+  ],
+  "validation": "JSON-only finalized runtime notes: native9 current bundles previously verified PASS; final Node83 all PASS (framework43/171, reloadB82/2839, D31/4139), CI11 all PASS, both recoveryRequired=false. All sources remain frozen/unchanged; agent reads receipts only, no Unity. Manual visual/external-oracle review and parent final gate report remain distinct.",
+  "remainingNonParentGaps": [],
+  "sourceFreeze": [
+    {
+      "file": "Tests~/Cases/UnityB/DocumentBurstHashTests.cs",
+      "sha256": "afefff02aeaf14201fa4911c6df4a3d2128203ced7203c7d4d3a863fa4bd13d8"
+    },
+    {
+      "file": "Tests~/Cases/UnityB/DocumentJsonApiTests.cs",
+      "sha256": "088c400bb822c11b857e8b044a446651995fe0415853f972bfcdbebf3759db64"
+    },
+    {
+      "file": "Tests~/Cases/UnityB/DocumentJsonContractTests.cs",
+      "sha256": "61f79b4c3554736f888749823226c93c38cb0f340d8da6bc0c562dd3f6e7664d"
+    },
+    {
+      "file": "Tests~/Cases/UnityB/DocumentPerformanceTests.cs",
+      "sha256": "dfe7fe864a896314066781ea4adedc5f3c3960b1d5bf27fa7e8b54d88438defa"
+    },
+    {
+      "file": "Tests~/Cases/UnityB/DocumentSaveCostTests.cs",
+      "sha256": "e5136472f813d7a86632714e8a9a62b922ec70ba712490e1a6060fc8f8b7e919"
+    },
+    {
+      "file": "Tests~/Cases/UnityB/ExportWindowTests.cs",
+      "sha256": "8e2f090b7501c684206b07eadd402ea5eeab01f5b42cef9a70f94a368f6768cf"
+    },
+    {
+      "file": "Tests~/Cases/UnityB/FillPatternTests.cs",
+      "sha256": "973e6e2e88ac2ccea98254cefa58d6d175974b44c10392662b70c133393ed8ca"
+    },
+    {
+      "file": "Tests~/Cases/UnityB/GradientHistoryTests.cs",
+      "sha256": "17e10ef6f16d82b331ebaf478691a8d8362fd84d9d9686c8586b50a3796a53ff"
+    },
+    {
+      "file": "Tests~/Cases/UnityB/HealingBrushTests.cs",
+      "sha256": "c39c3578b8d93816bc1dcd777a4b3c00201b42fdf289c3b3c2dce8318106f589"
+    },
+    {
+      "file": "Tests~/Cases/UnityB/HealingNoiseSeamDiagnosticTests.cs",
+      "sha256": "0b2782f7dd180720ed51004e8ab8ecb3bc1e8f58398a798d6e7470022201b766"
+    },
+    {
+      "file": "Tests~/Cases/UnityB/HealingPerimeterTests.cs",
+      "sha256": "324dd8d01db4af952be8d16f439a83eb0f30368bba08c2ee566a4b43fe984dbc"
+    },
+    {
+      "file": "Tests~/Cases/UnityB/HistogramArithmeticAuditTests.cs",
+      "sha256": "728423f3e772b0e86562b9b5bcf5063bf811817329b2452652b477248993d795"
+    },
+    {
+      "file": "Tests~/Cases/UnityB/HistogramSeamlessTests.cs",
+      "sha256": "8de20a8eeec96fa981bd16b74916dea0681368c5ba161142442da94bdd4d5596"
+    }
+  ],
+  "originalProposalState": {
+    "preservedScenarioCount": 10,
+    "parentReportedMerged": true,
+    "parentReportedBatchRecordsMerged": [
+      "DocumentSaveCostProbe.cs",
+      "HistogramArithmeticAudit.cs"
+    ],
+    "instruction": "Keep first ten proposals; append remaining five after A86 finishes. Do not replace parent's existing scenario metadata or helper."
+  },
+  "manualWorkflows": [
+    {
+      "legacyFile": "ExportWindowSmoke.cs",
+      "guidPolicy": "New N-format GUID, keep same GUID across all steps. Never reuse earlier journal.",
+      "steps": [
+        "ExportWindowTests.ShowVisual(guid)",
+        "Inspect/capture actual JSON visual while window remains open",
+        "ExportWindowTests.ShowExrVisual(guid)",
+        "Inspect/capture actual EXR visual while window remains open",
+        "ExportWindowTests.CloseVisual(guid)"
+      ],
+      "prerequisites": "Idle graphical Editor. No pre-existing window acquired or closed. VisualSequence is not a screenshot oracle.",
+      "recovery": "Final RecoverVisual is general strict-N journal recovery only: five nonempty/distinct recorded identities, original-window exclusion snapshot/focus validation, public all-Object identity scan. All five absent -> erase only unchanged exact journal without object mutations. Otherwise require exact owned owner/document/window, single Drawing-held recorded nonasset pixels reference before name restoration and strict CloseVisual. No historical hardcoded run/IDs, Post FX probe/retention/window-detachment bypass remains. VisualSequence retains primary+cleanup AggregateException and acquired-only serializable recovery envelope; final native validation pending parent."
+    },
+    {
+      "legacyFile": "GradientHistorySmoke.cs",
+      "guidPolicy": "New N-format GUID; same GUID for setup/capture/poll/cleanup; do not call generic Run cleanup between phases.",
+      "steps": [
+        "GradientHistoryTests.Setup(guid)",
+        "Wait actual layout/repaint",
+        "GradientHistoryTests.Capture(guid)",
+        "GradientHistoryTests.PollCapture(guid) until terminal; inspect retained actual PNG",
+        "GradientHistoryTests.Cleanup(guid)"
+      ],
+      "prerequisites": "No user picker/gradient windows, supported visible graphical framebuffer. No PNG/layout golden specified; never fabricate one.",
+      "recovery": "Cleanup validates only journal-owned resources. PNG remains after successful cleanup."
+    }
+  ],
+  "requiredExistingEffectsUpdates": [
+    {
+      "file": "Tests~/Cases/UnityB/DocumentBurstHashTests.cs",
+      "scenarioIds": [
+        "document-burst-hash-probe-v2"
+      ],
+      "addEffects": [
+        "temp-files"
+      ],
+      "reason": "Actual diagnostic JSON/PNG/text/binary evidence now retained by parent-owned EvidencePath; transient resources still cleaned."
+    },
+    {
+      "file": "Tests~/Cases/UnityB/DocumentPerformanceTests.cs",
+      "scenarioIds": [
+        "document-performance-probe-ldr-random-v2",
+        "document-performance-probe-hdr-random-v2",
+        "document-performance-probe-ldr-constant-v2",
+        "document-performance-probe-hdr-constant-v2"
+      ],
+      "addEffects": [
+        "temp-files"
+      ],
+      "reason": "Actual diagnostic JSON/PNG/text/binary evidence now retained by parent-owned EvidencePath; transient resources still cleaned."
+    },
+    {
+      "file": "Tests~/Cases/UnityB/ExportWindowTests.cs",
+      "scenarioIds": [
+        "export-window-smoke-v2"
+      ],
+      "addEffects": [
+        "temp-files"
+      ],
+      "reason": "Actual diagnostic JSON/PNG/text/binary evidence now retained by parent-owned EvidencePath; transient resources still cleaned."
+    },
+    {
+      "file": "Tests~/Cases/UnityB/FillPatternTests.cs",
+      "scenarioIds": [
+        "fill-pattern-smoke-v2"
+      ],
+      "addEffects": [
+        "temp-files"
+      ],
+      "reason": "Actual diagnostic JSON/PNG/text/binary evidence now retained by parent-owned EvidencePath; transient resources still cleaned."
+    },
+    {
+      "file": "Tests~/Cases/UnityB/HealingBrushTests.cs",
+      "scenarioIds": [
+        "healing-brush-smoke-v2"
+      ],
+      "addEffects": [
+        "temp-files"
+      ],
+      "reason": "Actual diagnostic JSON/PNG/text/binary evidence now retained by parent-owned EvidencePath; transient resources still cleaned."
+    },
+    {
+      "file": "Tests~/Cases/UnityB/HealingNoiseSeamDiagnosticTests.cs",
+      "scenarioIds": [
+        "healing-noise-seam-diagnostic-v2"
+      ],
+      "addEffects": [
+        "temp-files"
+      ],
+      "reason": "Actual diagnostic JSON/PNG/text/binary evidence now retained by parent-owned EvidencePath; transient resources still cleaned."
+    },
+    {
+      "file": "Tests~/Cases/UnityB/HealingPerimeterTests.cs",
+      "scenarioIds": [
+        "healing-perimeter-smoke-v2"
+      ],
+      "addEffects": [
+        "temp-files"
+      ],
+      "reason": "Actual diagnostic JSON/PNG/text/binary evidence now retained by parent-owned EvidencePath; transient resources still cleaned."
+    }
+  ],
+  "remainingParentGaps": [
+    {
+      "legacyFile": "DocumentReleaseValidation.cs",
+      "gaps": [
+        "PARENT PREREQUISITE: native Faults/Deferred failure-probe fixture is currently absent; parent is authoring a selectable native fixture driver. SKIP without fixture is not original failure-path proof. Player preparation/build/live restart/build-report proof also remains parent-owned. Inspect/bind actual selected driver, assertion/input branches and retained artifacts before equivalence.",
+        "PARENT NOTE: inspect any remaining TempPath diagnostic JSON and migrate to EvidencePath if post-run inspection is required.",
+        "No exact predicate/helper-and-message token match for Legacy:42; inspect contextual adaptation before equivalence: Check ( path . StartsWith ( \"Assets/WhimTexValidation_\" ) && Path . GetFileName ( path ) . Length == \"WhimTexValidation_\" . Length + 32 && AssetDatabase . IsValidFolder ( path ) , \"owned fixture folder\" )",
+        "No exact predicate/helper-and-message token match for Legacy:53; inspect contextual adaptation before equivalence: Check ( string . IsNullOrEmpty ( SessionState . GetString ( Key , \"\" ) ) , \"no prior fixture\" )",
+        "No exact predicate/helper-and-message token match for Legacy:261; inspect contextual adaptation before equivalence: Check ( AssetDatabase . DeleteAsset ( folder ) , \"delete owned fixture\" )",
+        "No exact loop/switch token match at Legacy:260: foreach ( var doc in Resources . FindObjectsOfTypeAll < TextureCompositor > ( ) )"
+      ]
+    },
+    {
+      "legacyFile": "DocumentSaveTailProbe.cs",
+      "gaps": [
+        "Parent-authored profiling=true and ReadProfile require current-fingerprint runtime proof; no-profiler pass cannot establish raw-capture equivalence. Parent reports EvidencePath restoration for retained probe/profile JSON; no implementation edit by this agent."
+      ]
+    }
+  ],
+  "aggregateRunIdPolicy": "Aggregate runner GUID adaptation: incoming D/N runId parsed with Guid.Parse(...).ToString(\"N\") before strict-N manual/evidence helpers. VisualSequence normalizes before journal lookup; CaptureWorkflow retains original external bridge ID for Poll/Cancel/CleanupRun and normalizes only its owned manual lifecycle; Histogram Preview/ReferenceFixtures normalize non-null optional IDs, preserving null-generated GUID behavior. Ownership helpers remain strict N and no global runner behavior changes.",
+  "identityCompatibility": "Unity 6000.7 native CS0619 fix: object identities are serialized strings (including original-window snapshot array) with no EntityId-to-int cast. Identity(value) uses public GetEntityId().ToString() under UNITY_6000_4_OR_NEWER and invariant GetInstanceID().ToString() only in the older-Unity #else branch. Null/empty identity means no owned object. All create/lookup/original-window exclusion/focus restoration sites use Identity; strict GUID/name/asset ownership remains unchanged. Native compile/runtime and actual visual/capture proof require new parent bundle fingerprints.",
+  "rerunAfterIdentityFix": {
+    "affectedExistingScenarioIds": [
+      "export-window-smoke-v2",
+      "gradient-history-smoke-picker-recency-v2",
+      "gradient-history-smoke-history-v2"
+    ],
+    "alsoRevalidateAggregateIds": [
+      "export-window-visual-sequence-v2",
+      "gradient-history-capture-v2"
+    ],
+    "remainingSelectedNotRun": 22,
+    "unchangedPassedCount": 46,
+    "note": "Parent binds exact unchanged current input bundles for 46 passes; neither this source fix nor source-audit status counts as a runtime pass. Shared helper unchanged. No global/catalog/registry edits by this agent."
+  },
+  "runtimePending": [
+    {
+      "legacyFile": "ExportWindowSmoke.cs",
+      "reason": "Final current native selected scenario(s) PASS, exact bundle hashes verified; actual visual/artifact/external comparison and final gate binding pending. Historical failures/recovery preserved separately."
+    },
+    {
+      "legacyFile": "GradientHistorySmoke.cs",
+      "reason": "Final current native selected scenario(s) PASS, exact bundle hashes verified; actual visual/artifact/external comparison and final gate binding pending. Historical failures/recovery preserved separately."
+    },
+    {
+      "legacyFile": "HistogramSeamlessSmoke.cs",
+      "reason": "Final current native selected scenario(s) PASS, exact bundle hashes verified; actual visual/artifact/external comparison and final gate binding pending. Historical failures/recovery preserved separately."
+    },
+    {
+      "legacyFile": "DocumentReloadSmoke.cs",
+      "reason": "Actual surviving-window original source reviewed; native receipt/full marker/current wrapper fingerprint binding pending, not missing code. Carrier-only is partial."
+    },
+    {
+      "legacyFile": "GuideReloadSmoke.cs",
+      "reason": "Original guides source reviewed; native receipt/current fingerprint binding pending, not missing code."
+    }
+  ],
+  "metadataIntegrationStatus": {
+    "parentReportedAll15Integrated": true,
+    "noDuplicateRegistrationNeeded": true,
+    "original15Preserved": true
+  },
+  "recoveryEntries": [
+    {
+      "entry": "ExportWindowTests.RecoverVisual",
+      "args": [
+        "caller-owned strict N GUID"
+      ],
+      "file": "Tests~/Cases/UnityB/ExportWindowTests.cs",
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/UnityB/UnityBSupport.cs"
+      ],
+      "strictNManualGuid": true,
+      "execution": "Parent only; no Unity operations by agent",
+      "proof": "Final RecoverVisual is general strict-N journal recovery only: five nonempty/distinct recorded identities, original-window exclusion snapshot/focus validation, public all-Object identity scan. All five absent -> erase only unchanged exact journal without object mutations. Otherwise require exact owned owner/document/window, single Drawing-held recorded nonasset pixels reference before name restoration and strict CloseVisual. No historical hardcoded run/IDs, Post FX probe/retention/window-detachment bypass remains. VisualSequence retains primary+cleanup AggregateException and acquired-only serializable recovery envelope; final native validation pending parent.",
+      "runtimeStatus": "pending-parent-validation"
+    }
+  ],
+  "latestManualFix": {
+    "changedSources": [
+      {
+        "file": "Tests~/Cases/UnityB/ExportWindowTests.cs",
+        "sha256": "8e2f090b7501c684206b07eadd402ea5eeab01f5b42cef9a70f94a368f6768cf"
+      },
+      {
+        "file": "Tests~/Cases/UnityB/HistogramSeamlessTests.cs",
+        "sha256": "8de20a8eeec96fa981bd16b74916dea0681368c5ba161142442da94bdd4d5596"
+      }
+    ],
+    "affectedScenarioIds": [
+      "export-window-smoke-v2",
+      "export-window-visual-sequence-v2",
+      "histogram-seamless-smoke-v2",
+      "histogram-seamless-preview-v2",
+      "histogram-seamless-benchmark-v2",
+      "histogram-seamless-reference-fixtures-v2"
+    ],
+    "evidencePaths": [
+      "histogram-seamless/preview/09_unity_input.bin",
+      "histogram-seamless/preview/09_unity_histogram.bin",
+      "histogram-seamless/preview/09_unity_histogram.png",
+      "histogram-seamless/reference-fixtures/reference_<width>x<height>_input.bin",
+      "histogram-seamless/reference-fixtures/reference_<width>x<height>_output.bin"
+    ],
+    "metadataEffects": [
+      "temp-files"
+    ],
+    "noNewScenarioIds": true
+  },
+  "cleanupProtocolProposal": {
+    "implemented": false,
+    "ownership": "parent globals/helpers; no edits while native active",
+    "observed": "Export retained journal but manual5 report recoveryRequired=false. classifyReply honors recoveryRequired only for requiresUnity node, not structured run_script. Aggregate finally can mask primary failure; Gradient local manual journal cleanup is not registered in UnityBRun owned scope.",
+    "needed": [
+      "Preserve primary and cleanup failures independently; never emit passed cleanup while owned journal remains.",
+      "Use reviewed explicit cleanup callback/result or typed structured C# cleanup/recoveryRequired protocol honored by runner; retain lock until exact-GUID recovery proof. Extra payload field currently has no effect for run_script.",
+      "An aggregate that did not acquire a duplicate same-GUID manual journal must not clean it.",
+      "Add pure regression: retained manual journal/C# cleanup failure -> cleanup-failed/uncertain recoveryRequired; successful bridge CleanupRun must not erase nested manual cleanup failure. No automatic mutation retry/recovery replay/budget extension."
+    ],
+    "ownedLocalEnvelopesImplemented": true,
+    "parentReportedGlobalClassifierAndNoReplayFixed": true,
+    "remaining": "Historical recovery and current native9/Node83 PASS; parent final gate/manual visual or external-oracle binding remains distinct."
+  },
+  "reloadProtocolDependency": {
+    "file": "Tests~/CoverageAudit/unity-b-reload-protocol.json",
+    "sha256": "114076817092ee5f9a04b50e83d80490276eb1093c67b1eea730b559895bcc2d",
+    "pureCases": 82,
+    "pureChecks": 2839,
+    "nativeStatus": "pending-parent-validation",
+    "reviewFilesProposal": "Add existing ReloadOrchestration.test.mjs to both reload reviewFiles; wrapper already present. No metadata edit by agent."
+  },
+  "latestRecoveryEnvelopeFix": {
+    "sourceReviewed": true,
+    "runtimeStatus": "pending-parent-validation",
+    "sources": [
+      {
+        "file": "Tests~/Cases/UnityB/ExportWindowTests.cs",
+        "sha256": "8e2f090b7501c684206b07eadd402ea5eeab01f5b42cef9a70f94a368f6768cf"
+      },
+      {
+        "file": "Tests~/Cases/UnityB/GradientHistoryTests.cs",
+        "sha256": "17e10ef6f16d82b331ebaf478691a8d8362fd84d9d9686c8586b50a3796a53ff"
+      }
+    ],
+    "affectedScenarioIds": [
+      "export-window-smoke-v2",
+      "export-window-visual-sequence-v2",
+      "gradient-history-smoke-picker-recency-v2",
+      "gradient-history-smoke-history-v2",
+      "gradient-history-capture-v2"
+    ],
+    "recoveryNote": "Final RecoverVisual is general strict-N journal recovery only: five nonempty/distinct recorded identities, original-window exclusion snapshot/focus validation, public all-Object identity scan. All five absent -> erase only unchanged exact journal without object mutations. Otherwise require exact owned owner/document/window, single Drawing-held recorded nonasset pixels reference before name restoration and strict CloseVisual. No historical hardcoded run/IDs, Post FX probe/retention/window-detachment bypass remains. VisualSequence retains primary+cleanup AggregateException and acquired-only serializable recovery envelope; final native validation pending parent.",
+    "envelopeNote": "Local serializable envelope copies TestResult status/checks/message/failures plus recoveryRequired. Export fresh precheck prevents duplicate acquisition; records acquisition even on ShowVisual exception, retains primary+cleanup AggregateException and flags only acquired journal remaining. Gradient SetupOwned records GUID workflow token only AFTER new journal save; validates same token before manual cleanup, retains both errors, and terminal Poll/Cancel/CleanupRun flags acquired receipt+journal remaining. Duplicate CaptureWorkflow returns recoveryRequired=false; running is not terminal recovery; passed+retained journal is converted to failed. No shared helper/TestApi edit.",
+    "pureCases": 82,
+    "pureChecks": 2839,
+    "globalMetadataEdits": false,
+    "sharedHelperEdits": false
+  },
+  "temporaryRecoveryRetired": {
+    "status": "removed-after-parent-confirmed-success",
+    "parentReportedNativeRecovery": "PASS; readonly probe showed boxed CLR nonnull Unity-null texture, null backend; unrecorded data IDs/state preserved and old journal erased.",
+    "scope": "Historical exact-ID branch, InactiveRecoveryReference, InspectRecoveryPostFx, RecoverReloadedWindows and both TEMP-specific source guard cases removed from repository. General RecoverVisual strict journal/exclusion/all-five-absent/ordinary document-owned pixels proof and VisualResult remain. Gradient unchanged. No runtime operations by agent.",
+    "evidence": "Historical source/report retained by parent under scoped Temp/WhimTex/test-runs; no permanent executable GUID/ID special case or Post FX retention mechanism remains.",
+    "finalValidation": "Repository TEMP helpers removed after parent-confirmed successful recovery; native9 current bundles PASS, Node83 and CI11 PASS. Source freeze unchanged; final gate/manual oracle binding remains parent-owned."
+  },
+  "finalRerunScenarioIds": [
+    "export-window-smoke-v2",
+    "export-window-visual-sequence-v2",
+    "histogram-seamless-smoke-v2",
+    "histogram-seamless-preview-v2",
+    "histogram-seamless-benchmark-v2",
+    "histogram-seamless-reference-fixtures-v2",
+    "gradient-history-smoke-picker-recency-v2",
+    "gradient-history-smoke-history-v2",
+    "gradient-history-capture-v2"
+  ],
+  "finalNative9Evidence": {
+    "file": "D:/DCFA/Projects/Test6.6/Temp/WhimTex/test-runs/2026-10-04T15-42-43.469Z-124936.json",
+    "sha256": "824d25c54eff97d917797e84a5ca5cf0e67f84507c0173daa55af6dec8fc77c5",
+    "runId": "a81dca33-199d-4c9c-948e-e3189552c451",
+    "finishedAt": "2026-10-04T15:42:54.509Z",
+    "status": "passed",
+    "selected": 9,
+    "notRun": [],
+    "recoveryRequired": false,
+    "parentReportedCleanup": "Known idle; recoveryRequired=false. Agent read report/bundles only, no live Unity query.",
+    "results": [
+      {
+        "id": "export-window-smoke-v2",
+        "file": "Tests~/Cases/UnityB/ExportWindowTests.cs",
+        "status": "passed",
+        "checks": 69,
+        "uncertain": false,
+        "cleanup": []
+      },
+      {
+        "id": "export-window-visual-sequence-v2",
+        "file": "Tests~/Cases/UnityB/ExportWindowTests.cs",
+        "status": "passed",
+        "checks": 3,
+        "uncertain": false,
+        "cleanup": []
+      },
+      {
+        "id": "histogram-seamless-smoke-v2",
+        "file": "Tests~/Cases/UnityB/HistogramSeamlessTests.cs",
+        "status": "passed",
+        "checks": 2773394,
+        "uncertain": false,
+        "cleanup": []
+      },
+      {
+        "id": "histogram-seamless-preview-v2",
+        "file": "Tests~/Cases/UnityB/HistogramSeamlessTests.cs",
+        "status": "passed",
+        "checks": 2,
+        "uncertain": false,
+        "cleanup": []
+      },
+      {
+        "id": "histogram-seamless-benchmark-v2",
+        "file": "Tests~/Cases/UnityB/HistogramSeamlessTests.cs",
+        "status": "passed",
+        "checks": 3,
+        "uncertain": false,
+        "cleanup": []
+      },
+      {
+        "id": "histogram-seamless-reference-fixtures-v2",
+        "file": "Tests~/Cases/UnityB/HistogramSeamlessTests.cs",
+        "status": "passed",
+        "checks": 3,
+        "uncertain": false,
+        "cleanup": []
+      },
+      {
+        "id": "gradient-history-smoke-picker-recency-v2",
+        "file": "Tests~/Cases/UnityB/GradientHistoryTests.cs",
+        "status": "passed",
+        "checks": 3,
+        "uncertain": false,
+        "cleanup": []
+      },
+      {
+        "id": "gradient-history-smoke-history-v2",
+        "file": "Tests~/Cases/UnityB/GradientHistoryTests.cs",
+        "status": "passed",
+        "checks": 19,
+        "uncertain": false,
+        "cleanup": [
+          {
+            "status": "passed",
+            "message": "Owned cleanup completed; primary verdict: {\"status\":\"passed\",\"checks\":19,\"message\":\"GradientHistoryTests.History\",\"failures\":[]}",
+            "checks": 0,
+            "failures": [],
+            "recoveryRequired": false
+          }
+        ]
+      },
+      {
+        "id": "gradient-history-capture-v2",
+        "file": "Tests~/Cases/UnityB/GradientHistoryTests.cs",
+        "status": "passed",
+        "checks": 2,
+        "uncertain": false,
+        "cleanup": [
+          {
+            "status": "passed",
+            "message": "Owned cleanup completed; primary verdict: {\"status\":\"passed\",\"checks\":2,\"message\":\"GradientHistoryTests.CaptureWorkflow\",\"failures\":[]}",
+            "checks": 0,
+            "failures": [],
+            "recoveryRequired": false
+          }
+        ]
+      }
+    ],
+    "inputs": [
+      {
+        "id": "export-window-smoke-v2",
+        "sha256": "eb7d6d7406d2f47131a3a405371522422e61d8c7fc8f35eca9f4823ef34a27bd",
+        "sources": [
+          {
+            "file": "Tests~/Cases/UnityB/ExportWindowTests.cs",
+            "sha256": "8e2f090b7501c684206b07eadd402ea5eeab01f5b42cef9a70f94a368f6768cf"
+          },
+          {
+            "file": "Tests~/Framework/TestApi.cs",
+            "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+          },
+          {
+            "file": "Tests~/Cases/UnityB/UnityBSupport.cs",
+            "sha256": "5107b85a00b8456f0cddc81247698cc824773dc2f7ece6f1d5a8c42c246ae486"
+          }
+        ],
+        "currentBundleHashMatches": true
+      },
+      {
+        "id": "export-window-visual-sequence-v2",
+        "sha256": "eb7d6d7406d2f47131a3a405371522422e61d8c7fc8f35eca9f4823ef34a27bd",
+        "sources": [
+          {
+            "file": "Tests~/Cases/UnityB/ExportWindowTests.cs",
+            "sha256": "8e2f090b7501c684206b07eadd402ea5eeab01f5b42cef9a70f94a368f6768cf"
+          },
+          {
+            "file": "Tests~/Framework/TestApi.cs",
+            "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+          },
+          {
+            "file": "Tests~/Cases/UnityB/UnityBSupport.cs",
+            "sha256": "5107b85a00b8456f0cddc81247698cc824773dc2f7ece6f1d5a8c42c246ae486"
+          }
+        ],
+        "currentBundleHashMatches": true
+      },
+      {
+        "id": "histogram-seamless-smoke-v2",
+        "sha256": "f9303fe0ce5888cd525e9ab257e93d837738eb5ecfa2beeddff3d28f0642e94f",
+        "sources": [
+          {
+            "file": "Tests~/Cases/UnityB/HistogramSeamlessTests.cs",
+            "sha256": "8de20a8eeec96fa981bd16b74916dea0681368c5ba161142442da94bdd4d5596"
+          },
+          {
+            "file": "Tests~/Framework/TestApi.cs",
+            "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+          },
+          {
+            "file": "Tests~/Cases/UnityB/UnityBSupport.cs",
+            "sha256": "5107b85a00b8456f0cddc81247698cc824773dc2f7ece6f1d5a8c42c246ae486"
+          }
+        ],
+        "currentBundleHashMatches": true
+      },
+      {
+        "id": "histogram-seamless-preview-v2",
+        "sha256": "f9303fe0ce5888cd525e9ab257e93d837738eb5ecfa2beeddff3d28f0642e94f",
+        "sources": [
+          {
+            "file": "Tests~/Cases/UnityB/HistogramSeamlessTests.cs",
+            "sha256": "8de20a8eeec96fa981bd16b74916dea0681368c5ba161142442da94bdd4d5596"
+          },
+          {
+            "file": "Tests~/Framework/TestApi.cs",
+            "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+          },
+          {
+            "file": "Tests~/Cases/UnityB/UnityBSupport.cs",
+            "sha256": "5107b85a00b8456f0cddc81247698cc824773dc2f7ece6f1d5a8c42c246ae486"
+          }
+        ],
+        "currentBundleHashMatches": true
+      },
+      {
+        "id": "histogram-seamless-benchmark-v2",
+        "sha256": "f9303fe0ce5888cd525e9ab257e93d837738eb5ecfa2beeddff3d28f0642e94f",
+        "sources": [
+          {
+            "file": "Tests~/Cases/UnityB/HistogramSeamlessTests.cs",
+            "sha256": "8de20a8eeec96fa981bd16b74916dea0681368c5ba161142442da94bdd4d5596"
+          },
+          {
+            "file": "Tests~/Framework/TestApi.cs",
+            "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+          },
+          {
+            "file": "Tests~/Cases/UnityB/UnityBSupport.cs",
+            "sha256": "5107b85a00b8456f0cddc81247698cc824773dc2f7ece6f1d5a8c42c246ae486"
+          }
+        ],
+        "currentBundleHashMatches": true
+      },
+      {
+        "id": "histogram-seamless-reference-fixtures-v2",
+        "sha256": "f9303fe0ce5888cd525e9ab257e93d837738eb5ecfa2beeddff3d28f0642e94f",
+        "sources": [
+          {
+            "file": "Tests~/Cases/UnityB/HistogramSeamlessTests.cs",
+            "sha256": "8de20a8eeec96fa981bd16b74916dea0681368c5ba161142442da94bdd4d5596"
+          },
+          {
+            "file": "Tests~/Framework/TestApi.cs",
+            "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+          },
+          {
+            "file": "Tests~/Cases/UnityB/UnityBSupport.cs",
+            "sha256": "5107b85a00b8456f0cddc81247698cc824773dc2f7ece6f1d5a8c42c246ae486"
+          }
+        ],
+        "currentBundleHashMatches": true
+      },
+      {
+        "id": "gradient-history-smoke-picker-recency-v2",
+        "sha256": "4d553560d7bc3058627131ad959f37846fea7a6e363e38d8b2eec8d79adc13fa",
+        "sources": [
+          {
+            "file": "Tests~/Cases/UnityB/GradientHistoryTests.cs",
+            "sha256": "17e10ef6f16d82b331ebaf478691a8d8362fd84d9d9686c8586b50a3796a53ff"
+          },
+          {
+            "file": "Tests~/Framework/TestApi.cs",
+            "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+          },
+          {
+            "file": "Tests~/Cases/UnityB/UnityBSupport.cs",
+            "sha256": "5107b85a00b8456f0cddc81247698cc824773dc2f7ece6f1d5a8c42c246ae486"
+          }
+        ],
+        "currentBundleHashMatches": true
+      },
+      {
+        "id": "gradient-history-smoke-history-v2",
+        "sha256": "4d553560d7bc3058627131ad959f37846fea7a6e363e38d8b2eec8d79adc13fa",
+        "sources": [
+          {
+            "file": "Tests~/Cases/UnityB/GradientHistoryTests.cs",
+            "sha256": "17e10ef6f16d82b331ebaf478691a8d8362fd84d9d9686c8586b50a3796a53ff"
+          },
+          {
+            "file": "Tests~/Framework/TestApi.cs",
+            "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+          },
+          {
+            "file": "Tests~/Cases/UnityB/UnityBSupport.cs",
+            "sha256": "5107b85a00b8456f0cddc81247698cc824773dc2f7ece6f1d5a8c42c246ae486"
+          }
+        ],
+        "currentBundleHashMatches": true
+      },
+      {
+        "id": "gradient-history-capture-v2",
+        "sha256": "4d553560d7bc3058627131ad959f37846fea7a6e363e38d8b2eec8d79adc13fa",
+        "sources": [
+          {
+            "file": "Tests~/Cases/UnityB/GradientHistoryTests.cs",
+            "sha256": "17e10ef6f16d82b331ebaf478691a8d8362fd84d9d9686c8586b50a3796a53ff"
+          },
+          {
+            "file": "Tests~/Framework/TestApi.cs",
+            "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+          },
+          {
+            "file": "Tests~/Cases/UnityB/UnityBSupport.cs",
+            "sha256": "5107b85a00b8456f0cddc81247698cc824773dc2f7ece6f1d5a8c42c246ae486"
+          }
+        ],
+        "currentBundleHashMatches": true
+      }
+    ],
+    "limit": "Current native execution proof for selected9 only; actual visual verdict, diagnostic artifact/external oracle checks, final gate binding remains pending. Historical failure/recovery evidence is separate."
+  },
+  "node83Validation": {
+    "file": "D:/DCFA/Projects/Test6.6/Temp/WhimTex/test-runs/2026-10-04T15-43-27.537Z-126276.json",
+    "sha256": "7016616e0e87afc400ed7d87668a329d6ba554ecf82d845ab1634957a6f5a862",
+    "selected": 83,
+    "status": "passed",
+    "finishedAt": "2026-10-04T15:43:53.614Z",
+    "recoveryRequired": false,
+    "notRun": 0,
+    "sourceFrozen": true,
+    "receipt": "read-only-verified",
+    "protocolResults": [
+      {
+        "id": "framework",
+        "status": "passed",
+        "cases": 43,
+        "checks": 171
+      },
+      {
+        "id": "reload-transport-b",
+        "status": "passed",
+        "cases": 82,
+        "checks": 2839
+      },
+      {
+        "id": "reload-transport-d",
+        "status": "passed",
+        "cases": 31,
+        "checks": 4139
+      }
+    ],
+    "note": "83 selected Node scenarios PASS. Owned B pure protocol82 cases/2839 checks remains mock/source-guard proof, not native reload equivalence. Final parent gate/manual visual or external-oracle binding distinct."
+  },
+  "ci11Validation": {
+    "file": "D:/DCFA/Projects/Test6.6/Temp/WhimTex/test-runs/2026-10-04T15-44-23.493Z-106752.json",
+    "sha256": "2c7d5f058baf3e7e24367e5ed8d72ab6a1ae4fd809ae4f68593e79a9e6a6b6b9",
+    "selected": 11,
+    "status": "passed",
+    "finishedAt": "2026-10-04T15:44:25.057Z",
+    "recoveryRequired": false,
+    "notRun": 0
+  }
+}

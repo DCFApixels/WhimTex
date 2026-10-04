@@ -1,0 +1,61 @@
+using System;
+using System.Linq;
+using UnityEngine;
+using UnityEditor;
+using DCFApixels.WhimTex;
+
+public static class EyedropperCursorTests
+{
+    static string Execute()
+    {
+// Opt-in after manual compilation. Temporary textures only; requires graphics, never sets the OS cursor or writes assets.
+var factory = typeof(DCFApixels.WhimTex.TextureCompositorWindow).GetMethod("CreateScreenEyedropperCursor",
+    System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+int checks = 0;
+void Check(bool value, string message)
+{
+    UnityBRun.Check(!(!value), message);
+    checks++;
+}
+Check(factory != null, "Cursor texture factory exists");
+Check(factory.Invoke(null, new object[] { null }) == null, "Missing icon uses the standard cursor fallback");
+foreach (bool readable in new[] { true, false })
+{
+    var source = UnityBRun.Track(new UnityEngine.Texture2D(8, 8, UnityEngine.TextureFormat.ARGB32, true, true)
+        { hideFlags = UnityEngine.HideFlags.HideAndDontSave });
+    UnityEngine.Texture2D copy = null;
+    var previous = UnityEngine.RenderTexture.active;
+    bool previousSrgb = UnityEngine.GL.sRGBWrite;
+    try
+    {
+        var pixels = new UnityEngine.Color32[64];
+        for (int i = 0; i < pixels.Length; i++) pixels[i] = new UnityEngine.Color32(90, 170, 230, 128);
+        source.SetPixels32(pixels);
+        source.Apply(true, !readable);
+        copy = (UnityEngine.Texture2D)factory.Invoke(null, new object[] { source });
+        Check(copy != null && copy != source, "Cursor owns a separate copy");
+        Check(copy.format == UnityEngine.TextureFormat.RGBA32, "Cursor is RGBA32");
+        Check(copy.isReadable && copy.mipmapCount == 1 && copy.alphaIsTransparency, "All native cursor requirements hold");
+        Check(copy.width == source.width + 2 && copy.height == source.height + 2, "One-pixel outline padding surrounds unchanged icon dimensions");
+        var pixel = copy.GetPixels32()[5 * copy.width + 5];
+        Check(System.Math.Abs(pixel.r - 90) <= 2 && System.Math.Abs(pixel.g - 170) <= 2 &&
+            System.Math.Abs(pixel.b - 230) <= 2 && System.Math.Abs(pixel.a - 128) <= 2, "RGBA survives copying");
+        var outline = copy.GetPixels32()[5 * copy.width];
+        Check(outline.r == 0 && outline.g == 0 && outline.b == 0 && outline.a > 0, "Dark outline extends into transparent padding");
+        Check(source.format == UnityEngine.TextureFormat.ARGB32 && source.mipmapCount > 1 &&
+            source.isReadable == readable && !source.alphaIsTransparency, "Source icon stays unchanged");
+        Check(UnityEngine.RenderTexture.active == previous && UnityEngine.GL.sRGBWrite == previousSrgb, "Graphics state is restored");
+    }
+    finally
+    {
+        if (copy != null) UnityEngine.Object.DestroyImmediate(copy);
+        UnityEngine.Object.DestroyImmediate(source);
+    }
+}
+return "Cursor texture GPU/CPU checks passed: " + checks + "; native cursor/input not exercised.";
+
+return "";
+    }
+    public static string Run() => UnityBRun.Run("EyedropperCursorSmoke", () => Execute());
+}
+

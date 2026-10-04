@@ -1,0 +1,2613 @@
+{
+  "version": 1,
+  "replacements": [
+    {
+      "legacyFile": "ShaderFX0125PresetSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/ShaderFX0125PresetTests.cs",
+      "scenarios": [
+        {
+          "id": "shader-fx0125-preset-v2",
+          "file": "Tests~/Cases/UnityD/ShaderFX0125PresetTests.cs",
+          "runner": "run_script",
+          "entry": "ShaderFX0125PresetTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [
+            "assets",
+            "user-state"
+          ],
+          "groups": [
+            "unity-d",
+            "regression",
+            "shader-fx"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "All five exact 0.12.5 HLSL sources (ColorFilter, Negative, Mask, GradientMap, HSV); _Opacity=.37, stable ID, absence of _Amount/_Density, canonical group header.",
+        "Every RGBA channel finite; max render delta <=.002 before/after catalog refresh and TIFF reopen; native ShaderFX asset values retained.",
+        "Owned 16x16 models/FX/readbacks destroyed; imported TIFF/native presets deleted only from Assets/WhimTexTestMigration/<GUID>."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "ShaderFXActivitySmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/ShaderFXActivityTests.cs",
+      "scenarios": [
+        {
+          "id": "shader-fx-activity-v2",
+          "file": "Tests~/Cases/UnityD/ShaderFXActivityTests.cs",
+          "runner": "run_script",
+          "entry": "ShaderFXActivityTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [],
+          "groups": [
+            "unity-d",
+            "regression",
+            "shader-fx"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "Default active render <=.01; disabled bypass >=.99; clone inactive, independent reactivation, active/disabled group HasModifiers branches.",
+        "Owned original/copy FX and 16x16 document destroyed in finally."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "ShaderFXCatalogPerformanceSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/ShaderFXCatalogPerformanceTests.cs",
+      "scenarios": [
+        {
+          "id": "shader-fx-catalog-performance-v2",
+          "file": "Tests~/Cases/UnityD/ShaderFXCatalogPerformanceTests.cs",
+          "runner": "run_script",
+          "entry": "ShaderFXCatalogPerformanceTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [],
+          "groups": [
+            "unity-d",
+            "regression",
+            "shader-fx"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "Every entry availability survives JsonUtility; empty error enabled, real error disabled; ten scans same count and entry reference identity.",
+        "FX/shader object counts unchanged; cold/warm Stopwatch measurements remain diagnostic (no timing threshold)."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "ShaderFXCatalogSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/ShaderFXCatalogTests.cs",
+      "scenarios": [
+        {
+          "id": "shader-fx-catalog-v2",
+          "file": "Tests~/Cases/UnityD/ShaderFXCatalogTests.cs",
+          "runner": "run_script",
+          "entry": "ShaderFXCatalogTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [],
+          "groups": [
+            "unity-d",
+            "regression",
+            "shader-fx"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "All original parser types, range/default/header rejection inputs, repeated declarations, block comments, rename ID; center hit test pivot=10/move=8.",
+        "Seed 71, 400 rectangular/mirrored transform roundtrips <.002; 16x8 GPU float/transform live updates <.001 without recompilation; clone independence and serialized transform/ID.",
+        "Every built-in HLSL metadata entry creates compiled independent FX; inspector builds; RT restored, temporary RT/readback/editor/FX/doc disposed, aliased serialized shader detached."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "ShaderFXConditionalParametersSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/ShaderFXConditionalParametersTests.cs",
+      "scenarios": [
+        {
+          "id": "shader-fx-conditional-parameters-v2",
+          "file": "Tests~/Cases/UnityD/ShaderFXConditionalParametersTests.cs",
+          "runner": "run_script",
+          "entry": "ShaderFXConditionalParametersTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [],
+          "groups": [
+            "unity-d",
+            "regression",
+            "shader-fx"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "Exact ==/!= metadata/helpbox and block-comment inputs; six scalar type transitions plus fractional .375 bool storage; serialized bool-to-enum ID/value/preset roundtrip; all seven invalid conditional sources.",
+        "Conditional UI driver edit, hiding retains .73, toggling shows rows, conditions/helpbox export roundtrip.",
+        "Pixelate/Posterize actual shader compile and every original preset branch; Pixelate quantization/one-bit/alpha UI and boolean migration; all Halftone six-mode/spread/rotation/angle/paper/offset assertions unchanged."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "ShaderFXControlSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/ShaderFXControlTests.cs",
+      "scenarios": [
+        {
+          "id": "shader-fx-control-v2",
+          "file": "Tests~/Cases/UnityD/ShaderFXControlTests.cs",
+          "runner": "run_script",
+          "entry": "ShaderFXControlTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [
+            "assets",
+            "windows",
+            "user-state"
+          ],
+          "groups": [
+            "unity-d",
+            "regression",
+            "shader-fx"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "Control header positioning/duplicates/malformed/block-comment cases; header/body fields, icon/name/type variants, unsupported curve, undeclared warning.",
+        "Numeric and symbol drag shared value .25->.5; capture release; Undo/Redo; TIFF/control directive export; toolbar order and input excludes reordering.",
+        "Owned attached utility window closes; FX Undo cleared; owned TIFF GUID folder removed; focus restored."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "ShaderFXCurveSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/ShaderFXCurveTests.cs",
+      "scenarios": [
+        {
+          "id": "shader-fx-curve-v2",
+          "file": "Tests~/Cases/UnityD/ShaderFXCurveTests.cs",
+          "runner": "run_script",
+          "entry": "ShaderFXCurveTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [],
+          "groups": [
+            "unity-d",
+            "regression",
+            "shader-fx"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "GPU default/clamp [0,.5,1] and live [.2,.4,.6] within .005, compiled shader reuse; 512x2 RFloat LUT cache/mutation/unbounded Y/empty curve.",
+        "Weighted/step serialization, independent copy, 101 preset evaluations <1e-5; named linear/one/easeInOut/easeIn/easeOut 21 samples <1e-6; all malformed key inputs.",
+        "Declared curve API value update, standard CurveField and duplicate defaults; LUT disposed and all created FX/doc destroyed."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "ShaderFXDocumentDirtySmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/ShaderFXDocumentDirtyTests.cs",
+      "scenarios": [
+        {
+          "id": "shader-fx-document-dirty-v2",
+          "file": "Tests~/Cases/UnityD/ShaderFXDocumentDirtyTests.cs",
+          "runner": "run_script",
+          "entry": "ShaderFXDocumentDirtyTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [
+            "windows",
+            "user-state"
+          ],
+          "groups": [
+            "unity-d",
+            "regression",
+            "shader-fx"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "All four null/inline/Levels/Normalize restore paths, deferred Drawing baseline, native/model/FX Undo consumption, dirty count and Undo group unchanged.",
+        "Before/after delayed notifications, ordinary edit, resource refresh after edit, both queue orderings, explicit Apply, same/revised catalog; stale-on-open and missing catalog fallback; render .002.",
+        "Original user windows/document/dirty snapshots checked; own event handlers detached, own delay callbacks drained, reverse-order owned models/FX/windows disposal."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "ShaderFXDragSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/ShaderFXDragTests.cs",
+      "scenarios": [
+        {
+          "id": "shader-fx-drag-v2",
+          "file": "Tests~/Cases/UnityD/ShaderFXDragTests.cs",
+          "runner": "run_script",
+          "entry": "ShaderFXDragTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [
+            "windows"
+          ],
+          "groups": [
+            "unity-d",
+            "regression",
+            "shader-fx"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "Three repeated captured drags and idle movement; Escape, PointerCancel, MouseLeave, capture loss, detach, button isolation; no cancelled/invalid stack moves.",
+        "Every idle check includes pointer release, dragging=false, autoScrollSchedule=null; owned utility window closes and previous focus restored."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "ShaderFXExternalCodeCacheSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/ShaderFXExternalCodeCacheTests.cs",
+      "scenarios": [
+        {
+          "id": "shader-fx-external-code-cache-v2",
+          "file": "Tests~/Cases/UnityD/ShaderFXExternalCodeCacheTests.cs",
+          "runner": "run_script",
+          "entry": "ShaderFXExternalCodeCacheTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [
+            "temp-files"
+          ],
+          "groups": [
+            "unity-d",
+            "regression",
+            "shader-fx"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "Original 2026-09-24 UTC clock; all nine 32-hex stems and three suffixes; stale 24h+ set/orphan expiry deletes exactly four.",
+        "23h fresh, recent baseline/HLSL/apply, active session, exact 24h, future, notes/unknown suffix/non-hash and nested profile protected; second sweep/missing path zero.",
+        "Deletes only the generated cache fixture directory, never real external-code cache."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "ShaderFXExternalCodeSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/ShaderFXExternalCodeTests.cs",
+      "scenarios": [
+        {
+          "id": "shader-fx-external-code-unity-v2",
+          "file": "Tests~/Cases/UnityD/ShaderFXExternalCodeTests.cs",
+          "runner": "run_script",
+          "entry": "ShaderFXExternalCodeTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [
+            "temp-files",
+            "user-state"
+          ],
+          "groups": [
+            "unity-d",
+            "regression",
+            "shader-fx"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "Idle draft no compile; document synchronization; first two unstable polls vs third stable poll; save/apply and unchanged save consume requests.",
+        "Invalid source keeps original applied snapshot/HasAppliedShader/LastApplyFailed; corrected save recovers; deferred conflict retains document/file/request.",
+        "Synthetic unregistered Session polled synchronously (no detached work); own FX Undo cleared and unique file/baseline/apply fixture deleted."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "ShaderFXFormerlySerializedAsSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/ShaderFXFormerlySerializedAsTests.cs",
+      "scenarios": [
+        {
+          "id": "shader-fx-formerly-serialized-as-v2",
+          "file": "Tests~/Cases/UnityD/ShaderFXFormerlySerializedAsTests.cs",
+          "runner": "run_script",
+          "entry": "ShaderFXFormerlySerializedAsTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [],
+          "groups": [
+            "unity-d",
+            "regression",
+            "shader-fx"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "Exact former-name directive order; .73 compatible value/stable ID; five invalid alias metadata inputs; incompatible color-to-float keeps .5 and new ID.",
+        "FX and brush export retain both alias directives and parser roundtrip; only own draft/model disposed."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "ShaderFXGroupSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/ShaderFXGroupTests.cs",
+      "scenarios": [
+        {
+          "id": "shader-fx-group-v2",
+          "file": "Tests~/Cases/UnityD/ShaderFXGroupTests.cs",
+          "runner": "run_script",
+          "entry": "ShaderFXGroupTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [],
+          "groups": [
+            "unity-d",
+            "regression",
+            "shader-fx"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "Complete 16-parameter/nine-group input and all ten malformed declarations; bool/enum/float/color/vector/texture header/body behavior and custom labels.",
+        "Conditional rows expand/collapse while preserving tint/strength; export and reparsing preserve references, labels, flags and values.",
+        "Original 26-name HLSL loop plus complete title/condition/label checks (including Mask/Step formulas and target channel defaults); shader compilation retained; FX/document finally cleanup."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "ShaderFXLocalCoordinatesSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/ShaderFXLocalCoordinatesTests.cs",
+      "scenarios": [
+        {
+          "id": "shader-fx-local-coordinates-v2",
+          "file": "Tests~/Cases/UnityD/ShaderFXLocalCoordinatesTests.cs",
+          "runner": "run_script",
+          "entry": "ShaderFXLocalCoordinatesTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [],
+          "groups": [
+            "unity-d",
+            "regression",
+            "shader-fx"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "64x64 nested transforms, both Clip/Unbounded and affine/projective branches; independent inverse circle d<.04 excluding original .001 boundary strip, alpha error <=.01.",
+        "TrySetMatrix validity counted; every tested pixel counted by TestContext; owned renders/FX/doc destroyed."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "ShaderFXProjectiveSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/ShaderFXProjectiveTests.cs",
+      "scenarios": [
+        {
+          "id": "shader-fx-projective-v2",
+          "file": "Tests~/Cases/UnityD/ShaderFXProjectiveTests.cs",
+          "runner": "run_script",
+          "entry": "ShaderFXProjectiveTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [],
+          "groups": [
+            "unity-d",
+            "regression",
+            "shader-fx"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "Historical TRS JSON; seed43 300 non-square analytic matrix samples error <1e-12; exact projective serialize/roundtrip and move/rotate/scale/singular atomic rejection.",
+        "All four canvas gesture inputs valid projective FX transforms; all 8192 GPU samples per transform <.0001 and shader reused; exact matrix and double TRS preset export.",
+        "Inspector builds; pending code does not replace applied shader; own RT/readback/editor/FX/doc cleanup restores active RT."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "ShaderFXSelfTextureSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/ShaderFXSelfTextureTests.cs",
+      "scenarios": [
+        {
+          "id": "shader-fx-self-texture-v2",
+          "file": "Tests~/Cases/UnityD/ShaderFXSelfTextureTests.cs",
+          "runner": "run_script",
+          "entry": "ShaderFXSelfTextureTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [],
+          "groups": [
+            "unity-d",
+            "regression",
+            "shader-fx"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "Every original Self/None/null Texture and FX-order/group-input pixel branch within .005 RGBA; Self/None preset roundtrips.",
+        "All cloned draft FX tracked and destroyed with document/readbacks in finally."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "ShaderFXTextureLayersSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/ShaderFXTextureLayersTests.cs",
+      "scenarios": [
+        {
+          "id": "shader-fx-texture-layers-v2",
+          "file": "Tests~/Cases/UnityD/ShaderFXTextureLayersTests.cs",
+          "runner": "run_script",
+          "entry": "ShaderFXTextureLayersTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [],
+          "groups": [
+            "unity-d",
+            "regression",
+            "shader-fx"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "Hidden source sampling, live color update, missing/self cycles transparent, hidden full-color group sampling; linear expected values <=.02 RGBA.",
+        "IsUsableShaderTexture rejects self; per-render readbacks and owned FX/doc disposed."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "ShaderFXTiffCatalogSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/ShaderFXTiffCatalogTests.cs",
+      "scenarios": [
+        {
+          "id": "shader-fx-tiff-catalog-v2",
+          "file": "Tests~/Cases/UnityD/ShaderFXTiffCatalogTests.cs",
+          "runner": "run_script",
+          "entry": "ShaderFXTiffCatalogTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [
+            "assets"
+          ],
+          "groups": [
+            "unity-d",
+            "regression",
+            "shader-fx"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "Levels project catalog link before save; TIFF existence/TryLoad; GUID/path/link/code/compiled shader retained.",
+        "Missing GUID degrades to detached embedded source snapshot with compiled shader; both TIFF paths in single owned GUID folder; documents and FX disposed."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "ShaderFXVectorsSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/ShaderFXVectorsTests.cs",
+      "scenarios": [
+        {
+          "id": "shader-fx-vectors-v2",
+          "file": "Tests~/Cases/UnityD/ShaderFXVectorsTests.cs",
+          "runner": "run_script",
+          "entry": "ShaderFXVectorsTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [],
+          "groups": [
+            "unity-d",
+            "regression",
+            "shader-fx"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "All four parameter types/default/normalization/zero fallback, seven invalid vector/point sources; both hemispheres and all four XY clamp inputs.",
+        "Actual GPU channels (.2,.5,1,.37) within .005; preset exact roundtrip, parameter UI, Halftone structured diagnostics arrays.",
+        "Raw FX compilation plus relative Dither include; own FX/doc/readbacks disposed; no explicit Unity-internal reflection."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "ShaderFXVSCodeMetadataSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/ShaderFXVSCodeMetadataTests.cs",
+      "scenarios": [
+        {
+          "id": "shader-fxvs-code-metadata-v2",
+          "file": "Tests~/Cases/UnityD/ShaderFXVSCodeMetadataTests.cs",
+          "runner": "run_script",
+          "entry": "ShaderFXVSCodeMetadataTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [],
+          "groups": [
+            "unity-d",
+            "regression",
+            "shader-fx"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": [
+            "Tests~/Cases/UnityD/ShaderFXVSCodeMetadata.cases.json"
+          ]
+        }
+      ],
+      "coverage": [
+        "Independent copied metadata JSON inputs, every validity decision and each bundled marked HLSL parse counted; no runtime Legacy dependency.",
+        "Read-only source fixture; parser bound to package assembly; no asset mutation."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "ShaderProcessorSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/ShaderProcessorTests.cs",
+      "scenarios": [
+        {
+          "id": "shader-processor-v2",
+          "file": "Tests~/Cases/UnityD/ShaderProcessorTests.cs",
+          "runner": "run_script",
+          "entry": "ShaderProcessorTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [],
+          "groups": [
+            "unity-d",
+            "regression",
+            "shader-fx"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "HDR and partial alpha identity; .5 opacity premultiplied expected (.2,0,.8,.625); full/hidden/zero opacity branches.",
+        "Effect backdrop and hidden explicit target, reactivation, PassThrough/external vs isolated/internal group, stack order and serialized processor types.",
+        "Every original RGBA tolerance <.006 retained; owned document/source texture/readbacks/copy destroyed."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "ShapeFeatherSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/ShapeFeatherTests.cs",
+      "scenarios": [
+        {
+          "id": "shape-feather-v2",
+          "file": "Tests~/Cases/UnityD/ShapeFeatherTests.cs",
+          "runner": "run_script",
+          "entry": "ShapeFeatherTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [
+            "temp-files",
+            "windows"
+          ],
+          "groups": [
+            "unity-d",
+            "regression",
+            "shape"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "All positions with zero exact pixel parity; rectangle cubic Coverage within .002; stroke min of inner/outer profiles within .002; every ShapeKind at .001/16/8192.",
+        "Eccentric ellipse independent 8192-step quarter-arc reference <.003; API/serialize; reduced preview, thumbnail invalidation, group/clipping/mini-preview alpha.",
+        "UI Feather field edits 16->20; full 5x4 comparison atlas still generated in owned temporary GUID directory; shape shader has no errors; all per-render/atlas/preview/window/model cleanup."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "ShapeNamingSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/ShapeNamingTests.cs",
+      "scenarios": [
+        {
+          "id": "shape-naming-v2",
+          "file": "Tests~/Cases/UnityD/ShapeNamingTests.cs",
+          "runner": "run_script",
+          "entry": "ShapeNamingTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [],
+          "groups": [
+            "unity-d",
+            "regression",
+            "shape"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "All six shape names share counter; Color Fill independent; nested renamed Line40/Shape45; serialization and null counter rebuild; File named Line900 ignored.",
+        "Exact twelve name expectations retained; own original/restored models destroyed."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "ShapeSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/ShapeTests.cs",
+      "scenarios": [
+        {
+          "id": "shape-unity-v2",
+          "file": "Tests~/Cases/UnityD/ShapeTests.cs",
+          "runner": "run_script",
+          "entry": "ShapeTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [],
+          "groups": [
+            "unity-d",
+            "regression",
+            "shape"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "Every ShapeKind finite RGBA/center/outside; 64x48 preview; fill/stroke/hollow/rounded corner and each independent corner; translated rotated non-square transform/visibility/HDR.",
+        "Linked ratios/limit/unlinked/zero fallback; all 3x3 drag dx/dy branches and Shift proportions/45-degree angle.",
+        "Shader support/error, API description/partial update retaining HDR, serialized behavior; own models/readbacks cleaned."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "SharedPresetLibrariesSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/SharedPresetLibrariesTests.cs",
+      "scenarios": [
+        {
+          "id": "shared-preset-libraries-v2",
+          "file": "Tests~/Cases/UnityD/SharedPresetLibrariesTests.cs",
+          "runner": "run_script",
+          "entry": "SharedPresetLibrariesTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [
+            "temp-files",
+            "user-state"
+          ],
+          "groups": [
+            "unity-d",
+            "regression"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "Shared ShaderFX/Brushes folder derivation; save action, current float2.75/range/HDR/vector/negative-scale transform; original unchanged, ru-RU invariant, header injection/transient texture rejected, persistent GUID roundtrip.",
+        "HLSL save/overwrite/backup/catalog recursive discovery, user embedding/compile/defaults; unmarked excluded; custom vs engine include, cycle/escape rejects.",
+        "Portable brush size57/texture/menu/list, fake project index merge, project destination and sibling/extension rejection, folder switch preserves applied copy.",
+        "Finally restores exact prior projectPaths cache and EditorPrefs existence/value; destroys only owned objects; unique temporary directory removed."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "SkillWorkflowSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/SkillWorkflowTests.cs",
+      "scenarios": [
+        {
+          "id": "skill-workflow-v2",
+          "file": "Tests~/Cases/UnityD/SkillWorkflowTests.cs",
+          "runner": "run_script",
+          "entry": "SkillWorkflowTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [
+            "temp-files",
+            "windows",
+            "user-state"
+          ],
+          "groups": [
+            "unity-d",
+            "regression"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "Linked Levels add/set preserve catalog link and rendered delta>.005; lock and preview set errors leave revision/link unchanged.",
+        "Reservation preset insertion/invalid completion rejection; procedural preview/complete then linked Displacement batch with actual rendered delta>.005.",
+        "Strict/guide selection procedural rejection leaves reservations unchanged; both .9/1.1 gamma set+probe retain linked state/revision.",
+        "Owned window closure invokes package CloseLiveSession; own previews/masks/probes paths cleaned; own model Undo cleared."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "SmallDocumentSaveProbe.cs",
+      "newFile": "Tests~/Cases/UnityD/SmallDocumentSaveDiagnostics.cs",
+      "scenarios": [
+        {
+          "id": "small-document-save-v2",
+          "file": "Tests~/Cases/UnityD/SmallDocumentSaveDiagnostics.cs",
+          "runner": "run_script",
+          "entry": "SmallDocumentSaveDiagnostics.Run",
+          "args": [
+            512,
+            3,
+            5
+          ],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [
+            "assets",
+            "temp-files",
+            "user-state"
+          ],
+          "groups": [
+            "unity-d",
+            "diagnostic"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        },
+        {
+          "id": "small-document-save-scheduling-v2",
+          "file": "Tests~/Cases/UnityD/SmallDocumentSaveDiagnostics.cs",
+          "runner": "run_script",
+          "entry": "SmallDocumentSaveDiagnostics.Scheduling",
+          "args": [
+            20,
+            "scheduling"
+          ],
+          "category": "diagnostic",
+          "timeoutMs": 60000,
+          "effects": [
+            "temp-files"
+          ],
+          "groups": [
+            "unity-d",
+            "diagnostic"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        },
+        {
+          "id": "small-document-save-carrier-v2",
+          "file": "Tests~/Cases/UnityD/SmallDocumentSaveDiagnostics.cs",
+          "runner": "run_script",
+          "entry": "SmallDocumentSaveDiagnostics.Carrier",
+          "args": [
+            512,
+            5
+          ],
+          "category": "diagnostic",
+          "timeoutMs": 60000,
+          "effects": [
+            "temp-files"
+          ],
+          "groups": [
+            "unity-d",
+            "diagnostic"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        },
+        {
+          "id": "small-document-save-carrier-1024-v2",
+          "file": "Tests~/Cases/UnityD/SmallDocumentSaveDiagnostics.cs",
+          "runner": "run_script",
+          "entry": "SmallDocumentSaveDiagnostics.Carrier",
+          "args": [
+            1024,
+            5
+          ],
+          "category": "diagnostic",
+          "timeoutMs": 60000,
+          "effects": [
+            "temp-files"
+          ],
+          "groups": [
+            "unity-d",
+            "diagnostic"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "Diagnostic only: Scheduling, Carrier, Run parameter entry variants retained; original bounds and both progress-scope orders, no timing acceptance claim.",
+        "Scheduling empty work/PrepareStoredBlocks/proposal wait baseline; Carrier native RGBAHalf generation/range-scan/LDR TIFF write/validation; Run exact synthetic layers plus unchanged/name/pending GPU brush Save branches.",
+        "Original no-op timestamp and cleanup failure guard retained; finite times/sample counts added as diagnostic integrity checks; owned imported asset GUID folder and temporary report folders cleaned, Selection/log callback restored.",
+        "Run's original no-op timestamp guard is a regression despite the timing report; Scheduling/Carrier remain diagnostics. Original documented Carrier(1024,5) added."
+      ],
+      "state": "ported-unverified",
+      "reason": "Timings have no old performance threshold; all three bounded entry variants retain exact workloads and report diagnostics, with original no-op timestamp/cleanup guards.",
+      "entryMetadata": [
+        {
+          "entry": "SmallDocumentSaveDiagnostics.Run",
+          "kind": "diagnostic",
+          "reason": "Timings have no old performance threshold; all three bounded entry variants retain exact workloads and report diagnostics, with original no-op timestamp/cleanup guards."
+        },
+        {
+          "entry": "SmallDocumentSaveDiagnostics.Scheduling",
+          "kind": "diagnostic",
+          "reason": "Timings have no old performance threshold; all three bounded entry variants retain exact workloads and report diagnostics, with original no-op timestamp/cleanup guards."
+        },
+        {
+          "entry": "SmallDocumentSaveDiagnostics.Carrier",
+          "kind": "diagnostic",
+          "reason": "Timings have no old performance threshold; all three bounded entry variants retain exact workloads and report diagnostics, with original no-op timestamp/cleanup guards."
+        }
+      ]
+    },
+    {
+      "legacyFile": "SoftRangeSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/SoftRangeTests.cs",
+      "scenarios": [
+        {
+          "id": "soft-range-v2",
+          "file": "Tests~/Cases/UnityD/SoftRangeTests.cs",
+          "runner": "run_script",
+          "entry": "SoftRangeTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [
+            "windows",
+            "user-state"
+          ],
+          "groups": [
+            "unity-d",
+            "regression"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "Original eight bad sources plus mixed-control/default/optional cases; all 2x2 soft boundary combinations, exact per-boundary clamp.",
+        "Attached input -3/5 and slider1.5, hard clamp2; GPU Strength5; linked soft/hard export at -3/1/5 and JSON flags.",
+        "Brush parser/clamp/export retained; attached utility window closes, owned FX Undo clears/model destroyed."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "SwizzleSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/SwizzleTests.cs",
+      "scenarios": [
+        {
+          "id": "swizzle-v2",
+          "file": "Tests~/Cases/UnityD/SwizzleTests.cs",
+          "runner": "run_script",
+          "entry": "SwizzleTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [],
+          "groups": [
+            "unity-d",
+            "regression"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "Every output channel crossed with every SwizzleChannel; serialized routes; exact original per-source inverse/constant/RGB*A formula at .012.",
+        "Original alpha0/.25/1 products, signed HDR inverse and Standard clamp; group forced isolation/restored PassThrough, group RGB*A/alpha mapping.",
+        "RenderGroupAlpha target and raster conversion unbaked route, API choices; temporary RT/readback/model cleanup restores active RT."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "TiffAgentApiSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/TiffAgentApiTests.cs",
+      "scenarios": [
+        {
+          "id": "tiff-agent-api-v2",
+          "file": "Tests~/Cases/UnityD/TiffAgentApiTests.cs",
+          "runner": "run_script",
+          "entry": "TiffAgentApiTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [
+            "assets",
+            "temp-files"
+          ],
+          "groups": [
+            "unity-d",
+            "regression"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "All describe agent modes, TIFF create/inspect/revision/storage/validate-render/status, dryRun no persistence, revision edit/save/reload and Render file existence.",
+        "All invalid .asset inspect/validate/dryRun/create branches retained; generated TIFF paths GUID-scoped, explicit preview and asset-folder cleanup."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "TiffAgentDiagnosticsSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/TiffAgentDiagnosticsTests.cs",
+      "scenarios": [
+        {
+          "id": "tiff-agent-diagnostics-v2",
+          "file": "Tests~/Cases/UnityD/TiffAgentDiagnosticsTests.cs",
+          "runner": "run_script",
+          "entry": "TiffAgentDiagnosticsTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [
+            "assets",
+            "temp-files"
+          ],
+          "groups": [
+            "unity-d",
+            "regression"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "TIFF create; same-document model/render Compare; both PNG/EXR exports; actual staged byte copy and Recover output; unknown live op phase error.",
+        "Own staged/export files and GUID TIFF folder deleted in finally."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "TiffCompactReferenceSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/TiffCompactReferenceTests.cs",
+      "scenarios": [
+        {
+          "id": "tiff-compact-reference-gradient-v2",
+          "file": "Tests~/Cases/UnityD/TiffCompactReferenceTests.cs",
+          "runner": "run_script",
+          "entry": "TiffCompactReferenceTests.RunGradient",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [],
+          "groups": [
+            "unity-d",
+            "regression"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        },
+        {
+          "id": "tiff-compact-reference-drawing-v2",
+          "file": "Tests~/Cases/UnityD/TiffCompactReferenceTests.cs",
+          "runner": "run_script",
+          "entry": "TiffCompactReferenceTests.RunDrawing",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [],
+          "groups": [
+            "unity-d",
+            "regression"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "Both RunGradient and RunDrawing variants preserve byte lengths 16117/3730 and exact SHA-256 fingerprints.",
+        "128x128 TIFF detection/read, nonempty layers, expected Gradient/Drawing kind, native composition dimensions; read-only frozen Fixtures and owned loaded models/readbacks cleanup."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "TiffLiveSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/TiffLiveTests.cs",
+      "scenarios": [
+        {
+          "id": "tiff-live-v2",
+          "file": "Tests~/Cases/UnityD/TiffLiveTests.cs",
+          "runner": "run_script",
+          "entry": "TiffLiveTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [
+            "assets"
+          ],
+          "groups": [
+            "unity-d",
+            "regression"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "All begin/list/preview/status/render/complete/persistence paths, complete replay, external revision conflict, cancel replay and new-TIFF begin/preview/complete.",
+        "Per-run owned session IDs; cleanup really cancels all still-active own sessions, aggregates failures; generated imports within GUID folder and explicit preview cleanup."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "TiledCanvasSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/TiledCanvasTests.cs",
+      "scenarios": [
+        {
+          "id": "tiled-canvas-v2",
+          "file": "Tests~/Cases/UnityD/TiledCanvasTests.cs",
+          "runner": "run_script",
+          "entry": "TiledCanvasTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [],
+          "groups": [
+            "unity-d",
+            "regression"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "All angle0/37/90/173 x four positive/mirrored/aniso scales, four outside UVs, squared roundtrip1e-7; reduced basis and 7x7 neighbor minimum check.",
+        "All erase/hardness0/1/size18/300 combinations with independent cubic corner alpha <=.012; transformed per-pixel expected coverage <=.025.",
+        "Equal four corners, active RT restored, transform retained, seam segment endpoints/no center diagonal; every pixel now real context assertion; own Drawing transient resources released."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "TilingSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/TilingTests.cs",
+      "scenarios": [
+        {
+          "id": "tiling-v2",
+          "file": "Tests~/Cases/UnityD/TilingTests.cs",
+          "runner": "run_script",
+          "entry": "TilingTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [],
+          "groups": [
+            "unity-d",
+            "regression"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "Exact serialized Source3/Clip0/Repeat1/Mirror2 IDs; Noise/Gradient/Shape/Fill/Drawing branches with scale.4.",
+        "Clamp delta<.005 vs Unbounded noise delta>.001/alpha>.99, Fill alpha>.99/raster fallback<.01; Clip<.01 after unbounded for every behavior.",
+        "Every render checks unchanged active RT; own temporary RT/readback/doc cleanup."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "ToolIconCompatibilitySmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/ToolIconCompatibilityTests.cs",
+      "scenarios": [
+        {
+          "id": "tool-icon-compatibility-v2",
+          "file": "Tests~/Cases/UnityD/ToolIconCompatibilityTests.cs",
+          "runner": "run_script",
+          "entry": "ToolIconCompatibilityTests.Start",
+          "args": [
+            "$runId"
+          ],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [
+            "windows"
+          ],
+          "groups": [
+            "unity-d",
+            "regression"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency. Start uses the supplied GUID to retain BCL Task/CTS in AppDomain; separate Pipeline assemblies never assume shared statics.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard. Cancel awaits actual task/finally completion and preserves failure; Cleanup drains then releases CTS/GUID bridge; per-run BCL cleanup errors are distinct from the primary result. A primary assertion failure with successful disposal returns passed/1 cleanup acknowledgement; actual cleanup/restoration/cancellation-callback/release failure returns failed evidence.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs",
+            "Tests~/Cases/UnityD/AsyncD.cs"
+          ],
+          "reviewFiles": [],
+          "async": {
+            "entry": "ToolIconCompatibilityTests.Poll",
+            "args": [
+              "$runId"
+            ],
+            "pollMs": 200
+          },
+          "cancel": {
+            "entry": "ToolIconCompatibilityTests.Cancel",
+            "args": [
+              "$runId"
+            ]
+          },
+          "cleanup": {
+            "entry": "ToolIconCompatibilityTests.Cleanup",
+            "args": [
+              "$runId"
+            ]
+          }
+        }
+      ],
+      "coverage": [
+        "64-point BlurBrushOutline, all winding cross-products>0 and y[2.2,21.6]; attached icon repaint at 24/48/96 after750ms.",
+        "Panel attachment and filtered UI/icon error logs; cancelable owned async delay, log callback detached/window destroyed and focus restored after task termination."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "TwoChoiceDropdownSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/TwoChoiceDropdownTests.cs",
+      "scenarios": [
+        {
+          "id": "two-choice-dropdown-v2",
+          "file": "Tests~/Cases/UnityD/TwoChoiceDropdownTests.cs",
+          "runner": "run_script",
+          "entry": "TwoChoiceDropdownTests.Start",
+          "args": [
+            "$runId"
+          ],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [
+            "windows",
+            "user-state"
+          ],
+          "groups": [
+            "unity-d",
+            "regression"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency. Start uses the supplied GUID to retain BCL Task/CTS in AppDomain; separate Pipeline assemblies never assume shared statics.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard. Cancel awaits actual task/finally completion and preserves failure; Cleanup drains then releases CTS/GUID bridge; per-run BCL cleanup errors are distinct from the primary result. A primary assertion failure with successful disposal returns passed/1 cleanup acknowledgement; actual cleanup/restoration/cancellation-callback/release failure returns failed evidence.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs",
+            "Tests~/Cases/UnityD/AsyncD.cs"
+          ],
+          "reviewFiles": [],
+          "async": {
+            "entry": "TwoChoiceDropdownTests.Poll",
+            "args": [
+              "$runId"
+            ],
+            "pollMs": 200
+          },
+          "cancel": {
+            "entry": "TwoChoiceDropdownTests.Cancel",
+            "args": [
+              "$runId"
+            ]
+          },
+          "cleanup": {
+            "entry": "TwoChoiceDropdownTests.Cleanup",
+            "args": [
+              "$runId"
+            ]
+          }
+        }
+      ],
+      "coverage": [
+        "Complete original pointer/click/change-count/4px downward/diagonal/jitter/up/side cases; Escape/outside/option count replacement/value update/mixed/disabled/detach/reattach350ms/remove manipulator.",
+        "Enum Standard->HDR, repeated attach identity, InspectorName/nonconsecutive enum/Flags fallback; typed int/null-Layer popups, formatter/live option count/shared ConfigureField.",
+        "FX body and group header declared values, Undo/Redo and visible conditional content; all original wait intervals retained/cancelable, own window/FX Undo/focus cleanup. Native OS menu remains explicitly manual."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "UIRefreshSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/UIRefreshTests.cs",
+      "scenarios": [
+        {
+          "id": "ui-refresh-v2",
+          "file": "Tests~/Cases/UnityD/UIRefreshTests.cs",
+          "runner": "run_script",
+          "entry": "UIRefreshTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [
+            "windows"
+          ],
+          "groups": [
+            "unity-d",
+            "regression"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs",
+            "Tests~/Cases/UnityD/AsyncD.cs"
+          ],
+          "reviewFiles": []
+        },
+        {
+          "id": "ui-refresh-bindings-v2",
+          "file": "Tests~/Cases/UnityD/UIRefreshTests.cs",
+          "runner": "run_script",
+          "entry": "UIRefreshTests.StartBindings",
+          "args": [
+            "$runId"
+          ],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [
+            "windows"
+          ],
+          "groups": [
+            "unity-d",
+            "regression"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency. Start uses the supplied GUID to retain BCL Task/CTS in AppDomain; separate Pipeline assemblies never assume shared statics.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard. Cancel awaits actual task/finally completion and preserves failure; Cleanup drains then releases CTS/GUID bridge; per-run BCL cleanup errors are distinct from the primary result. A primary assertion failure with successful disposal returns passed/1 cleanup acknowledgement; actual cleanup/restoration/cancellation-callback/release failure returns failed evidence.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs",
+            "Tests~/Cases/UnityD/AsyncD.cs"
+          ],
+          "reviewFiles": [],
+          "async": {
+            "entry": "UIRefreshTests.PollBindings",
+            "args": [
+              "$runId"
+            ],
+            "pollMs": 200
+          },
+          "cancel": {
+            "entry": "UIRefreshTests.CancelBindings",
+            "args": [
+              "$runId"
+            ]
+          },
+          "cleanup": {
+            "entry": "UIRefreshTests.CleanupBindings",
+            "args": [
+              "$runId"
+            ]
+          }
+        }
+      ],
+      "coverage": [
+        "Main: all 32 initial controls, conditional hidden/show, replacement same layout/fresh model, all original metadata edit/reverse/remove/add rebuilds and20 idle refreshes.",
+        "200-refresh allocation vs complete copied former layout-key construction, original zero-counter branch retained.",
+        "Bindings: actual event scheduling coalesces three events->one read, restart/detach0/reattach1; scheduled completion item paused on token cancel and finally, owned window closes."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "UnifiedLightingSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/UnifiedLightingTests.cs",
+      "scenarios": [
+        {
+          "id": "unified-lighting-v2",
+          "file": "Tests~/Cases/UnityD/UnifiedLightingTests.cs",
+          "runner": "run_script",
+          "entry": "UnifiedLightingTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [],
+          "groups": [
+            "unity-d",
+            "regression"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "All weights0/.25/.5/1 x outputs0/1/2 x interior112x112 RGBA identical-normal comparison <.004; opaque surface alpha not squared.",
+        "Full-image alpha .5 crossfade<.004 and premultiplied RGB<.006; shared lighting include preserved in exported normal/bevel presets and recompiles.",
+        "All FX/readbacks/doc owned and finally destroyed."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "UserSettingsCleanupSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/UserSettingsCleanupTests.cs",
+      "scenarios": [
+        {
+          "id": "user-settings-cleanup-unity-v2",
+          "file": "Tests~/Cases/UnityD/UserSettingsCleanupTests.cs",
+          "runner": "run_script",
+          "entry": "UserSettingsCleanupTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [
+            "temp-files",
+            "windows",
+            "user-state"
+          ],
+          "groups": [
+            "unity-d",
+            "regression"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "Canonical CanvasView/Canvas preference keys; every historical appearance/tool/paint/blurOpacity value ignored, defaults/current reload/reset/serialization/malformed branches.",
+        "Preset folder explicit absolute/default/reset/missing/file/relative validation; exact frozen brush bytes unchanged, no unintended default directory creation.",
+        "Every touched EditorPrefs key/existence/value and all settings caches restored, test windows owned, temporary fixture removed."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "UvIslandsSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/UvIslandsTests.cs",
+      "scenarios": [
+        {
+          "id": "uv-islands-unity-v2",
+          "file": "Tests~/Cases/UnityD/UvIslandsTests.cs",
+          "runner": "run_script",
+          "entry": "UvIslandsTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [],
+          "groups": [
+            "unity-d",
+            "regression",
+            "uv"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "All original meshes: quad/split hard normals/seam/disconnected overlap/fold/submesh/UV2/non-readable/quads/ring holes/nonmanifold/outside/degenerate.",
+        "Exact boundary counts/picks/marker/masks, memory rejection; dense96x96 topology,1000 spatial picks and257x129 no-crack raster; document clone mesh/channel references.",
+        "Meshes/doc/copy owned and destroyed; original timing observations remain non-threshold diagnostics."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "UvMeshSourceSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/UvMeshSourceTests.cs",
+      "scenarios": [
+        {
+          "id": "uv-mesh-source-v2",
+          "file": "Tests~/Cases/UnityD/UvMeshSourceTests.cs",
+          "runner": "run_script",
+          "entry": "UvMeshSourceTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [],
+          "groups": [
+            "unity-d",
+            "regression",
+            "uv"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "Null/direct/empty model; inactive Skinned child, null skip, MeshFilter hierarchy order and root priority.",
+        "Own hidden GameObject hierarchy and both meshes destroyed."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "UvUiSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/UvUiTests.cs",
+      "scenarios": [
+        {
+          "id": "uv-ui-v2",
+          "file": "Tests~/Cases/UnityD/UvUiTests.cs",
+          "runner": "run_script",
+          "entry": "UvUiTests.Start",
+          "args": [
+            "$runId"
+          ],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [
+            "windows",
+            "user-state"
+          ],
+          "groups": [
+            "unity-d",
+            "regression",
+            "uv"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch. Existing UV fixture setup is unnecessary: all three islands are created by this case.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency. Start uses the supplied GUID to retain BCL Task/CTS in AppDomain; separate Pipeline assemblies never assume shared statics.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard. Cancel awaits actual task/finally completion and preserves failure; Cleanup drains then releases CTS/GUID bridge; per-run BCL cleanup errors are distinct from the primary result. A primary assertion failure with successful disposal returns passed/1 cleanup acknowledgement; actual cleanup/restoration/cancellation-callback/release failure returns failed evidence.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs",
+            "Tests~/Cases/UnityD/AsyncD.cs"
+          ],
+          "reviewFiles": [],
+          "async": {
+            "entry": "UvUiTests.Poll",
+            "args": [
+              "$runId"
+            ],
+            "pollMs": 200
+          },
+          "cancel": {
+            "entry": "UvUiTests.Cancel",
+            "args": [
+              "$runId"
+            ]
+          },
+          "cleanup": {
+            "entry": "UvUiTests.Cleanup",
+            "args": [
+              "$runId"
+            ]
+          }
+        }
+      ],
+      "coverage": [
+        "All original laid-out canvas/drawer/overlay/cache checks; .3/.4 and .75/.35 picking, exact selected pixels for Replace/Add/Subtract/Intersect.",
+        "37-degree inverse view picking; Brush tool excludes UV hover; mutually exclusive drawer hiding; all262144 selection bytes retained after tool/hide.",
+        "Integrated setup, cancelable panel wait, public DiscardChanges replaces reflected EditorWindow setter; owned window/document/mesh and focus cleanup."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "WhimTexGradientContractSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/WhimTexGradientContractTests.cs",
+      "scenarios": [
+        {
+          "id": "whim-tex-gradient-contract-v2",
+          "file": "Tests~/Cases/UnityD/WhimTexGradientContractTests.cs",
+          "runner": "run_script",
+          "entry": "WhimTexGradientContractTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [
+            "windows",
+            "user-state"
+          ],
+          "groups": [
+            "unity-d",
+            "regression",
+            "gradient"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "All midpoint.01/.1/.5/.72700745/.9437751/.99 x smooth0/.5/1 x Classic/Linear/Perceptual x Linear/Gamma cases; 2001 bounded/monotone/analytic values and201 Fixed outputs per combination.",
+        "Midpoint derivative/boundaries/wrap/clone/hash/JSON/strict clipboard; every retired transition input, single HDR/narrow intervals; binary serialize and LUT invalidation/reuse/changed pixels.",
+        "10000 zero-allocation evaluations; no Transition UI, .25 smoothness Undo/Redo/Fixed disabled; own container/LUT/document/editor/Undo cleanup."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "WhimTexGradientIntegrationSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/WhimTexGradientIntegrationTests.cs",
+      "scenarios": [
+        {
+          "id": "whim-tex-gradient-integration-v2",
+          "file": "Tests~/Cases/UnityD/WhimTexGradientIntegrationTests.cs",
+          "runner": "run_script",
+          "entry": "WhimTexGradientIntegrationTests.Start",
+          "args": [
+            "$runId"
+          ],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [
+            "windows",
+            "user-state"
+          ],
+          "groups": [
+            "unity-d",
+            "regression",
+            "gradient"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency. Start uses the supplied GUID to retain BCL Task/CTS in AppDomain; separate Pipeline assemblies never assume shared statics.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard. Cancel awaits actual task/finally completion and preserves failure; Cleanup drains then releases CTS/GUID bridge; per-run BCL cleanup errors are distinct from the primary result. A primary assertion failure with successful disposal returns passed/1 cleanup acknowledgement; actual cleanup/restoration/cancellation-callback/release failure returns failed evidence.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs",
+            "Tests~/Cases/UnityD/AsyncD.cs"
+          ],
+          "reviewFiles": [],
+          "async": {
+            "entry": "WhimTexGradientIntegrationTests.Poll",
+            "args": [
+              "$runId"
+            ],
+            "pollMs": 200
+          },
+          "cancel": {
+            "entry": "WhimTexGradientIntegrationTests.Cancel",
+            "args": [
+              "$runId"
+            ]
+          },
+          "cleanup": {
+            "entry": "WhimTexGradientIntegrationTests.Cleanup",
+            "args": [
+              "$runId"
+            ]
+          }
+        }
+      ],
+      "coverage": [
+        "Owner+independent second field, UI-only preview updateCount unchanged, Undo/Redo after closing, both owner serialization values.",
+        "Clipboard copies independently (gradient/color/alpha arrays), paste Undo/Redo, invalid clipboard; 512x2 HDR RGBAHalf LUT, row identity,100 reuse/cache/rebake/Fixed sampler/dispose.",
+        "Existing user gradient singleton must be closed first (precondition, never borrowed); cancelable200ms waits, own host/editor Undo and clipboard/focus cleanup."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "WhimTexGradientMidpointSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/WhimTexGradientMidpointTests.cs",
+      "scenarios": [
+        {
+          "id": "whim-tex-gradient-midpoint-v2",
+          "file": "Tests~/Cases/UnityD/WhimTexGradientMidpointTests.cs",
+          "runner": "run_script",
+          "entry": "WhimTexGradientMidpointTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [],
+          "groups": [
+            "unity-d",
+            "regression",
+            "gradient"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "All enum modes, original Fixed skip, smooth0/.5/1 color midpoint.2/alpha.8 within.0001; smooth derivative continuity <.03.",
+        "Exact JSON midpoint restoration and10000 zero warm allocations; transient values only."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "WhimTexGradientPipelineSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/WhimTexGradientPipelineTests.cs",
+      "scenarios": [
+        {
+          "id": "whim-tex-gradient-pipeline-v2",
+          "file": "Tests~/Cases/UnityD/WhimTexGradientPipelineTests.cs",
+          "runner": "run_script",
+          "entry": "WhimTexGradientPipelineTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [],
+          "groups": [
+            "unity-d",
+            "regression",
+            "gradient"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "All standalone/composite isolated/pass-through/layered export and Specific target source/group paths; full RGBA expected gamma only for export, <=.003.",
+        "Clipping alpha.5 <=.003 and thumbnail Smoothness invalidation; every dimension/channel/alpha/thumbnail assertion counted.",
+        "Restores RT/sRGB; releases Gradient transient resources, owned Blur resources, clears borrowed references before document destruction."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "WhimTexGradientProductSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/WhimTexGradientProductTests.cs",
+      "scenarios": [
+        {
+          "id": "whim-tex-gradient-product-v2",
+          "file": "Tests~/Cases/UnityD/WhimTexGradientProductTests.cs",
+          "runner": "run_script",
+          "entry": "WhimTexGradientProductTests.Start",
+          "args": [
+            "$runId"
+          ],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [
+            "windows"
+          ],
+          "groups": [
+            "unity-d",
+            "regression",
+            "gradient"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency. Start uses the supplied GUID to retain BCL Task/CTS in AppDomain; separate Pipeline assemblies never assume shared statics.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard. Cancel awaits actual task/finally completion and preserves failure; Cleanup drains then releases CTS/GUID bridge; per-run BCL cleanup errors are distinct from the primary result. A primary assertion failure with successful disposal returns passed/1 cleanup acknowledgement; actual cleanup/restoration/cancellation-callback/release failure returns failed evidence.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs",
+            "Tests~/Cases/UnityD/AsyncD.cs"
+          ],
+          "reviewFiles": [],
+          "async": {
+            "entry": "WhimTexGradientProductTests.Poll",
+            "args": [
+              "$runId"
+            ],
+            "pollMs": 200
+          },
+          "cancel": {
+            "entry": "WhimTexGradientProductTests.Cancel",
+            "args": [
+              "$runId"
+            ]
+          },
+          "cleanup": {
+            "entry": "WhimTexGradientProductTests.Cleanup",
+            "args": [
+              "$runId"
+            ]
+          }
+        }
+      ],
+      "coverage": [
+        "Actual product editor callback exactly1, new red value within.00002 and original untouched; JSON Perceptual/.6/.2 settings and SDF default.",
+        "Own field session used to identify created editor; existing user singleton rejected before mutation; cancelable200ms delay, owned editor/host and focus cleanup."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "WhimTexGradientReloadSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/WhimTexGradientReloadDiagnostic.cs",
+      "scenarios": [
+        {
+          "id": "whimtex-gradient-reload-begin-v2",
+          "file": "Tests~/Cases/UnityD/WhimTexGradientReloadDiagnostic.cs",
+          "runner": "run_script",
+          "entry": "WhimTexGradientReloadDiagnostic.Begin",
+          "args": [
+            "$runId"
+          ],
+          "category": "diagnostic",
+          "timeoutMs": 60000,
+          "effects": [
+            "windows",
+            "user-state"
+          ],
+          "groups": [
+            "unity-d",
+            "diagnostic",
+            "gradient"
+          ],
+          "prerequisites": "Parent-serialized manual sequence: Begin(runGuid), capture/protect borrowed user state, trigger one actual Unity domain reload, then End(the same runGuid). Native Unity compilation is authorized for the parent; this delegated batch has not executed it. Do not run these as independent regression profiles.",
+          "setup": "Begin creates only a GUID-marked transient EditorWindow-owned model and per-run SessionState; End requires the real beforeAssemblyReload marker. Preserve the same GUID across both entry variants; suppress Begin scenario auto-cleanup until End or abort.",
+          "teardown": "End finally removes GUID-marked fixture/callback/SessionState; Cleanup(the same GUID) is available if aborting manual verification.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs"
+          ],
+          "reviewFiles": [
+            "src/UnityObjectID.cs"
+          ],
+          "cleanup": {
+            "entry": "WhimTexGradientReloadDiagnostic.Cleanup",
+            "args": [
+              "$runId"
+            ]
+          }
+        },
+        {
+          "id": "whimtex-gradient-reload-end-v2",
+          "file": "Tests~/Cases/UnityD/WhimTexGradientReloadDiagnostic.cs",
+          "runner": "run_script",
+          "entry": "WhimTexGradientReloadDiagnostic.End",
+          "args": [
+            "$runId"
+          ],
+          "category": "diagnostic",
+          "timeoutMs": 60000,
+          "effects": [
+            "windows",
+            "user-state"
+          ],
+          "groups": [
+            "unity-d",
+            "diagnostic",
+            "gradient"
+          ],
+          "prerequisites": "Parent-serialized manual sequence: Begin(runGuid), capture/protect borrowed user state, trigger one actual Unity domain reload, then End(the same runGuid). Native Unity compilation is authorized for the parent; this delegated batch has not executed it. Do not run these as independent regression profiles.",
+          "setup": "Begin creates only a GUID-marked transient EditorWindow-owned model and per-run SessionState; End requires the real beforeAssemblyReload marker. Preserve the same GUID across both entry variants; suppress Begin scenario auto-cleanup until End or abort.",
+          "teardown": "End finally removes GUID-marked fixture/callback/SessionState; Cleanup(the same GUID) is available if aborting manual verification.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs"
+          ],
+          "reviewFiles": [
+            "src/UnityObjectID.cs"
+          ],
+          "cleanup": {
+            "entry": "WhimTexGradientReloadDiagnostic.Cleanup",
+            "args": [
+              "$runId"
+            ]
+          }
+        },
+        {
+          "id": "whimtex-gradient-reload-v2",
+          "file": "Tests~/Cases/UnityD/GradientReload.mjs",
+          "runner": "node",
+          "args": [
+            "$projectPath"
+          ],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [
+            "temp-files",
+            "windows",
+            "user-state"
+          ],
+          "requiresUnity": true,
+          "groups": [
+            "unity-d",
+            "regression",
+            "gradient",
+            "native-reload"
+          ],
+            "prerequisites": "Only D:/DCFA/Projects/Test6.6. Must be spawned by the parent outer runner holding runner.lock; idle/stopped Editor, reviewed sources, protected user state and no unrelated pending imports. Parent serializes execution. The public native CompilationPipeline.RequestScriptCompilation is deferred by an owned callback; CLI recompile/refresh fallback and asset changes are forbidden.",
+            "setup": "Bundle independent Begin/Trigger/ReloadPoll/End/Cleanup plus shared TestApi.cs into a new GUID Temp/WhimTex/test-runs folder. Record raw CLI replies and reviewed/production/source fingerprints. Begin creates the GUID-marked transient owner/window and captures previous focus. Trigger returns before its deferred native request; both acknowledgement and callback guard stopped/not-compiling/not-updating state. Public assemblyCompilationFinished captures actual compiler errors in per-run SessionState.",
+            "teardown": "45-second operation budget plus at most 10 seconds for Cleanup, within 60000 ms. Exactly one deferred RequestScriptCompilation. Poll supported non-main-thread editor_status first: busy intervals issue only status probes, never run_script. After acknowledged Trigger and observed matching-project compilation only, the exact CLI6 COMMAND_FAILED Network error for editor_status may reconnect through read-only status requests within the unchanged operation deadline, before native proof completes. No retry of Trigger or any C# call. Reconnect must confirm the matching stopped/idle project; then ReloadPoll requires real persisted beforeAssemblyReload marker, old AppDomain callback gone and one request before End's five assertions. Known End failure still safely Cleanup. Persistent disconnect, wrong project, malformed/generic transport errors, timeout, compiler error or no-op sets recoveryRequired=true and suppresses further commands; retain owned bundle/outer lock. Known completion removes only owned temporary file/folder, detaches owned callbacks, erases session keys and restores surviving borrowed focus.",
+          "result": {
+            "kind": "structured"
+          },
+          "reviewFiles": [
+            "Tests~/Cases/UnityD/WhimTexGradientReloadDiagnostic.cs",
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Framework/test-api.mjs",
+            "Tests~/scripts/run-tests.mjs",
+            "Tests~/Cases/UnityD/GradientReloadProtocol.test.mjs",
+            "src/UnityObjectID.cs"
+          ]
+        }
+      ],
+      "coverage": [
+          "Both manual Begin and End retained with per-run GUID SessionState, owned document/window, HDR4/alpha.3/midpoint.23 assertions. Begin captures only its fresh window's package compositor field before SetCompositor(host); any surviving non-asset default distinct from host is destroyed after replacement or during aggregated setup-failure cleanup. Existing assets and all borrowed user objects are excluded.",
+        "End also requires a real beforeAssemblyReload marker; no simulated serialization substitute. Parent must trigger actual Unity reload between entry variants.",
+        "Parent-serialized actual native domain reload remains unverified; owned callback, GUID-marked document/window and SessionState are cleaned with aggregate failure reporting; surviving borrowed focus is restored via public APIs.",
+          "Node integration invokes one deferred public RequestScriptCompilation, then polls only supported non-main-thread editor_status while busy. Idle native ReloadPoll executes three real checks: request count one, persisted real beforeAssemblyReload marker and old AppDomain callback gone. End preserves all five original checks (reload marker, restored owner, HDR4, alpha.3, midpoint.23); fresh Cleanup checks erased SessionState. Raw CLI evidence/fingerprints retained; no-op/unknown state stops commands and retains the outer lock through recoveryRequired.",
+          "Native object/JSON-string structured replies retain proof flags and real compiler errors captured by public assemblyCompilationFinished. Twenty-five mock protocol cases pass 3657 assertions without Unity: busy/disconnected intervals contain no run_script; exact status-network reconnect is gated by Trigger acknowledgement and observed matching compilation; persistent disconnect/wrong project/malformed/generic timeout retain recovery; reconnect alone cannot pass without native proof; no Trigger/C# retry; no-op/partial proof/latency preserve the original deadline; known End failure cleans and cleanup failure retains both primary/restoration evidence. Mock success is not real reload verification.",
+          "Parent run 2026-10-04T10-38-53.964Z-31596 actually compiled and observed busy before CLI6 status network failure. Original run remains failed/uncertain, not rewritten green. Parent recovered the same GUID with actual ReloadPoll passed3 (requests1, oldDomainClearedtrue), End passed5 (HDR4, alpha.3, midpoint.23) and Cleanup passed1; parent released the exact lock only after matching idle and process exit. Latest bounded reconnect driver still needs parent automatic execution.",
+        "Borrowed focus is persisted/restored using public GetEntityId on UNITY_6000_4_OR_NEWER (older GetInstanceID only behind the legacy version branch), following src/UnityObjectID.cs. Unshown windows never call Close without an attached public panel; DestroyImmediate is always attempted in finally. Setup failures retain primary plus aggregated callback/window/model/session/restoration failure evidence."
+      ],
+      "state": "ported-unverified",
+        "reason": "Both original Begin/End variants remain independently ported. Parent confirmed real native reload and same-GUID ReloadPoll3/End5/Cleanup1 through recovery after the original automatic run failed on expected endpoint restart; the failed original report remains honest. Latest driver adds only bounded read-only reconnect for the exact editor_status Network error after Trigger acknowledgement/observed compile, then still requires matching idle and actual native proof. Latest automatic driver is ported-unverified pending parent execution; persistent uncertainty retains recovery lock.",
+      "entryMetadata": [
+        {
+          "entry": "WhimTexGradientReloadDiagnostic.Begin",
+          "kind": "manual-setup",
+          "reason": "Creates the owned reload fixture; returns skipped with zero checks, never regression success. Do not auto-clean before a paired End."
+        },
+        {
+          "entry": "WhimTexGradientReloadDiagnostic.End",
+          "kind": "manual-regression",
+          "reason": "Parent reuses Begin GUID after real serialized reload. Actual HDR/alpha/midpoint assertions use TestContext; End finally cleans the fixture."
+        },
+          {
+            "entry": "WhimTexGradientReloadDiagnostic.Trigger",
+            "kind": "integration-control",
+            "reason": "Exactly one owned deferred public compilation request; acknowledgement and callback independently guard stopped/not-compiling/not-updating. Returns structured running with zero checks, never regression success; rejects duplicates and records errors without retry."
+          },
+          {
+            "entry": "WhimTexGradientReloadDiagnostic.ReloadPoll",
+            "kind": "integration-regression",
+            "reason": "Invoke only after supported editor_status is idle. Three TestContext assertions establish one request, persisted beforeAssemblyReload marker and old AppDomain callback cleared. Public compiler errors are retained as structured failed evidence."
+          },
+          {
+            "entry": "Tests~/Cases/UnityD/GradientReload.mjs",
+          "kind": "node-integration",
+          "scenarioId": "whimtex-gradient-reload-v2",
+          "reason": "Bounded real reload orchestration under the outer lock; uses shared TestContext and reviewed runner helpers, not Legacy or PASS parsing."
+        }
+      ]
+    },
+    {
+      "legacyFile": "WhimTexGradientRetiredFieldSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/WhimTexGradientRetiredFieldTests.cs",
+      "scenarios": [
+        {
+          "id": "whim-tex-gradient-retired-field-v2",
+          "file": "Tests~/Cases/UnityD/WhimTexGradientRetiredFieldTests.cs",
+          "runner": "run_script",
+          "entry": "WhimTexGradientRetiredFieldTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [],
+          "groups": [
+            "unity-d",
+            "regression",
+            "gradient"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "All six exact embedded pre-0.12.5 binary snapshots retained; values/hash equal reference, exactly1 WhimTexGradient.transition skipped diagnostic and zero MissingTypes.",
+        "1025 exact Evaluate comparisons per fixture; rewritten binary excludes transition; owned containers disposed; every actual assertion counted."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "WhimTexGradientRoundedSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/WhimTexGradientRoundedTests.cs",
+      "scenarios": [
+        {
+          "id": "whim-tex-gradient-rounded-v2",
+          "file": "Tests~/Cases/UnityD/WhimTexGradientRoundedTests.cs",
+          "runner": "run_script",
+          "entry": "WhimTexGradientRoundedTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [
+            "temp-files"
+          ],
+          "groups": [
+            "unity-d",
+            "regression",
+            "gradient"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        },
+        {
+          "id": "whim-tex-gradient-rounded-capture-v2",
+          "file": "Tests~/Cases/UnityD/WhimTexGradientRoundedTests.cs",
+          "runner": "run_script",
+          "entry": "WhimTexGradientRoundedTests.Capture",
+          "args": [
+            "$runId"
+          ],
+          "category": "diagnostic",
+          "timeoutMs": 60000,
+          "effects": [
+            "temp-files",
+            "user-state"
+          ],
+          "groups": [
+            "unity-d",
+            "diagnostic",
+            "gradient"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Capture writes all original 12291 invariant CSV samples to a new project-local GUID temporary folder and persists only that owned path in SessionState; duplicate GUIDs cannot overwrite prior artifacts.",
+          "teardown": "CleanupCapture(the same GUID) validates the absolute project-local owned GUID folder before deleting the CSV/directory and erasing its SessionState key. Automatic cleanup after diagnostic completion; manual callers may review before explicit cleanup. Capture is skipped with zero assertions; CleanupCapture returns a zero-check cleanup acknowledgement, permitted only in the runner cleanup phase and never regression success.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": [],
+          "cleanup": {
+            "entry": "WhimTexGradientRoundedTests.CleanupCapture",
+            "args": [
+              "$runId"
+            ]
+          }
+        }
+      ],
+      "coverage": [
+        "Independent analytic OKLab neutral/double piecewise remap reference at10001 samples for RGB, padded duplicate-stop equality; exact domain/key value, independent-alpha4001 samples.",
+        "Classical near-domain endpoints1e-8/1e-7; all499 speed bounds, maximum1.1875 within.0002.",
+        "Capture retained as explicit skipped diagnostic with all12291 invariant CSV rows; GUID temporary artifact and explicit cleanup entry; capture is not a regression."
+      ],
+      "state": "ported-unverified",
+      "reason": "Capture is the original assertion-free 12291-sample CSV tool; result is skipped, never counted as a regression.",
+      "entryMetadata": [
+        {
+          "entry": "WhimTexGradientRoundedTests.Capture",
+          "kind": "diagnostic",
+          "reason": "Capture is the original assertion-free 12291-sample CSV tool; result is skipped, never counted as a regression."
+        }
+      ]
+    },
+    {
+      "legacyFile": "WhimTexGradientSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/WhimTexGradientTests.cs",
+      "scenarios": [
+        {
+          "id": "whim-tex-gradient-v2",
+          "file": "Tests~/Cases/UnityD/WhimTexGradientTests.cs",
+          "runner": "run_script",
+          "entry": "WhimTexGradientTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [],
+          "groups": [
+            "unity-d",
+            "regression",
+            "gradient"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "1001 native Fixed comparisons RGBA, exact stop values; all three interpolating modes/HDR/key/serialization at101 samples and finite values.",
+        "C1 derivatives within.01,1001 bounds, smoothing0/independent ColorKeys, linear.7353569 vs classic.5,257 Bake buffer.",
+        "10000 zero allocations+sink, duplicate key rejection preserves end1; data-only no Unity assets."
+      ],
+      "state": "ported-unverified"
+    },
+    {
+      "legacyFile": "WhimTexGradientWindowSmoke.cs",
+      "newFile": "Tests~/Cases/UnityD/WhimTexGradientWindowTests.cs",
+      "scenarios": [
+        {
+          "id": "whim-tex-gradient-window-v2",
+          "file": "Tests~/Cases/UnityD/WhimTexGradientWindowTests.cs",
+          "runner": "run_script",
+          "entry": "WhimTexGradientWindowTests.Run",
+          "args": [],
+          "category": "regression",
+          "timeoutMs": 60000,
+          "effects": [
+            "windows",
+            "user-state"
+          ],
+          "groups": [
+            "unity-d",
+            "regression",
+            "gradient"
+          ],
+          "prerequisites": "Connected idle Editor for D:/DCFA/Projects/Test6.6 with current WhimTex compiled. Graphics device and package shaders for rendering; attached UI panels for UI scenarios. No Unity command is run by this migration batch.",
+          "setup": "Independent migrated body with original inputs/branches; owned in-memory fixtures; all imported assets limited to Assets/WhimTexTestMigration/<GUID>. No runtime Legacy source dependency.",
+          "teardown": "Body finally disposes only owned models/FX/textures/RTs/windows and restores borrowed state; shared fixture continues cleanup after failures and restores render target/sRGB/focus/selection/clipboard.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs"
+          ],
+          "reviewFiles": []
+        }
+      ],
+      "coverage": [
+        "Stylesheet/LDR/HDR3/intensity, location.2, insertion/crossing/deletion/last-key limits, alpha.35 and vertical-only drag removal.",
+        "Every mode single-key constant, Fixed disables smoothness,512 preview and Undo/Redo; own editor Undo/resources destroyed and focus restored."
+      ],
+      "state": "ported-unverified"
+    }
+    ,
+    {
+      "legacyFile": "UvUiCapture.cs",
+      "newFile": "Tests~/Cases/UnityD/UvUiCaptureDiagnostic.cs",
+      "scenarios": [
+        {
+          "id": "uv-ui-capture-v2",
+          "file": "Tests~/Cases/UnityD/UvUiCaptureDiagnostic.cs",
+          "runner": "run_script",
+          "entry": "UvUiCaptureDiagnostic.Start",
+          "args": [
+            "$runId"
+          ],
+          "category": "diagnostic",
+          "workflow": "diagnostic",
+          "timeoutMs": 60000,
+          "effects": [
+            "windows",
+            "user-state",
+            "temp-files"
+          ],
+          "groups": [
+            "unity-d",
+            "uv",
+            "manual"
+          ],
+          "prerequisites": "Human explicitly approved test-only Unity ReadScreenPixel only on current test-created windows. Requires idle assigned Test6.6 Editor, attached laid-out GUI, graphics and manual PNG review; no OS-native screen access.",
+          "setup": "Create the complete original eleven-vertex/three-island 512x512 UV fixture locally under a fresh GUID, await real UI layout, capture only that created instance. No user-window scan, no identity proof by name.",
+          "teardown": "Destroy owned capture/decode textures, GUID PNG outputs, window/model/mesh; restore focus and borrowed state. Cancellation waits for task finally; cleanup removes BCL GUID bridge and capture artifact state.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityD/MigrationD.cs",
+            "Tests~/Cases/UnityD/AsyncD.cs"
+          ],
+          "async": {
+            "entry": "UvUiCaptureDiagnostic.Poll",
+            "args": [
+              "$runId"
+            ],
+            "pollMs": 250
+          },
+          "cancel": {
+            "entry": "UvUiCaptureDiagnostic.Cancel",
+            "args": [
+              "$runId"
+            ]
+          },
+          "cleanup": {
+            "entry": "UvUiCaptureDiagnostic.Cleanup",
+            "args": [
+              "$runId"
+            ]
+          }
+        }
+      ],
+      "coverage": [
+        "Original manual screenshot had no pixel/image correctness assertions. Actual Unity screen-pixel PNG producer restored through approved test-only reflection, composed with original owned UV setup; no automated visual verdict.",
+        "Original window rect/RGBA32/SetPixels/Apply/PNG path production preserved with GUID-owned output and artifact envelope. Decode/dimensions checks are artifact sanity, not rendered-image equivalence.",
+        "Successful producer returns skipped pending manual review with failures:[] and real PNG artifacts; capture/layout/cleanup errors fail. Existing UvUiTests regression source/assertions remain unchanged."
+      ],
+      "state": "ported-unverified",
+      "entryDispositions": [
+        {
+          "entry": "Start/Poll/Cancel/Cleanup",
+          "kind": "manual-diagnostic",
+          "reason": "Original screenshot producer composed into test-owned async fixture. Real manual PNG production, not no-assertion regression PASS."
+        }
+      ]
+    }
+  ],
+  "exclusions": [
+    {
+      "legacyFile": "UvUiSetup.cs",
+      "kind": "integrated-helper",
+      "reason": "Full setup body is part of self-contained UvUiTests.Start; no standalone assertion-free green setup.",
+      "replacement": "Tests~/Cases/UnityD/UvUiTests.cs",
+      "coverage": [
+        "Complete original 11-vertex/three-island 512x512 fixture is integrated into UvUiTests; current UvIslandSelect replaces retired marquee routing.",
+        "Self-contained GUID-named utility window; no standalone no-assertions green setup; fixture mesh/model/window owned and finally cleaned."
+      ],
+      "state": "ported-unverified",
+      "entryMetadata": [
+        {
+          "entry": "UvUiTests.Start",
+          "kind": "integrated-helper",
+          "scenarioId": "uv-ui-v2",
+          "reason": "The complete legacy setup is integrated into the independent UvUiSmoke replacement; no separate assertion-free green scenario."
+        }
+      ]
+    }
+  ]
+}

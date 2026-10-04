@@ -6,3 +6,12 @@
 Tests~/Fixtures/Compatibility0125/** -text
 # FX source baselines use the exact LF-normalized blobs from the release tag.
 Tests~/Fixtures/ShaderFX0125/*.hlsl text eol=lf
+Tests~/Legacy/** -text
+Tests~/legacy-manifest.json -text
+# Test review receipts hash raw inputs; keep their line endings stable on checkout.
+Tests~/Cases/** text eol=lf
+Tests~/Framework/** text eol=lf
+Tests~/CoverageAudit/** text eol=lf
+Tests~/Batches/** text eol=lf
+Tests~/scripts/** text eol=lf
+Tests~/migration.json text eol=lf

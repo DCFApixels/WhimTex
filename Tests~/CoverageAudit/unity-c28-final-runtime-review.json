@@ -1,0 +1,721 @@
+{
+  "version": 1,
+  "scope": "Final C28 raw native artifact retention review; owned JSON only",
+  "report": "D:/DCFA/Projects/Test6.6/Temp/WhimTex/test-runs/2026-10-04T15-46-16.669Z-126508.json",
+  "reportSha256": "9c2805fb067463806ce2d110480cd6acf05812a3f1ccb70dc2e1278f468a76ea",
+  "success": false,
+  "recoveryRequired": false,
+  "startedAt": "2026-10-04T15:46:16.670Z",
+  "finishedAt": "2026-10-04T15:48:35.237Z",
+  "fingerprint": "d84f3f73d58907e1ebd280451839a8e2098866a39a4784c3a63d07b20213ce74",
+  "counts": {
+    "passed": 15,
+    "skip": 13
+  },
+  "skippedCategories": {
+    "diagnostic": 10,
+    "regression": 3
+  },
+  "uncertain": false,
+  "notRun": [],
+  "bindings": [
+    {
+      "id": "mirror-enhancements-v2",
+      "sha256": "5addd299e774069313190e15e3bada47a81edce876d751d7fc0d16db687c4813",
+      "inputMatches": true,
+      "currentBundleMatches": true
+    },
+    {
+      "id": "mirror-enhancements-transition-v2",
+      "sha256": "5addd299e774069313190e15e3bada47a81edce876d751d7fc0d16db687c4813",
+      "inputMatches": true,
+      "currentBundleMatches": true
+    },
+    {
+      "id": "mirror-enhancements-integration-v2",
+      "sha256": "5addd299e774069313190e15e3bada47a81edce876d751d7fc0d16db687c4813",
+      "inputMatches": true,
+      "currentBundleMatches": true
+    },
+    {
+      "id": "mirror-enhancements-preview-v2",
+      "sha256": "5addd299e774069313190e15e3bada47a81edce876d751d7fc0d16db687c4813",
+      "inputMatches": true,
+      "currentBundleMatches": true
+    },
+    {
+      "id": "patch-quilting-contrast-v2",
+      "sha256": "20c66be28e5b5873e7a36e77a5a5438f91c78884ee73c5ae5b96895c86546956",
+      "inputMatches": true,
+      "currentBundleMatches": true
+    },
+    {
+      "id": "patch-quilting-contrast-variance-v2",
+      "sha256": "20c66be28e5b5873e7a36e77a5a5438f91c78884ee73c5ae5b96895c86546956",
+      "inputMatches": true,
+      "currentBundleMatches": true
+    },
+    {
+      "id": "patch-quilting-contrast-capture-v2",
+      "sha256": "20c66be28e5b5873e7a36e77a5a5438f91c78884ee73c5ae5b96895c86546956",
+      "inputMatches": true,
+      "currentBundleMatches": true
+    },
+    {
+      "id": "patch-quilting-contrast-memory-v2",
+      "sha256": "20c66be28e5b5873e7a36e77a5a5438f91c78884ee73c5ae5b96895c86546956",
+      "inputMatches": true,
+      "currentBundleMatches": true
+    },
+    {
+      "id": "patch-quilting-equivalence-v2",
+      "sha256": "39ff9c8f6a0be5a7dafbaa21731dc9250905522cfc528ce1bf8bd15d0d42cfdc",
+      "inputMatches": true,
+      "currentBundleMatches": true
+    },
+    {
+      "id": "patch-quilting-equivalence-managed-v2",
+      "sha256": "39ff9c8f6a0be5a7dafbaa21731dc9250905522cfc528ce1bf8bd15d0d42cfdc",
+      "inputMatches": true,
+      "currentBundleMatches": true
+    },
+    {
+      "id": "patch-quilting-equivalence-benchmark-v2",
+      "sha256": "39ff9c8f6a0be5a7dafbaa21731dc9250905522cfc528ce1bf8bd15d0d42cfdc",
+      "inputMatches": true,
+      "currentBundleMatches": true
+    },
+    {
+      "id": "patch-quilting-equivalence-current-timing-v2",
+      "sha256": "39ff9c8f6a0be5a7dafbaa21731dc9250905522cfc528ce1bf8bd15d0d42cfdc",
+      "inputMatches": true,
+      "currentBundleMatches": true
+    },
+    {
+      "id": "patch-quilting-feather-v2",
+      "sha256": "426deba492b5e8b63402c1ed249a111661f8955ff0a214ee333a27c46c8b7583",
+      "inputMatches": true,
+      "currentBundleMatches": true
+    },
+    {
+      "id": "patch-quilting-feather-rendering-v2",
+      "sha256": "426deba492b5e8b63402c1ed249a111661f8955ff0a214ee333a27c46c8b7583",
+      "inputMatches": true,
+      "currentBundleMatches": true
+    },
+    {
+      "id": "patch-quilting-feather-capture-v2",
+      "sha256": "426deba492b5e8b63402c1ed249a111661f8955ff0a214ee333a27c46c8b7583",
+      "inputMatches": true,
+      "currentBundleMatches": true
+    },
+    {
+      "id": "quilting-along-search-v2",
+      "sha256": "6aef70cba4305afa1bfa49615d9d90c6c74922a03afd2fb52ecb86b0ff4480ff",
+      "inputMatches": true,
+      "currentBundleMatches": true
+    },
+    {
+      "id": "quilting-along-search-capture-v2",
+      "sha256": "6aef70cba4305afa1bfa49615d9d90c6c74922a03afd2fb52ecb86b0ff4480ff",
+      "inputMatches": true,
+      "currentBundleMatches": true
+    },
+    {
+      "id": "screened-seamless-v2",
+      "sha256": "486c7947c32ae114f37d5b1645c1f42f8bf940ebc3ee154ee50e3b5d87affd2e",
+      "inputMatches": true,
+      "currentBundleMatches": true
+    },
+    {
+      "id": "screened-seamless-preview-v2",
+      "sha256": "486c7947c32ae114f37d5b1645c1f42f8bf940ebc3ee154ee50e3b5d87affd2e",
+      "inputMatches": true,
+      "currentBundleMatches": true
+    },
+    {
+      "id": "screened-seamless-large-v2",
+      "sha256": "486c7947c32ae114f37d5b1645c1f42f8bf940ebc3ee154ee50e3b5d87affd2e",
+      "inputMatches": true,
+      "currentBundleMatches": true
+    },
+    {
+      "id": "screened-seamless-benchmark-v2",
+      "sha256": "486c7947c32ae114f37d5b1645c1f42f8bf940ebc3ee154ee50e3b5d87affd2e",
+      "inputMatches": true,
+      "currentBundleMatches": true
+    },
+    {
+      "id": "seamless-controls-v2",
+      "sha256": "ff3ab635e7231a7562562f6c7dea438ef880c122de6648e2862e73ae9c169a8e",
+      "inputMatches": true,
+      "currentBundleMatches": true
+    },
+    {
+      "id": "seamless-controls-preview-v2",
+      "sha256": "ff3ab635e7231a7562562f6c7dea438ef880c122de6648e2862e73ae9c169a8e",
+      "inputMatches": true,
+      "currentBundleMatches": true
+    },
+    {
+      "id": "seamless-optimization-capture-v2",
+      "sha256": "f61e9a1e576f8a8ffad4fe03be4ed0fb65da8f74dd4d9f0b8e9f1000788ce10d",
+      "inputMatches": true,
+      "currentBundleMatches": true
+    },
+    {
+      "id": "seamless-optimization-compare-v2",
+      "sha256": "f61e9a1e576f8a8ffad4fe03be4ed0fb65da8f74dd4d9f0b8e9f1000788ce10d",
+      "inputMatches": true,
+      "currentBundleMatches": true
+    },
+    {
+      "id": "seamless-optimization-audit-v2",
+      "sha256": "f61e9a1e576f8a8ffad4fe03be4ed0fb65da8f74dd4d9f0b8e9f1000788ce10d",
+      "inputMatches": true,
+      "currentBundleMatches": true
+    },
+    {
+      "id": "seamless-optimization-paired-poisson-v2",
+      "sha256": "f61e9a1e576f8a8ffad4fe03be4ed0fb65da8f74dd4d9f0b8e9f1000788ce10d",
+      "inputMatches": true,
+      "currentBundleMatches": true
+    },
+    {
+      "id": "seamless-optimization-benchmark-v2",
+      "sha256": "f61e9a1e576f8a8ffad4fe03be4ed0fb65da8f74dd4d9f0b8e9f1000788ce10d",
+      "inputMatches": true,
+      "currentBundleMatches": true
+    }
+  ],
+  "previews": [
+    {
+      "id": "mirror-enhancements-preview-v2",
+      "status": "skip",
+      "checks": 0,
+      "message": "MirrorEnhancementsTests.Preview: diagnostic/manual result only. D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\UnityC-b2097189b1f3401cb27f2c2f1c829535/",
+      "uncertain": false,
+      "payloadKeys": [
+        "status",
+        "message",
+        "checks",
+        "failures",
+        "artifacts"
+      ],
+      "rawArtifactCount": 4,
+      "artifacts": [
+        {
+          "name": "0.png",
+          "encoding": "base64",
+          "bytes": 7664,
+          "sha256": "385de0ade22cf067d0ed78289d620b28dd57c558e64110347061962fcf2d0e56",
+          "pngSignature": "89504e470d0a1a0a",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "name": "1.png",
+          "encoding": "base64",
+          "bytes": 189358,
+          "sha256": "a5e01595d168bbd7db52c073edef78eaf62b2edb31738555a3c27fb9979200c9",
+          "pngSignature": "89504e470d0a1a0a",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "name": "2.png",
+          "encoding": "base64",
+          "bytes": 7664,
+          "sha256": "385de0ade22cf067d0ed78289d620b28dd57c558e64110347061962fcf2d0e56",
+          "pngSignature": "89504e470d0a1a0a",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "name": "3.png",
+          "encoding": "base64",
+          "bytes": 188673,
+          "sha256": "a7424db2a69f827b6135ad249011d5befe49475a3d2fb4ea63a1f3f8de1e6327",
+          "pngSignature": "89504e470d0a1a0a",
+          "width": 600,
+          "height": 600
+        }
+      ]
+    },
+    {
+      "id": "seamless-controls-preview-v2",
+      "status": "skip",
+      "checks": 0,
+      "message": "SeamlessControlsTests.Preview: diagnostic/manual result only. D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\UnityC-b63ec2e71af249bcb228ec1bb4202976/",
+      "uncertain": false,
+      "payloadKeys": [
+        "status",
+        "message",
+        "checks",
+        "failures",
+        "artifacts"
+      ],
+      "rawArtifactCount": 16,
+      "artifacts": [
+        {
+          "name": "histogram_0.bin",
+          "encoding": "base64",
+          "bytes": 5760008,
+          "sha256": "8cdd51047e0ed2d8381add8d76fb06db6920b15d3cf61da324e4c121ebac3ded",
+          "width": 600,
+          "height": 600,
+          "expectedFloatBytes": 5760008,
+          "lengthMatchesFloatLayout": true
+        },
+        {
+          "name": "histogram_0.png",
+          "encoding": "base64",
+          "bytes": 198002,
+          "sha256": "aa184e131839dfdcf9101d838929358314dabe3e2efc898aab01f9aafdf32746",
+          "pngSignature": "89504e470d0a1a0a",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "name": "histogram_1.bin",
+          "encoding": "base64",
+          "bytes": 5760008,
+          "sha256": "a843acea693519a4e8580d2e20d727e4062e7322b6d566e5336c11fd39d7539d",
+          "width": 600,
+          "height": 600,
+          "expectedFloatBytes": 5760008,
+          "lengthMatchesFloatLayout": true
+        },
+        {
+          "name": "histogram_1.png",
+          "encoding": "base64",
+          "bytes": 184638,
+          "sha256": "06aeacef533bdbefe8d733044279dfa74396dba57c3c8bed6a11bd9a7cdf3291",
+          "pngSignature": "89504e470d0a1a0a",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "name": "histogram_2.bin",
+          "encoding": "base64",
+          "bytes": 5760008,
+          "sha256": "480a7fd99b386143d21e5ae82fa500f70f054a33f8059bf44c9a75c526c94d4e",
+          "width": 600,
+          "height": 600,
+          "expectedFloatBytes": 5760008,
+          "lengthMatchesFloatLayout": true
+        },
+        {
+          "name": "histogram_2.png",
+          "encoding": "base64",
+          "bytes": 185551,
+          "sha256": "972c08cbc930e099862fbfa91ecf88c88bb4ba1c5e536274002f65681298e9a7",
+          "pngSignature": "89504e470d0a1a0a",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "name": "histogram_3.bin",
+          "encoding": "base64",
+          "bytes": 5760008,
+          "sha256": "e4d5b3f75d7ac4de7386362269220923f03b15a7dd8032e1ea0a969a98dc0083",
+          "width": 600,
+          "height": 600,
+          "expectedFloatBytes": 5760008,
+          "lengthMatchesFloatLayout": true
+        },
+        {
+          "name": "histogram_3.png",
+          "encoding": "base64",
+          "bytes": 187882,
+          "sha256": "f34a4740b49e3ea05bf15c82a70af4b7a9f014a3ed45aec5a747435e299805b3",
+          "pngSignature": "89504e470d0a1a0a",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "name": "screened_0.bin",
+          "encoding": "base64",
+          "bytes": 5760008,
+          "sha256": "5ba2bdd696e786278a3e94f2d9e44f477d3ccb81928a51e2aa03d5b88d093a9a",
+          "width": 600,
+          "height": 600,
+          "expectedFloatBytes": 5760008,
+          "lengthMatchesFloatLayout": true
+        },
+        {
+          "name": "screened_0.png",
+          "encoding": "base64",
+          "bytes": 196962,
+          "sha256": "4e0084209b50cc680933cf5949f052c8cec2516969e6b19f5fc809474d71ce37",
+          "pngSignature": "89504e470d0a1a0a",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "name": "screened_1.bin",
+          "encoding": "base64",
+          "bytes": 5760008,
+          "sha256": "c8dba397c65d78b15bbc12d13ed2435634a8856838f3fa28777cb635bacb2106",
+          "width": 600,
+          "height": 600,
+          "expectedFloatBytes": 5760008,
+          "lengthMatchesFloatLayout": true
+        },
+        {
+          "name": "screened_1.png",
+          "encoding": "base64",
+          "bytes": 190744,
+          "sha256": "5246ff6e3d1066befc6095e71243e8f4fc5eda7079b79f4aa4bad6b65bd079eb",
+          "pngSignature": "89504e470d0a1a0a",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "name": "screened_2.bin",
+          "encoding": "base64",
+          "bytes": 5760008,
+          "sha256": "9c4ac1713a8330345e70ad9156136c80aef24f465131b543864188f47697030e",
+          "width": 600,
+          "height": 600,
+          "expectedFloatBytes": 5760008,
+          "lengthMatchesFloatLayout": true
+        },
+        {
+          "name": "screened_2.png",
+          "encoding": "base64",
+          "bytes": 192410,
+          "sha256": "d1eea4e25ee29a8f26f9236421a41e07697230cbd18833cadd8a8196bdca2b47",
+          "pngSignature": "89504e470d0a1a0a",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "name": "screened_3.bin",
+          "encoding": "base64",
+          "bytes": 5760008,
+          "sha256": "5ba2bdd696e786278a3e94f2d9e44f477d3ccb81928a51e2aa03d5b88d093a9a",
+          "width": 600,
+          "height": 600,
+          "expectedFloatBytes": 5760008,
+          "lengthMatchesFloatLayout": true
+        },
+        {
+          "name": "screened_3.png",
+          "encoding": "base64",
+          "bytes": 196962,
+          "sha256": "4e0084209b50cc680933cf5949f052c8cec2516969e6b19f5fc809474d71ce37",
+          "pngSignature": "89504e470d0a1a0a",
+          "width": 600,
+          "height": 600
+        }
+      ]
+    }
+  ],
+  "registration": {
+    "manifest": "Tests~/CoverageAudit/unity-cd-oracles.json",
+    "manifestSha256": "c8225d463d596c08458bbdcad17cfb06db32e8f96e68a69b929522e623addd78",
+    "inputName": "copy-blend-source",
+    "inputPath": "D:/DCFA/Projects/Test6.6/output/copy-blend-lab-2026-09-28/00_source.png",
+    "inputSha256": "7aaa38693f516d7ec60a7211dcb873141654f32c13cb977ad02b19e3aa0a6594",
+    "registrationMatches": true
+  },
+  "results": [
+    {
+      "id": "mirror-enhancements-v2",
+      "status": "passed",
+      "category": "regression",
+      "uncertain": false,
+      "checks": 19200874,
+      "message": "MirrorEnhancementsTests.Main",
+      "durationMs": 18059
+    },
+    {
+      "id": "mirror-enhancements-transition-v2",
+      "status": "passed",
+      "category": "regression",
+      "uncertain": false,
+      "checks": 3564410,
+      "message": "MirrorEnhancementsTests.Transition",
+      "durationMs": 6897
+    },
+    {
+      "id": "mirror-enhancements-integration-v2",
+      "status": "passed",
+      "category": "regression",
+      "uncertain": false,
+      "checks": 621162,
+      "message": "MirrorEnhancementsTests.Integration",
+      "durationMs": 4624
+    },
+    {
+      "id": "mirror-enhancements-preview-v2",
+      "status": "skip",
+      "category": "diagnostic",
+      "uncertain": false,
+      "checks": 0,
+      "message": "MirrorEnhancementsTests.Preview: diagnostic/manual result only. D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\UnityC-b2097189b1f3401cb27f2c2f1c829535/",
+      "durationMs": 959
+    },
+    {
+      "id": "patch-quilting-contrast-v2",
+      "status": "passed",
+      "category": "regression",
+      "uncertain": false,
+      "checks": 1404097,
+      "message": "PatchQuiltingContrastTests.Main",
+      "durationMs": 1177
+    },
+    {
+      "id": "patch-quilting-contrast-variance-v2",
+      "status": "passed",
+      "category": "regression",
+      "uncertain": false,
+      "checks": 4,
+      "message": "PatchQuiltingContrastTests.Variance",
+      "durationMs": 515
+    },
+    {
+      "id": "patch-quilting-contrast-capture-v2",
+      "status": "skip",
+      "category": "diagnostic",
+      "uncertain": false,
+      "checks": 0,
+      "message": "External prerequisite missing: reviewed original live_4.bin path/hash/provenance in Packages/com.dcfapixels.whimtex/Tests~/CoverageAudit/unity-cd-oracles.json",
+      "durationMs": 430
+    },
+    {
+      "id": "patch-quilting-contrast-memory-v2",
+      "status": "passed",
+      "category": "regression",
+      "uncertain": false,
+      "checks": 8,
+      "message": "PatchQuiltingContrastTests.Memory",
+      "durationMs": 481
+    },
+    {
+      "id": "patch-quilting-equivalence-v2",
+      "status": "passed",
+      "category": "regression",
+      "uncertain": false,
+      "checks": 2133864,
+      "message": "QuiltingEquivalenceTests.Main",
+      "durationMs": 16517
+    },
+    {
+      "id": "patch-quilting-equivalence-managed-v2",
+      "status": "passed",
+      "category": "regression",
+      "uncertain": false,
+      "checks": 2133864,
+      "message": "QuiltingEquivalenceTests.Managed",
+      "durationMs": 16676
+    },
+    {
+      "id": "patch-quilting-equivalence-benchmark-v2",
+      "status": "skip",
+      "category": "regression",
+      "uncertain": false,
+      "checks": 0,
+      "message": "External prerequisite missing: reviewed original live_4.bin path/hash/provenance in Packages/com.dcfapixels.whimtex/Tests~/CoverageAudit/unity-cd-oracles.json",
+      "durationMs": 1088
+    },
+    {
+      "id": "patch-quilting-equivalence-current-timing-v2",
+      "status": "skip",
+      "category": "diagnostic",
+      "uncertain": false,
+      "checks": 0,
+      "message": "External prerequisite missing: reviewed original live_4.bin path/hash/provenance in Packages/com.dcfapixels.whimtex/Tests~/CoverageAudit/unity-cd-oracles.json",
+      "durationMs": 406
+    },
+    {
+      "id": "patch-quilting-feather-v2",
+      "status": "passed",
+      "category": "regression",
+      "uncertain": false,
+      "checks": 2642957,
+      "message": "PatchQuiltingFeatherTests.Main",
+      "durationMs": 9005
+    },
+    {
+      "id": "patch-quilting-feather-rendering-v2",
+      "status": "passed",
+      "category": "regression",
+      "uncertain": false,
+      "checks": 171198792,
+      "message": "PatchQuiltingFeatherTests.Rendering",
+      "durationMs": 22407
+    },
+    {
+      "id": "patch-quilting-feather-capture-v2",
+      "status": "skip",
+      "category": "diagnostic",
+      "uncertain": false,
+      "checks": 0,
+      "message": "External prerequisite missing: reviewed original live_4.bin path/hash/provenance in Packages/com.dcfapixels.whimtex/Tests~/CoverageAudit/unity-cd-oracles.json",
+      "durationMs": 560
+    },
+    {
+      "id": "quilting-along-search-v2",
+      "status": "passed",
+      "category": "regression",
+      "uncertain": false,
+      "checks": 801421,
+      "message": "QuiltingAlongSearchTests.Main",
+      "durationMs": 903
+    },
+    {
+      "id": "quilting-along-search-capture-v2",
+      "status": "skip",
+      "category": "diagnostic",
+      "uncertain": false,
+      "checks": 0,
+      "message": "External prerequisite missing: reviewed original live_4.bin path/hash/provenance in Packages/com.dcfapixels.whimtex/Tests~/CoverageAudit/unity-cd-oracles.json",
+      "durationMs": 509
+    },
+    {
+      "id": "screened-seamless-v2",
+      "status": "passed",
+      "category": "regression",
+      "uncertain": false,
+      "checks": 213230,
+      "message": "ScreenedSeamlessTests.Main",
+      "durationMs": 2556
+    },
+    {
+      "id": "screened-seamless-preview-v2",
+      "status": "skip",
+      "category": "diagnostic",
+      "uncertain": false,
+      "checks": 0,
+      "message": "External prerequisite missing: reviewed original image screened-poisson-original in Packages/com.dcfapixels.whimtex/Tests~/CoverageAudit/unity-cd-oracles.json",
+      "durationMs": 479
+    },
+    {
+      "id": "screened-seamless-large-v2",
+      "status": "passed",
+      "category": "regression",
+      "uncertain": false,
+      "checks": 4078852,
+      "message": "ScreenedSeamlessTests.Large",
+      "durationMs": 12769
+    },
+    {
+      "id": "screened-seamless-benchmark-v2",
+      "status": "skip",
+      "category": "diagnostic",
+      "uncertain": false,
+      "checks": 0,
+      "message": "ScreenedSeamlessTests.Benchmark: diagnostic/manual result only. GPU render + sync float readback, median 3: 256: 19.18 ms; 512: 35.20 ms; 1024: 136.72 ms; ",
+      "durationMs": 1457
+    },
+    {
+      "id": "seamless-controls-v2",
+      "status": "passed",
+      "category": "regression",
+      "uncertain": false,
+      "checks": 1214513,
+      "message": "SeamlessControlsTests.Main",
+      "durationMs": 2089
+    },
+    {
+      "id": "seamless-controls-preview-v2",
+      "status": "skip",
+      "category": "diagnostic",
+      "uncertain": false,
+      "checks": 0,
+      "message": "SeamlessControlsTests.Preview: diagnostic/manual result only. D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\UnityC-b63ec2e71af249bcb228ec1bb4202976/",
+      "durationMs": 5082
+    },
+    {
+      "id": "seamless-optimization-capture-v2",
+      "status": "skip",
+      "category": "diagnostic",
+      "uncertain": false,
+      "checks": 0,
+      "message": "Baseline-generation helper; never regenerate references to obtain a pass.",
+      "durationMs": 674
+    },
+    {
+      "id": "seamless-optimization-compare-v2",
+      "status": "skip",
+      "category": "regression",
+      "uncertain": false,
+      "checks": 0,
+      "message": "External prerequisite missing: 252 reviewed pre-change seamless snapshots in Packages/com.dcfapixels.whimtex/Tests~/CoverageAudit/unity-cd-oracles.json",
+      "durationMs": 487
+    },
+    {
+      "id": "seamless-optimization-audit-v2",
+      "status": "skip",
+      "category": "regression",
+      "uncertain": false,
+      "checks": 0,
+      "message": "External prerequisite missing: 252 reviewed pre-change seamless snapshots in Packages/com.dcfapixels.whimtex/Tests~/CoverageAudit/unity-cd-oracles.json",
+      "durationMs": 539
+    },
+    {
+      "id": "seamless-optimization-paired-poisson-v2",
+      "status": "passed",
+      "category": "regression",
+      "uncertain": false,
+      "checks": 3145728,
+      "message": "SeamlessOptimizationTests.PairedPoisson",
+      "durationMs": 6159
+    },
+    {
+      "id": "seamless-optimization-benchmark-v2",
+      "status": "skip",
+      "category": "diagnostic",
+      "uncertain": false,
+      "checks": 0,
+      "message": "SeamlessOptimizationTests.Benchmark: diagnostic/manual result only. 512x512, warm medians, 9 samples, final GPU readback included\nmode 0, contrast 0: 1.042 ms\r\nmode 0, contrast 1: 6.339 ms\r\nmode 1, contrast 0: 1.197 ms\r\nmode 1, contrast 1: 6.521 ms\r\nmode 2, contrast 1: 33.843 ms\r\nmode 3, contrast 0: 13.474 ms\r\nmode 3, contrast 1: 24.138 ms\r\n",
+      "durationMs": 1508
+    }
+  ],
+  "helperSha": "0a7383618feea3c2a4ba780738bbc0e3831ef78b7199ea0887f4ca4f71dc68e5",
+  "artifactSanity": {
+    "totalArtifacts": 20,
+    "pngArtifacts": 12,
+    "floatBinaryArtifacts": 8,
+    "expectedNamesVerified": true,
+    "allDimensions": "600x600",
+    "verification": "Canonical base64 decoded only in memory. Raw-byte SHA256, PNG signature/IHDR dimensions and float binary header/exact length verified. No full PNG decode/visual review or algorithm/golden comparison performed; no output materialization or asset mutation."
+  },
+  "remainingGaps": {
+    "missingOriginalInputRows": 6,
+    "missingOriginalInputKinds": [
+      "live_4.bin",
+      "screened-poisson-original PNG",
+      "252 pre-change seamless snapshots"
+    ],
+    "missingInputSkippedIds": [
+      "patch-quilting-contrast-capture-v2",
+      "patch-quilting-equivalence-benchmark-v2",
+      "patch-quilting-equivalence-current-timing-v2",
+      "patch-quilting-feather-capture-v2",
+      "quilting-along-search-capture-v2",
+      "screened-seamless-preview-v2",
+      "seamless-optimization-compare-v2",
+      "seamless-optimization-audit-v2"
+    ],
+    "manualVisualReviewRows": 2,
+    "manualVisualIds": [
+      "mirror-enhancements-preview-v2",
+      "seamless-controls-preview-v2"
+    ],
+    "artifactDeliveryGap": false,
+    "historicalInputDigest": "No previously frozen original PNG digest exists. Existing original-path input registration/authentication and current bytes are verified; historical byte continuity and unchanged original visual equivalence are not proven."
+  },
+  "proofLevel": "Fifteen selected source-bound native regression entries passed; eight original-input-blocked skips and five intentional manual/helper skips remain. Two registered-input Preview producer and retained-output protocols verified, zero original visual assertions preserved. No full Legacy, manual visual or performance equivalence claim.",
+  "freeze": {
+    "ownedJsonFrozenAfterReceipt": true,
+    "helperSourceUnchanged": true,
+    "batchesUnchanged": true,
+    "globalsUntouched": true,
+    "noUnityExecution": true,
+    "noSourceEdits": true,
+    "noAssetsMutation": true
+  }
+}

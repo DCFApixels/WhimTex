@@ -48,8 +48,8 @@ internal `ComposeCanvas(maxSize)` — ограниченного размера,
 Размеры вычисляет `GetCanvasRenderSize`; внутренние методы — `ComposeCanvasAtSize`
 и `RenderCanvasCore`, миниатюры — `RenderLayerThumbnail`. Старых C#-алиасов нет.
 Layer Preview, Brush Preview, PostFxPreview и файловый HLSL uniform `_PreviewScale`
-сохраняют назначение и имена. [Проверки](../Tests~/CanvasRenderNaming.ru.md).
-Область изменений, исключения и проверки: [отчёт](../Tests~/CanvasTerminology.md).
+сохраняют назначение и имена. [Проверки](../Tests~/Legacy/CanvasRenderNaming.ru.md).
+Область изменений, исключения и проверки: [отчёт](../Tests~/Legacy/CanvasTerminology.md).
 В пошаговых инструкциях указывать фактическую подпись элемента.
 Названия UI, поля JSON, команды CLI и идентификаторы кода сохраняются на английском.
 
@@ -76,7 +76,7 @@ Layer Preview, Brush Preview, PostFxPreview и файловый HLSL uniform `_P
 
 ## Make Seamless: предрелизная проверка, 2026-09-28
 
-- Алгоритмы и параметры зафиксированы; в polish-pass изменены подсказки и документация, исправлен callback миниатюры после закрытия окна. Полный отчёт: `Tests~/SeamlessRelease.md`.
+- Алгоритмы и параметры зафиксированы; в polish-pass изменены подсказки и документация, исправлен callback миниатюры после закрытия окна. Полный отчёт: `Tests~/Legacy/SeamlessRelease.md`.
 - Обычное preview ограничено 512 px; Live Quality не переключает его в полный размер. Для проверки финального Quilting доступен Pencil без рисования + Tiled. Это ограничение обозначено явно, а не скрыто автоматическим дорогим рендером.
 - Проверены TIFF save/reopen, PNG encoding, UI full-resolution preview, перенос слоёв drag-событиями, Undo/Redo, маски/грани, две независимые оконные кеш-системы и закрытие. Тяжёлые одиночные режимы проверены до 2048×1536. Это не подтверждение всех платформ/4K или гарантии отсутствия визуального шва на любом исходнике.
 
@@ -97,7 +97,7 @@ Layer Preview, Brush Preview, PostFxPreview и файловый HLSL uniform `_P
 
 - Mirror: независимый `mirrorTransitionStart` -1..0.95 (UI -100..95%), default 0 сохраняет старый fade. Вес q=saturate((1-distance/width)/(1-start)), затем прежний smoothstep и falloff; единая формула в обычном и histogram-путях. Отрицательное начало расширяет переход за пределы полотна, на грани донор уже не имеет полного веса; возможен шов, Poisson включается отдельно. API/clipboard/кеш/Undo учитывают параметр. Выбор направлений и значения по умолчанию остальных полей не меняются.
 
-- Make Seamless: алгоритмы и параметры качества при оптимизации не меняются. HistogramSeamless использует один idle owner с NativeArray/Burst, переиспользуемыми readback/LUT Texture2D и квантилями по числу отсчётов; максимум около 2.2 MiB CPU storage плюс текстуры, expiry 30 s, cleanup reload/quit, nested rent изолирован. Explicit double intermediates сохраняют прежнее округление managed LUT/lookup, в том числе на прозрачных HDR-пикселях. Quilting кеширует свои Burst-квантили в существующем workspace budget; адресация донора без remainder эквивалентна прежней. Screened сохраняет 16 PCG-итераций и прежние FFT-проходы: до 16 планов факторизации, прямой финальный reduction и обмен scratch/z убирают 67 копирований текстур за solve. 252 сохранённых GPU fixtures и 324 quilting equivalence cases совпали точно на проверенном backend. Подробности и честные ограничения замеров: [SeamlessOptimization](../Tests~/SeamlessOptimization.md). Нет миграции.
+- Make Seamless: алгоритмы и параметры качества при оптимизации не меняются. HistogramSeamless использует один idle owner с NativeArray/Burst, переиспользуемыми readback/LUT Texture2D и квантилями по числу отсчётов; максимум около 2.2 MiB CPU storage плюс текстуры, expiry 30 s, cleanup reload/quit, nested rent изолирован. Explicit double intermediates сохраняют прежнее округление managed LUT/lookup, в том числе на прозрачных HDR-пикселях. Quilting кеширует свои Burst-квантили в существующем workspace budget; адресация донора без remainder эквивалентна прежней. Screened сохраняет 16 PCG-итераций и прежние FFT-проходы: до 16 планов факторизации, прямой финальный reduction и обмен scratch/z убирают 67 копирований текстур за solve. 252 сохранённых GPU fixtures и 324 quilting equivalence cases совпали точно на проверенном backend. Подробности и честные ограничения замеров: [SeamlessOptimization](../Tests~/Legacy/SeamlessOptimization.md). Нет миграции.
 
 - Все парные селекторы граней разрешают пустой выбор `PoissonEdges.None=3`: пропуск только своего прохода, независимо от других. Последняя пара остаётся интерактивной, без disabled tint. `AllEdges=0`, `TopAndBottom=1`, `LeftAndRight=2` не изменены; миграции нет. Это заменяет прежнее ограничение «хотя бы одна пара».
 
@@ -160,7 +160,7 @@ GUID → Path с проверкой localId/type; отсутствие ассе�
 Контракт: [JSON_FORMAT](../Documentation~/JSON_FORMAT.md).
 
 Контракт и проверенные факты: [DOCUMENT_FORMAT.md](DOCUMENT_FORMAT.md). Реализация контейнера:
-`src/WhimTexDocumentContainer.cs`, тесты `Tests~/DocumentReliabilitySmoke.cs` и `Tests~/DocumentPreparationSmoke.cs`.
+`src/WhimTexDocumentContainer.cs`, тесты `Tests~/Legacy/DocumentReliabilitySmoke.cs` и `Tests~/Legacy/DocumentPreparationSmoke.cs`.
 
 - Документ — один **нативный TIFF** (`.tiff` для LDR и HDR) с секцией документа
   внутри: своего расширения и `ScriptedImporter` недостаточно, потому что платформенные overrides и
@@ -399,8 +399,8 @@ GUID → Path с проверкой localId/type; отсутствие ассе�
 - Один результат — один Undo. Escape/Cancel, смена инструмента/контекста, изменение
   источника и закрытие окна отменяют незавершённую работу. Не держать Undo-группу
   открытой на время фоновой задачи; не применять устаревший результат.
-- Проверки: `Tests~/HealingBrushSmoke.cs` через Pipeline `run_script`,
-  `Tests~/ContentAwareFillSmoke.cs` через `eval_file`; UI layout — `ContextToolsSmoke.cs`.
+- Проверки: `Tests~/Legacy/HealingBrushSmoke.cs` через Pipeline `run_script`,
+  `Tests~/Legacy/ContentAwareFillSmoke.cs` через `eval_file`; UI layout — `ContextToolsSmoke.cs`.
 - Общий worker Healing/Content-Aware Fill учитывает независимые признаки фактуры на
   пирамиде. На последнем шаге лучший донор сохраняет резкие детали, а совместимые
   гладкие фрагменты избирательно смешиваются для уменьшения стыков. Гладкость

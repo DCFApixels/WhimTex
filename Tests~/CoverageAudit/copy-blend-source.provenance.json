@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "scope": "Existing historical source input for MirrorEnhancements/SeamlessControls Preview only",
+  "status": "parent-native-preview-retained-artifacts-verified-manual-visual-review-pending",
+  "currentArtifactRepair": { "review": "Tests~/CoverageAudit/reviewed-oracle-image-review.json", "sourceSha256": "0a7383618feea3c2a4ba780738bbc0e3831ef78b7199ea0887f4ca4f71dc68e5", "runtimeStatus": "pending-parent-validation", "note": "Final native input binding and artifact delivery verified for current helper. Registered source/input hash unchanged. Manual visual/algorithm equivalence remains unverified, not missing original input." },
+  "manifest": "Tests~/CoverageAudit/unity-cd-oracles.json",
+  "preActivationManifestSha256": "ac99b83aa2df85f0331e71ff1c7c16408e9bb850be7f17dbfd360cf33b557963",
+  "activeManifestSha256": "c8225d463d596c08458bbdcad17cfb06db32e8f96e68a69b929522e623addd78",
+  "activationReview": "Parent activated exact candidate name/path/SHA-256 with explicit input-only provenance. Worker reread the active record and ReviewedOracle.Image authentication plus both original Preview bodies; current raw PNG hash/112799 bytes/600x600 match. No source, batch or active manifest edit by worker. Native/manual C Preview still pending parent; historical byte continuity is not proven.",
+  "registrationCandidate": {
+    "name": "copy-blend-source",
+    "path": "D:/DCFA/Projects/Test6.6/output/copy-blend-lab-2026-09-28/00_source.png",
+    "sha256": "7aaa38693f516d7ec60a7211dcb873141654f32c13cb977ad02b19e3aa0a6594",
+    "provenance": "Existing original-path source PNG named by frozen HistogramSeamlessSmoke, MirrorEnhancementsSmoke and SeamlessControlsSmoke. Raw bytes read-only verified at the explicitly supplied project path: 112799 bytes, PNG600x600, created2026-09-28T04:12:04.758Z and modified2026-09-28T04:13:11.671Z. Parent report2026-10-04T14-41-21.176Z-47572 records HistogramSeamless.Preview passed2 (decode/input-preservation sanity), not algorithm equivalence. File is a source input, never a current-algorithm golden. See copy-blend-source.provenance.json for hash/evidence limitations."
+  },
+  "input": {
+    "bytes": 112799,
+    "width": 600,
+    "height": 600,
+    "pngSignature": "89504e470d0a1a0a",
+    "createdUtc": "2026-09-28T04:12:04.758Z",
+    "modifiedUtc": "2026-09-28T04:13:11.671Z"
+  },
+  "originalReaders": [
+    {
+      "file": "Tests~/Legacy/HistogramSeamlessSmoke.cs",
+      "sha256": "4ee8904035d8dcb2228b6dff8fde92594775f6f00d335c0cf380c63f1b798223",
+      "entry": "Preview",
+      "inputReference": "output/copy-blend-lab-2026-09-28/00_source.png",
+      "assertions": "Original producer has no direct visual/algorithm verdict; outputs are separate 09_unity_* files."
+    },
+    {
+      "file": "Tests~/Legacy/MirrorEnhancementsSmoke.cs",
+      "sha256": "3a7ff8772403a965169e154f9475839ff6e5a2596be3f199ce9c8f4afb9b9586",
+      "entry": "Preview",
+      "restoredUse": "four compensation/correction combinations"
+    },
+    {
+      "file": "Tests~/Legacy/SeamlessControlsSmoke.cs",
+      "sha256": "fe80a91681c47f524225896e8fec252ae98dbdd91069d43d57707e9ac4f0ce24",
+      "entry": "Preview",
+      "restoredUse": "two algorithms/four edge masks with float/PNG artifacts"
+    }
+  ],
+  "parentEvidence": {
+    "path": "D:/DCFA/Projects/Test6.6/Temp/WhimTex/test-runs/2026-10-04T14-41-21.176Z-47572.json",
+    "sha256": "5df96f3d36ae8fce90b72a524a24468d7af9b127a891ea1cba2f7c023c5632bf",
+    "scenarioId": "histogram-seamless-preview-v2",
+    "status": "passed",
+    "checks": 2,
+    "durationMs": 1059,
+    "wholeReportSuccess": false,
+    "limitations": "The separate preview result passed, but the report also contains unrelated failures. Runtime loaded an original source; this does not prove algorithm pixels or manual visual correctness. Current B reader verifies decode and input preservation; current B bytes are not claimed equal to the older run's full binding."
+  },
+  "relevantIds": [
+    "mirror-enhancements-preview-v2",
+    "seamless-controls-preview-v2"
+  ],
+  "historicalPreRepairParentRuntimeEvidence": {
+    "review": "Tests~/CoverageAudit/unity-c28-runtime-review.json",
+    "reportSha256": "45dba1600cdcb928f6871af1ed0fff306518dee9d8608d3147bcf1f2246c07ad",
+    "proof": "Both source-bound C Preview entries reached diagnostic producer completion using registered input, not missing-registration skips. Input SHA still matches. Each reports an owned GUID output directory, but raw native payloads contain no artifacts and directories are absent after cleanup. No output-byte/dimension/visual assertion is claimed."
+  },
+  "finalParentRuntimeEvidence": { "review": "Tests~/CoverageAudit/unity-c28-final-runtime-review.json", "reportSha256": "9c2805fb067463806ce2d110480cd6acf05812a3f1ccb70dc2e1278f468a76ea", "proof": "Both current source-bound Preview entries completed and raw envelopes retained20 expected outputs (12PNG+8float), with verified SHA256/dimensions/layout metadata. No missing registered-input or artifact-delivery gap remains. No manual visual/algorithm equality assertion." },
+  "unresolvedDebt": "Only manual visual review/equivalence remains for the two registered-input Previews. Raw artifact retention and metadata are verified. No prior frozen original PNG digest exists, so historical byte continuity or unchanged original visuals are not established. Original no-direct-visual-assertion classification preserved; six other source rows still await live_4.bin, screened input or252 pre-change snapshots.",
+  "limitations": [
+    "No previously frozen historical PNG digest was found; filesystem timestamps support provenance but are not cryptographic proof of historical byte continuity.",
+    "Registration candidate is input-only and does not supply live_4.bin, screened-poisson-original, or any of the252 pre-change seamless snapshots.",
+    "No current-algorithm oracle capture/golden generation, scan, copying, overwrite, asset mutation or Unity execution.",
+    "Worker initially left active manifest untouched under the parent's final-freeze instruction. Parent subsequently activated the exact input candidate; worker only refreshed audit claims/hash bindings, never edited the active manifest, native source, batches or catalog/registry."
+  ],
+  "proofLevel": "Read-only input/source/report provenance verification only"
+}

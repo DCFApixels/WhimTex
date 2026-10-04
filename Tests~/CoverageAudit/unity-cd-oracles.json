@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "policy": "Register only reviewed original input/baseline files with explicit path, SHA-256 and historical provenance. No automatic scan, no capture on the current algorithm, no overwrites. Empty registration is a missing external prerequisite, not equivalent coverage.",
+  "live4": null,
+  "seamlessOptimization": [],
+  "images": [
+    {
+      "name": "copy-blend-source",
+      "path": "D:/DCFA/Projects/Test6.6/output/copy-blend-lab-2026-09-28/00_source.png",
+      "sha256": "7aaa38693f516d7ec60a7211dcb873141654f32c13cb977ad02b19e3aa0a6594",
+      "provenance": "Existing original-path 600x600 source PNG named by frozen HistogramSeamless, MirrorEnhancements and SeamlessControls Preview. Read-only bytes verified; created/modified 2026-09-28. Input only, not an algorithm golden or proof of historical byte continuity; no prior frozen digest exists. See copy-blend-source.provenance.json."
+    }
+  ]
+}

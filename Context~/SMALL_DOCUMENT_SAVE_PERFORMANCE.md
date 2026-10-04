@@ -7,7 +7,7 @@ the other candidates remain proposals. No test Assets, documents or scenes were 
 
 ## Verified without Assets
 
-`Tests~/SmallDocumentSaveProbe.cs`, run through the connected Unity Editor:
+`Tests~/Legacy/SmallDocumentSaveProbe.cs`, run through the connected Unity Editor:
 
 - `Scheduling(20)`: existing `WhimTexDocumentOperation.Run`, empty work / empty container preparation,
   with and without an operation scope. Progress callback never cancels and replaces only the visible dialog.
@@ -85,7 +85,7 @@ than exposing the extra `AggregateException` from `Wait`. The existing catch pat
 before propagating cancellation or a progress callback failure, preserving snapshot/buffer lifetime.
 No busy loop, native API, format change or asynchronous editor lifecycle was introduced.
 
-Connected Editor recompile passed. `Tests~/DocumentOperationWaitSmoke.cs`: **28 checks passed** for
+Connected Editor recompile passed. `Tests~/Legacy/DocumentOperationWaitSmoke.cs`: **28 checks passed** for
 sync/scoped work, polling, worker exceptions (including cancellation and a worker's own AggregateException),
 callback cancellation/failure, draining with secondary worker errors, scope restoration, commit behavior
 and byte-identical container compression/integrity round-trip. All checks are memory-only.
@@ -120,7 +120,7 @@ Full Save duration, import share and net benefit of these proposals remain **unm
 ## Confirmed post-save stall: legacy Project icons (diagnosis only)
 
 2026-09-20, same Editor. User reported that Project's image was already updated while the editor
-still stalled. With explicit permission, `Tests~/DocumentSaveTailProbe.cs` copied `Assets/Г.tiff`
+still stalled. With explicit permission, `Tests~/Legacy/DocumentSaveTailProbe.cs` copied `Assets/Г.tiff`
 (512², one Drawing layer) into a unique temporary Assets folder, loaded it into a separate window,
 added a very faint Color Fill to vary each saved image, and measured repeat saves after warm-up.
 Original TIFF and `.meta` bytes were verified unchanged. Every test folder/window was removed;

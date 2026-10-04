@@ -104,16 +104,16 @@ This API is separate from the Pipeline command adapter; there is no new CLI comm
 The standalone tests compile **only the format writer**, without Unity assemblies or Editor interaction:
 
 ```text
-dotnet run --project Tests~/PsdWriter/PsdWriter.Tests.csproj --artifacts-path <temporary-build-folder> -- <temporary-fixture.psd>
+dotnet run --project Tests~/Legacy/PsdWriter/PsdWriter.Tests.csproj --artifacts-path <temporary-build-folder> -- <temporary-fixture.psd>
 ```
 
 Requires .NET 10 SDK. An optional independent reader check accepts a separately installed `ag-psd`
 module; it is a test-only tool, not a package dependency:
 
 ```text
-node Tests~/PsdWriter/read-fixture.cjs <absolute-ag-psd-module-path> <temporary-fixture.psd>
+node Tests~/Legacy/PsdWriter/read-fixture.cjs <absolute-ag-psd-module-path> <temporary-fixture.psd>
 ```
 
-`Tests~/PsdExportSmoke.cs` is an opt-in Editor check **after manual compilation**. It creates temporary
+`Tests~/Legacy/PsdExportSmoke.cs` is an opt-in Editor check **after manual compilation**. It creates temporary
 in-memory documents and PSDs only under a unique `Temp/WhimTex/` folder, checking real rendering,
 source preservation, overwrite protection, cancellation and cleanup. It does not save Unity assets.

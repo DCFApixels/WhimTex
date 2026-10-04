@@ -54,7 +54,8 @@
 - Preserve appearance during refactoring unless asked otherwise.
 - Read applicable skills from the available `.agents` installation; do not assume an older `.codex` copy is current.
 - Rendering changes: check composite, group/Target input, clipping, thumbnails and export; preserve caller render state and temporary-texture ownership.
-- Run relevant tests in `Tests~`; inspect each file first (Node tests, C# snippets and entry-point classes use different runners). Use the [opt-in test profiles](Tests~/RUNNING_TESTS.md) when applicable; their catalog is partial and its review receipt does not grant asset permissions. Report unverified behavior explicitly.
+- Run relevant tests in `Tests~`; inspect each file and declared support sources first. Use the [opt-in test profiles](Tests~/RUNNING_TESTS.md) when applicable. All archived sources have explicit migration mappings, but mappings/compilation/entry validation are not successful runtime checks or proof of full coverage. A review receipt does not grant asset permissions. Report skipped, manual, external-prerequisite and unverified behavior explicitly.
+- Test migration: `Tests~/Legacy` is a byte-frozen archive. Do not edit/delete its files or regenerate `Tests~/legacy-manifest.json`; write independent replacements under `Tests~/Cases` and record coverage in `Tests~/migration.json`. A green selected profile does not justify deleting unreviewed old tests.
 
 ## Documentation and dependencies
 
