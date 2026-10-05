@@ -87,3 +87,14 @@ Documentation~/.sass-cache/
 Documentation~/.bundle/
 Documentation~/vendor/
 Documentation~/assets/js/zzzz-search-data.json
+
+# Generated test-run evidence belongs in project Temp/WhimTex, not the package.
+Tests~/*.results.json
+Tests~/CoverageAudit/*.results.json
+Tests~/CoverageAudit/FinalRuns*/
+Tests~/CoverageAudit/RetirementRuns/
+Tests~/CoverageAudit/recovery-*.json
+Tests~/CoverageAudit/final-recheck-*.json
+Tests~/CoverageAudit/*.proposal.json
+Tests~/CoverageAudit/*.freeze.json
+Tests~/CoverageAudit/*.tap

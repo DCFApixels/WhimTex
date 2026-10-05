@@ -15,7 +15,8 @@ a verified recoverable copy; the pinned Git originals remain available afterward
 `scripts/test-catalog.json` owns scenario invocation metadata. `migration.json` tracks original
 files and explicit old/new assertion coverage. All **360 source files** now have an explicit
 replacement/support/diagnostic mapping in `Batches/`; this is not proof that every entry has
-passed or that all coverage gaps are closed. See `MigrationFull.ru.md` for verification limits.
+passed or that all coverage gaps are closed. See `ArchiveRetirement.ru.md` for the historical
+final verification summary and its limits.
 Ordinary cases use ephemeral test assemblies. Opt-in native-fixture/Player workflows
 temporarily install GUID-owned native scripts under the authorized test subtree.
 Explicit human permission covers test-only internal bindings for eyedropper, dock/tab,
@@ -165,8 +166,10 @@ counts/facts and an explicit review of inputs, assertions and cleanup in `migrat
 Green results alone are not coverage equivalence. New tests must not simply call the old ones.
 The comparison authenticates only the three historical pairs using fixed raw-report,
 retired-catalog and coverage-mapping hashes. It never recalculates the old fingerprint with
-current sources: `currentRuntimeEquivalence:false`. The pre-retirement 402-PASS snapshot is
-retained in `CoverageAudit/pre-retirement.results.json`; fresh limited runs are separate.
+current sources: `currentRuntimeEquivalence:false`. Historical baseline paths identify the
+original artifacts, not required working-tree copies. The pre-retirement snapshot and detailed
+migration reports are preserved at Git commit `9735e477dab3139919396dd9f72eea792be5f24a`;
+fresh limited runs are separate.
 The gate does not grant deletion authority: `archiveRemovalAllowed` remains false.
 
 Documentation CI runs `node Tests~/scripts/ci-docs.mjs`: the existing eleven read-only Node
@@ -231,9 +234,17 @@ Fixture/capture success is not a native sampling-duration or image-golden verdic
 Seamless Release `Status` is an explicit SKIP/redirect: actual synchronous Stress outcomes and
 timings live in the selected Stress raw receipt after cleanup, not the old shared SessionState.
 Historical Capture must never regenerate pre-change references with the current renderer.
-Runner/catalog retirement is complete; see `ArchiveRetirement.ru.md`. Physical removal is a
-separate authorized operation after preserving the current dirty/untracked review evidence.
-Keep the descriptor, frozen manifest, active fixtures, migration mappings and historical receipts.
+Runner/catalog retirement and physical removal are complete; see `ArchiveRetirement.ru.md`.
+Keep the descriptor, frozen manifest, active fixtures, migration mappings and required source/oracle
+reviews. Detailed historical run receipts are in Git history, not duplicated package files.
+
+## Generated artifacts
+
+Runner reports, native input bundles and recovery logs stay under project `Temp/WhimTex`.
+Do not copy them into `Tests~` or commit expanded inventory snapshots. The package ignores
+generated result files and historical run-output directories. These ignore rules do not cover
+required source-review/oracle JSON. A compact human summary can link to the historical Git
+snapshot without embedding raw results; generate a fresh inventory for current evidence.
 
 Generated diagnostics must retain their actual samples/artifacts before owned cleanup.
 Successful timing/manual producers can still return SKIP; a saved PNG, CSV or timing array
