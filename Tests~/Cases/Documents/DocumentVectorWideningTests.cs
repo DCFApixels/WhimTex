@@ -118,7 +118,10 @@ public static class DocumentVectorWideningTests
 
     static void FieldCase(Type type, string name, object source, object expected, WhimTexDocumentContainer container)
     {
-        if (source.GetType() != type.GetField(name).FieldType) expected = null;
+        Type destination = type.GetField(name).FieldType;
+        bool widens = source is Vector2 && (destination == typeof(Vector3) || destination == typeof(Vector4)) ||
+            source is Vector3 && destination == typeof(Vector4);
+        if (source.GetType() != destination && !widens) expected = null;
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream);
         writer.Write(1);
@@ -160,9 +163,9 @@ public static class DocumentVectorWideningTests
                 for (int i = 0; i < tags.Length; i++)
                 {
                     object value = Read(Payload(type, tags[i], values[i]), type, container);
-                    if (tags[i] != 16)
+                    if (tags[i] == 10)
                     {
-                        Check(Skipped.Count == 1 && Skipped[0] == type.Name + ".offset", "Historical coercion rejected");
+                        Check(Skipped.Count == 1 && Skipped[0] == type.Name + ".offset", "Scalar coercion rejected");
                         Check((int)type.GetField("tail").GetValue(value) == 1234, "Rejected value stream alignment");
                         continue;
                     }
@@ -187,8 +190,8 @@ public static class DocumentVectorWideningTests
             }
 
             var noise = (NoiseLayerBehaviour)Read(Payload(typeof(NoiseLayerBehaviour), 15, 4.5f, -7.25f), typeof(NoiseLayerBehaviour), container);
-            Check(noise.offset == Vector3.zero, "Noise does not expand an obsolete Vector2 offset");
-            Check(Skipped.Count == 2 && System.Linq.Enumerable.Contains(Skipped, "NoiseLayerBehaviour.offset") && System.Linq.Enumerable.Contains(Skipped, "NoiseLayerBehaviour.tail"), "Both obsolete and unknown fields protected");
+            Check(noise.offset == new Vector3(4.5f, -7.25f, 0f), "Noise expands Vector2 offset without losing coordinates");
+            Check(Skipped.Count == 1 && Skipped[0] == "NoiseLayerBehaviour.tail", "Only the unknown field remains protected");
             foreach (Type type in new[] { typeof(VectorFields), typeof(ManualVectorFields) })
             {
                 FieldCase(type, "v2", -1.25f, new Vector2(-1.25f, 0), container);
@@ -231,4 +234,3 @@ public static class DocumentVectorWideningTests
     }
     public static string Run() => UnityBRun.Run("DocumentVectorWideningSmoke.Run", () => ExecuteRun());
 }
-

@@ -19,6 +19,7 @@ namespace DCFApixels.WhimTex
     {
         public WhimTexJsonWriteMode Mode = WhimTexJsonWriteMode.FullOptimized;
         public bool AllowDrawingOmission;
+        public bool AllowDataLoss;
     }
 
     public sealed class WhimTexJsonWriteResult
@@ -90,9 +91,9 @@ namespace DCFApixels.WhimTex
         private static WhimTexJsonWriteResult WriteCore(TextureCompositor document, List<Layer> selection, WhimTexJsonWriteOptions options)
         {
             if (document == null) throw new ArgumentNullException(nameof(document));
-            if (!string.IsNullOrEmpty(document.documentLoadWarning))
-                throw new WhimTexDocumentException("Cannot export an incompletely loaded document: " + document.documentLoadWarning);
             options ??= new WhimTexJsonWriteOptions();
+            if (!options.AllowDataLoss && !string.IsNullOrEmpty(document.documentLoadWarning))
+                throw new WhimTexDocumentException("Cannot export an incompletely loaded document: " + document.documentLoadWarning);
             if (!Enum.IsDefined(typeof(WhimTexJsonWriteMode), options.Mode))
                 throw new ArgumentOutOfRangeException(nameof(options.Mode));
             RestoreMissingAssets(document);

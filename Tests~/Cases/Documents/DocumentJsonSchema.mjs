@@ -89,8 +89,15 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
       assert.throws(() => validate({ ...empty, document: { width } }, schema));
     const noise = (settings) => ({ ...empty, layers: [{ id: 'fixture', behaviour: { $type: 'NoiseLayerBehaviour', ...settings } }] });
     for (const settings of [{ scale: '8' }, { scale: 1e40 }, { noiseType: '999' }, { noiseType: 1 },
-      { seed: 2.5 }, { seed: 2147483648 }, { offset: [0, '1', 0] }, { offset: [0, 1] }])
+      { seed: 2.5 }, { seed: 2147483648 }, { offset: [0, '1', 0] }, { offset: [0] }, { offset: [0, 1, 2, 3] }])
       assert.throws(() => validate(noise(settings), schema));
+    validate(noise({ offset: [0, 1] }), schema);
+    const shape = (settings) => ({ ...empty, layers: [{ id: 'shape', behaviour: { $type: 'ShapeLayerBehaviour', ...settings } }] });
+    for (const cornerRoundness of [[1, 2], [1, 2, 3], [1, 2, 3, 4]]) validate(shape({ cornerRoundness }), schema);
+    for (const cornerRoundness of [[1], [1, 2, 3, 4, 5]]) assert.throws(() => validate(shape({ cornerRoundness }), schema));
+    const color = (value) => ({ ...empty, layers: [{ id: 'color', behaviour: { $type: 'ColorFillLayerBehaviour', storedColor: value } }] });
+    validate(color([1, 2, 3, 4]), schema);
+    assert.throws(() => validate(color([1, 2, 3]), schema));
     validate(noise({ scale: 0, scaleY: 0, seed: -2147483648, offset: [-100, 200, 0] }), schema);
     validate(noise({ scale: 2000, warpStrength: -25 }), schema);
     const curve = (key) => ({ ...empty, layers: [{ id: 'curve', behaviour: { $type: 'ColorFillLayerBehaviour' },
@@ -101,4 +108,3 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
 });
 
 await finish(context);
-

@@ -73,8 +73,13 @@ Saving is staged to a sibling temporary file, flushed, validated and atomically 
 TIFF remains in place until the commit succeeds. An unchanged document can reuse verified compressed
 blocks and skip composition/import work when there are no external inputs or time-dependent effects.
 
-Unknown serialized fields, missing types or unresolved references block saving rather than silently
-discarding data. Legacy `.asset` documents are unsupported. Convert them to TIFF using WhimTex 0.12.5 before upgrading.
+Unknown serialized fields, missing types or unresolved references appear in a persistent window warning
+on open. Saving blocks data loss by default. Interactive Save/Save As offers a recovery copy, cancellation,
+or explicitly accepted saving of the loaded data only; the latter can discard unread data. A copy preserves
+the original for recovery, not unread data inside the new file. C# callers can opt in with
+`Save(..., allowDataLoss:true)`; automatic saves remain protected. Float Vector2/3 values may expand
+to Vector3/4 with zero-filled new components; narrowing remains protected.
+Legacy `.asset` documents are unsupported. Convert them to TIFF using WhimTex 0.12.5 before upgrading.
 [Unified JSON](JSON_FORMAT.md) is also supported for editable settings without Drawing pixels or an image carrier.
 Ordinary PNG, JPEG, TGA,
 EXR and PSD export produces flattened/export files; those exports do not carry editable WhimTex layers.

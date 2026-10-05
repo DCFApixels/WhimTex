@@ -25,7 +25,12 @@ context.case("RemainingLegacyCleanup original assertion inputs and source contra
   assert.ok(!read('src/ShaderFXPresetWriter.cs').includes('UsesCodeParameters'));
   const binary = read('src/WhimTexDocumentSerializer.cs');
   assert.ok(!binary.includes('IsExactFloat'));
-  assert.ok(!binary.includes('if (declared == typeof(Vector'));
+  assert.match(binary, /case TagVector2:[\s\S]*?if \(declared == typeof\(Vector3\)\) return new Vector3\(vector2.x, vector2.y, 0f\);/);
+  assert.match(binary, /if \(declared == typeof\(Vector4\)\) return new Vector4\(vector2.x, vector2.y, 0f, 0f\);/);
+  assert.match(binary, /case TagVector3:[\s\S]*?if \(declared == typeof\(Vector4\)\) return new Vector4\(vector3.x, vector3.y, vector3.z, 0f\);/);
+  assert.doesNotMatch(binary, /if \(declared == typeof\(Vector[23]Int\)\)/);
+  assert.match(binary, /case TagVector2Int: return new Vector2Int\(_reader.ReadInt32\(\), _reader.ReadInt32\(\)\);/);
+  assert.match(binary, /case TagVector3Int: return new Vector3Int\(_reader.ReadInt32\(\), _reader.ReadInt32\(\), _reader.ReadInt32\(\)\);/);
   assert.match(binary, /case TagFloat: return _reader.ReadSingle\(\);/);
   assert.ok(!binary.includes('Contains(sampling)'));
   const json = read('src/WhimTexDocumentJson.cs');
@@ -45,4 +50,3 @@ context.case("RemainingLegacyCleanup original assertion inputs and source contra
 
 });
 await finish(context);
-

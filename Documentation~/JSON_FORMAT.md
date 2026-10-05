@@ -99,7 +99,9 @@ Fields match the persistent model: `behaviour` contains type-specific settings; 
 `modifiers` and `children` belong to the layer. Layer order is top to bottom. `$type` selects an
 allowlisted model type, not an arbitrary assembly-qualified runtime type. Unity vectors and colors
 are fixed-length numeric arrays; transform `Double2` values use objects with `x` and `y`.
-Use exact component counts. TIFF and JSON no longer expand historical scalar/vector field types.
+Writers use the field's current component count. TIFF and JSON readers accept lossless float-vector
+expansion: Vector2 to Vector3/Vector4 and Vector3 to Vector4, filling added components with zero.
+Scalars, integer-vector conversions, narrowing and shortened colors/quaternions remain invalid.
 Shader FX have `$type: "ShaderFX"`, source `code`, `parameters`, `active` and optional
 `$name`. Shared FX use `$id`/`$ref`; these IDs are distinct from layer IDs.
 
@@ -189,7 +191,11 @@ For the artist workflow, see [Save and export](en/saving.md).
 ## C# and agents
 
 `WhimTexDocumentJson.Write(document, options)` and `WriteLayers(document, layers, options)` return
-JSON and warnings. Options use `Mode` and `AllowDrawingOmission` (false by default).
+JSON and Drawing-omission warnings. Options use `Mode`, `AllowDrawingOmission` and `AllowDataLoss`
+(both false by default). `AllowDataLoss` explicitly permits writing the loaded part of an incomplete
+document; it does not recover unread data. Writing or exporting JSON keeps the source load warning.
+An accepted `SaveJson` clears it only after successful saving. Interactive Save asks for confirmation,
+with a recovery-copy option; C#/agent defaults remain protected.
 `Read(json, prepareEffects)` returns an owned, disposable detached document. Call `TakeDocument()`
 only when taking over its lifetime. `WhimTexDocumentFile.Load/Save` support TIFF and JSON;
 `ExportJson` writes a separate file without changing source identity. Saves are atomic and reject

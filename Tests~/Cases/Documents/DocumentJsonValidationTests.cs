@@ -46,7 +46,24 @@ public static class DocumentJsonValidationTests
         Reject(Doc().Replace("\"version\":1", "\"version\":\"1\""), "version");
         Reject(Noise("\"offset\":[0,\"1\",0]"), "layers[0].behaviour.offset[1]");
         Reject(Noise("\"offset\":[0,1,1e40]"), "layers[0].behaviour.offset[2]");
-        Reject(Noise("\"offset\":[0,1]"), "layers[0].behaviour.offset");
+        Reject(Noise("\"offset\":[0]"), "layers[0].behaviour.offset");
+        Reject(Noise("\"offset\":[0,1,2,3]"), "layers[0].behaviour.offset");
+        using (var read = WhimTexDocumentJson.Read(Noise("\"offset\":[-1.25,2.5]"), false))
+        {
+            Check(((NoiseLayerBehaviour)read.Document.layers[0].Behaviour).offset == new UnityEngine.Vector3(-1.25f, 2.5f, 0f), "Vector2 expands to Vector3.");
+            foreach (WhimTexJsonWriteMode mode in Enum.GetValues(typeof(WhimTexJsonWriteMode)))
+            {
+                using var restored = WhimTexDocumentJson.Read(WhimTexDocumentJson.Write(read.Document, new WhimTexJsonWriteOptions { Mode = mode }).Json, false);
+                Check(((NoiseLayerBehaviour)restored.Document.layers[0].Behaviour).offset == new UnityEngine.Vector3(-1.25f, 2.5f, 0f), "Expanded Vector3 roundtrip: " + mode);
+            }
+        }
+        foreach (string components in new[] { "[0.1,0.2]", "[0.1,0.2,0.3]" })
+        {
+            using var read = WhimTexDocumentJson.Read(Doc(layers: Layer("{\"$type\":\"ShapeLayerBehaviour\",\"cornerRoundness\":" + components + "}")), false);
+            var vector = ((ShapeLayerBehaviour)read.Document.layers[0].Behaviour).cornerRoundness;
+            Check(vector == new UnityEngine.Vector4(.1f, .2f, components.Contains("0.3") ? .3f : 0f, 0f), "Vector2/3 expands to Vector4.");
+        }
+        Reject(Doc(layers: Layer("{\"$type\":\"ColorFillLayerBehaviour\",\"storedColor\":[1,0,0]}")), "storedColor");
         Reject(Doc(layers: Layer("{\"$type\":\"ColorFillLayerBehaviour\",\"storedColor\":[1,0,0,\"1\"]}")), "storedColor[3]");
         Reject(Doc(layers: Layer("{\"$type\":\"DrawingLayerBehaviour\",\"contentOmitted\":false}")), "contentOmitted");
         Reject(Doc(layers: Layer("{\"$type\":\"DrawingLayerBehaviour\",\"pixels\":null}")), "pixels");
@@ -101,4 +118,3 @@ public static class DocumentJsonValidationTests
     }
     public static string Run() => UnityBRun.Run("DocumentJsonValidationSmoke.Run", () => ExecuteRun());
 }
-

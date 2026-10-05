@@ -42,6 +42,7 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private Button toolkitSaveButton;
         [NonSerialized] private Button toolkitSaveAsButton;
         [NonSerialized] private HelpBox toolkitCanvasError;
+        [NonSerialized] private HelpBox toolkitDocumentLoadWarning;
         private readonly WhimTexUI.ValueBindings toolkitSettingsBindings = new WhimTexUI.ValueBindings();
         private readonly WhimTexUI.ValueBindings toolkitHeaderBindings = new WhimTexUI.ValueBindings();
         private readonly WhimTexUI.ValueBindings toolkitLayerBindings = new WhimTexUI.ValueBindings();
@@ -390,6 +391,11 @@ namespace DCFApixels.WhimTex
             toolbar.Add(userSettings);
             toolkitDocumentRoot.Add(toolbar);
 
+            toolkitDocumentLoadWarning = WhimTexUI.AddHelpBox(toolkitDocumentRoot, string.Empty, HelpBoxMessageType.Warning);
+            toolkitDocumentLoadWarning.name = "documentLoadWarning";
+            toolkitSettingsBindings.Add(RefreshDocumentLoadWarning);
+            RefreshDocumentLoadWarning();
+
             VisualElement separator = new VisualElement
             {
                 name = "documentHeaderSeparator",
@@ -412,7 +418,7 @@ namespace DCFApixels.WhimTex
                     : WhimTexDocumentJson.IsJsonPath(WhimTexDocumentService.PathOf(compositor))
                     ? "Save the editable JSON document (Ctrl+S). Use Save As TIFF for a Unity texture."
                     : "Save the document (Ctrl+S). The document is a WhimTex file: a TIFF that Unity imports as a texture.";
-            toolkitSaveButton?.SetEnabled(saved && (HasDocumentChanges() || paintingLayer != null ||
+            toolkitSaveButton?.SetEnabled(saved && (HasDocumentChanges() || !string.IsNullOrEmpty(compositor?.documentLoadWarning) || paintingLayer != null ||
                 canvasTransformManipulator != null && canvasTransformManipulator.IsDragging));
             if (toolkitSaveAsButton == null) return;
             toolkitSaveAsButton.text = compositor != null && !saved ? "⚠ Save As" : "Save As";
@@ -420,6 +426,14 @@ namespace DCFApixels.WhimTex
                 ? "Save the document under another name."
                 : "This document has no file yet. Use Save As to keep its layers.";
             RefreshLiveOutputButton();
+        }
+
+        private void RefreshDocumentLoadWarning()
+        {
+            if (toolkitDocumentLoadWarning == null) return;
+            string warning = compositor?.documentLoadWarning;
+            toolkitDocumentLoadWarning.EnableInClassList("whimtex-hidden", string.IsNullOrEmpty(warning));
+            toolkitDocumentLoadWarning.text = "Some document data could not be read. Save will ask before discarding it; save a copy to keep the original.\n" + warning;
         }
 
         private void BuildToolkitCanvasToolbar()

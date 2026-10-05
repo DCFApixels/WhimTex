@@ -108,8 +108,9 @@ namespace DCFApixels.WhimTex
             {
                 TextureCompositorWindow owner = WindowFor(document);
                 owner?.PrepareDocumentSave();
+                if (!ConfirmIncompleteDocumentSave(document, ref path, out bool allowDataLoss)) return false;
                 bool wasLive = WhimTexDocumentSession.IsLiveFor(document);
-                string written = WhimTexDocumentFile.Save(document, path, deferImport: !wasLive);
+                string written = WhimTexDocumentFile.Save(document, path, deferImport: !wasLive, allowDataLoss: allowDataLoss);
                 if (owner != null)
                 {
                     owner.BindDocumentFile(written);
@@ -117,6 +118,7 @@ namespace DCFApixels.WhimTex
                     // cleared here: otherwise the title keeps its asterisk and Save stays enabled.
                     owner.temporaryDocumentDirty = false;
                     owner.UpdateUnsavedChangesState();
+                    owner.RefreshDocumentLoadWarning();
                 }
                 var image = AssetDatabase.LoadAssetAtPath<Texture2D>(written);
                 if (image != null)
@@ -133,6 +135,36 @@ namespace DCFApixels.WhimTex
                 EditorUtility.DisplayDialog("WhimTex", error.Message, "OK");
                 return false;
             }
+        }
+
+        private static bool ConfirmIncompleteDocumentSave(TextureCompositor document, ref string path, out bool allowDataLoss)
+        {
+            allowDataLoss = false;
+            if (string.IsNullOrEmpty(document.documentLoadWarning)) return true;
+            int choice = EditorUtility.DisplayDialogComplex("Save an incompletely loaded document?",
+                "Some document data could not be read:\n\n" + document.documentLoadWarning +
+                "\n\nSaving will keep your edits and the data this version could read, but may permanently discard unread fields, layer types or asset references. " +
+                "Save a copy to keep the original file for recovery, or cancel and reopen after restoring the required version or assets.",
+                "Save a Copy…", "Cancel", "Save Anyway");
+            if (choice == 1) return false;
+            if (choice == 0)
+            {
+                string copyPath = EditorUtility.SaveFilePanelInProject("Save recovered document copy",
+                    Path.GetFileNameWithoutExtension(path) + "_Recovered", Path.GetExtension(path).TrimStart('.'),
+                    "The copy contains only the data that was loaded. Keep the original file to recover unread data later.");
+                if (string.IsNullOrEmpty(copyPath)) return false;
+                string sourcePath = WhimTexDocumentService.PathOf(document);
+                if (string.Equals(Path.GetFullPath(copyPath), Path.GetFullPath(path), System.StringComparison.OrdinalIgnoreCase) ||
+                    !string.IsNullOrEmpty(sourcePath) && string.Equals(Path.GetFullPath(copyPath), Path.GetFullPath(sourcePath), System.StringComparison.OrdinalIgnoreCase))
+                {
+                    EditorUtility.DisplayDialog("Choose a different file", "A recovery copy must not overwrite the original or selected destination. Choose Save Anyway if you intend to overwrite.", "OK");
+                    return false;
+                }
+                path = copyPath;
+            }
+            else if (choice != 2) return false;
+            allowDataLoss = true;
+            return true;
         }
 
         private void OpenDocumentOutputSettings()

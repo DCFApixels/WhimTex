@@ -26,7 +26,7 @@ public static class DocumentJsonSchema
             type == typeof(int) ? D(("type", "integer"), ("minimum", int.MinValue), ("maximum", int.MaxValue)) :
             type == typeof(byte) ? D(("type", "integer"), ("minimum", 0), ("maximum", 255)) :
             D(("type", type == typeof(double) || type == typeof(decimal) ? "number" : "integer"));
-        object Tuple(int count, Type component = null) => D(("type", "array"), ("minItems", count), ("maxItems", count), ("items", Number(component ?? typeof(float))));
+        object Tuple(int count, Type component = null, int? minimum = null) => D(("type", "array"), ("minItems", minimum ?? count), ("maxItems", count), ("items", Number(component ?? typeof(float))));
         string Name(Type t) => t.FullName.Substring("DCFApixels.WhimTex.".Length);
         object Schema(Type type)
         {
@@ -39,8 +39,9 @@ public static class DocumentJsonSchema
             if (type == typeof(RectInt)) return Tuple(4, typeof(int));
             if (type == typeof(Color32)) return Tuple(4, typeof(byte));
             if (type == typeof(Vector2)) return Tuple(2);
-            if (type == typeof(Vector3)) return Tuple(3);
-            if (type == typeof(Vector4) || type == typeof(Quaternion) || type == typeof(Color) || type == typeof(Rect)) return Tuple(4);
+            if (type == typeof(Vector3)) return Tuple(3, minimum: 2);
+            if (type == typeof(Vector4)) return Tuple(4, minimum: 2);
+            if (type == typeof(Quaternion) || type == typeof(Color) || type == typeof(Rect)) return Tuple(4);
             if (type == typeof(Bounds)) return Tuple(6);
             if (type == typeof(AnimationCurve))
             {

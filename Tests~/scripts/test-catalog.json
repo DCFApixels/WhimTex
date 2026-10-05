@@ -126,6 +126,7 @@
       "reference-fixtures"
     ],
     "verify": [
+      "incomplete-document-save",
       "unity-a-owned-window-journal-unity-v2",
       "entry-contract",
       "display-channels-v2",
@@ -597,6 +598,7 @@
       "reference-fixtures"
     ],
     "regressions": [
+      "incomplete-document-save",
       "display-channels-v2",
       "canonical-reader-v2",
       "frozen-files-v2",
@@ -1181,6 +1183,7 @@
       "distance-field-unity-v2"
     ],
     "unity-assets": [
+      "incomplete-document-save",
       "shader-fx0125-preset-v2",
       "shader-fx-control-v2",
       "shader-fx-tiff-catalog-v2",
@@ -1572,6 +1575,7 @@
       "guide-reload-smoke-v2"
     ],
     "documents": [
+      "incomplete-document-save",
       "document-json-schema-v2",
       "document-title-v2",
       "empty-document-save-v2",
@@ -9086,6 +9090,23 @@
         "Tests~/Framework/Unity/UnityBSupport.cs"
       ],
       "reviewFiles": []
+    },
+    {
+      "id": "incomplete-document-save",
+      "file": "Tests~/Cases/Documents/IncompleteDocumentSaveTests.cs",
+      "runner": "run_script",
+      "entry": "IncompleteDocumentSaveTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["user-state", "assets", "windows"],
+      "groups": ["unity", "documents"],
+      "prerequisites": "Connected graphical Unity Editor; explicit authority for GUID-owned assets under Assets/WhimTexTestMigration. No writes to user documents or settings.",
+      "setup": "Create an owned TIFF with a real unread field, detached models and one owned window. Test default protection, explicit recovery copy/overwrite, JSON and visible load warning.",
+      "teardown": "Dispose owned models/window; restore graphics, focus and selection; remove only the run's GUID-owned asset directory. Native confirmation clicks are not automated.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityBSupport.cs"],
+      "reviewFiles": ["src/WhimTexDocumentFile.cs", "src/WhimTexDocumentFile.Json.cs", "src/WhimTexDocumentJson.cs", "src/TextureCompositorWindow.DocumentFile.cs", "src/TextureCompositorWindow.Json.cs", "src/TextureCompositorWindow.UI.cs"]
     },
     {
       "id": "document-vector-widening-smoke-v2",

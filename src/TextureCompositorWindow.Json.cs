@@ -12,13 +12,15 @@ namespace DCFApixels.WhimTex
             TextureCompositor copy = null;
             try
             {
-                var options = new WhimTexJsonWriteOptions { Mode = mode, AllowDrawingOmission = true };
+                if (!ConfirmIncompleteDocumentSave(compositor, ref path, out bool allowDataLoss)) return false;
+                var options = new WhimTexJsonWriteOptions { Mode = mode, AllowDrawingOmission = true, AllowDataLoss = allowDataLoss };
                 var written = WhimTexDocumentJson.Write(compositor, options);
                 if (!ConfirmJsonDrawingOmission(written, false)) return false;
                 using var operation = new WhimTexDocumentOperation("Save WhimTex JSON");
-                if (written.Warnings.Count == 0 && string.Equals(WhimTexDocumentService.PathOf(compositor), path, StringComparison.OrdinalIgnoreCase))
+                if (written.Warnings.Count == 0)
                 {
                     WhimTexDocumentFile.SaveJson(compositor, path, options);
+                    BindDocumentFile(path);
                     temporaryDocumentDirty = false;
                     UpdateUnsavedChangesState();
                 }
@@ -38,6 +40,7 @@ namespace DCFApixels.WhimTex
                     UpdateUnsavedChangesState();
                 }
                 var asset = AssetDatabase.LoadMainAssetAtPath(path);
+                RefreshDocumentLoadWarning();
                 if (asset != null) EditorGUIUtility.PingObject(asset);
                 return true;
             }

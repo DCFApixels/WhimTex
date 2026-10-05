@@ -739,8 +739,15 @@ namespace DCFApixels.WhimTex
                     case TagDouble: return _reader.ReadDouble();
                     case TagChar: return _reader.ReadChar();
                     case TagString: return ReadText();
-                    case TagVector2: return new Vector2(_reader.ReadSingle(), _reader.ReadSingle());
-                    case TagVector3: return new Vector3(_reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle());
+                    case TagVector2:
+                        var vector2 = new Vector2(_reader.ReadSingle(), _reader.ReadSingle());
+                        if (declared == typeof(Vector3)) return new Vector3(vector2.x, vector2.y, 0f);
+                        if (declared == typeof(Vector4)) return new Vector4(vector2.x, vector2.y, 0f, 0f);
+                        return vector2;
+                    case TagVector3:
+                        var vector3 = new Vector3(_reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle());
+                        if (declared == typeof(Vector4)) return new Vector4(vector3.x, vector3.y, vector3.z, 0f);
+                        return vector3;
                     case TagVector4: return new Vector4(_reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle());
                     case TagVector2Int: return new Vector2Int(_reader.ReadInt32(), _reader.ReadInt32());
                     case TagVector3Int: return new Vector3Int(_reader.ReadInt32(), _reader.ReadInt32(), _reader.ReadInt32());

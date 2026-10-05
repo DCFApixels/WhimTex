@@ -54,13 +54,15 @@ namespace DCFApixels.WhimTex
         }
 
         /// <summary>Saves the document and returns the TIFF path; HDR never changes its extension.</summary>
-        public static string Save(TextureCompositor document, string path, bool deferImport = false)
+        public static string Save(TextureCompositor document, string path, bool deferImport = false, bool allowDataLoss = false)
         {
-            if (WhimTexDocumentJson.IsJsonPath(path)) return SaveJson(document, path, deferImport: deferImport);
+            if (WhimTexDocumentJson.IsJsonPath(path)) return SaveJson(document, path,
+                new WhimTexJsonWriteOptions { Mode = document == null ? WhimTexJsonWriteMode.FullOptimized : document.JsonWriteMode,
+                    AllowDataLoss = allowDataLoss }, deferImport: deferImport);
             if (document == null) throw new WhimTexDocumentException("There is no document to save.");
             if (string.IsNullOrEmpty(path)) throw new WhimTexDocumentException("The document path is empty.");
-            if (!string.IsNullOrEmpty(document.documentLoadWarning))
-                throw new WhimTexDocumentException("Saving is blocked to prevent data loss. Reopen this document with all required types, fields and assets available. " + document.documentLoadWarning);
+            if (!allowDataLoss && !string.IsNullOrEmpty(document.documentLoadWarning))
+                throw new WhimTexDocumentException("Saving is blocked to prevent data loss. Restore the missing data and reopen, or explicitly allow saving only the data that was loaded. " + document.documentLoadWarning);
             WhimTexDocumentOperation.Report("Checking document limits", .02f);
             WhimTexDocumentLimits.Validate(document);
             if (AssetDatabase.Contains(document))
@@ -94,6 +96,7 @@ namespace DCFApixels.WhimTex
             {
                 BindImportedComposite(document, path);
                 WhimTexDocumentService.Bind(document, path);
+                if (allowDataLoss) document.documentLoadWarning = null;
                 return path;
             }
 
@@ -187,6 +190,7 @@ namespace DCFApixels.WhimTex
                 Saves.Add(document, new SaveSnapshot { path = path, signature = signature, length = fileState.Length,
                     written = fileState.LastWriteTimeUtc, importer = EditorJsonUtility.ToJson(AssetImporter.GetAtPath(path)), srgb = document.outputSrgb });
             }
+            if (allowDataLoss) document.documentLoadWarning = null;
             return path;
         }
 
@@ -311,18 +315,18 @@ namespace DCFApixels.WhimTex
                 if (read.SkippedFields.Count > 0)
                     Debug.LogWarning("WhimTex: the document carries fields this build no longer declares: " +
                         string.Join(", ", read.SkippedFields) +
-                        ". Saving is blocked to protect the original data.");
+                        ". Saving requires explicit confirmation before discarding unread data.");
                 if (read.MissingTypes.Count > 0)
                     Debug.LogWarning("WhimTex: the document references layer types this build does not have: " +
                         string.Join(", ", read.MissingTypes) +
-                        ". Saving is blocked to protect the original data.");
+                        ". Saving requires explicit confirmation before discarding unread data.");
                 var warnings = new List<string>();
                 warnings.AddRange(read.SkippedFields);
                 warnings.AddRange(read.MissingTypes);
                 warnings.AddRange(read.UnresolvedReferences);
                 document.documentLoadWarning = warnings.Count == 0 ? null : string.Join(", ", warnings);
                 if (read.UnresolvedReferences.Count > 0)
-                    Debug.LogWarning("WhimTex: some referenced assets are missing. Saving is blocked until they are restored: " + document.documentLoadWarning);
+                    Debug.LogWarning("WhimTex: some referenced assets are missing. Restore them or explicitly confirm saving without their references: " + document.documentLoadWarning);
                 document.hideFlags = HideFlags.HideAndDontSave;
                 document.name = Path.GetFileNameWithoutExtension(path);
                 if (document.name.EndsWith(".whimtex", StringComparison.OrdinalIgnoreCase))

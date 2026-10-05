@@ -796,7 +796,7 @@
         },
         "vectorValue": {
           "type": "array",
-          "minItems": 4,
+          "minItems": 2,
           "maxItems": 4,
           "items": {
             "type": "number",
@@ -2630,7 +2630,7 @@
         },
         "offset": {
           "type": "array",
-          "minItems": 3,
+          "minItems": 2,
           "maxItems": 3,
           "items": {
             "type": "number",
@@ -3351,7 +3351,7 @@
         },
         "cornerRoundness": {
           "type": "array",
-          "minItems": 4,
+          "minItems": 2,
           "maxItems": 4,
           "items": {
             "type": "number",
