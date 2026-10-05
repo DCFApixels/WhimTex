@@ -40,7 +40,9 @@ translations: "en/noise.md,ru/noise.md,zh/noise.md"
 ### 3D 切片
 
 OpenSimplex2、OpenSimplex2S、Cellular、Perlin、ValueCubic 和 Value 支持 **Dimensions → 3D**。
-此时 **Offset** 增加 **Z** 分量，用来选择体积噪声的二维切片。Cellular 的 3D 切片
+此时 **Scale** 和 **Offset** 都增加 **Z** 分量。Offset Z 选择切片，Scale Z 控制该偏移
+在体积中的移动距离（`Offset Z × Scale Z`）。Scale 链条按比例联动三个轴。
+Scale Z 默认为 1，切换到 1D/2D 时保留。Offset Z 为 0 时，只改变 Scale Z 不会移动切片。Cellular 的 3D 切片
 与普通 2D 单元格外观不同。Fractal 和 Domain Warp 在 2D、3D 中均可使用。
 
 ### 无缝重复
@@ -63,7 +65,7 @@ Fractal None 仍受最小单元限制。现有 2D 无缝 Simplex 图案可能改
 的情况；其他噪声类型及 3D 保持不变。
 
 
-Warp Scale 适用于 1D、2D 和 3D；Z 频率不变。启用 Seamless 时，根据相乘后的最终尺度
+Warp Scale 适用于 1D、2D 和 3D；它不提供单独的 Z 倍率。启用 Seamless 时，根据相乘后的最终尺度
 为所选轴匹配完整晶格单元。当 BasicGrid 两个轴都只有一个单元时，扭曲变成均匀平移：
 增大 Warp Scale 倍率即可获得变化的扭曲，而无需增大噪声 Scale。
 例如 Scale 0.5 × Warp Scale 6 得到扭曲尺度 3。White/Blue Noise 忽略 Warp Scale。
@@ -133,5 +135,5 @@ Noise Type 只会在当前组内切换：**White Noise / Blue Noise** 为一组�
 
 ### Random All 的 Scale 分布
 
-Random All 略微偏向 X/Y 平均 Scale 接近 **8** 的结果，但仍会生成大、小图案。
+Random All 略微偏向平均 Scale 接近 **8** 的结果（X/Y，3D 中为 X/Y/Z），但仍会生成大、小图案。
 链接轴保持比例。分布公式与范围见[技术参考](../AgentAPI.md#noise-settings)。

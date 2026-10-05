@@ -334,14 +334,15 @@
                 "maximum": 1000
               },
               "minItems": 2,
-              "maxItems": 2
+              "maxItems": 3
             }
           ],
           "default": [
             8,
-            8
+            8,
+            1
           ],
-          "description": "Scalar sets X and Y equally; [x,y] sets axes independently. Units span the shorter canvas side. Ignored by White/Blue. Seamless fits complete lattice cells per octave/warp, so small Scale changes can quantize."
+          "description": "Scalar sets XY, or XYZ in active ThreeD. [x,y] preserves Z; [x,y,z] sets all axes literally. Inspect returns XYZ, including inactive Z. XY units span the shorter canvas side; Z multiplies Offset Z to select a ThreeD slice and defaults to 1 in older files. Ignored by White/Blue. Seamless fits complete lattice cells per octave/warp, so small Scale changes can quantize."
         },
         "linkScale": {
           "type": "boolean",

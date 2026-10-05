@@ -41,7 +41,7 @@ context.case("NoiseContract original assertion inputs and source contracts", asy
   for (const [, name] of layer.matchAll(/material\.Set(?:Integer|Float|Vector)\("([^"]+)"/g))
       assert.match(shader, new RegExp(`\\b${name}\\b`), `Shader uniform ${name}`);
   for (const [, field] of layer.matchAll(/^        public (?:\w+) (\w+)(?:\s*=.*)?;/gm)) {
-      if (field === 'scale' || field === 'scaleY') {
+      if (field === 'scale' || field === 'scaleY' || field === 'scaleZ') {
           assert.ok(api.includes('layer.Scale') && ui.includes('layer.Scale'), 'Scale axes use the shared value accessor');
           continue;
       }
@@ -88,7 +88,10 @@ context.case("NoiseContract original assertion inputs and source contracts", asy
   assert.equal(fields.linkScale.default, true);
   assert.equal(fields.linkWarpScale.default, true);
   assert.deepEqual(fields.warpScale.default, [1,1]);
-  assert.deepEqual(fields.scale.default, [8,8]);
+  assert.deepEqual(fields.scale.default, [8,8,1]);
+  assert.equal(fields.scale.oneOf[1].maxItems, 3);
+  assert.match(layer, /public float scaleZ = 1f;/, 'Old files retain their slice coordinate');
+  assert.match(ui, /scale3D.EnableInClassList\("whimtex-hidden", !three\)/, 'Scale Z is visible only in effective 3D');
   assert.deepEqual(fields.offset.default, [0,0,0]);
   assert.match(fields.periodic.description, /UI Seamless/);
   assert.match(fields.gradient.description, /does not change encoding/);
@@ -102,4 +105,3 @@ context.case("NoiseContract original assertion inputs and source contracts", asy
 
 });
 await finish(context);
-

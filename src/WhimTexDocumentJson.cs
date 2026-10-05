@@ -548,6 +548,8 @@ namespace DCFApixels.WhimTex
                     else if (defaults != null && field.Name != "id" && field.Name != "recoveryId" && field.Name != "shaderKey")
                         field.SetValue(result, field.FieldType.IsValueType ? Activator.CreateInstance(field.FieldType) : null);
                 }
+                // Added after the frozen v1 defaults: absent Z must keep the original 3D slice.
+                if (result is NoiseLayerBehaviour noise && node["scaleZ"] == null) noise.scaleZ = 1f;
                 if (result is ShapeLayerBehaviour && (node["roundness"] ?? defaults?["roundness"]) is JToken roundness)
                     WhimTexFileCompatibility0125.Normalize(result, (float)Value(roundness, typeof(float), result, "roundness"));
                 else

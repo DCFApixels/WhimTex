@@ -50,6 +50,35 @@ namespace DCFApixels.WhimTex
             }
         }
 
+        internal static Vector3 RandomizeScale3D(NoiseLayerBehaviour layer, System.Random random)
+        {
+            Vector3 axes = layer.Scale3D;
+            if (layer.EffectiveDimensions != NoiseLayerBehaviour.NoiseDimensions.ThreeD)
+            {
+                Vector2 xy = RandomizeScale(layer, random);
+                return new Vector3(xy.x, xy.y, axes.z);
+            }
+            double mean = ((double)axes.x + axes.y + axes.z) / 3;
+            double unitX = axes.x / mean, unitY = axes.y / mean, unitZ = axes.z / mean;
+            double feasibleMin = .01 / Math.Min(unitX, Math.Min(unitY, unitZ));
+            double feasibleMax = 1000 / Math.Max(unitX, Math.Max(unitY, unitZ));
+            double meanMin = Math.Max(1, feasibleMin), meanMax = Math.Min(64, feasibleMax);
+            if (meanMin > meanMax) { meanMin = feasibleMin; meanMax = feasibleMax; }
+            float Sample() => (float)Math.Exp(random.NextDouble() * Math.Log(64));
+            while (true)
+            {
+                Vector3 candidate;
+                if (layer.linkScale)
+                {
+                    double sampledMean = Math.Exp(Math.Log(meanMin) + random.NextDouble() * Math.Log(meanMax / meanMin));
+                    candidate = new Vector3((float)(unitX * sampledMean), (float)(unitY * sampledMean), (float)(unitZ * sampledMean));
+                }
+                else candidate = new Vector3(Sample(), Sample(), Sample());
+                double distance = Math.Log((candidate.x + (double)candidate.y + candidate.z) / 24, 2);
+                if (random.NextDouble() * 2 < 1 + Math.Exp(-.5 * distance * distance)) return candidate;
+            }
+        }
+
         internal static void RandomizeParameters(NoiseLayerBehaviour layer)
         {
             int seed = NewSeed(layer.seed);
@@ -72,7 +101,7 @@ namespace DCFApixels.WhimTex
             if (!grain || layer.encoding != NoiseLayerBehaviour.OutputEncoding.Gradient)
                 layer.whiteNoiseColor = Pick<NoiseLayerBehaviour.WhiteNoiseColor>();
             layer.whiteNoiseSize = LogRange(1f, 32f);
-            layer.Scale = RandomizeScale(layer, random);
+            layer.Scale3D = RandomizeScale3D(layer, random);
             layer.fractal = Pick<NoiseLayerBehaviour.FractalType>();
             layer.octaves = random.Next(1, 9);
             layer.lacunarity = Range(1f, 4f);
@@ -195,10 +224,23 @@ namespace DCFApixels.WhimTex
             }, 64f));
             root.Add(seedRow);
             var scale = new VisualElement();
-            LinkedScale(scale, "Scale", "linkScale", () => layer.Scale, value => layer.Scale = value,
+            var scaleXY = LinkedScale(scale, "Scale", "linkScale", () => layer.Scale, value => layer.Scale = value,
                 layer.AdjustScale, () => layer.linkScale, () => layer.linkScale = !layer.linkScale);
+            var scale3D = WhimTexUI.ConfigureField(new Vector3Field("Scale") { name = "noiseScale3D" });
+            scale3D.AddToClassList("whimtex-linked-vector");
+            scale3D.tooltip = "Scale each noise axis. Z scales the distance between 3D slices; Offset Z selects the slice.";
+            bindings.Track(scale3D, () => layer.Scale3D);
+            scale3D.RegisterValueChangedCallback(evt =>
+            {
+                var next = layer.AdjustScale3D(evt.newValue);
+                applyChange("Change Noise Scale", () => layer.Scale3D = next);
+                scale3D.SetValueWithoutNotify(layer.Scale3D);
+            });
+            ScaleLink(scale3D, "Scale", "linkScale3D", () => layer.linkScale,
+                () => layer.linkScale = !layer.linkScale, "X, Y and Z");
+            scale.Add(scale3D);
             root.Add(scale);
-            void LinkedScale(VisualElement parent, string label, string linkName, Func<Vector2> get,
+            Vector2Field LinkedScale(VisualElement parent, string label, string linkName, Func<Vector2> get,
                 Action<Vector2> set, Func<Vector2, Vector2> adjust, Func<bool> linked, Action toggle)
             {
                 var scaleField = WhimTexUI.ConfigureField(new Vector2Field(label));
@@ -210,17 +252,22 @@ namespace DCFApixels.WhimTex
                     applyChange("Change Noise " + label, () => set(next));
                     scaleField.SetValueWithoutNotify(get());
                 });
+                ScaleLink(scaleField, label, linkName, linked, toggle, "X and Y");
+                parent.Add(scaleField);
+                return scaleField;
+            }
+            void ScaleLink(VisualElement field, string label, string linkName, Func<bool> linked, Action toggle, string axes)
+            {
                 var icon = new WhimTexLinkIcon();
                 var link = new Button(() => applyChange("Link Noise " + label, toggle)) { name = linkName };
                 link.AddToClassList("whimtex-vector-link"); link.Add(icon);
-                scaleField.Q(className: "unity-base-field__input").Insert(0, link);
+                field.Q(className: "unity-base-field__input").Insert(0, link);
                 bindings.Add(() =>
                 {
                     icon.SetLinked(linked());
-                    link.tooltip = linked() ? "Linked: change X and Y proportionally. Click to unlink."
-                        : "Unlinked: edit X and Y independently. Click to link without changing the values.";
+                    link.tooltip = linked() ? "Linked: change " + axes + " proportionally. Click to unlink."
+                        : "Unlinked: edit " + axes + " independently. Click to link without changing the values.";
                 });
-                parent.Add(scaleField);
             }
             var offset = WhimTexUI.ConfigureField(new Vector2Field("Offset"));
             bindings.Track(offset, () => (Vector2)layer.offset);
@@ -303,6 +350,8 @@ namespace DCFApixels.WhimTex
                 if (!ReferenceEquals(dimensions.choices, dimensionChoices)) dimensions.choices = dimensionChoices;
                 dimensions.SetValueWithoutNotify(DimensionLabel());
                 bool three = layer.EffectiveDimensions == NoiseLayerBehaviour.NoiseDimensions.ThreeD;
+                scaleXY.EnableInClassList("whimtex-hidden", three);
+                scale3D.EnableInClassList("whimtex-hidden", !three);
                 offset.EnableInClassList("whimtex-hidden", three);
                 offset3D.EnableInClassList("whimtex-hidden", !three);
                 periodic.EnableInClassList("whimtex-hidden", isWhite || layer.dimensions == NoiseLayerBehaviour.NoiseDimensions.OneD);

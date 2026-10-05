@@ -16,6 +16,7 @@ public static class NoiseIntegrationTests
             dimensions=NoiseLayerBehaviour.NoiseDimensions.ThreeD,
             periodic=NoiseLayerBehaviour.PeriodicAxes.XY,
             offset=new Vector3(.3f,.7f,.2f),warp=NoiseLayerBehaviour.WarpType.BasicGrid,
+            scaleZ=2,
             WarpScale=new Vector2(2.3f,.7f)
         };
         noise.Scale=new Vector2(6.3f,10.7f);doc.layers.Add(noise);
@@ -45,6 +46,12 @@ public static class NoiseIntegrationTests
             if(oneD)noise.offset.x+=.5f;else noise.offset.z+=.5f;
             var b=Read();
             Check(Difference(a,b)>.001,"Specific target tracks changed slice in nested group");
+            if(!oneD)
+            {
+                noise.scaleZ=3;var changedScaleZ=Read();
+                Check(Difference(b,changedScaleZ)>.001,"Specific target tracks Scale Z");
+                noise.scaleZ=2;Check(Difference(b,Read())<.0001,"Restoring Scale Z restores target output");
+            }
             if(oneD)
             {
                 noise.periodic1D=false;var unwrapped=Read();

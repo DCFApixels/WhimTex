@@ -21,13 +21,16 @@ namespace DCFApixels.WhimTex
             layer.linkScale = Bool(value, "linkScale", layer.linkScale);
             if (value["scale"] is JArray axes)
             {
-                Require(axes.Count == 2, "Noise scale must be a number or [x,y].");
-                layer.Scale = new UnityEngine.Vector2(Number(axes[0], "scale.x", .01f, 1000f), Number(axes[1], "scale.y", .01f, 1000f));
+                Require(axes.Count == 2 || axes.Count == 3, "Noise scale must be a number, [x,y] or [x,y,z].");
+                layer.Scale3D = new UnityEngine.Vector3(Number(axes[0], "scale.x", .01f, 1000f),
+                    Number(axes[1], "scale.y", .01f, 1000f), axes.Count == 3
+                        ? Number(axes[2], "scale.z", .01f, 1000f) : layer.Scale3D.z);
             }
             else if (value["scale"] != null)
             {
                 float scale = Number(value["scale"], "scale", .01f, 1000f);
                 layer.Scale = new UnityEngine.Vector2(scale, scale);
+                if (layer.EffectiveDimensions == NoiseLayerBehaviour.NoiseDimensions.ThreeD) layer.scaleZ = scale;
             }
             if (value["offset"] != null)
             {
@@ -70,7 +73,7 @@ namespace DCFApixels.WhimTex
             ["noiseType"] = layer.noiseType.ToString(), ["seed"] = layer.seed,
             ["whiteNoiseColor"] = layer.whiteNoiseColor.ToString(), ["whiteNoiseSize"] = layer.whiteNoiseSize,
             ["dimensions"] = layer.dimensions.ToString(), ["direction"] = layer.direction,
-            ["scale"] = Json(layer.Scale), ["linkScale"] = layer.linkScale, ["periodic"] = layer.periodic.ToString(),
+            ["scale"] = new JArray(layer.Scale3D.x, layer.Scale3D.y, layer.Scale3D.z), ["linkScale"] = layer.linkScale, ["periodic"] = layer.periodic.ToString(),
             ["periodic1D"] = layer.periodic1D,
             ["offset"] = new JArray(layer.offset.x, layer.offset.y, layer.offset.z),
             ["fractal"] = layer.fractal.ToString(), ["octaves"] = layer.octaves,

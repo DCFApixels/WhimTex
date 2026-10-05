@@ -33,7 +33,7 @@ const defs = {
   color: rgba,
   gradientStops: { type: 'array', minItems: 1, maxItems: 64, items: object({ time: number(0, 1), color: rgba, midpoint: number(.01,.99), alphaMidpoint: number(.01,.99) }, ['time', 'color']), description: 'Stops must have strictly increasing times.' },
   gradient: { oneOf: [{ $ref: '#/$defs/gradientStops' }, object({ colors: { $ref: '#/$defs/gradientStops' }, alphas: {type:'array', minItems:1, maxItems:64, items:object({time:number(0,1),alpha:number(0,1),midpoint:number(.01,.99)},['time','alpha'])}, mode:choice('Classic Linear Perceptual Fixed'), wrapMode:choice('Clamp Repeat Mirror'), smoothness:number(0,1), colorSpace:choice('Gamma Linear') }, ['colors'])] },
-  noise: object({ noiseType: noiseEnum('NoiseType'), seed: integer(-2147483648, 2147483647), scale: { oneOf: [number(.01, 1000), tuple(number(.01, 1000), 2)] },
+  noise: object({ noiseType: noiseEnum('NoiseType'), seed: integer(-2147483648, 2147483647), scale: { oneOf: [number(.01, 1000), { type: 'array', items: number(.01, 1000), minItems: 2, maxItems: 3 }] },
     linkScale: { ...bool, default: true, description: 'Scale chain in the UI. Explicit API scale values are applied literally, even when linked.' },
     periodic: { ...noiseEnum('PeriodicAxes'), default: 'None', description: 'UI Seamless: X joins left/right, Y joins top/bottom, XY joins both. Ignored in OneD and White/Blue Noise; retained when inactive. Z never repeats.' },
     periodic1D: { ...bool, default: false, description: 'UI Seamless in OneD: repeat along the projected noise axis, including Fractal and Warp. Independent of periodic; ignored outside OneD and for White/Blue. Angled stripes need not tile at canvas edges.' },
@@ -58,7 +58,7 @@ const defs = {
 
 };
 const seamless = defs.makeSeamless.properties;
-Object.assign(defs.noise.properties.scale, { default: [8,8], description: 'Scalar sets X and Y equally; [x,y] sets axes independently. Units span the shorter canvas side. Ignored by White/Blue. Seamless fits complete lattice cells per octave/warp, so small Scale changes can quantize.' });
+Object.assign(defs.noise.properties.scale, { default: [8,8,1], description: 'Scalar sets XY, or XYZ in active ThreeD. [x,y] preserves Z; [x,y,z] sets all axes literally. Inspect returns XYZ, including inactive Z. XY units span the shorter canvas side; Z multiplies Offset Z to select a ThreeD slice and defaults to 1 in older files. Ignored by White/Blue. Seamless fits complete lattice cells per octave/warp, so small Scale changes can quantize.' });
 for (const [field, type] of Object.entries({
   mode: 'SeamlessMode', horizontal: 'HorizontalDirection', vertical: 'VerticalDirection',
   poissonEdges: 'PoissonEdges', mirrorPoissonEdges: 'PoissonEdges', offsetPoissonEdges: 'PoissonEdges',

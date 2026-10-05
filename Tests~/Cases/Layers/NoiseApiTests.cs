@@ -88,10 +88,19 @@ public static class NoiseApiTests
         Check(layer.offset.z == 5, "XY patch preserves Z");
         Set("{\"scale\":7}");
         Check(layer.Scale.x == 7 && layer.Scale.y == 7, "Scalar scale sets both axes");
+        Set("{\"noiseType\":\"Perlin\",\"dimensions\":\"ThreeD\",\"scale\":[4,8,2],\"linkScale\":true}");
+        Check(layer.Scale3D==new Vector3(4,8,2),"API XYZ are literal even with chain enabled");
+        Set("{\"scale\":[6,9]}");Check(layer.Scale3D==new Vector3(6,9,2),"API XY preserves Scale Z");
+        Set("{\"scale\":7}");Check(layer.Scale3D==new Vector3(7,7,7),"3D scalar sets XYZ");
+        Set("{\"dimensions\":\"TwoD\",\"scale\":3}");Check(layer.Scale3D==new Vector3(3,3,7),"2D scalar preserves inactive Z");
+        setter.Invoke(null,new object[]{copy,snapshot.Invoke(null,new object[]{layer})});
+        Check(copy.Scale3D==layer.Scale3D,"Snapshot retains inactive Z");
+        foreach(string invalid in new[]{"{\"scale\":[1,2,0]}","{\"scale\":[1,2,1001]}","{\"scale\":[1,2,\"bad\"]}","{\"scale\":[1,2,3,4]}","{\"scaleZ\":2}"})Reject(invalid);
         foreach (string invalid in new[] { "{\"scale\":[1]}", "{\"scale\":[1,1001]}", "{\"offset\":[0,0,10001]}", "{\"offset\":[0,0,0,0]}",
             "{\"periodic\":\"Z\"}", "{\"dimensions\":\"FourD\"}", "{\"linkScale\":1}" }) Reject(invalid);
         var current = new DCFApixels.WhimTex.NoiseLayerBehaviour();
         Check(current.Scale == new UnityEngine.Vector2(8,8), "Runtime defaults store both scale axes explicitly");
+        Check(current.Scale3D==new Vector3(8,8,1),"Default Z keeps existing 3D slices unchanged");
         Check(current.WarpScale == UnityEngine.Vector2.one, "Runtime Warp Scale defaults to multiplier 1");
         Check(DCFApixels.WhimTex.WhimTexApi.Describe().Contains("noisePeriodicAxes"), "Periodicity discovery");
         Set("{\"linkScale\":true,\"scale\":[4,9],\"encoding\":\"LinearData\",\"gradient\":{\"colors\":[{\"time\":0,\"color\":[0,0,0,0.25]},{\"time\":1,\"color\":[2,1,0,1]}],\"mode\":\"Linear\"}}");

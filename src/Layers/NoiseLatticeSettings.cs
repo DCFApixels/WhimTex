@@ -76,7 +76,7 @@ namespace DCFApixels.WhimTex
                 if (repeatX) ox %= width;
                 if (repeatY) oy %= height;
                 Basis(-width * .5 + ox, -height * .5 + oy,
-                    three ? NoiseLayerBehaviour.Limit(noise.offset.z, -10000, 10000, 0) : 0, 5);
+                    three ? (double)NoiseLayerBehaviour.Limit(noise.offset.z, -10000, 10000, 0) * noise.Scale3D.z : 0, 5);
                 // Normal floats only: subnormal bit-casts can flush to zero in dynamic GPU loads.
                 int ix = (int)px, iy = (int)py;
                 data[start + 12] = new Vector4(ix >> 12, iy >> 12, layout, (ix & 4095) | ((iy & 4095) << 12));

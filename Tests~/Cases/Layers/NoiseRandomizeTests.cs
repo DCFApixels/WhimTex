@@ -74,7 +74,7 @@ public static class NoiseRandomizeTests
             }
             foreach (var field in fields)
             {
-                if (field.Name == "dimensions" || field.Name == "direction" || field.Name == "encoding" || field.Name == "gradient" || field.Name == "periodic" || field.Name == "periodic1D" || field.Name == "linkScale" || field.Name == "linkWarpScale" || field.Name == "offset")
+                if (field.Name == "scaleZ" || field.Name == "dimensions" || field.Name == "direction" || field.Name == "encoding" || field.Name == "gradient" || field.Name == "periodic" || field.Name == "periodic1D" || field.Name == "linkScale" || field.Name == "linkWarpScale" || field.Name == "offset")
                 {
                     if (field.Name != "dimensions") Check(seen[field.Name].Count == 1, "Preserves " + field.Name);
                     continue;
@@ -83,6 +83,20 @@ public static class NoiseRandomizeTests
                 if (field.FieldType.IsEnum) Check(seen[field.Name].Count == Enum.GetValues(field.FieldType).Length, "All choices reachable " + field.Name);
             }
             Check(UnityEngine.Random.state.Equals(unityRandom), "Does not modify Unity random state");
+            var sample3D=typeof(NoiseLayerEditorWindow).GetMethod("RandomizeScale3D",Any);
+            noise.noiseType=NoiseLayerBehaviour.NoiseType.Perlin;noise.dimensions=NoiseLayerBehaviour.NoiseDimensions.ThreeD;
+            noise.Scale3D=new Vector3(4,8,2);var random3D=new System.Random(1337);
+            foreach(bool linked in new[]{true,false})
+            {
+                noise.linkScale=linked;
+                for(int i=0;i<128;i++)
+                {
+                    var sample=(Vector3)sample3D.Invoke(null,new object[]{noise,random3D});
+                    Check(sample.x>=.01f&&sample.x<=1000&&sample.y>=.01f&&sample.y<=1000&&sample.z>=.01f&&sample.z<=1000,"3D random scale is bounded");
+                    if(linked)Check(Mathf.Abs(sample.y/sample.x-2)<.00001f&&Mathf.Abs(sample.z/sample.x-.5f)<.00001f,"Random All preserves XYZ ratios");
+                }
+            }
+            noise.linkScale=true;noise.dimensions=NoiseLayerBehaviour.NoiseDimensions.TwoD;
             foreach (NoiseLayerBehaviour.OutputEncoding output in Enum.GetValues(typeof(NoiseLayerBehaviour.OutputEncoding)))
             {
                 noise.encoding = output;
