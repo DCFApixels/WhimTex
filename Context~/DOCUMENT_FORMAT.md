@@ -1,12 +1,15 @@
 # Формат документа WhimTex
 
-Статус: TIFF — основной формат редактируемых документов WhimTex с версии 0.11.0.
-Этот файл описывает TIFF-контракт хранения. Для текстовых документов и clipboard действует
+- Назначение: правила TIFF-хранения, файловой совместимости, сохранения и Live Update.
+- Статус: действующий контракт; TIFF — основной формат с 0.11.0.
+- Источники истины: [TIFF_FORMAT](../Documentation~/TIFF_FORMAT.md), [reader/writer](../src/WhimTexDocumentFile.cs), [serializer](../src/WhimTexDocumentSerializer.cs), [адаптер 0.12.5](../src/WhimTexFileCompatibility0125.cs).
+
+Для текстовых документов и clipboard действует
 отдельный [единый JSON-контракт](../Documentation~/JSON_FORMAT.md), без пикселей Drawing.
 Документы `.asset` не поддерживаются: ни чтения, ни записи, ни миграции. До обновления
 преобразуйте их в TIFF через WhimTex 0.12.5. `TextureCompositor` остаётся моделью в памяти.
 
-## Файл и импорт
+## Файловая совместимость 0.12.5
 
 Граница очистки легаси — **TIFF/JSON и пресеты `0.12.5`**, без композиторов `.asset`, не старые API и состояния окон.
 Зафиксированные образцы и команды проверки: [Compatibility0125](../Tests~/Fixtures/Compatibility0125/README.md).
@@ -19,6 +22,35 @@ Reader допускает их только у указанных владель
 старое значение, сохраняя номера объектов, без создания снятых типов/текстур и поиска GUID.
 Ссылка активного поля на снятый объект отклоняется. Остальные неизвестные данные
 по-прежнему диагностируются и защищены от потери при Save. Старый `.asset` backend удалён.
+
+- Noise/Pattern с нулевым Y и Shape с отрицательными углами нормализуются после чтения,
+  включая замороженные Compact defaults. Runtime и новая запись содержат явные значения.
+- Сохранённые manual FX uniforms преобразуются в `@param`: сохраняются IDs, значения,
+  texture/layer references и сложные градиенты/кривые, не только HLSL defaults.
+  Scalar вне manual hard range получает прежнее эффективное clamped-значение.
+- `declaredInCode` читается только как provenance: намеренно удалённое code declaration
+  не восстанавливается как manual. Runtime-режима ручных параметров больше нет;
+  `set` меняет значения уже объявленных параметров, не создаёт определения.
+- Applied snapshot и черновик нормализуются раздельно: неприменённое редактирование
+  остаётся неприменённым. JSON writer сохраняет валидный черновик без мутации applied state.
+  Malformed draft остаётся доступным для диагностики и обычного Apply.
+- Reader не переписывает внешние HLSL/native presets и не делает их dirty.
+  Самостоятельный ShaderFX preset `.asset` поддерживается; compositor document `.asset` — нет.
+- Пользовательский `@formerlyserializedas` — действующая authoring-функция FX/кистей,
+  не общий reader старых имён. Встроенные FX используют канонический `_Opacity` 0.12.5.
+- `WhimTexJsonDefaultsV1` заморожены. Старые gradient prefix/color-объекты/числовые enum
+  не конвертируются; `transition` диагностируется как неизвестное поле. Современные
+  gradient объекты/массивы и Markdown fences остаются допустимым вводом.
+- User settings/API не входят в файловую гарантию. Сброс пути библиотеки не разрешает
+  удаление/перемещение файлов пресетов; библиотеку можно выбрать вручную.
+- Drawing brush settings обслуживают API-рисование по слою, `PaintToolSettings` —
+  интерактивное окно. Это действующие разные контексты, не забытый слой совместимости.
+
+## Файл и импорт
+
+Нативный TIFF выбран ради штатного TextureImporter, platform overrides и Sprite Inspector.
+Отдельное расширение/ScriptedImporter, ZIP или «документ + отдельная текстура» не дают
+эту границу импорта. JSON — отдельный редактируемый формат без пикселей Drawing.
 
 - Один `Name.tiff` и его обычный Unity `.meta`.
 - Пиксели TIFF — готовая композиция; после них находятся контейнер модели и пиксели Drawing.
@@ -203,7 +235,7 @@ Unity-типы обрабатываются явно. Типы хранятся 
 Запускать независимые сценарии через [общий runner](../Tests~/RUNNING_TESTS.md) и подключённый
 Unity Editor, не отдельный сборщик. Для каждого выбранного ID нужны прочитанные исходники,
 текущий fingerprint, явный project path и разрешение на заявленные effects.
-Исторические `Tests~/Legacy`-файлы больше не являются точками запуска.
+Архивные исходники больше не являются точками запуска.
 
 - `document-vector-widening-smoke-v2`.
   In-memory проверки точных Vector/VectorInt тегов и отказа от исторических coercion, ручного/автоматического чтения,
@@ -233,7 +265,8 @@ Unity Editor, не отдельный сборщик. Для каждого вы
 - `document-performance-probe-ldr-random-v2` и соседние варианты: замеры Drawing LDR/HDR,
   first/unchanged/changed Save и Open; наблюдения не равны performance acceptance thresholds.
 
-Результаты, команды и ограничения: [TIFF_VALIDATION.md](TIFF_VALIDATION.md).
+Исторический итог обязательных прогонов: [ArchiveRetirement.ru.md](../Tests~/ArchiveRetirement.ru.md).
+Команды и текущие prerequisites принадлежат каталогу, не прежним журналам запусков.
 Проверен Windows64 Mono/DX12 Player; не проверены все платформенные компрессоры, AssetBundles/Addressables,
 все режимы Sprite Editor, реальный hard crash/power loss и все варианты import worker.
 Новый Player build по-прежнему требует запроса пользователя.
@@ -241,3 +274,9 @@ Unity Editor, не отдельный сборщик. Для каждого вы
 Независимая сборка и адаптер path-based агентских команд: [TIFF_AUTHORING.md](TIFF_AUTHORING.md)
 и [TIFF_AGENT_COMMANDS.md](TIFF_AGENT_COMMANDS.md). Новые batch-документы используют `.tiff` или `.json`;
 документы `.asset` отвергаются, включая чтение и `dryRun`. До обновления конвертируйте их в TIFF через 0.12.5.
+
+## История
+
+[Предыдущее описание](https://github.com/DCFApixels/WhimTex/blob/fc4afbf765e3b7734c3fbf0baab77701367b3f02/Context~/DOCUMENT_FORMAT.md)
+и [этапы очистки](https://github.com/DCFApixels/WhimTex/blob/fc4afbf765e3b7734c3fbf0baab77701367b3f02/Context~/LEGACY_CLEANUP_0125.ru.md)
+сохраняют прежние формулировки и проверки. Старый PASS не подтверждает новый checkout.

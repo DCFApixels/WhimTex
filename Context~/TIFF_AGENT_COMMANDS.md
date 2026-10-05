@@ -1,5 +1,9 @@
 # Агентские команды для TIFF-пайплайна
 
+- Назначение: краткая карта команд и различий Batch, Headless Live и Assistant.
+- Статус: действующая памятка, не отдельная версия протокола.
+- Источники истины: [AgentAPI](../Documentation~/AgentAPI.md), [LiveAgentAPI](../Documentation~/LiveAgentAPI.md), [WhimTexCommands](../src/Automation/Pipeline/WhimTexCommands.cs).
+
 Дополнительно поддержан `whimtex.document` (`.json`; прежние имена `.whimtex.json` также читаются). Команда `whimtex_document_json`
 сериализует, проверяет, экспортирует, открывает и записывает документ, вставляет фрагмент или заменяет
 содержимое слоя. Batch также читает/сохраняет JSON. Headless Live пока остаётся TIFF-пайплайном.
@@ -94,3 +98,10 @@ Assistant или восстановить потерянный кандидат 
 
 Настройки импорта принадлежат штатному `TextureImporter` и `.meta`, не модели документа.
 Ни экспорт, ни диагностический PNG, ни GPU Live Update не доказывают сохранение редактируемого TIFF.
+
+## Проверки
+
+`agent-documentation-v2` сверяет эту карту с командами и разбирает JSON-примеры.
+Сохранение/Undo/рендер проверяются отдельно: `agent-api-v2`, `tiff-agent-api-v2`,
+`tiff-live-v2`, `live-agent-unity-v2`. Использовать [общий runner](../Tests~/RUNNING_TESTS.md);
+source check не доказывает runtime-поведение.
