@@ -1,0 +1,426 @@
+{
+  "version": 2,
+  "action": "run",
+  "startedAt": "2026-10-05T04:36:51.683Z",
+  "projectPath": "D:\\DCFA\\Projects\\Test6.6",
+  "fingerprint": "8825ca18162e59f45ecc1a6ad2f45f2844394d52504fdd038fdc03e226f9aa16",
+  "archive": {
+    "files": 466,
+    "baselineCommit": "1269df51866959744a4b0763453eb667aefe6d8e",
+    "manifestHash": "c70816ea4220d9ebe08d4d2d087d7e5297bd943405bb3297e24f4b69756a6194",
+    "source": "pinned-git-reference",
+    "recoveryCommit": "ca8603c0961ce36064280f952259f8a6142d46cc",
+    "contentsVerified": false
+  },
+  "productionFingerprint": "a3da14871f6e0bf5c49a6f077b1026720e0fb2d3c28a49213dd715f3dd2b7738",
+  "selected": [
+    "agent-documentation-v2",
+    "document-json-schema-v2",
+    "frozen-files-v2",
+    "rename-marker-cleanup-v2",
+    "user-settings-cleanup-v2",
+    "gradient-clipboard-cleanup-v2",
+    "remaining-legacy-cleanup-v2",
+    "agent-command-inventory-v2",
+    "make-seamless-contract-v2",
+    "procedural-clipboard-v2",
+    "brush-clipboard-v2"
+  ],
+  "environment": null,
+  "results": [
+    {
+      "id": "agent-documentation-v2",
+      "file": "Tests~/Cases/SourceA/AgentDocumentation.mjs",
+      "runner": "node",
+      "category": "source-guard",
+      "status": "passed",
+      "detail": "AgentDocumentation: source/scalar contracts",
+      "uncertain": false,
+      "testResult": {
+        "status": "passed",
+        "checks": 237,
+        "message": "AgentDocumentation: source/scalar contracts",
+        "failures": [],
+        "cases": [
+          {
+            "name": "AgentDocumentation original assertions and branches",
+            "status": "passed"
+          }
+        ],
+        "facts": {}
+      },
+      "durationMs": 74,
+      "attempts": [
+        {
+          "phase": "result",
+          "entry": null,
+          "reply": {
+            "code": 0,
+            "stdout": "WHIMTEX_TEST_RESULT {\"status\":\"passed\",\"checks\":237,\"message\":\"AgentDocumentation: source/scalar contracts\",\"failures\":[],\"cases\":[{\"name\":\"AgentDocumentation original assertions and branches\",\"status\":\"passed\"}],\"facts\":{}}\n",
+            "stderr": "",
+            "timedOut": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "document-json-schema-v2",
+      "file": "Tests~/Cases/SourceA/DocumentJsonSchema.mjs",
+      "runner": "node",
+      "category": "source-guard",
+      "status": "passed",
+      "detail": "DocumentJsonSchema: source/scalar contracts",
+      "uncertain": false,
+      "testResult": {
+        "status": "passed",
+        "checks": 143931,
+        "message": "DocumentJsonSchema: source/scalar contracts",
+        "failures": [],
+        "cases": [
+          {
+            "name": "DocumentJsonSchema original assertions and branches",
+            "status": "passed"
+          }
+        ],
+        "facts": {}
+      },
+      "durationMs": 268,
+      "attempts": [
+        {
+          "phase": "result",
+          "entry": null,
+          "reply": {
+            "code": 0,
+            "stdout": "WHIMTEX_TEST_RESULT {\"status\":\"passed\",\"checks\":143931,\"message\":\"DocumentJsonSchema: source/scalar contracts\",\"failures\":[],\"cases\":[{\"name\":\"DocumentJsonSchema original assertions and branches\",\"status\":\"passed\"}],\"facts\":{}}\n",
+            "stderr": "",
+            "timedOut": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "frozen-files-v2",
+      "file": "Tests~/Cases/Files/Frozen0125.mjs",
+      "runner": "node",
+      "category": "regression",
+      "status": "passed",
+      "detail": "Frozen 0.12.5 file integrity",
+      "uncertain": false,
+      "testResult": {
+        "status": "passed",
+        "checks": 24685,
+        "message": "Frozen 0.12.5 file integrity",
+        "failures": [],
+        "cases": [
+          {
+            "name": "Original file hashes, render coverage and unsupported asset boundary",
+            "status": "passed"
+          }
+        ],
+        "facts": {
+          "fileHashes": 30,
+          "supportedDocuments": 7,
+          "archivedDocuments": 1,
+          "distinctRenders": 3
+        }
+      },
+      "durationMs": 83,
+      "attempts": [
+        {
+          "phase": "result",
+          "entry": null,
+          "reply": {
+            "code": 0,
+            "stdout": "WHIMTEX_TEST_RESULT {\"status\":\"passed\",\"checks\":24685,\"message\":\"Frozen 0.12.5 file integrity\",\"failures\":[],\"cases\":[{\"name\":\"Original file hashes, render coverage and unsupported asset boundary\",\"status\":\"passed\"}],\"facts\":{\"fileHashes\":30,\"supportedDocuments\":7,\"archivedDocuments\":1,\"distinctRenders\":3}}\n",
+            "stderr": "",
+            "timedOut": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "rename-marker-cleanup-v2",
+      "file": "Tests~/Cases/SourceB/RenameMarkerCleanup.test.mjs",
+      "runner": "node",
+      "category": "source-guard",
+      "status": "passed",
+      "detail": "RenameMarkerCleanup source/reference tests",
+      "uncertain": false,
+      "testResult": {
+        "status": "passed",
+        "checks": 302,
+        "message": "RenameMarkerCleanup source/reference tests",
+        "failures": [],
+        "cases": [
+          {
+            "name": "RenameMarkerCleanup original assertion inputs and source contracts",
+            "status": "passed"
+          }
+        ],
+        "facts": {}
+      },
+      "durationMs": 155,
+      "attempts": [
+        {
+          "phase": "result",
+          "entry": null,
+          "reply": {
+            "code": 0,
+            "stdout": "WHIMTEX_TEST_RESULT {\"status\":\"passed\",\"checks\":302,\"message\":\"RenameMarkerCleanup source/reference tests\",\"failures\":[],\"cases\":[{\"name\":\"RenameMarkerCleanup original assertion inputs and source contracts\",\"status\":\"passed\"}],\"facts\":{}}\n",
+            "stderr": "",
+            "timedOut": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "user-settings-cleanup-v2",
+      "file": "Tests~/Cases/SourceB/UserSettingsCleanup.test.mjs",
+      "runner": "node",
+      "category": "source-guard",
+      "status": "passed",
+      "detail": "UserSettingsCleanup source/reference tests",
+      "uncertain": false,
+      "testResult": {
+        "status": "passed",
+        "checks": 555,
+        "message": "UserSettingsCleanup source/reference tests",
+        "failures": [],
+        "cases": [
+          {
+            "name": "UserSettingsCleanup original assertion inputs and source contracts",
+            "status": "passed"
+          }
+        ],
+        "facts": {}
+      },
+      "durationMs": 212,
+      "attempts": [
+        {
+          "phase": "result",
+          "entry": null,
+          "reply": {
+            "code": 0,
+            "stdout": "WHIMTEX_TEST_RESULT {\"status\":\"passed\",\"checks\":555,\"message\":\"UserSettingsCleanup source/reference tests\",\"failures\":[],\"cases\":[{\"name\":\"UserSettingsCleanup original assertion inputs and source contracts\",\"status\":\"passed\"}],\"facts\":{}}\n",
+            "stderr": "",
+            "timedOut": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "gradient-clipboard-cleanup-v2",
+      "file": "Tests~/Cases/SourceA/GradientClipboardCleanup.mjs",
+      "runner": "node",
+      "category": "source-guard",
+      "status": "passed",
+      "detail": "GradientClipboardCleanup: source/scalar contracts",
+      "uncertain": false,
+      "testResult": {
+        "status": "passed",
+        "checks": 19,
+        "message": "GradientClipboardCleanup: source/scalar contracts",
+        "failures": [],
+        "cases": [
+          {
+            "name": "GradientClipboardCleanup original assertions and branches",
+            "status": "passed"
+          }
+        ],
+        "facts": {}
+      },
+      "durationMs": 64,
+      "attempts": [
+        {
+          "phase": "result",
+          "entry": null,
+          "reply": {
+            "code": 0,
+            "stdout": "WHIMTEX_TEST_RESULT {\"status\":\"passed\",\"checks\":19,\"message\":\"GradientClipboardCleanup: source/scalar contracts\",\"failures\":[],\"cases\":[{\"name\":\"GradientClipboardCleanup original assertions and branches\",\"status\":\"passed\"}],\"facts\":{}}\n",
+            "stderr": "",
+            "timedOut": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "remaining-legacy-cleanup-v2",
+      "file": "Tests~/Cases/SourceB/RemainingLegacyCleanup.test.mjs",
+      "runner": "node",
+      "category": "source-guard",
+      "status": "passed",
+      "detail": "RemainingLegacyCleanup source/reference tests",
+      "uncertain": false,
+      "testResult": {
+        "status": "passed",
+        "checks": 29,
+        "message": "RemainingLegacyCleanup source/reference tests",
+        "failures": [],
+        "cases": [
+          {
+            "name": "RemainingLegacyCleanup original assertion inputs and source contracts",
+            "status": "passed"
+          }
+        ],
+        "facts": {}
+      },
+      "durationMs": 67,
+      "attempts": [
+        {
+          "phase": "result",
+          "entry": null,
+          "reply": {
+            "code": 0,
+            "stdout": "WHIMTEX_TEST_RESULT {\"status\":\"passed\",\"checks\":29,\"message\":\"RemainingLegacyCleanup source/reference tests\",\"failures\":[],\"cases\":[{\"name\":\"RemainingLegacyCleanup original assertion inputs and source contracts\",\"status\":\"passed\"}],\"facts\":{}}\n",
+            "stderr": "",
+            "timedOut": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "agent-command-inventory-v2",
+      "file": "Tests~/Cases/SourceA/AgentCommandInventory.mjs",
+      "runner": "node",
+      "category": "source-guard",
+      "status": "passed",
+      "detail": "AgentCommandInventory: source/scalar contracts",
+      "uncertain": false,
+      "testResult": {
+        "status": "passed",
+        "checks": 3,
+        "message": "AgentCommandInventory: source/scalar contracts",
+        "failures": [],
+        "cases": [
+          {
+            "name": "AgentCommandInventory original assertions and branches",
+            "status": "passed"
+          }
+        ],
+        "facts": {}
+      },
+      "durationMs": 56,
+      "attempts": [
+        {
+          "phase": "result",
+          "entry": null,
+          "reply": {
+            "code": 0,
+            "stdout": "WHIMTEX_TEST_RESULT {\"status\":\"passed\",\"checks\":3,\"message\":\"AgentCommandInventory: source/scalar contracts\",\"failures\":[],\"cases\":[{\"name\":\"AgentCommandInventory original assertions and branches\",\"status\":\"passed\"}],\"facts\":{}}\n",
+            "stderr": "",
+            "timedOut": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "make-seamless-contract-v2",
+      "file": "Tests~/Cases/SourceB/MakeSeamlessContract.test.mjs",
+      "runner": "node",
+      "category": "source-guard",
+      "status": "passed",
+      "detail": "MakeSeamlessContract source/reference tests",
+      "uncertain": false,
+      "testResult": {
+        "status": "passed",
+        "checks": 156,
+        "message": "MakeSeamlessContract source/reference tests",
+        "failures": [],
+        "cases": [
+          {
+            "name": "MakeSeamlessContract original assertion inputs and source contracts",
+            "status": "passed"
+          }
+        ],
+        "facts": {}
+      },
+      "durationMs": 62,
+      "attempts": [
+        {
+          "phase": "result",
+          "entry": null,
+          "reply": {
+            "code": 0,
+            "stdout": "WHIMTEX_TEST_RESULT {\"status\":\"passed\",\"checks\":156,\"message\":\"MakeSeamlessContract source/reference tests\",\"failures\":[],\"cases\":[{\"name\":\"MakeSeamlessContract original assertion inputs and source contracts\",\"status\":\"passed\"}],\"facts\":{}}\n",
+            "stderr": "",
+            "timedOut": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "procedural-clipboard-v2",
+      "file": "Tests~/Cases/SourceB/ProceduralClipboard.test.mjs",
+      "runner": "node",
+      "category": "source-guard",
+      "status": "passed",
+      "detail": "ProceduralClipboard source/reference tests",
+      "uncertain": false,
+      "testResult": {
+        "status": "passed",
+        "checks": 64,
+        "message": "ProceduralClipboard source/reference tests",
+        "failures": [],
+        "cases": [
+          {
+            "name": "ProceduralClipboard original assertion inputs and source contracts",
+            "status": "passed"
+          }
+        ],
+        "facts": {}
+      },
+      "durationMs": 84,
+      "attempts": [
+        {
+          "phase": "result",
+          "entry": null,
+          "reply": {
+            "code": 0,
+            "stdout": "API field schema checked.\nWHIMTEX_TEST_RESULT {\"status\":\"passed\",\"checks\":64,\"message\":\"ProceduralClipboard source/reference tests\",\"failures\":[],\"cases\":[{\"name\":\"ProceduralClipboard original assertion inputs and source contracts\",\"status\":\"passed\"}],\"facts\":{}}\n",
+            "stderr": "",
+            "timedOut": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "brush-clipboard-v2",
+      "file": "Tests~/Cases/SourceA/BrushClipboard.mjs",
+      "runner": "node",
+      "category": "source-guard",
+      "status": "passed",
+      "detail": "BrushClipboard: source/scalar contracts",
+      "uncertain": false,
+      "testResult": {
+        "status": "passed",
+        "checks": 17,
+        "message": "BrushClipboard: source/scalar contracts",
+        "failures": [],
+        "cases": [
+          {
+            "name": "BrushClipboard original assertions and branches",
+            "status": "passed"
+          }
+        ],
+        "facts": {}
+      },
+      "durationMs": 61,
+      "attempts": [
+        {
+          "phase": "result",
+          "entry": null,
+          "reply": {
+            "code": 0,
+            "stdout": "Brush schema checked.\nWHIMTEX_TEST_RESULT {\"status\":\"passed\",\"checks\":17,\"message\":\"BrushClipboard: source/scalar contracts\",\"failures\":[],\"cases\":[{\"name\":\"BrushClipboard original assertions and branches\",\"status\":\"passed\"}],\"facts\":{}}\n",
+            "stderr": "",
+            "timedOut": false
+          }
+        }
+      ]
+    }
+  ],
+  "success": true,
+  "notRun": [],
+  "recoveryRequired": false,
+  "finishedAt": "2026-10-05T04:36:55.305Z"
+}

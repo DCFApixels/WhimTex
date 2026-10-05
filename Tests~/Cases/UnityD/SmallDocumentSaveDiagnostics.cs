@@ -21,29 +21,51 @@ public static class SmallDocumentSaveDiagnostics
     static TestContext context;
     static MigrationD fixture;
     public static string Scheduling(int repeats = 20, string reportSuffix = "scheduling")
-        => TestContext.Run("Diagnostic: scheduling timings; no performance acceptance threshold", c =>
-        {
-            context = c;
-            using (fixture = new MigrationD()) Validate(MeasureScheduling(repeats, reportSuffix), repeats * 5);
-        });
+        => Diagnostic("Diagnostic: scheduling timings; no performance acceptance threshold",
+            () => MeasureScheduling(repeats, reportSuffix), report => Validate(report, repeats * 5));
     public static string Carrier(int size = 512, int repeats = 5)
-        => TestContext.Run("Diagnostic: native half carrier timings; no performance acceptance threshold", c =>
-        {
-            context = c;
-            using (fixture = new MigrationD()) Validate(MeasureCarrier(size, repeats), repeats * 6);
-        });
+        => Diagnostic("Diagnostic: native half carrier timings; no performance acceptance threshold",
+            () => MeasureCarrier(size, repeats), report => Validate(report, repeats * 6));
     public static string Run(int size = 512, int layers = 3, int repeats = 5)
-        => TestContext.Run("Diagnostic: synchronous Save timings and no-op timestamp guard", c =>
+        => Diagnostic("Diagnostic: synchronous Save timings and no-op timestamp guard",
+            () => MeasureRun(size, layers, repeats), report =>
+        {
+            Validate(report, 1 + repeats * 6);
+            context.True(report.noOpTimestampPreserved, "Original no-op file timestamp guard");
+            context.True(report.cleanupSucceeded, "Owned imported fixture removed");
+        });
+    static string SerializeReport(Report report)
+        => (string)Type.GetType("Newtonsoft.Json.JsonConvert, Newtonsoft.Json", true)
+            .GetMethod("SerializeObject", BindingFlags.Public | BindingFlags.Static, null,
+                new[] { typeof(object) }, null).Invoke(null, new object[] { report });
+    static string Diagnostic(string label, Func<Report> measure, Action<Report> validate)
+    {
+        Report report = null;
+        var result = JsonUtility.FromJson<TestResult>(TestContext.Run(label, c =>
         {
             context = c;
             using (fixture = new MigrationD())
             {
-                var report = MeasureRun(size, layers, repeats);
-                Validate(report, 1 + repeats * 6);
-                c.True(report.noOpTimestampPreserved, "Original no-op file timestamp guard");
-                c.True(report.cleanupSucceeded, "Owned imported fixture removed");
+                report = measure();
+                validate(report);
             }
-        });
+        }));
+        // Append only after TestContext.Run has observed the complete owned finally/dispose verdict.
+        // The transient file may be gone, but the actual samples/stages remain in this result.
+        if (report != null)
+        {
+            try { result.message += "\n" + SerializeReport(report); }
+            catch (Exception error)
+            {
+                result.status = "failed";
+                var failures = new List<string>(result.failures ?? Array.Empty<string>());
+                failures.Add(error.ToString()); // Preserve any original body/cleanup failure.
+                result.failures = failures.ToArray();
+                result.message += "\nDiagnostic serialization failed after owned cleanup";
+            }
+        }
+        return result.ToJson();
+    }
     static void Validate(Report report, int expectedSamples)
     {
         context.Equal(expectedSamples, report.samples.Count, "All original timed branches were sampled");
@@ -158,8 +180,7 @@ public static class SmallDocumentSaveDiagnostics
         string dir = fixture.TempFolder();
         Directory.CreateDirectory(dir);
         // JsonUtility omits generic lists of types compiled by run_script; use the public Json.NET assembly.
-        string json = (string)Type.GetType("Newtonsoft.Json.JsonConvert, Newtonsoft.Json")
-            .GetMethod("SerializeObject", new[] { typeof(object) }).Invoke(null, new object[] { report });
+        string json = SerializeReport(report);
         File.WriteAllText(dir + "/small-save-" + suffix + ".json", json);
     }
     private static Report MeasureRun(int size = 512, int layers = 3, int repeats = 5)
@@ -258,4 +279,3 @@ public static class SmallDocumentSaveDiagnostics
         }
     }
 }
-

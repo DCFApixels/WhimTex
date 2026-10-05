@@ -1,0 +1,18 @@
+{
+  "argv": [
+    "command",
+    "build_status",
+    "--project-path",
+    "D:\\DCFA\\Projects\\Test6.6",
+    "--timeout",
+    "10",
+    "--format",
+    "json"
+  ],
+  "reply": {
+    "code": 0,
+    "stdout": "{\n  \"success\": true,\n  \"command\": \"command build_status\",\n  \"data\": {\n    \"command\": \"build_status\",\n    \"parameters\": {},\n    \"result\": \"{\\\"status\\\":\\\"completed\\\",\\\"buildId\\\":\\\"build_db8a17a48917\\\",\\\"result\\\":\\\"Failed\\\",\\\"platform\\\":\\\"StandaloneWindows64\\\",\\\"outputPath\\\":\\\"D:/DCFA/Projects/Test6.6/Temp/WhimTex/player-release/4817f7407dac483b94141d9e81bb6b17/attempt-001/Player.exe\\\",\\\"totalSizeBytes\\\":0,\\\"buildTimeMs\\\":1700020,\\\"buildStartedAt\\\":\\\"2026-10-05T05:46:42.2119622Z\\\",\\\"buildEndedAt\\\":\\\"2026-10-05T06:15:02.2326722Z\\\",\\\"totalWarnings\\\":1,\\\"totalErrors\\\":3,\\\"buildSteps\\\":[{\\\"name\\\":\\\"Build player\\\",\\\"durationMs\\\":1700014,\\\"depth\\\":0,\\\"messages\\\":[{\\\"type\\\":\\\"Error\\\",\\\"content\\\":\\\"Build was canceled.\\\"},{\\\"type\\\":\\\"Error\\\",\\\"content\\\":\\\"NullReferenceException: Object reference not set to an instance of an object\\\"},{\\\"type\\\":\\\"Error\\\",\\\"content\\\":\\\"NullReferenceException: Object reference not set to an instance of an object\\\"}]},{\\\"name\\\":\\\"Call PrepareForBuild callbacks\\\",\\\"durationMs\\\":1690384,\\\"depth\\\":1,\\\"messages\\\":[]},{\\\"name\\\":\\\"Call internal build started callbacks\\\",\\\"durationMs\\\":0,\\\"depth\\\":1,\\\"messages\\\":[]},{\\\"name\\\":\\\"Preprocess Player\\\",\\\"durationMs\\\":923,\\\"depth\\\":1,\\\"messages\\\":[{\\\"type\\\":\\\"Log\\\",\\\"content\\\":\\\"1 URP assets included in build\\\\r\\\\n- PC_RPAsset - Assets/Settings/PC_RPAsset.asset\\\\r\\\\n\\\\t - PC_Renderer - Assets/Settings/PC_Renderer.asset - UnityEngine.Rendering.Universal.UniversalRendererData\\\\r\\\\n\\\"},{\\\"type\\\":\\\"Log\\\",\\\"content\\\":\\\"[TestRunBuilder] Creating new file 'Assets/Resources/PerformanceTestRunInfo.json' (3597 bytes)\\\"},{\\\"type\\\":\\\"Log\\\",\\\"content\\\":\\\"[TestRunBuilder] Creating new file 'Assets/Resources/PerformanceTestRunSettings.json' (23 bytes)\\\"},{\\\"type\\\":\\\"Warning\\\",\\\"content\\\":\\\"Pipeline: No RuntimePipelineConfig asset found (Project Settings > Pipeline > Runtime). Pipeline will be disabled in Player builds.\\\"}]},{\\\"name\\\":\\\"Save scenes before build\\\",\\\"durationMs\\\":8470,\\\"depth\\\":1,\\\"messages\\\":[]},{\\\"name\\\":\\\"Call Post-Process callbacks\\\",\\\"durationMs\\\":0,\\\"depth\\\":1,\\\"messages\\\":[]}],\\\"errors\\\":[{\\\"message\\\":\\\"Build was canceled.\\\"},{\\\"message\\\":\\\"NullReferenceException: Object reference not set to an instance of an object\\\"},{\\\"message\\\":\\\"NullReferenceException: Object reference not set to an instance of an object\\\"}],\\\"warnings\\\":[{\\\"message\\\":\\\"Pipeline: No RuntimePipelineConfig asset found (Project Settings > Pipeline > Runtime). Pipeline will be disabled in Player builds.\\\"}]}\",\n    \"target\": {\n      \"host\": \"127.0.0.1\",\n      \"port\": 7800,\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\"\n    },\n    \"success\": true\n  },\n  \"errors\": [],\n  \"warnings\": []\n}\n",
+    "stderr": "",
+    "timedOut": false
+  }
+}

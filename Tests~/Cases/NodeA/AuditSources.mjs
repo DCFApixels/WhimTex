@@ -3,11 +3,14 @@
 import fileSystem from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { legacyIO } from '../../scripts/legacy.mjs';
 
 export const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 
 export function auditSources(root = packageRoot, io = fileSystem) {
-    const fs = io;
+    // Historical inputs come from the authenticated Git snapshot, never the
+    // removable archive directory. Synthetic fixtures retain their injected IO.
+    const fs = path.resolve(root) === packageRoot ? legacyIO(root, io) : io;
     const walk = directory => fs.readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
         const full = path.join(directory, entry.name);
         return entry.isDirectory() ? walk(full) : [full];

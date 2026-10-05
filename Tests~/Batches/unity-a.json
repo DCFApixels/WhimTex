@@ -2618,6 +2618,55 @@
             ]
           },
           "reviewFiles": []
+        },
+        {
+          "id": "color-picker-eyedropper-native-inspection-v2",
+          "file": "Tests~/Cases/UnityA/ColorPickerEyedropperTests.cs",
+          "runner": "run_script",
+          "entry": "ColorPickerEyedropperTests.StartNativeInspection",
+          "args": [
+            "$runId"
+          ],
+          "category": "diagnostic",
+          "timeoutMs": 60000,
+          "effects": [
+            "temp-files",
+            "windows",
+            "user-state"
+          ],
+          "groups": [
+            "unity-a"
+          ],
+          "prerequisites": "Idle graphical Test6.6 Editor with current WhimTex package; review source and declared effects. Parent serializes verification. Human-approved test-only UnityEditor.EyeDropper bindings for exact legacy coverage; no existing picker or native eyedropper session.",
+          "setup": "Opt-in 15-second original manual fixture: Color.red/hdr=false/alpha=true/Switchable, 200ms pointer, 1200ms full-frame PNG. InspectNativeSession(runId) is a repeatable live getter across fresh Pipeline assemblies. Supplemental fixture/capture/lifecycle checks do not certify native sampling lifetime or visual equivalence.",
+          "teardown": "At 15s or cancellation, join owned cleanup; stop only the owned native session, close only the test-created picker, detach pointer/update/IMGUI/scheduler callbacks, retain PNG/state under the owned GUID artifact directory. Cancellation/cleanup timeouts retain recoveryRequired and the exact GUID carrier.",
+          "result": {
+            "kind": "structured"
+          },
+          "supportFiles": [
+            "Tests~/Framework/TestApi.cs",
+            "Tests~/Cases/UnityA/UnityAScope.cs"
+          ],
+          "async": {
+            "entry": "ColorPickerEyedropperTests.PollNativeInspection",
+            "args": [
+              "$runId"
+            ],
+            "pollMs": 200
+          },
+          "cancel": {
+            "entry": "ColorPickerEyedropperTests.CancelNativeInspection",
+            "args": [
+              "$runId"
+            ]
+          },
+          "cleanup": {
+            "entry": "ColorPickerEyedropperTests.CleanupNativeInspection",
+            "args": [
+              "$runId"
+            ]
+          },
+          "reviewFiles": []
         }
       ],
       "coverage": [
@@ -4512,7 +4561,8 @@
           "timeoutMs": 60000,
           "effects": [
             "windows",
-            "user-state"
+            "user-state",
+            "temp-files"
           ],
           "groups": [
             "unity-a"

@@ -4,7 +4,7 @@ import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
-import { verifyLegacy, createLegacyMirror } from './legacy.mjs';
+import { archiveMetadata } from './legacy.mjs';
 import { resultMarker } from '../Framework/test-api.mjs';
 
 export const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
@@ -41,10 +41,14 @@ export function validateCatalog(catalog, packageRoot = root) {
         ids.add(s.id);
         if (s.reviewFiles !== undefined && !Array.isArray(s.reviewFiles) || s.requiresUnity !== undefined && typeof s.requiresUnity !== 'boolean') throw Error('Invalid review/prerequisite metadata: ' + s.id);
         if (!Array.isArray(s.groups) || !s.groups.length || s.groups.some(group => !/^[a-z0-9-]+$/.test(group))) throw Error('Missing/invalid groups: ' + s.id);
-        if (s.legacy !== undefined && typeof s.legacy !== 'boolean' || s.file.startsWith('Tests~/Legacy/') !== Boolean(s.legacy)) throw Error('Archive invocation must explicitly declare legacy: ' + s.id);
+        if (s.legacy !== undefined || s.file.startsWith('Tests~/Legacy/')) throw Error('Retired archive scenarios are not executable: ' + s.id);
         if (s.supportFiles !== undefined && (!Array.isArray(s.supportFiles) || s.runner !== 'run_script' || s.supportFiles.some(file => !file.endsWith('.cs')))) throw Error('Invalid support files: ' + s.id);
-        if (s.legacy && (!s.file.startsWith('Tests~/Legacy/') || s.supportFiles || s.runner === 'node' && s.requiresUnity)) throw Error('Unsupported legacy invocation: ' + s.id);
         for (const file of [s.file, ...(s.supportFiles ?? []), ...(s.reviewFiles ?? [])]) {
+            if (typeof file === 'string') {
+                const normalized = path.relative(packageRoot, path.resolve(packageRoot, file)).replaceAll('\\', '/');
+                if (normalized === 'Tests~/Legacy' || normalized.startsWith('Tests~/Legacy/'))
+                    throw Error('Retired archive dependencies are not executable: ' + s.id);
+            }
             const dependency = (s.reviewFiles ?? []).includes(file);
             // The portable format writer is compiled from CURRENT source for its internal unit tests.
             const formatWriter = (s.supportFiles ?? []).includes(file) && file === 'src/PsdWriter.cs';
@@ -56,12 +60,12 @@ export function validateCatalog(catalog, packageRoot = root) {
         const playerWorkflow = s.workflow === 'player-build';
         const nativeFixtureWorkflow = s.workflow === 'native-fixture';
         const diagnosticWorkflow = s.workflow === 'diagnostic';
-        if (diagnosticWorkflow && (s.legacy || s.category !== 'diagnostic' || s.runner !== 'run_script'))
+        if (diagnosticWorkflow && (s.category !== 'diagnostic' || s.runner !== 'run_script'))
             throw Error('Long diagnostic workflow must be an independent native diagnostic: ' + s.id);
-        if (playerWorkflow && (s.runner !== 'node' || s.requiresUnity !== true || s.legacy ||
+        if (playerWorkflow && (s.runner !== 'node' || s.requiresUnity !== true ||
             !['assets', 'temp-files', 'player-build'].every(effect => s.effects.includes(effect))))
             throw Error('Player workflow must be independent, Unity-backed and explicitly declare asset/build effects: ' + s.id);
-        if (nativeFixtureWorkflow && (s.runner !== 'node' || s.requiresUnity !== true || s.legacy || s.category !== 'regression' ||
+        if (nativeFixtureWorkflow && (s.runner !== 'node' || s.requiresUnity !== true || s.category !== 'regression' ||
             !['assets', 'temp-files'].every(effect => s.effects.includes(effect)) || s.effects.includes('player-build')))
             throw Error('Native fixture workflow requires an independent Unity regression and explicit fixture effects: ' + s.id);
         // Builds can legitimately exceed a short script budget. Only the explicit,
@@ -73,23 +77,13 @@ export function validateCatalog(catalog, packageRoot = root) {
         if (s.effects.includes('player-build') && !playerWorkflow) throw Error('Player build effect requires its explicit workflow: ' + s.id);
         const validEntry = entry => typeof entry === 'string' && /^[\w.]+$/.test(entry);
         if (s.runner === 'run_script' && !validEntry(s.entry) || s.runner === 'eval_file' && (s.entry || s.args.length)) throw Error('Invalid entry: ' + s.id);
-        if (s.runner === 'node' && !['exit-code', 'structured'].includes(s.result?.kind) || s.runner !== 'node' && !['text', 'json-success', 'structured'].includes(s.result?.kind)) throw Error('Invalid result protocol: ' + s.id);
-        if (!s.legacy && s.result.kind !== 'structured') throw Error('New scenarios require structured results: ' + s.id);
+        if (s.result?.kind !== 'structured') throw Error('Active scenarios require structured results: ' + s.id);
         if (s.runner !== 'node' && !s.file.endsWith('.cs') || s.runner === 'node' && !s.file.endsWith('.mjs')) throw Error('Runner/file mismatch: ' + s.id);
-        if (s.result.kind === 'text') {
-            if (typeof s.result.pass !== 'string' || !s.result.pass.startsWith('^')) throw Error('Missing anchored pass: ' + s.id);
-            new RegExp(s.result.pass);
-        }
         if (s.async) {
             if (s.runner !== 'run_script' || !validEntry(s.async.entry) || !Array.isArray(s.async.args) || !Number.isSafeInteger(s.async.pollMs) || s.async.pollMs < 100 || s.async.pollMs > 5000) throw Error('Invalid async protocol: ' + s.id);
-            for (const pattern of s.result.kind === 'structured' ? [] : [s.async.started, s.result.pending]) {
-                if (typeof pattern !== 'string' || !pattern.startsWith('^')) throw Error('Missing anchored async pattern: ' + s.id);
-                new RegExp(pattern);
-            }
         }
         if (s.cleanup) {
-            if (s.runner !== 'run_script' || !validEntry(s.cleanup.entry) || !Array.isArray(s.cleanup.args) || s.result.kind !== 'structured' && (typeof s.cleanup.pass !== 'string' || !s.cleanup.pass.startsWith('^'))) throw Error('Invalid cleanup: ' + s.id);
-            if (s.result.kind !== 'structured') new RegExp(s.cleanup.pass);
+            if (s.runner !== 'run_script' || !validEntry(s.cleanup.entry) || !Array.isArray(s.cleanup.args)) throw Error('Invalid cleanup: ' + s.id);
         }
         if (s.cancel && (!s.async || s.result.kind !== 'structured' || !validEntry(s.cancel.entry) || !Array.isArray(s.cancel.args))) throw Error('Invalid cancellation: ' + s.id);
     }
@@ -118,7 +112,7 @@ export function reviewFingerprint(scenarios, packageRoot = root) {
     for (const file of files) hash.update(file).update(fs.readFileSync(path.join(packageRoot, file)));
     // The dispatcher contract participates in every review receipt.
     hash.update(fs.readFileSync(path.join(packageRoot, 'Tests~/scripts/run-tests.mjs')));
-    for (const file of ['Tests~/scripts/legacy.mjs', 'Tests~/Framework/test-api.mjs', 'Tests~/Framework/TestApi.cs', 'Tests~/Framework/EntryContract.cs', 'Tests~/legacy-manifest.json', 'Tests~/migration.json', 'Tests~/scripts/check-migration.mjs']) hash.update(fs.readFileSync(path.join(packageRoot, file)));
+    for (const file of ['Tests~/scripts/legacy.mjs', 'Tests~/Framework/test-api.mjs', 'Tests~/Framework/TestApi.cs', 'Tests~/Framework/EntryContract.cs', 'Tests~/legacy-manifest.json', 'Tests~/archive-descriptor.json']) hash.update(fs.readFileSync(path.join(packageRoot, file)));
     return hash.digest('hex');
 }
 
@@ -320,7 +314,10 @@ function options(argv) {
 
 export async function main(argv = process.argv.slice(2)) {
     const opt = options(argv);
-    const archive = verifyLegacy();
+    const metadata = archiveMetadata();
+    const archive = { files: metadata.descriptor.files, baselineCommit: metadata.manifest.baselineCommit,
+        manifestHash: metadata.manifestHash, source: 'pinned-git-reference',
+        recoveryCommit: metadata.descriptor.commit, contentsVerified: false };
     const catalog = validateCatalog(JSON.parse(fs.readFileSync(catalogPath, 'utf8')));
     const scenarios = selectScenarios(catalog, opt);
     const fingerprint = reviewFingerprint(scenarios);
@@ -330,19 +327,16 @@ export async function main(argv = process.argv.slice(2)) {
         return 0;
     }
     if (!opt.run && !opt.compile && !opt['check-entries']) {
-        const known = new Set(catalog.scenarios.map(s => s.file));
-        const uncatalogued = JSON.parse(fs.readFileSync(path.join(root, 'Tests~/legacy-manifest.json'), 'utf8')).files
-            .filter(entry => /\.(cs|mjs|cjs)$/.test(entry.file) && !known.has('Tests~/Legacy/' + entry.file)).map(entry => entry.file);
-        console.log(JSON.stringify({ scope: catalog.scope, profiles: catalog.profiles, scenarios, archive, uncatalogued,
-            note: 'Uncatalogued files may be regressions, diagnostics or manual helpers; no runner is inferred.' }, null, 2));
+        console.log(JSON.stringify({ scope: catalog.scope, profiles: catalog.profiles, scenarios, archive,
+            note: 'Only independent registered scenarios are executable. Archive contents are verified separately by archive-integrity from the pinned Git snapshot.' }, null, 2));
         return 0;
     }
     if (!opt.profile && !opt.id && !opt.ids && !opt.group && !opt.all) throw Error('Verification requires an explicit selector.');
     if (opt.reviewed !== fingerprint) throw Error('Read --review output first, then pass its current fingerprint with --reviewed.');
     const allowed = new Set((opt['allow-effects'] ?? '').split(',').filter(Boolean));
     if (opt.run) for (const s of scenarios) for (const effect of s.effects) if (!allowed.has(effect)) throw Error(s.id + ' requires --allow-effects ' + effect + ' and existing user authority.');
-    if (opt.compile && scenarios.some(s => s.legacy || s.runner === 'eval_file')) throw Error('Compile-only accepts independent sources only; no legacy snippets or original-layout executions.');
-    if (opt['check-entries'] && scenarios.some(s => s.legacy || s.runner !== 'run_script')) throw Error('Entry validation accepts independent C# cases only, never runs domain bodies.');
+    if (opt.compile && scenarios.some(s => s.runner === 'eval_file')) throw Error('Compile-only does not accept executable snippets.');
+    if (opt['check-entries'] && scenarios.some(s => s.runner !== 'run_script')) throw Error('Entry validation accepts independent C# cases only, never runs domain bodies.');
     const hasUnity = scenarios.some(s => s.runner !== 'node' || !opt.compile && s.requiresUnity);
     const inferredProject = path.resolve(root, '../..');
     const projectPath = opt['project-path'] ? path.resolve(opt['project-path'])
@@ -375,15 +369,9 @@ export async function main(argv = process.argv.slice(2)) {
         }
         const runId = randomUUID();
         const bundles = new Map();
-        let mirror;
         const invoke = async (s, entry, args, budgetMs) => {
             args = args.map(value => value === '$runId' ? runId : value === '$projectPath' ? projectPath : value);
             if (s.runner === 'node') {
-                if (s.legacy) {
-                    mirror ??= await createLegacyMirror(path.join(directory, 'legacy-node-' + runId), root, runProcess);
-                    report.legacyNodeMirror = mirror;
-                    return runProcess(process.execPath, [path.join(mirror.directory, s.file.replace('Tests~/Legacy/', 'Tests~/')), ...args], { cwd: mirror.directory, timeoutMs: budgetMs });
-                }
                 return runProcess(process.execPath, [...(opt.compile ? ['--check'] : []), path.join(root, s.file), ...args], { timeoutMs: budgetMs });
             }
             let invocation = s;
@@ -404,7 +392,7 @@ export async function main(argv = process.argv.slice(2)) {
         };
         for (const s of scenarios) {
             if (reviewFingerprint(scenarios) !== fingerprint) throw Error('Reviewed source changed during the run; stopping before next scenario.');
-            verifyLegacy();
+            archiveMetadata();
             if (productionFingerprint() !== report.productionFingerprint) throw Error('Production sources changed during the run; stopping before next scenario.');
             const compileStarted = Date.now();
             const compileReply = opt.compile || opt['check-entries'] ? await invoke(s, s.entry, s.args, s.timeoutMs) : null;

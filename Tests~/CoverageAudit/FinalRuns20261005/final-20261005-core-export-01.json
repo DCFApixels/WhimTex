@@ -1,0 +1,424 @@
+{
+  "version": 2,
+  "action": "run",
+  "startedAt": "2026-10-05T05:05:59.944Z",
+  "projectPath": "D:\\DCFA\\Projects\\Test6.6",
+  "fingerprint": "05ea73b7938f4cd19f86643852f56eec2029f94adfa7b0ee26755782268f74ee",
+  "archive": {
+    "files": 466,
+    "baselineCommit": "1269df51866959744a4b0763453eb667aefe6d8e",
+    "manifestHash": "c70816ea4220d9ebe08d4d2d087d7e5297bd943405bb3297e24f4b69756a6194",
+    "source": "pinned-git-reference",
+    "recoveryCommit": "ca8603c0961ce36064280f952259f8a6142d46cc",
+    "contentsVerified": false
+  },
+  "productionFingerprint": "a3da14871f6e0bf5c49a6f077b1026720e0fb2d3c28a49213dd715f3dd2b7738",
+  "selected": [
+    "entry-contract",
+    "async-protocol-v2",
+    "test-api-contract",
+    "async-lifecycle-v2",
+    "psd-writer-fixture-v2",
+    "psd-reader-roundtrip-v2",
+    "display-channels-v2",
+    "canonical-reader-v2"
+  ],
+  "environment": {
+    "status": "ready",
+    "compiling": false,
+    "domainReloadInProgress": false,
+    "playMode": "stopped",
+    "lastHeartbeat": "2026-10-05T05:06:00.2350844Z",
+    "projectPath": "D:\\DCFA\\Projects\\Test6.6",
+    "unityVersion": "6000.7.0a6"
+  },
+  "results": [
+    {
+      "id": "entry-contract",
+      "file": "Tests~/Cases/Runner/EntryContractTests.cs",
+      "runner": "run_script",
+      "category": "runner",
+      "status": "passed",
+      "detail": "Entry binding validation does not execute test bodies",
+      "uncertain": false,
+      "testResult": {
+        "status": "passed",
+        "checks": 10,
+        "message": "Entry binding validation does not execute test bodies",
+        "failures": []
+      },
+      "durationMs": 258,
+      "attempts": [
+        {
+          "phase": "result",
+          "entry": "EntryContractTests.Run",
+          "reply": {
+            "code": 0,
+            "stdout": "{\n  \"success\": true,\n  \"command\": \"command run_script\",\n  \"data\": {\n    \"command\": \"run_script\",\n    \"parameters\": {\n      \"file\": \"Temp/WhimTex/test-runs/input-9eb23c63-82a9-4ccf-8f0c-fdf0e6df5347-entry-contract.cs\",\n      \"entry\": \"EntryContractTests.Run\",\n      \"args\": \"[]\",\n      \"timeout_ms\": 29000\n    },\n    \"result\": {\n      \"diagnostics\": [],\n      \"compileMs\": 62,\n      \"executeMs\": 15,\n      \"assemblyName\": \"PipelineRunScript_input-9eb23c63-82a9-4ccf-8f0c-fdf0e6df5347-entry-contract_89d2ce57883048e5a5415f550505a729\",\n      \"success\": true,\n      \"result\": \"{\\\"status\\\":\\\"passed\\\",\\\"checks\\\":10,\\\"message\\\":\\\"Entry binding validation does not execute test bodies\\\",\\\"failures\\\":[]}\"\n    },\n    \"target\": {\n      \"host\": \"127.0.0.1\",\n      \"port\": 7800,\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\"\n    },\n    \"success\": true\n  },\n  \"errors\": [],\n  \"warnings\": []\n}\n",
+            "stderr": "",
+            "timedOut": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "async-protocol-v2",
+      "file": "Tests~/Cases/Runner/AsyncProtocol.cs",
+      "runner": "run_script",
+      "category": "runner",
+      "status": "passed",
+      "detail": "Polling reached terminal state",
+      "uncertain": false,
+      "testResult": {
+        "status": "passed",
+        "checks": 1,
+        "message": "Polling reached terminal state",
+        "failures": []
+      },
+      "durationMs": 1404,
+      "attempts": [
+        {
+          "phase": "start",
+          "entry": "AsyncProtocolTests.Start",
+          "reply": {
+            "code": 0,
+            "stdout": "{\n  \"success\": true,\n  \"command\": \"command run_script\",\n  \"data\": {\n    \"command\": \"run_script\",\n    \"parameters\": {\n      \"file\": \"Temp/WhimTex/test-runs/input-9eb23c63-82a9-4ccf-8f0c-fdf0e6df5347-async-protocol-v2.cs\",\n      \"entry\": \"AsyncProtocolTests.Start\",\n      \"args\": \"[\\\"9eb23c63-82a9-4ccf-8f0c-fdf0e6df5347\\\"]\",\n      \"timeout_ms\": 45000\n    },\n    \"result\": {\n      \"diagnostics\": [],\n      \"compileMs\": 69,\n      \"executeMs\": 2,\n      \"assemblyName\": \"PipelineRunScript_input-9eb23c63-82a9-4ccf-8f0c-fdf0e6df5347-async-protocol-v2_d6255cf5bd994676a1d7cee076d09e4c\",\n      \"success\": true,\n      \"result\": \"{\\\"status\\\":\\\"running\\\",\\\"checks\\\":0,\\\"message\\\":\\\"Started\\\",\\\"failures\\\":[]}\"\n    },\n    \"target\": {\n      \"host\": \"127.0.0.1\",\n      \"port\": 7800,\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\"\n    },\n    \"success\": true\n  },\n  \"errors\": [],\n  \"warnings\": []\n}\n",
+            "stderr": "",
+            "timedOut": false
+          }
+        },
+        {
+          "phase": "result",
+          "entry": "AsyncProtocolTests.Poll",
+          "reply": {
+            "code": 0,
+            "stdout": "{\n  \"success\": true,\n  \"command\": \"command run_script\",\n  \"data\": {\n    \"command\": \"run_script\",\n    \"parameters\": {\n      \"file\": \"Temp/WhimTex/test-runs/input-9eb23c63-82a9-4ccf-8f0c-fdf0e6df5347-async-protocol-v2.cs\",\n      \"entry\": \"AsyncProtocolTests.Poll\",\n      \"args\": \"[\\\"9eb23c63-82a9-4ccf-8f0c-fdf0e6df5347\\\"]\",\n      \"timeout_ms\": 45000\n    },\n    \"result\": {\n      \"diagnostics\": [],\n      \"compileMs\": 66,\n      \"executeMs\": 1,\n      \"assemblyName\": \"PipelineRunScript_input-9eb23c63-82a9-4ccf-8f0c-fdf0e6df5347-async-protocol-v2_a90eebd25b1a49a784ded08e6c3daed2\",\n      \"success\": true,\n      \"result\": \"{\\\"status\\\":\\\"running\\\",\\\"checks\\\":0,\\\"message\\\":\\\"First poll\\\",\\\"failures\\\":[]}\"\n    },\n    \"target\": {\n      \"host\": \"127.0.0.1\",\n      \"port\": 7800,\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\"\n    },\n    \"success\": true\n  },\n  \"errors\": [],\n  \"warnings\": []\n}\n",
+            "stderr": "",
+            "timedOut": false
+          }
+        },
+        {
+          "phase": "result",
+          "entry": "AsyncProtocolTests.Poll",
+          "reply": {
+            "code": 0,
+            "stdout": "{\n  \"success\": true,\n  \"command\": \"command run_script\",\n  \"data\": {\n    \"command\": \"run_script\",\n    \"parameters\": {\n      \"file\": \"Temp/WhimTex/test-runs/input-9eb23c63-82a9-4ccf-8f0c-fdf0e6df5347-async-protocol-v2.cs\",\n      \"entry\": \"AsyncProtocolTests.Poll\",\n      \"args\": \"[\\\"9eb23c63-82a9-4ccf-8f0c-fdf0e6df5347\\\"]\",\n      \"timeout_ms\": 45000\n    },\n    \"result\": {\n      \"diagnostics\": [],\n      \"compileMs\": 61,\n      \"executeMs\": 1,\n      \"assemblyName\": \"PipelineRunScript_input-9eb23c63-82a9-4ccf-8f0c-fdf0e6df5347-async-protocol-v2_11b763e151684fa5babb6f4fcf093407\",\n      \"success\": true,\n      \"result\": \"{\\\"status\\\":\\\"passed\\\",\\\"checks\\\":1,\\\"message\\\":\\\"Polling reached terminal state\\\",\\\"failures\\\":[]}\"\n    },\n    \"target\": {\n      \"host\": \"127.0.0.1\",\n      \"port\": 7800,\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\"\n    },\n    \"success\": true\n  },\n  \"errors\": [],\n  \"warnings\": []\n}\n",
+            "stderr": "",
+            "timedOut": false
+          }
+        },
+        {
+          "phase": "cleanup",
+          "entry": "AsyncProtocolTests.Cleanup",
+          "reply": {
+            "code": 0,
+            "stdout": "{\n  \"success\": true,\n  \"command\": \"command run_script\",\n  \"data\": {\n    \"command\": \"run_script\",\n    \"parameters\": {\n      \"file\": \"Temp/WhimTex/test-runs/input-9eb23c63-82a9-4ccf-8f0c-fdf0e6df5347-async-protocol-v2.cs\",\n      \"entry\": \"AsyncProtocolTests.Cleanup\",\n      \"args\": \"[\\\"9eb23c63-82a9-4ccf-8f0c-fdf0e6df5347\\\"]\",\n      \"timeout_ms\": 9000\n    },\n    \"result\": {\n      \"diagnostics\": [],\n      \"compileMs\": 65,\n      \"executeMs\": 3,\n      \"assemblyName\": \"PipelineRunScript_input-9eb23c63-82a9-4ccf-8f0c-fdf0e6df5347-async-protocol-v2_7645ba2fd83845eb9a8e2d5110e84afd\",\n      \"success\": true,\n      \"result\": \"{\\\"status\\\":\\\"passed\\\",\\\"checks\\\":1,\\\"message\\\":\\\"Own run state erased\\\",\\\"failures\\\":[]}\"\n    },\n    \"target\": {\n      \"host\": \"127.0.0.1\",\n      \"port\": 7800,\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\"\n    },\n    \"success\": true\n  },\n  \"errors\": [],\n  \"warnings\": []\n}\n",
+            "stderr": "",
+            "timedOut": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "test-api-contract",
+      "file": "Tests~/Cases/Runner/TestApiContract.cs",
+      "runner": "run_script",
+      "category": "runner",
+      "status": "passed",
+      "detail": "Common C# assertion and result contract",
+      "uncertain": false,
+      "testResult": {
+        "status": "passed",
+        "checks": 11,
+        "message": "Common C# assertion and result contract",
+        "failures": []
+      },
+      "durationMs": 401,
+      "attempts": [
+        {
+          "phase": "result",
+          "entry": "TestApiContractTests.Run",
+          "reply": {
+            "code": 0,
+            "stdout": "{\n  \"success\": true,\n  \"command\": \"command run_script\",\n  \"data\": {\n    \"command\": \"run_script\",\n    \"parameters\": {\n      \"file\": \"Temp/WhimTex/test-runs/input-9eb23c63-82a9-4ccf-8f0c-fdf0e6df5347-test-api-contract.cs\",\n      \"entry\": \"TestApiContractTests.Run\",\n      \"args\": \"[]\",\n      \"timeout_ms\": 45000\n    },\n    \"result\": {\n      \"diagnostics\": [],\n      \"compileMs\": 63,\n      \"executeMs\": 17,\n      \"assemblyName\": \"PipelineRunScript_input-9eb23c63-82a9-4ccf-8f0c-fdf0e6df5347-test-api-contract_215f5750f61b473ca3f2b83da8c9a89d\",\n      \"success\": true,\n      \"result\": \"{\\\"status\\\":\\\"passed\\\",\\\"checks\\\":11,\\\"message\\\":\\\"Common C# assertion and result contract\\\",\\\"failures\\\":[]}\"\n    },\n    \"target\": {\n      \"host\": \"127.0.0.1\",\n      \"port\": 7800,\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\"\n    },\n    \"success\": true\n  },\n  \"errors\": [],\n  \"warnings\": []\n}\n",
+            "stderr": "",
+            "timedOut": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "async-lifecycle-v2",
+      "file": "Tests~/Cases/Runner/AsyncProtocol.cs",
+      "runner": "run_script",
+      "category": "runner",
+      "status": "passed",
+      "detail": "Async start/poll/cancel/cleanup lifecycle",
+      "uncertain": false,
+      "testResult": {
+        "status": "passed",
+        "checks": 8,
+        "message": "Async start/poll/cancel/cleanup lifecycle",
+        "failures": []
+      },
+      "durationMs": 282,
+      "attempts": [
+        {
+          "phase": "result",
+          "entry": "AsyncProtocolTests.Lifecycle",
+          "reply": {
+            "code": 0,
+            "stdout": "{\n  \"success\": true,\n  \"command\": \"command run_script\",\n  \"data\": {\n    \"command\": \"run_script\",\n    \"parameters\": {\n      \"file\": \"Temp/WhimTex/test-runs/input-9eb23c63-82a9-4ccf-8f0c-fdf0e6df5347-async-lifecycle-v2.cs\",\n      \"entry\": \"AsyncProtocolTests.Lifecycle\",\n      \"args\": \"[]\",\n      \"timeout_ms\": 45000\n    },\n    \"result\": {\n      \"diagnostics\": [],\n      \"compileMs\": 70,\n      \"executeMs\": 11,\n      \"assemblyName\": \"PipelineRunScript_input-9eb23c63-82a9-4ccf-8f0c-fdf0e6df5347-async-lifecycle-v2_a4f2a574ef724fedaf31e4463191cb59\",\n      \"success\": true,\n      \"result\": \"{\\\"status\\\":\\\"passed\\\",\\\"checks\\\":8,\\\"message\\\":\\\"Async start/poll/cancel/cleanup lifecycle\\\",\\\"failures\\\":[]}\"\n    },\n    \"target\": {\n      \"host\": \"127.0.0.1\",\n      \"port\": 7800,\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\"\n    },\n    \"success\": true\n  },\n  \"errors\": [],\n  \"warnings\": []\n}\n",
+            "stderr": "",
+            "timedOut": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "psd-writer-fixture-v2",
+      "file": "Tests~/Cases/Export/PsdWriter.cs",
+      "runner": "run_script",
+      "category": "regression",
+      "status": "passed",
+      "detail": "Independent-reader fixture: D:\\DCFA\\Projects\\Test6.6\\Temp/WhimTex/test-runs\\psd-writer-9eb23c63-82a9-4ccf-8f0c-fdf0e6df5347.psd",
+      "uncertain": false,
+      "testResult": {
+        "status": "passed",
+        "checks": 70,
+        "message": "Independent-reader fixture: D:\\DCFA\\Projects\\Test6.6\\Temp/WhimTex/test-runs\\psd-writer-9eb23c63-82a9-4ccf-8f0c-fdf0e6df5347.psd",
+        "failures": []
+      },
+      "durationMs": 367,
+      "attempts": [
+        {
+          "phase": "result",
+          "entry": "PsdWriterTests.RunFixture",
+          "reply": {
+            "code": 0,
+            "stdout": "{\n  \"success\": true,\n  \"command\": \"command run_script\",\n  \"data\": {\n    \"command\": \"run_script\",\n    \"parameters\": {\n      \"file\": \"Temp/WhimTex/test-runs/input-9eb23c63-82a9-4ccf-8f0c-fdf0e6df5347-psd-writer-fixture-v2.cs\",\n      \"entry\": \"PsdWriterTests.RunFixture\",\n      \"args\": \"[\\\"9eb23c63-82a9-4ccf-8f0c-fdf0e6df5347\\\"]\",\n      \"timeout_ms\": 45000\n    },\n    \"result\": {\n      \"diagnostics\": [\n        {\n          \"severity\": \"warning\",\n          \"message\": \"Field 'PsdWriter.LayerRecord.id' is never assigned to, and will always have its default value 0\",\n          \"line\": 234,\n          \"column\": 24,\n          \"id\": \"CS0649\"\n        }\n      ],\n      \"compileMs\": 141,\n      \"executeMs\": 18,\n      \"assemblyName\": \"PipelineRunScript_input-9eb23c63-82a9-4ccf-8f0c-fdf0e6df5347-psd-writer-fixture-v2_0175d1b545db4538b201e08cf8ce7571\",\n      \"success\": true,\n      \"result\": \"{\\\"status\\\":\\\"passed\\\",\\\"checks\\\":70,\\\"message\\\":\\\"Independent-reader fixture: D:\\\\\\\\DCFA\\\\\\\\Projects\\\\\\\\Test6.6\\\\\\\\Temp/WhimTex/test-runs\\\\\\\\psd-writer-9eb23c63-82a9-4ccf-8f0c-fdf0e6df5347.psd\\\",\\\"failures\\\":[]}\"\n    },\n    \"target\": {\n      \"host\": \"127.0.0.1\",\n      \"port\": 7800,\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\"\n    },\n    \"success\": true\n  },\n  \"errors\": [],\n  \"warnings\": []\n}\n",
+            "stderr": "",
+            "timedOut": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "psd-reader-roundtrip-v2",
+      "file": "Tests~/Cases/Export/PsdReaderWorkflow.mjs",
+      "runner": "node",
+      "category": "regression",
+      "status": "passed",
+      "detail": "Encode current PSD and decode it with the independently installed reader",
+      "uncertain": false,
+      "testResult": {
+        "status": "passed",
+        "checks": 78,
+        "message": "Encode current PSD and decode it with the independently installed reader",
+        "failures": [],
+        "cases": [
+          {
+            "name": "Original hierarchy/descriptor/RGBA/matte reader assertions",
+            "status": "passed"
+          }
+        ],
+        "facts": {
+          "input": {
+            "file": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\psd-reader-input-4be5fddc-7973-4ffa-a55b-3f4e289acec3.cs",
+            "sha256": "3b625d3db30064743e7714d4ff345b444fad6c63751d95c2da4de9847ad4cad3"
+          },
+          "decoder": {
+            "modulePath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\psd-reader-20261005-9c771397\\node_modules\\ag-psd\\dist\\index.js",
+            "sha256": "9f0b91b2e5f20af4d2be5609bbe0417d6585cb476c00812bda9c92936c5a928a"
+          },
+          "producer": {
+            "id": "reader-owned-fixture",
+            "file": "..\\..\\Temp\\WhimTex\\test-runs\\psd-reader-input-4be5fddc-7973-4ffa-a55b-3f4e289acec3.cs",
+            "runner": "run_script",
+            "status": "passed",
+            "detail": "Independent-reader fixture: D:\\DCFA\\Projects\\Test6.6\\Temp/WhimTex/test-runs\\psd-writer-4be5fddc-7973-4ffa-a55b-3f4e289acec3.psd",
+            "uncertain": false,
+            "testResult": {
+              "status": "passed",
+              "checks": 70,
+              "message": "Independent-reader fixture: D:\\DCFA\\Projects\\Test6.6\\Temp/WhimTex/test-runs\\psd-writer-4be5fddc-7973-4ffa-a55b-3f4e289acec3.psd",
+              "failures": []
+            },
+            "durationMs": 490,
+            "attempts": [
+              {
+                "phase": "result",
+                "entry": "PsdWriterTests.RunFixture",
+                "reply": {
+                  "code": 0,
+                  "stdout": "{\n  \"success\": true,\n  \"command\": \"command run_script\",\n  \"data\": {\n    \"command\": \"run_script\",\n    \"parameters\": {\n      \"file\": \"Temp/WhimTex/test-runs/psd-reader-input-4be5fddc-7973-4ffa-a55b-3f4e289acec3.cs\",\n      \"entry\": \"PsdWriterTests.RunFixture\",\n      \"args\": \"[\\\"4be5fddc-7973-4ffa-a55b-3f4e289acec3\\\"]\",\n      \"timeout_ms\": 19000\n    },\n    \"result\": {\n      \"diagnostics\": [\n        {\n          \"severity\": \"warning\",\n          \"message\": \"Field 'PsdWriter.LayerRecord.id' is never assigned to, and will always have its default value 0\",\n          \"line\": 234,\n          \"column\": 24,\n          \"id\": \"CS0649\"\n        }\n      ],\n      \"compileMs\": 190,\n      \"executeMs\": 17,\n      \"assemblyName\": \"PipelineRunScript_psd-reader-input-4be5fddc-7973-4ffa-a55b-3f4e289acec3_8a3906033e72499c8a2f29a440d8085a\",\n      \"success\": true,\n      \"result\": \"{\\\"status\\\":\\\"passed\\\",\\\"checks\\\":70,\\\"message\\\":\\\"Independent-reader fixture: D:\\\\\\\\DCFA\\\\\\\\Projects\\\\\\\\Test6.6\\\\\\\\Temp/WhimTex/test-runs\\\\\\\\psd-writer-4be5fddc-7973-4ffa-a55b-3f4e289acec3.psd\\\",\\\"failures\\\":[]}\"\n    },\n    \"target\": {\n      \"host\": \"127.0.0.1\",\n      \"port\": 7800,\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\"\n    },\n    \"success\": true\n  },\n  \"errors\": [],\n  \"warnings\": []\n}\n",
+                  "stderr": "",
+                  "timedOut": false
+                }
+              }
+            ]
+          },
+          "decoderResult": {
+            "status": "passed",
+            "detail": "Independent PSD reader roundtrip",
+            "uncertain": false,
+            "testResult": {
+              "status": "passed",
+              "checks": 72,
+              "message": "Independent PSD reader roundtrip",
+              "failures": [],
+              "cases": [
+                {
+                  "name": "Hierarchy/Unicode/fills/gradient/stroke/mask/RGBA/merged matte",
+                  "status": "passed"
+                }
+              ],
+              "facts": {}
+            }
+          },
+          "fixture": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\psd-writer-4be5fddc-7973-4ffa-a55b-3f4e289acec3.psd"
+        }
+      },
+      "durationMs": 614,
+      "attempts": [
+        {
+          "phase": "result",
+          "entry": null,
+          "reply": {
+            "code": 0,
+            "stdout": "WHIMTEX_TEST_RESULT {\"status\":\"passed\",\"checks\":78,\"message\":\"Encode current PSD and decode it with the independently installed reader\",\"failures\":[],\"cases\":[{\"name\":\"Original hierarchy/descriptor/RGBA/matte reader assertions\",\"status\":\"passed\"}],\"facts\":{\"input\":{\"file\":\"D:\\\\DCFA\\\\Projects\\\\Test6.6\\\\Temp\\\\WhimTex\\\\test-runs\\\\psd-reader-input-4be5fddc-7973-4ffa-a55b-3f4e289acec3.cs\",\"sha256\":\"3b625d3db30064743e7714d4ff345b444fad6c63751d95c2da4de9847ad4cad3\"},\"decoder\":{\"modulePath\":\"D:\\\\DCFA\\\\Projects\\\\Test6.6\\\\Temp\\\\WhimTex\\\\psd-reader-20261005-9c771397\\\\node_modules\\\\ag-psd\\\\dist\\\\index.js\",\"sha256\":\"9f0b91b2e5f20af4d2be5609bbe0417d6585cb476c00812bda9c92936c5a928a\"},\"producer\":{\"id\":\"reader-owned-fixture\",\"file\":\"..\\\\..\\\\Temp\\\\WhimTex\\\\test-runs\\\\psd-reader-input-4be5fddc-7973-4ffa-a55b-3f4e289acec3.cs\",\"runner\":\"run_script\",\"status\":\"passed\",\"detail\":\"Independent-reader fixture: D:\\\\DCFA\\\\Projects\\\\Test6.6\\\\Temp/WhimTex/test-runs\\\\psd-writer-4be5fddc-7973-4ffa-a55b-3f4e289acec3.psd\",\"uncertain\":false,\"testResult\":{\"status\":\"passed\",\"checks\":70,\"message\":\"Independent-reader fixture: D:\\\\DCFA\\\\Projects\\\\Test6.6\\\\Temp/WhimTex/test-runs\\\\psd-writer-4be5fddc-7973-4ffa-a55b-3f4e289acec3.psd\",\"failures\":[]},\"durationMs\":490,\"attempts\":[{\"phase\":\"result\",\"entry\":\"PsdWriterTests.RunFixture\",\"reply\":{\"code\":0,\"stdout\":\"{\\n  \\\"success\\\": true,\\n  \\\"command\\\": \\\"command run_script\\\",\\n  \\\"data\\\": {\\n    \\\"command\\\": \\\"run_script\\\",\\n    \\\"parameters\\\": {\\n      \\\"file\\\": \\\"Temp/WhimTex/test-runs/psd-reader-input-4be5fddc-7973-4ffa-a55b-3f4e289acec3.cs\\\",\\n      \\\"entry\\\": \\\"PsdWriterTests.RunFixture\\\",\\n      \\\"args\\\": \\\"[\\\\\\\"4be5fddc-7973-4ffa-a55b-3f4e289acec3\\\\\\\"]\\\",\\n      \\\"timeout_ms\\\": 19000\\n    },\\n    \\\"result\\\": {\\n      \\\"diagnostics\\\": [\\n        {\\n          \\\"severity\\\": \\\"warning\\\",\\n          \\\"message\\\": \\\"Field 'PsdWriter.LayerRecord.id' is never assigned to, and will always have its default value 0\\\",\\n          \\\"line\\\": 234,\\n          \\\"column\\\": 24,\\n          \\\"id\\\": \\\"CS0649\\\"\\n        }\\n      ],\\n      \\\"compileMs\\\": 190,\\n      \\\"executeMs\\\": 17,\\n      \\\"assemblyName\\\": \\\"PipelineRunScript_psd-reader-input-4be5fddc-7973-4ffa-a55b-3f4e289acec3_8a3906033e72499c8a2f29a440d8085a\\\",\\n      \\\"success\\\": true,\\n      \\\"result\\\": \\\"{\\\\\\\"status\\\\\\\":\\\\\\\"passed\\\\\\\",\\\\\\\"checks\\\\\\\":70,\\\\\\\"message\\\\\\\":\\\\\\\"Independent-reader fixture: D:\\\\\\\\\\\\\\\\DCFA\\\\\\\\\\\\\\\\Projects\\\\\\\\\\\\\\\\Test6.6\\\\\\\\\\\\\\\\Temp/WhimTex/test-runs\\\\\\\\\\\\\\\\psd-writer-4be5fddc-7973-4ffa-a55b-3f4e289acec3.psd\\\\\\\",\\\\\\\"failures\\\\\\\":[]}\\\"\\n    },\\n    \\\"target\\\": {\\n      \\\"host\\\": \\\"127.0.0.1\\\",\\n      \\\"port\\\": 7800,\\n      \\\"projectPath\\\": \\\"D:\\\\\\\\DCFA\\\\\\\\Projects\\\\\\\\Test6.6\\\"\\n    },\\n    \\\"success\\\": true\\n  },\\n  \\\"errors\\\": [],\\n  \\\"warnings\\\": []\\n}\\n\",\"stderr\":\"\",\"timedOut\":false}}]},\"decoderResult\":{\"status\":\"passed\",\"detail\":\"Independent PSD reader roundtrip\",\"uncertain\":false,\"testResult\":{\"status\":\"passed\",\"checks\":72,\"message\":\"Independent PSD reader roundtrip\",\"failures\":[],\"cases\":[{\"name\":\"Hierarchy/Unicode/fills/gradient/stroke/mask/RGBA/merged matte\",\"status\":\"passed\"}],\"facts\":{}}},\"fixture\":\"D:\\\\DCFA\\\\Projects\\\\Test6.6\\\\Temp\\\\WhimTex\\\\test-runs\\\\psd-writer-4be5fddc-7973-4ffa-a55b-3f4e289acec3.psd\"}}\n",
+            "stderr": "",
+            "timedOut": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "display-channels-v2",
+      "file": "Tests~/Cases/Rendering/DisplayChannels.cs",
+      "runner": "run_script",
+      "category": "regression",
+      "status": "passed",
+      "detail": "All 16 display-channel masks",
+      "uncertain": false,
+      "testResult": {
+        "status": "passed",
+        "checks": 96,
+        "message": "All 16 display-channel masks",
+        "failures": []
+      },
+      "durationMs": 310,
+      "attempts": [
+        {
+          "phase": "result",
+          "entry": "DisplayChannelsTests.Run",
+          "reply": {
+            "code": 0,
+            "stdout": "{\n  \"success\": true,\n  \"command\": \"command run_script\",\n  \"data\": {\n    \"command\": \"run_script\",\n    \"parameters\": {\n      \"file\": \"Temp/WhimTex/test-runs/input-9eb23c63-82a9-4ccf-8f0c-fdf0e6df5347-display-channels-v2.cs\",\n      \"entry\": \"DisplayChannelsTests.Run\",\n      \"args\": \"[]\",\n      \"timeout_ms\": 45000\n    },\n    \"result\": {\n      \"diagnostics\": [],\n      \"compileMs\": 77,\n      \"executeMs\": 9,\n      \"assemblyName\": \"PipelineRunScript_input-9eb23c63-82a9-4ccf-8f0c-fdf0e6df5347-display-channels-v2_493e75ea448649b999657c79d0b4a81d\",\n      \"success\": true,\n      \"result\": \"{\\\"status\\\":\\\"passed\\\",\\\"checks\\\":96,\\\"message\\\":\\\"All 16 display-channel masks\\\",\\\"failures\\\":[]}\"\n    },\n    \"target\": {\n      \"host\": \"127.0.0.1\",\n      \"port\": 7800,\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\"\n    },\n    \"success\": true\n  },\n  \"errors\": [],\n  \"warnings\": []\n}\n",
+            "stderr": "",
+            "timedOut": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "canonical-reader-v2",
+      "file": "Tests~/Cases/Serialization/CanonicalReader.cs",
+      "runner": "run_script",
+      "category": "regression",
+      "status": "passed",
+      "detail": "Canonical names and unknown-field diagnostics",
+      "uncertain": false,
+      "testResult": {
+        "status": "passed",
+        "checks": 11,
+        "message": "Canonical names and unknown-field diagnostics",
+        "failures": []
+      },
+      "durationMs": 317,
+      "attempts": [
+        {
+          "phase": "result",
+          "entry": "CanonicalReaderTests.Run",
+          "reply": {
+            "code": 0,
+            "stdout": "{\n  \"success\": true,\n  \"command\": \"command run_script\",\n  \"data\": {\n    \"command\": \"run_script\",\n    \"parameters\": {\n      \"file\": \"Temp/WhimTex/test-runs/input-9eb23c63-82a9-4ccf-8f0c-fdf0e6df5347-canonical-reader-v2.cs\",\n      \"entry\": \"CanonicalReaderTests.Run\",\n      \"args\": \"[]\",\n      \"timeout_ms\": 45000\n    },\n    \"result\": {\n      \"diagnostics\": [],\n      \"compileMs\": 90,\n      \"executeMs\": 15,\n      \"assemblyName\": \"PipelineRunScript_input-9eb23c63-82a9-4ccf-8f0c-fdf0e6df5347-canonical-reader-v2_b98a0684770b4fd98f8b0550b8f3fa7a\",\n      \"success\": true,\n      \"result\": \"{\\\"status\\\":\\\"passed\\\",\\\"checks\\\":11,\\\"message\\\":\\\"Canonical names and unknown-field diagnostics\\\",\\\"failures\\\":[]}\"\n    },\n    \"target\": {\n      \"host\": \"127.0.0.1\",\n      \"port\": 7800,\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\"\n    },\n    \"success\": true\n  },\n  \"errors\": [],\n  \"warnings\": []\n}\n",
+            "stderr": "",
+            "timedOut": false
+          }
+        }
+      ]
+    }
+  ],
+  "success": true,
+  "inputs": [
+    {
+      "id": "entry-contract",
+      "file": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-9eb23c63-82a9-4ccf-8f0c-fdf0e6df5347-entry-contract.cs",
+      "sources": [
+        "Tests~/Cases/Runner/EntryContractTests.cs",
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/EntryContract.cs"
+      ],
+      "sha256": "12bcd4e0af5681697f99db395625e868473c7562b6d50e7d457717cf5a0fc2ee"
+    },
+    {
+      "id": "async-protocol-v2",
+      "file": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-9eb23c63-82a9-4ccf-8f0c-fdf0e6df5347-async-protocol-v2.cs",
+      "sources": [
+        "Tests~/Cases/Runner/AsyncProtocol.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "sha256": "ace54aa8042fc5d1b57324442a205b2417733be5d26f140f7e8d019fd2d397df"
+    },
+    {
+      "id": "test-api-contract",
+      "file": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-9eb23c63-82a9-4ccf-8f0c-fdf0e6df5347-test-api-contract.cs",
+      "sources": [
+        "Tests~/Cases/Runner/TestApiContract.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "sha256": "eff76531852887c4f7b955e7a0257782f394fb845bd0b233d12ad1a3d7bce4e0"
+    },
+    {
+      "id": "async-lifecycle-v2",
+      "file": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-9eb23c63-82a9-4ccf-8f0c-fdf0e6df5347-async-lifecycle-v2.cs",
+      "sources": [
+        "Tests~/Cases/Runner/AsyncProtocol.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "sha256": "ace54aa8042fc5d1b57324442a205b2417733be5d26f140f7e8d019fd2d397df"
+    },
+    {
+      "id": "psd-writer-fixture-v2",
+      "file": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-9eb23c63-82a9-4ccf-8f0c-fdf0e6df5347-psd-writer-fixture-v2.cs",
+      "sources": [
+        "Tests~/Cases/Export/PsdWriter.cs",
+        "Tests~/Framework/TestApi.cs",
+        "src/PsdWriter.cs"
+      ],
+      "sha256": "3b625d3db30064743e7714d4ff345b444fad6c63751d95c2da4de9847ad4cad3"
+    },
+    {
+      "id": "display-channels-v2",
+      "file": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-9eb23c63-82a9-4ccf-8f0c-fdf0e6df5347-display-channels-v2.cs",
+      "sources": [
+        "Tests~/Cases/Rendering/DisplayChannels.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "sha256": "354569252495df729cb9e607bc4874065483a979d2ddf25bf9505c3b77d11745"
+    },
+    {
+      "id": "canonical-reader-v2",
+      "file": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-9eb23c63-82a9-4ccf-8f0c-fdf0e6df5347-canonical-reader-v2.cs",
+      "sources": [
+        "Tests~/Cases/Serialization/CanonicalReader.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "sha256": "b5b54936a8ec97c2d4dc109b5ec82f490b2556ab9423108e4676c652330e39da"
+    }
+  ],
+  "notRun": [],
+  "recoveryRequired": false,
+  "finishedAt": "2026-10-05T05:06:05.102Z"
+}

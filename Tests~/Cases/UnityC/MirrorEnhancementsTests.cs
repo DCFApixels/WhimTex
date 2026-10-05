@@ -256,7 +256,7 @@ public static class MirrorEnhancementsTests
                     else
                     {
                         result=global::WhimTex.Tests.UnityC.FixtureContext.Scope.Temporary(RenderTexture.GetTemporary(t.width,t.height,0,RenderTextureFormat.ARGBFloat,RenderTextureReadWrite.Linear));
-                        material.SetVector("_Directions",new Vector4(1,1,0,0));material.SetFloat("_BlendWidth",.2f);material.SetFloat("_Falloff",1);Graphics.Blit(t,result,material);
+                        material.SetVector("_Directions",new Vector4(1,1,0,0));material.SetFloat("_BlendWidth",.2f);material.SetFloat("_Falloff",1);Graphics.Blit(t,result,material,0);
                     }
                     if((option&2)!=0)
                     {

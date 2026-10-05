@@ -2,10 +2,15 @@
   "version": 1,
   "scope": "Existing historical source input for MirrorEnhancements/SeamlessControls Preview only",
   "status": "parent-native-preview-retained-artifacts-verified-manual-visual-review-pending",
-  "currentArtifactRepair": { "review": "Tests~/CoverageAudit/reviewed-oracle-image-review.json", "sourceSha256": "0a7383618feea3c2a4ba780738bbc0e3831ef78b7199ea0887f4ca4f71dc68e5", "runtimeStatus": "pending-parent-validation", "note": "Final native input binding and artifact delivery verified for current helper. Registered source/input hash unchanged. Manual visual/algorithm equivalence remains unverified, not missing original input." },
+  "currentArtifactRepair": {
+    "review": "Tests~/CoverageAudit/reviewed-oracle-image-review.json",
+    "sourceSha256": "0a7383618feea3c2a4ba780738bbc0e3831ef78b7199ea0887f4ca4f71dc68e5",
+    "runtimeStatus": "pending-parent-validation",
+    "note": "Final native input binding and artifact delivery verified for current helper. Registered source/input hash unchanged. Manual visual/algorithm equivalence remains unverified, not missing original input."
+  },
   "manifest": "Tests~/CoverageAudit/unity-cd-oracles.json",
   "preActivationManifestSha256": "ac99b83aa2df85f0331e71ff1c7c16408e9bb850be7f17dbfd360cf33b557963",
-  "activeManifestSha256": "c8225d463d596c08458bbdcad17cfb06db32e8f96e68a69b929522e623addd78",
+  "activeManifestSha256": "3d18e164d8016c1b1ce4f0338f5013b7b043429d0385447a57b7ed5737d256e4",
   "activationReview": "Parent activated exact candidate name/path/SHA-256 with explicit input-only provenance. Worker reread the active record and ReviewedOracle.Image authentication plus both original Preview bodies; current raw PNG hash/112799 bytes/600x600 match. No source, batch or active manifest edit by worker. Native/manual C Preview still pending parent; historical byte continuity is not proven.",
   "registrationCandidate": {
     "name": "copy-blend-source",
@@ -61,13 +66,58 @@
     "reportSha256": "45dba1600cdcb928f6871af1ed0fff306518dee9d8608d3147bcf1f2246c07ad",
     "proof": "Both source-bound C Preview entries reached diagnostic producer completion using registered input, not missing-registration skips. Input SHA still matches. Each reports an owned GUID output directory, but raw native payloads contain no artifacts and directories are absent after cleanup. No output-byte/dimension/visual assertion is claimed."
   },
-  "finalParentRuntimeEvidence": { "review": "Tests~/CoverageAudit/unity-c28-final-runtime-review.json", "reportSha256": "9c2805fb067463806ce2d110480cd6acf05812a3f1ccb70dc2e1278f468a76ea", "proof": "Both current source-bound Preview entries completed and raw envelopes retained20 expected outputs (12PNG+8float), with verified SHA256/dimensions/layout metadata. No missing registered-input or artifact-delivery gap remains. No manual visual/algorithm equality assertion." },
-  "unresolvedDebt": "Only manual visual review/equivalence remains for the two registered-input Previews. Raw artifact retention and metadata are verified. No prior frozen original PNG digest exists, so historical byte continuity or unchanged original visuals are not established. Original no-direct-visual-assertion classification preserved; six other source rows still await live_4.bin, screened input or252 pre-change snapshots.",
+  "unresolvedDebt": "Current supplied-input producer retention is verified: Controls16 outputs in C43 and Mirror4 corrected-pass PNGs in Final13. Manual visual/equivalence review remains; original historical PNG digest absent. Historical C28/C43 evidence remains tied to old exact bundles. All six formerly unavailable-input rows have registered current hashes and executed supplied branches; no historical cryptographic continuity claim.",
   "limitations": [
     "No previously frozen historical PNG digest was found; filesystem timestamps support provenance but are not cryptographic proof of historical byte continuity.",
-    "Registration candidate is input-only and does not supply live_4.bin, screened-poisson-original, or any of the252 pre-change seamless snapshots.",
+    "Copy-blend registration is input-only, not an algorithm golden. Subsequent agent source/provenance review separately registered live4/screenedOriginal/252snapshots; no historical cryptographic continuity established.",
     "No current-algorithm oracle capture/golden generation, scan, copying, overwrite, asset mutation or Unity execution.",
-    "Worker initially left active manifest untouched under the parent's final-freeze instruction. Parent subsequently activated the exact input candidate; worker only refreshed audit claims/hash bindings, never edited the active manifest, native source, batches or catalog/registry."
+    "Historical activation phase left active manifest untouched. Subsequent explicit authority permitted original-oracle registration, Visuals-only wrapper and selected effects/reviewFiles metadata changes; see unity-cd-original-oracle-provenance.json."
   ],
-  "proofLevel": "Read-only input/source/report provenance verification only"
+  "proofLevel": "Read-only input/source/report provenance verification only",
+  "historicalC28ParentRuntimeEvidence": {
+    "review": "Tests~/CoverageAudit/unity-c28-final-runtime-review.json",
+    "reportSha256": "9c2805fb067463806ce2d110480cd6acf05812a3f1ccb70dc2e1278f468a76ea",
+    "proof": "Both current source-bound Preview entries completed and raw envelopes retained20 expected outputs (12PNG+8float), with verified SHA256/dimensions/layout metadata. No missing registered-input or artifact-delivery gap remains. No manual visual/algorithm equality assertion."
+  },
+  "latestParentRuntimeEvidence": {
+    "c43": {
+      "review": "Tests~/CoverageAudit/unity-c43-runtime-review.json",
+      "reviewSha256": "50208823bfc481da537352db8bafc3b82c975b45b176d1006bab689269c2d564",
+      "reportSha256": "8e88473a7685b1381d646fabc13c4d7d1c755b06ec9a296ea8c3ea73233cd81a",
+      "counts": {
+        "passed": 30,
+        "skip": 13,
+        "failed": 0,
+        "regressionPassed": 30,
+        "diagnosticSkip": 13
+      },
+      "sourceBundlesMatchedAtRun": true,
+      "registeredInputsVerified": 255,
+      "retainedArtifactCount": 24,
+      "artifactDeliveryDebtAtThatRun": [
+        "patch-quilting-contrast-capture-v2",
+        "patch-quilting-feather-capture-v2",
+        "quilting-along-search-capture-v2"
+      ],
+      "historicalAfterSourceChanges": true
+    },
+    "final13": {
+      "review": "Tests~/CoverageAudit/unity-c13-final-runtime-review.json",
+      "reviewSha256": "bb9ff959dfe5c83922132c4cd304ac22336319949397adf3d1635c3b145bfe65",
+      "reportSha256": "65b9835d09220bee9e650a2128867bc1c86b84af270f6d1792ced1ed54381d2d",
+      "counts": {
+        "passed": 9,
+        "skip": 4,
+        "failed": 0
+      },
+      "sourceBundlesMatchCurrent": true,
+      "retainedPngCount": 10,
+      "capturePngCount": 6,
+      "ownedFoldersAbsentAfterCleanup": 4,
+      "manualVisualEquivalenceProven": false
+    },
+    "proof": "Three originally blocked real-input regressions now passed supplied-source assertions: Quilting Benchmark six quality/matching pairs maxError0 within1e-6; Compare252 authenticated snapshots within2e-5 and caller-state/finiteness; Audit caller-state/finiteness only, delta not an equivalence tolerance. Current original hashes verified; historical per-file digest continuity unavailable. No automatic goldens or universal equivalence.",
+    "mirrorSource": "4080760126136914c4a282a25fed3867212b1aa3bc27388b5523c7ba74d56685",
+    "mirrorPreview": "C43 gray0/2 QA led to user-approved pass0 helper correction. Final13 retains four current600x600 PNGs. Manual visual review and historical equality are not proved."
+  }
 }

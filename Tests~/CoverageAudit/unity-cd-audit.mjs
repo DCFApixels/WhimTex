@@ -1,10 +1,11 @@
 // Read-only source inventory. This does not execute Unity or assert runtime equivalence.
-import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { legacyIO } from '../scripts/legacy.mjs';
 const root = path.resolve(import.meta.dirname, '../..');
-const read = p => fs.readFileSync(path.join(root, p), 'utf8');
-const hash = p => crypto.createHash('sha256').update(fs.readFileSync(path.join(root, p))).digest('hex');
+const io = legacyIO(root);
+const read = p => io.readFileSync(path.join(root, p), 'utf8');
+const hash = p => crypto.createHash('sha256').update(io.readFileSync(path.join(root, p))).digest('hex');
 function masked(s) {
   // Preserve offsets; ignore delimiters inside comments and C# strings/chars.
   return s.replace(/\/\/[^\n]*|\/\*[\s\S]*?\*\/|@"(?:""|[^"])*"|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g,
@@ -174,7 +175,7 @@ for (const [legacyFile, newFile, summary] of supplements) {
     sourceHashes: { legacy: hash('Tests~/Legacy/' + legacyFile), replacement: hash(newFile) } });
 }
 const manifest = JSON.parse(read('Tests~/legacy-manifest.json'));
-const archiveFailures = manifest.files.filter(f => hash('Tests~/Legacy/' + f.file) !== f.sha256 || fs.statSync(path.join(root, 'Tests~/Legacy/', f.file)).size !== f.bytes).map(f => f.file);
+const archiveFailures = manifest.files.filter(f => hash('Tests~/Legacy/' + f.file) !== f.sha256 || io.statSync(path.join(root, 'Tests~/Legacy/', f.file)).size !== f.bytes).map(f => f.file);
 if (archiveFailures.length) throw new Error('Frozen archive differs: ' + archiveFailures.join(', '));
 const report = { version: 1, scope: ['UnityC', 'UnityD'], methodology: 'Actual frozen source predicates, public and helper signatures, inputs, branches, formula lines and cleanup reviewed separately from runtime. No claim from check counts. Current inputs require parent validation.',
   archive: { manifestSha256: hash('Tests~/legacy-manifest.json'), filesVerified: manifest.files.length, failures: archiveFailures },

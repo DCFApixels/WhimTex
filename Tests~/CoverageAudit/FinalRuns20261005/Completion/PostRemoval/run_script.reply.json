@@ -1,0 +1,24 @@
+{
+  "argv": [
+    "command",
+    "run_script",
+    "--file",
+    "Temp/WhimTex/PlayerSceneIsolationInspection.cs",
+    "--entry",
+    "PlayerSceneIsolationInspection.Run",
+    "--timeout_ms",
+    "9000",
+    "--project-path",
+    "D:\\DCFA\\Projects\\Test6.6",
+    "--timeout",
+    "10",
+    "--format",
+    "json"
+  ],
+  "reply": {
+    "code": 0,
+    "stdout": "{\n  \"success\": true,\n  \"command\": \"command run_script\",\n  \"data\": {\n    \"command\": \"run_script\",\n    \"parameters\": {\n      \"file\": \"Temp/WhimTex/PlayerSceneIsolationInspection.cs\",\n      \"entry\": \"PlayerSceneIsolationInspection.Run\",\n      \"timeout_ms\": 9000\n    },\n    \"result\": {\n      \"diagnostics\": [],\n      \"compileMs\": 55,\n      \"executeMs\": 0,\n      \"assemblyName\": \"PipelineRunScript_PlayerSceneIsolationInspection_5720909dca98415783de037d495e0ac7\",\n      \"success\": true,\n      \"result\": \"{\\\"activePath\\\":\\\"Assets/Scenes/SampleScene.unity\\\",\\\"scenes\\\":[{\\\"path\\\":\\\"Assets/Scenes/SampleScene.unity\\\",\\\"valid\\\":true,\\\"loaded\\\":true,\\\"dirty\\\":false}]}\"\n    },\n    \"target\": {\n      \"host\": \"127.0.0.1\",\n      \"port\": 7800,\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\"\n    },\n    \"success\": true\n  },\n  \"errors\": [],\n  \"warnings\": []\n}\n",
+    "stderr": "",
+    "timedOut": false
+  }
+}

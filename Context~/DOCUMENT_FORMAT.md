@@ -200,37 +200,38 @@ Unity-типы обрабатываются явно. Типы хранятся 
 
 ## Проверки
 
-Unity Editor 6000.7, DX12. Запускать через подключённый Unity Pipeline, не отдельный сборщик:
+Запускать независимые сценарии через [общий runner](../Tests~/RUNNING_TESTS.md) и подключённый
+Unity Editor, не отдельный сборщик. Для каждого выбранного ID нужны прочитанные исходники,
+текущий fingerprint, явный project path и разрешение на заявленные effects.
+Исторические `Tests~/Legacy`-файлы больше не являются точками запуска.
 
-- `Tests~/Legacy/DocumentVectorWideningSmoke.cs` — `run_script`, entry `DocumentVectorWideningSmoke.Run`.
+- `document-vector-widening-smoke-v2`.
   In-memory проверки точных Vector/VectorInt тегов и отказа от исторических coercion, ручного/автоматического чтения,
   сохранения целевого типа и компонентов, защиты от сужения, потери точности и неизвестных полей.
   Assets не создаёт.
-- `Tests~/Legacy/DocumentReliabilitySmoke.cs` — `run_script`, entry `DocumentReliabilitySmoke.Run`.
+- `document-reliability-smoke-v2`.
   Уникальная временная папка Assets, cleanup в finally. Проверяет контейнер, Bounds, лимиты,
   sRGB/alpha/HDR, незавершённую рисовку, FX ownership, sampling, GUID/окна и lifecycle Live Update.
-- `Tests~/Legacy/DocumentPayloadCoverageSmoke.cs` — `eval_file`. 15 поведений, 826 изменённых значений, 49 проверок.
+- `document-payload-coverage-smoke-v2`: payload всех исходных поведений.
   Уникальные временные assets удаляются в finally.
-- `Tests~/Legacy/DocumentReloadSmoke.cs` — `run_script`: `DocumentReloadSmoke.Prepare`, затем реальная
-  перекомпиляция Unity и `DocumentReloadSmoke.Verify`. 8 проверок привязки, несохранённого содержимого,
-  восстановления Read/Write и сохранения после reload. Verify удаляет только окно и папку этого теста.
-- `Tests~/Legacy/DocumentPreparationSmoke.cs` — `run_script`, entry `DocumentPreparationSmoke.Run`: checksum,
+- `document-reload-smoke-v2`: единый GUID workflow с настоящим reload; привязка окна,
+  несохранённое содержимое, Read/Write и Save после reload. Не запускать отдельные фазы вручную.
+- `document-preparation-smoke-v2`: checksum,
   streaming, external-write conflict, Undo/disk revision, independent authoring, Drawing round-trip,
   external FX, pending code, relative includes, Live→Save→Live.
-- `Tests~/Legacy/AgentApiSmoke.cs` — `eval_file`: TIFF batch API, рисование, группы, рендер и Undo/Redo.
+- `agent-api-v2`: TIFF batch API, рисование, группы, рендер и Undo/Redo.
   Использует уникальную папку, удаляет свои assets и временные PNG в finally.
-- `Tests~/Legacy/TiffAgentApiSmoke.cs` — создание/inspect/render TIFF через path-based API, metadata-only
+- `tiff-agent-api-v2`: создание/inspect/render TIFF через path-based API, metadata-only
   storage inspection, validation/status, dry-run и отказ от `.asset` document paths.
-- `Tests~/Legacy/TiffLiveSmoke.cs` — независимая TIFF live-сессия без окна: begin/preview/status/render,
+- `tiff-live-v2`: независимая TIFF live-сессия без окна: begin/preview/status/render,
   atomic complete, создание нового TIFF и внешний revision conflict.
-- `Tests~/Legacy/DocumentRoundTripSmoke.cs` и `Tests~/Legacy/DocumentLiveUpdateSmoke.cs` — дополнительные
-  `eval_file` smoke-тесты round-trip и Live Update. Они создают уникальные папки
-  `Assets/WhimTexRoundTrip_<guid>` / `Assets/WhimTexLive_<guid>` и удаляют их в `finally`;
-  запускать их нужно именно через `eval_file`, не через `run_script`.
+- `document-round-trip-smoke-v2` и `document-live-update-smoke-v2`: round-trip и Live Update.
+  Изменения ограничены GUID-папками `Assets/WhimTexTestMigration`; cleanup выполняется в `finally`.
 
-- `Tests~/Legacy/DocumentReleaseValidation.cs` + `Fixtures/WhimTexPlayerProbe.cs` — разрешённый Windows Player
-  build, artifact/runtime проверки, сбои staged-записи, импорта и восстановление journal.
-- `Tests~/Legacy/DocumentPerformanceProbe.cs` — замеры Drawing LDR/HDR, first/unchanged/changed Save и Open.
+- `player-release-workflow-v2`: отдельно разрешённые build/runtime/artifact проверки Player.
+  `fault-release-workflow-v2`: staged-запись, импорт, deferred/retry и journal с native fixture.
+- `document-performance-probe-ldr-random-v2` и соседние варианты: замеры Drawing LDR/HDR,
+  first/unchanged/changed Save и Open; наблюдения не равны performance acceptance thresholds.
 
 Результаты, команды и ограничения: [TIFF_VALIDATION.md](TIFF_VALIDATION.md).
 Проверен Windows64 Mono/DX12 Player; не проверены все платформенные компрессоры, AssetBundles/Addressables,

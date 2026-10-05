@@ -1,0 +1,18 @@
+{
+  "argv": [
+    "command",
+    "editor_status",
+    "--project-path",
+    "D:\\DCFA\\Projects\\Test6.6",
+    "--timeout",
+    "10",
+    "--format",
+    "json"
+  ],
+  "reply": {
+    "code": 0,
+    "stdout": "{\n  \"success\": true,\n  \"command\": \"command editor_status\",\n  \"data\": {\n    \"command\": \"editor_status\",\n    \"parameters\": {},\n    \"result\": {\n      \"status\": \"ready\",\n      \"compiling\": false,\n      \"domainReloadInProgress\": false,\n      \"playMode\": \"stopped\",\n      \"lastHeartbeat\": \"2026-10-05T07:12:09.4747891Z\",\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\",\n      \"unityVersion\": \"6000.7.0a6\"\n    },\n    \"target\": {\n      \"host\": \"127.0.0.1\",\n      \"port\": 7800,\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\"\n    },\n    \"success\": true\n  },\n  \"errors\": [],\n  \"warnings\": []\n}\n",
+    "stderr": "",
+    "timedOut": false
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "runId": "4817f7407dac483b94141d9e81bb6b17",
+  "nativeCompilationComplete": true,
+  "ownedProbeAndAssetsAbsent": true,
+  "originalWorkflowPassed": false,
+  "retainedGuidCachePaths": [
+    "Assets/WhimTexTestMigration/4817f7407dac483b94141d9e81bb6b17",
+    "Assets/WhimTexTestMigration/4817f7407dac483b94141d9e81bb6b17/WhimTexMigrationPlayerProbe.cs",
+    "Assets/WhimTexTestMigration/4817f7407dac483b94141d9e81bb6b17/Probe.unity",
+    "Assets/WhimTexTestMigration/4817f7407dac483b94141d9e81bb6b17/Resources/WhimTexPlayer_4817f7407dac483b94141d9e81bb6b17/Document.tiff"
+  ]
+}

@@ -127,5 +127,59 @@ public static class QuiltingAlongSearchTests
 
     public static string Main() => WhimTex.Tests.UnityC.FixtureContext.Run("QuiltingAlongSearchTests.Main", () => { ExecuteMain(); });
 
-    public static string Capture() => global::WhimTex.Tests.UnityC.ReviewedOracle.Live("QuiltingAlongSearchTests.Capture", ExecuteCapture, true);
+    public static string Capture()
+    {
+        const string label="QuiltingAlongSearchTests.Capture";
+        try
+        {
+            string[] names={"search-0.png","search-1.png","search-2.png","comparison.png"};
+            byte[][] outputs=null;
+            string diagnostic=global::WhimTex.Tests.UnityC.ReviewedOracle.Live(label,original=>
+            {
+                var scope=global::WhimTex.Tests.UnityC.FixtureContext.Scope;
+                string report=ExecuteCapture(original);
+                if(!ReferenceEquals(scope,global::WhimTex.Tests.UnityC.FixtureContext.Scope))
+                    throw new System.IO.InvalidDataException("Capture changed its owned scope");
+                string root=System.IO.Path.GetFullPath(scope.Temp),leaf=System.IO.Path.GetFileName(root);
+                if(leaf.Length!=39||!leaf.StartsWith("UnityC-",StringComparison.Ordinal)||
+                    !Guid.TryParseExact(leaf.Substring(7),"N",out _))
+                    throw new System.IO.InvalidDataException("Expected current GUID capture output scope");
+                if((System.IO.File.GetAttributes(root)&System.IO.FileAttributes.ReparsePoint)!=0)
+                    throw new System.IO.IOException("Refusing linked capture output scope");
+                var captured=new byte[names.Length][];
+                for(int i=0;i<names.Length;i++)
+                {
+                    string file=System.IO.Path.Combine(root,names[i]);
+                    if((System.IO.File.GetAttributes(file)&System.IO.FileAttributes.ReparsePoint)!=0)
+                        throw new System.IO.IOException("Refusing linked capture output");
+                    captured[i]=System.IO.File.ReadAllBytes(file);
+                }
+                outputs=captured; // Exact original owned outputs, before Live disposes the scope.
+                return report;
+            },true);
+            // Missing registration/authentication/body failure retains its exact original result.
+            if(outputs==null)return diagnostic;
+            var json=Assembly.Load("Newtonsoft.Json");
+            var objectType=json.GetType("Newtonsoft.Json.Linq.JObject",true);
+            var arrayType=json.GetType("Newtonsoft.Json.Linq.JArray",true);
+            var valueType=json.GetType("Newtonsoft.Json.Linq.JValue",true);
+            var item=objectType.GetProperty("Item",new[]{typeof(string)});
+            object result=objectType.GetMethod("Parse",new[]{typeof(string)}).Invoke(null,new object[]{diagnostic});
+            var status=item.GetValue(result,new object[]{"status"});
+            if(status==null||status.ToString()!="skipped")return diagnostic;
+            object Text(string value)=>valueType.GetConstructor(new[]{typeof(string)}).Invoke(new object[]{value});
+            void Put(object target,string key,object value)=>item.SetValue(target,value,new object[]{key});
+            object artifacts=Activator.CreateInstance(arrayType);
+            for(int i=0;i<names.Length;i++)
+            {
+                object artifact=Activator.CreateInstance(objectType);
+                Put(artifact,"name",Text(names[i]));Put(artifact,"encoding",Text("base64"));
+                Put(artifact,"content",Text(Convert.ToBase64String(outputs[i])));
+                arrayType.GetMethod("Add",new[]{typeof(object)}).Invoke(artifacts,new object[]{artifact});
+            }
+            Put(result,"artifacts",artifacts);
+            return result.ToString(); // Keep diagnostic/SKIP, checks and all actual failures.
+        }
+        catch(Exception error){return global::WhimTex.Tests.TestContext.Result("failed",0,label,error.ToString()).ToJson();}
+    }
 }

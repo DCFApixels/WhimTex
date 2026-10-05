@@ -1,0 +1,152 @@
+{
+  "version": 2,
+  "action": "run",
+  "startedAt": "2026-10-05T04:20:17.388Z",
+  "projectPath": "D:\\DCFA\\Projects\\Test6.6",
+  "fingerprint": "a9c52de5d579b3f985c13998304ec5c4c1d7e9c725b95194e59b292f69aadfd5",
+  "archive": {
+    "files": 466,
+    "baselineCommit": "1269df51866959744a4b0763453eb667aefe6d8e",
+    "manifestHash": "c70816ea4220d9ebe08d4d2d087d7e5297bd943405bb3297e24f4b69756a6194",
+    "source": "pinned-git-reference",
+    "recoveryCommit": "ca8603c0961ce36064280f952259f8a6142d46cc",
+    "contentsVerified": false
+  },
+  "productionFingerprint": "a3da14871f6e0bf5c49a6f077b1026720e0fb2d3c28a49213dd715f3dd2b7738",
+  "selected": [
+    "display-channels-v2",
+    "canonical-reader-v2",
+    "frozen-files-v2"
+  ],
+  "environment": {
+    "status": "ready",
+    "compiling": false,
+    "domainReloadInProgress": false,
+    "playMode": "stopped",
+    "lastHeartbeat": "2026-10-05T04:20:17.7295914Z",
+    "projectPath": "D:\\DCFA\\Projects\\Test6.6",
+    "unityVersion": "6000.7.0a6"
+  },
+  "results": [
+    {
+      "id": "display-channels-v2",
+      "file": "Tests~/Cases/Rendering/DisplayChannels.cs",
+      "runner": "run_script",
+      "category": "regression",
+      "status": "passed",
+      "detail": "All 16 display-channel masks",
+      "uncertain": false,
+      "testResult": {
+        "status": "passed",
+        "checks": 96,
+        "message": "All 16 display-channel masks",
+        "failures": []
+      },
+      "durationMs": 501,
+      "attempts": [
+        {
+          "phase": "result",
+          "entry": "DisplayChannelsTests.Run",
+          "reply": {
+            "code": 0,
+            "stdout": "{\n  \"success\": true,\n  \"command\": \"command run_script\",\n  \"data\": {\n    \"command\": \"run_script\",\n    \"parameters\": {\n      \"file\": \"Temp/WhimTex/test-runs/input-1cc0107a-ddd3-4a90-879b-f398abe60571-display-channels-v2.cs\",\n      \"entry\": \"DisplayChannelsTests.Run\",\n      \"args\": \"[]\",\n      \"timeout_ms\": 45000\n    },\n    \"result\": {\n      \"diagnostics\": [],\n      \"compileMs\": 170,\n      \"executeMs\": 12,\n      \"assemblyName\": \"PipelineRunScript_input-1cc0107a-ddd3-4a90-879b-f398abe60571-display-channels-v2_98aca85986cd4c12a10234e9c21221ff\",\n      \"success\": true,\n      \"result\": \"{\\\"status\\\":\\\"passed\\\",\\\"checks\\\":96,\\\"message\\\":\\\"All 16 display-channel masks\\\",\\\"failures\\\":[]}\"\n    },\n    \"target\": {\n      \"host\": \"127.0.0.1\",\n      \"port\": 7800,\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\"\n    },\n    \"success\": true\n  },\n  \"errors\": [],\n  \"warnings\": []\n}\n",
+            "stderr": "",
+            "timedOut": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "canonical-reader-v2",
+      "file": "Tests~/Cases/Serialization/CanonicalReader.cs",
+      "runner": "run_script",
+      "category": "regression",
+      "status": "passed",
+      "detail": "Canonical names and unknown-field diagnostics",
+      "uncertain": false,
+      "testResult": {
+        "status": "passed",
+        "checks": 11,
+        "message": "Canonical names and unknown-field diagnostics",
+        "failures": []
+      },
+      "durationMs": 486,
+      "attempts": [
+        {
+          "phase": "result",
+          "entry": "CanonicalReaderTests.Run",
+          "reply": {
+            "code": 0,
+            "stdout": "{\n  \"success\": true,\n  \"command\": \"command run_script\",\n  \"data\": {\n    \"command\": \"run_script\",\n    \"parameters\": {\n      \"file\": \"Temp/WhimTex/test-runs/input-1cc0107a-ddd3-4a90-879b-f398abe60571-canonical-reader-v2.cs\",\n      \"entry\": \"CanonicalReaderTests.Run\",\n      \"args\": \"[]\",\n      \"timeout_ms\": 45000\n    },\n    \"result\": {\n      \"diagnostics\": [],\n      \"compileMs\": 243,\n      \"executeMs\": 23,\n      \"assemblyName\": \"PipelineRunScript_input-1cc0107a-ddd3-4a90-879b-f398abe60571-canonical-reader-v2_19d9e7c64d114f23b988f948baaf7466\",\n      \"success\": true,\n      \"result\": \"{\\\"status\\\":\\\"passed\\\",\\\"checks\\\":11,\\\"message\\\":\\\"Canonical names and unknown-field diagnostics\\\",\\\"failures\\\":[]}\"\n    },\n    \"target\": {\n      \"host\": \"127.0.0.1\",\n      \"port\": 7800,\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\"\n    },\n    \"success\": true\n  },\n  \"errors\": [],\n  \"warnings\": []\n}\n",
+            "stderr": "",
+            "timedOut": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "frozen-files-v2",
+      "file": "Tests~/Cases/Files/Frozen0125.mjs",
+      "runner": "node",
+      "category": "regression",
+      "status": "passed",
+      "detail": "Frozen 0.12.5 file integrity",
+      "uncertain": false,
+      "testResult": {
+        "status": "passed",
+        "checks": 24685,
+        "message": "Frozen 0.12.5 file integrity",
+        "failures": [],
+        "cases": [
+          {
+            "name": "Original file hashes, render coverage and unsupported asset boundary",
+            "status": "passed"
+          }
+        ],
+        "facts": {
+          "fileHashes": 30,
+          "supportedDocuments": 7,
+          "archivedDocuments": 1,
+          "distinctRenders": 3
+        }
+      },
+      "durationMs": 90,
+      "attempts": [
+        {
+          "phase": "result",
+          "entry": null,
+          "reply": {
+            "code": 0,
+            "stdout": "WHIMTEX_TEST_RESULT {\"status\":\"passed\",\"checks\":24685,\"message\":\"Frozen 0.12.5 file integrity\",\"failures\":[],\"cases\":[{\"name\":\"Original file hashes, render coverage and unsupported asset boundary\",\"status\":\"passed\"}],\"facts\":{\"fileHashes\":30,\"supportedDocuments\":7,\"archivedDocuments\":1,\"distinctRenders\":3}}\n",
+            "stderr": "",
+            "timedOut": false
+          }
+        }
+      ]
+    }
+  ],
+  "success": true,
+  "inputs": [
+    {
+      "id": "display-channels-v2",
+      "file": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-1cc0107a-ddd3-4a90-879b-f398abe60571-display-channels-v2.cs",
+      "sources": [
+        "Tests~/Cases/Rendering/DisplayChannels.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "sha256": "354569252495df729cb9e607bc4874065483a979d2ddf25bf9505c3b77d11745"
+    },
+    {
+      "id": "canonical-reader-v2",
+      "file": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-1cc0107a-ddd3-4a90-879b-f398abe60571-canonical-reader-v2.cs",
+      "sources": [
+        "Tests~/Cases/Serialization/CanonicalReader.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "sha256": "b5b54936a8ec97c2d4dc109b5ec82f490b2556ab9423108e4676c652330e39da"
+    }
+  ],
+  "notRun": [],
+  "recoveryRequired": false,
+  "finishedAt": "2026-10-05T04:20:19.493Z"
+}

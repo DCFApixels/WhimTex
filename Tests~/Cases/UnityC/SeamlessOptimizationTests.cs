@@ -126,11 +126,37 @@ public static class SeamlessOptimizationTests
 
     public static string Capture() => global::WhimTex.Tests.TestContext.Result("skipped", 0, "Baseline-generation helper; never regenerate references to obtain a pass.").ToJson();
 
-    public static string Compare() => global::WhimTex.Tests.UnityC.ReviewedOracle.Seamless("SeamlessOptimizationTests.Compare", snapshots => { Fixtures(snapshots); });
+    public static string Compare() => FixtureReport(false);
 
-    public static string Audit() => global::WhimTex.Tests.UnityC.ReviewedOracle.Seamless("SeamlessOptimizationTests.Audit: finiteness and caller-state assertions; delta report only, no equivalence tolerance", snapshots => { Fixtures(snapshots,true); });
+    public static string Audit() => FixtureReport(true);
 
-    public static string PairedPoisson() => global::WhimTex.Tests.UnityC.FixtureContext.Run("SeamlessOptimizationTests.PairedPoisson", () => { ExecutePairedPoisson(); });
+    public static string PairedPoisson() => global::WhimTex.Tests.UnityC.FixtureContext.RunReport("SeamlessOptimizationTests.PairedPoisson", ExecutePairedPoisson);
+
+    static string FixtureReport(bool audit)
+    {
+        string label=audit?
+            "SeamlessOptimizationTests.Audit: finiteness and caller-state assertions; delta report only, no equivalence tolerance":
+            "SeamlessOptimizationTests.Compare";
+        string report=null;
+        string diagnostic=global::WhimTex.Tests.UnityC.ReviewedOracle.Seamless(label,snapshots=>{report=Fixtures(snapshots,audit);});
+        // Auth/fixture/body failures and prerequisite SKIPs retain their exact result.
+        if(report==null)return diagnostic;
+        try
+        {
+            var json=Assembly.Load("Newtonsoft.Json");
+            var objectType=json.GetType("Newtonsoft.Json.Linq.JObject",true);
+            var valueType=json.GetType("Newtonsoft.Json.Linq.JValue",true);
+            var item=objectType.GetProperty("Item",new[]{typeof(string)});
+            object result=objectType.GetMethod("Parse",new[]{typeof(string)}).Invoke(null,new object[]{diagnostic});
+            var status=item.GetValue(result,new object[]{"status"});
+            if(status==null||status.ToString()!="passed")return diagnostic;
+            var message=item.GetValue(result,new object[]{"message"});
+            object text=valueType.GetConstructor(new[]{typeof(string)}).Invoke(new object[]{(message?.ToString()??label)+": "+report});
+            item.SetValue(result,text,new object[]{"message"});
+            return result.ToString(); // Append actual metrics only after assertions/owned cleanup passed.
+        }
+        catch(Exception error){return global::WhimTex.Tests.TestContext.Result("failed",0,label,error.ToString()).ToJson();}
+    }
 
     public static string Benchmark() => global::WhimTex.Tests.UnityC.FixtureContext.Diagnostic("SeamlessOptimizationTests.Benchmark", ExecuteBenchmark);
 }

@@ -1,0 +1,130 @@
+{
+  "recordedBefore": "The large native UnityA/B/C/D final-run profiles; after the initial foundation/core/export checks.",
+  "scope": "Read-only before large native final-run profiles; no asset content copied.",
+  "files": [
+    {
+      "file": "ProjectSettings/AudioManager.asset",
+      "sha256": "9543c41dbfc7d3951217c4dd9481ed026eb8e529b85ecf4463969a0fea747729"
+    },
+    {
+      "file": "ProjectSettings/ClusterInputManager.asset",
+      "sha256": "40e65dd214bf254955d2c8829ca8ce2130fd3510485560ce012e9a1ddd93e623"
+    },
+    {
+      "file": "ProjectSettings/DynamicsManager.asset",
+      "sha256": "1b406a27c7b25e13c4414594240a59bfb4aad04db2c06f406cb9c6fb3847dc69"
+    },
+    {
+      "file": "ProjectSettings/EditorBuildSettings.asset",
+      "sha256": "8d1712535531522f729d34e843ea20772c01d002227338f8f802f472d7e8d78e"
+    },
+    {
+      "file": "ProjectSettings/EditorSettings.asset",
+      "sha256": "2e68f2394dc873f8a299b62c9375e6e5d0968aa10f30dce6c2d0d0bb03198193"
+    },
+    {
+      "file": "ProjectSettings/EntitiesClientSettings.asset",
+      "sha256": "440747cc2795b64122061910cb9b2f1a20d563f53145898c4243056376475282"
+    },
+    {
+      "file": "ProjectSettings/GraphicsSettings.asset",
+      "sha256": "67a048b2fb717c1e47e7d4d063e563aef0340621379ddfcfd714e48b3b5281e4"
+    },
+    {
+      "file": "ProjectSettings/InputManager.asset",
+      "sha256": "60c83ae48e29a782141f99032eb38e803d18475124ff5224fbd1fd81b233f051"
+    },
+    {
+      "file": "ProjectSettings/MemorySettings.asset",
+      "sha256": "c91fc544ad801ad806b777cd5276175b8bc7d169c5806631ea205f75ae2f3193"
+    },
+    {
+      "file": "ProjectSettings/MultiplayerManager.asset",
+      "sha256": "aba89fd1a1ddad182727ad82727e536d27372e90328a8196da2a4560398983dd"
+    },
+    {
+      "file": "ProjectSettings/NavMeshAreas.asset",
+      "sha256": "7ebbf8f53b8033104e1878b95ca07a28d0954092d81c220f14196a42f651e658"
+    },
+    {
+      "file": "ProjectSettings/PackageManager.policy",
+      "sha256": "18b818b1881c3a227f8c85340553cc77331c3b775c00f50ca356a666bd6b7953"
+    },
+    {
+      "file": "ProjectSettings/PackageManagerSettings.asset",
+      "sha256": "f7a94c1a7503fb36402544378c922664f11e564d918d87d89f530ed520e62ab8"
+    },
+    {
+      "file": "ProjectSettings/Physics2DSettings.asset",
+      "sha256": "dd9a33486a7fba9772da519f6bd5038b54aa42ef8e27249116235f7dec540021"
+    },
+    {
+      "file": "ProjectSettings/PhysicsCoreProjectSettings2D.asset",
+      "sha256": "bedc5339a832c60dc3f11b84abc4f4384dbfa20b0cd9ad6c444b907e751fc35e"
+    },
+    {
+      "file": "ProjectSettings/PresetManager.asset",
+      "sha256": "29c125923fe6e29f90190d4fce1c82d660e7051546e2c9d02908d18c9cf2436c"
+    },
+    {
+      "file": "ProjectSettings/ProjectAuditorSettings.asset",
+      "sha256": "b5acca2ee2bcf1898ffaab3f3d8565908d6293512afcaacf242514a20fdd272d"
+    },
+    {
+      "file": "ProjectSettings/ProjectSettings.asset",
+      "sha256": "c08cc43ea97a8c01cef69a089afab0a2a7249c49b9e5d3633670eb86ad751bc4"
+    },
+    {
+      "file": "ProjectSettings/ProjectVersion.txt",
+      "sha256": "c100eb57f915b6e7a0f649c0a5590ef0fff2403d7c14ada7d76a6307397ce312"
+    },
+    {
+      "file": "ProjectSettings/QualitySettings.asset",
+      "sha256": "90a6246b84df30886fb817936db3934edd391241d003785606137c0e27014856"
+    },
+    {
+      "file": "ProjectSettings/SceneTemplateSettings.json",
+      "sha256": "bb9098b3bfcde78d93e264b96f7b77b5430e64e8c57a7aad7f5a5d9c3945e16a"
+    },
+    {
+      "file": "ProjectSettings/ShaderGraphSettings.asset",
+      "sha256": "cdba1e5d65bcf6e3269d76ed3e60b6c21f98322002996642c9d74f1eb89f6b91"
+    },
+    {
+      "file": "ProjectSettings/TagManager.asset",
+      "sha256": "d5a4f2d99ada59a4598ff0578ff71490819aa68492261f9d47d333ef690c8c4a"
+    },
+    {
+      "file": "ProjectSettings/TimeManager.asset",
+      "sha256": "3396f52fdc16d445024e01d7a2d99db6f0a37569d1d73c0302e9ffb857d90287"
+    },
+    {
+      "file": "ProjectSettings/UnityConnectSettings.asset",
+      "sha256": "c3dbb998537bc5c0357729e0ea4554ae78213e38a6e3bce52fa300e0090e81ff"
+    },
+    {
+      "file": "ProjectSettings/URPProjectSettings.asset",
+      "sha256": "9aef6546a46b21f00e18fb0125f135541f442f0f78496f2a610ee13db9b5d643"
+    },
+    {
+      "file": "ProjectSettings/VersionControlSettings.asset",
+      "sha256": "e199cdfa6a8f2bf33cfd47e549198f13e3eb2a5099e908fdb4e0f14d939ccc6b"
+    },
+    {
+      "file": "ProjectSettings/VFXManager.asset",
+      "sha256": "d2937fe93ff49c2ce60f888056b70ebc0a1df7dd5e22dab3fa41678c2a3f3858"
+    },
+    {
+      "file": "ProjectSettings/XRSettings.asset",
+      "sha256": "edd2beb4a2e388312b4b7da241aa51070434005d82c59363f1237dd2e567585f"
+    },
+    {
+      "file": "Packages/manifest.json",
+      "sha256": "4ac9e4ee68ac0da05e18ebaa8a7c1fda9c4cb6ed5d6c167937bfba2e8c5f96b7"
+    },
+    {
+      "file": "Packages/packages-lock.json",
+      "sha256": "1e909dc96b945953e8fed654796484229017de0492bfd3bc7b3809015030c1fd"
+    }
+  ]
+}

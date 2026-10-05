@@ -1,10 +1,14 @@
 // Read-only source audit. Emits JSON to stdout; never writes files or invokes Unity.
 // Token matches are source anchors, not runtime or coverage equivalence verdicts.
-import fs from 'node:fs';
+import path from 'node:path';
 import crypto from 'node:crypto';
+import { legacyIO } from '../scripts/legacy.mjs';
 
-const batch = JSON.parse(fs.readFileSync('Tests~/Batches/unity-b.json', 'utf8'));
-const manifest = JSON.parse(fs.readFileSync('Tests~/legacy-manifest.json', 'utf8'));
+const root = path.resolve(import.meta.dirname, '../..');
+const io = legacyIO(root);
+const read = file => io.readFileSync(path.join(root, file));
+const batch = JSON.parse(read('Tests~/Batches/unity-b.json'));
+const manifest = JSON.parse(read('Tests~/legacy-manifest.json'));
 const blocked = new Set(['DocumentPreparationTests.cs', 'DocumentReleaseValidationTests.cs',
   'DocumentSaveTailTests.cs', 'EyedropperTests.cs', 'FileNavigationTests.cs']);
 const hash = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
@@ -131,15 +135,15 @@ const contextual = {
   'DocumentSaveTailProbe.cs:69': ['UnityBRun.NextUpdate', '5000ms bounded Editor update wait moved to shared NextUpdate; same event completion plus cancellation/finally detachment.'],
   'DocumentSaveTailProbe.cs:102': ['Stop existing profiling', 'Same enabled/deepProfiling idle precondition expressed as Check(!enabled && !deepProfiling).'],
   'DocumentSaveTailProbe.cs:213': ['Unsafe cleanup target', 'Cleanup guard now requires exact Assets/WhimTexTestMigration descendant rather than historical filename prefix. Parent source uses bounded owned GUID root.'],
-  'GradientClipboardCleanupSmoke.cs:177': ['UnityBRun.IsOwnedTemp', 'Original Temp/name cleanup guard adapted to IsOwnedTemp + DeleteTemp: only unique system-temp GUID root/descendants accepted; link-safe containment checks in UnityBTemp. Original preset and unknown-transition checks unaffected.'],
+  'GradientClipboardCleanupSmoke.cs:177': ['UnityBRun.IsOwnedTemp', 'Original Temp/name cleanup guard adapted to IsOwnedTemp + DeleteTemp: only unique project Temp/WhimTex GUID root/descendants accepted; link-safe containment checks in UnityBTemp. Original preset and unknown-transition checks unaffected.'],
   'GradientHistorySmoke.cs:84': ['UnityBRun.Start', 'History task owns window/document/session via UnityBRun.Create/Track; cleanup is shared owned-scope disposal after task drains, not a broad Resources scan by display name.'],
   'GradientHistorySmoke.cs:85': ['UnityBRun.Start', 'Same task-owned document cleanup supersedes name-based scan; resources created by History are owned and cleaned together.']
 };
 
 // Verify every frozen file, not just files assigned to this batch.
-for(const f of manifest.files){const bytes=fs.readFileSync('Tests~/Legacy/'+f.file);if(hash(bytes)!==f.sha256||bytes.length!==f.bytes)throw new Error('Frozen archive mismatch: '+f.file);}
+for(const f of manifest.files){const bytes=read('Tests~/Legacy/'+f.file);if(hash(bytes)!==f.sha256||bytes.length!==f.bytes)throw new Error('Frozen archive mismatch: '+f.file);}
 const files = batch.replacements.map(r=>{
-  const legacyBytes=fs.readFileSync('Tests~/Legacy/'+r.legacyFile),replacementBytes=fs.readFileSync(r.newFile);
+  const legacyBytes=read('Tests~/Legacy/'+r.legacyFile),replacementBytes=read(r.newFile);
   const a=legacyBytes.toString('utf8'),n=replacementBytes.toString('utf8');
   const sourceHashes={legacy:hash(legacyBytes),replacement:hash(replacementBytes)};
   const at=tokens(a),nt=tokens(n),ao=oracles(at),no=oracles(nt),ntKey=key(nt);

@@ -1,0 +1,501 @@
+{
+  "version": 2,
+  "action": "run",
+  "startedAt": "2026-10-05T07:13:03.585Z",
+  "projectPath": "D:\\DCFA\\Projects\\Test6.6",
+  "fingerprint": "d50671fee19d421ddf94dc76187e78fead0ac68d42ad1d1459a31dd28cbc5d12",
+  "archive": {
+    "files": 466,
+    "baselineCommit": "1269df51866959744a4b0763453eb667aefe6d8e",
+    "manifestHash": "c70816ea4220d9ebe08d4d2d087d7e5297bd943405bb3297e24f4b69756a6194",
+    "source": "pinned-git-reference",
+    "recoveryCommit": "ca8603c0961ce36064280f952259f8a6142d46cc",
+    "contentsVerified": false
+  },
+  "productionFingerprint": "a3da14871f6e0bf5c49a6f077b1026720e0fb2d3c28a49213dd715f3dd2b7738",
+  "selected": [
+    "document-reload-smoke-v2"
+  ],
+  "environment": {
+    "status": "ready",
+    "compiling": false,
+    "domainReloadInProgress": false,
+    "playMode": "stopped",
+    "lastHeartbeat": "2026-10-05T07:13:03.8910649Z",
+    "projectPath": "D:\\DCFA\\Projects\\Test6.6",
+    "unityVersion": "6000.7.0a6"
+  },
+  "results": [
+    {
+      "id": "document-reload-smoke-v2",
+      "file": "Tests~/Cases/UnityB/DocumentReloadTests.mjs",
+      "runner": "node",
+      "category": "regression",
+      "status": "passed",
+      "detail": "DocumentReloadTests: real domain reload and original independent assertions",
+      "uncertain": false,
+      "testResult": {
+        "status": "passed",
+        "checks": 45,
+        "message": "DocumentReloadTests: real domain reload and original independent assertions",
+        "failures": [],
+        "cases": [
+          {
+            "name": "Begin -> one deferred native Trigger -> owned ReloadPoll + idle Editor -> Verify -> Cleanup",
+            "status": "passed"
+          }
+        ],
+        "facts": {
+          "input": {
+            "file": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\unity-b-reload-6193f0d83862439ab3f3e915499e7e1f.cs",
+            "runId": "6193f0d83862439ab3f3e915499e7e1f",
+            "sources": [
+              "Tests~/Framework/TestApi.cs",
+              "Tests~/Cases/UnityB/UnityBSupport.cs",
+              "Tests~/Cases/UnityB/ReloadSupport.cs",
+              "Tests~/Cases/UnityB/DocumentReloadTests.cs"
+            ],
+            "sha256": "c9346daa3a0819b1295a7e72c44d2498d35b06dc5371a35ee998db1a72216b03",
+            "removed": true
+          },
+          "attempts": [
+            {
+              "phase": "editor_status",
+              "argv": [
+                "command",
+                "editor_status",
+                "--project-path",
+                "D:\\DCFA\\Projects\\Test6.6",
+                "--format",
+                "json"
+              ],
+              "budgetMs": 8000,
+              "reply": {
+                "code": 0,
+                "stdout": "{\n  \"success\": true,\n  \"command\": \"command editor_status\",\n  \"data\": {\n    \"command\": \"editor_status\",\n    \"parameters\": {},\n    \"result\": {\n      \"status\": \"ready\",\n      \"compiling\": false,\n      \"domainReloadInProgress\": false,\n      \"playMode\": \"stopped\",\n      \"lastHeartbeat\": \"2026-10-05T07:13:04.2922861Z\",\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\",\n      \"unityVersion\": \"6000.7.0a6\"\n    },\n    \"target\": {\n      \"host\": \"127.0.0.1\",\n      \"port\": 7800,\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\"\n    },\n    \"success\": true\n  },\n  \"errors\": [],\n  \"warnings\": []\n}\n",
+                "stderr": "",
+                "timedOut": false
+              }
+            },
+            {
+              "phase": "Begin",
+              "argv": [
+                "command",
+                "run_script",
+                "--file",
+                "Temp/WhimTex/test-runs/unity-b-reload-6193f0d83862439ab3f3e915499e7e1f.cs",
+                "--entry",
+                "DocumentReloadTests.Begin",
+                "--args",
+                "[\"6193f0d83862439ab3f3e915499e7e1f\"]",
+                "--timeout_ms",
+                "7000",
+                "--project-path",
+                "D:\\DCFA\\Projects\\Test6.6",
+                "--timeout",
+                "8",
+                "--format",
+                "json"
+              ],
+              "budgetMs": 8000,
+              "reply": {
+                "code": 0,
+                "stdout": "{\n  \"success\": true,\n  \"command\": \"command run_script\",\n  \"data\": {\n    \"command\": \"run_script\",\n    \"parameters\": {\n      \"file\": \"Temp/WhimTex/test-runs/unity-b-reload-6193f0d83862439ab3f3e915499e7e1f.cs\",\n      \"entry\": \"DocumentReloadTests.Begin\",\n      \"args\": \"[\\\"6193f0d83862439ab3f3e915499e7e1f\\\"]\",\n      \"timeout_ms\": 7000\n    },\n    \"result\": {\n      \"diagnostics\": [],\n      \"compileMs\": 340,\n      \"executeMs\": 316,\n      \"assemblyName\": \"PipelineRunScript_unity-b-reload-6193f0d83862439ab3f3e915499e7e1f_e9ab1e80d5724add95be6853f0e6f702\",\n      \"success\": true,\n      \"result\": \"{\\\"status\\\":\\\"passed\\\",\\\"checks\\\":5,\\\"message\\\":\\\"DocumentReloadTests: Begin\\\",\\\"failures\\\":[]}\"\n    },\n    \"target\": {\n      \"host\": \"127.0.0.1\",\n      \"port\": 7800,\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\"\n    },\n    \"success\": true\n  },\n  \"errors\": [],\n  \"warnings\": []\n}\n",
+                "stderr": "",
+                "timedOut": false
+              }
+            },
+            {
+              "phase": "editor_status",
+              "argv": [
+                "command",
+                "editor_status",
+                "--project-path",
+                "D:\\DCFA\\Projects\\Test6.6",
+                "--format",
+                "json"
+              ],
+              "budgetMs": 8000,
+              "reply": {
+                "code": 0,
+                "stdout": "{\n  \"success\": true,\n  \"command\": \"command editor_status\",\n  \"data\": {\n    \"command\": \"editor_status\",\n    \"parameters\": {},\n    \"result\": {\n      \"status\": \"ready\",\n      \"compiling\": false,\n      \"domainReloadInProgress\": false,\n      \"playMode\": \"stopped\",\n      \"lastHeartbeat\": \"2026-10-05T07:13:05.511697Z\",\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\",\n      \"unityVersion\": \"6000.7.0a6\"\n    },\n    \"target\": {\n      \"host\": \"127.0.0.1\",\n      \"port\": 7800,\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\"\n    },\n    \"success\": true\n  },\n  \"errors\": [],\n  \"warnings\": []\n}\n",
+                "stderr": "",
+                "timedOut": false
+              }
+            },
+            {
+              "phase": "Trigger",
+              "argv": [
+                "command",
+                "run_script",
+                "--file",
+                "Temp/WhimTex/test-runs/unity-b-reload-6193f0d83862439ab3f3e915499e7e1f.cs",
+                "--entry",
+                "DocumentReloadTests.Trigger",
+                "--args",
+                "[\"6193f0d83862439ab3f3e915499e7e1f\"]",
+                "--timeout_ms",
+                "7000",
+                "--project-path",
+                "D:\\DCFA\\Projects\\Test6.6",
+                "--timeout",
+                "8",
+                "--format",
+                "json"
+              ],
+              "budgetMs": 8000,
+              "reply": {
+                "code": 0,
+                "stdout": "{\n  \"success\": true,\n  \"command\": \"command run_script\",\n  \"data\": {\n    \"command\": \"run_script\",\n    \"parameters\": {\n      \"file\": \"Temp/WhimTex/test-runs/unity-b-reload-6193f0d83862439ab3f3e915499e7e1f.cs\",\n      \"entry\": \"DocumentReloadTests.Trigger\",\n      \"args\": \"[\\\"6193f0d83862439ab3f3e915499e7e1f\\\"]\",\n      \"timeout_ms\": 7000\n    },\n    \"result\": {\n      \"diagnostics\": [],\n      \"compileMs\": 260,\n      \"executeMs\": 1,\n      \"assemblyName\": \"PipelineRunScript_unity-b-reload-6193f0d83862439ab3f3e915499e7e1f_292c88ca2f8c4828922ae0e32ea29f0b\",\n      \"success\": true,\n      \"result\": \"{\\\"status\\\":\\\"passed\\\",\\\"checks\\\":4,\\\"message\\\":\\\"Owned deferred native compilation acknowledgement\\\",\\\"failures\\\":[]}\"\n    },\n    \"target\": {\n      \"host\": \"127.0.0.1\",\n      \"port\": 7800,\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\"\n    },\n    \"success\": true\n  },\n  \"errors\": [],\n  \"warnings\": []\n}\n",
+                "stderr": "",
+                "timedOut": false
+              }
+            },
+            {
+              "phase": "editor_status",
+              "argv": [
+                "command",
+                "editor_status",
+                "--project-path",
+                "D:\\DCFA\\Projects\\Test6.6",
+                "--format",
+                "json"
+              ],
+              "budgetMs": 8000,
+              "reply": {
+                "code": 0,
+                "stdout": "{\n  \"success\": true,\n  \"command\": \"command editor_status\",\n  \"data\": {\n    \"command\": \"editor_status\",\n    \"parameters\": {},\n    \"result\": {\n      \"status\": \"ready\",\n      \"compiling\": false,\n      \"domainReloadInProgress\": false,\n      \"playMode\": \"stopped\",\n      \"lastHeartbeat\": \"2026-10-05T07:13:06.2814646Z\",\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\",\n      \"unityVersion\": \"6000.7.0a6\"\n    },\n    \"target\": {\n      \"host\": \"127.0.0.1\",\n      \"port\": 7800,\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\"\n    },\n    \"success\": true\n  },\n  \"errors\": [],\n  \"warnings\": []\n}\n",
+                "stderr": "",
+                "timedOut": false
+              }
+            },
+            {
+              "phase": "ReloadPoll",
+              "argv": [
+                "command",
+                "run_script",
+                "--file",
+                "Temp/WhimTex/test-runs/unity-b-reload-6193f0d83862439ab3f3e915499e7e1f.cs",
+                "--entry",
+                "DocumentReloadTests.ReloadPoll",
+                "--args",
+                "[\"6193f0d83862439ab3f3e915499e7e1f\"]",
+                "--timeout_ms",
+                "7000",
+                "--project-path",
+                "D:\\DCFA\\Projects\\Test6.6",
+                "--timeout",
+                "8",
+                "--format",
+                "json"
+              ],
+              "budgetMs": 8000,
+              "reply": {
+                "code": 0,
+                "stdout": "{\n  \"success\": true,\n  \"command\": \"command run_script\",\n  \"data\": {\n    \"command\": \"run_script\",\n    \"parameters\": {\n      \"file\": \"Temp/WhimTex/test-runs/unity-b-reload-6193f0d83862439ab3f3e915499e7e1f.cs\",\n      \"entry\": \"DocumentReloadTests.ReloadPoll\",\n      \"args\": \"[\\\"6193f0d83862439ab3f3e915499e7e1f\\\"]\",\n      \"timeout_ms\": 7000\n    },\n    \"result\": {\n      \"diagnostics\": [],\n      \"compileMs\": 226,\n      \"executeMs\": 1,\n      \"assemblyName\": \"PipelineRunScript_unity-b-reload-6193f0d83862439ab3f3e915499e7e1f_21c43345db9341b98f5484500960fbd8\",\n      \"success\": true,\n      \"result\": \"{\\\"status\\\":\\\"running\\\",\\\"checks\\\":5,\\\"message\\\":\\\"Waiting for owned native request/domain reload (not a CLI status)\\\",\\\"failures\\\":[],\\\"requestQueued\\\":true,\\\"requestCount\\\":0,\\\"beforeReload\\\":0,\\\"oldDomainGone\\\":false,\\\"requestError\\\":\\\"\\\",\\\"compilationErrors\\\":[]}\"\n    },\n    \"target\": {\n      \"host\": \"127.0.0.1\",\n      \"port\": 7800,\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\"\n    },\n    \"success\": true\n  },\n  \"errors\": [],\n  \"warnings\": []\n}\n",
+                "stderr": "",
+                "timedOut": false
+              }
+            },
+            {
+              "phase": "editor_status",
+              "argv": [
+                "command",
+                "editor_status",
+                "--project-path",
+                "D:\\DCFA\\Projects\\Test6.6",
+                "--format",
+                "json"
+              ],
+              "budgetMs": 8000,
+              "reply": {
+                "code": 0,
+                "stdout": "{\n  \"success\": true,\n  \"command\": \"command editor_status\",\n  \"data\": {\n    \"command\": \"editor_status\",\n    \"parameters\": {},\n    \"result\": {\n      \"status\": \"compiling\",\n      \"compiling\": true,\n      \"domainReloadInProgress\": false,\n      \"playMode\": \"stopped\",\n      \"lastHeartbeat\": \"2026-10-05T07:13:08.2451136Z\",\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\",\n      \"unityVersion\": \"6000.7.0a6\"\n    },\n    \"target\": {\n      \"host\": \"127.0.0.1\",\n      \"port\": 7800,\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\"\n    },\n    \"success\": true\n  },\n  \"errors\": [],\n  \"warnings\": []\n}\n",
+                "stderr": "",
+                "timedOut": false
+              }
+            },
+            {
+              "phase": "editor_status",
+              "argv": [
+                "command",
+                "editor_status",
+                "--project-path",
+                "D:\\DCFA\\Projects\\Test6.6",
+                "--format",
+                "json"
+              ],
+              "budgetMs": 8000,
+              "reply": {
+                "code": 6,
+                "stdout": "{\n  \"success\": false,\n  \"command\": \"unity command editor_status\",\n  \"data\": null,\n  \"errors\": [\n    {\n      \"code\": \"COMMAND_FAILED\",\n      \"message\": \"Failed to execute command 'editor_status': Network error: An error occurred while sending the request.\"\n    }\n  ],\n  \"warnings\": []\n}\n",
+                "stderr": "",
+                "timedOut": false
+              }
+            },
+            {
+              "phase": "editor_status",
+              "argv": [
+                "command",
+                "editor_status",
+                "--project-path",
+                "D:\\DCFA\\Projects\\Test6.6",
+                "--format",
+                "json"
+              ],
+              "budgetMs": 8000,
+              "reply": {
+                "code": null,
+                "stdout": "",
+                "stderr": "",
+                "timedOut": true
+              }
+            },
+            {
+              "phase": "editor_status",
+              "argv": [
+                "command",
+                "editor_status",
+                "--project-path",
+                "D:\\DCFA\\Projects\\Test6.6",
+                "--format",
+                "json"
+              ],
+              "budgetMs": 8000,
+              "reply": {
+                "code": 0,
+                "stdout": "{\n  \"success\": true,\n  \"command\": \"command editor_status\",\n  \"data\": {\n    \"command\": \"editor_status\",\n    \"parameters\": {},\n    \"result\": {\n      \"status\": \"ready\",\n      \"compiling\": false,\n      \"domainReloadInProgress\": false,\n      \"playMode\": \"stopped\",\n      \"lastHeartbeat\": \"2026-10-05T07:13:20.0549196Z\",\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\",\n      \"unityVersion\": \"6000.7.0a6\"\n    },\n    \"target\": {\n      \"host\": \"127.0.0.1\",\n      \"port\": 7800,\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\"\n    },\n    \"success\": true\n  },\n  \"errors\": [],\n  \"warnings\": []\n}\n",
+                "stderr": "",
+                "timedOut": false
+              }
+            },
+            {
+              "phase": "ReloadPoll",
+              "argv": [
+                "command",
+                "run_script",
+                "--file",
+                "Temp/WhimTex/test-runs/unity-b-reload-6193f0d83862439ab3f3e915499e7e1f.cs",
+                "--entry",
+                "DocumentReloadTests.ReloadPoll",
+                "--args",
+                "[\"6193f0d83862439ab3f3e915499e7e1f\"]",
+                "--timeout_ms",
+                "7000",
+                "--project-path",
+                "D:\\DCFA\\Projects\\Test6.6",
+                "--timeout",
+                "8",
+                "--format",
+                "json"
+              ],
+              "budgetMs": 8000,
+              "reply": {
+                "code": 0,
+                "stdout": "{\n  \"success\": true,\n  \"command\": \"command run_script\",\n  \"data\": {\n    \"command\": \"run_script\",\n    \"parameters\": {\n      \"file\": \"Temp/WhimTex/test-runs/unity-b-reload-6193f0d83862439ab3f3e915499e7e1f.cs\",\n      \"entry\": \"DocumentReloadTests.ReloadPoll\",\n      \"args\": \"[\\\"6193f0d83862439ab3f3e915499e7e1f\\\"]\",\n      \"timeout_ms\": 7000\n    },\n    \"result\": {\n      \"diagnostics\": [],\n      \"compileMs\": 3651,\n      \"executeMs\": 1,\n      \"assemblyName\": \"PipelineRunScript_unity-b-reload-6193f0d83862439ab3f3e915499e7e1f_2f99adc9da224edabeb40ba0be4c6c24\",\n      \"success\": true,\n      \"result\": \"{\\\"status\\\":\\\"passed\\\",\\\"checks\\\":5,\\\"message\\\":\\\"One native request and actual domain reload confirmed\\\",\\\"failures\\\":[],\\\"requestQueued\\\":false,\\\"requestCount\\\":1,\\\"beforeReload\\\":1,\\\"oldDomainGone\\\":true,\\\"requestError\\\":\\\"\\\",\\\"compilationErrors\\\":[]}\"\n    },\n    \"target\": {\n      \"host\": \"127.0.0.1\",\n      \"port\": 7800,\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\"\n    },\n    \"success\": true\n  },\n  \"errors\": [],\n  \"warnings\": []\n}\n",
+                "stderr": "",
+                "timedOut": false
+              }
+            },
+            {
+              "phase": "editor_status",
+              "argv": [
+                "command",
+                "editor_status",
+                "--project-path",
+                "D:\\DCFA\\Projects\\Test6.6",
+                "--format",
+                "json"
+              ],
+              "budgetMs": 8000,
+              "reply": {
+                "code": 0,
+                "stdout": "{\n  \"success\": true,\n  \"command\": \"command editor_status\",\n  \"data\": {\n    \"command\": \"editor_status\",\n    \"parameters\": {},\n    \"result\": {\n      \"status\": \"ready\",\n      \"compiling\": false,\n      \"domainReloadInProgress\": false,\n      \"playMode\": \"stopped\",\n      \"lastHeartbeat\": \"2026-10-05T07:13:24.2581805Z\",\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\",\n      \"unityVersion\": \"6000.7.0a6\"\n    },\n    \"target\": {\n      \"host\": \"127.0.0.1\",\n      \"port\": 7800,\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\"\n    },\n    \"success\": true\n  },\n  \"errors\": [],\n  \"warnings\": []\n}\n",
+                "stderr": "",
+                "timedOut": false
+              }
+            },
+            {
+              "phase": "Verify",
+              "argv": [
+                "command",
+                "run_script",
+                "--file",
+                "Temp/WhimTex/test-runs/unity-b-reload-6193f0d83862439ab3f3e915499e7e1f.cs",
+                "--entry",
+                "DocumentReloadTests.Verify",
+                "--args",
+                "[\"6193f0d83862439ab3f3e915499e7e1f\"]",
+                "--timeout_ms",
+                "7000",
+                "--project-path",
+                "D:\\DCFA\\Projects\\Test6.6",
+                "--timeout",
+                "8",
+                "--format",
+                "json"
+              ],
+              "budgetMs": 8000,
+              "reply": {
+                "code": 0,
+                "stdout": "{\n  \"success\": true,\n  \"command\": \"command run_script\",\n  \"data\": {\n    \"command\": \"run_script\",\n    \"parameters\": {\n      \"file\": \"Temp/WhimTex/test-runs/unity-b-reload-6193f0d83862439ab3f3e915499e7e1f.cs\",\n      \"entry\": \"DocumentReloadTests.Verify\",\n      \"args\": \"[\\\"6193f0d83862439ab3f3e915499e7e1f\\\"]\",\n      \"timeout_ms\": 7000\n    },\n    \"result\": {\n      \"diagnostics\": [],\n      \"compileMs\": 382,\n      \"executeMs\": 340,\n      \"assemblyName\": \"PipelineRunScript_unity-b-reload-6193f0d83862439ab3f3e915499e7e1f_702ad9ea391a470288a3890ccba1ffd3\",\n      \"success\": true,\n      \"result\": \"{\\\"status\\\":\\\"passed\\\",\\\"checks\\\":13,\\\"message\\\":\\\"DocumentReloadTests: real reload verification: Surviving-window branch verified; owned cleanup follows separately.\\\",\\\"failures\\\":[],\\\"coverageBranch\\\":\\\"surviving-window\\\",\\\"partialCoverage\\\":false}\"\n    },\n    \"target\": {\n      \"host\": \"127.0.0.1\",\n      \"port\": 7800,\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\"\n    },\n    \"success\": true\n  },\n  \"errors\": [],\n  \"warnings\": []\n}\n",
+                "stderr": "",
+                "timedOut": false
+              }
+            },
+            {
+              "phase": "editor_status",
+              "argv": [
+                "command",
+                "editor_status",
+                "--project-path",
+                "D:\\DCFA\\Projects\\Test6.6",
+                "--format",
+                "json"
+              ],
+              "budgetMs": 7000,
+              "reply": {
+                "code": 0,
+                "stdout": "{\n  \"success\": true,\n  \"command\": \"command editor_status\",\n  \"data\": {\n    \"command\": \"editor_status\",\n    \"parameters\": {},\n    \"result\": {\n      \"status\": \"ready\",\n      \"compiling\": false,\n      \"domainReloadInProgress\": false,\n      \"playMode\": \"stopped\",\n      \"lastHeartbeat\": \"2026-10-05T07:13:25.5109477Z\",\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\",\n      \"unityVersion\": \"6000.7.0a6\"\n    },\n    \"target\": {\n      \"host\": \"127.0.0.1\",\n      \"port\": 7800,\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\"\n    },\n    \"success\": true\n  },\n  \"errors\": [],\n  \"warnings\": []\n}\n",
+                "stderr": "",
+                "timedOut": false
+              }
+            },
+            {
+              "phase": "Cleanup",
+              "argv": [
+                "command",
+                "run_script",
+                "--file",
+                "Temp/WhimTex/test-runs/unity-b-reload-6193f0d83862439ab3f3e915499e7e1f.cs",
+                "--entry",
+                "DocumentReloadTests.Cleanup",
+                "--args",
+                "[\"6193f0d83862439ab3f3e915499e7e1f\"]",
+                "--timeout_ms",
+                "6000",
+                "--project-path",
+                "D:\\DCFA\\Projects\\Test6.6",
+                "--timeout",
+                "7",
+                "--format",
+                "json"
+              ],
+              "budgetMs": 7000,
+              "reply": {
+                "code": 0,
+                "stdout": "{\n  \"success\": true,\n  \"command\": \"command run_script\",\n  \"data\": {\n    \"command\": \"run_script\",\n    \"parameters\": {\n      \"file\": \"Temp/WhimTex/test-runs/unity-b-reload-6193f0d83862439ab3f3e915499e7e1f.cs\",\n      \"entry\": \"DocumentReloadTests.Cleanup\",\n      \"args\": \"[\\\"6193f0d83862439ab3f3e915499e7e1f\\\"]\",\n      \"timeout_ms\": 6000\n    },\n    \"result\": {\n      \"diagnostics\": [],\n      \"compileMs\": 170,\n      \"executeMs\": 198,\n      \"assemblyName\": \"PipelineRunScript_unity-b-reload-6193f0d83862439ab3f3e915499e7e1f_a98761e4e8694b4fb4936d7bfca4d57c\",\n      \"success\": true,\n      \"result\": \"{\\\"status\\\":\\\"passed\\\",\\\"checks\\\":3,\\\"message\\\":\\\"Owned Document reload cleanup (independent of the primary verdict)\\\",\\\"failures\\\":[]}\"\n    },\n    \"target\": {\n      \"host\": \"127.0.0.1\",\n      \"port\": 7800,\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\"\n    },\n    \"success\": true\n  },\n  \"errors\": [],\n  \"warnings\": []\n}\n",
+                "stderr": "",
+                "timedOut": false
+              }
+            }
+          ],
+          "Begin": {
+            "status": "passed",
+            "detail": "DocumentReloadTests: Begin",
+            "uncertain": false,
+            "testResult": {
+              "status": "passed",
+              "checks": 5,
+              "message": "DocumentReloadTests: Begin",
+              "failures": []
+            }
+          },
+          "Trigger": {
+            "status": "passed",
+            "detail": "Owned deferred native compilation acknowledgement",
+            "uncertain": false,
+            "testResult": {
+              "status": "passed",
+              "checks": 4,
+              "message": "Owned deferred native compilation acknowledgement",
+              "failures": []
+            }
+          },
+          "ReloadPoll": {
+            "status": "passed",
+            "detail": "One native request and actual domain reload confirmed",
+            "uncertain": false,
+            "testResult": {
+              "status": "passed",
+              "checks": 5,
+              "message": "One native request and actual domain reload confirmed",
+              "failures": [],
+              "requestQueued": false,
+              "requestCount": 1,
+              "beforeReload": 1,
+              "oldDomainGone": true,
+              "requestError": "",
+              "compilationErrors": []
+            }
+          },
+          "observedCompilation": true,
+          "readOnlyReconnects": [
+            {
+              "atMs": 5096,
+              "errors": [
+                {
+                  "code": "COMMAND_FAILED",
+                  "message": "Failed to execute command 'editor_status': Network error: An error occurred while sending the request."
+                }
+              ]
+            }
+          ],
+          "readOnlyStatusTimeouts": [
+            {
+              "atMs": 13397,
+              "message": "Error: Own read-only Editor status process timed out without a reply: {\"code\":null,\"stdout\":\"\",\"stderr\":\"\",\"timedOut\":true}"
+            }
+          ],
+          "Verify": {
+            "status": "passed",
+            "detail": "DocumentReloadTests: real reload verification: Surviving-window branch verified; owned cleanup follows separately.",
+            "uncertain": false,
+            "testResult": {
+              "status": "passed",
+              "checks": 13,
+              "message": "DocumentReloadTests: real reload verification: Surviving-window branch verified; owned cleanup follows separately.",
+              "failures": [],
+              "coverageBranch": "surviving-window",
+              "partialCoverage": false
+            }
+          },
+          "documentReloadCoverage": {
+            "branch": "surviving-window",
+            "partial": false,
+            "note": "A passed carrier-only fallback is NOT verification of the surviving-window oracle."
+          },
+          "triggerCount": 1,
+          "Cleanup": {
+            "status": "passed",
+            "detail": "Owned Document reload cleanup (independent of the primary verdict)",
+            "uncertain": false,
+            "testResult": {
+              "status": "passed",
+              "checks": 3,
+              "message": "Owned Document reload cleanup (independent of the primary verdict)",
+              "failures": []
+            }
+          }
+        }
+      },
+      "durationMs": 22095,
+      "attempts": [
+        {
+          "phase": "result",
+          "entry": null,
+          "reply": {
+            "code": 0,
+            "stdout": "WHIMTEX_TEST_RESULT {\"status\":\"passed\",\"checks\":45,\"message\":\"DocumentReloadTests: real domain reload and original independent assertions\",\"failures\":[],\"cases\":[{\"name\":\"Begin -> one deferred native Trigger -> owned ReloadPoll + idle Editor -> Verify -> Cleanup\",\"status\":\"passed\"}],\"facts\":{\"input\":{\"file\":\"D:\\\\DCFA\\\\Projects\\\\Test6.6\\\\Temp\\\\WhimTex\\\\test-runs\\\\unity-b-reload-6193f0d83862439ab3f3e915499e7e1f.cs\",\"runId\":\"6193f0d83862439ab3f3e915499e7e1f\",\"sources\":[\"Tests~/Framework/TestApi.cs\",\"Tests~/Cases/UnityB/UnityBSupport.cs\",\"Tests~/Cases/UnityB/ReloadSupport.cs\",\"Tests~/Cases/UnityB/DocumentReloadTests.cs\"],\"sha256\":\"c9346daa3a0819b1295a7e72c44d2498d35b06dc5371a35ee998db1a72216b03\",\"removed\":true},\"attempts\":[{\"phase\":\"editor_status\",\"argv\":[\"command\",\"editor_status\",\"--project-path\",\"D:\\\\DCFA\\\\Projects\\\\Test6.6\",\"--format\",\"json\"],\"budgetMs\":8000,\"reply\":{\"code\":0,\"stdout\":\"{\\n  \\\"success\\\": true,\\n  \\\"command\\\": \\\"command editor_status\\\",\\n  \\\"data\\\": {\\n    \\\"command\\\": \\\"editor_status\\\",\\n    \\\"parameters\\\": {},\\n    \\\"result\\\": {\\n      \\\"status\\\": \\\"ready\\\",\\n      \\\"compiling\\\": false,\\n      \\\"domainReloadInProgress\\\": false,\\n      \\\"playMode\\\": \\\"stopped\\\",\\n      \\\"lastHeartbeat\\\": \\\"2026-10-05T07:13:04.2922861Z\\\",\\n      \\\"projectPath\\\": \\\"D:\\\\\\\\DCFA\\\\\\\\Projects\\\\\\\\Test6.6\\\",\\n      \\\"unityVersion\\\": \\\"6000.7.0a6\\\"\\n    },\\n    \\\"target\\\": {\\n      \\\"host\\\": \\\"127.0.0.1\\\",\\n      \\\"port\\\": 7800,\\n      \\\"projectPath\\\": \\\"D:\\\\\\\\DCFA\\\\\\\\Projects\\\\\\\\Test6.6\\\"\\n    },\\n    \\\"success\\\": true\\n  },\\n  \\\"errors\\\": [],\\n  \\\"warnings\\\": []\\n}\\n\",\"stderr\":\"\",\"timedOut\":false}},{\"phase\":\"Begin\",\"argv\":[\"command\",\"run_script\",\"--file\",\"Temp/WhimTex/test-runs/unity-b-reload-6193f0d83862439ab3f3e915499e7e1f.cs\",\"--entry\",\"DocumentReloadTests.Begin\",\"--args\",\"[\\\"6193f0d83862439ab3f3e915499e7e1f\\\"]\",\"--timeout_ms\",\"7000\",\"--project-path\",\"D:\\\\DCFA\\\\Projects\\\\Test6.6\",\"--timeout\",\"8\",\"--format\",\"json\"],\"budgetMs\":8000,\"reply\":{\"code\":0,\"stdout\":\"{\\n  \\\"success\\\": true,\\n  \\\"command\\\": \\\"command run_script\\\",\\n  \\\"data\\\": {\\n    \\\"command\\\": \\\"run_script\\\",\\n    \\\"parameters\\\": {\\n      \\\"file\\\": \\\"Temp/WhimTex/test-runs/unity-b-reload-6193f0d83862439ab3f3e915499e7e1f.cs\\\",\\n      \\\"entry\\\": \\\"DocumentReloadTests.Begin\\\",\\n      \\\"args\\\": \\\"[\\\\\\\"6193f0d83862439ab3f3e915499e7e1f\\\\\\\"]\\\",\\n      \\\"timeout_ms\\\": 7000\\n    },\\n    \\\"result\\\": {\\n      \\\"diagnostics\\\": [],\\n      \\\"compileMs\\\": 340,\\n      \\\"executeMs\\\": 316,\\n      \\\"assemblyName\\\": \\\"PipelineRunScript_unity-b-reload-6193f0d83862439ab3f3e915499e7e1f_e9ab1e80d5724add95be6853f0e6f702\\\",\\n      \\\"success\\\": true,\\n      \\\"result\\\": \\\"{\\\\\\\"status\\\\\\\":\\\\\\\"passed\\\\\\\",\\\\\\\"checks\\\\\\\":5,\\\\\\\"message\\\\\\\":\\\\\\\"DocumentReloadTests: Begin\\\\\\\",\\\\\\\"failures\\\\\\\":[]}\\\"\\n    },\\n    \\\"target\\\": {\\n      \\\"host\\\": \\\"127.0.0.1\\\",\\n      \\\"port\\\": 7800,\\n      \\\"projectPath\\\": \\\"D:\\\\\\\\DCFA\\\\\\\\Projects\\\\\\\\Test6.6\\\"\\n    },\\n    \\\"success\\\": true\\n  },\\n  \\\"errors\\\": [],\\n  \\\"warnings\\\": []\\n}\\n\",\"stderr\":\"\",\"timedOut\":false}},{\"phase\":\"editor_status\",\"argv\":[\"command\",\"editor_status\",\"--project-path\",\"D:\\\\DCFA\\\\Projects\\\\Test6.6\",\"--format\",\"json\"],\"budgetMs\":8000,\"reply\":{\"code\":0,\"stdout\":\"{\\n  \\\"success\\\": true,\\n  \\\"command\\\": \\\"command editor_status\\\",\\n  \\\"data\\\": {\\n    \\\"command\\\": \\\"editor_status\\\",\\n    \\\"parameters\\\": {},\\n    \\\"result\\\": {\\n      \\\"status\\\": \\\"ready\\\",\\n      \\\"compiling\\\": false,\\n      \\\"domainReloadInProgress\\\": false,\\n      \\\"playMode\\\": \\\"stopped\\\",\\n      \\\"lastHeartbeat\\\": \\\"2026-10-05T07:13:05.511697Z\\\",\\n      \\\"projectPath\\\": \\\"D:\\\\\\\\DCFA\\\\\\\\Projects\\\\\\\\Test6.6\\\",\\n      \\\"unityVersion\\\": \\\"6000.7.0a6\\\"\\n    },\\n    \\\"target\\\": {\\n      \\\"host\\\": \\\"127.0.0.1\\\",\\n      \\\"port\\\": 7800,\\n      \\\"projectPath\\\": \\\"D:\\\\\\\\DCFA\\\\\\\\Projects\\\\\\\\Test6.6\\\"\\n    },\\n    \\\"success\\\": true\\n  },\\n  \\\"errors\\\": [],\\n  \\\"warnings\\\": []\\n}\\n\",\"stderr\":\"\",\"timedOut\":false}},{\"phase\":\"Trigger\",\"argv\":[\"command\",\"run_script\",\"--file\",\"Temp/WhimTex/test-runs/unity-b-reload-6193f0d83862439ab3f3e915499e7e1f.cs\",\"--entry\",\"DocumentReloadTests.Trigger\",\"--args\",\"[\\\"6193f0d83862439ab3f3e915499e7e1f\\\"]\",\"--timeout_ms\",\"7000\",\"--project-path\",\"D:\\\\DCFA\\\\Projects\\\\Test6.6\",\"--timeout\",\"8\",\"--format\",\"json\"],\"budgetMs\":8000,\"reply\":{\"code\":0,\"stdout\":\"{\\n  \\\"success\\\": true,\\n  \\\"command\\\": \\\"command run_script\\\",\\n  \\\"data\\\": {\\n    \\\"command\\\": \\\"run_script\\\",\\n    \\\"parameters\\\": {\\n      \\\"file\\\": \\\"Temp/WhimTex/test-runs/unity-b-reload-6193f0d83862439ab3f3e915499e7e1f.cs\\\",\\n      \\\"entry\\\": \\\"DocumentReloadTests.Trigger\\\",\\n      \\\"args\\\": \\\"[\\\\\\\"6193f0d83862439ab3f3e915499e7e1f\\\\\\\"]\\\",\\n      \\\"timeout_ms\\\": 7000\\n    },\\n    \\\"result\\\": {\\n      \\\"diagnostics\\\": [],\\n      \\\"compileMs\\\": 260,\\n      \\\"executeMs\\\": 1,\\n      \\\"assemblyName\\\": \\\"PipelineRunScript_unity-b-reload-6193f0d83862439ab3f3e915499e7e1f_292c88ca2f8c4828922ae0e32ea29f0b\\\",\\n      \\\"success\\\": true,\\n      \\\"result\\\": \\\"{\\\\\\\"status\\\\\\\":\\\\\\\"passed\\\\\\\",\\\\\\\"checks\\\\\\\":4,\\\\\\\"message\\\\\\\":\\\\\\\"Owned deferred native compilation acknowledgement\\\\\\\",\\\\\\\"failures\\\\\\\":[]}\\\"\\n    },\\n    \\\"target\\\": {\\n      \\\"host\\\": \\\"127.0.0.1\\\",\\n      \\\"port\\\": 7800,\\n      \\\"projectPath\\\": \\\"D:\\\\\\\\DCFA\\\\\\\\Projects\\\\\\\\Test6.6\\\"\\n    },\\n    \\\"success\\\": true\\n  },\\n  \\\"errors\\\": [],\\n  \\\"warnings\\\": []\\n}\\n\",\"stderr\":\"\",\"timedOut\":false}},{\"phase\":\"editor_status\",\"argv\":[\"command\",\"editor_status\",\"--project-path\",\"D:\\\\DCFA\\\\Projects\\\\Test6.6\",\"--format\",\"json\"],\"budgetMs\":8000,\"reply\":{\"code\":0,\"stdout\":\"{\\n  \\\"success\\\": true,\\n  \\\"command\\\": \\\"command editor_status\\\",\\n  \\\"data\\\": {\\n    \\\"command\\\": \\\"editor_status\\\",\\n    \\\"parameters\\\": {},\\n    \\\"result\\\": {\\n      \\\"status\\\": \\\"ready\\\",\\n      \\\"compiling\\\": false,\\n      \\\"domainReloadInProgress\\\": false,\\n      \\\"playMode\\\": \\\"stopped\\\",\\n      \\\"lastHeartbeat\\\": \\\"2026-10-05T07:13:06.2814646Z\\\",\\n      \\\"projectPath\\\": \\\"D:\\\\\\\\DCFA\\\\\\\\Projects\\\\\\\\Test6.6\\\",\\n      \\\"unityVersion\\\": \\\"6000.7.0a6\\\"\\n    },\\n    \\\"target\\\": {\\n      \\\"host\\\": \\\"127.0.0.1\\\",\\n      \\\"port\\\": 7800,\\n      \\\"projectPath\\\": \\\"D:\\\\\\\\DCFA\\\\\\\\Projects\\\\\\\\Test6.6\\\"\\n    },\\n    \\\"success\\\": true\\n  },\\n  \\\"errors\\\": [],\\n  \\\"warnings\\\": []\\n}\\n\",\"stderr\":\"\",\"timedOut\":false}},{\"phase\":\"ReloadPoll\",\"argv\":[\"command\",\"run_script\",\"--file\",\"Temp/WhimTex/test-runs/unity-b-reload-6193f0d83862439ab3f3e915499e7e1f.cs\",\"--entry\",\"DocumentReloadTests.ReloadPoll\",\"--args\",\"[\\\"6193f0d83862439ab3f3e915499e7e1f\\\"]\",\"--timeout_ms\",\"7000\",\"--project-path\",\"D:\\\\DCFA\\\\Projects\\\\Test6.6\",\"--timeout\",\"8\",\"--format\",\"json\"],\"budgetMs\":8000,\"reply\":{\"code\":0,\"stdout\":\"{\\n  \\\"success\\\": true,\\n  \\\"command\\\": \\\"command run_script\\\",\\n  \\\"data\\\": {\\n    \\\"command\\\": \\\"run_script\\\",\\n    \\\"parameters\\\": {\\n      \\\"file\\\": \\\"Temp/WhimTex/test-runs/unity-b-reload-6193f0d83862439ab3f3e915499e7e1f.cs\\\",\\n      \\\"entry\\\": \\\"DocumentReloadTests.ReloadPoll\\\",\\n      \\\"args\\\": \\\"[\\\\\\\"6193f0d83862439ab3f3e915499e7e1f\\\\\\\"]\\\",\\n      \\\"timeout_ms\\\": 7000\\n    },\\n    \\\"result\\\": {\\n      \\\"diagnostics\\\": [],\\n      \\\"compileMs\\\": 226,\\n      \\\"executeMs\\\": 1,\\n      \\\"assemblyName\\\": \\\"PipelineRunScript_unity-b-reload-6193f0d83862439ab3f3e915499e7e1f_21c43345db9341b98f5484500960fbd8\\\",\\n      \\\"success\\\": true,\\n      \\\"result\\\": \\\"{\\\\\\\"status\\\\\\\":\\\\\\\"running\\\\\\\",\\\\\\\"checks\\\\\\\":5,\\\\\\\"message\\\\\\\":\\\\\\\"Waiting for owned native request/domain reload (not a CLI status)\\\\\\\",\\\\\\\"failures\\\\\\\":[],\\\\\\\"requestQueued\\\\\\\":true,\\\\\\\"requestCount\\\\\\\":0,\\\\\\\"beforeReload\\\\\\\":0,\\\\\\\"oldDomainGone\\\\\\\":false,\\\\\\\"requestError\\\\\\\":\\\\\\\"\\\\\\\",\\\\\\\"compilationErrors\\\\\\\":[]}\\\"\\n    },\\n    \\\"target\\\": {\\n      \\\"host\\\": \\\"127.0.0.1\\\",\\n      \\\"port\\\": 7800,\\n      \\\"projectPath\\\": \\\"D:\\\\\\\\DCFA\\\\\\\\Projects\\\\\\\\Test6.6\\\"\\n    },\\n    \\\"success\\\": true\\n  },\\n  \\\"errors\\\": [],\\n  \\\"warnings\\\": []\\n}\\n\",\"stderr\":\"\",\"timedOut\":false}},{\"phase\":\"editor_status\",\"argv\":[\"command\",\"editor_status\",\"--project-path\",\"D:\\\\DCFA\\\\Projects\\\\Test6.6\",\"--format\",\"json\"],\"budgetMs\":8000,\"reply\":{\"code\":0,\"stdout\":\"{\\n  \\\"success\\\": true,\\n  \\\"command\\\": \\\"command editor_status\\\",\\n  \\\"data\\\": {\\n    \\\"command\\\": \\\"editor_status\\\",\\n    \\\"parameters\\\": {},\\n    \\\"result\\\": {\\n      \\\"status\\\": \\\"compiling\\\",\\n      \\\"compiling\\\": true,\\n      \\\"domainReloadInProgress\\\": false,\\n      \\\"playMode\\\": \\\"stopped\\\",\\n      \\\"lastHeartbeat\\\": \\\"2026-10-05T07:13:08.2451136Z\\\",\\n      \\\"projectPath\\\": \\\"D:\\\\\\\\DCFA\\\\\\\\Projects\\\\\\\\Test6.6\\\",\\n      \\\"unityVersion\\\": \\\"6000.7.0a6\\\"\\n    },\\n    \\\"target\\\": {\\n      \\\"host\\\": \\\"127.0.0.1\\\",\\n      \\\"port\\\": 7800,\\n      \\\"projectPath\\\": \\\"D:\\\\\\\\DCFA\\\\\\\\Projects\\\\\\\\Test6.6\\\"\\n    },\\n    \\\"success\\\": true\\n  },\\n  \\\"errors\\\": [],\\n  \\\"warnings\\\": []\\n}\\n\",\"stderr\":\"\",\"timedOut\":false}},{\"phase\":\"editor_status\",\"argv\":[\"command\",\"editor_status\",\"--project-path\",\"D:\\\\DCFA\\\\Projects\\\\Test6.6\",\"--format\",\"json\"],\"budgetMs\":8000,\"reply\":{\"code\":6,\"stdout\":\"{\\n  \\\"success\\\": false,\\n  \\\"command\\\": \\\"unity command editor_status\\\",\\n  \\\"data\\\": null,\\n  \\\"errors\\\": [\\n    {\\n      \\\"code\\\": \\\"COMMAND_FAILED\\\",\\n      \\\"message\\\": \\\"Failed to execute command 'editor_status': Network error: An error occurred while sending the request.\\\"\\n    }\\n  ],\\n  \\\"warnings\\\": []\\n}\\n\",\"stderr\":\"\",\"timedOut\":false}},{\"phase\":\"editor_status\",\"argv\":[\"command\",\"editor_status\",\"--project-path\",\"D:\\\\DCFA\\\\Projects\\\\Test6.6\",\"--format\",\"json\"],\"budgetMs\":8000,\"reply\":{\"code\":null,\"stdout\":\"\",\"stderr\":\"\",\"timedOut\":true}},{\"phase\":\"editor_status\",\"argv\":[\"command\",\"editor_status\",\"--project-path\",\"D:\\\\DCFA\\\\Projects\\\\Test6.6\",\"--format\",\"json\"],\"budgetMs\":8000,\"reply\":{\"code\":0,\"stdout\":\"{\\n  \\\"success\\\": true,\\n  \\\"command\\\": \\\"command editor_status\\\",\\n  \\\"data\\\": {\\n    \\\"command\\\": \\\"editor_status\\\",\\n    \\\"parameters\\\": {},\\n    \\\"result\\\": {\\n      \\\"status\\\": \\\"ready\\\",\\n      \\\"compiling\\\": false,\\n      \\\"domainReloadInProgress\\\": false,\\n      \\\"playMode\\\": \\\"stopped\\\",\\n      \\\"lastHeartbeat\\\": \\\"2026-10-05T07:13:20.0549196Z\\\",\\n      \\\"projectPath\\\": \\\"D:\\\\\\\\DCFA\\\\\\\\Projects\\\\\\\\Test6.6\\\",\\n      \\\"unityVersion\\\": \\\"6000.7.0a6\\\"\\n    },\\n    \\\"target\\\": {\\n      \\\"host\\\": \\\"127.0.0.1\\\",\\n      \\\"port\\\": 7800,\\n      \\\"projectPath\\\": \\\"D:\\\\\\\\DCFA\\\\\\\\Projects\\\\\\\\Test6.6\\\"\\n    },\\n    \\\"success\\\": true\\n  },\\n  \\\"errors\\\": [],\\n  \\\"warnings\\\": []\\n}\\n\",\"stderr\":\"\",\"timedOut\":false}},{\"phase\":\"ReloadPoll\",\"argv\":[\"command\",\"run_script\",\"--file\",\"Temp/WhimTex/test-runs/unity-b-reload-6193f0d83862439ab3f3e915499e7e1f.cs\",\"--entry\",\"DocumentReloadTests.ReloadPoll\",\"--args\",\"[\\\"6193f0d83862439ab3f3e915499e7e1f\\\"]\",\"--timeout_ms\",\"7000\",\"--project-path\",\"D:\\\\DCFA\\\\Projects\\\\Test6.6\",\"--timeout\",\"8\",\"--format\",\"json\"],\"budgetMs\":8000,\"reply\":{\"code\":0,\"stdout\":\"{\\n  \\\"success\\\": true,\\n  \\\"command\\\": \\\"command run_script\\\",\\n  \\\"data\\\": {\\n    \\\"command\\\": \\\"run_script\\\",\\n    \\\"parameters\\\": {\\n      \\\"file\\\": \\\"Temp/WhimTex/test-runs/unity-b-reload-6193f0d83862439ab3f3e915499e7e1f.cs\\\",\\n      \\\"entry\\\": \\\"DocumentReloadTests.ReloadPoll\\\",\\n      \\\"args\\\": \\\"[\\\\\\\"6193f0d83862439ab3f3e915499e7e1f\\\\\\\"]\\\",\\n      \\\"timeout_ms\\\": 7000\\n    },\\n    \\\"result\\\": {\\n      \\\"diagnostics\\\": [],\\n      \\\"compileMs\\\": 3651,\\n      \\\"executeMs\\\": 1,\\n      \\\"assemblyName\\\": \\\"PipelineRunScript_unity-b-reload-6193f0d83862439ab3f3e915499e7e1f_2f99adc9da224edabeb40ba0be4c6c24\\\",\\n      \\\"success\\\": true,\\n      \\\"result\\\": \\\"{\\\\\\\"status\\\\\\\":\\\\\\\"passed\\\\\\\",\\\\\\\"checks\\\\\\\":5,\\\\\\\"message\\\\\\\":\\\\\\\"One native request and actual domain reload confirmed\\\\\\\",\\\\\\\"failures\\\\\\\":[],\\\\\\\"requestQueued\\\\\\\":false,\\\\\\\"requestCount\\\\\\\":1,\\\\\\\"beforeReload\\\\\\\":1,\\\\\\\"oldDomainGone\\\\\\\":true,\\\\\\\"requestError\\\\\\\":\\\\\\\"\\\\\\\",\\\\\\\"compilationErrors\\\\\\\":[]}\\\"\\n    },\\n    \\\"target\\\": {\\n      \\\"host\\\": \\\"127.0.0.1\\\",\\n      \\\"port\\\": 7800,\\n      \\\"projectPath\\\": \\\"D:\\\\\\\\DCFA\\\\\\\\Projects\\\\\\\\Test6.6\\\"\\n    },\\n    \\\"success\\\": true\\n  },\\n  \\\"errors\\\": [],\\n  \\\"warnings\\\": []\\n}\\n\",\"stderr\":\"\",\"timedOut\":false}},{\"phase\":\"editor_status\",\"argv\":[\"command\",\"editor_status\",\"--project-path\",\"D:\\\\DCFA\\\\Projects\\\\Test6.6\",\"--format\",\"json\"],\"budgetMs\":8000,\"reply\":{\"code\":0,\"stdout\":\"{\\n  \\\"success\\\": true,\\n  \\\"command\\\": \\\"command editor_status\\\",\\n  \\\"data\\\": {\\n    \\\"command\\\": \\\"editor_status\\\",\\n    \\\"parameters\\\": {},\\n    \\\"result\\\": {\\n      \\\"status\\\": \\\"ready\\\",\\n      \\\"compiling\\\": false,\\n      \\\"domainReloadInProgress\\\": false,\\n      \\\"playMode\\\": \\\"stopped\\\",\\n      \\\"lastHeartbeat\\\": \\\"2026-10-05T07:13:24.2581805Z\\\",\\n      \\\"projectPath\\\": \\\"D:\\\\\\\\DCFA\\\\\\\\Projects\\\\\\\\Test6.6\\\",\\n      \\\"unityVersion\\\": \\\"6000.7.0a6\\\"\\n    },\\n    \\\"target\\\": {\\n      \\\"host\\\": \\\"127.0.0.1\\\",\\n      \\\"port\\\": 7800,\\n      \\\"projectPath\\\": \\\"D:\\\\\\\\DCFA\\\\\\\\Projects\\\\\\\\Test6.6\\\"\\n    },\\n    \\\"success\\\": true\\n  },\\n  \\\"errors\\\": [],\\n  \\\"warnings\\\": []\\n}\\n\",\"stderr\":\"\",\"timedOut\":false}},{\"phase\":\"Verify\",\"argv\":[\"command\",\"run_script\",\"--file\",\"Temp/WhimTex/test-runs/unity-b-reload-6193f0d83862439ab3f3e915499e7e1f.cs\",\"--entry\",\"DocumentReloadTests.Verify\",\"--args\",\"[\\\"6193f0d83862439ab3f3e915499e7e1f\\\"]\",\"--timeout_ms\",\"7000\",\"--project-path\",\"D:\\\\DCFA\\\\Projects\\\\Test6.6\",\"--timeout\",\"8\",\"--format\",\"json\"],\"budgetMs\":8000,\"reply\":{\"code\":0,\"stdout\":\"{\\n  \\\"success\\\": true,\\n  \\\"command\\\": \\\"command run_script\\\",\\n  \\\"data\\\": {\\n    \\\"command\\\": \\\"run_script\\\",\\n    \\\"parameters\\\": {\\n      \\\"file\\\": \\\"Temp/WhimTex/test-runs/unity-b-reload-6193f0d83862439ab3f3e915499e7e1f.cs\\\",\\n      \\\"entry\\\": \\\"DocumentReloadTests.Verify\\\",\\n      \\\"args\\\": \\\"[\\\\\\\"6193f0d83862439ab3f3e915499e7e1f\\\\\\\"]\\\",\\n      \\\"timeout_ms\\\": 7000\\n    },\\n    \\\"result\\\": {\\n      \\\"diagnostics\\\": [],\\n      \\\"compileMs\\\": 382,\\n      \\\"executeMs\\\": 340,\\n      \\\"assemblyName\\\": \\\"PipelineRunScript_unity-b-reload-6193f0d83862439ab3f3e915499e7e1f_702ad9ea391a470288a3890ccba1ffd3\\\",\\n      \\\"success\\\": true,\\n      \\\"result\\\": \\\"{\\\\\\\"status\\\\\\\":\\\\\\\"passed\\\\\\\",\\\\\\\"checks\\\\\\\":13,\\\\\\\"message\\\\\\\":\\\\\\\"DocumentReloadTests: real reload verification: Surviving-window branch verified; owned cleanup follows separately.\\\\\\\",\\\\\\\"failures\\\\\\\":[],\\\\\\\"coverageBranch\\\\\\\":\\\\\\\"surviving-window\\\\\\\",\\\\\\\"partialCoverage\\\\\\\":false}\\\"\\n    },\\n    \\\"target\\\": {\\n      \\\"host\\\": \\\"127.0.0.1\\\",\\n      \\\"port\\\": 7800,\\n      \\\"projectPath\\\": \\\"D:\\\\\\\\DCFA\\\\\\\\Projects\\\\\\\\Test6.6\\\"\\n    },\\n    \\\"success\\\": true\\n  },\\n  \\\"errors\\\": [],\\n  \\\"warnings\\\": []\\n}\\n\",\"stderr\":\"\",\"timedOut\":false}},{\"phase\":\"editor_status\",\"argv\":[\"command\",\"editor_status\",\"--project-path\",\"D:\\\\DCFA\\\\Projects\\\\Test6.6\",\"--format\",\"json\"],\"budgetMs\":7000,\"reply\":{\"code\":0,\"stdout\":\"{\\n  \\\"success\\\": true,\\n  \\\"command\\\": \\\"command editor_status\\\",\\n  \\\"data\\\": {\\n    \\\"command\\\": \\\"editor_status\\\",\\n    \\\"parameters\\\": {},\\n    \\\"result\\\": {\\n      \\\"status\\\": \\\"ready\\\",\\n      \\\"compiling\\\": false,\\n      \\\"domainReloadInProgress\\\": false,\\n      \\\"playMode\\\": \\\"stopped\\\",\\n      \\\"lastHeartbeat\\\": \\\"2026-10-05T07:13:25.5109477Z\\\",\\n      \\\"projectPath\\\": \\\"D:\\\\\\\\DCFA\\\\\\\\Projects\\\\\\\\Test6.6\\\",\\n      \\\"unityVersion\\\": \\\"6000.7.0a6\\\"\\n    },\\n    \\\"target\\\": {\\n      \\\"host\\\": \\\"127.0.0.1\\\",\\n      \\\"port\\\": 7800,\\n      \\\"projectPath\\\": \\\"D:\\\\\\\\DCFA\\\\\\\\Projects\\\\\\\\Test6.6\\\"\\n    },\\n    \\\"success\\\": true\\n  },\\n  \\\"errors\\\": [],\\n  \\\"warnings\\\": []\\n}\\n\",\"stderr\":\"\",\"timedOut\":false}},{\"phase\":\"Cleanup\",\"argv\":[\"command\",\"run_script\",\"--file\",\"Temp/WhimTex/test-runs/unity-b-reload-6193f0d83862439ab3f3e915499e7e1f.cs\",\"--entry\",\"DocumentReloadTests.Cleanup\",\"--args\",\"[\\\"6193f0d83862439ab3f3e915499e7e1f\\\"]\",\"--timeout_ms\",\"6000\",\"--project-path\",\"D:\\\\DCFA\\\\Projects\\\\Test6.6\",\"--timeout\",\"7\",\"--format\",\"json\"],\"budgetMs\":7000,\"reply\":{\"code\":0,\"stdout\":\"{\\n  \\\"success\\\": true,\\n  \\\"command\\\": \\\"command run_script\\\",\\n  \\\"data\\\": {\\n    \\\"command\\\": \\\"run_script\\\",\\n    \\\"parameters\\\": {\\n      \\\"file\\\": \\\"Temp/WhimTex/test-runs/unity-b-reload-6193f0d83862439ab3f3e915499e7e1f.cs\\\",\\n      \\\"entry\\\": \\\"DocumentReloadTests.Cleanup\\\",\\n      \\\"args\\\": \\\"[\\\\\\\"6193f0d83862439ab3f3e915499e7e1f\\\\\\\"]\\\",\\n      \\\"timeout_ms\\\": 6000\\n    },\\n    \\\"result\\\": {\\n      \\\"diagnostics\\\": [],\\n      \\\"compileMs\\\": 170,\\n      \\\"executeMs\\\": 198,\\n      \\\"assemblyName\\\": \\\"PipelineRunScript_unity-b-reload-6193f0d83862439ab3f3e915499e7e1f_a98761e4e8694b4fb4936d7bfca4d57c\\\",\\n      \\\"success\\\": true,\\n      \\\"result\\\": \\\"{\\\\\\\"status\\\\\\\":\\\\\\\"passed\\\\\\\",\\\\\\\"checks\\\\\\\":3,\\\\\\\"message\\\\\\\":\\\\\\\"Owned Document reload cleanup (independent of the primary verdict)\\\\\\\",\\\\\\\"failures\\\\\\\":[]}\\\"\\n    },\\n    \\\"target\\\": {\\n      \\\"host\\\": \\\"127.0.0.1\\\",\\n      \\\"port\\\": 7800,\\n      \\\"projectPath\\\": \\\"D:\\\\\\\\DCFA\\\\\\\\Projects\\\\\\\\Test6.6\\\"\\n    },\\n    \\\"success\\\": true\\n  },\\n  \\\"errors\\\": [],\\n  \\\"warnings\\\": []\\n}\\n\",\"stderr\":\"\",\"timedOut\":false}}],\"Begin\":{\"status\":\"passed\",\"detail\":\"DocumentReloadTests: Begin\",\"uncertain\":false,\"testResult\":{\"status\":\"passed\",\"checks\":5,\"message\":\"DocumentReloadTests: Begin\",\"failures\":[]}},\"Trigger\":{\"status\":\"passed\",\"detail\":\"Owned deferred native compilation acknowledgement\",\"uncertain\":false,\"testResult\":{\"status\":\"passed\",\"checks\":4,\"message\":\"Owned deferred native compilation acknowledgement\",\"failures\":[]}},\"ReloadPoll\":{\"status\":\"passed\",\"detail\":\"One native request and actual domain reload confirmed\",\"uncertain\":false,\"testResult\":{\"status\":\"passed\",\"checks\":5,\"message\":\"One native request and actual domain reload confirmed\",\"failures\":[],\"requestQueued\":false,\"requestCount\":1,\"beforeReload\":1,\"oldDomainGone\":true,\"requestError\":\"\",\"compilationErrors\":[]}},\"observedCompilation\":true,\"readOnlyReconnects\":[{\"atMs\":5096,\"errors\":[{\"code\":\"COMMAND_FAILED\",\"message\":\"Failed to execute command 'editor_status': Network error: An error occurred while sending the request.\"}]}],\"readOnlyStatusTimeouts\":[{\"atMs\":13397,\"message\":\"Error: Own read-only Editor status process timed out without a reply: {\\\"code\\\":null,\\\"stdout\\\":\\\"\\\",\\\"stderr\\\":\\\"\\\",\\\"timedOut\\\":true}\"}],\"Verify\":{\"status\":\"passed\",\"detail\":\"DocumentReloadTests: real reload verification: Surviving-window branch verified; owned cleanup follows separately.\",\"uncertain\":false,\"testResult\":{\"status\":\"passed\",\"checks\":13,\"message\":\"DocumentReloadTests: real reload verification: Surviving-window branch verified; owned cleanup follows separately.\",\"failures\":[],\"coverageBranch\":\"surviving-window\",\"partialCoverage\":false}},\"documentReloadCoverage\":{\"branch\":\"surviving-window\",\"partial\":false,\"note\":\"A passed carrier-only fallback is NOT verification of the surviving-window oracle.\"},\"triggerCount\":1,\"Cleanup\":{\"status\":\"passed\",\"detail\":\"Owned Document reload cleanup (independent of the primary verdict)\",\"uncertain\":false,\"testResult\":{\"status\":\"passed\",\"checks\":3,\"message\":\"Owned Document reload cleanup (independent of the primary verdict)\",\"failures\":[]}}}}\n",
+            "stderr": "",
+            "timedOut": false
+          }
+        }
+      ]
+    }
+  ],
+  "success": true,
+  "notRun": [],
+  "recoveryRequired": false,
+  "finishedAt": "2026-10-05T07:13:26.199Z"
+}

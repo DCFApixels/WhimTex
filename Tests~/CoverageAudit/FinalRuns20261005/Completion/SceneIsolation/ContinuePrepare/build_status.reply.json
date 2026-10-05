@@ -1,0 +1,19 @@
+{
+  "argv": [
+    "command",
+    "build_status",
+    "--project-path",
+    "D:\\DCFA\\Projects\\Test6.6",
+    "--timeout",
+    "10",
+    "--format",
+    "json"
+  ],
+  "reply": {
+    "code": 0,
+    "stdout": "{\n  \"success\": true,\n  \"command\": \"command build_status\",\n  \"data\": {\n    \"command\": \"build_status\",\n    \"parameters\": {},\n    \"result\": \"{\\\"status\\\":\\\"completed\\\",\\\"buildId\\\":\\\"build_4d30644731a2\\\",\\\"result\\\":\\\"Failed\\\",\\\"platform\\\":\\\"StandaloneWindows64\\\",\\\"outputPath\\\":\\\"D:/DCFA/Projects/Test6.6/Temp/WhimTex/player-release/ec570828df1143098545a98e82723ad6/attempt-001/Player.exe\\\",\\\"totalSizeBytes\\\":0,\\\"buildTimeMs\\\":448592,\\\"buildStartedAt\\\":\\\"2026-10-05T06:47:56.5726002Z\\\",\\\"buildEndedAt\\\":\\\"2026-10-05T06:55:25.1652731Z\\\",\\\"totalWarnings\\\":1,\\\"totalErrors\\\":3,\\\"buildSteps\\\":[{\\\"name\\\":\\\"Build player\\\",\\\"durationMs\\\":448586,\\\"depth\\\":0,\\\"messages\\\":[{\\\"type\\\":\\\"Error\\\",\\\"content\\\":\\\"Build was canceled.\\\"},{\\\"type\\\":\\\"Error\\\",\\\"content\\\":\\\"NullReferenceException: Object reference not set to an instance of an object\\\"},{\\\"type\\\":\\\"Error\\\",\\\"content\\\":\\\"NullReferenceException: Object reference not set to an instance of an object\\\"}]},{\\\"name\\\":\\\"Call PrepareForBuild callbacks\\\",\\\"durationMs\\\":444597,\\\"depth\\\":1,\\\"messages\\\":[]},{\\\"name\\\":\\\"Call internal build started callbacks\\\",\\\"durationMs\\\":0,\\\"depth\\\":1,\\\"messages\\\":[]},{\\\"name\\\":\\\"Preprocess Player\\\",\\\"durationMs\\\":912,\\\"depth\\\":1,\\\"messages\\\":[{\\\"type\\\":\\\"Log\\\",\\\"content\\\":\\\"1 URP assets included in build\\\\r\\\\n- PC_RPAsset - Assets/Settings/PC_RPAsset.asset\\\\r\\\\n\\\\t - PC_Renderer - Assets/Settings/PC_Renderer.asset - UnityEngine.Rendering.Universal.UniversalRendererData\\\\r\\\\n\\\"},{\\\"type\\\":\\\"Warning\\\",\\\"content\\\":\\\"Pipeline: No RuntimePipelineConfig asset found (Project Settings > Pipeline > Runtime). Pipeline will be disabled in Player builds.\\\"}]},{\\\"name\\\":\\\"Save scenes before build\\\",\\\"durationMs\\\":2821,\\\"depth\\\":1,\\\"messages\\\":[]},{\\\"name\\\":\\\"Call Post-Process callbacks\\\",\\\"durationMs\\\":0,\\\"depth\\\":1,\\\"messages\\\":[]}],\\\"errors\\\":[{\\\"message\\\":\\\"Build was canceled.\\\"},{\\\"message\\\":\\\"NullReferenceException: Object reference not set to an instance of an object\\\"},{\\\"message\\\":\\\"NullReferenceException: Object reference not set to an instance of an object\\\"}],\\\"warnings\\\":[{\\\"message\\\":\\\"Pipeline: No RuntimePipelineConfig asset found (Project Settings > Pipeline > Runtime). Pipeline will be disabled in Player builds.\\\"}]}\",\n    \"target\": {\n      \"host\": \"127.0.0.1\",\n      \"port\": 7800,\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\"\n    },\n    \"success\": true\n  },\n  \"errors\": [],\n  \"warnings\": []\n}\n",
+    "stderr": "",
+    "timedOut": false
+  },
+  "sourceHash": "19a35ace82fb3da360578bc166baee0220b2396ad83eb7d6770e23ba47234380"
+}

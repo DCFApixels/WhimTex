@@ -1113,6 +1113,9 @@
           "result": {
             "kind": "structured"
           },
+          "reviewFiles": [
+            "Tests~/CoverageAudit/unity-cd-oracles.json"
+          ],
           "supportFiles": [
             "Tests~/Framework/TestApi.cs",
             "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -1142,6 +1145,9 @@
           "result": {
             "kind": "structured"
           },
+          "reviewFiles": [
+            "Tests~/CoverageAudit/unity-cd-oracles.json"
+          ],
           "supportFiles": [
             "Tests~/Framework/TestApi.cs",
             "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -1171,6 +1177,9 @@
           "result": {
             "kind": "structured"
           },
+          "reviewFiles": [
+            "Tests~/CoverageAudit/unity-cd-oracles.json"
+          ],
           "supportFiles": [
             "Tests~/Framework/TestApi.cs",
             "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -1186,7 +1195,8 @@
           "category": "diagnostic",
           "timeoutMs": 60000,
           "effects": [
-            "temp-files"
+            "temp-files",
+            "user-state"
           ],
           "groups": [
             "unity-c",
@@ -1198,6 +1208,9 @@
           "result": {
             "kind": "structured"
           },
+          "reviewFiles": [
+            "Tests~/CoverageAudit/unity-cd-oracles.json"
+          ],
           "supportFiles": [
             "Tests~/Framework/TestApi.cs",
             "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -1342,7 +1355,8 @@
           "category": "diagnostic",
           "timeoutMs": 60000,
           "effects": [
-            "temp-files"
+            "temp-files",
+            "user-state"
           ],
           "groups": [
             "unity-c",
@@ -4488,6 +4502,9 @@
           "result": {
             "kind": "structured"
           },
+          "reviewFiles": [
+            "Tests~/CoverageAudit/unity-cd-oracles.json"
+          ],
           "supportFiles": [
             "Tests~/Framework/TestApi.cs",
             "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -4516,6 +4533,9 @@
           "result": {
             "kind": "structured"
           },
+          "reviewFiles": [
+            "Tests~/CoverageAudit/unity-cd-oracles.json"
+          ],
           "supportFiles": [
             "Tests~/Framework/TestApi.cs",
             "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -4531,7 +4551,8 @@
           "category": "diagnostic",
           "timeoutMs": 60000,
           "effects": [
-            "temp-files"
+            "temp-files",
+            "user-state"
           ],
           "groups": [
             "unity-c",
@@ -4543,6 +4564,9 @@
           "result": {
             "kind": "structured"
           },
+          "reviewFiles": [
+            "Tests~/CoverageAudit/unity-cd-oracles.json"
+          ],
           "supportFiles": [
             "Tests~/Framework/TestApi.cs",
             "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -4571,6 +4595,9 @@
           "result": {
             "kind": "structured"
           },
+          "reviewFiles": [
+            "Tests~/CoverageAudit/unity-cd-oracles.json"
+          ],
           "supportFiles": [
             "Tests~/Framework/TestApi.cs",
             "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -4654,6 +4681,9 @@
           "result": {
             "kind": "structured"
           },
+          "reviewFiles": [
+            "Tests~/CoverageAudit/unity-cd-oracles.json"
+          ],
           "supportFiles": [
             "Tests~/Framework/TestApi.cs",
             "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -4682,6 +4712,9 @@
           "result": {
             "kind": "structured"
           },
+          "reviewFiles": [
+            "Tests~/CoverageAudit/unity-cd-oracles.json"
+          ],
           "supportFiles": [
             "Tests~/Framework/TestApi.cs",
             "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -4696,7 +4729,10 @@
           "args": [],
           "category": "regression",
           "timeoutMs": 60000,
-          "effects": [],
+          "effects": [
+            "user-state",
+            "temp-files"
+          ],
           "groups": [
             "unity-c",
             "seamless"
@@ -4707,6 +4743,9 @@
           "result": {
             "kind": "structured"
           },
+          "reviewFiles": [
+            "Tests~/CoverageAudit/unity-cd-oracles.json"
+          ],
           "supportFiles": [
             "Tests~/Framework/TestApi.cs",
             "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -4721,7 +4760,10 @@
           "args": [],
           "category": "diagnostic",
           "timeoutMs": 180000,
-          "effects": [],
+          "effects": [
+            "user-state",
+            "temp-files"
+          ],
           "groups": [
             "unity-c",
             "seamless"
@@ -4732,6 +4774,9 @@
           "result": {
             "kind": "structured"
           },
+          "reviewFiles": [
+            "Tests~/CoverageAudit/unity-cd-oracles.json"
+          ],
           "supportFiles": [
             "Tests~/Framework/TestApi.cs",
             "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -4817,6 +4862,9 @@
           "result": {
             "kind": "structured"
           },
+          "reviewFiles": [
+            "Tests~/CoverageAudit/unity-cd-oracles.json"
+          ],
           "supportFiles": [
             "Tests~/Framework/TestApi.cs",
             "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -4845,6 +4893,9 @@
           "result": {
             "kind": "structured"
           },
+          "reviewFiles": [
+            "Tests~/CoverageAudit/unity-cd-oracles.json"
+          ],
           "supportFiles": [
             "Tests~/Framework/TestApi.cs",
             "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -4860,7 +4911,8 @@
           "category": "diagnostic",
           "timeoutMs": 60000,
           "effects": [
-            "temp-files"
+            "temp-files",
+            "user-state"
           ],
           "groups": [
             "unity-c",
@@ -4872,6 +4924,9 @@
           "result": {
             "kind": "structured"
           },
+          "reviewFiles": [
+            "Tests~/CoverageAudit/unity-cd-oracles.json"
+          ],
           "supportFiles": [
             "Tests~/Framework/TestApi.cs",
             "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -6015,6 +6070,9 @@
           "result": {
             "kind": "structured"
           },
+          "reviewFiles": [
+            "Tests~/CoverageAudit/unity-cd-oracles.json"
+          ],
           "supportFiles": [
             "Tests~/Framework/TestApi.cs",
             "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -6030,7 +6088,8 @@
           "category": "diagnostic",
           "timeoutMs": 60000,
           "effects": [
-            "temp-files"
+            "temp-files",
+            "user-state"
           ],
           "groups": [
             "unity-c",
@@ -6042,6 +6101,9 @@
           "result": {
             "kind": "structured"
           },
+          "reviewFiles": [
+            "Tests~/CoverageAudit/unity-cd-oracles.json"
+          ],
           "supportFiles": [
             "Tests~/Framework/TestApi.cs",
             "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -6587,6 +6649,9 @@
           "result": {
             "kind": "structured"
           },
+          "reviewFiles": [
+            "Tests~/CoverageAudit/unity-cd-oracles.json"
+          ],
           "supportFiles": [
             "Tests~/Framework/TestApi.cs",
             "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -6602,7 +6667,8 @@
           "category": "diagnostic",
           "timeoutMs": 60000,
           "effects": [
-            "temp-files"
+            "temp-files",
+            "user-state"
           ],
           "groups": [
             "unity-c",
@@ -6614,6 +6680,9 @@
           "result": {
             "kind": "structured"
           },
+          "reviewFiles": [
+            "Tests~/CoverageAudit/unity-cd-oracles.json"
+          ],
           "supportFiles": [
             "Tests~/Framework/TestApi.cs",
             "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -6642,6 +6711,9 @@
           "result": {
             "kind": "structured"
           },
+          "reviewFiles": [
+            "Tests~/CoverageAudit/unity-cd-oracles.json"
+          ],
           "supportFiles": [
             "Tests~/Framework/TestApi.cs",
             "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -6657,7 +6729,8 @@
           "category": "diagnostic",
           "timeoutMs": 180000,
           "effects": [
-            "temp-files"
+            "temp-files",
+            "user-state"
           ],
           "groups": [
             "unity-c",
@@ -6669,6 +6742,9 @@
           "result": {
             "kind": "structured"
           },
+          "reviewFiles": [
+            "Tests~/CoverageAudit/unity-cd-oracles.json"
+          ],
           "supportFiles": [
             "Tests~/Framework/TestApi.cs",
             "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -6920,6 +6996,9 @@
           "result": {
             "kind": "structured"
           },
+          "reviewFiles": [
+            "Tests~/CoverageAudit/unity-cd-oracles.json"
+          ],
           "supportFiles": [
             "Tests~/Framework/TestApi.cs",
             "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -6935,7 +7014,8 @@
           "category": "diagnostic",
           "timeoutMs": 60000,
           "effects": [
-            "temp-files"
+            "temp-files",
+            "user-state"
           ],
           "groups": [
             "unity-c",
@@ -6947,6 +7027,9 @@
           "result": {
             "kind": "structured"
           },
+          "reviewFiles": [
+            "Tests~/CoverageAudit/unity-cd-oracles.json"
+          ],
           "supportFiles": [
             "Tests~/Framework/TestApi.cs",
             "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -7139,6 +7222,9 @@
           "result": {
             "kind": "structured"
           },
+          "reviewFiles": [
+            "Tests~/CoverageAudit/unity-cd-oracles.json"
+          ],
           "supportFiles": [
             "Tests~/Framework/TestApi.cs",
             "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -7153,7 +7239,10 @@
           "args": [],
           "category": "regression",
           "timeoutMs": 60000,
-          "effects": [],
+          "effects": [
+            "user-state",
+            "temp-files"
+          ],
           "groups": [
             "unity-c",
             "seamless"
@@ -7164,6 +7253,9 @@
           "result": {
             "kind": "structured"
           },
+          "reviewFiles": [
+            "Tests~/CoverageAudit/unity-cd-oracles.json"
+          ],
           "supportFiles": [
             "Tests~/Framework/TestApi.cs",
             "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -7178,7 +7270,10 @@
           "args": [],
           "category": "regression",
           "timeoutMs": 60000,
-          "effects": [],
+          "effects": [
+            "user-state",
+            "temp-files"
+          ],
           "groups": [
             "unity-c",
             "seamless"
@@ -7189,6 +7284,9 @@
           "result": {
             "kind": "structured"
           },
+          "reviewFiles": [
+            "Tests~/CoverageAudit/unity-cd-oracles.json"
+          ],
           "supportFiles": [
             "Tests~/Framework/TestApi.cs",
             "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -7217,6 +7315,9 @@
           "result": {
             "kind": "structured"
           },
+          "reviewFiles": [
+            "Tests~/CoverageAudit/unity-cd-oracles.json"
+          ],
           "supportFiles": [
             "Tests~/Framework/TestApi.cs",
             "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -7232,7 +7333,8 @@
           "category": "diagnostic",
           "timeoutMs": 60000,
           "effects": [
-            "temp-files"
+            "temp-files",
+            "user-state"
           ],
           "groups": [
             "unity-c",
@@ -7244,6 +7346,9 @@
           "result": {
             "kind": "structured"
           },
+          "reviewFiles": [
+            "Tests~/CoverageAudit/unity-cd-oracles.json"
+          ],
           "supportFiles": [
             "Tests~/Framework/TestApi.cs",
             "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -7314,7 +7419,10 @@
           "args": [],
           "category": "diagnostic",
           "timeoutMs": 60000,
-          "effects": [],
+          "effects": [
+            "user-state",
+            "temp-files"
+          ],
           "groups": [
             "unity-c",
             "seamless"
@@ -7572,7 +7680,8 @@
           "category": "diagnostic",
           "timeoutMs": 60000,
           "effects": [
-            "temp-files"
+            "temp-files",
+            "user-state"
           ],
           "groups": [
             "unity-c",

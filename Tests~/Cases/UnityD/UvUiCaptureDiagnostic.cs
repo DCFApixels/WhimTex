@@ -81,11 +81,7 @@ public static class UvUiCaptureDiagnostic
             token.ThrowIfCancellationRequested();
             context.True(window.rootVisualElement.panel != null, "Created UV fixture is attached before manual capture");
             byte[] png = CaptureCreatedWindow(window, context);
-            state[0] = JsonUtility.ToJson(new CaptureResult {
-                status = "skipped", checks = context.Checks,
-                message = "Original owned UV screen-pixel producer ran; manual PNG review remains pending. No original image correctness assertions or green visual-equivalence verdict.",
-                artifacts = new[]{new CaptureArtifact {name="WhimTexUvPreview.png",encoding="base64",content=Convert.ToBase64String(png)}}
-            });
+            state[0] = CaptureReport(context.Checks, png);
         }
         finally
         {
@@ -129,13 +125,25 @@ public static class UvUiCaptureDiagnostic
         }
         finally { AsyncD.CleanupOwned(() => UnityEngine.Object.DestroyImmediate(texture)); }
     }
-    [Serializable] public sealed class CaptureResult
+    static string CaptureReport(int checks, byte[] png)
     {
-        public string status; public int checks; public string message; public CaptureArtifact[] artifacts;
-        public string[] failures = Array.Empty<string>();
-    }
-    [Serializable] public sealed class CaptureArtifact
-    {
-        public string name; public string encoding; public string content;
+        // Public token API preserves nested artifacts in an ephemeral Pipeline assembly.
+        var objectType = Type.GetType("Newtonsoft.Json.Linq.JObject, Newtonsoft.Json", true);
+        var arrayType = Type.GetType("Newtonsoft.Json.Linq.JArray, Newtonsoft.Json", true);
+        var valueType = Type.GetType("Newtonsoft.Json.Linq.JValue, Newtonsoft.Json", true);
+        var item = objectType.GetProperty("Item", new[] { typeof(string) });
+        object Text(string value) => valueType.GetConstructor(new[] { typeof(string) }).Invoke(new object[] { value });
+        void Put(object target, string key, object value) => item.SetValue(target, value, new object[] { key });
+        string diagnostic = TestContext.Result("skipped", checks,
+            "Original owned UV screen-pixel producer ran; manual PNG review remains pending. No original image correctness assertions or green visual-equivalence verdict.").ToJson();
+        object result = objectType.GetMethod("Parse", new[] { typeof(string) }).Invoke(null, new object[] { diagnostic });
+        object artifact = Activator.CreateInstance(objectType);
+        Put(artifact, "name", Text("WhimTexUvPreview.png"));
+        Put(artifact, "encoding", Text("base64"));
+        Put(artifact, "content", Text(Convert.ToBase64String(png)));
+        object artifacts = Activator.CreateInstance(arrayType);
+        arrayType.GetMethod("Add", new[] { typeof(object) }).Invoke(artifacts, new[] { artifact });
+        Put(result, "artifacts", artifacts);
+        return result.ToString();
     }
 }

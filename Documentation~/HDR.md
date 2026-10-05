@@ -247,11 +247,11 @@ This texture output is distinct from HDR monitor output.
 
 ## Verification
 
-`Tests~/Legacy/HdrGroupSmoke.cs` is an opt-in live-Editor regression script, to run **after manual compilation**.
+`hdr-group-smoke-v2` is an opt-in independent live-Editor regression scenario, to run after compilation through the [test runner](https://github.com/DCFApixels/WhimTex/blob/main/Tests~/RUNNING_TESTS.md).
 It uses only transient in-memory documents. Save/reopen and native Texture2D Undo require an Editor run;
 source parsing and the standalone PSD writer tests do not replace that validation.
 
-`Tests~/Legacy/ColorPipelineSmoke.cs` adds checks after manual C# compilation and shader import: brush colors
+`color-pipeline-v2` adds checks after C# compilation and shader import: brush colors
 and alpha in Standard/HDR storage, signed HDR, legacy/new Color Fill JSON round-trips, File textures,
 gradients, SDF/Outline, Standard opacity, cached/new FX color uniforms, preview, PNG, flood fill and CPU
 destination encoding, excessive paint intensity, retained half-float storage and RGB ratios.
@@ -259,6 +259,8 @@ It uses transient resources only and does not record Undo or save/import assets.
 Run it in the project's existing color space; it does not change project settings. In-memory JSON/PNG
 round-trips are not a substitute for a separate persistent-asset save/reopen test.
 
-`Tests~/Legacy/ColorInputModeSmoke.cs` checks Standard/HDR display conversion, retained source values, field
+`color-input-mode-v2` checks Standard/HDR display conversion, retained source values, field
 refreshes, color swapping and gradient copies after manual compilation. It does not write preferences
 or assets. Attached picker interaction and serialized Shader FX field Undo still need an Editor check.
+Review each selected scenario and its declared effects; use the current fingerprint and an explicit
+project path. The archived scripts are historical sources, not execution entry points.

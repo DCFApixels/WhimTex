@@ -1,0 +1,164 @@
+{
+  "version": 2,
+  "action": "run",
+  "startedAt": "2026-10-05T04:44:03.724Z",
+  "projectPath": "D:\\DCFA\\Projects\\Test6.6",
+  "fingerprint": "ebc41aa711adfc9453c87d5dd6ad433b1b7508d647d9eba22453d6419ac84b2b",
+  "archive": {
+    "files": 466,
+    "baselineCommit": "1269df51866959744a4b0763453eb667aefe6d8e",
+    "manifestHash": "c70816ea4220d9ebe08d4d2d087d7e5297bd943405bb3297e24f4b69756a6194",
+    "source": "pinned-git-reference",
+    "recoveryCommit": "ca8603c0961ce36064280f952259f8a6142d46cc",
+    "contentsVerified": false
+  },
+  "productionFingerprint": "a3da14871f6e0bf5c49a6f077b1026720e0fb2d3c28a49213dd715f3dd2b7738",
+  "selected": [
+    "archive-retirement"
+  ],
+  "environment": null,
+  "results": [
+    {
+      "id": "archive-retirement",
+      "file": "Tests~/Framework/ArchiveRetirement.test.mjs",
+      "runner": "node",
+      "category": "runner",
+      "status": "passed",
+      "detail": "Pinned archive and new-only runner without a physical Legacy directory",
+      "uncertain": false,
+      "testResult": {
+        "status": "passed",
+        "checks": 986,
+        "message": "Pinned archive and new-only runner without a physical Legacy directory",
+        "failures": [],
+        "cases": [
+          {
+            "name": "Authenticated pinned bytes and copy ownership, no working-copy fallback",
+            "status": "passed"
+          },
+          {
+            "name": "Strict binary Git protocol rejects type/identity/length/truncation/trailing data",
+            "status": "passed"
+          },
+          {
+            "name": "Real new-only quick runner and audit in a GUID Git mirror with no Legacy directory",
+            "status": "passed"
+          }
+        ],
+        "facts": {
+          "mirror": {
+            "directory": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\archive-retirement-56fcc02d-94cc-4a5f-81c0-3b1c82e5b639\\package",
+            "physicalLegacyExists": false,
+            "report": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\archive-retirement-56fcc02d-94cc-4a5f-81c0-3b1c82e5b639\\package\\Temp\\WhimTex\\test-runs\\2026-10-05T04-44-05.648Z-141072.json",
+            "reportSha256": "897d30eb5c8e1ed335328346acbcf554ac28e017819cde93b1adb3c3bbb54bf4",
+            "selected": [
+              "framework",
+              "archive-integrity",
+              "frozen-files-v2"
+            ],
+            "results": [
+              {
+                "id": "framework",
+                "status": "passed"
+              },
+              {
+                "id": "archive-integrity",
+                "status": "passed"
+              },
+              {
+                "id": "frozen-files-v2",
+                "status": "passed"
+              }
+            ],
+            "auditArchiveVerified": true,
+            "auditSummary": {
+              "expectedSourceFiles": 360,
+              "expectedSourceCountMatches360": true,
+              "sourceFilesWithReview": 360,
+              "currentReviewedSourceClaims": 360,
+              "missingReview": 0,
+              "staleReview": 0,
+              "sourceGapFiles": 0,
+              "externalGapFiles": 0,
+              "regressionLinkedFiles": 350,
+              "currentRegressionReportFiles": 14,
+              "diagnosticOnlyFiles": 10,
+              "supportOrUnregisteredFiles": 0,
+              "verifiedWorkflowHelperPhases": 0,
+              "pendingWorkflowHelperPhases": 2,
+              "snapshotStable": true,
+              "automaticFullCoverage": false,
+              "archiveRemovalAllowed": false
+            },
+            "generators": [
+              {
+                "file": "Tests~/CoverageAudit/node-audit.mjs",
+                "args": [
+                  "--schema"
+                ],
+                "exitCode": 0,
+                "outputSha256": "93e3c1972c0b84fc6960ed4fc10bf29f3b27c8331dde5998d9b4d44f2a111024",
+                "rows": 83
+              },
+              {
+                "file": "Tests~/CoverageAudit/unity-cd-audit.mjs",
+                "args": [
+                  "--json"
+                ],
+                "exitCode": 0,
+                "outputSha256": "39a1fc2a274210b45abfaf60298476a70b3a8f4d39c38c61e7c75e90bc599326",
+                "rows": 137
+              },
+              {
+                "file": "Tests~/CoverageAudit/audit-unity-b-public.mjs",
+                "args": [],
+                "exitCode": 0,
+                "outputSha256": "dd52c28e343d1b035e8930a600ef8f4d2adc680e9ebd7e1d090b330a6bbd81b8",
+                "rows": 75
+              },
+              {
+                "file": "Tests~/CoverageAudit/framework-audit.mjs",
+                "args": [],
+                "exitCode": 0,
+                "outputSha256": "675ccdf0e1c1f3c9088d93d6b181f4b9c2fd4a143f73788c94fa2ffc61c421bc",
+                "rows": 15
+              },
+              {
+                "file": "Tests~/CoverageAudit/final-inventory.mjs",
+                "args": [],
+                "exitCode": 0,
+                "outputSha256": "b85ada37508bdc128397366fc6c43e47aef59073e3341f67723009bb9cceedc1",
+                "rows": 360
+              },
+              {
+                "file": "Tests~/scripts/migration-inventory.mjs",
+                "args": [],
+                "exitCode": 0,
+                "outputSha256": "0d00ff19ac7f1d783897e5ec590d1ab33e2fd45fef565da12c24558730e1352e",
+                "rows": 360
+              }
+            ],
+            "retained": true
+          }
+        }
+      },
+      "durationMs": 16716,
+      "attempts": [
+        {
+          "phase": "result",
+          "entry": null,
+          "reply": {
+            "code": 0,
+            "stdout": "WHIMTEX_TEST_RESULT {\"status\":\"passed\",\"checks\":986,\"message\":\"Pinned archive and new-only runner without a physical Legacy directory\",\"failures\":[],\"cases\":[{\"name\":\"Authenticated pinned bytes and copy ownership, no working-copy fallback\",\"status\":\"passed\"},{\"name\":\"Strict binary Git protocol rejects type/identity/length/truncation/trailing data\",\"status\":\"passed\"},{\"name\":\"Real new-only quick runner and audit in a GUID Git mirror with no Legacy directory\",\"status\":\"passed\"}],\"facts\":{\"mirror\":{\"directory\":\"D:\\\\DCFA\\\\Projects\\\\Test6.6\\\\Temp\\\\WhimTex\\\\archive-retirement-56fcc02d-94cc-4a5f-81c0-3b1c82e5b639\\\\package\",\"physicalLegacyExists\":false,\"report\":\"D:\\\\DCFA\\\\Projects\\\\Test6.6\\\\Temp\\\\WhimTex\\\\archive-retirement-56fcc02d-94cc-4a5f-81c0-3b1c82e5b639\\\\package\\\\Temp\\\\WhimTex\\\\test-runs\\\\2026-10-05T04-44-05.648Z-141072.json\",\"reportSha256\":\"897d30eb5c8e1ed335328346acbcf554ac28e017819cde93b1adb3c3bbb54bf4\",\"selected\":[\"framework\",\"archive-integrity\",\"frozen-files-v2\"],\"results\":[{\"id\":\"framework\",\"status\":\"passed\"},{\"id\":\"archive-integrity\",\"status\":\"passed\"},{\"id\":\"frozen-files-v2\",\"status\":\"passed\"}],\"auditArchiveVerified\":true,\"auditSummary\":{\"expectedSourceFiles\":360,\"expectedSourceCountMatches360\":true,\"sourceFilesWithReview\":360,\"currentReviewedSourceClaims\":360,\"missingReview\":0,\"staleReview\":0,\"sourceGapFiles\":0,\"externalGapFiles\":0,\"regressionLinkedFiles\":350,\"currentRegressionReportFiles\":14,\"diagnosticOnlyFiles\":10,\"supportOrUnregisteredFiles\":0,\"verifiedWorkflowHelperPhases\":0,\"pendingWorkflowHelperPhases\":2,\"snapshotStable\":true,\"automaticFullCoverage\":false,\"archiveRemovalAllowed\":false},\"generators\":[{\"file\":\"Tests~/CoverageAudit/node-audit.mjs\",\"args\":[\"--schema\"],\"exitCode\":0,\"outputSha256\":\"93e3c1972c0b84fc6960ed4fc10bf29f3b27c8331dde5998d9b4d44f2a111024\",\"rows\":83},{\"file\":\"Tests~/CoverageAudit/unity-cd-audit.mjs\",\"args\":[\"--json\"],\"exitCode\":0,\"outputSha256\":\"39a1fc2a274210b45abfaf60298476a70b3a8f4d39c38c61e7c75e90bc599326\",\"rows\":137},{\"file\":\"Tests~/CoverageAudit/audit-unity-b-public.mjs\",\"args\":[],\"exitCode\":0,\"outputSha256\":\"dd52c28e343d1b035e8930a600ef8f4d2adc680e9ebd7e1d090b330a6bbd81b8\",\"rows\":75},{\"file\":\"Tests~/CoverageAudit/framework-audit.mjs\",\"args\":[],\"exitCode\":0,\"outputSha256\":\"675ccdf0e1c1f3c9088d93d6b181f4b9c2fd4a143f73788c94fa2ffc61c421bc\",\"rows\":15},{\"file\":\"Tests~/CoverageAudit/final-inventory.mjs\",\"args\":[],\"exitCode\":0,\"outputSha256\":\"b85ada37508bdc128397366fc6c43e47aef59073e3341f67723009bb9cceedc1\",\"rows\":360},{\"file\":\"Tests~/scripts/migration-inventory.mjs\",\"args\":[],\"exitCode\":0,\"outputSha256\":\"0d00ff19ac7f1d783897e5ec590d1ab33e2fd45fef565da12c24558730e1352e\",\"rows\":360}],\"retained\":true}}}\n",
+            "stderr": "",
+            "timedOut": false
+          }
+        }
+      ]
+    }
+  ],
+  "success": true,
+  "notRun": [],
+  "recoveryRequired": false,
+  "finishedAt": "2026-10-05T04:44:21.061Z"
+}

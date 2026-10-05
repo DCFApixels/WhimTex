@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "scope": "SeamlessOptimizationTests local report retention only",
+  "source": "Tests~/Cases/UnityC/SeamlessOptimizationTests.cs",
+  "sha256": "31ec25f40466aa7f63aa25dd9e7353ebaa5efad2f5d4bf34d92b523e65c46693",
+  "previousSha256": "27b08303849d6b4c6dfd02f133cc3bc609447478c3ce02695728e5764bc880e5",
+  "staticGuardsPassed": 4,
+  "algorithmAssertionsInputsAndCleanupByteUnchanged": true,
+  "review": "Compare/Audit capture Fixtures returned string and append it using public JObject/JValue scalar message only when exact result status is passed after owned scope disposal. report-null failed/SKIP return unchanged; actual post-body/cleanup failed status returns unchanged. No checks/status/failures overwrite. PairedPoisson invokes existing RunReport(label, ExecutePairedPoisson), which appends actual returned medians only after pass. No shared helper changes.",
+  "originalCombinations": 252,
+  "compareTolerance": 0.00002,
+  "audit": "Finiteness/caller-state predicates only; numeric delta report is not an equivalence guard.",
+  "pairedPoisson": "Original edge0/1/2, warmup3+15paired samples, exact i==0 equality branch and median index7 retained byte-for-byte; no performance correctness claim.",
+  "runtimeStatus": "parent-native-supplied-current-inputs-validated",
+  "noUnityExecution": true,
+  "affectedIds": [
+    "seamless-optimization-capture-v2",
+    "seamless-optimization-compare-v2",
+    "seamless-optimization-audit-v2",
+    "seamless-optimization-paired-poisson-v2",
+    "seamless-optimization-benchmark-v2"
+  ],
+  "finalParentRuntimeEvidence": {
+    "review": "Tests~/CoverageAudit/unity-c5-final-runtime-review.json",
+    "reviewSha256": "3b2122dac7655e81f370e734bd732694e4aab8196ef5ea41bce27167d007d51c",
+    "reportSha256": "b089978ed7784778d0a6c239a7857269f46dc6d5925f0e697dd4e8b3c6fc8b94",
+    "counts": {
+      "passed": 3,
+      "skip": 2,
+      "failed": 0
+    },
+    "currentSourceBundlesMatch": true,
+    "actualMetrics": [
+      {
+        "id": "seamless-optimization-compare-v2",
+        "message": "SeamlessOptimizationTests.Compare: Compared 252 fixtures; max absolute difference 0; modes 0, 0, 0, 0."
+      },
+      {
+        "id": "seamless-optimization-audit-v2",
+        "message": "SeamlessOptimizationTests.Audit: finiteness and caller-state assertions; delta report only, no equivalence tolerance: Compared 252 fixtures; max absolute difference 0; modes 0, 0, 0, 0."
+      },
+      {
+        "id": "seamless-optimization-paired-poisson-v2",
+        "message": "SeamlessOptimizationTests.PairedPoisson: edge 0: baseline 31.371 ms -> current 30.074 ms\r\nedge 1: baseline 46.468 ms -> current 45.703 ms\r\nedge 2: baseline 46.103 ms -> current 45.989 ms\r\n"
+      }
+    ],
+    "performanceCorrectnessClaim": false,
+    "historicalCryptographicContinuityClaim": false
+  }
+}

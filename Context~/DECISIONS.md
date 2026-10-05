@@ -48,8 +48,8 @@ internal `ComposeCanvas(maxSize)` — ограниченного размера,
 Размеры вычисляет `GetCanvasRenderSize`; внутренние методы — `ComposeCanvasAtSize`
 и `RenderCanvasCore`, миниатюры — `RenderLayerThumbnail`. Старых C#-алиасов нет.
 Layer Preview, Brush Preview, PostFxPreview и файловый HLSL uniform `_PreviewScale`
-сохраняют назначение и имена. [Проверки](../Tests~/Legacy/CanvasRenderNaming.ru.md).
-Область изменений, исключения и проверки: [отчёт](../Tests~/Legacy/CanvasTerminology.md).
+сохраняют назначение и имена. [Проверки](https://github.com/DCFApixels/WhimTex/blob/ca8603c0961ce36064280f952259f8a6142d46cc/Tests~/Legacy/CanvasRenderNaming.ru.md).
+Область изменений, исключения и проверки: [отчёт](https://github.com/DCFApixels/WhimTex/blob/ca8603c0961ce36064280f952259f8a6142d46cc/Tests~/Legacy/CanvasTerminology.md).
 В пошаговых инструкциях указывать фактическую подпись элемента.
 Названия UI, поля JSON, команды CLI и идентификаторы кода сохраняются на английском.
 
@@ -97,7 +97,7 @@ Layer Preview, Brush Preview, PostFxPreview и файловый HLSL uniform `_P
 
 - Mirror: независимый `mirrorTransitionStart` -1..0.95 (UI -100..95%), default 0 сохраняет старый fade. Вес q=saturate((1-distance/width)/(1-start)), затем прежний smoothstep и falloff; единая формула в обычном и histogram-путях. Отрицательное начало расширяет переход за пределы полотна, на грани донор уже не имеет полного веса; возможен шов, Poisson включается отдельно. API/clipboard/кеш/Undo учитывают параметр. Выбор направлений и значения по умолчанию остальных полей не меняются.
 
-- Make Seamless: алгоритмы и параметры качества при оптимизации не меняются. HistogramSeamless использует один idle owner с NativeArray/Burst, переиспользуемыми readback/LUT Texture2D и квантилями по числу отсчётов; максимум около 2.2 MiB CPU storage плюс текстуры, expiry 30 s, cleanup reload/quit, nested rent изолирован. Explicit double intermediates сохраняют прежнее округление managed LUT/lookup, в том числе на прозрачных HDR-пикселях. Quilting кеширует свои Burst-квантили в существующем workspace budget; адресация донора без remainder эквивалентна прежней. Screened сохраняет 16 PCG-итераций и прежние FFT-проходы: до 16 планов факторизации, прямой финальный reduction и обмен scratch/z убирают 67 копирований текстур за solve. 252 сохранённых GPU fixtures и 324 quilting equivalence cases совпали точно на проверенном backend. Подробности и честные ограничения замеров: [SeamlessOptimization](../Tests~/Legacy/SeamlessOptimization.md). Нет миграции.
+- Make Seamless: алгоритмы и параметры качества при оптимизации не меняются. HistogramSeamless использует один idle owner с NativeArray/Burst, переиспользуемыми readback/LUT Texture2D и квантилями по числу отсчётов; максимум около 2.2 MiB CPU storage плюс текстуры, expiry 30 s, cleanup reload/quit, nested rent изолирован. Explicit double intermediates сохраняют прежнее округление managed LUT/lookup, в том числе на прозрачных HDR-пикселях. Quilting кеширует свои Burst-квантили в существующем workspace budget; адресация донора без remainder эквивалентна прежней. Screened сохраняет 16 PCG-итераций и прежние FFT-проходы: до 16 планов факторизации, прямой финальный reduction и обмен scratch/z убирают 67 копирований текстур за solve. 252 сохранённых GPU fixtures и 324 quilting equivalence cases совпали точно на проверенном backend. Подробности и честные ограничения замеров: [SeamlessOptimization](https://github.com/DCFApixels/WhimTex/blob/ca8603c0961ce36064280f952259f8a6142d46cc/Tests~/Legacy/SeamlessOptimization.md). Нет миграции.
 
 - Все парные селекторы граней разрешают пустой выбор `PoissonEdges.None=3`: пропуск только своего прохода, независимо от других. Последняя пара остаётся интерактивной, без disabled tint. `AllEdges=0`, `TopAndBottom=1`, `LeftAndRight=2` не изменены; миграции нет. Это заменяет прежнее ограничение «хотя бы одна пара».
 

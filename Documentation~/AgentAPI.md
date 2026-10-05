@@ -1391,15 +1391,15 @@ appropriately and keep batches focused. The API executes on the main thread; it 
 
 ## Verification
 
-[Tests~/Legacy/AgentApiSmoke.cs](https://github.com/DCFApixels/WhimTex/blob/main/Tests~/Legacy/AgentApiSmoke.cs) is an opt-in C# eval-file smoke test. After the
-user compiles the plugin, run it through an available `eval_file` bridge on the intended project.
-It uses a new uniquely named folder under Assets and cleans up its own fixtures and previews in
+Select `agent-api-v2` through the [independent test runner](https://github.com/DCFApixels/WhimTex/blob/main/Tests~/RUNNING_TESTS.md), with a reviewed fingerprint and explicit intended project.
+It uses only GUID-owned fixtures under `Assets/WhimTexTestMigration` and cleans up its own fixtures and previews in
 `finally`; it does not edit existing documents. It verifies TIFF create/inspect, aspect/transform,
 preflight rejection, revision conflicts, painting, transient `save:false` isolation and save/reopen.
-`AgentEditingSmoke.cs` covers the shared editing operations and Assistant Undo separately.
+`agent-editing-v2` covers the shared editing operations and Assistant Undo separately.
 Do not run it when the project's rules prohibit creating test assets.
 
-[Tests~/Legacy/DrawingPatternSmoke.cs](https://github.com/DCFApixels/WhimTex/blob/main/Tests~/Legacy/DrawingPatternSmoke.cs) is a separate opt-in eval-file
-regression test for mutually exclusive Mirror/Repeat modes, legacy migration, movable mirror centers,
+`drawing-pattern-smoke-v2` is a separate opt-in structured regression
+test for mutually exclusive Mirror/Repeat modes, file-baseline normalization, movable mirror centers,
 source stamps under the cursor and JSON round-trips. It creates no assets or GPU resources; run only
-after the user has compiled the updated plugin. It does not replace visual painting checks.
+after the updated plugin is compiled. Acknowledge each selected scenario's declared effects;
+this does not grant asset or user-state authority. It does not replace visual painting checks.

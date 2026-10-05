@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "commit": "ca8603c0961ce36064280f952259f8a6142d46cc",
+  "path": "Tests~/Legacy",
+  "manifest": "Tests~/legacy-manifest.json",
+  "manifestSha256": "c70816ea4220d9ebe08d4d2d087d7e5297bd943405bb3297e24f4b69756a6194",
+  "files": 466
+}

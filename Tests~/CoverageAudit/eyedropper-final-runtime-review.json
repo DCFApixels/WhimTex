@@ -1,0 +1,72 @@
+{
+  "report": "Temp/WhimTex/test-runs/2026-10-04T18-08-30.573Z-28648.json",
+  "sha256": "8e2d5691f583263163b434f2c46c360b8f356ee28c50d304e83b7fba58129e21",
+  "fingerprint": "d6b58bdcedb2e5dd37d88256a896e0924b2f2d4f3856ab5ef208d833a785b50b",
+  "inputSha256": "2ddfedb53002febc15e7456918eb4988b17716de7328ba4b2fd1d6eb6f47f6bb",
+  "results": [
+    {
+      "id": "color-picker-eyedropper-v2",
+      "status": "passed",
+      "category": "regression",
+      "checks": 20,
+      "uncertain": false
+    },
+    {
+      "id": "color-picker-eyedropper-native-preview-v2",
+      "status": "passed",
+      "category": "diagnostic",
+      "checks": 7,
+      "uncertain": false
+    },
+    {
+      "id": "color-picker-eyedropper-native-render-v2",
+      "status": "passed",
+      "category": "regression",
+      "checks": 7,
+      "uncertain": false
+    }
+  ],
+  "artifacts": [
+    {
+      "file": "Temp\\WhimTex\\tests-unity-a-artifacts\\a40d715751824c8785d056ab7be87884\\color-picker-eyedropper-state.txt",
+      "sha256": "0d016481ecb0858d3a29ba4e4436f3bac2b49b7c342d3e37071b09fc3d5ea5d9",
+      "bytes": 946,
+      "text": "after pointer propagation: owned=True; pending=False; native=True; hidden=False; canDraw=True; trace=target callback, native=True; pending=False; after send native=True; pending=False\r\nbefore preview assertions: owned=False; pending=False; native=False; hidden=True; canDraw=True; trace=target callback, native=True; pending=False; after send native=True; pending=False\r\nGUI finally stopped: owned=False; pending=False; native=False; hidden=True; canDraw=True; trace=target callback, native=True; pending=False; after send native=True; pending=False\r\npost-Repaint completion: owned=False; pending=False; native=False; hidden=True; canDraw=True; trace=target callback, native=True; pending=False; after send native=True; pending=False\r\njoined cleanup, phase=awaiting post-Repaint update: owned=False; pending=False; native=False; hidden=True; canDraw=True; trace=target callback, native=True; pending=False; after send native=True; pending=False\r\n"
+    },
+    {
+      "file": "Temp\\WhimTex\\tests-unity-a-artifacts\\a40d715751824c8785d056ab7be87884\\color-picker-eyedropper.png",
+      "sha256": "a3938a74b979e328b46795e1298e77de82b2031f08d3de5e8c5680a88a4ec63b",
+      "bytes": 38162,
+      "width": 240,
+      "height": 520
+    },
+    {
+      "file": "Temp\\WhimTex\\tests-unity-a-artifacts\\bdfb15a2b44345a9b9770a69c784789f\\color-picker-eyedropper-render-state.txt",
+      "sha256": "4779aebc623ba73592cfd785706700aa3b21f411d36a0287f4c57e881f69cc51",
+      "bytes": 528,
+      "text": "after pointer propagation: owned=True; pending=False; native=True; hidden=False; canDraw=True; trace=\r\nnative Draw passed: owned=True; pending=False; native=True; hidden=False; canDraw=True; trace=\r\nGUI finally stopped: owned=False; pending=False; native=False; hidden=True; canDraw=True; trace=\r\npost-Repaint completion: owned=False; pending=False; native=False; hidden=True; canDraw=True; trace=\r\njoined cleanup, phase=awaiting post-Repaint update: owned=False; pending=False; native=False; hidden=True; canDraw=True; trace=\r\n"
+    },
+    {
+      "file": "Temp\\WhimTex\\tests-unity-a-artifacts\\bdfb15a2b44345a9b9770a69c784789f\\color-picker-eyedropper-render.png",
+      "sha256": "ebbcf98a5f3bf9e1a67d3f2429efb50c6feb7b64112327fa0368818349764bb0",
+      "bytes": 20080,
+      "width": 240,
+      "height": 520
+    }
+  ],
+  "version": 1,
+  "scope": "Actual current native diagnostic artifacts and source-responsibility check; not original/replacement screenshot pixel equality.",
+  "sourceResponsibility": {
+    "legacyFile": "Tests~/Legacy/ColorPickerEyedropperSmoke.cs",
+    "replacementFile": "Tests~/Cases/UnityA/ColorPickerEyedropperTests.cs",
+    "originalBehaviorOracles": "Main and NativeRender assertions are independently ported and currently passed; NativeSetup/NativeInspect have no asserted native-lifetime or image golden.",
+    "originalManualAbility": "Real delayed pointer, screenshot, owned/pending/native/hidden/canDraw/trace state retained and reviewed; owned teardown completed.",
+    "timingAdaptation": "Native start/capture use Repaint readiness; old nominal200/1200ms delays are not a strict temporal equality claim."
+  },
+  "visualInspection": {
+    "preview": "240x520: ordinary wheel, square, Color.red controls; trace shows real native session already ended at delayed capture, ownership false and controls restored.",
+    "render": "240x520: magnifier replaces wheel/square; actual native Draw called successfully in Repaint, trace owned/native true before GUI finally. Blank dark sampling grid does not prove arbitrary desktop color sampling.",
+    "manualEquivalenceCertified": false,
+    "closureCauseEstablished": false
+  }
+}

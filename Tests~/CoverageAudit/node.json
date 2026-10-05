@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "scope": "77 Node replacements in node-a/node-b; PSD auxiliary reader; declared helper/fixture exclusions and transitive audit helper. Full source AST predicates/inputs/formulas/control/cleanup plus reviewed adaptations; no check-count equivalence, runtime execution or Unity validation. Read-only inspector: Tests~/CoverageAudit/node-audit.mjs. All runtimeStatus values deliberately await parent validation.",
+  "scope": "77 Node replacements in node-a/node-b; PSD auxiliary reader; declared helper/fixture exclusions and transitive audit helper. Original source-only review covers full AST predicates/inputs/formulas/control/cleanup plus reviewed adaptations; it does not prove runtime equivalence. Read-only inspector: Tests~/CoverageAudit/node-audit.mjs. Parent-owned actual runtime validation is attached explicitly to the PSD row; the other runtimeStatus values remain pending-parent-validation in this original source audit.",
   "files": [
     {
       "legacyFile": "AgentCommandInventory.test.mjs",
@@ -2027,7 +2027,11 @@
       "newFile": "Tests~/Cases/NodeA/FinalLegacyAudit.mjs",
       "sourceHashes": {
         "legacy": "5bd16f424dedef390f8e0ce6e3c28ffed8f50db38adbbf8d6732e50ac6e1b815",
-        "replacement": "8c321dd761fc4cf1664ff5cdb3177033c7b73508f7c2f174d0f10cdc654bc1ea"
+    "replacement": "e545a1d1d3f003c2442d04244b5779db69fd1634675bf91f693ec16069d69283",
+    "support": {
+      "Tests~/Cases/NodeA/AuditSources.mjs": "a03a66cb1a29da4d3b8dafd987f0d43ca8608a77357340ddafd59e82ae25259e",
+      "Tests~/Cases/NodeA/HistoricalAuditChecks.mjs": "ec9da4079e95ad3a1d6a5126f5e0c47b987e98a47acd9cfdbd963f3c4cf89da0"
+    }
       },
       "scenarioIds": [
         "final-legacy-audit-v2"
@@ -2040,8 +2044,8 @@
         "Independent historical helper preserves exact old regex, top-level C# selection, Main-before-Run, diagnostic/manual/multi-step/regression precedence, flags, candidate counting and documentation exclusions. Synthetic inputs exercise positive/negative grammar and every heuristic branch; no regex is weakened.",
         "Original exported tests/candidates and direct CLI --candidates/--start/--count preserve first-flag lookup, nonnegative-safe-integer coercion/error messages, candidates priority, slicing and full-inventory summary. Actual helper CLI body executes in an isolated read-only VM.",
         "ACTIVE public entries, asynchronous Start/Poll/Cancel/Cleanup, run identity, cleanup/regression metadata and absence checks retained as additional checks, not replacements for historical predicates.",
-        "Fifteen named cases; runtimeStatus remains pending-parent-validation. Direct Node success is local evidence only, never check-count equivalence.",
-        "Source evidence: frozen original SHA-256 5bd16f424dedef390f8e0ce6e3c28ffed8f50db38adbbf8d6732e50ac6e1b815; replacement SHA-256 8c321dd761fc4cf1664ff5cdb3177033c7b73508f7c2f174d0f10cdc654bc1ea.",
+    "Sixteen named cases after the 2026-10-05 parent delta review. The added fresh-process case self-tests read/list guards before import, then rejects physical Legacy reads including eager dependencies. All previous predicates, fixture bytes, ordering and tolerances remain unchanged. The VM adapter removes the newly added legacyIO import and injects only its synthetic IO boundary. Direct Node success is local evidence, not an authoritative runner receipt or count-based equivalence.",
+    "Source evidence: frozen original SHA-256 5bd16f424dedef390f8e0ce6e3c28ffed8f50db38adbbf8d6732e50ac6e1b815; replacement SHA-256 e545a1d1d3f003c2442d04244b5779db69fd1634675bf91f693ec16069d69283. Previous reviewed replacement 8c321dd761fc4cf1664ff5cdb3177033c7b73508f7c2f174d0f10cdc654bc1ea and historical adapter 4248c99374635a94c68d41c2d5b11526e03b0b227fcadaad75f56d7ea68ba87f are retained as delta provenance; old runtime receipts are not re-signed. The original line mappings below describe that previous review; the new inserted case shifts final-entry lines only.",
         "Comparison parses complete sources without executing them. Positions/comments, package-root relocation, declared helper relocation, pure checks increments and case async scheduling are normalized explicitly. Generated Function template prefixes are compared as JavaScript ASTs so indentation is ignored; interpolated code expressions are preserved. String/regex values, numeric tolerances, input arrays, control flow and expression operators remain part of the comparison.",
         "Original L10 assert.ok(!audit.tests.some(test => test.file === file), file) -> Tests~/Cases/NodeA/HistoricalAuditChecks.mjs:L77; same predicate/expected value/tolerance.",
         "Original L20 assert.doesNotMatch(read(file), new RegExp('\\\\b' + name + '\\\\s*\\\\('), name) -> Tests~/Cases/NodeA/FinalLegacyAudit.mjs:L68; same predicate/expected value/tolerance.",
@@ -4693,11 +4697,22 @@
         "Classification: psd-reader-roundtrip-v2=regression. Source/scalar cases do not execute Unity/C#/GPU/UI; no real regression is reclassified as a diagnostic.",
         "Lifecycle: Encode current 3x2 nine-layer PSD via the native Editor into GUID CreateNew project Temp, then run all original decoder assertions. Cleanup: Retain owned source/PSD as evidence; no assets/windows/settings; uncertain encoder execution retains outer lock."
       ],
-      "gaps": [
+      "gaps": [],
+      "gapHistory": [
         "Missing installed independent PSD decoder: no ag-psd module path was found, including C:/Users/dcfam/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules. Parent must supply an existing decoder through WHIMTEX_PSD_READER for psd-reader-roundtrip-v2; otherwise the registered workflow reports SKIP, not PASS. No dependency installation/fetch was attempted by this audit agent. Parent actually invoked psd-reader-roundtrip-v2 in Temp/WhimTex/test-runs/2026-10-04T15-37-30.186Z-129092.json (raw SHA-256 7cee52d0a69afef19950cc1166c263cc34e61a24e838df807268f139b0a60deb): action=run, result=skip, testResult.status=skipped, checks=0, failures=[], uncertain=false. The receipt explicitly reports that no decoder coverage was executed. Earlier writer/fixture passes do not establish the independent decoder assertions or old/new roundtrip equivalence."
       ],
-      "reviewStatus": "gap",
-      "runtimeStatus": "pending-parent-validation"
+      "parentRuntimeValidation": {
+        "review": "Tests~/CoverageAudit/psd-reader-final-runtime-review.json",
+        "report": "Temp/WhimTex/test-runs/2026-10-05T03-05-44.229Z-120160.json",
+        "reportSha256": "a9f5cedd7356a24688db0ed4035390a8287d00f90e7bc396a51258c4dd0f0bce",
+        "status": "passed",
+        "producerChecks": 70,
+        "decoderChecks": 72,
+        "workflowChecks": 78,
+        "note": "User-authorized isolated ag-psd 31.0.2 in project Temp. Actual current native encoding and independent decoding passed without source, assertion or tolerance changes. Historical prerequisite SKIP is retained above. This closes only the independent reader regression, not all-Legacy runtime equivalence."
+      },
+      "reviewStatus": "source-reviewed",
+      "runtimeStatus": "parent-validated"
     },
     {
       "legacyFile": "GenerateBlueNoise.mjs",
@@ -4798,14 +4813,17 @@
       ],
       "sourceHashes": {
         "legacy": "1b766fe970571abe33ac057256a5d15d51571e9c2bdb37370a2bfdfc2937552f",
-        "replacement": "7e03712608e3d7eb275b3192c94dbbcad3c6a12fdd07ea53013735604e68e0f4"
+        "replacement": "7e03712608e3d7eb275b3192c94dbbcad3c6a12fdd07ea53013735604e68e0f4",
+        "support": {
+          "Tests~/Cases/NodeA/AuditSources.mjs": "a03a66cb1a29da4d3b8dafd987f0d43ca8608a77357340ddafd59e82ae25259e"
+        }
       },
       "legacyEntries": [
         "Node module evaluation; no CLI parameterized entry",
         "Exported tests/candidates; CLI --candidates, --start integer >=0, --count integer >=0 (invalid values throw)"
       ],
       "coverage": [
-        "Exclusion reviewed: read-only inventory-tool/helper, not a standalone regression or runtime C# test. Independent implementation Tests~/Cases/NodeA/AuditSources.mjs raw SHA-256=6112db157b5cc6d35594a91e40bf56c5cd9a05bf6d2f06d1ef4f97a466f7ec0e. Framework facade preserves historical exports/direct CLI alongside its additional ACTIVE inventory API.",
+    "Exclusion reviewed: read-only inventory-tool/helper, not a standalone regression or runtime C# test. Independent implementation Tests~/Cases/NodeA/AuditSources.mjs raw SHA-256=a03a66cb1a29da4d3b8dafd987f0d43ca8608a77357340ddafd59e82ae25259e. Parent 2026-10-05 full-source delta review: real package IO is wrapped with authenticated pinned Git legacyIO; synthetic roots retain injected IO. Original regexes/discovery/CLI bodies are unchanged; no physical archive fallback. Previous helper 6112db157b5cc6d35594a91e40bf56c5cd9a05bf6d2f06d1ef4f97a466f7ec0e is retained as provenance, not current runtime proof. Framework facade preserves historical exports/direct CLI alongside its additional ACTIVE inventory API.",
         "All original regex patterns/flags/ordering exactly equal; no broadening/weakening. Complete discovery AST statements preserved: walk:L7->L11, read:L11->L15, relative:L12->L16, top:L13->L17, tests:L14->L18, sourceFiles:L35->L39, allEvidence:L36->L40, evidence:L38->L42, candidates:L39->L43, candidate traversal and exact counts. Inputs remain top-level sorted lowercase .cs; recursion/extensions/_site exclusion; Main-before-Run, diagnostic/manual/multi-step/regression precedence, entries/parameters/flags/mutations/paths and candidate word counts/line numbers remain exact.",
         "CLI option body, direct guard, candidates branch and full tests/summary/methodCandidates payload structurally match after explicit argv injection only. First duplicate option, candidates priority over invalid pagination, nonnegative-safe-integer Number coercion and exact errors, defaults/slicing/full summary and pretty JSON are independently exercised by the five historical cases.",
         "Original eight classification texts are exact frozen raw-byte snapshots in Cases/NodeA/Fixtures/AuditInputs.json; current production/doc text remains live. Local owned final case passes fifteen groups; all runtimeStatus fields still await parent sequential validation. Counts do not establish equivalence.",

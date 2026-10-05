@@ -1,0 +1,88 @@
+{
+  "version": 2,
+  "action": "run",
+  "startedAt": "2026-10-05T05:04:01.904Z",
+  "projectPath": "D:\\DCFA\\Projects\\Test6.6",
+  "fingerprint": "db4b9fbc48f3ba93ef3ff5cd94c87c1f90a36ffb7f04f7a3c47fad98d6820235",
+  "archive": {
+    "files": 466,
+    "baselineCommit": "1269df51866959744a4b0763453eb667aefe6d8e",
+    "manifestHash": "c70816ea4220d9ebe08d4d2d087d7e5297bd943405bb3297e24f4b69756a6194",
+    "source": "pinned-git-reference",
+    "recoveryCommit": "ca8603c0961ce36064280f952259f8a6142d46cc",
+    "contentsVerified": false
+  },
+  "productionFingerprint": "a3da14871f6e0bf5c49a6f077b1026720e0fb2d3c28a49213dd715f3dd2b7738",
+  "selected": [
+    "framework",
+    "archive-integrity",
+    "frozen-files-v2"
+  ],
+  "environment": null,
+  "results": [
+    {
+      "id": "framework",
+      "file": "Tests~/Framework/Runner.test.mjs",
+      "runner": "node",
+      "category": "runner",
+      "status": "transport-error",
+      "detail": "Error: spawn EPERM",
+      "uncertain": false,
+      "durationMs": 4,
+      "attempts": [
+        {
+          "phase": "result",
+          "entry": null,
+          "reply": {
+            "error": "Error: spawn EPERM",
+            "uncertain": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "archive-integrity",
+      "file": "Tests~/Cases/Files/LegacyIntegrity.mjs",
+      "runner": "node",
+      "category": "runner",
+      "status": "transport-error",
+      "detail": "Error: spawn EPERM",
+      "uncertain": false,
+      "durationMs": 0,
+      "attempts": [
+        {
+          "phase": "result",
+          "entry": null,
+          "reply": {
+            "error": "Error: spawn EPERM",
+            "uncertain": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "frozen-files-v2",
+      "file": "Tests~/Cases/Files/Frozen0125.mjs",
+      "runner": "node",
+      "category": "regression",
+      "status": "transport-error",
+      "detail": "Error: spawn EPERM",
+      "uncertain": false,
+      "durationMs": 0,
+      "attempts": [
+        {
+          "phase": "result",
+          "entry": null,
+          "reply": {
+            "error": "Error: spawn EPERM",
+            "uncertain": false
+          }
+        }
+      ]
+    }
+  ],
+  "success": false,
+  "notRun": [],
+  "recoveryRequired": false,
+  "finishedAt": "2026-10-05T05:04:02.314Z"
+}

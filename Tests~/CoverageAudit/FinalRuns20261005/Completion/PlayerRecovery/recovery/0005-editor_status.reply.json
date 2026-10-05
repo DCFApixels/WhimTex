@@ -1,0 +1,24 @@
+{
+  "name": "editor_status",
+  "argv": [
+    "command",
+    "editor_status",
+    "--project-path",
+    "D:\\DCFA\\Projects\\Test6.6",
+    "--timeout",
+    "10",
+    "--format",
+    "json"
+  ],
+  "startedAt": "2026-10-05T06:40:26.656Z",
+  "finishedAt": "2026-10-05T06:40:26.920Z",
+  "reply": {
+    "code": 0,
+    "signal": null,
+    "timedOut": false,
+    "stdout": "{\n  \"success\": true,\n  \"command\": \"command editor_status\",\n  \"data\": {\n    \"command\": \"editor_status\",\n    \"parameters\": {},\n    \"result\": {\n      \"status\": \"ready\",\n      \"compiling\": false,\n      \"domainReloadInProgress\": false,\n      \"playMode\": \"stopped\",\n      \"lastHeartbeat\": \"2026-10-05T06:40:26.8300518Z\",\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\",\n      \"unityVersion\": \"6000.7.0a6\"\n    },\n    \"target\": {\n      \"host\": \"127.0.0.1\",\n      \"port\": 7800,\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\"\n    },\n    \"success\": true\n  },\n  \"errors\": [],\n  \"warnings\": []\n}\n",
+    "stderr": "",
+    "stdoutBase64": "ewogICJzdWNjZXNzIjogdHJ1ZSwKICAiY29tbWFuZCI6ICJjb21tYW5kIGVkaXRvcl9zdGF0dXMiLAogICJkYXRhIjogewogICAgImNvbW1hbmQiOiAiZWRpdG9yX3N0YXR1cyIsCiAgICAicGFyYW1ldGVycyI6IHt9LAogICAgInJlc3VsdCI6IHsKICAgICAgInN0YXR1cyI6ICJyZWFkeSIsCiAgICAgICJjb21waWxpbmciOiBmYWxzZSwKICAgICAgImRvbWFpblJlbG9hZEluUHJvZ3Jlc3MiOiBmYWxzZSwKICAgICAgInBsYXlNb2RlIjogInN0b3BwZWQiLAogICAgICAibGFzdEhlYXJ0YmVhdCI6ICIyMDI2LTEwLTA1VDA2OjQwOjI2LjgzMDA1MThaIiwKICAgICAgInByb2plY3RQYXRoIjogIkQ6XFxEQ0ZBXFxQcm9qZWN0c1xcVGVzdDYuNiIsCiAgICAgICJ1bml0eVZlcnNpb24iOiAiNjAwMC43LjBhNiIKICAgIH0sCiAgICAidGFyZ2V0IjogewogICAgICAiaG9zdCI6ICIxMjcuMC4wLjEiLAogICAgICAicG9ydCI6IDc4MDAsCiAgICAgICJwcm9qZWN0UGF0aCI6ICJEOlxcRENGQVxcUHJvamVjdHNcXFRlc3Q2LjYiCiAgICB9LAogICAgInN1Y2Nlc3MiOiB0cnVlCiAgfSwKICAiZXJyb3JzIjogW10sCiAgIndhcm5pbmdzIjogW10KfQo=",
+    "stderrBase64": ""
+  }
+}

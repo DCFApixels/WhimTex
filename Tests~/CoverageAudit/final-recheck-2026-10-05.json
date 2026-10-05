@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "recordedAtUtc": "2026-10-05 02:55:43 UTC",
+  "scope": "Repeat final read-only check requested by user. No source/runner/archive mutation and no dependency installation. Full native tests are current verified retained evidence, not rerun in this check.",
+  "snapshotStillCurrent": true,
+  "reportSha256Verified": 23,
+  "sourceReviewed": 360,
+  "regressions": {
+    "current-passed": 401,
+    "current-skipped": 1
+  },
+  "archive": {
+    "files": 466,
+    "verified": true,
+    "manifestRawSha256": "c70816ea4220d9ebe08d4d2d087d7e5297bd943405bb3297e24f4b69756a6194",
+    "issues": []
+  },
+  "production": {
+    "current": "a3da14871f6e0bf5c49a6f077b1026720e0fb2d3c28a49213dd715f3dd2b7738",
+    "expectedUnchanged": "a3da14871f6e0bf5c49a6f077b1026720e0fb2d3c28a49213dd715f3dd2b7738",
+    "unchanged": true
+  },
+  "verifierSourceSha256": "25a9fb6d82e6c1d3f8c3919a0a81658958cf2a8fe9048da95f3131f773563f22",
+  "verifierTestSha256": "15973a785914908049ea1b0ea97a7b57c0f544c97a42c00c021f1c6befb3fbac",
+  "pureChecks": {
+    "tests": 74,
+    "passed": 74,
+    "failed": 0
+  },
+  "recovery": {
+    "commit": "ca8603c0961ce36064280f952259f8a6142d46cc",
+    "rawArchiveEntriesVerified": 466,
+    "allManifestSha256Match": true
+  },
+  "editor": {
+    "observedAtUtc": "2026-10-05T02:54:29.9792766Z",
+    "projectPath": "D:/DCFA/Projects/Test6.6",
+    "ready": true,
+    "compiling": false,
+    "domainReloadInProgress": false,
+    "playMode": "stopped"
+  },
+  "decision": {
+    "removeLegacyNow": false,
+    "unfinished": [
+      "Independent PSD decoder regression requires approved installed dependency or an existing module",
+      "Physical deletion requires separate runner/catalog/framework-fixture retirement"
+    ],
+    "dependencyApprovalRequested": true,
+    "dependencyApprovalReceived": false,
+    "installationPerformed": false,
+    "LegacyDeleted": false,
+    "commitOrPushPerformed": false
+  }
+}

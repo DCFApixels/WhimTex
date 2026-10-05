@@ -21,6 +21,8 @@ public static class DocumentPerformanceTests
     {
         public string operation;
         public double milliseconds, baselinePrivateMiB, peakPrivateMiB, peakWorkingSetMiB, peakManagedMiB;
+        public bool processMemoryAvailable;
+        public string processMemoryLimitation;
     }
     [Serializable] public sealed class Report
     {
@@ -56,7 +58,10 @@ public static class DocumentPerformanceTests
         if (samplingError != null) throw new InvalidOperationException("Memory sampling failed.", samplingError);
         return new Measurement { operation = operation, milliseconds = clock.Elapsed.TotalMilliseconds,
             baselinePrivateMiB = baseline / 1048576.0, peakPrivateMiB = peakPrivate / 1048576.0,
-            peakWorkingSetMiB = peakWorking / 1048576.0, peakManagedMiB = peakManaged / 1048576.0 };
+            peakWorkingSetMiB = peakWorking / 1048576.0, peakManagedMiB = peakManaged / 1048576.0,
+            processMemoryAvailable = baseline > 0 && peakPrivate > 0 && peakWorking > 0,
+            processMemoryLimitation = baseline > 0 && peakPrivate > 0 && peakWorking > 0 ? null
+                : "Process counters returned zero/unavailable in this Editor runtime; raw zeros are not memory measurements. Managed values cover the whole Editor." };
     }
     static Report ExecuteRun(int size = 2048, int layers = 3, bool hdr = false, bool randomPixels = true)
     {

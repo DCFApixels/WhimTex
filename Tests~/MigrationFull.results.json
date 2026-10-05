@@ -1,6 +1,8 @@
 {
   "version": 2,
-  "generatedAt": "2026-10-04T16:34:21.423Z",
+  "generatedAt": "2026-10-05T03:13:34.570Z",
+  "snapshotRole": "Historical pre-retirement snapshot; NOT current proof after dispatcher changes. Exact original bytes are preserved in CoverageAudit/pre-retirement.results.json.",
+  "currentInventory": "ArchiveRetirement.results.json",
   "scope": "Final source-by-source Legacy inventory plus current native/Node evidence. Diagnostic outputs and mapping counts are not regression equivalence.",
   "production": {
     "current": "a3da14871f6e0bf5c49a6f077b1026720e0fb2d3c28a49213dd715f3dd2b7738",
@@ -21,30 +23,31 @@
     "missingReview": 0,
     "staleReview": 0,
     "sourceGapFiles": 0,
-    "externalGapFiles": 7,
+    "externalGapFiles": 0,
     "regressionLinkedFiles": 350,
-    "currentRegressionReportFiles": 347,
+    "currentRegressionReportFiles": 350,
     "diagnosticOnlyFiles": 10,
     "supportOrUnregisteredFiles": 0,
+    "verifiedWorkflowHelperPhases": 2,
+    "pendingWorkflowHelperPhases": 0,
     "snapshotStable": true,
     "automaticFullCoverage": false,
     "archiveRemovalAllowed": false,
-    "independentScenarios": 518,
+    "independentScenarios": 519,
     "categories": {
-      "diagnostic": 49,
+      "diagnostic": 50,
       "regression": 402,
       "runner": 11,
       "source-guard": 56
     },
     "categoryRuntime": {
       "diagnostic": {
-        "current-skipped": 11,
-        "diagnostic-only": 8,
-        "pending-no-current-runtime-proof": 30
+        "current-skipped": 15,
+        "diagnostic-only": 33,
+        "pending-no-current-runtime-proof": 2
       },
       "regression": {
-        "current-passed": 398,
-        "current-skipped": 4
+        "current-passed": 402
       },
       "runner": {
         "current-passed": 2,
@@ -55,36 +58,36 @@
       }
     },
     "linkedRuntimeVerdicts": {
-      "current-passed": 456,
+      "current-passed": 460,
       "current-skipped": 15,
-      "diagnostic-only": 8,
-      "pending-no-current-runtime-proof": 30
+      "diagnostic-only": 33,
+      "pending-no-current-runtime-proof": 2
     }
   },
   "auditInputs": [
     {
       "file": "Tests~/CoverageAudit/unity-a.json",
-      "sha256": "dc760ae58c774484b42c8dfe26a72fb86fd2ada64d32e600ba96ba281787424e",
+      "sha256": "bc2731cb50613333369e7de35b740ff840879aa91274201cc7538d6533c912e9",
       "rows": 59
     },
     {
       "file": "Tests~/CoverageAudit/unity-b-public.json",
-      "sha256": "1af98d417119169965f061123fa6b62fb55b327ac5dcb713db50577a2805aacf",
+      "sha256": "c78272268d064fd7a7fe56813831514ec181aba8c561f288088ad405ad42024a",
       "rows": 75
     },
     {
       "file": "Tests~/CoverageAudit/unity-cd.json",
-      "sha256": "08d12ee4c2be9a66f46025220a523a29533b0a7af368c50c6ee47e4ce8653738",
+      "sha256": "77b7fbcfce051898bbe265a79627fd1991c9dbfcd0e3b684b0cfc63671317d64",
       "rows": 137
     },
     {
       "file": "Tests~/CoverageAudit/node.json",
-      "sha256": "c1bb1e1e331330dd19531754d5b7eb66c4889280549e3a25fc78d8a2d043e8fa",
+      "sha256": "f0b6eb5c34e299131ea73ec5367367b0af1cdccddd4d3bd9afe3c3a278e50adc",
       "rows": 83
     },
     {
       "file": "Tests~/CoverageAudit/player.json",
-      "sha256": "82d8f17d5efc9fa63c0a4ee5cb7b50c5f2e73fa404fcb8489c5e4c63f613d742",
+      "sha256": "51e1709942cc37c59934607893a441158f27d5b9ec81d4deed850e9f35926586",
       "rows": 2
     },
     {
@@ -94,7 +97,7 @@
     },
     {
       "file": "Tests~/CoverageAudit/fault.json",
-      "sha256": "d02f45a800de5fe6469b322ff4be2b45acdbbfb45a563ea80ddb95edf4eb7f36",
+      "sha256": "5544e821ec4cd4d74d274d8877b86e5d7154d722572209044b85042147b5b0ab",
       "rows": 2
     }
   ],
@@ -625,7 +628,8 @@
       [
         "color-picker-eyedropper-v2",
         "color-picker-eyedropper-native-preview-v2",
-        "color-picker-eyedropper-native-render-v2"
+        "color-picker-eyedropper-native-render-v2",
+        "color-picker-eyedropper-native-inspection-v2"
       ]
     ],
     [
@@ -2430,7 +2434,7 @@
       "PatchQuiltingEquivalence.cs",
       "0f5e7b3424693afd0fea7982db136c09e16d7f872e42bcd241db9e72602ece38",
       "current-reviewed-claims",
-      "pending-or-not-passed",
+      "current-regression-reports-present",
       [
         "patch-quilting-equivalence-v2",
         "patch-quilting-equivalence-managed-v2",
@@ -2613,7 +2617,7 @@
       "PsdWriter/read-fixture.cjs",
       "9b4a8f2a7c9a61cb8a5e5099c6138f97929ff8744c0eebbf269bd70dd25366c0",
       "current-reviewed-claims",
-      "pending-or-not-passed",
+      "current-regression-reports-present",
       [
         "psd-reader-roundtrip-v2"
       ]
@@ -2792,7 +2796,7 @@
       "SeamlessOptimizationSmoke.cs",
       "0119e5ab42d7c0c8a90dc5b494a57f3efcf03bac0357e9ca0c396657ecadd5cc",
       "current-reviewed-claims",
-      "pending-or-not-passed",
+      "current-regression-reports-present",
       [
         "seamless-optimization-capture-v2",
         "seamless-optimization-compare-v2",
@@ -3547,7 +3551,7 @@
       "regression",
       "current-passed",
       "passed",
-      10,
+      18,
       "current-regression-run",
       "354569252495df729cb9e607bc4874065483a979d2ddf25bf9505c3b77d11745",
       true,
@@ -3558,7 +3562,7 @@
       "regression",
       "current-passed",
       "passed",
-      10,
+      18,
       "current-regression-run",
       "b5b54936a8ec97c2d4dc109b5ec82f490b2556ab9423108e4676c652330e39da",
       true,
@@ -3580,7 +3584,7 @@
       "regression",
       "current-passed",
       "passed",
-      15,
+      20,
       "current-regression-run",
       null,
       true,
@@ -3591,7 +3595,7 @@
       "runner",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -3635,7 +3639,7 @@
       "regression",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -3646,7 +3650,7 @@
       "regression",
       "current-passed",
       "passed",
-      9,
+      8,
       "current-regression-run",
       "3b625d3db30064743e7714d4ff345b444fad6c63751d95c2da4de9847ad4cad3",
       true,
@@ -3657,7 +3661,7 @@
       "regression",
       "current-passed",
       "passed",
-      9,
+      8,
       "current-regression-run",
       "3b625d3db30064743e7714d4ff345b444fad6c63751d95c2da4de9847ad4cad3",
       true,
@@ -3668,7 +3672,7 @@
       "runner",
       "current-passed",
       "passed",
-      10,
+      16,
       "current-regression-run",
       "e7175da79d33c9d035cecdb655bca96a652d54d0a71e9aca79bafe78b409b530",
       true,
@@ -3679,7 +3683,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      15,
+      20,
       "current-regression-run",
       null,
       true,
@@ -3690,7 +3694,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      15,
+      20,
       "current-regression-run",
       null,
       true,
@@ -3701,7 +3705,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -3712,7 +3716,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -3723,7 +3727,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -3734,7 +3738,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -3745,7 +3749,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -3756,7 +3760,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      15,
+      20,
       "current-regression-run",
       null,
       true,
@@ -3767,7 +3771,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -3778,7 +3782,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -3789,7 +3793,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -3800,7 +3804,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -3811,7 +3815,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -3822,7 +3826,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -3833,7 +3837,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -3844,7 +3848,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -3855,7 +3859,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -3866,7 +3870,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -3877,7 +3881,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -3888,7 +3892,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -3899,7 +3903,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -3910,7 +3914,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -3921,7 +3925,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -3932,7 +3936,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -3943,7 +3947,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      15,
+      20,
       "current-regression-run",
       null,
       true,
@@ -3954,7 +3958,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -3965,7 +3969,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -3976,7 +3980,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -3987,7 +3991,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -3998,7 +4002,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4009,7 +4013,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4020,7 +4024,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4031,7 +4035,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4042,7 +4046,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4053,7 +4057,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      15,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4064,7 +4068,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4075,7 +4079,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4086,7 +4090,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4097,7 +4101,7 @@
       "regression",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4108,7 +4112,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4119,7 +4123,7 @@
       "regression",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4130,7 +4134,7 @@
       "regression",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4141,7 +4145,7 @@
       "regression",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4152,7 +4156,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4163,7 +4167,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4174,7 +4178,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4185,7 +4189,7 @@
       "regression",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4196,7 +4200,7 @@
       "regression",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4207,7 +4211,7 @@
       "regression",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4218,7 +4222,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      15,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4229,7 +4233,7 @@
       "regression",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4240,7 +4244,7 @@
       "regression",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4251,7 +4255,7 @@
       "regression",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4262,7 +4266,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4273,7 +4277,7 @@
       "regression",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4284,7 +4288,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4295,7 +4299,7 @@
       "regression",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4306,7 +4310,7 @@
       "regression",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4317,7 +4321,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4328,7 +4332,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      15,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4339,7 +4343,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4350,7 +4354,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      15,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4361,7 +4365,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      15,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4372,7 +4376,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4383,7 +4387,7 @@
       "regression",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4394,7 +4398,7 @@
       "regression",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4405,7 +4409,7 @@
       "regression",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4416,7 +4420,7 @@
       "regression",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4427,7 +4431,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4438,7 +4442,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4449,7 +4453,7 @@
       "regression",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4460,7 +4464,7 @@
       "regression",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4471,7 +4475,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4482,7 +4486,7 @@
       "regression",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4493,7 +4497,7 @@
       "regression",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4504,7 +4508,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      15,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4515,7 +4519,7 @@
       "source-guard",
       "current-passed",
       "passed",
-      13,
+      20,
       "current-regression-run",
       null,
       true,
@@ -4812,33 +4816,33 @@
       "regression",
       "current-passed",
       "passed",
-      3,
+      12,
       "current-regression-run",
-      "1ecc88a52020ce1121ab1848c0777598a0568873a5e24e137946e226fcfcb7ed",
+      "34aa6269addc5e11444303845fb14ae81a3280d9f81d097704fa5de7a0195ba8",
       true,
-      false
+      true
     ],
     [
       "small-document-save-scheduling-v2",
       "diagnostic",
-      "pending-no-current-runtime-proof",
-      null,
-      null,
-      null,
-      null,
-      null,
-      null
+      "diagnostic-only",
+      "passed",
+      12,
+      "current-diagnostic-run-not-regression",
+      "34aa6269addc5e11444303845fb14ae81a3280d9f81d097704fa5de7a0195ba8",
+      true,
+      true
     ],
     [
       "small-document-save-carrier-v2",
       "diagnostic",
-      "pending-no-current-runtime-proof",
-      null,
-      null,
-      null,
-      null,
-      null,
-      null
+      "diagnostic-only",
+      "passed",
+      12,
+      "current-diagnostic-run-not-regression",
+      "34aa6269addc5e11444303845fb14ae81a3280d9f81d097704fa5de7a0195ba8",
+      true,
+      true
     ],
     [
       "soft-range-v2",
@@ -5131,22 +5135,22 @@
       "regression",
       "current-passed",
       "passed",
-      0,
+      12,
       "current-regression-run",
-      "838864747082e4a302bf66a783512a052f8a638f7121d1bf4c0cd60c214316f6",
+      "f107ba7713772603eb9855c8ec8906adebf60563d0be6afa2ed2fbe05751680a",
       true,
-      false
+      true
     ],
     [
       "whim-tex-gradient-rounded-capture-v2",
       "diagnostic",
-      "pending-no-current-runtime-proof",
-      null,
-      null,
-      null,
-      null,
-      null,
-      null
+      "current-skipped",
+      "skip",
+      12,
+      "not-current-proof",
+      "f107ba7713772603eb9855c8ec8906adebf60563d0be6afa2ed2fbe05751680a",
+      true,
+      true
     ],
     [
       "whim-tex-gradient-v2",
@@ -5615,11 +5619,11 @@
       "regression",
       "current-passed",
       "passed",
-      6,
+      22,
       "current-regression-run",
-      "2ddfedb53002febc15e7456918eb4988b17716de7328ba4b2fd1d6eb6f47f6bb",
+      "00a727ede53c3027c0d9536992fbe531b49aaf2b04d31c84448f79107cabf990",
       true,
-      false
+      true
     ],
     [
       "color-picker-hex-v2",
@@ -6044,9 +6048,9 @@
       "regression",
       "current-passed",
       "passed",
-      10,
+      14,
       "current-regression-run",
-      "723626b70fe4fc0981a36de5a85e5025ab09ed3f6a83d247795df16493336e61",
+      "0bc74bb679b49c787ad584350fcfe90589629153eb0add9a57c718208e11222d",
       true,
       true
     ],
@@ -6075,13 +6079,13 @@
     [
       "document-burst-hash-probe-v2",
       "diagnostic",
-      "pending-no-current-runtime-proof",
-      null,
-      null,
-      null,
-      null,
-      null,
-      null
+      "diagnostic-only",
+      "passed",
+      12,
+      "current-diagnostic-run-not-regression",
+      "8dbb2d5dd6ac529175a13e0a5385f7b1857da61074c805a40f281dc4eef95825",
+      true,
+      true
     ],
     [
       "document-burst-integrity-smoke-v2",
@@ -6240,46 +6244,46 @@
     [
       "document-performance-probe-ldr-random-v2",
       "diagnostic",
-      "pending-no-current-runtime-proof",
-      null,
-      null,
-      null,
-      null,
-      null,
-      null
+      "diagnostic-only",
+      "passed",
+      12,
+      "current-diagnostic-run-not-regression",
+      "a8baac92d35274c3895f90117857ce39086808ad680c4ebd3e5b425d567e8a98",
+      true,
+      true
     ],
     [
       "document-performance-probe-hdr-random-v2",
       "diagnostic",
-      "pending-no-current-runtime-proof",
-      null,
-      null,
-      null,
-      null,
-      null,
-      null
+      "diagnostic-only",
+      "passed",
+      12,
+      "current-diagnostic-run-not-regression",
+      "a8baac92d35274c3895f90117857ce39086808ad680c4ebd3e5b425d567e8a98",
+      true,
+      true
     ],
     [
       "document-performance-probe-ldr-constant-v2",
       "diagnostic",
-      "pending-no-current-runtime-proof",
-      null,
-      null,
-      null,
-      null,
-      null,
-      null
+      "diagnostic-only",
+      "passed",
+      12,
+      "current-diagnostic-run-not-regression",
+      "a8baac92d35274c3895f90117857ce39086808ad680c4ebd3e5b425d567e8a98",
+      true,
+      true
     ],
     [
       "document-performance-probe-hdr-constant-v2",
       "diagnostic",
-      "pending-no-current-runtime-proof",
-      null,
-      null,
-      null,
-      null,
-      null,
-      null
+      "diagnostic-only",
+      "passed",
+      12,
+      "current-diagnostic-run-not-regression",
+      "a8baac92d35274c3895f90117857ce39086808ad680c4ebd3e5b425d567e8a98",
+      true,
+      true
     ],
     [
       "document-preparation-smoke-v2",
@@ -6339,57 +6343,57 @@
     [
       "document-save-cost-probe-hashes-v2",
       "diagnostic",
-      "pending-no-current-runtime-proof",
-      null,
-      null,
-      null,
-      null,
-      null,
-      null
+      "diagnostic-only",
+      "passed",
+      12,
+      "current-diagnostic-run-not-regression",
+      "48b141a8513c00c9c43a6160f59cbcd41eda21d61aafd8c2afde52c993150a94",
+      true,
+      true
     ],
     [
       "document-save-cost-probe-fast-fingerprint-v2",
       "diagnostic",
-      "pending-no-current-runtime-proof",
-      null,
-      null,
-      null,
-      null,
-      null,
-      null
+      "diagnostic-only",
+      "passed",
+      12,
+      "current-diagnostic-run-not-regression",
+      "48b141a8513c00c9c43a6160f59cbcd41eda21d61aafd8c2afde52c993150a94",
+      true,
+      true
     ],
     [
       "document-save-cost-probe-tiff-v2",
       "diagnostic",
-      "pending-no-current-runtime-proof",
-      null,
-      null,
-      null,
-      null,
-      null,
-      null
+      "diagnostic-only",
+      "passed",
+      12,
+      "current-diagnostic-run-not-regression",
+      "48b141a8513c00c9c43a6160f59cbcd41eda21d61aafd8c2afde52c993150a94",
+      true,
+      true
     ],
     [
       "document-save-cost-probe-tiff-2048-v2",
       "diagnostic",
-      "pending-no-current-runtime-proof",
-      null,
-      null,
-      null,
-      null,
-      null,
-      null
+      "diagnostic-only",
+      "passed",
+      12,
+      "current-diagnostic-run-not-regression",
+      "48b141a8513c00c9c43a6160f59cbcd41eda21d61aafd8c2afde52c993150a94",
+      true,
+      true
     ],
     [
       "document-save-tail-probe-no-profiler-v2",
       "diagnostic",
-      "pending-no-current-runtime-proof",
-      null,
-      null,
-      null,
-      null,
-      null,
-      null
+      "diagnostic-only",
+      "passed",
+      11,
+      "current-diagnostic-run-not-regression",
+      "a541da7605ae9212010b84385eccc733f070de58bbc7c90a2eccfb5915e515a0",
+      true,
+      false
     ],
     [
       "document-storage-boundary-smoke-v2",
@@ -6495,7 +6499,7 @@
       "regression",
       "current-passed",
       "passed",
-      12,
+      10,
       "current-regression-run",
       "eb7d6d7406d2f47131a3a405371522422e61d8c7fc8f35eca9f4823ef34a27bd",
       true,
@@ -6693,7 +6697,7 @@
       "regression",
       "current-passed",
       "passed",
-      12,
+      10,
       "current-regression-run",
       "4d553560d7bc3058627131ad959f37846fea7a6e363e38d8b2eec8d79adc13fa",
       true,
@@ -6704,7 +6708,7 @@
       "regression",
       "current-passed",
       "passed",
-      12,
+      10,
       "current-regression-run",
       "4d553560d7bc3058627131ad959f37846fea7a6e363e38d8b2eec8d79adc13fa",
       true,
@@ -6856,13 +6860,13 @@
     [
       "healing-noise-seam-diagnostic-v2",
       "diagnostic",
-      "pending-no-current-runtime-proof",
-      null,
-      null,
-      null,
-      null,
-      null,
-      null
+      "diagnostic-only",
+      "passed",
+      11,
+      "current-diagnostic-run-not-regression",
+      "c2cd3cc5ceaf94c8172edf5c42410ec25ec9925bdec24d5a2fbee346c785db91",
+      true,
+      false
     ],
     [
       "healing-perimeter-smoke-v2",
@@ -6900,20 +6904,20 @@
     [
       "histogram-arithmetic-audit-v2",
       "diagnostic",
-      "pending-no-current-runtime-proof",
-      null,
-      null,
-      null,
-      null,
-      null,
-      null
+      "diagnostic-only",
+      "passed",
+      11,
+      "current-diagnostic-run-not-regression",
+      "342d55ee163852c8a713a4d936db19ac8ddfd2c59d4b8f50c9569ae4ca9fc6cb",
+      true,
+      false
     ],
     [
       "histogram-seamless-smoke-v2",
       "regression",
       "current-passed",
       "passed",
-      12,
+      10,
       "current-regression-run",
       "f9303fe0ce5888cd525e9ab257e93d837738eb5ecfa2beeddff3d28f0642e94f",
       true,
@@ -7155,9 +7159,9 @@
       "regression",
       "current-passed",
       "passed",
-      14,
+      15,
       "current-regression-run",
-      "5addd299e774069313190e15e3bada47a81edce876d751d7fc0d16db687c4813",
+      "173fcc225731fc56fd1974ffae6786d8598133536d933ef707c8c8c1b5a60184",
       true,
       true
     ],
@@ -7166,9 +7170,9 @@
       "regression",
       "current-passed",
       "passed",
-      14,
+      15,
       "current-regression-run",
-      "5addd299e774069313190e15e3bada47a81edce876d751d7fc0d16db687c4813",
+      "173fcc225731fc56fd1974ffae6786d8598133536d933ef707c8c8c1b5a60184",
       true,
       true
     ],
@@ -7177,9 +7181,9 @@
       "regression",
       "current-passed",
       "passed",
-      14,
+      15,
       "current-regression-run",
-      "5addd299e774069313190e15e3bada47a81edce876d751d7fc0d16db687c4813",
+      "173fcc225731fc56fd1974ffae6786d8598133536d933ef707c8c8c1b5a60184",
       true,
       true
     ],
@@ -7188,9 +7192,9 @@
       "diagnostic",
       "current-skipped",
       "skip",
-      14,
+      15,
       "not-current-proof",
-      "5addd299e774069313190e15e3bada47a81edce876d751d7fc0d16db687c4813",
+      "173fcc225731fc56fd1974ffae6786d8598133536d933ef707c8c8c1b5a60184",
       true,
       true
     ],
@@ -7208,13 +7212,13 @@
     [
       "model-serialization-benchmark-v2",
       "diagnostic",
-      "pending-no-current-runtime-proof",
-      null,
-      null,
-      null,
-      null,
-      null,
-      null
+      "current-skipped",
+      "skip",
+      13,
+      "not-current-proof",
+      "bf2f739c4bab63d974205cf2dc165eae08c7f48c5e6a5b7e42b3afbd5fb20f2c",
+      true,
+      false
     ],
     [
       "motion-blur-api-v2",
@@ -7991,9 +7995,9 @@
       "regression",
       "current-passed",
       "passed",
-      14,
+      15,
       "current-regression-run",
-      "20c66be28e5b5873e7a36e77a5a5438f91c78884ee73c5ae5b96895c86546956",
+      "02a47f56962410c0a13cb11dbfb13e64a473dbd560e192d56ffc0bc4dc3b3a73",
       true,
       true
     ],
@@ -8002,9 +8006,9 @@
       "regression",
       "current-passed",
       "passed",
-      14,
+      15,
       "current-regression-run",
-      "20c66be28e5b5873e7a36e77a5a5438f91c78884ee73c5ae5b96895c86546956",
+      "02a47f56962410c0a13cb11dbfb13e64a473dbd560e192d56ffc0bc4dc3b3a73",
       true,
       true
     ],
@@ -8013,9 +8017,9 @@
       "diagnostic",
       "current-skipped",
       "skip",
-      14,
+      15,
       "not-current-proof",
-      "20c66be28e5b5873e7a36e77a5a5438f91c78884ee73c5ae5b96895c86546956",
+      "02a47f56962410c0a13cb11dbfb13e64a473dbd560e192d56ffc0bc4dc3b3a73",
       true,
       true
     ],
@@ -8024,9 +8028,9 @@
       "regression",
       "current-passed",
       "passed",
-      14,
+      15,
       "current-regression-run",
-      "20c66be28e5b5873e7a36e77a5a5438f91c78884ee73c5ae5b96895c86546956",
+      "02a47f56962410c0a13cb11dbfb13e64a473dbd560e192d56ffc0bc4dc3b3a73",
       true,
       true
     ],
@@ -8035,53 +8039,53 @@
       "regression",
       "current-passed",
       "passed",
-      14,
+      13,
       "current-regression-run",
       "39ff9c8f6a0be5a7dafbaa21731dc9250905522cfc528ce1bf8bd15d0d42cfdc",
       true,
-      true
+      false
     ],
     [
       "patch-quilting-equivalence-managed-v2",
       "regression",
       "current-passed",
       "passed",
-      14,
+      13,
       "current-regression-run",
       "39ff9c8f6a0be5a7dafbaa21731dc9250905522cfc528ce1bf8bd15d0d42cfdc",
       true,
-      true
+      false
     ],
     [
       "patch-quilting-equivalence-benchmark-v2",
       "regression",
-      "current-skipped",
-      "skip",
-      14,
-      "not-current-proof",
+      "current-passed",
+      "passed",
+      13,
+      "current-regression-run",
       "39ff9c8f6a0be5a7dafbaa21731dc9250905522cfc528ce1bf8bd15d0d42cfdc",
       true,
-      true
+      false
     ],
     [
       "patch-quilting-equivalence-current-timing-v2",
       "diagnostic",
       "current-skipped",
       "skip",
-      14,
+      13,
       "not-current-proof",
       "39ff9c8f6a0be5a7dafbaa21731dc9250905522cfc528ce1bf8bd15d0d42cfdc",
       true,
-      true
+      false
     ],
     [
       "patch-quilting-feather-v2",
       "regression",
       "current-passed",
       "passed",
-      14,
+      15,
       "current-regression-run",
-      "426deba492b5e8b63402c1ed249a111661f8955ff0a214ee333a27c46c8b7583",
+      "bcff492c08923cb90a552f3bab022f33dd41f09c2ac362b07ef063fe0643ba5b",
       true,
       true
     ],
@@ -8090,9 +8094,9 @@
       "regression",
       "current-passed",
       "passed",
-      14,
+      15,
       "current-regression-run",
-      "426deba492b5e8b63402c1ed249a111661f8955ff0a214ee333a27c46c8b7583",
+      "bcff492c08923cb90a552f3bab022f33dd41f09c2ac362b07ef063fe0643ba5b",
       true,
       true
     ],
@@ -8101,9 +8105,9 @@
       "diagnostic",
       "current-skipped",
       "skip",
-      14,
+      15,
       "not-current-proof",
-      "426deba492b5e8b63402c1ed249a111661f8955ff0a214ee333a27c46c8b7583",
+      "bcff492c08923cb90a552f3bab022f33dd41f09c2ac362b07ef063fe0643ba5b",
       true,
       true
     ],
@@ -8310,9 +8314,9 @@
       "regression",
       "current-passed",
       "passed",
-      14,
+      15,
       "current-regression-run",
-      "6aef70cba4305afa1bfa49615d9d90c6c74922a03afd2fb52ecb86b0ff4480ff",
+      "e43bc8388ed3419c16670bca3482c44c6fb8c10695b701415630c2018cb17b47",
       true,
       true
     ],
@@ -8321,9 +8325,9 @@
       "diagnostic",
       "current-skipped",
       "skip",
-      14,
+      15,
       "not-current-proof",
-      "6aef70cba4305afa1bfa49615d9d90c6c74922a03afd2fb52ecb86b0ff4480ff",
+      "e43bc8388ed3419c16670bca3482c44c6fb8c10695b701415630c2018cb17b47",
       true,
       true
     ],
@@ -8420,44 +8424,44 @@
       "regression",
       "current-passed",
       "passed",
-      14,
+      13,
       "current-regression-run",
       "486c7947c32ae114f37d5b1645c1f42f8bf940ebc3ee154ee50e3b5d87affd2e",
       true,
-      true
+      false
     ],
     [
       "screened-seamless-preview-v2",
       "diagnostic",
       "current-skipped",
       "skip",
-      14,
+      13,
       "not-current-proof",
       "486c7947c32ae114f37d5b1645c1f42f8bf940ebc3ee154ee50e3b5d87affd2e",
       true,
-      true
+      false
     ],
     [
       "screened-seamless-large-v2",
       "regression",
       "current-passed",
       "passed",
-      14,
+      13,
       "current-regression-run",
       "486c7947c32ae114f37d5b1645c1f42f8bf940ebc3ee154ee50e3b5d87affd2e",
       true,
-      true
+      false
     ],
     [
       "screened-seamless-benchmark-v2",
       "diagnostic",
       "current-skipped",
       "skip",
-      14,
+      13,
       "not-current-proof",
       "486c7947c32ae114f37d5b1645c1f42f8bf940ebc3ee154ee50e3b5d87affd2e",
       true,
-      true
+      false
     ],
     [
       "sdf-controls-v2",
@@ -8497,22 +8501,22 @@
       "regression",
       "current-passed",
       "passed",
-      14,
+      13,
       "current-regression-run",
       "ff3ab635e7231a7562562f6c7dea438ef880c122de6648e2862e73ae9c169a8e",
       true,
-      true
+      false
     ],
     [
       "seamless-controls-preview-v2",
       "diagnostic",
       "current-skipped",
       "skip",
-      14,
+      13,
       "not-current-proof",
       "ff3ab635e7231a7562562f6c7dea438ef880c122de6648e2862e73ae9c169a8e",
       true,
-      true
+      false
     ],
     [
       "seamless-defaults-v2",
@@ -8541,31 +8545,31 @@
       "diagnostic",
       "current-skipped",
       "skip",
-      14,
+      17,
       "not-current-proof",
-      "f61e9a1e576f8a8ffad4fe03be4ed0fb65da8f74dd4d9f0b8e9f1000788ce10d",
+      "8fb4a733e1492b9bffee52d4092b1728d64c435589815e3ef8bf43a99e6c4616",
       true,
       true
     ],
     [
       "seamless-optimization-compare-v2",
       "regression",
-      "current-skipped",
-      "skip",
-      14,
-      "not-current-proof",
-      "f61e9a1e576f8a8ffad4fe03be4ed0fb65da8f74dd4d9f0b8e9f1000788ce10d",
+      "current-passed",
+      "passed",
+      17,
+      "current-regression-run",
+      "8fb4a733e1492b9bffee52d4092b1728d64c435589815e3ef8bf43a99e6c4616",
       true,
       true
     ],
     [
       "seamless-optimization-audit-v2",
       "regression",
-      "current-skipped",
-      "skip",
-      14,
-      "not-current-proof",
-      "f61e9a1e576f8a8ffad4fe03be4ed0fb65da8f74dd4d9f0b8e9f1000788ce10d",
+      "current-passed",
+      "passed",
+      17,
+      "current-regression-run",
+      "8fb4a733e1492b9bffee52d4092b1728d64c435589815e3ef8bf43a99e6c4616",
       true,
       true
     ],
@@ -8574,9 +8578,9 @@
       "regression",
       "current-passed",
       "passed",
-      14,
+      17,
       "current-regression-run",
-      "f61e9a1e576f8a8ffad4fe03be4ed0fb65da8f74dd4d9f0b8e9f1000788ce10d",
+      "8fb4a733e1492b9bffee52d4092b1728d64c435589815e3ef8bf43a99e6c4616",
       true,
       true
     ],
@@ -8585,121 +8589,121 @@
       "diagnostic",
       "current-skipped",
       "skip",
-      14,
+      17,
       "not-current-proof",
-      "f61e9a1e576f8a8ffad4fe03be4ed0fb65da8f74dd4d9f0b8e9f1000788ce10d",
+      "8fb4a733e1492b9bffee52d4092b1728d64c435589815e3ef8bf43a99e6c4616",
       true,
       true
     ],
     [
       "seamless-release-status-v2",
       "diagnostic",
-      "pending-no-current-runtime-proof",
-      null,
-      null,
-      null,
-      null,
-      null,
-      null
+      "current-skipped",
+      "skip",
+      21,
+      "not-current-proof",
+      "b5dfcfce9d1ef80dbaa6d03c9ff5ad624b6b306fd5d27c5cd83ba2ef549be049",
+      true,
+      true
     ],
     [
       "seamless-release-workflow-v2",
       "regression",
       "current-passed",
       "passed",
-      2,
+      21,
       "current-regression-run",
-      "b9bbd22efec9419ce971162ad9d9582c2ecac182b097ad0f794eb523850b0a13",
+      "b5dfcfce9d1ef80dbaa6d03c9ff5ad624b6b306fd5d27c5cd83ba2ef549be049",
       true,
-      false
+      true
     ],
     [
       "seamless-release-preview-v2",
       "regression",
       "current-passed",
       "passed",
-      2,
+      21,
       "current-regression-run",
-      "b9bbd22efec9419ce971162ad9d9582c2ecac182b097ad0f794eb523850b0a13",
+      "b5dfcfce9d1ef80dbaa6d03c9ff5ad624b6b306fd5d27c5cd83ba2ef549be049",
       true,
-      false
+      true
     ],
     [
       "seamless-release-stress-v2",
       "regression",
       "current-passed",
       "passed",
-      2,
+      21,
       "current-regression-run",
-      "b9bbd22efec9419ce971162ad9d9582c2ecac182b097ad0f794eb523850b0a13",
+      "b5dfcfce9d1ef80dbaa6d03c9ff5ad624b6b306fd5d27c5cd83ba2ef549be049",
       true,
-      false
+      true
     ],
     [
       "seamless-release-stress-mode-0-v2",
       "regression",
       "current-passed",
       "passed",
-      2,
+      21,
       "current-regression-run",
-      "b9bbd22efec9419ce971162ad9d9582c2ecac182b097ad0f794eb523850b0a13",
+      "b5dfcfce9d1ef80dbaa6d03c9ff5ad624b6b306fd5d27c5cd83ba2ef549be049",
       true,
-      false
+      true
     ],
     [
       "seamless-release-stress-mode-1-v2",
       "regression",
       "current-passed",
       "passed",
-      2,
+      21,
       "current-regression-run",
-      "b9bbd22efec9419ce971162ad9d9582c2ecac182b097ad0f794eb523850b0a13",
+      "b5dfcfce9d1ef80dbaa6d03c9ff5ad624b6b306fd5d27c5cd83ba2ef549be049",
       true,
-      false
+      true
     ],
     [
       "seamless-release-stress-mode-2-v2",
       "regression",
       "current-passed",
       "passed",
-      2,
+      21,
       "current-regression-run",
-      "b9bbd22efec9419ce971162ad9d9582c2ecac182b097ad0f794eb523850b0a13",
+      "b5dfcfce9d1ef80dbaa6d03c9ff5ad624b6b306fd5d27c5cd83ba2ef549be049",
       true,
-      false
+      true
     ],
     [
       "seamless-release-stress-mode-3-v2",
       "regression",
       "current-passed",
       "passed",
-      2,
+      21,
       "current-regression-run",
-      "b9bbd22efec9419ce971162ad9d9582c2ecac182b097ad0f794eb523850b0a13",
+      "b5dfcfce9d1ef80dbaa6d03c9ff5ad624b6b306fd5d27c5cd83ba2ef549be049",
       true,
-      false
+      true
     ],
     [
       "seamless-release-visuals-v2",
       "diagnostic",
-      "pending-no-current-runtime-proof",
-      null,
-      null,
-      null,
-      null,
-      null,
-      null
+      "current-skipped",
+      "skip",
+      21,
+      "not-current-proof",
+      "b5dfcfce9d1ef80dbaa6d03c9ff5ad624b6b306fd5d27c5cd83ba2ef549be049",
+      true,
+      true
     ],
     [
       "seamless-release-multi-window-v2",
       "regression",
       "current-passed",
       "passed",
-      2,
+      21,
       "current-regression-run",
-      "b9bbd22efec9419ce971162ad9d9582c2ecac182b097ad0f794eb523850b0a13",
+      "b5dfcfce9d1ef80dbaa6d03c9ff5ad624b6b306fd5d27c5cd83ba2ef549be049",
       true,
-      false
+      true
     ],
     [
       "layer-preview-panel-v2",
@@ -8838,7 +8842,7 @@
       "regression",
       "current-passed",
       "passed",
-      11,
+      9,
       "current-regression-run",
       "841ddea9872314cf0b2fefa3c534456d473277d287d3628da45faadb74861439",
       true,
@@ -8849,7 +8853,7 @@
       "regression",
       "current-passed",
       "passed",
-      11,
+      9,
       "current-regression-run",
       "ee4a8f7f3ca8ce1f1dcc46388ec6ce32e6fd53784551f5a504df73ace1c01938",
       true,
@@ -8860,7 +8864,7 @@
       "regression",
       "current-passed",
       "passed",
-      11,
+      9,
       "current-regression-run",
       "e0ca10322f39859092686ae1853f34c614f2d1a6cd4fc4109d778460a358bc9d",
       true,
@@ -8915,22 +8919,33 @@
       "diagnostic",
       "diagnostic-only",
       "passed",
-      6,
+      22,
       "current-diagnostic-run-not-regression",
-      "2ddfedb53002febc15e7456918eb4988b17716de7328ba4b2fd1d6eb6f47f6bb",
+      "00a727ede53c3027c0d9536992fbe531b49aaf2b04d31c84448f79107cabf990",
       true,
-      false
+      true
     ],
     [
       "color-picker-eyedropper-native-render-v2",
       "regression",
       "current-passed",
       "passed",
-      6,
+      22,
       "current-regression-run",
-      "2ddfedb53002febc15e7456918eb4988b17716de7328ba4b2fd1d6eb6f47f6bb",
+      "00a727ede53c3027c0d9536992fbe531b49aaf2b04d31c84448f79107cabf990",
       true,
-      false
+      true
+    ],
+    [
+      "color-picker-eyedropper-native-inspection-v2",
+      "diagnostic",
+      "diagnostic-only",
+      "passed",
+      22,
+      "current-diagnostic-run-not-regression",
+      "00a727ede53c3027c0d9536992fbe531b49aaf2b04d31c84448f79107cabf990",
+      true,
+      true
     ],
     [
       "document-save-tail-probe-profile-v2",
@@ -8959,194 +8974,194 @@
       "regression",
       "current-passed",
       "passed",
-      2,
+      21,
       "current-regression-run",
-      "b9bbd22efec9419ce971162ad9d9582c2ecac182b097ad0f794eb523850b0a13",
+      "b5dfcfce9d1ef80dbaa6d03c9ff5ad624b6b306fd5d27c5cd83ba2ef549be049",
       true,
-      false
+      true
     ],
     [
       "seamless-release-stress-2048-mode-2-v2",
       "regression",
       "current-passed",
       "passed",
-      2,
+      21,
       "current-regression-run",
-      "b9bbd22efec9419ce971162ad9d9582c2ecac182b097ad0f794eb523850b0a13",
+      "b5dfcfce9d1ef80dbaa6d03c9ff5ad624b6b306fd5d27c5cd83ba2ef549be049",
       true,
-      false
+      true
     ],
     [
       "seamless-release-stress-2048-mode-3-v2",
       "regression",
       "current-passed",
       "passed",
-      2,
+      21,
       "current-regression-run",
-      "b9bbd22efec9419ce971162ad9d9582c2ecac182b097ad0f794eb523850b0a13",
+      "b5dfcfce9d1ef80dbaa6d03c9ff5ad624b6b306fd5d27c5cd83ba2ef549be049",
       true,
-      false
+      true
     ],
     [
       "seamless-release-stress-2048-mode-4-v2",
       "regression",
       "current-passed",
       "passed",
-      2,
+      21,
       "current-regression-run",
-      "b9bbd22efec9419ce971162ad9d9582c2ecac182b097ad0f794eb523850b0a13",
+      "b5dfcfce9d1ef80dbaa6d03c9ff5ad624b6b306fd5d27c5cd83ba2ef549be049",
       true,
-      false
+      true
     ],
     [
       "small-document-save-carrier-1024-v2",
       "diagnostic",
-      "pending-no-current-runtime-proof",
-      null,
-      null,
-      null,
-      null,
-      null,
-      null
+      "diagnostic-only",
+      "passed",
+      12,
+      "current-diagnostic-run-not-regression",
+      "34aa6269addc5e11444303845fb14ae81a3280d9f81d097704fa5de7a0195ba8",
+      true,
+      true
     ],
     [
       "psd-reader-roundtrip-v2",
       "regression",
-      "current-skipped",
-      "skip",
-      11,
-      "not-current-proof",
-      null,
+      "current-passed",
+      "passed",
+      23,
+      "current-regression-run",
+      "3b625d3db30064743e7714d4ff345b444fad6c63751d95c2da4de9847ad4cad3",
       true,
       true
     ],
     [
       "document-save-cost-probe-container-1-opaque-v2",
       "diagnostic",
-      "pending-no-current-runtime-proof",
-      null,
-      null,
-      null,
-      null,
-      null,
-      null
+      "diagnostic-only",
+      "passed",
+      12,
+      "current-diagnostic-run-not-regression",
+      "48b141a8513c00c9c43a6160f59cbcd41eda21d61aafd8c2afde52c993150a94",
+      true,
+      true
     ],
     [
       "document-save-cost-probe-container-1-alpha-v2",
       "diagnostic",
-      "pending-no-current-runtime-proof",
-      null,
-      null,
-      null,
-      null,
-      null,
-      null
+      "diagnostic-only",
+      "passed",
+      12,
+      "current-diagnostic-run-not-regression",
+      "48b141a8513c00c9c43a6160f59cbcd41eda21d61aafd8c2afde52c993150a94",
+      true,
+      true
     ],
     [
       "document-save-cost-probe-container-2-opaque-v2",
       "diagnostic",
-      "pending-no-current-runtime-proof",
-      null,
-      null,
-      null,
-      null,
-      null,
-      null
+      "diagnostic-only",
+      "passed",
+      12,
+      "current-diagnostic-run-not-regression",
+      "48b141a8513c00c9c43a6160f59cbcd41eda21d61aafd8c2afde52c993150a94",
+      true,
+      true
     ],
     [
       "document-save-cost-probe-container-2-alpha-v2",
       "diagnostic",
-      "pending-no-current-runtime-proof",
-      null,
-      null,
-      null,
-      null,
-      null,
-      null
+      "diagnostic-only",
+      "passed",
+      12,
+      "current-diagnostic-run-not-regression",
+      "48b141a8513c00c9c43a6160f59cbcd41eda21d61aafd8c2afde52c993150a94",
+      true,
+      true
     ],
     [
       "document-save-cost-probe-container-3-opaque-v2",
       "diagnostic",
-      "pending-no-current-runtime-proof",
-      null,
-      null,
-      null,
-      null,
-      null,
-      null
+      "diagnostic-only",
+      "passed",
+      12,
+      "current-diagnostic-run-not-regression",
+      "48b141a8513c00c9c43a6160f59cbcd41eda21d61aafd8c2afde52c993150a94",
+      true,
+      true
     ],
     [
       "document-save-cost-probe-container-3-alpha-v2",
       "diagnostic",
-      "pending-no-current-runtime-proof",
-      null,
-      null,
-      null,
-      null,
-      null,
-      null
+      "diagnostic-only",
+      "passed",
+      12,
+      "current-diagnostic-run-not-regression",
+      "48b141a8513c00c9c43a6160f59cbcd41eda21d61aafd8c2afde52c993150a94",
+      true,
+      true
     ],
     [
       "document-save-cost-probe-container-4-opaque-v2",
       "diagnostic",
-      "pending-no-current-runtime-proof",
-      null,
-      null,
-      null,
-      null,
-      null,
-      null
+      "diagnostic-only",
+      "passed",
+      12,
+      "current-diagnostic-run-not-regression",
+      "48b141a8513c00c9c43a6160f59cbcd41eda21d61aafd8c2afde52c993150a94",
+      true,
+      true
     ],
     [
       "document-save-cost-probe-container-4-alpha-v2",
       "diagnostic",
-      "pending-no-current-runtime-proof",
-      null,
-      null,
-      null,
-      null,
-      null,
-      null
+      "diagnostic-only",
+      "passed",
+      12,
+      "current-diagnostic-run-not-regression",
+      "48b141a8513c00c9c43a6160f59cbcd41eda21d61aafd8c2afde52c993150a94",
+      true,
+      true
     ],
     [
       "document-save-cost-probe-cache-safety-v2",
       "regression",
       "current-passed",
       "passed",
-      4,
+      12,
       "current-regression-run",
-      "8660b1e69774d690de05dc62b53fc2f856268679311a2cb583472f7b409af9f6",
+      "48b141a8513c00c9c43a6160f59cbcd41eda21d61aafd8c2afde52c993150a94",
       true,
-      false
+      true
     ],
     [
       "histogram-arithmetic-audit-main-v2",
       "diagnostic",
-      "pending-no-current-runtime-proof",
-      null,
-      null,
-      null,
-      null,
-      null,
-      null
+      "diagnostic-only",
+      "passed",
+      11,
+      "current-diagnostic-run-not-regression",
+      "342d55ee163852c8a713a4d936db19ac8ddfd2c59d4b8f50c9569ae4ca9fc6cb",
+      true,
+      false
     ],
     [
       "uv-ui-capture-v2",
       "diagnostic",
       "current-skipped",
       "skip",
-      7,
+      19,
       "not-current-proof",
-      "0a2d9e52d722b8c517abbff1a394a38faccf0c4ba4538415e964cad88eee530b",
+      "fa48a7cfcba09e76443d4324625345910f3da142b67b60a2f1f5a59d2323c842",
       true,
-      false
+      true
     ],
     [
       "export-window-visual-sequence-v2",
       "diagnostic",
       "diagnostic-only",
       "passed",
-      12,
+      10,
       "current-diagnostic-run-not-regression",
       "eb7d6d7406d2f47131a3a405371522422e61d8c7fc8f35eca9f4823ef34a27bd",
       true,
@@ -9157,7 +9172,7 @@
       "diagnostic",
       "diagnostic-only",
       "passed",
-      12,
+      10,
       "current-diagnostic-run-not-regression",
       "4d553560d7bc3058627131ad959f37846fea7a6e363e38d8b2eec8d79adc13fa",
       true,
@@ -9168,7 +9183,7 @@
       "diagnostic",
       "diagnostic-only",
       "passed",
-      12,
+      10,
       "current-diagnostic-run-not-regression",
       "f9303fe0ce5888cd525e9ab257e93d837738eb5ecfa2beeddff3d28f0642e94f",
       true,
@@ -9179,7 +9194,7 @@
       "diagnostic",
       "diagnostic-only",
       "passed",
-      12,
+      10,
       "current-diagnostic-run-not-regression",
       "f9303fe0ce5888cd525e9ab257e93d837738eb5ecfa2beeddff3d28f0642e94f",
       true,
@@ -9190,7 +9205,7 @@
       "diagnostic",
       "diagnostic-only",
       "passed",
-      12,
+      10,
       "current-diagnostic-run-not-regression",
       "f9303fe0ce5888cd525e9ab257e93d837738eb5ecfa2beeddff3d28f0642e94f",
       true,
@@ -9201,7 +9216,7 @@
       "regression",
       "current-passed",
       "passed",
-      8,
+      7,
       "current-regression-run",
       "34f380937ae2a7f49ea317ac5f6e0b809e524c5b5980cdd0852daeb394956935",
       true,
@@ -9212,7 +9227,7 @@
       "regression",
       "current-passed",
       "passed",
-      11,
+      9,
       "current-regression-run",
       "ecea9a87717b00eecd0d746e4c14db0938b663569b713953fa11c5e467d94039",
       true,
@@ -9249,20 +9264,12 @@
       "sha256": "da7a95920d02b02f8d58d961ebeecd56fb9fd83872935d3d55742dca8bf74353"
     },
     {
-      "file": "Temp/WhimTex/test-runs/2026-10-04T14-41-21.176Z-47572.json",
-      "sha256": "5df96f3d36ae8fce90b72a524a24468d7af9b127a891ea1cba2f7c023c5632bf"
-    },
-    {
       "file": "Temp/WhimTex/test-runs/2026-10-04T15-15-44.149Z-130408.json",
       "sha256": "975d86e5b0de22170939a0b5542c43237582c7642baf9bd1b2cc0594830a6beb"
     },
     {
       "file": "Temp/WhimTex/test-runs/2026-10-04T15-19-37.151Z-48140.json",
       "sha256": "5ba6b9ed6fec943b85b8a89b502f8838a2aa1f243e9fd1d3f783e5098b6f4ef9"
-    },
-    {
-      "file": "Temp/WhimTex/test-runs/2026-10-04T15-35-57.541Z-21160.json",
-      "sha256": "606df100fcb62e1a5e3a3ee2aa9763a543f194a5045b6a5d5494334e7f6658ac"
     },
     {
       "file": "Temp/WhimTex/test-runs/2026-10-04T15-37-30.186Z-129092.json",
@@ -9273,16 +9280,510 @@
       "sha256": "824d25c54eff97d917797e84a5ca5cf0e67f84507c0173daa55af6dec8fc77c5"
     },
     {
-      "file": "Temp/WhimTex/test-runs/2026-10-04T15-43-27.537Z-126276.json",
-      "sha256": "7016616e0e87afc400ed7d87668a329d6ba554ecf82d845ab1634957a6f5a862"
+      "file": "Temp/WhimTex/test-runs/2026-10-04T17-03-04.282Z-119580.json",
+      "sha256": "9e345950303353814cda936ed0046cd13b752b26b4f327c9690d1fc3f1995f30"
     },
     {
-      "file": "Temp/WhimTex/test-runs/2026-10-04T15-46-16.669Z-126508.json",
-      "sha256": "9c2805fb067463806ce2d110480cd6acf05812a3f1ccb70dc2e1278f468a76ea"
+      "file": "Temp/WhimTex/test-runs/2026-10-04T17-15-05.924Z-131656.json",
+      "sha256": "007cc4a66d78b2872103d8dae85db21e017a2524c49b951ba8e045c25411f5cb"
     },
     {
-      "file": "Temp/WhimTex/test-runs/2026-10-04T16-32-42.000Z-124588.json",
-      "sha256": "eb774231d7d4aa5796c2ab7066aa3be8f1eb94d275e500fd8a6b854371154eda"
+      "file": "Temp/WhimTex/test-runs/2026-10-04T17-22-11.610Z-124400.json",
+      "sha256": "8e88473a7685b1381d646fabc13c4d7d1c755b06ec9a296ea8c3ea73233cd81a"
+    },
+    {
+      "file": "Temp/WhimTex/test-runs/2026-10-04T17-27-51.017Z-54316.json",
+      "sha256": "d1fdf7686676783c75a10624f256bedc1ca4a47e8f922dbfd12a9e0594011723"
+    },
+    {
+      "file": "Temp/WhimTex/test-runs/2026-10-04T17-32-56.564Z-57556.json",
+      "sha256": "65b9835d09220bee9e650a2128867bc1c86b84af270f6d1792ced1ed54381d2d"
+    },
+    {
+      "file": "Temp/WhimTex/test-runs/2026-10-04T17-39-53.869Z-122348.json",
+      "sha256": "9deadff92d4477b846459c5e89522f33259162eabfb03fe0616092f8c632305d"
+    },
+    {
+      "file": "Temp/WhimTex/test-runs/2026-10-04T17-40-22.492Z-82120.json",
+      "sha256": "b089978ed7784778d0a6c239a7857269f46dc6d5925f0e697dd4e8b3c6fc8b94"
+    },
+    {
+      "file": "Temp/WhimTex/test-runs/2026-10-04T18-02-02.749Z-120056.json",
+      "sha256": "1aa2b5ca988b4ec66fd74a54e4942d2fc012e095684c06f49486187ff6b97cb8"
+    },
+    {
+      "file": "Temp/WhimTex/test-runs/2026-10-04T18-21-31.630Z-44312.json",
+      "sha256": "db7bf08adf01e8eaf0563136b293138e8ee1a853c0864ccb966ffdedc7dd4876"
+    },
+    {
+      "file": "Temp/WhimTex/test-runs/2026-10-04T18-30-57.824Z-133536.json",
+      "sha256": "8d10430f80abfa6ff1ba8a32083ce0f3ff69efe660b94b9df72c3b8f2685fbfd"
+    },
+    {
+      "file": "Temp/WhimTex/test-runs/2026-10-04T18-33-53.471Z-132724.json",
+      "sha256": "3c7d418cbf8b540e6d11f035f8c197caf18d0af05b328d80f999327934d57978"
+    },
+    {
+      "file": "Temp/WhimTex/test-runs/2026-10-04T18-42-29.565Z-131380.json",
+      "sha256": "0d4034c73fa760b5850a3ad80674a1ddba7d05d3925ceb15503e1c5e21e846a3"
+    },
+    {
+      "file": "Temp/WhimTex/test-runs/2026-10-05T03-05-44.229Z-120160.json",
+      "sha256": "a9f5cedd7356a24688db0ed4035390a8287d00f90e7bc396a51258c4dd0f0bce"
+    }
+  ],
+  "workflowPhaseCoverage": [
+    {
+      "id": "whimtex-gradient-reload-begin-v2",
+      "standaloneRuntimeStatus": "pending-no-current-runtime-proof",
+      "status": "current-workflow-phase-verified",
+      "verified": true,
+      "phase": "Begin",
+      "workflowId": "whimtex-gradient-reload-v2",
+      "standalonePassCredited": false,
+      "standaloneCatalogLimitation": "Paired helpers are not independent tests: generic Begin cleanup destroys the fixture; no intervening native Trigger is orchestrated. Standalone status above is unchanged.",
+      "sourceReviewCurrent": true,
+      "workflowStatus": "passed",
+      "report": "Temp/WhimTex/test-runs/2026-10-04T15-37-30.186Z-129092.json",
+      "reportRawSha256": "7cee52d0a69afef19950cc1166c263cc34e61a24e838df807268f139b0a60deb",
+      "evidence": {
+        "verified": true,
+        "issues": [],
+        "input": {
+          "runId": "0c97f65d-8600-495b-bf0b-bf3ece28d373",
+          "file": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\gradient-reload-0c97f65d-8600-495b-bf0b-bf3ece28d373\\input.cs",
+          "sources": [
+            "Tests~/Cases/UnityD/WhimTexGradientReloadDiagnostic.cs",
+            "Tests~/Framework/TestApi.cs"
+          ],
+          "sha256": "e0ca10322f39859092686ae1853f34c614f2d1a6cd4fc4109d778460a358bc9d"
+        },
+        "phases": [
+          {
+            "phase": "Begin",
+            "entry": "WhimTexGradientReloadDiagnostic.Begin",
+            "args": [
+              "0c97f65d-8600-495b-bf0b-bf3ece28d373"
+            ],
+            "status": "skipped",
+            "checks": 0,
+            "failures": [],
+            "rawReplySha256": "c05f6cf5286c68c6edbfc55c9ec07dc0a3195084d27ac451bd23c14efd7358e1"
+          },
+          {
+            "phase": "Trigger",
+            "entry": "WhimTexGradientReloadDiagnostic.Trigger",
+            "args": [
+              "0c97f65d-8600-495b-bf0b-bf3ece28d373"
+            ],
+            "status": "running",
+            "checks": 0,
+            "failures": [],
+            "rawReplySha256": "9912e66e43f1acee5b0095b33188731df660987f1373ce4665afdd70a67a4567"
+          },
+          {
+            "phase": "ReloadPoll",
+            "entry": "WhimTexGradientReloadDiagnostic.ReloadPoll",
+            "args": [
+              "0c97f65d-8600-495b-bf0b-bf3ece28d373"
+            ],
+            "status": "running",
+            "checks": 0,
+            "failures": [],
+            "rawReplySha256": "ad4e0cb67775086e92806395dcad8e7edaa3da96827cec210cc21aed68cc7421"
+          },
+          {
+            "phase": "ReloadPoll",
+            "entry": "WhimTexGradientReloadDiagnostic.ReloadPoll",
+            "args": [
+              "0c97f65d-8600-495b-bf0b-bf3ece28d373"
+            ],
+            "status": "passed",
+            "checks": 3,
+            "failures": [],
+            "rawReplySha256": "fd8bd862fdf553cb118f6cd6f6a6ab84fed3e1ca3b258448445157125221bb0e"
+          },
+          {
+            "phase": "End",
+            "entry": "WhimTexGradientReloadDiagnostic.End",
+            "args": [
+              "0c97f65d-8600-495b-bf0b-bf3ece28d373"
+            ],
+            "status": "passed",
+            "checks": 5,
+            "failures": [],
+            "rawReplySha256": "b214b5626ea206b6ead90ed020c6760e81bb34cca7fe8eb7e4b7cb1c9da24d93"
+          },
+          {
+            "phase": "Cleanup",
+            "entry": "WhimTexGradientReloadDiagnostic.Cleanup",
+            "args": [
+              "0c97f65d-8600-495b-bf0b-bf3ece28d373"
+            ],
+            "status": "passed",
+            "checks": 1,
+            "failures": [],
+            "rawReplySha256": "7b81919039cb87feb8370c0721ddcfe719e1a59fdf99a1f777466a788830b5e8"
+          }
+        ],
+        "sourceReview": {
+          "current": true,
+          "issues": [],
+          "auditFile": "unity-cd.json",
+          "hashes": {
+            "Tests~/Cases/UnityD/GradientReload.mjs": "b9bd9650c4b9cd9869dfe1f537f6fd14da842d23b89eaba783e8d68c4a6c4995",
+            "Tests~/Cases/UnityD/WhimTexGradientReloadDiagnostic.cs": "28f29f4474cf1e82c828329a0795abf381b1e211135f195166edd756899e16ca",
+            "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
+            "Tests~/Framework/test-api.mjs": "a7db26b76a8e3b60c2b0c85034145b37526d7f7916f9e62f2d6976e756b3780a",
+            "Tests~/scripts/run-tests.mjs": "ce026dddb9e65820de28bf9c9c95d85ee7d0dc8c0923619f46207adc5bccc493",
+            "Tests~/Cases/UnityD/GradientReloadProtocol.test.mjs": "aa817223dba568048cbf6bb99a0b4524404ecb0e5b3208dc220ad56712e03ddd",
+            "src/UnityObjectID.cs": "8dcfcddecb81b85e162b9ac884019140d00980a53f8c45ee7ace6685b3fcab44"
+          }
+        },
+        "proof": "Raw current same-GUID native Begin -> one Trigger -> marker/old-domain release -> End -> final Cleanup; helper phases, not independent tests."
+      },
+      "earlierGreenOverridden": false,
+      "workflowHistory": [
+        {
+          "report": "Temp/WhimTex/test-runs/2026-10-04T15-37-30.186Z-129092.json",
+          "startedAt": "2026-10-04T15:37:30.187Z",
+          "timestamp": 1791128250187,
+          "action": "run",
+          "status": "passed",
+          "proof": "current-regression-run",
+          "sourceCurrent": true,
+          "chronologyKnown": true,
+          "receiptMatches": true,
+          "productionMatches": true,
+          "inputSha256": "e0ca10322f39859092686ae1853f34c614f2d1a6cd4fc4109d778460a358bc9d",
+          "issues": []
+        },
+        {
+          "report": "Temp/WhimTex/test-runs/2026-10-04T15-20-42.428Z-130268.json",
+          "startedAt": "2026-10-04T15:20:42.429Z",
+          "timestamp": 1791127242429,
+          "action": "run",
+          "status": "incomplete-phase-proof",
+          "proof": "not-current-proof",
+          "sourceCurrent": false,
+          "chronologyKnown": true,
+          "receiptMatches": false,
+          "productionMatches": true,
+          "inputSha256": "e0ca10322f39859092686ae1853f34c614f2d1a6cd4fc4109d778460a358bc9d",
+          "issues": [
+            "Node receipt is historical: fingerprint differs from reviewFingerprint(current selected scenarios)."
+          ]
+        },
+        {
+          "report": "Temp/WhimTex/test-runs/2026-10-04T14-32-11.350Z-123640.json",
+          "startedAt": "2026-10-04T14:32:11.351Z",
+          "timestamp": 1791124331351,
+          "action": "run",
+          "status": "incomplete-phase-proof",
+          "proof": "not-current-proof",
+          "sourceCurrent": false,
+          "chronologyKnown": true,
+          "receiptMatches": false,
+          "productionMatches": true,
+          "inputSha256": "e0ca10322f39859092686ae1853f34c614f2d1a6cd4fc4109d778460a358bc9d",
+          "issues": [
+            "Node receipt is historical: fingerprint differs from reviewFingerprint(current selected scenarios)."
+          ]
+        },
+        {
+          "report": "Temp/WhimTex/test-runs/2026-10-04T14-00-23.712Z-122936.json",
+          "startedAt": "2026-10-04T14:00:23.713Z",
+          "timestamp": 1791122423713,
+          "action": "run",
+          "status": "assertion-failed",
+          "proof": "not-current-proof",
+          "sourceCurrent": false,
+          "chronologyKnown": true,
+          "receiptMatches": false,
+          "productionMatches": true,
+          "inputSha256": "e0ca10322f39859092686ae1853f34c614f2d1a6cd4fc4109d778460a358bc9d",
+          "issues": [
+            "Node receipt is historical: fingerprint differs from reviewFingerprint(current selected scenarios).",
+            "Execution/cleanup remains uncertain."
+          ]
+        },
+        {
+          "report": "Temp/WhimTex/test-runs/2026-10-04T10-44-48.115Z-17376.json",
+          "startedAt": "2026-10-04T10:44:48.115Z",
+          "timestamp": 1791110688115,
+          "action": "run",
+          "status": "incomplete-phase-proof",
+          "proof": "not-current-proof",
+          "sourceCurrent": false,
+          "chronologyKnown": true,
+          "receiptMatches": false,
+          "productionMatches": true,
+          "inputSha256": "e0ca10322f39859092686ae1853f34c614f2d1a6cd4fc4109d778460a358bc9d",
+          "issues": [
+            "Node receipt is historical: fingerprint differs from reviewFingerprint(current selected scenarios)."
+          ]
+        },
+        {
+          "report": "Temp/WhimTex/test-runs/2026-10-04T10-38-53.964Z-31596.json",
+          "startedAt": "2026-10-04T10:38:53.965Z",
+          "timestamp": 1791110333965,
+          "action": "run",
+          "status": "assertion-failed",
+          "proof": "not-current-proof",
+          "sourceCurrent": false,
+          "chronologyKnown": true,
+          "receiptMatches": false,
+          "productionMatches": true,
+          "inputSha256": "e0ca10322f39859092686ae1853f34c614f2d1a6cd4fc4109d778460a358bc9d",
+          "issues": [
+            "Node receipt is historical: fingerprint differs from reviewFingerprint(current selected scenarios).",
+            "Execution/cleanup remains uncertain."
+          ]
+        },
+        {
+          "report": "Temp/WhimTex/test-runs/2026-10-04T10-24-29.930Z-49644.json",
+          "startedAt": "2026-10-04T10:24:29.930Z",
+          "timestamp": 1791109469930,
+          "action": "run",
+          "status": "assertion-failed",
+          "proof": "not-current-proof",
+          "sourceCurrent": false,
+          "chronologyKnown": true,
+          "receiptMatches": false,
+          "productionMatches": true,
+          "inputSha256": "08d8968834c85056f86708d3fbd5ed05e716402c6cd6e702ffb4bad442257eee",
+          "issues": [
+            "Node receipt is historical: fingerprint differs from reviewFingerprint(current selected scenarios)."
+          ]
+        }
+      ],
+      "equivalence": "Successful reviewed lifecycle only; unexecuted negative branches/manual visual oracles are not certified."
+    },
+    {
+      "id": "whimtex-gradient-reload-end-v2",
+      "standaloneRuntimeStatus": "pending-no-current-runtime-proof",
+      "status": "current-workflow-phase-verified",
+      "verified": true,
+      "phase": "End",
+      "workflowId": "whimtex-gradient-reload-v2",
+      "standalonePassCredited": false,
+      "standaloneCatalogLimitation": "Paired helpers are not independent tests: generic Begin cleanup destroys the fixture; no intervening native Trigger is orchestrated. Standalone status above is unchanged.",
+      "sourceReviewCurrent": true,
+      "workflowStatus": "passed",
+      "report": "Temp/WhimTex/test-runs/2026-10-04T15-37-30.186Z-129092.json",
+      "reportRawSha256": "7cee52d0a69afef19950cc1166c263cc34e61a24e838df807268f139b0a60deb",
+      "evidence": {
+        "verified": true,
+        "issues": [],
+        "input": {
+          "runId": "0c97f65d-8600-495b-bf0b-bf3ece28d373",
+          "file": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\gradient-reload-0c97f65d-8600-495b-bf0b-bf3ece28d373\\input.cs",
+          "sources": [
+            "Tests~/Cases/UnityD/WhimTexGradientReloadDiagnostic.cs",
+            "Tests~/Framework/TestApi.cs"
+          ],
+          "sha256": "e0ca10322f39859092686ae1853f34c614f2d1a6cd4fc4109d778460a358bc9d"
+        },
+        "phases": [
+          {
+            "phase": "Begin",
+            "entry": "WhimTexGradientReloadDiagnostic.Begin",
+            "args": [
+              "0c97f65d-8600-495b-bf0b-bf3ece28d373"
+            ],
+            "status": "skipped",
+            "checks": 0,
+            "failures": [],
+            "rawReplySha256": "c05f6cf5286c68c6edbfc55c9ec07dc0a3195084d27ac451bd23c14efd7358e1"
+          },
+          {
+            "phase": "Trigger",
+            "entry": "WhimTexGradientReloadDiagnostic.Trigger",
+            "args": [
+              "0c97f65d-8600-495b-bf0b-bf3ece28d373"
+            ],
+            "status": "running",
+            "checks": 0,
+            "failures": [],
+            "rawReplySha256": "9912e66e43f1acee5b0095b33188731df660987f1373ce4665afdd70a67a4567"
+          },
+          {
+            "phase": "ReloadPoll",
+            "entry": "WhimTexGradientReloadDiagnostic.ReloadPoll",
+            "args": [
+              "0c97f65d-8600-495b-bf0b-bf3ece28d373"
+            ],
+            "status": "running",
+            "checks": 0,
+            "failures": [],
+            "rawReplySha256": "ad4e0cb67775086e92806395dcad8e7edaa3da96827cec210cc21aed68cc7421"
+          },
+          {
+            "phase": "ReloadPoll",
+            "entry": "WhimTexGradientReloadDiagnostic.ReloadPoll",
+            "args": [
+              "0c97f65d-8600-495b-bf0b-bf3ece28d373"
+            ],
+            "status": "passed",
+            "checks": 3,
+            "failures": [],
+            "rawReplySha256": "fd8bd862fdf553cb118f6cd6f6a6ab84fed3e1ca3b258448445157125221bb0e"
+          },
+          {
+            "phase": "End",
+            "entry": "WhimTexGradientReloadDiagnostic.End",
+            "args": [
+              "0c97f65d-8600-495b-bf0b-bf3ece28d373"
+            ],
+            "status": "passed",
+            "checks": 5,
+            "failures": [],
+            "rawReplySha256": "b214b5626ea206b6ead90ed020c6760e81bb34cca7fe8eb7e4b7cb1c9da24d93"
+          },
+          {
+            "phase": "Cleanup",
+            "entry": "WhimTexGradientReloadDiagnostic.Cleanup",
+            "args": [
+              "0c97f65d-8600-495b-bf0b-bf3ece28d373"
+            ],
+            "status": "passed",
+            "checks": 1,
+            "failures": [],
+            "rawReplySha256": "7b81919039cb87feb8370c0721ddcfe719e1a59fdf99a1f777466a788830b5e8"
+          }
+        ],
+        "sourceReview": {
+          "current": true,
+          "issues": [],
+          "auditFile": "unity-cd.json",
+          "hashes": {
+            "Tests~/Cases/UnityD/GradientReload.mjs": "b9bd9650c4b9cd9869dfe1f537f6fd14da842d23b89eaba783e8d68c4a6c4995",
+            "Tests~/Cases/UnityD/WhimTexGradientReloadDiagnostic.cs": "28f29f4474cf1e82c828329a0795abf381b1e211135f195166edd756899e16ca",
+            "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
+            "Tests~/Framework/test-api.mjs": "a7db26b76a8e3b60c2b0c85034145b37526d7f7916f9e62f2d6976e756b3780a",
+            "Tests~/scripts/run-tests.mjs": "ce026dddb9e65820de28bf9c9c95d85ee7d0dc8c0923619f46207adc5bccc493",
+            "Tests~/Cases/UnityD/GradientReloadProtocol.test.mjs": "aa817223dba568048cbf6bb99a0b4524404ecb0e5b3208dc220ad56712e03ddd",
+            "src/UnityObjectID.cs": "8dcfcddecb81b85e162b9ac884019140d00980a53f8c45ee7ace6685b3fcab44"
+          }
+        },
+        "proof": "Raw current same-GUID native Begin -> one Trigger -> marker/old-domain release -> End -> final Cleanup; helper phases, not independent tests."
+      },
+      "earlierGreenOverridden": false,
+      "workflowHistory": [
+        {
+          "report": "Temp/WhimTex/test-runs/2026-10-04T15-37-30.186Z-129092.json",
+          "startedAt": "2026-10-04T15:37:30.187Z",
+          "timestamp": 1791128250187,
+          "action": "run",
+          "status": "passed",
+          "proof": "current-regression-run",
+          "sourceCurrent": true,
+          "chronologyKnown": true,
+          "receiptMatches": true,
+          "productionMatches": true,
+          "inputSha256": "e0ca10322f39859092686ae1853f34c614f2d1a6cd4fc4109d778460a358bc9d",
+          "issues": []
+        },
+        {
+          "report": "Temp/WhimTex/test-runs/2026-10-04T15-20-42.428Z-130268.json",
+          "startedAt": "2026-10-04T15:20:42.429Z",
+          "timestamp": 1791127242429,
+          "action": "run",
+          "status": "incomplete-phase-proof",
+          "proof": "not-current-proof",
+          "sourceCurrent": false,
+          "chronologyKnown": true,
+          "receiptMatches": false,
+          "productionMatches": true,
+          "inputSha256": "e0ca10322f39859092686ae1853f34c614f2d1a6cd4fc4109d778460a358bc9d",
+          "issues": [
+            "Node receipt is historical: fingerprint differs from reviewFingerprint(current selected scenarios)."
+          ]
+        },
+        {
+          "report": "Temp/WhimTex/test-runs/2026-10-04T14-32-11.350Z-123640.json",
+          "startedAt": "2026-10-04T14:32:11.351Z",
+          "timestamp": 1791124331351,
+          "action": "run",
+          "status": "incomplete-phase-proof",
+          "proof": "not-current-proof",
+          "sourceCurrent": false,
+          "chronologyKnown": true,
+          "receiptMatches": false,
+          "productionMatches": true,
+          "inputSha256": "e0ca10322f39859092686ae1853f34c614f2d1a6cd4fc4109d778460a358bc9d",
+          "issues": [
+            "Node receipt is historical: fingerprint differs from reviewFingerprint(current selected scenarios)."
+          ]
+        },
+        {
+          "report": "Temp/WhimTex/test-runs/2026-10-04T14-00-23.712Z-122936.json",
+          "startedAt": "2026-10-04T14:00:23.713Z",
+          "timestamp": 1791122423713,
+          "action": "run",
+          "status": "assertion-failed",
+          "proof": "not-current-proof",
+          "sourceCurrent": false,
+          "chronologyKnown": true,
+          "receiptMatches": false,
+          "productionMatches": true,
+          "inputSha256": "e0ca10322f39859092686ae1853f34c614f2d1a6cd4fc4109d778460a358bc9d",
+          "issues": [
+            "Node receipt is historical: fingerprint differs from reviewFingerprint(current selected scenarios).",
+            "Execution/cleanup remains uncertain."
+          ]
+        },
+        {
+          "report": "Temp/WhimTex/test-runs/2026-10-04T10-44-48.115Z-17376.json",
+          "startedAt": "2026-10-04T10:44:48.115Z",
+          "timestamp": 1791110688115,
+          "action": "run",
+          "status": "incomplete-phase-proof",
+          "proof": "not-current-proof",
+          "sourceCurrent": false,
+          "chronologyKnown": true,
+          "receiptMatches": false,
+          "productionMatches": true,
+          "inputSha256": "e0ca10322f39859092686ae1853f34c614f2d1a6cd4fc4109d778460a358bc9d",
+          "issues": [
+            "Node receipt is historical: fingerprint differs from reviewFingerprint(current selected scenarios)."
+          ]
+        },
+        {
+          "report": "Temp/WhimTex/test-runs/2026-10-04T10-38-53.964Z-31596.json",
+          "startedAt": "2026-10-04T10:38:53.965Z",
+          "timestamp": 1791110333965,
+          "action": "run",
+          "status": "assertion-failed",
+          "proof": "not-current-proof",
+          "sourceCurrent": false,
+          "chronologyKnown": true,
+          "receiptMatches": false,
+          "productionMatches": true,
+          "inputSha256": "e0ca10322f39859092686ae1853f34c614f2d1a6cd4fc4109d778460a358bc9d",
+          "issues": [
+            "Node receipt is historical: fingerprint differs from reviewFingerprint(current selected scenarios).",
+            "Execution/cleanup remains uncertain."
+          ]
+        },
+        {
+          "report": "Temp/WhimTex/test-runs/2026-10-04T10-24-29.930Z-49644.json",
+          "startedAt": "2026-10-04T10:24:29.930Z",
+          "timestamp": 1791109469930,
+          "action": "run",
+          "status": "assertion-failed",
+          "proof": "not-current-proof",
+          "sourceCurrent": false,
+          "chronologyKnown": true,
+          "receiptMatches": false,
+          "productionMatches": true,
+          "inputSha256": "08d8968834c85056f86708d3fbd5ed05e716402c6cd6e702ffb4bad442257eee",
+          "issues": [
+            "Node receipt is historical: fingerprint differs from reviewFingerprint(current selected scenarios)."
+          ]
+        }
+      ],
+      "equivalence": "Successful reviewed lifecycle only; unexecuted negative branches/manual visual oracles are not certified."
     }
   ],
   "issues": [
@@ -9296,47 +9797,7 @@
         {
           "auditFile": "unity-a.json",
           "newFile": "Tests~/Cases/UnityA/ColorPickerEyedropperTests.cs",
-          "text": "Manual NativeSetup/NativeInspect original-versus-replacement screenshot/state equivalence is not verified. The observed native session ended between Polls; its closure cause is unestablished. Native-preview diagnostic completion and supplemental lifecycle guards are not an original behavior green result."
-        }
-      ],
-      "nonPassed": []
-    },
-    {
-      "legacyFile": "DocumentReleaseValidation.cs",
-      "sourceGaps": [],
-      "externalGaps": [],
-      "stale": [],
-      "missing": [],
-      "runtimePending": [
-        {
-          "auditFile": "player.json",
-          "newFile": "Tests~/Cases/UnityB/PlayerReleaseTests.cs",
-          "text": "METADATA: parent owns final runtimeInventory/catalog/profile/batch binding. nativeRuntimeEvidence records the exact successful report fingerprint; no equality with later global metadata is inferred. No known Player source entry omission is identified."
-        },
-        {
-          "auditFile": "fault.json",
-          "newFile": "Tests~/Cases/UnityB/FaultFixture.cs",
-          "text": "RUNTIME SUBSET: native installation/removal, MonoScript.GetClass identity, Faults/Deferred bodies and exact post-reload class absence passed in nativeRuntimeEvidence. This does not cover Player entries or constitute a paired frozen-Legacy run."
-        },
-        {
-          "auditFile": "fault.json",
-          "newFile": "Tests~/Cases/UnityB/FaultFixture.cs",
-          "text": "METADATA: parent owns final catalog/profile/batch supersession and fresh review fingerprints. The saved report fingerprint is historical evidence, not a claim that later global metadata has the same fingerprint."
-        }
-      ],
-      "nonPassed": []
-    },
-    {
-      "legacyFile": "Fixtures/WhimTexImportFailureProbe.cs",
-      "sourceGaps": [],
-      "externalGaps": [],
-      "stale": [],
-      "missing": [],
-      "runtimePending": [
-        {
-          "auditFile": "fault.json",
-          "newFile": "Tests~/Cases/UnityB/FaultFixture.cs",
-          "text": "Native postprocessor activation/removal passed for the exact recorded GUID; no cross-project/platform or concurrent-user-operation claim. Final selection metadata remains parent-owned. Generated source is never bundled as an ephemeral Pipeline class."
+          "text": "RUNTIME: Manual visual/native sampling-duration equality has no original automated oracle. Actual new15s fixture/live getter/PNG/cleanup verified in parent final review, but native sampling ended before capture and its closure cause remains unknown. Diagnostic completion does not establish historical visual equivalence."
         }
       ],
       "nonPassed": []
@@ -9366,7 +9827,7 @@
         {
           "auditFile": "unity-cd.json",
           "newFile": "Tests~/Cases/UnityC/MirrorEnhancementsTests.cs",
-          "text": "RUNTIME: Manual visual review pending. Registered input copy-blend-source reached final bound native diagnostic completion with4 expected retained600x600 PNG artifacts. Raw base64 bytes/hashes/signature/IHDR dimensions verified in memory; original four compensation/correction combinations restored, no direct original visual assertion. Artifact delivery is verified, visual/algorithm equivalence is not. Existing PNG is input only; no prior frozen digest proves historical byte continuity."
+          "text": "RUNTIME: Manual visual/equivalence review remains outside supplied-source assertion proof. Actual current producer artifacts and format/hash sanity are retained in the bound runtime review; no historical original per-file digest continuity or automatic algorithm-golden claim."
         }
       ],
       "nonPassed": []
@@ -9374,91 +9835,61 @@
     {
       "legacyFile": "PatchQuiltingContrastSmoke.cs",
       "sourceGaps": [],
-      "externalGaps": [
+      "externalGaps": [],
+      "stale": [],
+      "missing": [],
+      "runtimePending": [
         {
           "auditFile": "unity-cd.json",
           "newFile": "Tests~/Cases/UnityC/PatchQuiltingContrastTests.cs",
-          "text": "External prerequisite: Capture: original live_4.bin unavailable; restored green-channel .2/.45 width, 0/.5/1 compensation image sheet and 3 warmups/15 samples await original input. No direct standalone image verdict; Render helper state guard still fails on errors."
+          "text": "RUNTIME: Manual visual/equivalence review remains outside supplied-source assertion proof. Actual current producer artifacts and format/hash sanity are retained in the bound runtime review; no historical original per-file digest continuity or automatic algorithm-golden claim."
         }
       ],
-      "stale": [],
-      "missing": [],
-      "runtimePending": [],
-      "nonPassed": []
-    },
-    {
-      "legacyFile": "PatchQuiltingEquivalence.cs",
-      "sourceGaps": [],
-      "externalGaps": [
-        {
-          "auditFile": "unity-cd.json",
-          "newFile": "Tests~/Cases/UnityC/QuiltingEquivalenceTests.cs",
-          "text": "External prerequisite: Benchmark and CurrentTiming: original live_4.bin unavailable; bodies are ported but await explicit reviewed path/SHA-256/provenance. Main/Managed synthetic frozen-search comparisons do not prove this real-input branch."
-        }
-      ],
-      "stale": [],
-      "missing": [],
-      "runtimePending": [],
       "nonPassed": []
     },
     {
       "legacyFile": "PatchQuiltingFeatherSmoke.cs",
       "sourceGaps": [],
-      "externalGaps": [
+      "externalGaps": [],
+      "stale": [],
+      "missing": [],
+      "runtimePending": [
         {
           "auditFile": "unity-cd.json",
           "newFile": "Tests~/Cases/UnityC/PatchQuiltingFeatherTests.cs",
-          "text": "External prerequisite: Capture: original live_4.bin unavailable; restored green-channel .02/.45 width, 0/50/100 feather image sheet awaits original input/manual review; no direct original visual assertion."
+          "text": "RUNTIME: Manual visual/equivalence review remains outside supplied-source assertion proof. Actual current producer artifacts and format/hash sanity are retained in the bound runtime review; no historical original per-file digest continuity or automatic algorithm-golden claim."
         }
       ],
-      "stale": [],
-      "missing": [],
-      "runtimePending": [],
-      "nonPassed": []
-    },
-    {
-      "legacyFile": "PsdWriter/read-fixture.cjs",
-      "sourceGaps": [],
-      "externalGaps": [
-        {
-          "auditFile": "node.json",
-          "newFile": "Tests~/Cases/Export/PsdReader.mjs",
-          "text": "Missing installed independent PSD decoder: no ag-psd module path was found, including C:/Users/dcfam/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules. Parent must supply an existing decoder through WHIMTEX_PSD_READER for psd-reader-roundtrip-v2; otherwise the registered workflow reports SKIP, not PASS. No dependency installation/fetch was attempted by this audit agent. Parent actually invoked psd-reader-roundtrip-v2 in Temp/WhimTex/test-runs/2026-10-04T15-37-30.186Z-129092.json (raw SHA-256 7cee52d0a69afef19950cc1166c263cc34e61a24e838df807268f139b0a60deb): action=run, result=skip, testResult.status=skipped, checks=0, failures=[], uncertain=false. The receipt explicitly reports that no decoder coverage was executed. Earlier writer/fixture passes do not establish the independent decoder assertions or old/new roundtrip equivalence."
-        }
-      ],
-      "stale": [],
-      "missing": [],
-      "runtimePending": [],
       "nonPassed": []
     },
     {
       "legacyFile": "QuiltingAlongSearchSmoke.cs",
       "sourceGaps": [],
-      "externalGaps": [
+      "externalGaps": [],
+      "stale": [],
+      "missing": [],
+      "runtimePending": [
         {
           "auditFile": "unity-cd.json",
           "newFile": "Tests~/Cases/UnityC/QuiltingAlongSearchTests.cs",
-          "text": "External prerequisite: Capture: original live_4.bin unavailable; restored green-channel 0/.125/.25 range image/timing output and seven samples await original input/manual review; Render helper guard retained."
+          "text": "RUNTIME: Manual visual/equivalence review remains outside supplied-source assertion proof. Actual current producer artifacts and format/hash sanity are retained in the bound runtime review; no historical original per-file digest continuity or automatic algorithm-golden claim."
         }
       ],
-      "stale": [],
-      "missing": [],
-      "runtimePending": [],
       "nonPassed": []
     },
     {
       "legacyFile": "ScreenedSeamlessSmoke.cs",
       "sourceGaps": [],
-      "externalGaps": [
+      "externalGaps": [],
+      "stale": [],
+      "missing": [],
+      "runtimePending": [
         {
           "auditFile": "unity-cd.json",
           "newFile": "Tests~/Cases/UnityC/ScreenedSeamlessTests.cs",
-          "text": "External prerequisite: Preview: original screened-poisson-lab-2026-09-28/00_original.png unavailable; source-decode float output, current-render float output and display PNG restored; no original visual assertion."
+          "text": "RUNTIME: Manual visual/equivalence review remains outside supplied-source assertion proof. Actual current producer artifacts and format/hash sanity are retained in the bound runtime review; no historical original per-file digest continuity or automatic algorithm-golden claim."
         }
       ],
-      "stale": [],
-      "missing": [],
-      "runtimePending": [],
       "nonPassed": []
     },
     {
@@ -9471,24 +9902,24 @@
         {
           "auditFile": "unity-cd.json",
           "newFile": "Tests~/Cases/UnityC/SeamlessControlsTests.cs",
-          "text": "RUNTIME: Manual visual review pending. Registered input copy-blend-source reached final bound native diagnostic completion with16 expected artifacts:8600x600 PNGs and8 RGBA float binaries with exact600x600 headers/5760008-byte layout. Raw base64 bytes/hashes and artifact sanity verified in memory; two algorithms/four edge masks restored, no direct original visual assertion. Artifact delivery is verified, visual/algorithm equivalence is not. Existing PNG is input only; no prior frozen digest proves historical byte continuity."
+          "text": "RUNTIME: Manual visual/equivalence review remains outside supplied-source assertion proof. Actual current producer artifacts and format/hash sanity are retained in the bound runtime review; no historical original per-file digest continuity or automatic algorithm-golden claim."
         }
       ],
       "nonPassed": []
     },
     {
-      "legacyFile": "SeamlessOptimizationSmoke.cs",
+      "legacyFile": "SeamlessReleaseSmoke.cs",
       "sourceGaps": [],
-      "externalGaps": [
-        {
-          "auditFile": "unity-cd.json",
-          "newFile": "Tests~/Cases/UnityC/SeamlessOptimizationTests.cs",
-          "text": "External prerequisite: Compare/Audit: 252 pre-change float snapshots unavailable. Ported read-only authenticated comparisons retain original caller-state/finiteness, Compare 2e-5 tolerance, Audit delta-only branch. Native Capture intentionally skips; CaptureHistorical ports the 252-case producer and caller-state guard but requires a separately reviewed pre-change renderer and is not a native scenario. Its outputs are diagnostic artifacts requiring explicit path/hash/provenance review. No current-algorithm golden data or historical runtime-equivalence claim."
-        }
-      ],
+      "externalGaps": [],
       "stale": [],
       "missing": [],
-      "runtimePending": [],
+      "runtimePending": [
+        {
+          "auditFile": "unity-cd.json",
+          "newFile": "Tests~/Cases/UnityC/SeamlessReleaseTests.cs",
+          "text": "RUNTIME: Manual visual/equivalence review remains outside supplied-source assertion proof. Actual current producer artifacts and format/hash sanity are retained in the bound runtime review; no historical original per-file digest continuity or automatic algorithm-golden claim."
+        }
+      ],
       "nonPassed": []
     }
   ],
@@ -9542,20 +9973,124 @@
   "limitations": [
     "All original source responsibilities were reviewed independently; audit receipts bind those claims, not an automatic semantic proof.",
     "Only three explicitly reviewed pilot pairs use same-report Legacy/new runtime comparison.",
-    "Diagnostic/manual producers, performance observations and missing historical inputs are not certified by regression PASS counts.",
+    "Diagnostic/manual producers and performance observations are not certified by regression PASS counts; current input hashes do not establish historical byte continuity without creation-time digests.",
     "This is a snapshot; rerun the read-only gate after any source, invocation, dependency or evidence change."
   ],
   "projectPath": "D:/DCFA/Projects/Test6.6",
   "branch": "dev",
   "changesLocalOnly": true,
+  "specificLimitations": {
+    "contextTools": "Final source3/3PASS713checks retains original predicates/tail and12fault checks; added bounded panel-readiness sampling is not strict100ms temporal equivalence. Historical52px failure retained; that particular cause is unproved.",
+    "pairedGradientHelpers": {
+      "pendingStandaloneIds": [
+        "whimtex-gradient-reload-begin-v2",
+        "whimtex-gradient-reload-end-v2"
+      ],
+      "workflow": "whimtex-gradient-reload-v2",
+      "proof": "Tests~/CoverageAudit/gradient-reload-helper-phases.json",
+      "proofSha256": "12717d705bbd840e32baa9e0c8a57e53cee3c222ae24af1a4574c5cae5d39ba6",
+      "statement": "Current strict phase gate validates the raw same-GUID Begin/one Trigger/real reload marker+old-domain cleared/End/final Cleanup receipt. Standalone statuses unchanged. Supplemental sidecar alone is never proof.",
+      "currentPhaseStatus": "2 raw-native-workflow-phase-verified; 0 pending paired workflow phases"
+    },
+    "diagnosticArtifacts": {
+      "review": "Tests~/CoverageAudit/diagnostic-artifacts-review.json",
+      "sha256": "73af46dcb4f8ebf19db2f2175c834a116180f48dc488a1d4f2d56cf5f2936e0a",
+      "manualEquivalenceCertified": false
+    },
+    "psdReader": {
+      "review": "Tests~/CoverageAudit/psd-reader-final-runtime-review.json",
+      "sha256": "d9549c2bb534e91dd57c225beb0f1166a19a8a724eb7b98521f923677431d06d",
+      "status": "current-passed",
+      "report": "Temp/WhimTex/test-runs/2026-10-05T03-05-44.229Z-120160.json",
+      "reportSha256": "a9f5cedd7356a24688db0ed4035390a8287d00f90e7bc396a51258c4dd0f0bce",
+      "decoder": "ag-psd 31.0.2",
+      "installationPerformed": true,
+      "isolatedTempOnly": true,
+      "producerChecks": 70,
+      "decoderChecks": 72,
+      "wholeLegacyAutomaticEquivalenceClaimed": false
+    },
+    "historicalInputs": "Existing255oracle records match current path/hash manifest; no creation-time per-file digest proves historical cryptographic continuity.",
+    "player": "Current Windows workflow PASS; macOS/Linux runtime branches not executed.",
+    "remainingGateNotes": "Manual visual/historical digest and platform caveats remain distinct from original automated assertion coverage. Current402PASS is not whole-Legacy automatic equivalence.",
+    "existingGrammarRuntime": {
+      "path": "D:/Programs/Microsoft VS Code/07f806f999/resources/app",
+      "version": "1.140.0",
+      "asarSha256": "10119536c367a199dbf179b20588bdd1ca18d186b4fe6c616afc7d8c0dca0fd2",
+      "onigWasmSha256": "fd885c2d12e5951e59d761ebd4a006e06254b1491fd6f530c92b69fb4d8d77d9",
+      "hlslGrammarSha256": "7c65824a6634dde57e88e42fd5f5ad642d8e0e4390460b4ea895c3c063abf62c",
+      "installationPerformed": false
+    },
+    "pilotComparison": {
+      "file": "Temp/WhimTex/test-runs/2026-10-04T18-02-02.749Z-120056.json",
+      "sha256": "1aa2b5ca988b4ec66fd74a54e4942d2fc012e095684c06f49486187ff6b97cb8",
+      "count": 6,
+      "status": "6/6 PASS",
+      "pairs": [
+        "display-channels",
+        "canonical-reader",
+        "frozen-files"
+      ],
+      "comparison": "equivalent-tested",
+      "selectedFingerprint": "23f69281bd46fb12d10a5140c153c846376923babbed6f183f4a0377964676e1",
+      "archiveRemovalAllowed": false,
+      "note": "Only these three same-report Legacy/new pairs; not whole Legacy equivalence"
+    },
+    "eyedropperManual": {
+      "review": "Tests~/CoverageAudit/eyedropper-native-inspection-final-runtime-review.json",
+      "sha256": "8341e6c2659e7f3a69a4ba25046947a554151176fe6e36baee1447585b517fa1",
+      "diagnosticAbilityVerified": true,
+      "freshPollAssemblies": 22,
+      "joinedCancellationVerified": true,
+      "manualVisualEquivalenceCertified": false,
+      "limitation": "Owned fixture stays15s; actual native sampling ends before capture, cause unknown. Original Setup/Inspect had no sampling-duration/image oracle."
+    },
+    "uvCapture": {
+      "review": "Tests~/CoverageAudit/uv-capture-final-runtime-review.json",
+      "sha256": "1d593bf745f8986582cafb522b8cfff26ec61597be5f277354733475e19e7de6",
+      "actualPngRetained": true,
+      "status": "SKIP3+cleanupPASS1; dark Canvas, no visual-equivalence/golden claim"
+    },
+    "seamlessStatus": {
+      "review": "Tests~/CoverageAudit/seamless-release-status-final-runtime-review.json",
+      "sha256": "8e3d0646a8f0193aa0e9a7d84cc845f438d5c4d708f2e03a29c24157d7f7aa99",
+      "originalStoredStatusContract": "assertion-free stale shared-state helper explicitly retired to raw Stress receipt redirect",
+      "runtime": "All14 repeated:12PASS+2diagnosticSKIP"
+    }
+  },
   "finalSafety": {
     "file": "Temp/WhimTex/test-runs/migration-final-safety.json",
+    "sha256": "3d666271028e79014300b9c700c1f7ad267c73a78efb981076fc234686b12a9c",
+    "recordedAt": "2026-10-04T18:49:38.366Z",
+    "editor": "ready/stopped; no compilation/domain reload",
     "settingsUnchanged": true,
-    "editorReady": true,
-    "runnerLockAbsent": true
+    "runnerLockExists": false,
+    "testAssetEntries": []
   },
-  "specificLimitations": {
-    "contextTools": "Identical native input first failed 52px temporary-button overflow, then passed701 checks. All tail executed in successful rerun; exact timing/layout cause unresolved, no product fix or loosened wait/assertion.",
-    "diagnostics": "30 scenarios lack current runtime proof; manual/performance/artifact production is not visual-equivalence."
+  "finalPureVerifierTests": {
+    "tests": 74,
+    "passed": 74,
+    "failed": 0,
+    "sourceGuards": 5,
+    "phaseAndInventoryTests": 69,
+    "gateSha256": "25a9fb6d82e6c1d3f8c3919a0a81658958cf2a8fe9048da95f3131f773563f22",
+    "gateTestsSha256": "15973a785914908049ea1b0ea97a7b57c0f544c97a42c00c021f1c6befb3fbac",
+    "scope": "Actual Node pure unit/source checks; synthetic receipts verify the gate, not Unity oracle equivalence."
+  },
+  "legacyRemovalDecision": {
+    "status": "do-not-remove-now",
+    "archiveRemovalAllowed": false,
+    "automatedCoverageRemaining": [],
+    "operationalBlockers": [
+      "run-tests verifyLegacy before selection and before each case",
+      "catalog24 legacy scenarios + framework protocol/pilot dependencies",
+      "LegacyIntegrity/check-migration/coverage gate/audit tools require physical archive"
+    ],
+    "nextChange": "Separate pinned-Git-reader/catalog/framework-fixture retirement. PSD actual current PASS verified; do not disable archive verification or relabel unavailable evidence PASS.",
+    "recoveryCommit": "ca8603c0961ce36064280f952259f8a6142d46cc",
+    "recoveryArchiveEntries": 466,
+    "report": "Tests~/MigrationFull.ru.md#решение-по-legacy",
+    "legacyDeleted": false,
+    "pushPerformed": false
   }
 }

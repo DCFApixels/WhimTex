@@ -217,13 +217,15 @@ export function registerHistoricalCases(context, root) {
         const script = source.replace("import fileSystem from 'node:fs';",'')
             .replace("import path from 'node:path';",'')
             .replace("import { fileURLToPath } from 'node:url';",'')
+            .replace("import { legacyIO } from '../../scripts/legacy.mjs';",'')
             .replace(/^export (?=const|function)/gm,'').replaceAll('import.meta.url','moduleUrl');
         assert.doesNotMatch(script,/^\s*(?:import|export)\b/m,'All module syntax adapters accounted for');
         const io = memoryFiles(root,Object.fromEntries(fixture.files.map(input=>['Tests~/'+input.file,input.source])));
         const data = auditSources(root,io);
         const run = argv => {
             let stdout = '';
-            const sandbox = {fileSystem:io,path,fileURLToPath,moduleUrl:new URL('./AuditSources.mjs',import.meta.url).href,
+            const sandbox = {fileSystem:io,path,fileURLToPath,legacyIO:(_root, fixtureIO)=>fixtureIO,
+                moduleUrl:new URL('./AuditSources.mjs',import.meta.url).href,
                 process:{argv},console:{log:message=>{stdout+=String(message)+'\n';}}};
             vm.runInNewContext(script,sandbox,{timeout:5000,filename:helper});
             return stdout;

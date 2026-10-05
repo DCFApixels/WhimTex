@@ -1,9 +1,11 @@
 // Pure in-memory filesystem/reports. No Unity, runner import, subprocess, or disk writes.
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { test } from 'node:test';
 import { auditNames, sha256, verifyFrozenLegacy, currentBundleSources, currentReviewFingerprint,
-    splitGap, metadataGapEvidence, inspectInvocation, inspectRuntimeReport, chooseNewestEvidence, buildInventory } from './coverage-gate.mjs';
+    splitGap, metadataGapEvidence, inspectInvocation, inspectRuntimeReport, inspectGradientWorkflowPhases,
+    chooseNewestEvidence, buildInventory } from './coverage-gate.mjs';
 
 function memory() {
     const project = path.resolve('coverage-gate-virtual'), root = path.join(project, 'Packages', 'sample');
@@ -29,7 +31,8 @@ function memory() {
         }
     };
     for (const file of ['Tests~/scripts/run-tests.mjs', 'Tests~/scripts/legacy.mjs', 'Tests~/Framework/test-api.mjs',
-        'Tests~/Framework/TestApi.cs', 'Tests~/Framework/EntryContract.cs', 'Tests~/migration.json', 'Tests~/scripts/check-migration.mjs']) add(file, 'receipt-' + file);
+        'Tests~/Framework/TestApi.cs', 'Tests~/Framework/EntryContract.cs', 'Tests~/archive-descriptor.json',
+        'Tests~/migration.json', 'Tests~/scripts/check-migration.mjs']) add(file, 'receipt-' + file);
     add('src/Current.cs', 'class Production {}');
     const scenario = { id: 'example-v2', file: 'Tests~/Cases/Example.cs', runner: 'run_script', category: 'regression',
         entry: 'Example.Run', args: ['$runId', 2, true], supportFiles: ['Tests~/Framework/TestApi.cs'] };
@@ -110,6 +113,108 @@ test('Current C# pass binds exact input order/SHA and invocation typed args; com
     const uncertain = { ...r.results[0], uncertain: true };
     assert.equal(inspectRuntimeReport(r, uncertain, m.scenario, m.context()).proof, 'not-current-proof');
     assert.equal(inspectRuntimeReport({ ...r, productionFingerprint: 'old' }, r.results[0], m.scenario, m.context()).sourceCurrent, false);
+});
+
+test('Receipt hashes exact independent-dispatcher dependencies; migration tools are not execution globals', () => {
+    const m = memory();
+    const digest = createHash('sha256').update(JSON.stringify([m.scenario]));
+    for (const file of [m.scenario.file, ...m.scenario.supportFiles].sort())
+        digest.update(file).update(m.io.readFileSync(path.join(m.root, file)));
+    digest.update(m.io.readFileSync(path.join(m.root, 'Tests~/scripts/run-tests.mjs')));
+    for (const file of ['Tests~/scripts/legacy.mjs', 'Tests~/Framework/test-api.mjs', 'Tests~/Framework/TestApi.cs',
+        'Tests~/Framework/EntryContract.cs', 'Tests~/legacy-manifest.json', 'Tests~/archive-descriptor.json'])
+        digest.update(m.io.readFileSync(path.join(m.root, file)));
+    const fingerprint = currentReviewFingerprint([m.scenario], m.root, m.io);
+    assert.equal(fingerprint, digest.digest('hex'));
+    for (const file of ['Tests~/migration.json', 'Tests~/scripts/check-migration.mjs']) {
+        m.add(file, 'changed migration-only metadata');
+        assert.equal(currentReviewFingerprint([m.scenario], m.root, m.io), fingerprint);
+    }
+    m.add('Tests~/archive-descriptor.json', 'changed pinned archive identity');
+    assert.notEqual(currentReviewFingerprint([m.scenario], m.root, m.io), fingerprint);
+});
+
+test('Native receipt with unchanged bundle is historical after dispatcher or pinned archive changes', () => {
+    for (const file of ['Tests~/scripts/run-tests.mjs', 'Tests~/archive-descriptor.json']) {
+        const m = memory(), r = m.report();
+        const reportFile = path.join(m.project, 'Temp/WhimTex/test-runs/pre-retirement.json');
+        m.put(reportFile, r);
+        const before = m.io.readFileSync(reportFile);
+        m.add(file, 'new independent dispatcher/archive contract');
+        const evidence = inspectRuntimeReport(r, r.results[0], m.scenario, m.context());
+        assert.equal(evidence.input.verified, true);
+        assert.equal(evidence.receiptMatches, false);
+        assert.equal(evidence.sourceCurrent, false);
+        assert.equal(evidence.proof, 'not-current-proof');
+        assert.match(evidence.issues.join(' '), /Native receipt is historical/);
+        const runtime = buildInventory(m.options()).files[0].runtime[0];
+        assert.equal(runtime.status, 'pending-no-current-runtime-proof');
+        assert.equal(runtime.latest, null);
+        assert.equal(runtime.history.length, 1);
+        assert.equal(runtime.history[0].status, 'passed');
+        assert.equal(runtime.history[0].sourceCurrent, false);
+        assert.equal(runtime.history[0].proof, 'not-current-proof');
+        assert.deepEqual(m.io.readFileSync(reportFile), before, 'No historical receipt re-signing');
+    }
+});
+
+test('Native selected IDs missing from current catalog never bypass the receipt through a matching bundle', () => {
+    const m = memory(), r = m.report();
+    r.selected.push('retired-legacy-id');
+    const evidence = inspectRuntimeReport(r, r.results[0], m.scenario, m.context());
+    assert.equal(evidence.input.verified, true);
+    assert.equal(evidence.sourceCurrent, false);
+    assert.equal(evidence.proof, 'not-current-proof');
+    assert.match(evidence.issues.join(' '), /Selected ID absent from current catalog/);
+});
+
+test('Removed catalog results keep raw receipt identity and status as historical evidence only', () => {
+    const m = memory(), r = m.report();
+    const retired = { ...structuredClone(r.results[0]), id: 'retired-legacy-id', legacy: true };
+    r.results.push(retired); r.selected.push(retired.id);
+    const file = path.join(m.project, 'Temp/WhimTex/test-runs/retired.json'); m.put(file, r);
+    const raw = m.io.readFileSync(file), out = buildInventory(m.options());
+    assert.equal(out.retiredRuntimeEvidence.length, 1);
+    const history = out.retiredRuntimeEvidence[0];
+    assert.equal(history.id, retired.id); assert.equal(history.status, 'passed');
+    assert.equal(history.recordedFingerprint, r.fingerprint);
+    assert.equal(history.reportRawSha256, sha256(raw));
+    assert.equal(history.sourceCurrent, false); assert.equal(history.proof, 'not-current-proof');
+    assert.equal(out.reportInputs[0].rawSha256, sha256(raw));
+    assert.equal(out.files[0].runtime[0].status, 'pending-no-current-runtime-proof');
+    assert.deepEqual(m.io.readFileSync(file), raw);
+});
+
+test('Unlinked infrastructure receipts remain in history without granting original-source coverage', () => {
+    const m = memory();
+    const unlinked = { ...m.scenario, id: 'unlinked-runner', category: 'runner' };
+    m.catalog.scenarios.push(unlinked); m.flush();
+    const r = m.report(m.nativeResult('passed', unlinked)); r.selected = [unlinked.id];
+    r.inputs[0].id = unlinked.id;
+    r.fingerprint = currentReviewFingerprint([unlinked], m.root, m.io);
+    m.put(path.join(m.project, 'Temp/WhimTex/test-runs/unlinked.json'), r);
+    m.add('Tests~/archive-descriptor.json', 'retired archive contract');
+    const out = buildInventory(m.options()), retained = out.runtimeHistory.find(item => item.id === unlinked.id);
+    assert.equal(retained.category, 'runner'); assert.equal(retained.history.length, 1);
+    assert.equal(retained.history[0].status, 'passed'); assert.equal(retained.history[0].sourceCurrent, false);
+    assert.equal(retained.history[0].proof, 'not-current-proof');
+    assert.equal(out.files[0].runtime.some(item => item.id === unlinked.id), false);
+    assert.equal(out.summary.currentRegressionReportFiles, 0);
+});
+
+test('Stored framework source review becomes stale after runner edits; its hashes are never rebound', () => {
+    const m = memory(), runnerFile = 'Tests~/scripts/run-tests.mjs';
+    const row = m.row('Example.cs', runnerFile); m.rows.get('framework-and-auxiliary.json').push(row); m.flush();
+    const auditFile = path.join(m.root, 'Tests~/CoverageAudit/framework-and-auxiliary.json');
+    const before = m.io.readFileSync(auditFile);
+    const r = m.report(); m.put(path.join(m.project, 'Temp/WhimTex/test-runs/prior.json'), r);
+    m.add(runnerFile, 'changed dispatcher');
+    const out = buildInventory(m.options()), source = out.files[0];
+    assert.equal(source.sourceReviewStatus, 'stale-or-incomplete-source-review');
+    assert.ok(source.stale.some(issue => issue.auditFile === 'framework-and-auxiliary.json' && issue.file === runnerFile));
+    assert.equal(source.runtime[0].status, 'pending-no-current-runtime-proof');
+    assert.equal(source.runtime[0].history[0].status, 'passed');
+    assert.deepEqual(m.io.readFileSync(auditFile), before, 'Read-only gate cannot re-certify changed infrastructure');
 });
 
 test('Async phases enforce same run identity, final poll, required cleanup and project', () => {
@@ -268,6 +373,18 @@ test('Source mutation during binding, even reverted, requires a freeze instead o
     const out = buildInventory({ ...m.options(), io });
     assert.equal(out.summary.snapshotStable, false);
     assert.ok(out.pending.some(p => p.kind === 'source-freeze-required-before-runtime-binding'));
+    assert.equal(out.files[0].runtimeStatus, 'pending-source-freeze');
+});
+
+test('Archive descriptor race revokes source freeze even without a runtime report', () => {
+    const m = memory(), read = m.io.readFileSync;
+    const descriptor = path.join(m.root, 'Tests~/archive-descriptor.json'); let reads = 0;
+    m.io.readFileSync = (file, encoding) => path.resolve(file) === descriptor && ++reads > 1
+        ? encoding ? 'mutated archive contract' : Buffer.from('mutated archive contract') : read(file, encoding);
+    const out = buildInventory(m.options());
+    assert.equal(out.summary.snapshotStable, false);
+    assert.ok(out.snapshotChanges.some(change => change.file === descriptor));
+    assert.equal(out.summary.currentRegressionReportFiles, 0);
     assert.equal(out.files[0].runtimeStatus, 'pending-source-freeze');
 });
 
@@ -487,4 +604,254 @@ test('Already-integrated structured parent combined declaration requires explici
         const f = m.release(); assert.equal(f.parentCombinedDocRelease.approved, false); assert.equal(f.supersededReviews.length, 0);
         m.parent.parentCombinedDocRelease = valid;
     }
+});
+
+// Synthetic raw receipts exercise the verifier, not the Unity oracles themselves.
+function gradientPhaseMemory() {
+    const m = memory(), legacyFile = 'WhimTexGradientReloadSmoke.cs';
+    const nativeFile = 'Tests~/Cases/UnityD/WhimTexGradientReloadDiagnostic.cs';
+    const sources = [nativeFile, 'Tests~/Framework/TestApi.cs'];
+    const dependencies = ['Tests~/Cases/UnityD/GradientReload.mjs', ...sources, 'Tests~/Framework/test-api.mjs',
+        'Tests~/scripts/run-tests.mjs', 'Tests~/Cases/UnityD/GradientReloadProtocol.test.mjs', 'src/UnityObjectID.cs'];
+    for (const file of dependencies) m.add(file, 'reviewed source ' + file);
+    m.legacy.clear(); m.legacy.set(legacyFile, Buffer.from('frozen original Begin/End\r\n'));
+    m.bytes.delete(path.join(m.root, 'Tests~/Legacy/Example.cs'));
+    for (const rows of m.rows.values()) rows.length = 0;
+    Object.assign(m.scenario, { id: 'whimtex-gradient-reload-v2', file: dependencies[0], runner: 'node',
+        category: 'regression', entry: null, args: ['$projectPath'], result: { kind: 'structured' },
+        supportFiles: [], reviewFiles: dependencies.slice(1), requiresUnity: true });
+    const helpers = ['Begin', 'End'].map(phase => ({ id: 'whimtex-gradient-reload-' + phase.toLowerCase() + '-v2',
+        file: nativeFile, runner: 'run_script', category: 'diagnostic', entry: 'WhimTexGradientReloadDiagnostic.' + phase,
+        args: ['$runId'], supportFiles: sources.slice(1), reviewFiles: ['src/UnityObjectID.cs'], result: { kind: 'structured' },
+        cleanup: { entry: 'WhimTexGradientReloadDiagnostic.Cleanup', args: ['$runId'] } }));
+    m.catalog.scenarios.push(...helpers);
+    const row = m.row(legacyFile, nativeFile, [m.scenario.id, ...helpers.map(h => h.id)]);
+    row.legacyEntries = ['Begin', 'End'].map(name => ({ name, signature: 'public static string ' + name + '()',
+        replacementMethods: ['public static string ' + name + '(string runId)'] }));
+    row.sourceHashes.support = Object.fromEntries(dependencies.map(file => [file, sha256(m.io.readFileSync(path.join(m.root, file)))]));
+    m.rows.get('unity-cd.json').push(row);
+    const pin = m.flush();
+    const production = sha256(Buffer.concat(['src/Current.cs', 'src/UnityObjectID.cs'].flatMap(file =>
+        [Buffer.from(file), m.io.readFileSync(path.join(m.root, file))])));
+    const context = () => ({ ...m.context(), productionFingerprint: production,
+        scenarioReviewBindings: new Map(m.catalog.scenarios.map(s => [s.id, { current: true }])), gradientReview: { current: true } });
+    const runId = '01234567-89ab-4cde-8012-3456789abcde';
+    const input = { runId, file: path.join(m.project, 'Temp/WhimTex/test-runs/gradient-reload-' + runId, 'input.cs'), sources,
+        sha256: sha256(currentBundleSources(sources, m.root, m.io)) };
+    const payload = (status, checks, extra = {}) => ({ status, checks, message: 'native ' + status, failures: [], ...extra });
+    const queued = { queued: true, requested: false, requests: 0, reloaded: false, oldDomainCleared: false, errors: [] };
+    const terminal = { queued: false, requested: true, requests: 1, reloaded: true, oldDomainCleared: true, errors: [] };
+    const native = { begin: payload('skipped', 0), trigger: payload('running', 0, queued),
+        reload: payload('passed', 3, terminal), end: payload('passed', 5), cleanup: payload('passed', 1) };
+    const idle = { projectPath: m.project, status: 'ready', compiling: false, domainReloadInProgress: false, playMode: 'stopped' };
+    function call(phase, value) {
+        const status = phase === 'editor_status', entry = 'WhimTexGradientReloadDiagnostic.' + phase;
+        const file = path.relative(m.project, input.file).replaceAll('\\', '/');
+        const argv = ['command', status ? phase : 'run_script'];
+        if (!status) argv.push('--file', file, '--entry', entry, '--args', JSON.stringify([runId]), '--timeout_ms', '7000');
+        argv.push('--project-path', m.project, '--timeout', '8', '--format', 'json');
+        const envelope = { success: true, command: 'command ' + (status ? phase : 'run_script'), errors: [], data: {
+            command: status ? phase : 'run_script', success: true, target: { projectPath: m.project },
+            parameters: status ? {} : { file, entry, args: JSON.stringify([runId]), timeout_ms: 7000 },
+            result: status ? value : { success: true, diagnostics: [], result: JSON.stringify(value) } } };
+        return { phase, argv, budgetMs: 8000, durationMs: 10, reply: { code: 0, timedOut: false, stderr: '', stdout: JSON.stringify(envelope) } };
+    }
+    function report(time = '2026-01-01T00:00:00Z') {
+        const fingerprint = currentReviewFingerprint([m.scenario], m.root, m.io);
+        const current = { reviewed: currentReviewFingerprint([{ file: m.scenario.file, reviewFiles: dependencies.slice(1) }], m.root, m.io), production };
+        const pending = payload('running', 0, queued);
+        const testResult = { status: 'passed', checks: 28, message: 'workflow', failures: [], facts: {
+            projectPath: m.project, input: structuredClone(input), fingerprint: { before: current, after: current, outer: fingerprint, outerProduction: production },
+            cliEvidence: [call('editor_status', idle), call('Begin', native.begin), call('Trigger', native.trigger),
+                call('editor_status', idle), call('ReloadPoll', pending),
+                call('editor_status', { ...idle, compiling: true, status: 'compiling' }), call('editor_status', idle),
+                call('ReloadPoll', native.reload), call('editor_status', idle), call('End', native.end), call('Cleanup', native.cleanup)],
+            nativeTriggerRequests: 1, nativeResults: structuredClone(native), reloadStates: [pending, native.reload],
+            editorAfterReload: idle, tempInputRemoved: true, cleanupCommandSuppressed: false } };
+        const result = { id: m.scenario.id, file: m.scenario.file, runner: 'node', category: 'regression', status: 'passed', uncertain: false,
+            testResult, attempts: [{ phase: 'result', entry: null, reply: { code: 0, timedOut: false, stdout: '', stderr: '' } }] };
+        const r = { action: 'run', startedAt: time, finishedAt: new Date(Date.parse(time) + 1000).toISOString(), recoveryRequired: false,
+            projectPath: m.project, selected: [m.scenario.id], fingerprint, productionFingerprint: production, results: [result] };
+        sync(r); return r;
+    }
+    function sync(r) { r.results[0].attempts[0].reply.stdout = 'WHIMTEX_TEST_RESULT ' + JSON.stringify(r.results[0].testResult) + '\n'; }
+    function editNative(r, phase, edit) {
+        const c = r.results[0].testResult.facts.cliEvidence.find(c => c.phase === phase);
+        const e = JSON.parse(c.reply.stdout); edit(e, c); c.reply.stdout = JSON.stringify(e);
+    }
+    function editTerminal(r, edit) {
+        const c = r.results[0].testResult.facts.cliEvidence.filter(c => c.phase === 'ReloadPoll').at(-1);
+        const e = JSON.parse(c.reply.stdout), value = JSON.parse(e.data.result.result);
+        edit(value); e.data.result.result = JSON.stringify(value); c.reply.stdout = JSON.stringify(e);
+    }
+    const inspect = r => inspectGradientWorkflowPhases(r, r.results[0], context());
+    const inventory = () => buildInventory({ ...m.options(), expectedManifestSha: pin });
+    const save = (r, name = 'gradient.json') => m.put(path.join(m.project, 'Temp/WhimTex/test-runs', name), r);
+    return { ...m, helpers, legacyFile, row, sources, dependencies, context, call, idle, report, sync, editNative, editTerminal, inspect, inventory, save };
+}
+
+test('Gradient helpers receive raw current same-GUID phase coverage, NEVER standalone/regression PASS credit', () => {
+    const m = gradientPhaseMemory(), r = m.report();
+    assert.equal(m.inspect(r).verified, true);
+    m.save(r); const out = m.inventory(), f = out.files.find(f => f.legacyFile === m.legacyFile);
+    assert.equal(out.summary.verifiedWorkflowHelperPhases, 2);
+    assert.equal(out.summary.pendingWorkflowHelperPhases, 0);
+    assert.equal(out.summary.currentRegressionReportFiles, 1);
+    for (const helper of f.runtime.filter(i => i.phaseCoverage)) {
+        assert.equal(helper.status, 'pending-no-current-runtime-proof');
+        assert.equal(helper.phaseCoverage.status, 'current-workflow-phase-verified');
+        assert.equal(helper.phaseCoverage.standalonePassCredited, false);
+        assert.equal(helper.phaseCoverage.evidence.phases[0].status, 'skipped');
+        assert.equal(helper.phaseCoverage.evidence.phases[0].checks, 0);
+        assert.equal(helper.phaseCoverage.reportRawSha256, sha256(m.io.readFileSync(path.join(m.project, helper.phaseCoverage.report))));
+    }
+    assert.equal(out.archiveRemovalAllowed, false); assert.equal(out.automaticFullCoverage, false);
+});
+
+const gradientNegativeCases = [
+    ['sidecar/metadata alone', (m, r) => { r.results[0].testResult.facts.cliEvidence = []; }],
+    ['wrong typed GUID', (m, r) => m.editNative(r, 'End', e => { e.data.parameters.args = '[123]'; })],
+    ['different End GUID', (m, r) => m.editNative(r, 'End', e => { e.data.parameters.args = '["ffffffff-ffff-ffff-ffff-ffffffffffff"]'; })],
+    ['wrong entry', (m, r) => m.editNative(r, 'Begin', e => { e.data.parameters.entry = 'Other.Begin'; })],
+    ['wrong argv', (m, r) => m.editNative(r, 'End', (e, c) => { c.argv[c.argv.indexOf('--args') + 1] = '[]'; })],
+    ['wrong native input', (m, r) => m.editNative(r, 'End', e => { e.data.parameters.file = 'other.cs'; })],
+    ['wrong project', (m, r) => m.editNative(r, 'End', e => { e.data.target.projectPath = path.join(m.project, 'other'); })],
+    ['native transport timeout', (m, r) => m.editNative(r, 'End', (e, c) => { c.reply.timedOut = true; })],
+    ['compile error', (m, r) => m.editNative(r, 'End', e => { e.data.result.diagnostics = [{ severity: 'Error' }]; })],
+    ['Begin fake pass', (m, r) => m.editNative(r, 'Begin', e => { e.data.result.result = JSON.stringify({ status: 'passed', checks: 1, message: 'fake', failures: [] }); })],
+    ['no real reload marker', (m, r) => m.editNative(r, 'ReloadPoll', e => { const v = JSON.parse(e.data.result.result); v.status = 'passed'; v.checks = 3; e.data.result.result = JSON.stringify(v); })],
+    ['old AppDomain callback retained', (m, r) => m.editTerminal(r, v => { v.oldDomainCleared = false; })],
+    ['two native requests', (m, r) => m.editTerminal(r, v => { v.requests = 2; })],
+    ['no requested compilation', (m, r) => m.editTerminal(r, v => { v.requested = false; })],
+    ['terminal native compiler error', (m, r) => m.editTerminal(r, v => { v.errors = ['CS actual error']; })],
+    ['coerced native marker type', (m, r) => m.editTerminal(r, v => { v.reloaded = 'true'; })],
+    ['native call during observed compilation', (m, r) => { r.results[0].testResult.facts.cliEvidence.splice(6, 1); }],
+    ['repeated Trigger', (m, r) => { const calls = r.results[0].testResult.facts.cliEvidence; calls.splice(3, 0, structuredClone(calls[2])); }],
+    ['no terminal reload', (m, r) => { const calls = r.results[0].testResult.facts.cliEvidence; calls.splice(7, 1); }],
+    ['End before reload', (m, r) => { const calls = r.results[0].testResult.facts.cliEvidence; [calls[2], calls[9]] = [calls[9], calls[2]]; }],
+    ['missing final Cleanup', (m, r) => { r.results[0].testResult.facts.cliEvidence.pop(); }],
+    ['cleanup failure', (m, r) => m.editNative(r, 'Cleanup', e => { const v = JSON.parse(e.data.result.result); v.status = 'failed'; v.failures = ['actual cleanup failure']; e.data.result.result = JSON.stringify(v); })],
+    ['native summary contradicts raw reply', (m, r) => { r.results[0].testResult.facts.nativeResults.end.checks = 5000; }],
+    ['retained temporary input', (m, r) => { r.results[0].testResult.facts.tempInputRemoved = false; }],
+    ['suppressed cleanup flag', (m, r) => { r.results[0].testResult.facts.cleanupCommandSuppressed = true; }],
+    ['malformed cleanup flag', (m, r) => { r.results[0].testResult.facts.cleanupCommandSuppressed = ''; }],
+    ['malformed native recovery flag', (m, r) => m.editNative(r, 'End', e => { const v = JSON.parse(e.data.result.result); v.recoveryRequired = ''; e.data.result.result = JSON.stringify(v); })],
+    ['stale input SHA', (m, r) => { r.results[0].testResult.facts.input.sha256 = 'f'.repeat(64); }],
+    ['reordered bundle sources', (m, r) => { r.results[0].testResult.facts.input.sources.reverse(); }],
+    ['stale global selected receipt', (m, r) => { r.fingerprint = 'f'.repeat(64); }],
+    ['stale within-workflow review', (m, r) => { r.results[0].testResult.facts.fingerprint.after.reviewed = 'f'.repeat(64); }],
+    ['recovery debt', (m, r) => { r.recoveryRequired = true; }],
+    ['duplicate wrapper result', (m, r) => { r.results.push(structuredClone(r.results[0])); }],
+    ['incomplete report', (m, r) => { delete r.finishedAt; }],
+    ['compile action', (m, r) => { r.action = 'compile'; }],
+    ['missing End oracle assertion', (m, r) => m.editNative(r, 'End', e => { const v = JSON.parse(e.data.result.result); v.checks = 4; e.data.result.result = JSON.stringify(v); })]
+];
+for (const [name, mutate] of gradientNegativeCases) test('Gradient phase proof rejects ' + name, () => {
+    const m = gradientPhaseMemory(), r = m.report();
+    mutate(m, r); m.sync(r);
+    assert.equal(m.inspect(r).verified, false, name);
+    m.add('Tests~/CoverageAudit/gradient-reload-helper-phases.json', { verified: true, status: 'passed', checks: 100000 });
+    m.save(r);
+    assert.equal(m.inventory().summary.verifiedWorkflowHelperPhases, 0, 'No sidecar rescue: ' + name);
+});
+
+test('Gradient raw Node marker is mandatory; changing copied facts cannot promote helper phases', () => {
+    const m = gradientPhaseMemory(), r = m.report();
+    r.results[0].testResult.facts.nativeTriggerRequests = 20;
+    assert.match(m.inspect(r).issues.join(' '), /raw Node result marker/);
+    r.results[0].testResult.facts.nativeTriggerRequests = 1;
+    r.results[0].attempts[0].reply.stdout += r.results[0].attempts[0].reply.stdout;
+    assert.equal(m.inspect(r).verified, false);
+});
+
+test('Gradient omitted suppression flag matches native successful wire shape, but NEVER substitutes actual Cleanup', () => {
+    const m = gradientPhaseMemory(), r = m.report();
+    delete r.results[0].testResult.facts.cleanupCommandSuppressed; m.sync(r);
+    assert.equal(m.inspect(r).verified, true);
+    m.save(r); assert.equal(m.inventory().summary.verifiedWorkflowHelperPhases, 2);
+    r.results[0].testResult.facts.cliEvidence.pop(); m.sync(r);
+    assert.equal(m.inspect(r).verified, false);
+});
+
+test('Gradient exact post-trigger observed-compilation read-only reconnect is not native proof by itself', () => {
+    const m = gradientPhaseMemory(), r = m.report(), calls = r.results[0].testResult.facts.cliEvidence;
+    const network = m.call('editor_status', m.idle);
+    network.reply = { code: 6, timedOut: false, stderr: '', stdout: JSON.stringify({ success: false, command: 'unity command editor_status', data: null,
+        errors: [{ code: 'COMMAND_FAILED', message: "Failed to execute command 'editor_status': Network error: connection reset" }] }) };
+    const timeout = m.call('editor_status', m.idle); timeout.reply = { code: null, timedOut: true, stdout: '', stderr: '' };
+    calls.splice(6, 0, network, timeout); m.sync(r);
+    assert.equal(m.inspect(r).verified, true);
+    for (const mutate of [
+        c => { c.splice(5, 1); }, // No raw observed compilation; a summary claim cannot grant retries.
+        c => { c[7].reply.stderr = 'error'; },
+        c => { c[7].reply.extra = true; },
+        c => { const e = JSON.parse(c[6].reply.stdout); e.errors[0].message = 'generic network error'; c[6].reply.stdout = JSON.stringify(e); },
+        c => { c.splice(6, 0, c.splice(7, 1)[0]); c.splice(5, 1); },
+        c => { c.splice(10, 0, structuredClone(timeout)); } // After terminal marker, before End.
+    ]) {
+        const bad = structuredClone(r); mutate(bad.results[0].testResult.facts.cliEvidence); m.sync(bad);
+        assert.equal(m.inspect(bad).verified, false);
+    }
+});
+
+test('Gradient latest current FAIL/SKIP/uncertain/incomplete phases block earlier green, including timestamp ties', () => {
+    for (const negative of ['skip', 'assertion-failed', 'timeout', 'incomplete', 'tie']) {
+        const m = gradientPhaseMemory(), green = m.report(); m.save(green, 'z-green.json');
+        const newer = m.report(negative === 'tie' ? green.startedAt : '2026-01-02T00:00:00Z');
+        if (['incomplete', 'tie'].includes(negative)) newer.results[0].testResult.facts.cliEvidence.pop();
+        else { newer.results[0].status = negative; newer.results[0].testResult.status = negative === 'skip' ? 'skipped' : 'failed'; }
+        if (negative === 'timeout') newer.results[0].uncertain = true;
+        m.sync(newer); m.save(newer, 'a-new.json');
+        const out = m.inventory(), helpers = out.files[0].runtime.filter(i => i.phaseCoverage);
+        assert.equal(out.summary.verifiedWorkflowHelperPhases, 0, negative);
+        assert.ok(helpers.every(h => h.phaseCoverage.earlierGreenOverridden), negative);
+        assert.ok(helpers.every(h => h.phaseCoverage.report.endsWith('a-new.json')), negative);
+    }
+});
+
+test('Gradient phase credit needs complete current source review and unchanged paired catalog contract', () => {
+    for (const mutate of [
+        m => { m.row.sourceHashes.support[m.dependencies[0]] = 'f'.repeat(64); },
+        m => { delete m.row.sourceHashes.support[m.dependencies[0]]; },
+        m => { m.row.legacyEntries.pop(); },
+        m => { m.row.gaps = ['Missing original assertion, even though pending runtime.']; },
+        m => { m.row.reviewStatus = 'gap'; },
+        m => { m.helpers[0].args = [123]; },
+        m => { m.helpers[1].category = 'regression'; },
+        m => { m.helpers[0].cleanup = null; },
+        m => { m.scenario.reviewFiles.reverse(); },
+        m => { m.add(m.sources[0], 'changed native body'); }
+    ]) {
+        const m = gradientPhaseMemory(), r = m.report(); mutate(m); m.flush(); m.save(r);
+        assert.equal(m.inventory().summary.verifiedWorkflowHelperPhases, 0);
+    }
+});
+
+test('Gradient source/report races revoke phase coverage; diagnostics and unrelated rows remain distinct', () => {
+    for (const mode of ['source', 'report']) {
+        const m = gradientPhaseMemory(), r = m.report(); m.save(r);
+        const originalRead = m.io.readFileSync; let reads = 0;
+        const target = mode === 'source' ? path.join(m.root, m.sources[0]) : path.join(m.project, 'Temp/WhimTex/test-runs/gradient.json');
+        m.io.readFileSync = (file, encoding) => {
+            if (path.resolve(file) === target && ++reads > 1) return encoding ? 'changed' : Buffer.from('changed');
+            return originalRead(file, encoding);
+        };
+        const out = m.inventory(); assert.equal(out.summary.verifiedWorkflowHelperPhases, 0, mode);
+        if (mode === 'source') assert.equal(out.summary.snapshotStable, false);
+    }
+    const m = gradientPhaseMemory(), r = m.report();
+    const standalone = m.nativeResult('passed', m.helpers[1]);
+    const e = JSON.parse(standalone.attempts[0].reply.stdout); e.data.parameters.args = '["owned-run"]';
+    standalone.attempts[0].reply.stdout = JSON.stringify(e);
+    standalone.attempts.push({ ...structuredClone(standalone.attempts[0]), phase: 'cleanup', entry: m.helpers[1].cleanup.entry });
+    const cleanup = JSON.parse(standalone.attempts[1].reply.stdout); cleanup.data.parameters.entry = m.helpers[1].cleanup.entry;
+    standalone.attempts[1].reply.stdout = JSON.stringify(cleanup);
+    r.results.push(standalone); r.selected.push(standalone.id); r.fingerprint = currentReviewFingerprint([m.scenario, m.helpers[1]], m.root, m.io);
+    r.inputs = [{ id: standalone.id, file: path.join(m.project, 'Temp/WhimTex/test-runs/input-owned.cs'),
+        sources: m.sources, sha256: sha256(currentBundleSources(m.sources, m.root, m.io)) }];
+    r.results[0].testResult.facts.fingerprint.outer = r.fingerprint; m.sync(r); m.save(r);
+    const out = m.inventory(), end = out.files[0].runtime.find(i => i.id === standalone.id);
+    assert.equal(end.status, 'diagnostic-only'); assert.equal(end.phaseCoverage.verified, true);
+    assert.equal(end.phaseCoverage.standalonePassCredited, false);
+    assert.equal(out.summary.currentRegressionReportFiles, 1);
 });

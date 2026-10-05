@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "scope": "Migration in progress. --all means all explicitly catalogued scenarios, NOT all Legacy files. Legacy is immutable.",
+  "scope": "Independent structured scenarios only. Frozen Legacy provenance is available from the pinned Git archive; historical invocation metadata is retained in retired-catalog.json and is not executable.",
   "profiles": {
     "ci-docs": [
       "agent-documentation-v2",
@@ -33,56 +33,10 @@
       "frozen-files-v2",
       "canonical-reader-v2"
     ],
-    "migration-pilot": [
-      "display-channels",
-      "display-channels-v2",
-      "canonical-reader",
-      "canonical-reader-v2",
-      "frozen-files-legacy",
-      "frozen-files-v2"
-    ],
     "async-protocol": [
       "test-api-contract",
       "async-protocol-v2",
       "async-lifecycle-v2"
-    ],
-    "legacy-runner-unit": [
-      "runner-unit"
-    ],
-    "legacy-source": [
-      "r01-r04-source",
-      "legacy-source"
-    ],
-    "legacy-core": [
-      "r01-r04",
-      "sharpen-order",
-      "editable-copy",
-      "reader-0125",
-      "canonical-reader",
-      "display-channels"
-    ],
-    "legacy-layer-preview": [
-      "layer-preview"
-    ],
-    "legacy-export": [
-      "export-parity"
-    ],
-    "legacy-runner-protocol": [
-      "protocol-pass",
-      "protocol-async"
-    ],
-    "legacy-docs": [
-      "legacy-agent-documentation",
-      "legacy-document-json-schema",
-      "frozen-files-legacy",
-      "legacy-rename-marker-cleanup",
-      "legacy-user-settings-cleanup",
-      "legacy-gradient-clipboard-cleanup",
-      "legacy-remaining-legacy-cleanup",
-      "legacy-agent-command-inventory",
-      "legacy-make-seamless-contract",
-      "legacy-procedural-clipboard",
-      "legacy-brush-clipboard"
     ],
     "framework-unity": [
       "test-api-contract"
@@ -954,7 +908,8 @@
       "content-fill-ui-v2",
       "context-tools-start-v2",
       "deferred-drawing-v2",
-      "distance-field-unity-v2"
+      "distance-field-unity-v2",
+      "color-picker-eyedropper-native-inspection-v2"
     ],
     "new-unity-b": [
       "document-burst-hash-probe-v2",
@@ -1767,6 +1722,9 @@
       "whim-tex-gradient-rounded-v2",
       "whim-tex-gradient-v2",
       "whim-tex-gradient-window-v2"
+    ],
+    "archive-detachment": [
+      "archive-retirement"
     ]
   },
   "scenarios": [
@@ -1819,305 +1777,6 @@
       "supportFiles": [
         "Tests~/Framework/TestApi.cs",
         "Tests~/Framework/EntryContract.cs"
-      ]
-    },
-    {
-      "id": "runner-unit",
-      "file": "Tests~/Legacy/TestRunner.test.mjs",
-      "runner": "node",
-      "args": [],
-      "reviewFiles": [
-        "Tests~/Legacy/scripts/test-catalog.json"
-      ],
-      "category": "runner",
-      "timeoutMs": 30000,
-      "effects": [],
-      "prerequisites": "Node.js 22+. Mock transports; no Unity connection.",
-      "setup": "In-memory mock responses; read-only current catalog.",
-      "teardown": "No persistent state.",
-      "result": {
-        "kind": "exit-code"
-      },
-      "legacy": true,
-      "groups": [
-        "legacy"
-      ]
-    },
-    {
-      "id": "r01-r04-source",
-      "file": "Tests~/Legacy/RefactoringR01R04.test.mjs",
-      "runner": "node",
-      "args": [],
-      "category": "source-guard",
-      "timeoutMs": 30000,
-      "effects": [],
-      "prerequisites": "Node.js 22+; current package source.",
-      "setup": "Read-only source assertions.",
-      "teardown": "No persistent state.",
-      "result": {
-        "kind": "exit-code"
-      },
-      "legacy": true,
-      "groups": [
-        "legacy"
-      ]
-    },
-    {
-      "id": "legacy-source",
-      "file": "Tests~/Legacy/FinalLegacyAudit.test.mjs",
-      "runner": "node",
-      "args": [],
-      "reviewFiles": [
-        "Tests~/Legacy/scripts/audit-sources.mjs"
-      ],
-      "category": "source-guard",
-      "timeoutMs": 30000,
-      "effects": [],
-      "prerequisites": "Node.js 22+; current package source.",
-      "setup": "Read-only source inventory and assertions.",
-      "teardown": "No persistent state.",
-      "result": {
-        "kind": "exit-code"
-      },
-      "legacy": true,
-      "groups": [
-        "legacy"
-      ]
-    },
-    {
-      "id": "r01-r04",
-      "file": "Tests~/Legacy/RefactoringR01R04Smoke.cs",
-      "runner": "run_script",
-      "entry": "RefactoringR01R04Smoke.Run",
-      "args": [],
-      "category": "regression",
-      "timeoutMs": 50000,
-      "effects": [],
-      "prerequisites": "Connected Editor, graphics device and WhimTex shaders.",
-      "setup": "Owned in-memory controls, material, textures and serializer models; temporary own-type cache entry.",
-      "teardown": "Test finally disposes objects and restores serializer cache; no asset writes.",
-      "result": {
-        "kind": "text",
-        "pass": "^PASS: [0-9]+ R01-R04 checks;"
-      },
-      "legacy": true,
-      "groups": [
-        "legacy"
-      ]
-    },
-    {
-      "id": "sharpen-order",
-      "file": "Tests~/Legacy/RefactoringR01R04Smoke.cs",
-      "runner": "run_script",
-      "entry": "RefactoringR01R04Smoke.SharpenMaterialOrder",
-      "args": [],
-      "category": "regression",
-      "timeoutMs": 50000,
-      "effects": [],
-      "prerequisites": "Connected Editor and graphics device.",
-      "setup": "Owned models/textures; temporarily substitutes package Gaussian material.",
-      "teardown": "Test finally restores material and GPU state and destroys owned resources.",
-      "result": {
-        "kind": "text",
-        "pass": "^PASS: [0-9]+ cold Brush -> Sharpen"
-      },
-      "legacy": true,
-      "groups": [
-        "legacy"
-      ]
-    },
-    {
-      "id": "editable-copy",
-      "file": "Tests~/Legacy/RefactoringR01R04Smoke.cs",
-      "runner": "run_script",
-      "entry": "RefactoringR01R04Smoke.EditableCopy",
-      "args": [],
-      "category": "regression",
-      "timeoutMs": 50000,
-      "effects": [],
-      "prerequisites": "Connected Editor.",
-      "setup": "Owned in-memory document and Drawing pixels.",
-      "teardown": "Test finally destroys source/copy/pixels.",
-      "result": {
-        "kind": "text",
-        "pass": "^PASS: [0-9]+ editable-copy ownership"
-      },
-      "legacy": true,
-      "groups": [
-        "legacy"
-      ]
-    },
-    {
-      "id": "reader-0125",
-      "file": "Tests~/Legacy/Compatibility0125ReaderSmoke.cs",
-      "runner": "run_script",
-      "entry": "Compatibility0125ReaderSmoke.Run",
-      "args": [],
-      "category": "regression",
-      "timeoutMs": 50000,
-      "effects": [],
-      "prerequisites": "Connected Editor; not the frozen fixture roundtrip suite.",
-      "setup": "Adversarial in-memory binary/JSON payloads and owned models.",
-      "teardown": "Test using/finally disposes models and containers.",
-      "result": {
-        "kind": "text",
-        "pass": "^PASS: compatibility reader guards=[0-9]+;"
-      },
-      "legacy": true,
-      "groups": [
-        "legacy"
-      ]
-    },
-    {
-      "id": "canonical-reader",
-      "file": "Tests~/Legacy/DocumentMigrationProbe.cs",
-      "runner": "eval_file",
-      "args": [],
-      "category": "regression",
-      "timeoutMs": 50000,
-      "effects": [],
-      "prerequisites": "Connected Editor with eval_file; snippet uses its standard evaluation imports.",
-      "setup": "Read-only own-type metadata and owned streams/containers.",
-      "teardown": "Using disposes streams/containers.",
-      "result": {
-        "kind": "text",
-        "pass": "^PASS: [0-9]+ canonical name-resolution"
-      },
-      "legacy": true,
-      "groups": [
-        "legacy"
-      ]
-    },
-    {
-      "id": "display-channels",
-      "file": "Tests~/Legacy/DisplayChannelsSmoke.cs",
-      "runner": "eval_file",
-      "args": [],
-      "category": "regression",
-      "timeoutMs": 50000,
-      "effects": [],
-      "prerequisites": "Connected Editor, supported DisplayChannels shader and graphics device.",
-      "setup": "Owned temporary GPU/readback resources.",
-      "teardown": "Test finally releases resources and restores GPU state.",
-      "result": {
-        "kind": "text",
-        "pass": "^Display channel checks passed: [0-9]+ across all 16 masks\\.$"
-      },
-      "legacy": true,
-      "groups": [
-        "legacy"
-      ]
-    },
-    {
-      "id": "layer-preview",
-      "file": "Tests~/Legacy/LayerPreviewReuseSmoke.cs",
-      "runner": "run_script",
-      "entry": "LayerPreviewReuseSmoke.Start",
-      "args": [],
-      "category": "regression",
-      "timeoutMs": 50000,
-      "effects": [
-        "windows",
-        "user-state"
-      ],
-      "prerequisites": "Connected graphical Editor, UI layout ticks; review current window/focus state.",
-      "setup": "Opens an owned utility window, owned model/panel/cache; writes dedicated SessionState result key.",
-      "teardown": "Scheduled test finally closes window, disposes resources, restores focus/GPU state. No external cancel entry: timeout requires inspection, not retry.",
-      "result": {
-        "kind": "text",
-        "pass": "^Passed: [0-9]+ assertions;",
-        "pending": "^Running$"
-      },
-      "async": {
-        "entry": "LayerPreviewReuseSmoke.Result",
-        "args": [],
-        "started": "^Started; call Result\\.$",
-        "pollMs": 1000
-      },
-      "legacy": true,
-      "groups": [
-        "legacy"
-      ]
-    },
-    {
-      "id": "export-parity",
-      "file": "Tests~/Legacy/RefactoringR01R04Smoke.cs",
-      "runner": "run_script",
-      "entry": "RefactoringR01R04Smoke.ExportApiParity",
-      "args": [],
-      "category": "regression",
-      "timeoutMs": 50000,
-      "effects": [
-        "assets",
-        "temp-files",
-        "user-state"
-      ],
-      "prerequisites": "Explicit authority for temporary asset creation/import/deletion and test Undo effects; graphics device.",
-      "setup": "Creates GUID-named Assets/__WhimTexRefactoringExport_*.tiff and Temp/WhimTex/RefactoringExport-* outputs.",
-      "teardown": "Test finally deletes only its own asset and outputs and destroys model. API may affect Undo state; do not run during user edits.",
-      "result": {
-        "kind": "text",
-        "pass": "^PASS: [0-9]+ API raster parity/dimensions/path/overwrite"
-      },
-      "legacy": true,
-      "groups": [
-        "legacy"
-      ]
-    },
-    {
-      "id": "protocol-pass",
-      "file": "Tests~/Legacy/RunnerProtocolSmoke.cs",
-      "runner": "run_script",
-      "entry": "RunnerProtocolSmoke.Pass",
-      "args": [],
-      "category": "runner",
-      "timeoutMs": 50000,
-      "effects": [],
-      "prerequisites": "Connected Editor.",
-      "setup": "No Unity objects or persistent state.",
-      "teardown": "None required.",
-      "result": {
-        "kind": "text",
-        "pass": "^PASS: runner protocol fixture$"
-      },
-      "legacy": true,
-      "groups": [
-        "legacy"
-      ]
-    },
-    {
-      "id": "protocol-async",
-      "file": "Tests~/Legacy/RunnerProtocolSmoke.cs",
-      "runner": "run_script",
-      "entry": "RunnerProtocolSmoke.Start",
-      "args": [],
-      "category": "runner",
-      "timeoutMs": 50000,
-      "effects": [
-        "user-state"
-      ],
-      "prerequisites": "Connected Editor; exclusive runner lock.",
-      "setup": "Own GUID-prefixed SessionState keys; Result returns Running before Passed.",
-      "teardown": "Explicit Cleanup erases only fixture keys, including after failures.",
-      "result": {
-        "kind": "text",
-        "pass": "^Passed: runner async fixture$",
-        "pending": "^Running$"
-      },
-      "async": {
-        "entry": "RunnerProtocolSmoke.Result",
-        "args": [],
-        "started": "^Started; call Result\\.$",
-        "pollMs": 500
-      },
-      "cleanup": {
-        "entry": "RunnerProtocolSmoke.Cleanup",
-        "args": [],
-        "pass": "^PASS: runner fixture cleanup$"
-      },
-      "legacy": true,
-      "groups": [
-        "legacy"
       ]
     },
     {
@@ -2250,7 +1909,13 @@
         "framework"
       ],
       "reviewFiles": [
-        "Tests~/Framework/test-api.mjs"
+        "Tests~/Framework/test-api.mjs",
+        "Tests~/Framework/Fixtures/HistoricalProtocol.mjs",
+        "Tests~/scripts/check-migration.mjs",
+        "Tests~/migration.json",
+        "Tests~/retirement-baseline.json",
+        "Tests~/retired-catalog.json",
+        "Tests~/scripts/test-catalog.json"
       ]
     },
     {
@@ -2273,221 +1938,6 @@
       ],
       "reviewFiles": [
         "Tests~/Framework/test-api.mjs"
-      ]
-    },
-    {
-      "args": [],
-      "category": "regression",
-      "timeoutMs": 30000,
-      "effects": [],
-      "prerequisites": "Node and git available.",
-      "setup": "Read-only frozen fixtures in byte-identical original-layout Temp mirror.",
-      "teardown": "No test-owned state; Temp snapshot retained for inspection.",
-      "result": {
-        "kind": "exit-code"
-      },
-      "id": "frozen-files-legacy",
-      "file": "Tests~/Legacy/Compatibility0125.test.mjs",
-      "runner": "node",
-      "legacy": true,
-      "groups": [
-        "legacy"
-      ]
-    },
-    {
-      "args": [],
-      "category": "source-guard",
-      "timeoutMs": 30000,
-      "effects": [],
-      "prerequisites": "Node and git available.",
-      "setup": "Read-only frozen fixtures in byte-identical original-layout Temp mirror.",
-      "teardown": "No test-owned state; Temp snapshot retained for inspection.",
-      "result": {
-        "kind": "exit-code"
-      },
-      "id": "legacy-agent-documentation",
-      "file": "Tests~/Legacy/AgentDocumentation.test.mjs",
-      "runner": "node",
-      "legacy": true,
-      "groups": [
-        "legacy"
-      ]
-    },
-    {
-      "args": [],
-      "category": "source-guard",
-      "timeoutMs": 30000,
-      "effects": [],
-      "prerequisites": "Node and git available.",
-      "setup": "Read-only frozen fixtures in byte-identical original-layout Temp mirror.",
-      "teardown": "No test-owned state; Temp snapshot retained for inspection.",
-      "result": {
-        "kind": "exit-code"
-      },
-      "id": "legacy-document-json-schema",
-      "file": "Tests~/Legacy/DocumentJsonSchema.test.mjs",
-      "runner": "node",
-      "legacy": true,
-      "groups": [
-        "legacy"
-      ]
-    },
-    {
-      "args": [],
-      "category": "source-guard",
-      "timeoutMs": 30000,
-      "effects": [],
-      "prerequisites": "Node and git available.",
-      "setup": "Read-only frozen fixtures in byte-identical original-layout Temp mirror.",
-      "teardown": "No test-owned state; Temp snapshot retained for inspection.",
-      "result": {
-        "kind": "exit-code"
-      },
-      "id": "legacy-rename-marker-cleanup",
-      "file": "Tests~/Legacy/RenameMarkerCleanup.test.mjs",
-      "runner": "node",
-      "legacy": true,
-      "groups": [
-        "legacy"
-      ]
-    },
-    {
-      "args": [],
-      "category": "source-guard",
-      "timeoutMs": 30000,
-      "effects": [],
-      "prerequisites": "Node and git available.",
-      "setup": "Read-only frozen fixtures in byte-identical original-layout Temp mirror.",
-      "teardown": "No test-owned state; Temp snapshot retained for inspection.",
-      "result": {
-        "kind": "exit-code"
-      },
-      "id": "legacy-user-settings-cleanup",
-      "file": "Tests~/Legacy/UserSettingsCleanup.test.mjs",
-      "runner": "node",
-      "legacy": true,
-      "groups": [
-        "legacy"
-      ]
-    },
-    {
-      "args": [],
-      "category": "source-guard",
-      "timeoutMs": 30000,
-      "effects": [],
-      "prerequisites": "Node and git available.",
-      "setup": "Read-only frozen fixtures in byte-identical original-layout Temp mirror.",
-      "teardown": "No test-owned state; Temp snapshot retained for inspection.",
-      "result": {
-        "kind": "exit-code"
-      },
-      "id": "legacy-gradient-clipboard-cleanup",
-      "file": "Tests~/Legacy/GradientClipboardCleanup.test.mjs",
-      "runner": "node",
-      "legacy": true,
-      "groups": [
-        "legacy"
-      ]
-    },
-    {
-      "args": [],
-      "category": "source-guard",
-      "timeoutMs": 30000,
-      "effects": [],
-      "prerequisites": "Node and git available.",
-      "setup": "Read-only frozen fixtures in byte-identical original-layout Temp mirror.",
-      "teardown": "No test-owned state; Temp snapshot retained for inspection.",
-      "result": {
-        "kind": "exit-code"
-      },
-      "id": "legacy-remaining-legacy-cleanup",
-      "file": "Tests~/Legacy/RemainingLegacyCleanup.test.mjs",
-      "runner": "node",
-      "legacy": true,
-      "groups": [
-        "legacy"
-      ]
-    },
-    {
-      "args": [],
-      "category": "source-guard",
-      "timeoutMs": 30000,
-      "effects": [],
-      "prerequisites": "Node and git available.",
-      "setup": "Read-only frozen fixtures in byte-identical original-layout Temp mirror.",
-      "teardown": "No test-owned state; Temp snapshot retained for inspection.",
-      "result": {
-        "kind": "exit-code"
-      },
-      "id": "legacy-agent-command-inventory",
-      "file": "Tests~/Legacy/AgentCommandInventory.test.mjs",
-      "runner": "node",
-      "legacy": true,
-      "groups": [
-        "legacy"
-      ]
-    },
-    {
-      "args": [],
-      "category": "source-guard",
-      "timeoutMs": 30000,
-      "effects": [],
-      "prerequisites": "Node and git available.",
-      "setup": "Read-only frozen fixtures in byte-identical original-layout Temp mirror.",
-      "teardown": "No test-owned state; Temp snapshot retained for inspection.",
-      "result": {
-        "kind": "exit-code"
-      },
-      "id": "legacy-make-seamless-contract",
-      "file": "Tests~/Legacy/MakeSeamlessContract.test.mjs",
-      "runner": "node",
-      "legacy": true,
-      "groups": [
-        "legacy"
-      ]
-    },
-    {
-      "args": [],
-      "category": "source-guard",
-      "timeoutMs": 30000,
-      "effects": [],
-      "prerequisites": "Node and git available.",
-      "setup": "Read-only frozen fixtures in byte-identical original-layout Temp mirror.",
-      "teardown": "No test-owned state; Temp snapshot retained for inspection.",
-      "result": {
-        "kind": "exit-code"
-      },
-      "id": "legacy-procedural-clipboard",
-      "file": "Tests~/Legacy/ProceduralClipboard.test.mjs",
-      "runner": "node",
-      "legacy": true,
-      "groups": [
-        "legacy"
-      ],
-      "reviewFiles": [
-        "Documentation~/scripts/build-agent-fields-schema.mjs"
-      ]
-    },
-    {
-      "args": [],
-      "category": "source-guard",
-      "timeoutMs": 30000,
-      "effects": [],
-      "prerequisites": "Node and git available.",
-      "setup": "Read-only frozen fixtures in byte-identical original-layout Temp mirror.",
-      "teardown": "No test-owned state; Temp snapshot retained for inspection.",
-      "result": {
-        "kind": "exit-code"
-      },
-      "id": "legacy-brush-clipboard",
-      "file": "Tests~/Legacy/BrushClipboard.test.mjs",
-      "runner": "node",
-      "legacy": true,
-      "groups": [
-        "legacy"
-      ],
-      "reviewFiles": [
-        "Documentation~/scripts/build-brush-schema.mjs"
       ]
     },
     {
@@ -8613,7 +8063,8 @@
       "timeoutMs": 60000,
       "effects": [
         "windows",
-        "user-state"
+        "user-state",
+        "temp-files"
       ],
       "groups": [
         "unity-a"
@@ -9361,8 +8812,6 @@
         "Tests~/Cases/UnityB/UnityBSupport.cs"
       ]
     },
-
-
     {
       "id": "document-reliability-smoke-v2",
       "file": "Tests~/Cases/UnityB/DocumentReliabilityTests.cs",
@@ -11670,6 +11119,9 @@
       "result": {
         "kind": "structured"
       },
+      "reviewFiles": [
+        "Tests~/CoverageAudit/unity-cd-oracles.json"
+      ],
       "supportFiles": [
         "Tests~/Framework/TestApi.cs",
         "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -11699,6 +11151,9 @@
       "result": {
         "kind": "structured"
       },
+      "reviewFiles": [
+        "Tests~/CoverageAudit/unity-cd-oracles.json"
+      ],
       "supportFiles": [
         "Tests~/Framework/TestApi.cs",
         "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -11728,6 +11183,9 @@
       "result": {
         "kind": "structured"
       },
+      "reviewFiles": [
+        "Tests~/CoverageAudit/unity-cd-oracles.json"
+      ],
       "supportFiles": [
         "Tests~/Framework/TestApi.cs",
         "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -11743,7 +11201,8 @@
       "category": "diagnostic",
       "timeoutMs": 60000,
       "effects": [
-        "temp-files"
+        "temp-files",
+        "user-state"
       ],
       "groups": [
         "unity-c",
@@ -11755,6 +11214,9 @@
       "result": {
         "kind": "structured"
       },
+      "reviewFiles": [
+        "Tests~/CoverageAudit/unity-cd-oracles.json"
+      ],
       "supportFiles": [
         "Tests~/Framework/TestApi.cs",
         "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -11797,7 +11259,8 @@
       "category": "diagnostic",
       "timeoutMs": 60000,
       "effects": [
-        "temp-files"
+        "temp-files",
+        "user-state"
       ],
       "groups": [
         "unity-c",
@@ -13994,6 +13457,9 @@
       "result": {
         "kind": "structured"
       },
+      "reviewFiles": [
+        "Tests~/CoverageAudit/unity-cd-oracles.json"
+      ],
       "supportFiles": [
         "Tests~/Framework/TestApi.cs",
         "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -14022,6 +13488,9 @@
       "result": {
         "kind": "structured"
       },
+      "reviewFiles": [
+        "Tests~/CoverageAudit/unity-cd-oracles.json"
+      ],
       "supportFiles": [
         "Tests~/Framework/TestApi.cs",
         "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -14037,7 +13506,8 @@
       "category": "diagnostic",
       "timeoutMs": 60000,
       "effects": [
-        "temp-files"
+        "temp-files",
+        "user-state"
       ],
       "groups": [
         "unity-c",
@@ -14049,6 +13519,9 @@
       "result": {
         "kind": "structured"
       },
+      "reviewFiles": [
+        "Tests~/CoverageAudit/unity-cd-oracles.json"
+      ],
       "supportFiles": [
         "Tests~/Framework/TestApi.cs",
         "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -14077,6 +13550,9 @@
       "result": {
         "kind": "structured"
       },
+      "reviewFiles": [
+        "Tests~/CoverageAudit/unity-cd-oracles.json"
+      ],
       "supportFiles": [
         "Tests~/Framework/TestApi.cs",
         "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -14105,6 +13581,9 @@
       "result": {
         "kind": "structured"
       },
+      "reviewFiles": [
+        "Tests~/CoverageAudit/unity-cd-oracles.json"
+      ],
       "supportFiles": [
         "Tests~/Framework/TestApi.cs",
         "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -14133,6 +13612,9 @@
       "result": {
         "kind": "structured"
       },
+      "reviewFiles": [
+        "Tests~/CoverageAudit/unity-cd-oracles.json"
+      ],
       "supportFiles": [
         "Tests~/Framework/TestApi.cs",
         "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -14147,7 +13629,10 @@
       "args": [],
       "category": "regression",
       "timeoutMs": 60000,
-      "effects": [],
+      "effects": [
+        "user-state",
+        "temp-files"
+      ],
       "groups": [
         "unity-c",
         "seamless"
@@ -14158,6 +13643,9 @@
       "result": {
         "kind": "structured"
       },
+      "reviewFiles": [
+        "Tests~/CoverageAudit/unity-cd-oracles.json"
+      ],
       "supportFiles": [
         "Tests~/Framework/TestApi.cs",
         "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -14172,7 +13660,10 @@
       "args": [],
       "category": "diagnostic",
       "timeoutMs": 180000,
-      "effects": [],
+      "effects": [
+        "user-state",
+        "temp-files"
+      ],
       "groups": [
         "unity-c",
         "seamless"
@@ -14183,6 +13674,9 @@
       "result": {
         "kind": "structured"
       },
+      "reviewFiles": [
+        "Tests~/CoverageAudit/unity-cd-oracles.json"
+      ],
       "supportFiles": [
         "Tests~/Framework/TestApi.cs",
         "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -14212,6 +13706,9 @@
       "result": {
         "kind": "structured"
       },
+      "reviewFiles": [
+        "Tests~/CoverageAudit/unity-cd-oracles.json"
+      ],
       "supportFiles": [
         "Tests~/Framework/TestApi.cs",
         "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -14240,6 +13737,9 @@
       "result": {
         "kind": "structured"
       },
+      "reviewFiles": [
+        "Tests~/CoverageAudit/unity-cd-oracles.json"
+      ],
       "supportFiles": [
         "Tests~/Framework/TestApi.cs",
         "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -14255,7 +13755,8 @@
       "category": "diagnostic",
       "timeoutMs": 60000,
       "effects": [
-        "temp-files"
+        "temp-files",
+        "user-state"
       ],
       "groups": [
         "unity-c",
@@ -14267,6 +13768,9 @@
       "result": {
         "kind": "structured"
       },
+      "reviewFiles": [
+        "Tests~/CoverageAudit/unity-cd-oracles.json"
+      ],
       "supportFiles": [
         "Tests~/Framework/TestApi.cs",
         "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -14813,6 +14317,9 @@
       "result": {
         "kind": "structured"
       },
+      "reviewFiles": [
+        "Tests~/CoverageAudit/unity-cd-oracles.json"
+      ],
       "supportFiles": [
         "Tests~/Framework/TestApi.cs",
         "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -14828,7 +14335,8 @@
       "category": "diagnostic",
       "timeoutMs": 60000,
       "effects": [
-        "temp-files"
+        "temp-files",
+        "user-state"
       ],
       "groups": [
         "unity-c",
@@ -14840,6 +14348,9 @@
       "result": {
         "kind": "structured"
       },
+      "reviewFiles": [
+        "Tests~/CoverageAudit/unity-cd-oracles.json"
+      ],
       "supportFiles": [
         "Tests~/Framework/TestApi.cs",
         "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -15095,6 +14606,9 @@
       "result": {
         "kind": "structured"
       },
+      "reviewFiles": [
+        "Tests~/CoverageAudit/unity-cd-oracles.json"
+      ],
       "supportFiles": [
         "Tests~/Framework/TestApi.cs",
         "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -15110,7 +14624,8 @@
       "category": "diagnostic",
       "timeoutMs": 60000,
       "effects": [
-        "temp-files"
+        "temp-files",
+        "user-state"
       ],
       "groups": [
         "unity-c",
@@ -15122,6 +14637,9 @@
       "result": {
         "kind": "structured"
       },
+      "reviewFiles": [
+        "Tests~/CoverageAudit/unity-cd-oracles.json"
+      ],
       "supportFiles": [
         "Tests~/Framework/TestApi.cs",
         "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -15150,6 +14668,9 @@
       "result": {
         "kind": "structured"
       },
+      "reviewFiles": [
+        "Tests~/CoverageAudit/unity-cd-oracles.json"
+      ],
       "supportFiles": [
         "Tests~/Framework/TestApi.cs",
         "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -15165,7 +14686,8 @@
       "category": "diagnostic",
       "timeoutMs": 180000,
       "effects": [
-        "temp-files"
+        "temp-files",
+        "user-state"
       ],
       "groups": [
         "unity-c",
@@ -15177,6 +14699,9 @@
       "result": {
         "kind": "structured"
       },
+      "reviewFiles": [
+        "Tests~/CoverageAudit/unity-cd-oracles.json"
+      ],
       "supportFiles": [
         "Tests~/Framework/TestApi.cs",
         "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -15288,6 +14813,9 @@
       "result": {
         "kind": "structured"
       },
+      "reviewFiles": [
+        "Tests~/CoverageAudit/unity-cd-oracles.json"
+      ],
       "supportFiles": [
         "Tests~/Framework/TestApi.cs",
         "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -15303,7 +14831,8 @@
       "category": "diagnostic",
       "timeoutMs": 60000,
       "effects": [
-        "temp-files"
+        "temp-files",
+        "user-state"
       ],
       "groups": [
         "unity-c",
@@ -15315,6 +14844,9 @@
       "result": {
         "kind": "structured"
       },
+      "reviewFiles": [
+        "Tests~/CoverageAudit/unity-cd-oracles.json"
+      ],
       "supportFiles": [
         "Tests~/Framework/TestApi.cs",
         "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -15396,6 +14928,9 @@
       "result": {
         "kind": "structured"
       },
+      "reviewFiles": [
+        "Tests~/CoverageAudit/unity-cd-oracles.json"
+      ],
       "supportFiles": [
         "Tests~/Framework/TestApi.cs",
         "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -15410,7 +14945,10 @@
       "args": [],
       "category": "regression",
       "timeoutMs": 60000,
-      "effects": [],
+      "effects": [
+        "user-state",
+        "temp-files"
+      ],
       "groups": [
         "unity-c",
         "seamless"
@@ -15421,6 +14959,9 @@
       "result": {
         "kind": "structured"
       },
+      "reviewFiles": [
+        "Tests~/CoverageAudit/unity-cd-oracles.json"
+      ],
       "supportFiles": [
         "Tests~/Framework/TestApi.cs",
         "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -15435,7 +14976,10 @@
       "args": [],
       "category": "regression",
       "timeoutMs": 60000,
-      "effects": [],
+      "effects": [
+        "user-state",
+        "temp-files"
+      ],
       "groups": [
         "unity-c",
         "seamless"
@@ -15446,6 +14990,9 @@
       "result": {
         "kind": "structured"
       },
+      "reviewFiles": [
+        "Tests~/CoverageAudit/unity-cd-oracles.json"
+      ],
       "supportFiles": [
         "Tests~/Framework/TestApi.cs",
         "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -15474,6 +15021,9 @@
       "result": {
         "kind": "structured"
       },
+      "reviewFiles": [
+        "Tests~/CoverageAudit/unity-cd-oracles.json"
+      ],
       "supportFiles": [
         "Tests~/Framework/TestApi.cs",
         "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -15489,7 +15039,8 @@
       "category": "diagnostic",
       "timeoutMs": 60000,
       "effects": [
-        "temp-files"
+        "temp-files",
+        "user-state"
       ],
       "groups": [
         "unity-c",
@@ -15501,6 +15052,9 @@
       "result": {
         "kind": "structured"
       },
+      "reviewFiles": [
+        "Tests~/CoverageAudit/unity-cd-oracles.json"
+      ],
       "supportFiles": [
         "Tests~/Framework/TestApi.cs",
         "Tests~/Cases/UnityC/UnityCFixture.cs",
@@ -15515,7 +15069,10 @@
       "args": [],
       "category": "diagnostic",
       "timeoutMs": 60000,
-      "effects": [],
+      "effects": [
+        "user-state",
+        "temp-files"
+      ],
       "groups": [
         "unity-c",
         "seamless"
@@ -15773,7 +15330,8 @@
       "category": "diagnostic",
       "timeoutMs": 60000,
       "effects": [
-        "temp-files"
+        "temp-files",
+        "user-state"
       ],
       "groups": [
         "unity-c",
@@ -16756,6 +16314,55 @@
       "reviewFiles": []
     },
     {
+      "id": "color-picker-eyedropper-native-inspection-v2",
+      "file": "Tests~/Cases/UnityA/ColorPickerEyedropperTests.cs",
+      "runner": "run_script",
+      "entry": "ColorPickerEyedropperTests.StartNativeInspection",
+      "args": [
+        "$runId"
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "windows",
+        "user-state"
+      ],
+      "groups": [
+        "unity-a"
+      ],
+      "prerequisites": "Idle graphical Test6.6 Editor with current WhimTex package; review source and declared effects. Parent serializes verification. Human-approved test-only UnityEditor.EyeDropper bindings for exact legacy coverage; no existing picker or native eyedropper session.",
+      "setup": "Opt-in 15-second original manual fixture: Color.red/hdr=false/alpha=true/Switchable, 200ms pointer, 1200ms full-frame PNG. InspectNativeSession(runId) is a repeatable live getter across fresh Pipeline assemblies. Supplemental fixture/capture/lifecycle checks do not certify native sampling lifetime or visual equivalence.",
+      "teardown": "At 15s or cancellation, join owned cleanup; stop only the owned native session, close only the test-created picker, detach pointer/update/IMGUI/scheduler callbacks, retain PNG/state under the owned GUID artifact directory. Cancellation/cleanup timeouts retain recoveryRequired and the exact GUID carrier.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/UnityA/UnityAScope.cs"
+      ],
+      "async": {
+        "entry": "ColorPickerEyedropperTests.PollNativeInspection",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 200
+      },
+      "cancel": {
+        "entry": "ColorPickerEyedropperTests.CancelNativeInspection",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "ColorPickerEyedropperTests.CleanupNativeInspection",
+        "args": [
+          "$runId"
+        ]
+      },
+      "reviewFiles": []
+    },
+    {
       "id": "document-save-tail-probe-profile-v2",
       "file": "Tests~/Cases/UnityB/DocumentSaveTailTests.cs",
       "runner": "run_script",
@@ -17634,6 +17241,53 @@
       "prerequisites": "Connected idle Test6.6; no user live/recovery state; sole outer runner lock. Parent registers metadata. No manual native fixture required.",
       "setup": "Fresh GUID native postprocessor, automatic compilation/reload proof, independent Faults and deferred failure/retry.",
       "teardown": "Delete only GUID fixture, verify native removal reload and exact class absence, restore selection/focus; uncertainty retains lock/bundle/assets."
+    },
+    {
+      "id": "archive-retirement",
+      "file": "Tests~/Framework/ArchiveRetirement.test.mjs",
+      "runner": "node",
+      "category": "runner",
+      "timeoutMs": 60000,
+      "args": [],
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "framework",
+        "archive"
+      ],
+      "prerequisites": "Pinned recovery commit available in this package Git repository; only GUID-owned project Temp directories.",
+      "setup": "Verify Git bytes/protocol and run quick/audit in a shared no-checkout mirror without a Legacy directory.",
+      "teardown": "Retain owned GUID mirror/report as evidence; never rename/delete the working archive or user files.",
+      "reviewFiles": [
+        "Tests~/scripts/legacy.mjs",
+        "Tests~/CoverageAudit/coverage-gate.mjs",
+        "Tests~/CoverageAudit/node-audit.mjs",
+        "Tests~/CoverageAudit/unity-cd-audit.mjs",
+        "Tests~/CoverageAudit/audit-unity-b-public.mjs",
+        "Tests~/CoverageAudit/framework-audit.mjs",
+        "Tests~/CoverageAudit/final-inventory.mjs",
+        "Tests~/CoverageAudit/unity-a.json",
+        "Tests~/CoverageAudit/unity-b-public.json",
+        "Tests~/CoverageAudit/unity-cd.json",
+        "Tests~/CoverageAudit/node.json",
+        "Tests~/CoverageAudit/player.json",
+        "Tests~/CoverageAudit/framework-and-auxiliary.json",
+        "Tests~/CoverageAudit/fault.json",
+        "Tests~/Framework/Runner.test.mjs",
+        "Tests~/Framework/Fixtures/HistoricalProtocol.mjs",
+        "Tests~/scripts/check-migration.mjs",
+        "Tests~/migration.json",
+        "Tests~/retired-catalog.json",
+        "Tests~/scripts/migration-inventory.mjs",
+        "Tests~/scripts/test-catalog.json",
+        "Tests~/Cases/Files/LegacyIntegrity.mjs",
+        "Tests~/Cases/Files/Frozen0125.mjs",
+        "Tests~/retirement-baseline.json"
+      ],
+      "result": {
+        "kind": "structured"
+      }
     }
   ]
 }

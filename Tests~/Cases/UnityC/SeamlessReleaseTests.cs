@@ -68,7 +68,6 @@ public static class SeamlessReleaseTests
     }
     static void Close(TextureCompositorWindow window)
     {if(window==null)return;global::WhimTex.Tests.UnityC.FixtureContext.Scope.CloseWindow(window);}
-    static string ExecuteStatus()=>"Editor main thread responsive; stress status: "+SessionState.GetString("WhimTex.ReleaseStress","No stored result");
     static string ExecuteWorkflow()
     {
         checks=0;var focus=EditorWindow.focusedWindow;var selection=Selection.objects;
@@ -236,7 +235,24 @@ public static class SeamlessReleaseTests
         finally{foreach(var window in windows)Close(window);if(focus!=null)focus.Focus();}
     }
 
-    public static string Status() => WhimTex.Tests.UnityC.FixtureContext.Diagnostic("SeamlessReleaseTests.Status: historical progress helper, current Stress report is returned directly", ExecuteStatus);
+    // Stress is synchronous: RunReport emits its result only after owned cleanup.
+    // Redirect consumers to that exact receipt; do not infer a latest run from shared state.
+    // Literal JSON preserves the redirect in the native raw response without DTO interpretation.
+    public static string Status() => @"{
+        ""status"":""skipped"",
+        ""checks"":0,
+        ""message"":""Stress status and timings are returned by SeamlessReleaseTests.Stress(size, onlyMode) after owned cleanup. Read the selected Stress result in the uniform runner report under Temp/WhimTex/test-runs. This redirect does not run Stress, read or validate a report, or assert a current outcome."",
+        ""failures"":[],
+        ""redirect"":{
+            ""entry"":""SeamlessReleaseTests.Stress"",
+            ""reportDirectory"":""Temp/WhimTex/test-runs"",
+            ""scenarioIdPrefix"":""seamless-release-stress"",
+            ""resultPath"":""results[].testResult"",
+            ""nativeResponsePath"":""results[].attempts[].reply.stdout"",
+            ""resultFields"": [""status"",""checks"",""message"",""failures""],
+            ""verification"":""Match the selected scenario ID, source input and typed native arguments; verify current source/production receipts and completed cleanup. Do not infer current proof from file age, timings alone or an older PASS.""
+        }
+    }";
 
     public static string Workflow() => WhimTex.Tests.UnityC.FixtureContext.Run("SeamlessReleaseTests.Workflow", () => { ExecuteWorkflow(); });
 
@@ -250,7 +266,49 @@ public static class SeamlessReleaseTests
         return ExecuteStress(size, onlyMode);
     });
 
-    public static string Visuals() => WhimTex.Tests.UnityC.FixtureContext.Diagnostic("SeamlessReleaseTests.Visuals", ExecuteVisuals);
+    public static string Visuals()
+    {
+        const string label="SeamlessReleaseTests.Visuals";
+        try
+        {
+            byte[] png=null;
+            string diagnostic=WhimTex.Tests.UnityC.FixtureContext.Diagnostic(label,()=>
+            {
+                var scope=WhimTex.Tests.UnityC.FixtureContext.Scope;
+                string report=ExecuteVisuals();
+                if(!ReferenceEquals(scope,WhimTex.Tests.UnityC.FixtureContext.Scope))
+                    throw new InvalidDataException("Visual diagnostic changed its owned scope");
+                string root=Path.GetFullPath(scope.Temp),leaf=Path.GetFileName(root);
+                if(leaf.Length!=39||!leaf.StartsWith("UnityC-",StringComparison.Ordinal)||
+                    !Guid.TryParseExact(leaf.Substring(7),"N",out _))
+                    throw new InvalidDataException("Expected current GUID visual output scope");
+                string file=Path.Combine(root,"visual-matrix.png");
+                if((File.GetAttributes(root)&FileAttributes.ReparsePoint)!=0||
+                    (File.GetAttributes(file)&FileAttributes.ReparsePoint)!=0)
+                    throw new IOException("Refusing linked visual diagnostic output");
+                png=File.ReadAllBytes(file); // Exact owned output, before Diagnostic disposes the scope.
+                return report;
+            });
+            var json=Assembly.Load("Newtonsoft.Json");
+            var objectType=json.GetType("Newtonsoft.Json.Linq.JObject",true);
+            var arrayType=json.GetType("Newtonsoft.Json.Linq.JArray",true);
+            var valueType=json.GetType("Newtonsoft.Json.Linq.JValue",true);
+            var item=objectType.GetProperty("Item",new[]{typeof(string)});
+            object result=objectType.GetMethod("Parse",new[]{typeof(string)}).Invoke(null,new object[]{diagnostic});
+            var status=item.GetValue(result,new object[]{"status"});
+            if(status==null||status.ToString()!="skipped")return diagnostic;
+            if(png==null)throw new InvalidDataException("Visual output was not captured");
+            object Text(string value)=>valueType.GetConstructor(new[]{typeof(string)}).Invoke(new object[]{value});
+            void Put(object target,string key,object value)=>item.SetValue(target,value,new object[]{key});
+            object artifact=Activator.CreateInstance(objectType),artifacts=Activator.CreateInstance(arrayType);
+            Put(artifact,"name",Text("visual-matrix.png"));Put(artifact,"encoding",Text("base64"));
+            Put(artifact,"content",Text(Convert.ToBase64String(png)));
+            arrayType.GetMethod("Add",new[]{typeof(object)}).Invoke(artifacts,new object[]{artifact});
+            Put(result,"artifacts",artifacts);
+            return result.ToString(); // Preserve diagnostic/SKIP and all assertion/cleanup failures.
+        }
+        catch(Exception error){return WhimTex.Tests.TestContext.Result("failed",0,label,error.ToString()).ToJson();}
+    }
 
     public static string MultiWindow() => WhimTex.Tests.UnityC.FixtureContext.Run("SeamlessReleaseTests.MultiWindow", () => { ExecuteMultiWindow(); });
 }

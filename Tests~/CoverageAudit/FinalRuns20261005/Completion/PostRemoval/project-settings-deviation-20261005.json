@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "date": "2026-10-05",
+  "scope": "Keep the disclosed current settings state; do not modify settings or replace the original baseline.",
+  "userAuthorization": "Да, оставь настройки и удаляй Legacy",
+  "authorizationQuestionId": "call_CIyD9mEvvPC3t6ZaTkc4GhrG",
+  "projectPath": "D:/DCFA/Projects/Test6.6",
+  "file": "ProjectSettings/ProjectSettings.asset",
+  "baselineManifestSha256": "c6b3dbfe638566dcb47afe834ca457abab45de34781bf825b55ab63607d60fa9",
+  "originalSha256": "c08cc43ea97a8c01cef69a089afab0a2a7249c49b9e5d3633670eb86ad751bc4",
+  "acceptedSha256": "d65b6a9cddbf563a6c57d430916eb00b87294d0386e0eec0276d9d646e26be23",
+  "originalBytesAvailable": false,
+  "exactContentDifferenceEstablished": false,
+  "settingsRestored": false,
+  "scopeNote": "The 30 other baseline files must remain byte-identical. This approval does not accept any further settings differences or grant new settings mutations."
+}

@@ -1,9 +1,9 @@
 {
   "version": 1,
   "scope": "UnityB owned-source freeze receipt; raw source bytes and explicit bounded read-only ReloadOrchestration.mjs status-timeout grant. No C# shared helpers/global/catalog/registry/batch edits. Native evidence is parent-owned, not agent execution or full equivalence.",
-  "recordedAtUtc": "2026-10-04T15:49:41.534Z",
+  "recordedAtUtc": "2026-10-04T17:24:15.154Z",
   "root": "D:/DCFA/Projects/Test6.6/Packages/com.dcfapixels.whimtex",
-  "sourceStatus": "frozen",
+  "sourceStatus": "final-source-reviewed",
   "runtimeStatus": "pending-parent-validation",
   "unityExecuted": false,
   "archive": {
@@ -15,7 +15,7 @@
   "ownedFiles": [
     {
       "file": "Tests~/Cases/UnityB/DocumentBurstHashTests.cs",
-      "sha256": "afefff02aeaf14201fa4911c6df4a3d2128203ced7203c7d4d3a863fa4bd13d8"
+      "sha256": "128f601d630019f4fbbc02d74b8084b351f7962a6495fd1702b7ba9802c1ba27"
     },
     {
       "file": "Tests~/Cases/UnityB/DocumentJsonApiTests.cs",
@@ -27,11 +27,11 @@
     },
     {
       "file": "Tests~/Cases/UnityB/DocumentPerformanceTests.cs",
-      "sha256": "dfe7fe864a896314066781ea4adedc5f3c3960b1d5bf27fa7e8b54d88438defa"
+      "sha256": "9eeb75992881c9a3465349e54bc4edb5eeaa68772d7acaa191e2fd0648581ede"
     },
     {
       "file": "Tests~/Cases/UnityB/DocumentSaveCostTests.cs",
-      "sha256": "e5136472f813d7a86632714e8a9a62b922ec70ba712490e1a6060fc8f8b7e919"
+      "sha256": "74a21260f1b081e914520b4eaf7152310a370f0451c303784516a4e0199a097c"
     },
     {
       "file": "Tests~/Cases/UnityB/ExportWindowTests.cs",
@@ -112,14 +112,14 @@
   ],
   "audit": {
     "file": "Tests~/CoverageAudit/unity-b-public.json",
-    "sha256": "1af98d417119169965f061123fa6b62fb55b327ac5dcb713db50577a2805aacf",
+    "sha256": "c78272268d064fd7a7fe56813831514ec181aba8c561f288088ad405ad42024a",
     "rowCount": 75,
     "runtimeStatus": "pending-parent-validation",
     "parentOverrideRowsWithChangedSources": []
   },
   "proposal": {
     "file": "Tests~/CoverageAudit/unity-b-public.proposal.json",
-    "sha256": "a481b2ef83965f3428ed4bf4a4340d09c469a4a374b643a61593c7d9c6bd330e",
+    "sha256": "c63e9b76886faf418b95b53e8476d58c6475e226586ddc831ad9acc517f7b634",
     "originalTenPreserved": true,
     "appendScenarioIds": [
       "export-window-visual-sequence-v2",
@@ -244,7 +244,7 @@
       ],
       "sourceHashes": {
         "legacy": "52d9e4d9f205653ed1f5e0ce239377f26f79c17252b822a95fda7f93beec29e5",
-        "replacement": "afefff02aeaf14201fa4911c6df4a3d2128203ced7203c7d4d3a863fa4bd13d8"
+        "replacement": "128f601d630019f4fbbc02d74b8084b351f7962a6495fd1702b7ba9802c1ba27"
       },
       "matchesAuditHash": true
     },
@@ -416,7 +416,7 @@
       ],
       "sourceHashes": {
         "legacy": "4147471b402f63fcb8ee090057400d3afb9dfd2dd0417b36f23dd902fd20db97",
-        "replacement": "dfe7fe864a896314066781ea4adedc5f3c3960b1d5bf27fa7e8b54d88438defa"
+        "replacement": "9eeb75992881c9a3465349e54bc4edb5eeaa68772d7acaa191e2fd0648581ede"
       },
       "matchesAuditHash": true
     },
@@ -525,7 +525,7 @@
       ],
       "sourceHashes": {
         "legacy": "342f7ac97b89a878a0a69474378cdbff55395323015c282bbe0cfd6ba03758b7",
-        "replacement": "e5136472f813d7a86632714e8a9a62b922ec70ba712490e1a6060fc8f8b7e919"
+        "replacement": "74a21260f1b081e914520b4eaf7152310a370f0451c303784516a4e0199a097c"
       },
       "matchesAuditHash": true
     },
@@ -1990,5 +1990,779 @@
     "finishedAt": "2026-10-04T15:44:25.057Z",
     "recoveryRequired": false,
     "notRun": 0
+  },
+  "boundedDiagnosticPreservation": {
+    "sourceStatus": "final-source-reviewed; temporary batch freeze released by parent",
+    "frozenAtUtc": "2026-10-04T17:15:32Z",
+    "files": [
+      {
+        "file": "Tests~/Cases/UnityB/DocumentSaveCostTests.cs",
+        "beforeSha256": "e5136472f813d7a86632714e8a9a62b922ec70ba712490e1a6060fc8f8b7e919",
+        "sha256": "74a21260f1b081e914520b4eaf7152310a370f0451c303784516a4e0199a097c"
+      },
+      {
+        "file": "Tests~/Cases/UnityB/DocumentBurstHashTests.cs",
+        "beforeSha256": "afefff02aeaf14201fa4911c6df4a3d2128203ced7203c7d4d3a863fa4bd13d8",
+        "sha256": "128f601d630019f4fbbc02d74b8084b351f7962a6495fd1702b7ba9802c1ba27"
+      },
+      {
+        "file": "Tests~/Cases/UnityD/SmallDocumentSaveDiagnostics.cs",
+        "beforeSha256": "6218b6481bafdb76829ec54241a0084608861fbb9f4ade48a79a8d499f7ad88b",
+        "sha256": "fa6cdbb69ee2a225856ce47538e75323b98d9104d2807524cfad125c5dba9d29"
+      },
+      {
+        "file": "Tests~/Cases/UnityD/WhimTexGradientRoundedTests.cs",
+        "beforeSha256": "4420cd07922323f9ab5e2e223cf0436a01f3266864cf2211f55b57a79d422d7a",
+        "sha256": "e3c9752d633e7b0593360c17b77b168f9cafb76f272becbee6931452afb7498a"
+      },
+      {
+        "file": "Tests~/Cases/UnityB/DocumentPerformanceTests.cs",
+        "sha256": "9eeb75992881c9a3465349e54bc4edb5eeaa68772d7acaa191e2fd0648581ede",
+        "beforeSha256": "dfe7fe864a896314066781ea4adedc5f3c3960b1d5bf27fa7e8b54d88438defa",
+        "owner": "parent source change; agent audit only"
+      }
+    ],
+    "sourceAuditFiles": [
+      "Tests~/CoverageAudit/unity-b-public.json",
+      "Tests~/CoverageAudit/unity-cd.json"
+    ],
+    "sourceGuardStatus": "17 pure source guards passed; not compilation or runtime",
+    "unityExecuted": false,
+    "sharedHelperEdits": false,
+    "catalogEdits": false,
+    "legacyEdits": false,
+    "nativeStatus": "Completed actual native24:23 PASS/1 intentional SKIP0, all current source bundles verified, no notRun/uncertainty/recovery debt. Raw success=false preserved. Parent released batch source freeze; no source changes needed.",
+    "historicalReceiptPolicy": "Prior finalNative9Evidence/node83Validation/ci11Validation and historical failures/recovery receipts retained for their exact inputs; not rebound as proof for the five newly fingerprinted sources.",
+    "pairedHelperProof": "Parent review proposal recorded in unity-b-public.proposal.json; Begin/End observed via same-GUID wrapper only, not independently reclassified PASS.",
+    "priorNativeStatus": "Parent native24 active; current source/evidence rerun pending parent. No more selected Cases changes."
+  },
+  "previousSourceStatus": "frozen",
+  "freezeReleasedByParent": true,
+  "latestNative24Evidence": {
+    "reportFile": "D:/DCFA/Projects/Test6.6/Temp/WhimTex/test-runs/2026-10-04T17-15-05.924Z-131656.json",
+    "reportSha256": "007cc4a66d78b2872103d8dae85db21e017a2524c49b951ba8e045c25411f5cb",
+    "recordedAtUtc": "2026-10-04T17:24:15.154Z",
+    "finishedAt": "2026-10-04T17:17:23.428Z",
+    "projectPath": "D:\\DCFA\\Projects\\Test6.6",
+    "unityVersion": "6000.7.0a6",
+    "fingerprint": "d4b6a6f115fab24d776ca904e2f179488d2fa084e09512d0499281b10fa3c215",
+    "productionFingerprint": "a3da14871f6e0bf5c49a6f077b1026720e0fb2d3c28a49213dd715f3dd2b7738",
+    "reportSuccess": false,
+    "selectedCount": 24,
+    "passed": 23,
+    "skipped": 1,
+    "notRun": [],
+    "recoveryRequired": false,
+    "results": [
+      {
+        "id": "small-document-save-v2",
+        "file": "Tests~/Cases/UnityD/SmallDocumentSaveDiagnostics.cs",
+        "category": "regression",
+        "status": "passed",
+        "checks": 36,
+        "uncertain": false,
+        "failures": [],
+        "inputSha256": "34aa6269addc5e11444303845fb14ae81a3280d9f81d097704fa5de7a0195ba8",
+        "entry": "SmallDocumentSaveDiagnostics.Run",
+        "args": "[512,3,5]"
+      },
+      {
+        "id": "small-document-save-scheduling-v2",
+        "file": "Tests~/Cases/UnityD/SmallDocumentSaveDiagnostics.cs",
+        "category": "diagnostic",
+        "status": "passed",
+        "checks": 102,
+        "uncertain": false,
+        "failures": [],
+        "inputSha256": "34aa6269addc5e11444303845fb14ae81a3280d9f81d097704fa5de7a0195ba8",
+        "entry": "SmallDocumentSaveDiagnostics.Scheduling",
+        "args": "[20,\"scheduling\"]"
+      },
+      {
+        "id": "small-document-save-carrier-v2",
+        "file": "Tests~/Cases/UnityD/SmallDocumentSaveDiagnostics.cs",
+        "category": "diagnostic",
+        "status": "passed",
+        "checks": 32,
+        "uncertain": false,
+        "failures": [],
+        "inputSha256": "34aa6269addc5e11444303845fb14ae81a3280d9f81d097704fa5de7a0195ba8",
+        "entry": "SmallDocumentSaveDiagnostics.Carrier",
+        "args": "[512,5]"
+      },
+      {
+        "id": "whim-tex-gradient-rounded-v2",
+        "file": "Tests~/Cases/UnityD/WhimTexGradientRoundedTests.cs",
+        "category": "regression",
+        "status": "passed",
+        "checks": 68512,
+        "uncertain": false,
+        "failures": [],
+        "inputSha256": "f107ba7713772603eb9855c8ec8906adebf60563d0be6afa2ed2fbe05751680a",
+        "entry": "WhimTexGradientRoundedTests.Run",
+        "args": "[]"
+      },
+      {
+        "id": "whim-tex-gradient-rounded-capture-v2",
+        "file": "Tests~/Cases/UnityD/WhimTexGradientRoundedTests.cs",
+        "category": "diagnostic",
+        "status": "skip",
+        "checks": 0,
+        "uncertain": false,
+        "failures": [],
+        "inputSha256": "f107ba7713772603eb9855c8ec8906adebf60563d0be6afa2ed2fbe05751680a",
+        "entry": "WhimTexGradientRoundedTests.Capture",
+        "args": "[\"e3386dbb-347e-4c94-b9f6-d0846757687c\"]"
+      },
+      {
+        "id": "document-burst-hash-probe-v2",
+        "file": "Tests~/Cases/UnityB/DocumentBurstHashTests.cs",
+        "category": "diagnostic",
+        "status": "passed",
+        "checks": 817,
+        "uncertain": false,
+        "failures": [],
+        "inputSha256": "8dbb2d5dd6ac529175a13e0a5385f7b1857da61074c805a40f281dc4eef95825",
+        "entry": "DocumentBurstHashTests.Poll",
+        "args": "[\"e3386dbb-347e-4c94-b9f6-d0846757687c\"]"
+      },
+      {
+        "id": "document-performance-probe-ldr-random-v2",
+        "file": "Tests~/Cases/UnityB/DocumentPerformanceTests.cs",
+        "category": "diagnostic",
+        "status": "passed",
+        "checks": 1,
+        "uncertain": false,
+        "failures": [],
+        "inputSha256": "a8baac92d35274c3895f90117857ce39086808ad680c4ebd3e5b425d567e8a98",
+        "entry": "DocumentPerformanceTests.Run",
+        "args": "[2048,3,false,true]"
+      },
+      {
+        "id": "document-performance-probe-hdr-random-v2",
+        "file": "Tests~/Cases/UnityB/DocumentPerformanceTests.cs",
+        "category": "diagnostic",
+        "status": "passed",
+        "checks": 1,
+        "uncertain": false,
+        "failures": [],
+        "inputSha256": "a8baac92d35274c3895f90117857ce39086808ad680c4ebd3e5b425d567e8a98",
+        "entry": "DocumentPerformanceTests.Run",
+        "args": "[2048,3,true,true]"
+      },
+      {
+        "id": "document-performance-probe-ldr-constant-v2",
+        "file": "Tests~/Cases/UnityB/DocumentPerformanceTests.cs",
+        "category": "diagnostic",
+        "status": "passed",
+        "checks": 1,
+        "uncertain": false,
+        "failures": [],
+        "inputSha256": "a8baac92d35274c3895f90117857ce39086808ad680c4ebd3e5b425d567e8a98",
+        "entry": "DocumentPerformanceTests.Run",
+        "args": "[2048,3,false,false]"
+      },
+      {
+        "id": "document-performance-probe-hdr-constant-v2",
+        "file": "Tests~/Cases/UnityB/DocumentPerformanceTests.cs",
+        "category": "diagnostic",
+        "status": "passed",
+        "checks": 1,
+        "uncertain": false,
+        "failures": [],
+        "inputSha256": "a8baac92d35274c3895f90117857ce39086808ad680c4ebd3e5b425d567e8a98",
+        "entry": "DocumentPerformanceTests.Run",
+        "args": "[2048,3,true,false]"
+      },
+      {
+        "id": "document-save-cost-probe-hashes-v2",
+        "file": "Tests~/Cases/UnityB/DocumentSaveCostTests.cs",
+        "category": "diagnostic",
+        "status": "passed",
+        "checks": 7,
+        "uncertain": false,
+        "failures": [],
+        "inputSha256": "48b141a8513c00c9c43a6160f59cbcd41eda21d61aafd8c2afde52c993150a94",
+        "entry": "DocumentSaveCostTests.Hashes",
+        "args": "[]"
+      },
+      {
+        "id": "document-save-cost-probe-fast-fingerprint-v2",
+        "file": "Tests~/Cases/UnityB/DocumentSaveCostTests.cs",
+        "category": "diagnostic",
+        "status": "passed",
+        "checks": 1025,
+        "uncertain": false,
+        "failures": [],
+        "inputSha256": "48b141a8513c00c9c43a6160f59cbcd41eda21d61aafd8c2afde52c993150a94",
+        "entry": "DocumentSaveCostTests.FastFingerprint",
+        "args": "[]"
+      },
+      {
+        "id": "document-save-cost-probe-tiff-v2",
+        "file": "Tests~/Cases/UnityB/DocumentSaveCostTests.cs",
+        "category": "diagnostic",
+        "status": "passed",
+        "checks": 1,
+        "uncertain": false,
+        "failures": [],
+        "inputSha256": "48b141a8513c00c9c43a6160f59cbcd41eda21d61aafd8c2afde52c993150a94",
+        "entry": "DocumentSaveCostTests.Tiff",
+        "args": "[]"
+      },
+      {
+        "id": "document-save-cost-probe-tiff-2048-v2",
+        "file": "Tests~/Cases/UnityB/DocumentSaveCostTests.cs",
+        "category": "diagnostic",
+        "status": "passed",
+        "checks": 1,
+        "uncertain": false,
+        "failures": [],
+        "inputSha256": "48b141a8513c00c9c43a6160f59cbcd41eda21d61aafd8c2afde52c993150a94",
+        "entry": "DocumentSaveCostTests.Tiff",
+        "args": "[2048]"
+      },
+      {
+        "id": "small-document-save-carrier-1024-v2",
+        "file": "Tests~/Cases/UnityD/SmallDocumentSaveDiagnostics.cs",
+        "category": "diagnostic",
+        "status": "passed",
+        "checks": 32,
+        "uncertain": false,
+        "failures": [],
+        "inputSha256": "34aa6269addc5e11444303845fb14ae81a3280d9f81d097704fa5de7a0195ba8",
+        "entry": "SmallDocumentSaveDiagnostics.Carrier",
+        "args": "[1024,5]"
+      },
+      {
+        "id": "document-save-cost-probe-container-1-opaque-v2",
+        "file": "Tests~/Cases/UnityB/DocumentSaveCostTests.cs",
+        "category": "diagnostic",
+        "status": "passed",
+        "checks": 6153,
+        "uncertain": false,
+        "failures": [],
+        "inputSha256": "48b141a8513c00c9c43a6160f59cbcd41eda21d61aafd8c2afde52c993150a94",
+        "entry": "DocumentSaveCostTests.Container",
+        "args": "[1,true]"
+      },
+      {
+        "id": "document-save-cost-probe-container-1-alpha-v2",
+        "file": "Tests~/Cases/UnityB/DocumentSaveCostTests.cs",
+        "category": "diagnostic",
+        "status": "passed",
+        "checks": 9,
+        "uncertain": false,
+        "failures": [],
+        "inputSha256": "48b141a8513c00c9c43a6160f59cbcd41eda21d61aafd8c2afde52c993150a94",
+        "entry": "DocumentSaveCostTests.Container",
+        "args": "[1,false]"
+      },
+      {
+        "id": "document-save-cost-probe-container-2-opaque-v2",
+        "file": "Tests~/Cases/UnityB/DocumentSaveCostTests.cs",
+        "category": "diagnostic",
+        "status": "passed",
+        "checks": 12303,
+        "uncertain": false,
+        "failures": [],
+        "inputSha256": "48b141a8513c00c9c43a6160f59cbcd41eda21d61aafd8c2afde52c993150a94",
+        "entry": "DocumentSaveCostTests.Container",
+        "args": "[2,true]"
+      },
+      {
+        "id": "document-save-cost-probe-container-2-alpha-v2",
+        "file": "Tests~/Cases/UnityB/DocumentSaveCostTests.cs",
+        "category": "diagnostic",
+        "status": "passed",
+        "checks": 15,
+        "uncertain": false,
+        "failures": [],
+        "inputSha256": "48b141a8513c00c9c43a6160f59cbcd41eda21d61aafd8c2afde52c993150a94",
+        "entry": "DocumentSaveCostTests.Container",
+        "args": "[2,false]"
+      },
+      {
+        "id": "document-save-cost-probe-container-3-opaque-v2",
+        "file": "Tests~/Cases/UnityB/DocumentSaveCostTests.cs",
+        "category": "diagnostic",
+        "status": "passed",
+        "checks": 18453,
+        "uncertain": false,
+        "failures": [],
+        "inputSha256": "48b141a8513c00c9c43a6160f59cbcd41eda21d61aafd8c2afde52c993150a94",
+        "entry": "DocumentSaveCostTests.Container",
+        "args": "[3,true]"
+      },
+      {
+        "id": "document-save-cost-probe-container-3-alpha-v2",
+        "file": "Tests~/Cases/UnityB/DocumentSaveCostTests.cs",
+        "category": "diagnostic",
+        "status": "passed",
+        "checks": 21,
+        "uncertain": false,
+        "failures": [],
+        "inputSha256": "48b141a8513c00c9c43a6160f59cbcd41eda21d61aafd8c2afde52c993150a94",
+        "entry": "DocumentSaveCostTests.Container",
+        "args": "[3,false]"
+      },
+      {
+        "id": "document-save-cost-probe-container-4-opaque-v2",
+        "file": "Tests~/Cases/UnityB/DocumentSaveCostTests.cs",
+        "category": "diagnostic",
+        "status": "passed",
+        "checks": 24603,
+        "uncertain": false,
+        "failures": [],
+        "inputSha256": "48b141a8513c00c9c43a6160f59cbcd41eda21d61aafd8c2afde52c993150a94",
+        "entry": "DocumentSaveCostTests.Container",
+        "args": "[4,true]"
+      },
+      {
+        "id": "document-save-cost-probe-container-4-alpha-v2",
+        "file": "Tests~/Cases/UnityB/DocumentSaveCostTests.cs",
+        "category": "diagnostic",
+        "status": "passed",
+        "checks": 27,
+        "uncertain": false,
+        "failures": [],
+        "inputSha256": "48b141a8513c00c9c43a6160f59cbcd41eda21d61aafd8c2afde52c993150a94",
+        "entry": "DocumentSaveCostTests.Container",
+        "args": "[4,false]"
+      },
+      {
+        "id": "document-save-cost-probe-cache-safety-v2",
+        "file": "Tests~/Cases/UnityB/DocumentSaveCostTests.cs",
+        "category": "regression",
+        "status": "passed",
+        "checks": 10,
+        "uncertain": false,
+        "failures": [],
+        "inputSha256": "48b141a8513c00c9c43a6160f59cbcd41eda21d61aafd8c2afde52c993150a94",
+        "entry": "DocumentSaveCostTests.CacheSafety",
+        "args": "[]"
+      }
+    ],
+    "messageReports": [
+      {
+        "id": "small-document-save-v2",
+        "messageSha256": "58aebd27f22ea312b73c59122c6ab12850106ee8251494530e64aa66e2e94cbb",
+        "reportJsonSha256": "ca5191b9df16b0c7572a4f6f610dd736c2df09d22632694a2ba5156c9faab893",
+        "sampleCount": 31,
+        "totalStageCount": 125,
+        "cleanupSucceeded": true,
+        "noOpTimestampPreserved": true
+      },
+      {
+        "id": "small-document-save-scheduling-v2",
+        "messageSha256": "abe4f0dcdc53299bcf5213095527ebea56b5293ebc07b832f62d3dca2b846f93",
+        "reportJsonSha256": "b2311eb1776074bfccf9521f8af0eb0253f7499d66d328c892df02c8890a48cc",
+        "sampleCount": 100,
+        "totalStageCount": 0,
+        "cleanupSucceeded": false,
+        "noOpTimestampPreserved": true
+      },
+      {
+        "id": "small-document-save-carrier-v2",
+        "messageSha256": "d987a38de9ee8b169c0ed355d8be4aac859bedb7ddb3ca48d45947725cf7fc70",
+        "reportJsonSha256": "394df3b8becb7c457c1802c643c8a3691e73bac255887765ce0a0ba0add335e9",
+        "sampleCount": 30,
+        "totalStageCount": 0,
+        "cleanupSucceeded": false,
+        "noOpTimestampPreserved": true
+      },
+      {
+        "id": "document-save-cost-probe-hashes-v2",
+        "messageSha256": "6bbe1495acb99e834dc52b2f53d4ca97657a32adad9f323c8cf3666c82eab788",
+        "reportJsonSha256": "503d934c5bfa316808f8481f376ee891de3bd0f7fc5ee820c3ce6637ad099dc2",
+        "costCount": 12
+      },
+      {
+        "id": "document-save-cost-probe-fast-fingerprint-v2",
+        "messageSha256": "08c69591f64324ba47914e9d62ee88bc13dc68b7c0f0e90ac9297b1a9302a372",
+        "reportJsonSha256": "cf581c0af70a2ef8c08b24a777d96ff880be41c8472f149f9e947a3c86147dd9",
+        "costCount": 4
+      },
+      {
+        "id": "document-save-cost-probe-tiff-v2",
+        "messageSha256": "694162f8ed3b9e5a279c5d1560281abd10a8a605f8d7e558131177780ffaf8dd",
+        "reportJsonSha256": "c9a20fd534731affe5f4d130ae46565bb1a91b41e477b721ea5e442818663b9f",
+        "costCount": 4
+      },
+      {
+        "id": "document-save-cost-probe-tiff-2048-v2",
+        "messageSha256": "d47f8a303e8dada9a0ce07a68ff463fd676e1c8f73e94fd6abd898d9e68b4600",
+        "reportJsonSha256": "84c964875d45690a5b1d0916e621d0517ff592afd5f7250d06e7eab9c860d75c",
+        "costCount": 4
+      },
+      {
+        "id": "small-document-save-carrier-1024-v2",
+        "messageSha256": "81ddffe62f466b89ca17ffd4c040926643cf3ea5d1190763ad2bb68c8d949b84",
+        "reportJsonSha256": "e90a0d43dea263edb4b88221ba7c3f184dbedf93e31ef2b0715be6689712c27d",
+        "sampleCount": 30,
+        "totalStageCount": 0,
+        "cleanupSucceeded": false,
+        "noOpTimestampPreserved": true
+      },
+      {
+        "id": "document-save-cost-probe-container-1-opaque-v2",
+        "messageSha256": "000635e1b9f722f2196a358b95e9c045151910928abdf06da50a51bb8b32dc0e",
+        "reportJsonSha256": "6a9283fdf1dd69e295efb169906dd0644d257ce8e1c445c34a69cbc79f53511b",
+        "costCount": 6
+      },
+      {
+        "id": "document-save-cost-probe-container-1-alpha-v2",
+        "messageSha256": "d0c807ee061e8981d87f031362b0e664baffaace3fca0729db34ae10ced37b83",
+        "reportJsonSha256": "2f8142d051f8e330c829800b1a5c7d03a81cae0d73986d5538f30a9db6a3336c",
+        "costCount": 6
+      },
+      {
+        "id": "document-save-cost-probe-container-2-opaque-v2",
+        "messageSha256": "e723eae32f2eba44f1777d7089a6cdabd39c00627b601894769d603cabcd5589",
+        "reportJsonSha256": "ea20abb4e66eebe3489920fb208a621a116ae7a2a167a7a9aafa9c0e23592a58",
+        "costCount": 6
+      },
+      {
+        "id": "document-save-cost-probe-container-2-alpha-v2",
+        "messageSha256": "fdc21ae4b14a1698a70f0d4a3113edd6afb061466069f3ff358b6188a4cd5763",
+        "reportJsonSha256": "2bd793dda7024ce7aea38ade665af7f09370fcd5c8eecbf07d387a4aebeee1c4",
+        "costCount": 6
+      },
+      {
+        "id": "document-save-cost-probe-container-3-opaque-v2",
+        "messageSha256": "8dd530e4c5917d3f74d5d7fb2a6fb2704e2c3dcaca82555b4910043757088eae",
+        "reportJsonSha256": "b5cc2e1ac641561c2729a96a19cd2de851ed22f25963665b3bc01b65a4a1e903",
+        "costCount": 6
+      },
+      {
+        "id": "document-save-cost-probe-container-3-alpha-v2",
+        "messageSha256": "52e330ee23ae095c966ce9733fe8eca25c32e5d932926cbe91d8ee49de14b319",
+        "reportJsonSha256": "cec9e94914abbf3d10d0efa805ea96a42495da6abfa8452e8be45b666bf16d3e",
+        "costCount": 6
+      },
+      {
+        "id": "document-save-cost-probe-container-4-opaque-v2",
+        "messageSha256": "c6b2e25951969c372c93ce755bbedf2e863bac34ab59432b99ec5a22fd3f6f61",
+        "reportJsonSha256": "3574ec42a0b08009569fa46ead7adbd3d0a477f38ff65582556a3bf68765c105",
+        "costCount": 6
+      },
+      {
+        "id": "document-save-cost-probe-container-4-alpha-v2",
+        "messageSha256": "5ab33c2c59f485f74541a15535142acdc822f8a5b1a86198ed6ce7d1638b100d",
+        "reportJsonSha256": "2cbc2b7d36af43548f8b35198aeee27f99ddf659fa3f65e8efdb7122d7896ffd",
+        "costCount": 6
+      },
+      {
+        "id": "document-save-cost-probe-cache-safety-v2",
+        "messageSha256": "b05a2c6b69f512efea8f6212fae6d329fd3748376000d4635489b0e4ca38bdff",
+        "reportJsonSha256": "1a4997d1e84b5f44802a287d1bc2e229c4437d08fbc322c0bae6d2f35ad847cc",
+        "costCount": 6
+      }
+    ],
+    "diagnosticArtifacts": [
+      {
+        "file": "D:/DCFA/Projects/Test6.6/Temp/WhimTex/diagnostics/baed2f2c049c4a1da146b05205cfe6d2/TiffValidationResults/burst-sha256.json",
+        "sha256": "460dddfddc2ef48e25d57e8574901ef0323f30eb47a09e71cd6c4aeb43471f19",
+        "modifiedAtUtc": "2026-10-04T17:15:34.073Z",
+        "sampleCount": 21,
+        "rawReportChecks": 812,
+        "burstEnabled": true,
+        "allCallsUsedBurst": true
+      },
+      {
+        "file": "D:/DCFA/Projects/Test6.6/Temp/WhimTex/diagnostics/70fd438bb5a24555b94774b900854a3d/TiffValidationResults/perf-2048-3-ldr-True-streaming.json",
+        "sha256": "75221f0ab776c274ce3d7975a577360c97f30bb058cb0a8ef5eaca58ec344cab",
+        "modifiedAtUtc": "2026-10-04T17:15:40.543Z",
+        "size": 2048,
+        "layers": 3,
+        "hdr": false,
+        "randomPixels": true,
+        "measurementCount": 4,
+        "processMemoryAvailability": [
+          {
+            "operation": "first_save_including_import",
+            "available": false,
+            "limitation": "Process counters returned zero/unavailable in this Editor runtime; raw zeros are not memory measurements. Managed values cover the whole Editor.",
+            "baselinePrivateMiB": 0,
+            "peakPrivateMiB": 0,
+            "peakWorkingSetMiB": 0
+          },
+          {
+            "operation": "unchanged_save",
+            "available": false,
+            "limitation": "Process counters returned zero/unavailable in this Editor runtime; raw zeros are not memory measurements. Managed values cover the whole Editor.",
+            "baselinePrivateMiB": 0,
+            "peakPrivateMiB": 0,
+            "peakWorkingSetMiB": 0
+          },
+          {
+            "operation": "one_changed_layer_save",
+            "available": false,
+            "limitation": "Process counters returned zero/unavailable in this Editor runtime; raw zeros are not memory measurements. Managed values cover the whole Editor.",
+            "baselinePrivateMiB": 0,
+            "peakPrivateMiB": 0,
+            "peakWorkingSetMiB": 0
+          },
+          {
+            "operation": "open_all_drawing_pixels",
+            "available": false,
+            "limitation": "Process counters returned zero/unavailable in this Editor runtime; raw zeros are not memory measurements. Managed values cover the whole Editor.",
+            "baselinePrivateMiB": 0,
+            "peakPrivateMiB": 0,
+            "peakWorkingSetMiB": 0
+          }
+        ],
+        "saveStagesCount": 0
+      },
+      {
+        "file": "D:/DCFA/Projects/Test6.6/Temp/WhimTex/diagnostics/5adb7a3d5817467584b5625dc33f2c5e/TiffValidationResults/perf-2048-3-hdr-True-streaming.json",
+        "sha256": "5d5179a7544841e950409a14ef4db8761daf8d270b0d567cf94e730b2d572b4b",
+        "modifiedAtUtc": "2026-10-04T17:15:49.219Z",
+        "size": 2048,
+        "layers": 3,
+        "hdr": true,
+        "randomPixels": true,
+        "measurementCount": 4,
+        "processMemoryAvailability": [
+          {
+            "operation": "first_save_including_import",
+            "available": false,
+            "limitation": "Process counters returned zero/unavailable in this Editor runtime; raw zeros are not memory measurements. Managed values cover the whole Editor.",
+            "baselinePrivateMiB": 0,
+            "peakPrivateMiB": 0,
+            "peakWorkingSetMiB": 0
+          },
+          {
+            "operation": "unchanged_save",
+            "available": false,
+            "limitation": "Process counters returned zero/unavailable in this Editor runtime; raw zeros are not memory measurements. Managed values cover the whole Editor.",
+            "baselinePrivateMiB": 0,
+            "peakPrivateMiB": 0,
+            "peakWorkingSetMiB": 0
+          },
+          {
+            "operation": "one_changed_layer_save",
+            "available": false,
+            "limitation": "Process counters returned zero/unavailable in this Editor runtime; raw zeros are not memory measurements. Managed values cover the whole Editor.",
+            "baselinePrivateMiB": 0,
+            "peakPrivateMiB": 0,
+            "peakWorkingSetMiB": 0
+          },
+          {
+            "operation": "open_all_drawing_pixels",
+            "available": false,
+            "limitation": "Process counters returned zero/unavailable in this Editor runtime; raw zeros are not memory measurements. Managed values cover the whole Editor.",
+            "baselinePrivateMiB": 0,
+            "peakPrivateMiB": 0,
+            "peakWorkingSetMiB": 0
+          }
+        ],
+        "saveStagesCount": 0
+      },
+      {
+        "file": "D:/DCFA/Projects/Test6.6/Temp/WhimTex/diagnostics/42193c52568443be8367d149c41baa87/TiffValidationResults/perf-2048-3-ldr-False-streaming.json",
+        "sha256": "b0b6f2dfe23ea2d09a5a98357a3eba7a0abed21969dcb25890f4cf44f9151fdc",
+        "modifiedAtUtc": "2026-10-04T17:15:52.393Z",
+        "size": 2048,
+        "layers": 3,
+        "hdr": false,
+        "randomPixels": false,
+        "measurementCount": 4,
+        "processMemoryAvailability": [
+          {
+            "operation": "first_save_including_import",
+            "available": false,
+            "limitation": "Process counters returned zero/unavailable in this Editor runtime; raw zeros are not memory measurements. Managed values cover the whole Editor.",
+            "baselinePrivateMiB": 0,
+            "peakPrivateMiB": 0,
+            "peakWorkingSetMiB": 0
+          },
+          {
+            "operation": "unchanged_save",
+            "available": false,
+            "limitation": "Process counters returned zero/unavailable in this Editor runtime; raw zeros are not memory measurements. Managed values cover the whole Editor.",
+            "baselinePrivateMiB": 0,
+            "peakPrivateMiB": 0,
+            "peakWorkingSetMiB": 0
+          },
+          {
+            "operation": "one_changed_layer_save",
+            "available": false,
+            "limitation": "Process counters returned zero/unavailable in this Editor runtime; raw zeros are not memory measurements. Managed values cover the whole Editor.",
+            "baselinePrivateMiB": 0,
+            "peakPrivateMiB": 0,
+            "peakWorkingSetMiB": 0
+          },
+          {
+            "operation": "open_all_drawing_pixels",
+            "available": false,
+            "limitation": "Process counters returned zero/unavailable in this Editor runtime; raw zeros are not memory measurements. Managed values cover the whole Editor.",
+            "baselinePrivateMiB": 0,
+            "peakPrivateMiB": 0,
+            "peakWorkingSetMiB": 0
+          }
+        ],
+        "saveStagesCount": 0
+      },
+      {
+        "file": "D:/DCFA/Projects/Test6.6/Temp/WhimTex/diagnostics/5441111826c0480699c75f718d5f843e/TiffValidationResults/perf-2048-3-hdr-False-streaming.json",
+        "sha256": "58ed8efc7498c0dfacf3931c8c8bcea1569b976b5e3bbbe2ccac6081a603ee13",
+        "modifiedAtUtc": "2026-10-04T17:15:57.610Z",
+        "size": 2048,
+        "layers": 3,
+        "hdr": true,
+        "randomPixels": false,
+        "measurementCount": 4,
+        "processMemoryAvailability": [
+          {
+            "operation": "first_save_including_import",
+            "available": false,
+            "limitation": "Process counters returned zero/unavailable in this Editor runtime; raw zeros are not memory measurements. Managed values cover the whole Editor.",
+            "baselinePrivateMiB": 0,
+            "peakPrivateMiB": 0,
+            "peakWorkingSetMiB": 0
+          },
+          {
+            "operation": "unchanged_save",
+            "available": false,
+            "limitation": "Process counters returned zero/unavailable in this Editor runtime; raw zeros are not memory measurements. Managed values cover the whole Editor.",
+            "baselinePrivateMiB": 0,
+            "peakPrivateMiB": 0,
+            "peakWorkingSetMiB": 0
+          },
+          {
+            "operation": "one_changed_layer_save",
+            "available": false,
+            "limitation": "Process counters returned zero/unavailable in this Editor runtime; raw zeros are not memory measurements. Managed values cover the whole Editor.",
+            "baselinePrivateMiB": 0,
+            "peakPrivateMiB": 0,
+            "peakWorkingSetMiB": 0
+          },
+          {
+            "operation": "open_all_drawing_pixels",
+            "available": false,
+            "limitation": "Process counters returned zero/unavailable in this Editor runtime; raw zeros are not memory measurements. Managed values cover the whole Editor.",
+            "baselinePrivateMiB": 0,
+            "peakPrivateMiB": 0,
+            "peakWorkingSetMiB": 0
+          }
+        ],
+        "saveStagesCount": 0
+      }
+    ],
+    "roundedArtifact": {
+      "id": "whim-tex-gradient-rounded-capture-v2",
+      "name": "rounded-capture.csv",
+      "encoding": "base64",
+      "byteLength": 597305,
+      "sha256": "639f32bb5e4dc928515f00531d58c6ecec77f1d4b87d39b06054f03ab52930aa",
+      "dataRows": 12291,
+      "cleanup": {
+        "status": "passed",
+        "checks": 0,
+        "message": "Cleanup acknowledgement only: owned diagnostic CSV removed; no regression assertions",
+        "failures": []
+      },
+      "standaloneFileStillExists": false
+    },
+    "sources": [
+      {
+        "file": "Tests~/Cases/UnityD/SmallDocumentSaveDiagnostics.cs",
+        "sha256": "fa6cdbb69ee2a225856ce47538e75323b98d9104d2807524cfad125c5dba9d29"
+      },
+      {
+        "file": "Tests~/Framework/TestApi.cs",
+        "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+      },
+      {
+        "file": "Tests~/Cases/UnityD/MigrationD.cs",
+        "sha256": "a88afedfbdf1a9460c0507fc1c9faa5be7b844cabbab5bcae7090c54d7140322"
+      },
+      {
+        "file": "Tests~/Cases/UnityD/WhimTexGradientRoundedTests.cs",
+        "sha256": "e3c9752d633e7b0593360c17b77b168f9cafb76f272becbee6931452afb7498a"
+      },
+      {
+        "file": "Tests~/Cases/UnityB/DocumentBurstHashTests.cs",
+        "sha256": "128f601d630019f4fbbc02d74b8084b351f7962a6495fd1702b7ba9802c1ba27"
+      },
+      {
+        "file": "Tests~/Cases/UnityB/UnityBSupport.cs",
+        "sha256": "5107b85a00b8456f0cddc81247698cc824773dc2f7ece6f1d5a8c42c246ae486"
+      },
+      {
+        "file": "Tests~/Cases/UnityB/DocumentPerformanceTests.cs",
+        "sha256": "9eeb75992881c9a3465349e54bc4edb5eeaa68772d7acaa191e2fd0648581ede"
+      },
+      {
+        "file": "Tests~/Cases/UnityB/DocumentSaveCostTests.cs",
+        "sha256": "74a21260f1b081e914520b4eaf7152310a370f0451c303784516a4e0199a097c"
+      }
+    ],
+    "limits": [
+      "Intentional RoundedCapture SKIP0 is not a regression PASS or reference golden. Raw report.success=false retained.",
+      "Durable GUID reports identified by content and modification time within native24 window; runtime report does not record the UnityBRun random per-scope evidence GUID. Do not claim a direct run-GUID path binding.",
+      "Burst persisted report.checks=812 differs from structured runner checks=817 because final additional checks occur after report write; do not conflate these counts.",
+      "Whole-editor process counters remain unavailable: all16 raw process baselines/peaks zero, availability false with explicit limitation; saveStages empty supplies no stage-completion oracle."
+    ],
+    "inputBundles": [
+      {
+        "sha256": "34aa6269addc5e11444303845fb14ae81a3280d9f81d097704fa5de7a0195ba8",
+        "file": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-e3386dbb-347e-4c94-b9f6-d0846757687c-small-document-save-carrier-1024-v2.cs",
+        "sources": [
+          "Tests~/Cases/UnityD/SmallDocumentSaveDiagnostics.cs",
+          "Tests~/Framework/TestApi.cs",
+          "Tests~/Cases/UnityD/MigrationD.cs"
+        ],
+        "currentSourceBundleMatches": true,
+        "bundleVerified": true
+      },
+      {
+        "sha256": "f107ba7713772603eb9855c8ec8906adebf60563d0be6afa2ed2fbe05751680a",
+        "file": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-e3386dbb-347e-4c94-b9f6-d0846757687c-whim-tex-gradient-rounded-capture-v2.cs",
+        "sources": [
+          "Tests~/Cases/UnityD/WhimTexGradientRoundedTests.cs",
+          "Tests~/Framework/TestApi.cs",
+          "Tests~/Cases/UnityD/MigrationD.cs"
+        ],
+        "currentSourceBundleMatches": true,
+        "bundleVerified": true
+      },
+      {
+        "sha256": "8dbb2d5dd6ac529175a13e0a5385f7b1857da61074c805a40f281dc4eef95825",
+        "file": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-e3386dbb-347e-4c94-b9f6-d0846757687c-document-burst-hash-probe-v2.cs",
+        "sources": [
+          "Tests~/Cases/UnityB/DocumentBurstHashTests.cs",
+          "Tests~/Framework/TestApi.cs",
+          "Tests~/Cases/UnityB/UnityBSupport.cs"
+        ],
+        "currentSourceBundleMatches": true,
+        "bundleVerified": true
+      },
+      {
+        "sha256": "a8baac92d35274c3895f90117857ce39086808ad680c4ebd3e5b425d567e8a98",
+        "file": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-e3386dbb-347e-4c94-b9f6-d0846757687c-document-performance-probe-hdr-constant-v2.cs",
+        "sources": [
+          "Tests~/Cases/UnityB/DocumentPerformanceTests.cs",
+          "Tests~/Framework/TestApi.cs",
+          "Tests~/Cases/UnityB/UnityBSupport.cs"
+        ],
+        "currentSourceBundleMatches": true,
+        "bundleVerified": true
+      },
+      {
+        "sha256": "48b141a8513c00c9c43a6160f59cbcd41eda21d61aafd8c2afde52c993150a94",
+        "file": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-e3386dbb-347e-4c94-b9f6-d0846757687c-document-save-cost-probe-cache-safety-v2.cs",
+        "sources": [
+          "Tests~/Cases/UnityB/DocumentSaveCostTests.cs",
+          "Tests~/Framework/TestApi.cs",
+          "Tests~/Cases/UnityB/UnityBSupport.cs"
+        ],
+        "currentSourceBundleMatches": true,
+        "bundleVerified": true
+      }
+    ],
+    "sourceStatus": "final-source-reviewed; batch freeze released by parent after native24; no pending source edits",
+    "agentUnityExecuted": false
   }
 }

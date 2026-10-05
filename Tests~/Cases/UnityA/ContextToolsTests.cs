@@ -31,6 +31,152 @@ static System.Threading.CancellationToken Cancellation;
     }
     static bool Property(object target, string name) => (bool)target.GetType().GetProperty(name, Instance).GetValue(target);
 
+    sealed class ToolbarLayoutTrace : IDisposable
+    {
+        readonly TextureCompositorWindow window;
+        readonly VisualElement root;
+        readonly ScrollView scroll;
+        readonly VisualElement button;
+        readonly string path;
+        readonly Action<ToolbarLayoutTrace, string> probe;
+        readonly System.Diagnostics.Stopwatch clock = System.Diagnostics.Stopwatch.StartNew();
+        readonly List<string> lines = new List<string>();
+        readonly List<(VisualElement element, EventCallback<GeometryChangedEvent> callback)> callbacks =
+            new List<(VisualElement, EventCallback<GeometryChangedEvent>)>();
+        int updates;
+        bool disposed;
+        bool disposing;
+        bool updateSubscribed;
+        string previous;
+        public int ActiveSubscriptions => callbacks.Count + (updateSubscribed ? 1 : 0);
+        public int GeometryCallbackCount { get; private set; }
+        public ToolbarLayoutTrace(TextureCompositorWindow owner, string output,
+            Action<ToolbarLayoutTrace, string> faultProbe = null)
+        {
+            window = owner; path = output; probe = faultProbe;
+            root = owner.rootVisualElement;
+            scroll = root.Q<ScrollView>("canvasToolScroll");
+            button = root.Q<Button>("temporaryCanvasTool");
+            try
+            {
+                Observe(root, "root"); Observe(scroll, "scroll");
+                Observe(scroll.contentViewport, "viewport"); Observe(scroll.contentContainer, "content");
+                Observe(button, "button");
+                EditorApplication.update += Update; updateSubscribed = true;
+                Sample("attached");
+            }
+            catch (Exception error)
+            {
+                disposed = true;
+                var failures = new List<Exception> { error };
+                Detach(failures);
+                throw new AggregateException("Owned toolbar trace setup failed.", failures);
+            }
+        }
+        void Observe(VisualElement element, string name)
+        {
+            if (element == null) throw new InvalidOperationException("Missing owned trace element: " + name);
+            EventCallback<GeometryChangedEvent> callback = evt =>
+            {
+                GeometryCallbackCount++;
+                Sample("geometry:" + name + ":" + evt.oldRect + "->" + evt.newRect);
+            };
+            callbacks.Add((element, callback)); element.RegisterCallback(callback);
+        }
+        string State() => "window=" + (window != null ? window.position.ToString() : "<destroyed>") + ";root=" + root.worldBound
+            + ";viewport=" + scroll.contentViewport.worldBound + ";content=" + scroll.contentContainer.worldBound
+            + ";offset=" + scroll.scrollOffset + ";range=" + scroll.verticalScroller.lowValue + "," + scroll.verticalScroller.highValue
+            + ";button=" + button.worldBound + ";display=" + button.resolvedStyle.display
+            + ";selected=" + scroll.Q<Button>(className: "whimtex-tool-button--selected")?.name;
+        public void Sample(string reason)
+        {
+            if (disposed || lines.Count >= 1024) return;
+            probe?.Invoke(this, reason);
+            previous = State();
+            lines.Add(clock.ElapsedMilliseconds + "ms;update=" + updates + ";" + reason + ";" + previous);
+        }
+        public async Task AwaitResizedPanel(int width, int height, System.Threading.CancellationToken cancellation)
+        {
+            var budget = System.Diagnostics.Stopwatch.StartNew();
+            while (Mathf.Abs(window.rootVisualElement.worldBound.width - width) > .1f ||
+                Mathf.Abs(window.rootVisualElement.worldBound.height - height) > .1f)
+            {
+                if (budget.ElapsedMilliseconds >= 1000) throw new TimeoutException("Owned panel did not apply the requested resize.");
+                await WhimTex.Tests.UnityA.UnityAAsync.Delay(10, cancellation);
+            }
+            // Geometry schedules the product's reveal. Join the following panel scheduler turn,
+            // not the assertion's desired button position; a broken ScrollTo still fails below.
+            var completed = new TaskCompletionSource<bool>();
+            var barrier = scroll.schedule.Execute(() => completed.TrySetResult(true));
+            try
+            {
+                int remaining = Math.Max(1, 1000 - (int)budget.ElapsedMilliseconds);
+                if (await Task.WhenAny(completed.Task, WhimTex.Tests.UnityA.UnityAAsync.Delay(remaining, cancellation)) != completed.Task)
+                {
+                    cancellation.ThrowIfCancellationRequested();
+                    throw new TimeoutException("Owned panel scheduler did not complete after resize.");
+                }
+                await completed.Task;
+                Sample("minimum-panel-scheduler-completed");
+            }
+            finally { barrier.Pause(); }
+        }
+        void Update()
+        {
+            if (disposed) return;
+            updates++;
+            if (State() != previous) Sample("editor-update");
+        }
+        static void Attempt(List<Exception> failures, Action action)
+        {
+            try { action(); } catch (Exception error) { failures.Add(error); }
+        }
+        void Detach(List<Exception> failures)
+        {
+            if (updateSubscribed)
+                Attempt(failures, () => { EditorApplication.update -= Update; updateSubscribed = false; });
+            for (int i = callbacks.Count - 1; i >= 0; i--)
+            {
+                var item = callbacks[i];
+                try { item.element.UnregisterCallback(item.callback); callbacks.RemoveAt(i); }
+                catch (Exception error) { failures.Add(error); }
+            }
+        }
+        public void Dispose()
+        {
+            if (disposing || (disposed && ActiveSubscriptions == 0)) return;
+            disposing = true;
+            var failures = new List<Exception>();
+            try
+            {
+                bool firstDispose = !disposed;
+                if (firstDispose) Attempt(failures, () => Sample("finished"));
+                disposed = true;
+                Detach(failures);
+                if (firstDispose)
+                {
+                    Attempt(failures, () => System.IO.File.WriteAllLines(path, lines));
+                    Attempt(failures, () => Debug.Log("WhimTex ContextTools layout trace: " + path));
+                }
+            }
+            finally { disposing = false; }
+            if (failures.Count != 0) throw new AggregateException("Owned toolbar trace cleanup failed.", failures);
+        }
+    }
+
+    static void SendTraceGeometryEvents(TextureCompositorWindow window)
+    {
+        var root = window.rootVisualElement;
+        var scroll = root.Q<ScrollView>("canvasToolScroll");
+        foreach (var element in new[] { root, scroll, scroll.contentViewport, scroll.contentContainer,
+            root.Q<Button>("temporaryCanvasTool") })
+        {
+            using var evt = GeometryChangedEvent.GetPooled(element.layout, element.layout);
+            evt.target = element;
+            element.SendEvent(evt);
+        }
+    }
+
     private static async Task<string> BodyRun()
     {
         string[] prefs = { "DCFApixels.WhimTex.Canvas.Tool", "DCFApixels.WhimTex.Canvas.TransformReturnTool" };
@@ -39,6 +185,7 @@ static System.Threading.CancellationToken Cancellation;
         var previousFocus = EditorWindow.focusedWindow;
         TextureCompositorWindow window = null;
         ShaderFX fx = null;
+        ToolbarLayoutTrace trace = null;
         int checks = 0;
         void Check(bool ok, string message) { T.True(ok, message); }
         try
@@ -97,7 +244,7 @@ static System.Threading.CancellationToken Cancellation;
             IsTool("Pencil", "Disabling UV returns base");
             Check(!Visible("uvIslandSelectTool"), "UV button hidden when disabled");
 
-            fx = ScriptableObject.CreateInstance<ShaderFX>();
+            fx = Scope.OwnObject(ScriptableObject.CreateInstance<ShaderFX>());
             fx.hideFlags = HideFlags.HideAndDontSave;
             var point = new ShaderFXParameter { name = "_Point", type = ShaderFXParameterType.Point, vectorValue = new Vector4(.5f, .5f, 0, 0) };
             var normal = new ShaderFXParameter { name = "_Normal", type = ShaderFXParameterType.Normal, vectorValue = new Vector4(0, 0, 1, 0) };
@@ -221,6 +368,8 @@ static System.Threading.CancellationToken Cancellation;
             IsTool("Brush", "View rebuild preserves manual tool selection");
             await WhimTex.Tests.UnityA.UnityAAsync.Delay(100, Cancellation);
             Check(window.rootVisualElement.Q<Button>("gradientHandlesTool").resolvedStyle.width > 0, "Visible context button has a layout");
+            trace = new ToolbarLayoutTrace(window, System.IO.Path.Combine(Scope.Temp, "context-tools-layout.txt"));
+            Scope.Finally(trace.Dispose);
 
             // A known, owned top Undo record makes this safe for the user's existing history.
             Undo.IncrementCurrentGroup();
@@ -241,8 +390,12 @@ static System.Threading.CancellationToken Cancellation;
             parameters = (List<ShaderFXParameter>)Read(fx, "parameters");
             Check(parameters[0].vectorValue == new Vector4(.1f, .9f, 0, 0), "Redo restores owned parameter data");
             Write(window, "uvEnabled", true); Refresh();
+            trace.Sample("before-minimum-resize");
             window.position = new Rect(120, 120, 640, 420);
+            trace.Sample("minimum-resize-requested");
             await WhimTex.Tests.UnityA.UnityAAsync.Delay(100, Cancellation);
+            trace.Sample("minimum-after-original-100ms");
+            await trace.AwaitResizedPanel(640, 420, Cancellation);
             var lastButton = window.rootVisualElement.Q<Button>("temporaryCanvasTool");
             Check(lastButton.worldBound.yMax <= window.rootVisualElement.worldBound.yMax,
                 "Temporary tool fits minimum window: " + lastButton.worldBound + " root: " + window.rootVisualElement.worldBound);
@@ -276,6 +429,74 @@ static System.Threading.CancellationToken Cancellation;
                     SetTool(name); await CheckCanvasLayout(name + " at " + width);
                 }
             }
+            var constructorFault = new InvalidOperationException("Owned trace attached-sample probe.");
+            ToolbarLayoutTrace constructorTrace = null;
+            AggregateException constructorFailure = null;
+            try
+            {
+                constructorTrace = new ToolbarLayoutTrace(window, System.IO.Path.Combine(Scope.Temp, "trace-constructor.txt"),
+                    (instance, reason) =>
+                    {
+                        if (reason != "attached") return;
+                        constructorTrace = instance;
+                        Scope.Finally(instance.Dispose);
+                        throw constructorFault;
+                    });
+                Scope.Finally(constructorTrace.Dispose);
+            }
+            catch (AggregateException error) { constructorFailure = error; }
+            Check(constructorFailure != null && constructorFailure.Flatten().InnerExceptions.Any(error => ReferenceEquals(error, constructorFault)),
+                "Trace constructor preserves its original setup failure");
+            Check(constructorTrace != null && constructorTrace.ActiveSubscriptions == 0,
+                "Trace constructor rollback detaches all geometry/update subscriptions");
+            int constructorCallbacks = constructorTrace.GeometryCallbackCount;
+            SendTraceGeometryEvents(window);
+            Check(constructorTrace.GeometryCallbackCount == constructorCallbacks,
+                "Public geometry events do not invoke rolled-back trace callbacks");
+
+            var disposalFault = new InvalidOperationException("Owned trace finished-sample probe.");
+            var disposalTrace = new ToolbarLayoutTrace(window, System.IO.Path.Combine(Scope.Temp, "trace-dispose.txt"),
+                (instance, reason) => { if (reason == "finished") throw disposalFault; });
+            Scope.Finally(disposalTrace.Dispose);
+            Check(disposalTrace.ActiveSubscriptions == 6, "Live trace owns five geometry callbacks and one update subscription");
+            int liveCallbacks = disposalTrace.GeometryCallbackCount;
+            SendTraceGeometryEvents(window);
+            Check(disposalTrace.GeometryCallbackCount == liveCallbacks + 5, "Public geometry events reach all five live trace callbacks");
+            AggregateException disposalFailure = null;
+            try { disposalTrace.Dispose(); } catch (AggregateException error) { disposalFailure = error; }
+            Check(disposalFailure != null && disposalFailure.Flatten().InnerExceptions.Any(error => ReferenceEquals(error, disposalFault)),
+                "Trace disposal preserves its sample failure while attempting cleanup");
+            Check(disposalTrace.ActiveSubscriptions == 0, "Trace disposal detaches all subscriptions despite sample failure");
+            int disposedCallbacks = disposalTrace.GeometryCallbackCount;
+            SendTraceGeometryEvents(window);
+            Check(disposalTrace.GeometryCallbackCount == disposedCallbacks, "Public geometry events do not invoke disposed trace callbacks");
+            disposalTrace.Dispose();
+            Check(disposalTrace.ActiveSubscriptions == 0, "Trace disposal is idempotent after reporting its original error");
+
+            var bodyFault = new InvalidOperationException("Owned trace body-failure probe.");
+            var cleanupFault = new InvalidOperationException("Owned trace cleanup-failure probe.");
+            ToolbarLayoutTrace aggregateTrace = null;
+            AggregateException combinedFailure = null;
+            try
+            {
+                await WhimTex.Tests.UnityA.UnityAScope.RunOwnedAsync(faultScope =>
+                {
+                    aggregateTrace = new ToolbarLayoutTrace(window, System.IO.Path.Combine(Scope.Temp, "trace-aggregate.txt"),
+                        (instance, reason) => { if (reason == "finished") throw cleanupFault; });
+                    faultScope.Finally(aggregateTrace.Dispose);
+                    Scope.Finally(aggregateTrace.Dispose);
+                    return Task.FromException(bodyFault);
+                });
+            }
+            catch (AggregateException error) { combinedFailure = error; }
+            Check(combinedFailure != null && combinedFailure.Flatten().InnerExceptions.Any(error => ReferenceEquals(error, bodyFault)) &&
+                combinedFailure.Flatten().InnerExceptions.Any(error => ReferenceEquals(error, cleanupFault)) &&
+                combinedFailure.Data["WhimTexCleanupFailure"] is string,
+                "Owned async scope retains both body and trace-cleanup failures plus cleanup status evidence");
+            Check(aggregateTrace != null && aggregateTrace.ActiveSubscriptions == 0, "Combined body/cleanup failure still detaches trace subscriptions");
+            int aggregateCallbacks = aggregateTrace.GeometryCallbackCount;
+            SendTraceGeometryEvents(window);
+            Check(aggregateTrace.GeometryCallbackCount == aggregateCallbacks, "Combined-failure trace receives no subsequent geometry callbacks");
             return null;
         }
         finally
@@ -293,4 +514,3 @@ public static string Poll(string runId) => WhimTex.Tests.UnityA.UnityAAsync.Poll
 public static System.Threading.Tasks.Task<string> Cancel(string runId) => WhimTex.Tests.UnityA.UnityAAsync.Cancel(runId);
 public static System.Threading.Tasks.Task<string> Cleanup(string runId) => WhimTex.Tests.UnityA.UnityAAsync.Cleanup(runId);
 }
-

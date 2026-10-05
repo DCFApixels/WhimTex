@@ -1,0 +1,238 @@
+{
+  "report": "Temp/WhimTex/test-runs/2026-10-04T18-42-29.565Z-131380.json",
+  "sha256": "0d4034c73fa760b5850a3ad80674a1ddba7d05d3925ceb15503e1c5e21e846a3",
+  "fingerprint": "8e95e26302756170c890c2e82b0e89b4f1d5f030e9a6d03042f7fa9d19023e48",
+  "productionFingerprint": "a3da14871f6e0bf5c49a6f077b1026720e0fb2d3c28a49213dd715f3dd2b7738",
+  "recoveryRequired": false,
+  "input": {
+    "id": "color-picker-eyedropper-native-inspection-v2",
+    "file": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-3913a3a8-9d56-4a62-991a-73550caf6840-color-picker-eyedropper-native-inspection-v2.cs",
+    "sources": [
+      "Tests~/Cases/UnityA/ColorPickerEyedropperTests.cs",
+      "Tests~/Framework/TestApi.cs",
+      "Tests~/Cases/UnityA/UnityAScope.cs"
+    ],
+    "sha256": "00a727ede53c3027c0d9536992fbe531b49aaf2b04d31c84448f79107cabf990"
+  },
+  "results": [
+    {
+      "id": "color-picker-eyedropper-v2",
+      "status": "passed",
+      "uncertain": false,
+      "checks": 20,
+      "failures": [],
+      "cleanup": []
+    },
+    {
+      "id": "color-picker-eyedropper-native-preview-v2",
+      "status": "passed",
+      "uncertain": false,
+      "checks": 7,
+      "failures": [],
+      "cleanup": [
+        {
+          "status": "passed",
+          "checks": 2,
+          "message": "Owned async carrier released",
+          "failures": []
+        }
+      ]
+    },
+    {
+      "id": "color-picker-eyedropper-native-render-v2",
+      "status": "passed",
+      "uncertain": false,
+      "checks": 7,
+      "failures": [],
+      "cleanup": [
+        {
+          "status": "passed",
+          "checks": 2,
+          "message": "Owned async carrier released",
+          "failures": []
+        }
+      ]
+    },
+    {
+      "id": "color-picker-eyedropper-native-inspection-v2",
+      "status": "passed",
+      "uncertain": false,
+      "checks": 20,
+      "failures": [],
+      "cleanup": [
+        {
+          "status": "passed",
+          "checks": 2,
+          "message": "Owned async carrier released",
+          "failures": []
+        }
+      ]
+    }
+  ],
+  "inspection": {
+    "polls": 22,
+    "freshAssemblies": 22,
+    "allSameRunAndScope": true,
+    "repeatedGetterIncrements": true,
+    "callerMatchesRawAssembly": true,
+    "first": {
+      "callerAssembly": "PipelineRunScript_input-3913a3a8-9d56-4a62-991a-73550caf6840-color-picker-eyedropper-native-inspection-v2_bdaa6871b9484aef9f57b570635b7481, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+      "proof": "Actual repeated getter observations from this Poll assembly; no behavior/visual equivalence verdict.",
+      "inspectionFirst": {
+        "status": "running",
+        "runId": "3913a3a8-9d56-4a62-991a-73550caf6840",
+        "scopeGuid": "047116e376e943789b84a2677748e468",
+        "phase": "live native inspection before capture",
+        "elapsedMs": 688,
+        "pointerAtMs": 200,
+        "captureAtMs": -1,
+        "inspections": 3,
+        "activeCallbacks": 4,
+        "callbackInvocations": 1463,
+        "windowAlive": true,
+        "state": "owned=False; pending=False; native=False; hidden=True; canDraw=True; trace=target callback, native=True; pending=False; after send native=True; pending=False",
+        "captured": false,
+        "retained": false,
+        "artifactPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\tests-unity-a-artifacts\\047116e376e943789b84a2677748e468\\color-picker-eyedropper-inspection.png",
+        "captureState": null,
+        "message": "Diagnostic state only; no original image/lifetime oracle."
+      },
+      "inspectionSecond": {
+        "status": "running",
+        "runId": "3913a3a8-9d56-4a62-991a-73550caf6840",
+        "scopeGuid": "047116e376e943789b84a2677748e468",
+        "phase": "live native inspection before capture",
+        "elapsedMs": 688,
+        "pointerAtMs": 200,
+        "captureAtMs": -1,
+        "inspections": 4,
+        "activeCallbacks": 4,
+        "callbackInvocations": 1463,
+        "windowAlive": true,
+        "state": "owned=False; pending=False; native=False; hidden=True; canDraw=True; trace=target callback, native=True; pending=False; after send native=True; pending=False",
+        "captured": false,
+        "retained": false,
+        "artifactPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\tests-unity-a-artifacts\\047116e376e943789b84a2677748e468\\color-picker-eyedropper-inspection.png",
+        "captureState": null,
+        "message": "Diagnostic state only; no original image/lifetime oracle."
+      },
+      "nativeAssembly": "PipelineRunScript_input-3913a3a8-9d56-4a62-991a-73550caf6840-color-picker-eyedropper-native-inspection-v2_bdaa6871b9484aef9f57b570635b7481"
+    },
+    "lastLive": {
+      "callerAssembly": "PipelineRunScript_input-3913a3a8-9d56-4a62-991a-73550caf6840-color-picker-eyedropper-native-inspection-v2_3941893bea2e4dafb606ddb9a7b48124, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+      "proof": "Actual repeated getter observations from this Poll assembly; no behavior/visual equivalence verdict.",
+      "inspectionFirst": {
+        "status": "running",
+        "runId": "3913a3a8-9d56-4a62-991a-73550caf6840",
+        "scopeGuid": "047116e376e943789b84a2677748e468",
+        "phase": "live inspection after capture; waiting for 15s automatic cleanup",
+        "elapsedMs": 15174,
+        "pointerAtMs": 200,
+        "captureAtMs": 1399,
+        "inspections": 45,
+        "activeCallbacks": 4,
+        "callbackInvocations": 34450,
+        "windowAlive": true,
+        "state": "owned=False; pending=False; native=False; hidden=True; canDraw=True; trace=target callback, native=True; pending=False; after send native=True; pending=False",
+        "captured": true,
+        "retained": false,
+        "artifactPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\tests-unity-a-artifacts\\047116e376e943789b84a2677748e468\\color-picker-eyedropper-inspection.png",
+        "captureState": "owned=False; pending=False; native=False; hidden=True; canDraw=True; trace=target callback, native=True; pending=False; after send native=True; pending=False",
+        "message": "Diagnostic state only; no original image/lifetime oracle."
+      },
+      "inspectionSecond": {
+        "status": "running",
+        "runId": "3913a3a8-9d56-4a62-991a-73550caf6840",
+        "scopeGuid": "047116e376e943789b84a2677748e468",
+        "phase": "live inspection after capture; waiting for 15s automatic cleanup",
+        "elapsedMs": 15174,
+        "pointerAtMs": 200,
+        "captureAtMs": 1399,
+        "inspections": 46,
+        "activeCallbacks": 4,
+        "callbackInvocations": 34450,
+        "windowAlive": true,
+        "state": "owned=False; pending=False; native=False; hidden=True; canDraw=True; trace=target callback, native=True; pending=False; after send native=True; pending=False",
+        "captured": true,
+        "retained": false,
+        "artifactPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\tests-unity-a-artifacts\\047116e376e943789b84a2677748e468\\color-picker-eyedropper-inspection.png",
+        "captureState": "owned=False; pending=False; native=False; hidden=True; canDraw=True; trace=target callback, native=True; pending=False; after send native=True; pending=False",
+        "message": "Diagnostic state only; no original image/lifetime oracle."
+      },
+      "nativeAssembly": "PipelineRunScript_input-3913a3a8-9d56-4a62-991a-73550caf6840-color-picker-eyedropper-native-inspection-v2_3941893bea2e4dafb606ddb9a7b48124"
+    },
+    "final": {
+      "callerAssembly": "PipelineRunScript_input-3913a3a8-9d56-4a62-991a-73550caf6840-color-picker-eyedropper-native-inspection-v2_477bb5c2ce2348e0985e725df2ebe0dd, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+      "proof": "Actual repeated getter observations from this Poll assembly; no behavior/visual equivalence verdict.",
+      "inspectionFirst": {
+        "status": "closed",
+        "runId": "3913a3a8-9d56-4a62-991a-73550caf6840",
+        "scopeGuid": "047116e376e943789b84a2677748e468",
+        "phase": "closed; diagnostic artifacts preserved by scope cleanup",
+        "elapsedMs": 15974,
+        "pointerAtMs": 200,
+        "captureAtMs": 1399,
+        "inspections": 49,
+        "activeCallbacks": 0,
+        "callbackInvocations": 34452,
+        "windowAlive": false,
+        "state": "Temporary preview test closed.",
+        "captured": true,
+        "retained": true,
+        "artifactPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\tests-unity-a-artifacts\\047116e376e943789b84a2677748e468\\color-picker-eyedropper-inspection.png",
+        "captureState": "owned=False; pending=False; native=False; hidden=True; canDraw=True; trace=target callback, native=True; pending=False; after send native=True; pending=False",
+        "message": "Diagnostic state only; no original image/lifetime oracle."
+      },
+      "inspectionSecond": {
+        "status": "closed",
+        "runId": "3913a3a8-9d56-4a62-991a-73550caf6840",
+        "scopeGuid": "047116e376e943789b84a2677748e468",
+        "phase": "closed; diagnostic artifacts preserved by scope cleanup",
+        "elapsedMs": 15975,
+        "pointerAtMs": 200,
+        "captureAtMs": 1399,
+        "inspections": 50,
+        "activeCallbacks": 0,
+        "callbackInvocations": 34452,
+        "windowAlive": false,
+        "state": "Temporary preview test closed.",
+        "captured": true,
+        "retained": true,
+        "artifactPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\tests-unity-a-artifacts\\047116e376e943789b84a2677748e468\\color-picker-eyedropper-inspection.png",
+        "captureState": "owned=False; pending=False; native=False; hidden=True; canDraw=True; trace=target callback, native=True; pending=False; after send native=True; pending=False",
+        "message": "Diagnostic state only; no original image/lifetime oracle."
+      },
+      "nativeAssembly": "PipelineRunScript_input-3913a3a8-9d56-4a62-991a-73550caf6840-color-picker-eyedropper-native-inspection-v2_477bb5c2ce2348e0985e725df2ebe0dd"
+    },
+    "runId": "3913a3a8-9d56-4a62-991a-73550caf6840"
+  },
+  "artifacts": [
+    {
+      "file": "Temp/WhimTex/tests-unity-a-artifacts/047116e376e943789b84a2677748e468/color-picker-eyedropper-inspection-state.txt",
+      "bytes": 366,
+      "sha256": "600b5179252ac63a2b29a7fdb9371ded01fd2bc47727ac4fa89332c2bf985dfb",
+      "text": "217ms after pointer propagation; owned=True; pending=False; native=True; hidden=False; canDraw=True; trace=target callback, native=True; pending=False; after send native=True; pending=False\r\n1399ms capture; owned=False; pending=False; native=False; hidden=True; canDraw=True; trace=target callback, native=True; pending=False; after send native=True; pending=False\r\n"
+    },
+    {
+      "file": "Temp/WhimTex/tests-unity-a-artifacts/047116e376e943789b84a2677748e468/color-picker-eyedropper-inspection.png",
+      "bytes": 38162,
+      "sha256": "a3938a74b979e328b46795e1298e77de82b2031f08d3de5e8c5680a88a4ec63b",
+      "width": 240,
+      "height": 520
+    }
+  ],
+  "source": {
+    "file": "Tests~/Cases/UnityA/ColorPickerEyedropperTests.cs",
+    "sha256": "eb07218b1a960f8a2b1b109a2459b25e16d94f84edb3d8d7d6b2a0c5ab27236d"
+  },
+  "version": 1,
+  "scope": "Actual four current native scenarios; same-GUID live getter in22 distinct Poll assemblies,15s owned window,real PNG and joined cleanup. Manual diagnostic success is not native sampling lifetime/image-golden equivalence.",
+  "visualReview": {
+    "pngViewed": true,
+    "description": "Actual240x520red picker/ring/square; SHA matches the earlier current preview capture. Native sampling ended before capture even while manual window stayed open15s. Closure cause unknown; original manual helper had no sampling-duration/image comparison assertion.",
+    "manualEquivalenceCertified": false
+  },
+  "cancellationEvidence": "Temp/WhimTex/test-runs/eyedropper-native-inspection-cancellation.json",
+  "historicalReview": "Tests~/CoverageAudit/eyedropper-final-runtime-review.json",
+  "historicalCompileFailure": "Temp/WhimTex/test-runs/2026-10-04T18-37-30.815Z-127084.json"
+}

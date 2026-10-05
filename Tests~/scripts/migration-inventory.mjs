@@ -78,7 +78,7 @@ export function proposals(packageRoot = root) {
         const ids = newScenarios.filter(predicate).map(s => s.id);
         if (ids.length) catalog.profiles[name] = ids;
     };
-    profile('new-node', s => s.runner === 'node' && !s.requiresUnity);
+    profile('new-node', s => s.runner === 'node' && !s.requiresUnity && !s.effects.length);
     profile('new-unity-memory', s => s.runner === 'run_script' && s.category !== 'diagnostic' && !s.effects.length);
     profile('new-unity-assets', s => s.runner === 'run_script' && s.category !== 'diagnostic' && s.effects.includes('assets'));
     profile('new-regressions', s => s.category !== 'diagnostic');

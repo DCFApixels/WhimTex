@@ -1,23 +1,29 @@
 // Read-only final snapshot emitter. The parent saves its output with apply_patch.
 // Source review, successful execution and full equivalence remain distinct.
-import fs from 'node:fs';
 import path from 'node:path';
 import { buildInventory, sha256, defaultRoot } from './coverage-gate.mjs';
 import { productionFingerprint } from '../scripts/run-tests.mjs';
+import { legacyIO } from '../scripts/legacy.mjs';
 
 export function finalInventory() {
     const root = defaultRoot, project = path.resolve(root, '../..');
+    const io = legacyIO(root);
     const gate = buildInventory({ root, projectPath: project });
-    const catalog = JSON.parse(fs.readFileSync(path.join(root, 'Tests~/scripts/test-catalog.json')));
-    const manifestBytes = fs.readFileSync(path.join(root, 'Tests~/legacy-manifest.json'));
+    const catalog = JSON.parse(io.readFileSync(path.join(root, 'Tests~/scripts/test-catalog.json')));
+    const manifestBytes = io.readFileSync(path.join(root, 'Tests~/legacy-manifest.json'));
     if (sha256(manifestBytes) !== gate.archive.manifestRawSha256) throw Error('Frozen manifest changed during snapshot.');
     const archive = new Map(JSON.parse(manifestBytes).files.map(f => [f.file, f.sha256]));
     const runtime = new Map();
     for (const f of gate.files) for (const r of f.runtime) runtime.set(r.id, r);
     const scenarios = catalog.scenarios.filter(s => !s.legacy);
-    const latestReports = new Set([...runtime.values()].map(r => r.latest?.report).filter(Boolean));
-    const reports = [...latestReports].sort().map(file => ({ file,
-        sha256: sha256(fs.readFileSync(path.join(project, file))) }));
+    const retainedReports = new Set(gate.runtimeHistory.flatMap(r => r.history.map(e => e.report))
+        .concat(gate.retiredRuntimeEvidence.map(e => e.report)).filter(Boolean));
+    const scannedReportHashes = new Map(gate.reportInputs.map(r => [path.resolve(r.file), r.rawSha256]));
+    const reports = [...retainedReports].sort().map(file => {
+        const absolute = path.join(project, file), hash = sha256(io.readFileSync(absolute));
+        if (hash !== scannedReportHashes.get(absolute)) throw Error('Raw runtime receipt changed during snapshot: ' + file);
+        return { file, sha256: hash };
+    });
     const reportIndex = new Map(reports.map((r, i) => [r.file, i]));
     const count = values => Object.fromEntries([...new Set(values)].sort().map(v => [v, values.filter(x => x === v).length]));
     const actualProduction = productionFingerprint(root);
@@ -46,6 +52,11 @@ export function finalInventory() {
                 e?.input?.recordedSha256 ?? null, e?.invocation?.verified ?? null, e?.receiptMatches ?? null];
         }),
         reports,
+        runtimeHistory: gate.runtimeHistory,
+        retiredRuntimeEvidence: gate.retiredRuntimeEvidence,
+        workflowPhaseCoverage: [...runtime.values()].filter(r => r.phaseCoverage).map(r => ({
+            id: r.id, standaloneRuntimeStatus: r.status, ...r.phaseCoverage
+        })),
         issues: gate.files.filter(f => f.sourceGaps.length || f.externalGaps.length || f.pending.length || f.stale.length || f.missing.length ||
             f.runtime.some(r => r.status === 'current-not-passed')).map(f => ({
             legacyFile: f.legacyFile, sourceGaps: f.sourceGaps, externalGaps: f.externalGaps,
@@ -57,8 +68,9 @@ export function finalInventory() {
         archiveRemovalAllowed: false, automaticFullCoverage: false,
         limitations: [
             'All original source responsibilities were reviewed independently; audit receipts bind those claims, not an automatic semantic proof.',
-            'Only three explicitly reviewed pilot pairs use same-report Legacy/new runtime comparison.',
-            'Diagnostic/manual producers, performance observations and missing historical inputs are not certified by regression PASS counts.',
+            'Three historical reviewed pilot pairs used same-report Legacy/new runtime comparison; their old receipts are not re-signed after dispatcher retirement.',
+            'Current runtime credit requires the current dispatcher/archive-descriptor fingerprint, including native runs with an otherwise unchanged input bundle. Previous receipts remain in runtimeHistory/retiredRuntimeEvidence.',
+            'Diagnostic/manual producers and performance observations are not certified by regression PASS counts; current input hashes do not establish historical byte continuity without creation-time digests.',
             'This is a snapshot; rerun the read-only gate after any source, invocation, dependency or evidence change.'
         ]
     };

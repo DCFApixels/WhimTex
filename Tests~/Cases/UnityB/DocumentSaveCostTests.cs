@@ -241,7 +241,23 @@ public static class DocumentSaveCostTests
     {
         Report report = null;
         var result = JsonUtility.FromJson<WhimTex.Tests.TestResult>(UnityBRun.Run(name, () => report = body()));
-        if (result.status == "passed") result.message = name + "\n" + JsonUtility.ToJson(report);
+        if (result.status == "passed")
+        {
+            try
+            {
+                // Preserve ephemeral Report.costs through the existing public Json.NET assembly.
+                string json = (string)Type.GetType("Newtonsoft.Json.JsonConvert, Newtonsoft.Json", true)
+                    .GetMethod("SerializeObject", BindingFlags.Public | BindingFlags.Static, null,
+                        new[] { typeof(object) }, null).Invoke(null, new object[] { report });
+                result.message = name + "\n" + json; // UnityBRun has already completed owned cleanup.
+            }
+            catch (Exception error)
+            {
+                result.status = "failed";
+                result.message = name + ": diagnostic serialization failed after owned cleanup";
+                result.failures = new[] { error.ToString() };
+            }
+        }
         return result.ToJson();
     }
     public static string Container(int layers = 4, bool opaque = true) => Diagnostic("DocumentSaveCostProbe.Container", () => ExecuteContainer(layers, opaque));

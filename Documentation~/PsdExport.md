@@ -101,19 +101,24 @@ This API is separate from the Pipeline command adapter; there is no new CLI comm
 
 ## Verification
 
-The standalone tests compile **only the format writer**, without Unity assemblies or Editor interaction:
+Use the independent structured scenarios in the [test runner guide](https://github.com/DCFApixels/WhimTex/blob/main/Tests~/RUNNING_TESTS.md):
 
 ```text
-dotnet run --project Tests~/Legacy/PsdWriter/PsdWriter.Tests.csproj --artifacts-path <temporary-build-folder> -- <temporary-fixture.psd>
+node Tests~/scripts/run-tests.mjs --review --id psd-writer-v2
 ```
 
-Requires .NET 10 SDK. An optional independent reader check accepts a separately installed `ag-psd`
-module; it is a test-only tool, not a package dependency:
+Run the reviewed selection with its current fingerprint and explicit Unity project. The
+format writer is compiled through the connected Editor, not an archived standalone project.
+An optional independent reader check accepts a separately installed `ag-psd` module through
+`WHIMTEX_PSD_READER`; it is a test-only tool, not a package dependency:
 
 ```text
-node Tests~/Legacy/PsdWriter/read-fixture.cjs <absolute-ag-psd-module-path> <temporary-fixture.psd>
+node Tests~/scripts/run-tests.mjs --review --id psd-reader-roundtrip-v2
 ```
 
-`Tests~/Legacy/PsdExportSmoke.cs` is an opt-in Editor check **after manual compilation**. It creates temporary
-in-memory documents and PSDs only under a unique `Temp/WhimTex/` folder, checking real rendering,
+The opt-in `psd-export-v2` scenario creates temporary in-memory documents and PSDs only
+under a unique `Temp/WhimTex/` folder, checking real rendering,
 source preservation, overwrite protection, cancellation and cleanup. It does not save Unity assets.
+The reader workflow generates its own GUID fixture through the native writer before decoding it.
+The reader requires existing human authority and `--allow-effects temp-files`; the export
+scenario additionally declares `user-state`. Acknowledge all effects of the selected scenario.

@@ -1,0 +1,310 @@
+{
+  "version": 1,
+  "scope": "Parent inspection of retained diagnostic artifacts; technical visual sanity only, not historical visual equivalence.",
+  "source": "Actual report embedded bytes, no output files regenerated or registered as goldens.",
+  "reviewed": [
+    {
+      "id": "screened-seamless-preview-v2",
+      "report": "Temp/WhimTex/test-runs/2026-10-04T17-22-11.610Z-124400.json",
+      "reportSha256": "8e88473a7685b1381d646fabc13c4d7d1c755b06ec9a296ea8c3ea73233cd81a",
+      "status": "skip",
+      "checks": 0,
+      "artifacts": [
+        {
+          "name": "05_unity_gpu.png",
+          "bytes": 196962,
+          "sha256": "4e0084209b50cc680933cf5949f052c8cec2516969e6b19f5fc809474d71ce37",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "name": "05_unity_gpu_float.bin",
+          "bytes": 5760000,
+          "sha256": "55a86f5b61921aa0cff28ae4631c865689c01f60d6a2d499ade2224b3637a6d3",
+          "float32Values": 1440000,
+          "allFinite": true,
+          "min": 0.01592596061527729,
+          "max": 1.0567340850830078
+        },
+        {
+          "name": "05_unity_input_float.bin",
+          "bytes": 5760000,
+          "sha256": "24fc548b00986afe90fa3e197d1b7e9fe2e2f19c1342eefbe629dc1aab8d026b",
+          "float32Values": 1440000,
+          "allFinite": true,
+          "min": 0.0185546875,
+          "max": 1
+        }
+      ]
+    },
+    {
+      "id": "seamless-controls-preview-v2",
+      "report": "Temp/WhimTex/test-runs/2026-10-04T17-22-11.610Z-124400.json",
+      "reportSha256": "8e88473a7685b1381d646fabc13c4d7d1c755b06ec9a296ea8c3ea73233cd81a",
+      "status": "skip",
+      "checks": 0,
+      "artifacts": [
+        {
+          "name": "histogram_0.bin",
+          "bytes": 5760008,
+          "sha256": "8cdd51047e0ed2d8381add8d76fb06db6920b15d3cf61da324e4c121ebac3ded",
+          "float32Values": 1440000,
+          "allFinite": true,
+          "min": 0.0185546875,
+          "max": 1
+        },
+        {
+          "name": "histogram_0.png",
+          "bytes": 198002,
+          "sha256": "aa184e131839dfdcf9101d838929358314dabe3e2efc898aab01f9aafdf32746",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "name": "histogram_1.bin",
+          "bytes": 5760008,
+          "sha256": "a843acea693519a4e8580d2e20d727e4062e7322b6d566e5336c11fd39d7539d",
+          "float32Values": 1440000,
+          "allFinite": true,
+          "min": 0.0185546875,
+          "max": 1
+        },
+        {
+          "name": "histogram_1.png",
+          "bytes": 184638,
+          "sha256": "06aeacef533bdbefe8d733044279dfa74396dba57c3c8bed6a11bd9a7cdf3291",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "name": "histogram_2.bin",
+          "bytes": 5760008,
+          "sha256": "480a7fd99b386143d21e5ae82fa500f70f054a33f8059bf44c9a75c526c94d4e",
+          "float32Values": 1440000,
+          "allFinite": true,
+          "min": 0.0185546875,
+          "max": 1
+        },
+        {
+          "name": "histogram_2.png",
+          "bytes": 185551,
+          "sha256": "972c08cbc930e099862fbfa91ecf88c88bb4ba1c5e536274002f65681298e9a7",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "name": "histogram_3.bin",
+          "bytes": 5760008,
+          "sha256": "e4d5b3f75d7ac4de7386362269220923f03b15a7dd8032e1ea0a969a98dc0083",
+          "float32Values": 1440000,
+          "allFinite": true,
+          "min": 0.0185546875,
+          "max": 1
+        },
+        {
+          "name": "histogram_3.png",
+          "bytes": 187882,
+          "sha256": "f34a4740b49e3ea05bf15c82a70af4b7a9f014a3ed45aec5a747435e299805b3",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "name": "screened_0.bin",
+          "bytes": 5760008,
+          "sha256": "5ba2bdd696e786278a3e94f2d9e44f477d3ccb81928a51e2aa03d5b88d093a9a",
+          "float32Values": 1440000,
+          "allFinite": true,
+          "min": 0.01592596061527729,
+          "max": 1.0567340850830078
+        },
+        {
+          "name": "screened_0.png",
+          "bytes": 196962,
+          "sha256": "4e0084209b50cc680933cf5949f052c8cec2516969e6b19f5fc809474d71ce37",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "name": "screened_1.bin",
+          "bytes": 5760008,
+          "sha256": "c8dba397c65d78b15bbc12d13ed2435634a8856838f3fa28777cb635bacb2106",
+          "float32Values": 1440000,
+          "allFinite": true,
+          "min": 0.01858103834092617,
+          "max": 1.0567469596862793
+        },
+        {
+          "name": "screened_1.png",
+          "bytes": 190744,
+          "sha256": "5246ff6e3d1066befc6095e71243e8f4fc5eda7079b79f4aa4bad6b65bd079eb",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "name": "screened_2.bin",
+          "bytes": 5760008,
+          "sha256": "9c4ac1713a8330345e70ad9156136c80aef24f465131b543864188f47697030e",
+          "float32Values": 1440000,
+          "allFinite": true,
+          "min": 0.01590745337307453,
+          "max": 1.0150330066680908
+        },
+        {
+          "name": "screened_2.png",
+          "bytes": 192410,
+          "sha256": "d1eea4e25ee29a8f26f9236421a41e07697230cbd18833cadd8a8196bdca2b47",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "name": "screened_3.bin",
+          "bytes": 5760008,
+          "sha256": "5ba2bdd696e786278a3e94f2d9e44f477d3ccb81928a51e2aa03d5b88d093a9a",
+          "float32Values": 1440000,
+          "allFinite": true,
+          "min": 0.01592596061527729,
+          "max": 1.0567340850830078
+        },
+        {
+          "name": "screened_3.png",
+          "bytes": 196962,
+          "sha256": "4e0084209b50cc680933cf5949f052c8cec2516969e6b19f5fc809474d71ce37",
+          "width": 600,
+          "height": 600
+        }
+      ]
+    },
+    {
+      "id": "seamless-release-visuals-v2",
+      "report": "Temp/WhimTex/test-runs/2026-10-04T17-22-11.610Z-124400.json",
+      "reportSha256": "8e88473a7685b1381d646fabc13c4d7d1c755b06ec9a296ea8c3ea73233cd81a",
+      "status": "skip",
+      "checks": 0,
+      "artifacts": [
+        {
+          "name": "visual-matrix.png",
+          "bytes": 736936,
+          "sha256": "df53faf02039f36cba572dd7c50aa8f0d368abe1b218561bde1c267796deffe4",
+          "width": 960,
+          "height": 960
+        }
+      ]
+    },
+    {
+      "id": "mirror-enhancements-preview-v2",
+      "report": "Temp/WhimTex/test-runs/2026-10-04T17-32-56.564Z-57556.json",
+      "reportSha256": "65b9835d09220bee9e650a2128867bc1c86b84af270f6d1792ced1ed54381d2d",
+      "status": "skip",
+      "checks": 0,
+      "artifacts": [
+        {
+          "name": "0.png",
+          "bytes": 187653,
+          "sha256": "cebdf30f54c1f6ceecc077ad20984e31f31da22c82712db88df34ec00ef6de89",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "name": "1.png",
+          "bytes": 189358,
+          "sha256": "a5e01595d168bbd7db52c073edef78eaf62b2edb31738555a3c27fb9979200c9",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "name": "2.png",
+          "bytes": 186779,
+          "sha256": "c1e0b81afa67692790065b3f61f1144403f40b9561773a338b39cef8e130fd7f",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "name": "3.png",
+          "bytes": 188673,
+          "sha256": "a7424db2a69f827b6135ad249011d5befe49475a3d2fb4ea63a1f3f8de1e6327",
+          "width": 600,
+          "height": 600
+        }
+      ]
+    },
+    {
+      "id": "patch-quilting-contrast-capture-v2",
+      "report": "Temp/WhimTex/test-runs/2026-10-04T17-32-56.564Z-57556.json",
+      "reportSha256": "65b9835d09220bee9e650a2128867bc1c86b84af270f6d1792ced1ed54381d2d",
+      "status": "skip",
+      "checks": 42,
+      "artifacts": [
+        {
+          "name": "compensation-0-50-100.png",
+          "bytes": 748308,
+          "sha256": "8aae089798a44ec4b123936a673d732502ebb5be43c20df6003a0283b9d00879",
+          "width": 1536,
+          "height": 1024
+        }
+      ]
+    },
+    {
+      "id": "patch-quilting-feather-capture-v2",
+      "report": "Temp/WhimTex/test-runs/2026-10-04T17-32-56.564Z-57556.json",
+      "reportSha256": "65b9835d09220bee9e650a2128867bc1c86b84af270f6d1792ced1ed54381d2d",
+      "status": "skip",
+      "checks": 0,
+      "artifacts": [
+        {
+          "name": "feather-0-50-100.png",
+          "bytes": 717200,
+          "sha256": "eebd32e9065c08c55960f633295559ecdec09e3d5a3d8d220aa6f3c890b6902d",
+          "width": 1536,
+          "height": 1024
+        }
+      ]
+    },
+    {
+      "id": "quilting-along-search-capture-v2",
+      "report": "Temp/WhimTex/test-runs/2026-10-04T17-32-56.564Z-57556.json",
+      "reportSha256": "65b9835d09220bee9e650a2128867bc1c86b84af270f6d1792ced1ed54381d2d",
+      "status": "skip",
+      "checks": 24,
+      "artifacts": [
+        {
+          "name": "search-0.png",
+          "bytes": 127652,
+          "sha256": "2e984bc8c272e084b4bc6d5970c9ea2a748b3821248c19233b6176113de46aa1",
+          "width": 512,
+          "height": 512
+        },
+        {
+          "name": "search-1.png",
+          "bytes": 132685,
+          "sha256": "fcb93a7a2fe05d2271f31acaf9012cb895850afd15e9ab4d40bd7a7baa3c6d7a",
+          "width": 512,
+          "height": 512
+        },
+        {
+          "name": "search-2.png",
+          "bytes": 128625,
+          "sha256": "43f1a8418b70104414b8b1feefd37b45a7cd1f14b0797c916fc3664eb10a4236",
+          "width": 512,
+          "height": 512
+        },
+        {
+          "name": "comparison.png",
+          "bytes": 375367,
+          "sha256": "b6b81196d3e0a16fb614d44773182f5c3efbf665f881aabed2dfc0b70f3b6338",
+          "width": 1536,
+          "height": 512
+        }
+      ]
+    }
+  ],
+  "visualInspection": {
+    "mirror": "All four final outputs inspected across original/final receipts. Earlier options0/2 were flatgray from helper shader-pass selection; final pass0 outputs show the source texture. Histogram options1/3 are unchanged. Not a product fix.",
+    "seamlessControls": "All eight images inspected; source structure retained. Float payloads finite. No historical visual-equivalence threshold inferred.",
+    "screened": "600x600 generated grayscale preview inspected; input and output float payloads finite.",
+    "release": "960x960 five-input/five-mode matrix inspected. Mode-dependent seams/patches remain visible; presence and technical inspection do not certify artistic quality.",
+    "quiltingCaptures": "Both 1536x1024 capture sheets and 1536x512 comparison inspected after retention repair. Expected feather/search/compensation differences and tile-join artifacts visible; not an artistic-quality or historical-equivalence approval.",
+    "healing": "Two 768x256 repair triptychs inspected separately; fixture seam metrics retained, not universal quality proof."
+  },
+  "manualEquivalenceCertified": false,
+  "archiveRemovalAllowed": false
+}

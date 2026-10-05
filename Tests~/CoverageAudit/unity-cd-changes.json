@@ -4,17 +4,17 @@
     "UnityC",
     "UnityD"
   ],
-  "proofLevel": "Source-reviewed plus explicitly bound selected parent native evidence. Original-input and manual-artifact gaps remain; no automatic full equivalence.",
+  "proofLevel": "Current full-source review with supplied exact parent native evidence. Current input bytes are pinned; historical cryptographic continuity and manual equivalence remain unproved.",
   "auditReceipt": {
     "file": "Tests~/CoverageAudit/unity-cd.json",
-    "sha256": "08d12ee4c2be9a66f46025220a523a29533b0a7af368c50c6ee47e4ce8653738",
+    "sha256": "140378b837c2b8555a5af0d741b376fe0fbc027f95c26cde621c26e5186be0f8",
     "ownedOriginalSourceRows": 134,
     "additionalParameterizedFixtureRows": 3,
     "exclusionsReviewed": [
       "UvUiSetup.cs"
     ],
-    "verification": "Every declared C/D original .cs/.mjs/.cjs row has an explicit independent/composed/manual disposition, replacement path, raw source hashes, concrete source review, and applicable hashed support-source links. UvUiCapture is now a ported but unrun owned manual diagnostic, not a green regression. All raw hashes and 466 frozen Legacy records checked. Counts do not prove equivalent runtime coverage.",
-    "parentAuxiliaryRows": "The parent owns 13 auxiliary rows outside this C/D audit; no changes made to those files or shared Framework/scripts/migration/catalog."
+    "verification": "Current per-original source claims bound after parent full-source review and sequential native C43/Final13/Final5. No missing/stale/source-gap claims remain. Diagnostic/manual and historical continuity limits remain explicit.",
+    "parentAuxiliaryRows": "Parent owns13 auxiliary rows outside C/D. Current explicit exceptions: selected catalog effects/reviewFiles only; no Framework, scripts runner, migration or registry mutation."
   },
   "reviewedOracleParserFix": {
     "source": "Tests~/Cases/UnityC/ReviewedOracle.cs",
@@ -42,7 +42,16 @@
     "sourceFrozen": true,
     "noUnityExecution": true,
     "noGoldenOrInputMutation": true,
-    "changedFiles": ["Tests~/Cases/UnityC/ReviewedOracle.cs", "Tests~/CoverageAudit/reviewed-oracle-image-sourceguard.test.mjs", "Tests~/CoverageAudit/reviewed-oracle-image-review.json", "Tests~/CoverageAudit/unity-cd.json", "Tests~/CoverageAudit/unity-cd-changes.json", "Tests~/CoverageAudit/unity-c28-runtime-review.json", "Tests~/CoverageAudit/reviewed-oracle-parser-review.json", "Tests~/CoverageAudit/copy-blend-source.provenance.json"]
+    "changedFiles": [
+      "Tests~/Cases/UnityC/ReviewedOracle.cs",
+      "Tests~/CoverageAudit/reviewed-oracle-image-sourceguard.test.mjs",
+      "Tests~/CoverageAudit/reviewed-oracle-image-review.json",
+      "Tests~/CoverageAudit/unity-cd.json",
+      "Tests~/CoverageAudit/unity-cd-changes.json",
+      "Tests~/CoverageAudit/unity-c28-runtime-review.json",
+      "Tests~/CoverageAudit/reviewed-oracle-parser-review.json",
+      "Tests~/CoverageAudit/copy-blend-source.provenance.json"
+    ]
   },
   "c28ParentRuntimeReview": {
     "file": "Tests~/CoverageAudit/unity-c28-runtime-review.json",
@@ -55,21 +64,50 @@
       "Tests~/CoverageAudit/reviewed-oracle-parser-review.json",
       "Tests~/CoverageAudit/copy-blend-source.provenance.json"
     ],
-    "counts": { "passed": 15, "skipped": 13, "skippedRegression": 3, "skippedDiagnostic": 10, "missingInputSkips": 8 },
+    "counts": {
+      "passed": 15,
+      "skipped": 13,
+      "skippedRegression": 3,
+      "skippedDiagnostic": 10,
+      "missingInputSkips": 8
+    },
     "nativeBindings": "At C28 audit all28 persisted inputs and then-current source bundles matched report SHA-256. Subsequent authorized Image-only repair changed helper bytes; current bundle requires parent rerun and C28 is historical, not automatically rebound. All historical entries reached final results, uncertain:false and recoveryRequired:false. Report success:false is preserved; counts do not prove equivalent original assertion coverage.",
     "previewProof": "Registered copy-blend-source passes actual native parsing/authentication and both Preview producer paths complete, reporting owned GUID directories. Zero original visual assertions preserved. Raw payloads omit artifacts and owned directories are absent after cleanup; no independent output-byte/dimension/visual check possible from retained evidence.",
-    "remaining": { "missingOriginalInputRows": 6, "missingOriginalInputKinds": 3, "manualPreviewArtifactReviewRows": 2, "artifactDeliveryGap": true },
+    "remaining": {
+      "missingOriginalInputRows": 6,
+      "missingOriginalInputKinds": 3,
+      "manualPreviewArtifactReviewRows": 2,
+      "artifactDeliveryGap": true
+    },
     "freeze": "Audit notes only. No source, batch, manifest, global or Unity changes; no artifact generation, capture, copying or mutation."
   },
   "finalC28RawArtifactReview": {
     "file": "Tests~/CoverageAudit/unity-c28-final-runtime-review.json",
     "sha256": "e3abd8077c67280cc4e44c317bec8c14d9b0abc002eb17a0eedc7f14d80b9a2e",
     "reportSha256": "9c2805fb067463806ce2d110480cd6acf05812a3f1ccb70dc2e1278f468a76ea",
-    "counts": { "passed": 15, "skipped": 13, "skippedRegression": 3, "skippedDiagnostic": 10 },
+    "counts": {
+      "passed": 15,
+      "skipped": 13,
+      "skippedRegression": 3,
+      "skippedDiagnostic": 10
+    },
     "proof": "All28 raw persisted input hashes and recomposed current bundles match final report for frozen helper0a738361. Raw attempt.reply.stdout envelope.data.result.result payloads retain4 Mirror PNGs and16 SeamlessControls outputs; expected20 names, canonical base64/SHA256, all600x600 PNG signature/IHDR dimensions and8float header/5760008-byte lengths verified in memory. Metadata is sanity, never visual/algorithm correctness.",
-    "remaining": { "missingOriginalInputRows": 6, "missingOriginalInputKinds": 3, "manualVisualReviewRows": 2, "artifactDeliveryGap": false },
+    "remaining": {
+      "missingOriginalInputRows": 6,
+      "missingOriginalInputKinds": 3,
+      "manualVisualReviewRows": 2,
+      "artifactDeliveryGap": false
+    },
     "classification": "Two registered-input Previews are completed manual producers with retained artifacts, not missing external inputs. Six other source rows still require live4/screened original/252snapshots. Three skipped regression entries remain regressions. No original frozen PNG digest or unchanged visual-equivalence proof.",
-    "changedFiles": ["Tests~/CoverageAudit/unity-c28-final-runtime-review.json", "Tests~/CoverageAudit/unity-cd.json", "Tests~/CoverageAudit/unity-cd-changes.json", "Tests~/CoverageAudit/unity-c28-runtime-review.json", "Tests~/CoverageAudit/reviewed-oracle-parser-review.json", "Tests~/CoverageAudit/reviewed-oracle-image-review.json", "Tests~/CoverageAudit/copy-blend-source.provenance.json"],
+    "changedFiles": [
+      "Tests~/CoverageAudit/unity-c28-final-runtime-review.json",
+      "Tests~/CoverageAudit/unity-cd.json",
+      "Tests~/CoverageAudit/unity-cd-changes.json",
+      "Tests~/CoverageAudit/unity-c28-runtime-review.json",
+      "Tests~/CoverageAudit/reviewed-oracle-parser-review.json",
+      "Tests~/CoverageAudit/reviewed-oracle-image-review.json",
+      "Tests~/CoverageAudit/copy-blend-source.provenance.json"
+    ],
     "jsonFrozen": true,
     "noSourceEdits": true,
     "noGlobalOrBatchEdits": true,
@@ -89,7 +127,9 @@
       "sha256": "64f28a5a4ea2c23cbe7479b16c8c587aa00469cb52064e49aa54e8cbe847e3f0",
       "approval": "approved-scoped-recovery-debt-support-rebind",
       "runnerSha256": "ce026dddb9e65820de28bf9c9c95d85ee7d0dc8c0923619f46207adc5bccc493",
-      "affectedIds": ["whimtex-gradient-reload-v2"],
+      "affectedIds": [
+        "whimtex-gradient-reload-v2"
+      ],
       "proof": "Source review and seven pure injected native-envelope/runScenario mocks: explicit failed debt, contradictory passed debt, malformed boolean, passed zero checks true/string flag, malformed passed failures and failed empty failures all retained uncertainty and issued Start only. No Cancel/Cleanup. Whole runner and D native rerun remain parent-owned/pending."
     },
     "inputActivationReview": {
@@ -98,10 +138,19 @@
       "activatedBy": "parent",
       "inputName": "copy-blend-source",
       "inputSha256": "7aaa38693f516d7ec60a7211dcb873141654f32c13cb977ad02b19e3aa0a6594",
-      "affectedIds": ["mirror-enhancements-preview-v2", "seamless-controls-preview-v2"],
+      "affectedIds": [
+        "mirror-enhancements-preview-v2",
+        "seamless-controls-preview-v2"
+      ],
       "proof": "Reviewed exact explicit name/path/hash/provenance, authenticated read-only input path and both restored Preview producer bodies. Raw PNG112799 bytes600x600 matches. Replaced only the two unavailable-PNG claims with input-registered/native-manual-preview-pending; no original visual assertions existed. No algorithm-golden or historical byte-continuity claim; live4, screened input and252 snapshots still missing."
     },
-    "hashVerification": { "sourcePairBindings": 274, "supportAndComposedBindings": 331, "mismatches": 0, "frozenArchiveFiles": 466, "frozenArchiveFailures": 0 },
+    "hashVerification": {
+      "sourcePairBindings": 274,
+      "supportAndComposedBindings": 331,
+      "mismatches": 0,
+      "frozenArchiveFiles": 466,
+      "frozenArchiveFailures": 0
+    },
     "nativeSourcesAndBatchesUnchanged": true,
     "globalsAndActiveManifestEditedByWorker": false,
     "runtimeStatus": "pending-parent-validation"
@@ -177,7 +226,8 @@
       "seamless-optimization-paired-poisson-v2",
       "seamless-optimization-benchmark-v2"
     ],
-    "outstanding": "All helper bindings are fixed. Oracle manifest remains absent from current C batch reviewFiles for these 28 scenarios; receipt does not claim the proposed manifest metadata was applied."
+    "outstanding": "Historical manifest reviewFiles debt resolved: all28 now explicitly bind the reviewed manifest. Expanded inputs still pending parent runtime.",
+    "bindingStage": "Historical support-only receipt; currentOriginalOracleRegistration supersedes its missing-reviewFiles conclusion."
   },
   "gradientReloadTimeoutUpdate": {
     "scope": "GradientReload.mjs and GradientReloadProtocol.test.mjs only; no native C# edits",
@@ -212,20 +262,11 @@
     "sourcesFrozen": true
   },
   "externalPrerequisiteReview": {
-    "scope": "Eight restored UnityC oracle/input-dependent sources only",
-    "externalPrerequisiteFiles": [
-      "MirrorEnhancementsSmoke.cs",
-      "PatchQuiltingContrastSmoke.cs",
-      "PatchQuiltingEquivalence.cs",
-      "PatchQuiltingFeatherSmoke.cs",
-      "QuiltingAlongSearchSmoke.cs",
-      "ScreenedSeamlessSmoke.cs",
-      "SeamlessControlsSmoke.cs",
-      "SeamlessOptimizationSmoke.cs"
-    ],
-    "rule": "reviewStatus source-reviewed records restored bodies, inputs, predicates, formulas and cleanup. gaps retain External prerequisite: text for missing original data/historical renderer/manual runtime. An unresolved source assertion or actual missing code must remain reviewStatus gap and must never receive this external prefix.",
+    "scope": "Eight restored UnityC oracle/input-dependent sources; original inputs now explicitly registered, runtime/manual proof pending",
+    "externalPrerequisiteFiles": [],
+    "rule": "Source-reviewed records actual restored bodies/inputs/predicates/cleanup. RUNTIME gaps record pending parent runs/manual visual proof, not missing code or a waiver. Existing original inputs are now registered by exact path/current SHA with documented provenance and absent historical per-file cryptographic continuity.",
     "runtimeEquivalenceClaimed": false,
-    "sourceHashesUnchanged": true,
+    "sourceHashesUnchanged": false,
     "parentNativeEvidence": {
       "report": "D:/DCFA/Projects/Test6.6/Temp/WhimTex/test-runs/2026-10-04T14-32-11.350Z-123640.json",
       "reportSha256": "0b3afad68aae1207eaaf0eed921757afb2f2c988efd97275b18882effb3e4057",
@@ -260,7 +301,18 @@
         "matchesCurrentNativeCSharpBundle": true
       },
       "perFileRuntimeStatus": "pending-parent-validation"
-    }
+    },
+    "registeredInputSourceFiles": [
+      "MirrorEnhancementsSmoke.cs",
+      "PatchQuiltingContrastSmoke.cs",
+      "PatchQuiltingEquivalence.cs",
+      "PatchQuiltingFeatherSmoke.cs",
+      "QuiltingAlongSearchSmoke.cs",
+      "ScreenedSeamlessSmoke.cs",
+      "SeamlessControlsSmoke.cs",
+      "SeamlessOptimizationSmoke.cs"
+    ],
+    "sourceChangeScope": "Only SeamlessReleaseTests.Visuals wrapper; eight oracle source bodies and shared helpers unchanged."
   },
   "freeze": {
     "nativeInputsFrozen": true,
@@ -302,7 +354,7 @@
     "Tests~/Cases/UnityD/UvUiCaptureDiagnostic.cs"
   ],
   "batchHashes": {
-    "Tests~/Batches/unity-c.json": "2959ad4de549553ea84b833fd4f57c8201079ad5d3a825beff0b090e7a348e18",
+    "Tests~/Batches/unity-c.json": "f7b9a4e8883fb7bfb7a76cfede8cd71a3375732a06ed7b693a363f77ff487cc5",
     "Tests~/Batches/unity-d.json": "29705c1413157c5d8402f50f6585daa5125a1d87a31278b71305504dfd94d87f"
   },
   "newScenarios": [
@@ -798,7 +850,7 @@
         "mirror-enhancements-preview-v2"
       ],
       "gaps": [
-        "External prerequisite: Preview: original copy-blend-lab-2026-09-28/00_source.png unavailable; original four compensation/correction combinations restored with read-only reviewed input; no direct visual assertion."
+        "RUNTIME: Manual visual review pending. Registered input copy-blend-source reached final bound native diagnostic completion with4 expected retained600x600 PNG artifacts. Raw base64 bytes/hashes/signature/IHDR dimensions verified in memory; original four compensation/correction combinations restored, no direct original visual assertion. Artifact delivery is verified, visual/algorithm equivalence is not. Existing PNG is input only; no prior frozen digest proves historical byte continuity."
       ]
     },
     {
@@ -810,7 +862,7 @@
         "patch-quilting-contrast-memory-v2"
       ],
       "gaps": [
-        "External prerequisite: Capture: original live_4.bin unavailable; restored green-channel .2/.45 width, 0/.5/1 compensation image sheet and 3 warmups/15 samples await original input. No direct standalone image verdict; Render helper state guard still fails on errors."
+        "RUNTIME: Capture pending parent execution/manual review with registered original live_4.bin at an explicit reviewed path/current SHA. Restored green-channel .2/.45 width, 0/.5/1 compensation sheet, 3 warmups/15 samples and Render state guard remain. Original has no direct standalone visual assertion; historical per-file digest continuity and visual equivalence are not established."
       ]
     },
     {
@@ -822,7 +874,7 @@
         "patch-quilting-equivalence-current-timing-v2"
       ],
       "gaps": [
-        "External prerequisite: Benchmark and CurrentTiming: original live_4.bin unavailable; bodies are ported but await explicit reviewed path/SHA-256/provenance. Main/Managed synthetic frozen-search comparisons do not prove this real-input branch."
+        "RUNTIME: Benchmark and CurrentTiming pending parent execution with registered original live_4.bin at an explicit reviewed path/current SHA. Original managed/current 1e-6 maximum-component guard remains regression coverage; CurrentTiming has no performance correctness threshold. Earlier Main/Managed synthetic results do not prove this real-input branch. No historical per-file cryptographic continuity or replacement PASS claimed."
       ]
     },
     {
@@ -833,7 +885,7 @@
         "patch-quilting-feather-capture-v2"
       ],
       "gaps": [
-        "External prerequisite: Capture: original live_4.bin unavailable; restored green-channel .02/.45 width, 0/50/100 feather image sheet awaits original input/manual review; no direct original visual assertion."
+        "RUNTIME: Capture pending parent execution/manual review with registered original live_4.bin at an explicit reviewed path/current SHA. Restored green-channel .02/.45 width and 0/50/100 feather sheet remain; original has no direct visual assertion. No historical per-file digest continuity or visual equivalence established."
       ]
     },
     {
@@ -843,7 +895,7 @@
         "quilting-along-search-capture-v2"
       ],
       "gaps": [
-        "External prerequisite: Capture: original live_4.bin unavailable; restored green-channel 0/.125/.25 range image/timing output and seven samples await original input/manual review; Render helper guard retained."
+        "RUNTIME: Capture pending parent execution/manual review with registered original live_4.bin at an explicit reviewed path/current SHA. Restored green-channel 0/.125/.25 range image/timing output, seven samples and Render helper guard remain. No automatic visual/performance verdict or historical per-file digest continuity."
       ]
     },
     {
@@ -855,7 +907,7 @@
         "screened-seamless-benchmark-v2"
       ],
       "gaps": [
-        "External prerequisite: Preview: original screened-poisson-lab-2026-09-28/00_original.png unavailable; source-decode float output, current-render float output and display PNG restored; no original visual assertion."
+        "RUNTIME: Preview pending parent execution/manual review with registered original screened-poisson-lab-2026-09-28/00_original.png at its exact reviewed path/current SHA. Source-decode floats, current-render floats and display PNG producer restored; original has no visual assertion. This is input-only registration, not solver golden evidence or historical cryptographic continuity."
       ]
     },
     {
@@ -865,7 +917,7 @@
         "seamless-controls-preview-v2"
       ],
       "gaps": [
-        "External prerequisite: Preview: original copy-blend-lab-2026-09-28/00_source.png unavailable; two algorithms and four edge masks plus RGBA float/PNG output restored, no original visual assertion."
+        "RUNTIME: Manual visual review pending. Registered input copy-blend-source reached final bound native diagnostic completion with16 expected artifacts:8600x600 PNGs and8 RGBA float binaries with exact600x600 headers/5760008-byte layout. Raw base64 bytes/hashes and artifact sanity verified in memory; two algorithms/four edge masks restored, no direct original visual assertion. Artifact delivery is verified, visual/algorithm equivalence is not. Existing PNG is input only; no prior frozen digest proves historical byte continuity."
       ]
     },
     {
@@ -878,12 +930,443 @@
         "seamless-optimization-benchmark-v2"
       ],
       "gaps": [
-        "External prerequisite: Compare/Audit: 252 pre-change float snapshots unavailable. Ported read-only authenticated comparisons retain original caller-state/finiteness, Compare 2e-5 tolerance, Audit delta-only branch. Native Capture intentionally skips; CaptureHistorical ports the 252-case producer and caller-state guard but requires a separately reviewed pre-change renderer and is not a native scenario. Its outputs are diagnostic artifacts requiring explicit path/hash/provenance review. No current-algorithm golden data or historical runtime-equivalence claim."
+        "RUNTIME: Compare/Audit pending parent execution with all252 existing original pre-change float snapshots explicitly registered by name/path/current SHA. Original caller-state/finiteness, Compare 2e-5 tolerance and Audit delta-only branch remain; no assertion weakened and no replacement PASS/equivalence claimed. Frozen capture-before-production-change documentation/history supports provenance, but historical per-file digest continuity is unavailable. Native Capture intentionally skips; optional CaptureHistorical still requires a separately reviewed pre-change renderer and is not a native scenario. No data regenerated or current-algorithm golden registered."
+      ]
+    },
+    {
+      "legacyFile": "SeamlessReleaseSmoke.cs",
+      "scenarioIds": [
+        "seamless-release-status-v2",
+        "seamless-release-workflow-v2",
+        "seamless-release-preview-v2",
+        "seamless-release-stress-v2",
+        "seamless-release-stress-mode-0-v2",
+        "seamless-release-stress-mode-1-v2",
+        "seamless-release-stress-mode-2-v2",
+        "seamless-release-stress-mode-3-v2",
+        "seamless-release-visuals-v2",
+        "seamless-release-multi-window-v2",
+        "seamless-release-stress-2048-mode-0-v2",
+        "seamless-release-stress-2048-mode-2-v2",
+        "seamless-release-stress-2048-mode-3-v2",
+        "seamless-release-stress-2048-mode-4-v2"
+      ],
+      "gaps": [
+        "RUNTIME: Visuals public-Newtonsoft artifact wrapper source-reviewed only; parent runtime/artifact delivery and manual review pending. Reads only this invocation's GUID-owned visual-matrix.png before disposal, preserves actual failed results and diagnostic/SKIP classification. Original five-fixture/five-column192-pixel matrix producer has no direct visual assertion. No visual-equivalence or performance PASS claim."
       ]
     }
   ],
-  "runtimeStatus": "pending-parent-validation",
-  "uvCaptureFreeze": {
+  "runtimeStatus": "parent-native-current-inputs-validated; full historical/manual equivalence unproven",
+  "previousAuditReceipt": {
+    "file": "Tests~/CoverageAudit/unity-cd.json",
+    "sha256": "6d07351c144bd2b4c00b4e9e8588a15f924ec020e86b4cf05f23f84ce979839e",
+    "ownedOriginalSourceRows": 134,
+    "additionalParameterizedFixtureRows": 3,
+    "exclusionsReviewed": [
+      "UvUiSetup.cs"
+    ],
+    "verification": "Every declared C/D original .cs/.mjs/.cjs row has an explicit independent/composed/manual disposition, replacement path, raw source hashes, concrete source review, and applicable hashed support-source links. UvUiCapture is now a ported but unrun owned manual diagnostic, not a green regression. All raw hashes and 466 frozen Legacy records checked. Counts do not prove equivalent runtime coverage.",
+    "parentAuxiliaryRows": "Parent owns13 auxiliary rows outside C/D. Current explicit exceptions: selected catalog effects/reviewFiles only; no Framework, scripts runner, migration or registry mutation."
+  },
+  "currentFinalBindings": {
+    "audit": {
+      "file": "Tests~/CoverageAudit/unity-cd.json",
+      "sha256": "77b7fbcfce051898bbe265a79627fd1991c9dbfcd0e3b684b0cfc63671317d64"
+    },
+    "reviews": [
+      {
+        "file": "Tests~/CoverageAudit/unity-c43-runtime-review.json",
+        "sha256": "50208823bfc481da537352db8bafc3b82c975b45b176d1006bab689269c2d564"
+      },
+      {
+        "file": "Tests~/CoverageAudit/unity-c13-final-runtime-review.json",
+        "sha256": "bb9ff959dfe5c83922132c4cd304ac22336319949397adf3d1635c3b145bfe65"
+      },
+      {
+        "file": "Tests~/CoverageAudit/unity-c5-final-runtime-review.json",
+        "sha256": "3b2122dac7655e81f370e734bd732694e4aab8196ef5ea41bce27167d007d51c"
+      },
+      {
+        "file": "Tests~/CoverageAudit/capture-trio-mirror-review.json",
+        "sha256": "caae86ff7fc512c062858d25278b0df33bd7ca71f5ca8a88a2fd62745659e50c"
+      },
+      {
+        "file": "Tests~/CoverageAudit/seamless-optimization-report-review.json",
+        "sha256": "0863efe23f18f9ea707fc4c755b985da3c9898a2d868ea02af2b6cf53c404dac"
+      },
+      {
+        "file": "Tests~/CoverageAudit/seamless-release-visuals-review.json",
+        "sha256": "1ed1f2c263d272ef7909e894cf3b3ff80580593e6c586008b143b98352695e97"
+      },
+      {
+        "file": "Tests~/CoverageAudit/diagnostic-artifacts-review.json",
+        "sha256": "73af46dcb4f8ebf19db2f2175c834a116180f48dc488a1d4f2d56cf5f2936e0a"
+      },
+      {
+        "file": "Tests~/CoverageAudit/unity-cd-original-oracle-provenance.json",
+        "sha256": "1e54e478924c32a7f962cde5c8180d07dd31df78446859624c246844eaa8a8a6"
+      },
+      {
+        "file": "Tests~/CoverageAudit/unity-cd-oracles.json",
+        "sha256": "3d18e164d8016c1b1ce4f0338f5013b7b043429d0385447a57b7ed5737d256e4"
+      },
+      {
+        "file": "Tests~/CoverageAudit/seamless-release-status-final-runtime-review.json",
+        "sha256": "8e3d0646a8f0193aa0e9a7d84cc845f438d5c4d708f2e03a29c24157d7f7aa99"
+      },
+      {
+        "file": "Tests~/CoverageAudit/uv-capture-final-runtime-review.json",
+        "sha256": "1d593bf745f8986582cafb522b8cfff26ec61597be5f277354733475e19e7de6"
+      }
+    ],
+    "sourceFiles": [
+      {
+        "file": "Tests~/Cases/UnityC/MirrorEnhancementsTests.cs",
+        "sha256": "4080760126136914c4a282a25fed3867212b1aa3bc27388b5523c7ba74d56685"
+      },
+      {
+        "file": "Tests~/Cases/UnityC/PatchQuiltingContrastTests.cs",
+        "sha256": "d8ccd4181426fc9ec2b1804dff2a8f7f7602907aa92be086090d53b9ea6fc8e1"
+      },
+      {
+        "file": "Tests~/Cases/UnityC/PatchQuiltingFeatherTests.cs",
+        "sha256": "b21bab91bd5f6ef8d2749e7b42d58a63f9d0c5d820e0d35f5ab71a72a04c2932"
+      },
+      {
+        "file": "Tests~/Cases/UnityC/QuiltingAlongSearchTests.cs",
+        "sha256": "e657b0e398e9b5b029ee7ccd7a1d7031c2b73276c822903a613dbf76e6ae51ec"
+      },
+      {
+        "file": "Tests~/Cases/UnityC/SeamlessOptimizationTests.cs",
+        "sha256": "31ec25f40466aa7f63aa25dd9e7353ebaa5efad2f5d4bf34d92b523e65c46693"
+      },
+      {
+        "file": "Tests~/Cases/UnityC/SeamlessReleaseTests.cs",
+        "sha256": "06dfcb97fa747fed6a43798d3fe0ec5ef8a5f5bb423a322de7d7ad90ad5c1e21"
+      },
+      {
+        "file": "Tests~/Cases/UnityD/UvUiCaptureDiagnostic.cs",
+        "sha256": "fef0c1d1fa1bf767176af3d8ac80958f3e640dfce6d27eaa55146ed2e2312aa5"
+      }
+    ],
+    "reviewScope": "Use Final13 for four changed case files, Final5 for Optimization; unchanged remaining C43 inputs retain their original exact native binding. Do not sum reruns or treat diagnostic SKIP as regression equivalence. Current Release14 supersedes source-input freshness for Release only (12PASS/2SKIP); UV1 verifies actual PNG retention and cleanup but remains SKIP3. Historical bindings/limitations retained.",
+    "humanAuthority": "Human authorized the test repair task; specific code/provenance decisions were reviewed by parent/worker agents, not personally authenticated by the human.",
+    "archiveRemovalAllowed": false
+  },
+  "historicalOriginalOracleRegistration": {
+    "scope": "Current original-oracle registration, Visuals-only retention repair, selected effects and explicit manifest fingerprints",
+    "changedFiles": [
+      "Tests~/Cases/UnityC/SeamlessReleaseTests.cs",
+      "Tests~/CoverageAudit/unity-cd-oracles.json",
+      "Tests~/CoverageAudit/unity-cd-original-oracle-provenance.json",
+      "Tests~/CoverageAudit/seamless-release-visuals-review.json",
+      "Tests~/scripts/test-catalog.json",
+      "Tests~/Batches/unity-c.json",
+      "Tests~/CoverageAudit/unity-cd.json",
+      "Tests~/CoverageAudit/copy-blend-source.provenance.json",
+      "Tests~/CoverageAudit/unity-cd-changes.json"
+    ],
+    "sourceHashes": {
+      "Tests~/Cases/UnityC/SeamlessReleaseTests.cs": "fb573437f70c7fffdbe11c3368f173512644c42274069ca09071ad1880843d7f",
+      "Tests~/CoverageAudit/unity-cd-oracles.json": "3d18e164d8016c1b1ce4f0338f5013b7b043429d0385447a57b7ed5737d256e4",
+      "Tests~/CoverageAudit/unity-cd-original-oracle-provenance.json": "0adef6d9a47146c062deea69aa0589019cb3758ecbe4cdfecfd2712b5123a7d1",
+      "Tests~/CoverageAudit/seamless-release-visuals-review.json": "1ed1f2c263d272ef7909e894cf3b3ff80580593e6c586008b143b98352695e97",
+      "Tests~/scripts/test-catalog.json": "2a5727cd250f25b1a998c3d9bc9bfe457bd4460a0b9c00d465180e4eecfee9dd",
+      "Tests~/Batches/unity-c.json": "f7b9a4e8883fb7bfb7a76cfede8cd71a3375732a06ed7b693a363f77ff487cc5",
+      "Tests~/CoverageAudit/unity-cd.json": "6d07351c144bd2b4c00b4e9e8588a15f924ec020e86b4cf05f23f84ce979839e",
+      "Tests~/CoverageAudit/copy-blend-source.provenance.json": "452cb73f2e884feb7ce52e89501320c4597d72589d8e761fd50d46e64fb870e0"
+    },
+    "proofLevel": "Source/data provenance reviewed and exact current bytes pinned; runtime/manual equivalence pending. Not baseline approval or PASS.",
+    "parentApprovalAttribution": "Agent source/provenance review within the user-authorized task; human authorized the task, not personal per-file authentication.",
+    "oracleRegistration": {
+      "manifest": "Tests~/CoverageAudit/unity-cd-oracles.json",
+      "manifestSha256": "3d18e164d8016c1b1ce4f0338f5013b7b043429d0385447a57b7ed5737d256e4",
+      "provenance": "Tests~/CoverageAudit/unity-cd-original-oracle-provenance.json",
+      "provenanceSha256": "0adef6d9a47146c062deea69aa0589019cb3758ecbe4cdfecfd2712b5123a7d1",
+      "registered": {
+        "live4": 1,
+        "preChangeFloatSnapshots": 252,
+        "screenedOriginal": 1
+      },
+      "sourceReviewResolvedUnavailableInputRows": 6,
+      "unresolvedUnavailableOriginalInputRowsInTheseSix": 0,
+      "manualPreviewReviewRows": 2,
+      "runtimeStatus": "pending-parent-validation",
+      "historicalEvidenceBinding": "Historical C28 counts/artifacts and its six then-missing input rows describe the old manifest only. Expanded current manifest and Visuals source/effect/reviewFiles changes require new parent bindings/runs; never automatically rebind old PASS/SKIP evidence.",
+      "limitations": "Source/history reviewed by agents within user-authorized task, not human per-file byte authentication. Current hashes pin reviewed existing bytes only; historical cryptographic continuity, manual visual equivalence and current algorithm equivalence unproved."
+    },
+    "oracleManifestReviewFiles": {
+      "file": "Tests~/CoverageAudit/unity-cd-oracles.json",
+      "sha256": "3d18e164d8016c1b1ce4f0338f5013b7b043429d0385447a57b7ed5737d256e4",
+      "ids": [
+        "mirror-enhancements-v2",
+        "mirror-enhancements-transition-v2",
+        "mirror-enhancements-integration-v2",
+        "mirror-enhancements-preview-v2",
+        "patch-quilting-contrast-v2",
+        "patch-quilting-contrast-variance-v2",
+        "patch-quilting-contrast-capture-v2",
+        "patch-quilting-contrast-memory-v2",
+        "patch-quilting-equivalence-v2",
+        "patch-quilting-equivalence-managed-v2",
+        "patch-quilting-equivalence-benchmark-v2",
+        "patch-quilting-equivalence-current-timing-v2",
+        "patch-quilting-feather-v2",
+        "patch-quilting-feather-rendering-v2",
+        "patch-quilting-feather-capture-v2",
+        "quilting-along-search-v2",
+        "quilting-along-search-capture-v2",
+        "screened-seamless-v2",
+        "screened-seamless-preview-v2",
+        "screened-seamless-large-v2",
+        "screened-seamless-benchmark-v2",
+        "seamless-controls-v2",
+        "seamless-controls-preview-v2",
+        "seamless-optimization-capture-v2",
+        "seamless-optimization-compare-v2",
+        "seamless-optimization-audit-v2",
+        "seamless-optimization-paired-poisson-v2",
+        "seamless-optimization-benchmark-v2"
+      ],
+      "rule": "Explicit scenario.reviewFiles pins this reviewed manifest in every full-file ReviewedOracle scenario. Authenticated reads require exact path/currentSHA. No runtime scan, regeneration, overwrite or automatic baseline acceptance."
+    },
+    "visualsFullFileAffectedIds": [
+      "seamless-release-status-v2",
+      "seamless-release-workflow-v2",
+      "seamless-release-preview-v2",
+      "seamless-release-stress-v2",
+      "seamless-release-stress-mode-0-v2",
+      "seamless-release-stress-mode-1-v2",
+      "seamless-release-stress-mode-2-v2",
+      "seamless-release-stress-mode-3-v2",
+      "seamless-release-visuals-v2",
+      "seamless-release-multi-window-v2",
+      "seamless-release-stress-2048-mode-0-v2",
+      "seamless-release-stress-2048-mode-2-v2",
+      "seamless-release-stress-2048-mode-3-v2",
+      "seamless-release-stress-2048-mode-4-v2"
+    ],
+    "effectsOnlyCorrection": {
+      "ids": [
+        {
+          "id": "mirror-enhancements-preview-v2",
+          "before": [
+            "temp-files"
+          ],
+          "after": [
+            "temp-files",
+            "user-state"
+          ]
+        },
+        {
+          "id": "model-serialization-benchmark-v2",
+          "before": [
+            "temp-files"
+          ],
+          "after": [
+            "temp-files",
+            "user-state"
+          ]
+        },
+        {
+          "id": "patch-quilting-contrast-capture-v2",
+          "before": [
+            "temp-files"
+          ],
+          "after": [
+            "temp-files",
+            "user-state"
+          ]
+        },
+        {
+          "id": "patch-quilting-equivalence-benchmark-v2",
+          "before": [],
+          "after": [
+            "user-state",
+            "temp-files"
+          ]
+        },
+        {
+          "id": "patch-quilting-equivalence-current-timing-v2",
+          "before": [],
+          "after": [
+            "user-state",
+            "temp-files"
+          ]
+        },
+        {
+          "id": "patch-quilting-feather-capture-v2",
+          "before": [
+            "temp-files"
+          ],
+          "after": [
+            "temp-files",
+            "user-state"
+          ]
+        },
+        {
+          "id": "quilting-along-search-capture-v2",
+          "before": [
+            "temp-files"
+          ],
+          "after": [
+            "temp-files",
+            "user-state"
+          ]
+        },
+        {
+          "id": "screened-seamless-preview-v2",
+          "before": [
+            "temp-files"
+          ],
+          "after": [
+            "temp-files",
+            "user-state"
+          ]
+        },
+        {
+          "id": "screened-seamless-benchmark-v2",
+          "before": [
+            "temp-files"
+          ],
+          "after": [
+            "temp-files",
+            "user-state"
+          ]
+        },
+        {
+          "id": "seamless-controls-preview-v2",
+          "before": [
+            "temp-files"
+          ],
+          "after": [
+            "temp-files",
+            "user-state"
+          ]
+        },
+        {
+          "id": "seamless-optimization-compare-v2",
+          "before": [],
+          "after": [
+            "user-state",
+            "temp-files"
+          ]
+        },
+        {
+          "id": "seamless-optimization-audit-v2",
+          "before": [],
+          "after": [
+            "user-state",
+            "temp-files"
+          ]
+        },
+        {
+          "id": "seamless-optimization-benchmark-v2",
+          "before": [
+            "temp-files"
+          ],
+          "after": [
+            "temp-files",
+            "user-state"
+          ]
+        },
+        {
+          "id": "seamless-release-status-v2",
+          "before": [],
+          "after": [
+            "user-state",
+            "temp-files"
+          ]
+        },
+        {
+          "id": "seamless-release-visuals-v2",
+          "before": [
+            "temp-files"
+          ],
+          "after": [
+            "temp-files",
+            "user-state"
+          ]
+        }
+      ],
+      "reason": "FixtureScope creates GUID Temp, snapshots/detaches/restores preferences/workspace and pooled render state even for Status/model diagnostics. Declare temp-files/user-state. Native Capture no-op remains effects:[]; regression/diagnostic categories and thresholds unchanged."
+    },
+    "affectedIds": [
+      "mirror-enhancements-v2",
+      "mirror-enhancements-transition-v2",
+      "mirror-enhancements-integration-v2",
+      "mirror-enhancements-preview-v2",
+      "patch-quilting-contrast-v2",
+      "patch-quilting-contrast-variance-v2",
+      "patch-quilting-contrast-capture-v2",
+      "patch-quilting-contrast-memory-v2",
+      "patch-quilting-equivalence-v2",
+      "patch-quilting-equivalence-managed-v2",
+      "patch-quilting-equivalence-benchmark-v2",
+      "patch-quilting-equivalence-current-timing-v2",
+      "patch-quilting-feather-v2",
+      "patch-quilting-feather-rendering-v2",
+      "patch-quilting-feather-capture-v2",
+      "quilting-along-search-v2",
+      "quilting-along-search-capture-v2",
+      "screened-seamless-v2",
+      "screened-seamless-preview-v2",
+      "screened-seamless-large-v2",
+      "screened-seamless-benchmark-v2",
+      "seamless-controls-v2",
+      "seamless-controls-preview-v2",
+      "seamless-optimization-capture-v2",
+      "seamless-optimization-compare-v2",
+      "seamless-optimization-audit-v2",
+      "seamless-optimization-paired-poisson-v2",
+      "seamless-optimization-benchmark-v2",
+      "seamless-release-status-v2",
+      "seamless-release-workflow-v2",
+      "seamless-release-preview-v2",
+      "seamless-release-stress-v2",
+      "seamless-release-stress-mode-0-v2",
+      "seamless-release-stress-mode-1-v2",
+      "seamless-release-stress-mode-2-v2",
+      "seamless-release-stress-mode-3-v2",
+      "seamless-release-visuals-v2",
+      "seamless-release-multi-window-v2",
+      "seamless-release-stress-2048-mode-0-v2",
+      "seamless-release-stress-2048-mode-2-v2",
+      "seamless-release-stress-2048-mode-3-v2",
+      "seamless-release-stress-2048-mode-4-v2",
+      "model-serialization-benchmark-v2"
+    ],
+    "catalogReadOnlyValidation": {
+      "validateCatalog": "passed-read-only",
+      "unmodifiedCatalogInvariantSha": "e0fc18ef51303097d4657aa735b592b574818a388ba2838d8008976d29119073",
+      "expected": "e0fc18ef51303097d4657aa735b592b574818a388ba2838d8008976d29119073",
+      "unchanged": true
+    },
+    "sharedHelperHashes": {
+      "Tests~/Cases/UnityC/UnityCFixture.cs": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d",
+      "Tests~/Cases/UnityC/ReviewedOracle.cs": "0a7383618feea3c2a4ba780738bbc0e3831ef78b7199ea0887f4ca4f71dc68e5"
+    },
+    "parentDChangesReadOnlyReview": {
+      "files": [
+        "Tests~/Cases/UnityD/SmallDocumentSaveDiagnostics.cs",
+        "Tests~/Cases/UnityD/WhimTexGradientRoundedTests.cs"
+      ],
+      "sha256": [
+        "fa6cdbb69ee2a225856ce47538e75323b98d9104d2807524cfad125c5dba9d29",
+        "e3c9752d633e7b0593360c17b77b168f9cafb76f272becbee6931452afb7498a"
+      ],
+      "review": "Parent updated audit bindings concurrently. Reread full originals/current sources and diff: public Newtonsoft retention only, after owned dispose for sample report/before owned cleanup for CSV; no timing/formula/input/no-op timestamp/cleanup/assertion weakening. No D source edited by this worker; parent runtime pending."
+    },
+    "nativeSourcesFrozen": true,
+    "metadataFrozen": true,
+    "noUnityExecution": true,
+    "noCompilation": true,
+    "noAssetsOrOriginalDataMutation": true,
+    "legacy466RawBytesUnchanged": true,
+    "historicalReports": "Earlier C28 observations remain historical for original source/manifest/metadata bindings; changed reviewFiles/manifest/Visuals require parent regeneration of inputs and rerun. No automatic current equivalence.",
+    "stageStatus": "Historical registration-stage freeze; current final bindings below supersede only later changed source/audit bindings."
+  },
+  "historicalUvCaptureFreeze": {
     "authored": true,
     "sourceSha256": "2bbdd93bdfffa1f0ae83032a42257f6f13344748a7715f510a595e01fa660104",
     "humanAuthority": "Explicit ReadScreenPixel only in tests and only for this invocation's created test window.",
@@ -894,5 +1377,82 @@
     "uvUiTestsChanged": false,
     "parentAction": "Bind this new standalone D diagnostic separately. Existing D regression inputs and all C regression sources/batch are unchanged. Successful PNG producer is skipped pending manual review, not visual equivalence.",
     "structuredResult": "failures:[] plus original diagnostic status and base64 PNG artifacts; all actual errors fail."
+  },
+  "previousFinalBindings": {
+    "audit": {
+      "file": "Tests~/CoverageAudit/unity-cd.json",
+      "sha256": "140378b837c2b8555a5af0d741b376fe0fbc027f95c26cde621c26e5186be0f8"
+    },
+    "reviews": [
+      {
+        "file": "Tests~/CoverageAudit/unity-c43-runtime-review.json",
+        "sha256": "50208823bfc481da537352db8bafc3b82c975b45b176d1006bab689269c2d564"
+      },
+      {
+        "file": "Tests~/CoverageAudit/unity-c13-final-runtime-review.json",
+        "sha256": "bb9ff959dfe5c83922132c4cd304ac22336319949397adf3d1635c3b145bfe65"
+      },
+      {
+        "file": "Tests~/CoverageAudit/unity-c5-final-runtime-review.json",
+        "sha256": "3b2122dac7655e81f370e734bd732694e4aab8196ef5ea41bce27167d007d51c"
+      },
+      {
+        "file": "Tests~/CoverageAudit/capture-trio-mirror-review.json",
+        "sha256": "caae86ff7fc512c062858d25278b0df33bd7ca71f5ca8a88a2fd62745659e50c"
+      },
+      {
+        "file": "Tests~/CoverageAudit/seamless-optimization-report-review.json",
+        "sha256": "0863efe23f18f9ea707fc4c755b985da3c9898a2d868ea02af2b6cf53c404dac"
+      },
+      {
+        "file": "Tests~/CoverageAudit/seamless-release-visuals-review.json",
+        "sha256": "1ed1f2c263d272ef7909e894cf3b3ff80580593e6c586008b143b98352695e97"
+      },
+      {
+        "file": "Tests~/CoverageAudit/diagnostic-artifacts-review.json",
+        "sha256": "73af46dcb4f8ebf19db2f2175c834a116180f48dc488a1d4f2d56cf5f2936e0a"
+      },
+      {
+        "file": "Tests~/CoverageAudit/unity-cd-original-oracle-provenance.json",
+        "sha256": "1e54e478924c32a7f962cde5c8180d07dd31df78446859624c246844eaa8a8a6"
+      },
+      {
+        "file": "Tests~/CoverageAudit/unity-cd-oracles.json",
+        "sha256": "3d18e164d8016c1b1ce4f0338f5013b7b043429d0385447a57b7ed5737d256e4"
+      }
+    ],
+    "sourceFiles": [
+      {
+        "file": "Tests~/Cases/UnityC/MirrorEnhancementsTests.cs",
+        "sha256": "4080760126136914c4a282a25fed3867212b1aa3bc27388b5523c7ba74d56685"
+      },
+      {
+        "file": "Tests~/Cases/UnityC/PatchQuiltingContrastTests.cs",
+        "sha256": "d8ccd4181426fc9ec2b1804dff2a8f7f7602907aa92be086090d53b9ea6fc8e1"
+      },
+      {
+        "file": "Tests~/Cases/UnityC/PatchQuiltingFeatherTests.cs",
+        "sha256": "b21bab91bd5f6ef8d2749e7b42d58a63f9d0c5d820e0d35f5ab71a72a04c2932"
+      },
+      {
+        "file": "Tests~/Cases/UnityC/QuiltingAlongSearchTests.cs",
+        "sha256": "e657b0e398e9b5b029ee7ccd7a1d7031c2b73276c822903a613dbf76e6ae51ec"
+      },
+      {
+        "file": "Tests~/Cases/UnityC/SeamlessOptimizationTests.cs",
+        "sha256": "31ec25f40466aa7f63aa25dd9e7353ebaa5efad2f5d4bf34d92b523e65c46693"
+      },
+      {
+        "file": "Tests~/Cases/UnityC/SeamlessReleaseTests.cs",
+        "sha256": "fb573437f70c7fffdbe11c3368f173512644c42274069ca09071ad1880843d7f"
+      }
+    ],
+    "reviewScope": "Use Final13 for four changed case files, Final5 for Optimization; unchanged remaining C43 inputs retain their original exact native binding. Do not sum reruns or treat diagnostic SKIP as regression equivalence.",
+    "humanAuthority": "Human authorized the test repair task; specific code/provenance decisions were reviewed by parent/worker agents, not personally authenticated by the human.",
+    "archiveRemovalAllowed": false
+  },
+  "finalHelperDisposition": {
+    "historicalCapture": "seamless-optimization-capture-v2 cannot mint pre-change references from the current renderer. Preserve252 original snapshots + their Compare/Audit predicates. CaptureHistorical remains explicit injectable reviewed historical producer, not a silently green automated scenario.",
+    "status": "Old shared SessionState status retired in favor of exact current selected Stress RunReport receipt; Status explicitly SKIP/redirect. No product/reference/Legacy changes."
   }
 }

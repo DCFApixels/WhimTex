@@ -1,0 +1,30 @@
+{
+  "note": "GUIDToAssetPath retains paths of recently deleted assets. Four recorded cached paths are retained verbatim, but OnlyExistingAssets and LoadMainAssetAtPath confirm no actual assets or active path-to-GUID mappings. No original regression assertion is changed; the overstrict extra recovery cache-empty check is replaced by verified asset absence.",
+  "absence": {
+    "runId": "4817f7407dac483b94141d9e81bb6b17",
+    "probeClassAbsent": true,
+    "folderAbsent": true,
+    "metaAbsent": true,
+    "sceneAbsent": true,
+    "probeAssetAbsent": true,
+    "cachedGuidPaths": [
+      "Assets/WhimTexTestMigration/4817f7407dac483b94141d9e81bb6b17",
+      "Assets/WhimTexTestMigration/4817f7407dac483b94141d9e81bb6b17/WhimTexMigrationPlayerProbe.cs",
+      "Assets/WhimTexTestMigration/4817f7407dac483b94141d9e81bb6b17/Probe.unity",
+      "Assets/WhimTexTestMigration/4817f7407dac483b94141d9e81bb6b17/Resources/WhimTexPlayer_4817f7407dac483b94141d9e81bb6b17/Document.tiff"
+    ],
+    "existingPathGuids": [
+      "",
+      "",
+      "",
+      ""
+    ],
+    "cachedPathsHaveExistingAssets": [
+      false,
+      false,
+      false,
+      false
+    ],
+    "assembliesScanned": 371
+  }
+}

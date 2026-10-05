@@ -63,7 +63,11 @@ public static class DocumentBurstHashTests
         // First call deliberately occurs on a background thread, matching container preparation after reload.
         await Task.Run(() => VerifyAndMeasure(report, mebibytes, runs));
         string output = UnityBRun.EvidencePath("TiffValidationResults/burst-sha256.json");
-        File.WriteAllText(output, JsonUtility.ToJson(report, true));
+        // JsonUtility loses generic lists of ephemeral sample types; preserve the actual samples.
+        string json = (string)Type.GetType("Newtonsoft.Json.JsonConvert, Newtonsoft.Json", true)
+            .GetMethod("SerializeObject", BindingFlags.Public | BindingFlags.Static, null,
+                new[] { typeof(object) }, null).Invoke(null, new object[] { report });
+        File.WriteAllText(output, json);
         return report;
     }
     static void VerifyAndMeasure(Report report, int mebibytes, int runs)

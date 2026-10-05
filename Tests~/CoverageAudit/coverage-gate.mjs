@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import { legacyIO } from '../scripts/legacy.mjs';
 
 export const defaultRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 export const auditNames = ['unity-a.json', 'unity-b-public.json', 'unity-cd.json', 'node.json',
@@ -36,6 +37,9 @@ function walk(io, directory) {
 }
 
 export function verifyFrozenLegacy(root, io = fs, expectedManifestSha = frozenManifestSha) {
+    // Real reads authenticate the pinned Git archive; injected filesystems retain
+    // the strict physical-memory inventory/byte checks used by negative tests.
+    if (io === fs) io = legacyIO(root);
     const bytes = io.readFileSync(path.join(root, 'Tests~/legacy-manifest.json'));
     const manifest = JSON.parse(bytes.toString('utf8'));
     const issues = [];
@@ -57,16 +61,18 @@ export function verifyFrozenLegacy(root, io = fs, expectedManifestSha = frozenMa
 // Independent copies of the inspected dispatcher's read-only receipt/bundle algorithms.
 // No import/evaluation of scripts/run-tests.mjs or any selected test is needed.
 export function currentReviewFingerprint(scenarios, root, io = fs) {
+    if (io === fs) io = legacyIO(root);
     const hash = createHash('sha256').update(JSON.stringify(scenarios));
     const files = unique(scenarios.flatMap(s => [s.file, ...(s.supportFiles ?? []), ...(s.reviewFiles ?? [])])).sort();
     for (const file of files) hash.update(file).update(io.readFileSync(localFile(root, file)));
     hash.update(io.readFileSync(localFile(root, 'Tests~/scripts/run-tests.mjs')));
     for (const file of ['Tests~/scripts/legacy.mjs', 'Tests~/Framework/test-api.mjs', 'Tests~/Framework/TestApi.cs',
-        'Tests~/Framework/EntryContract.cs', 'Tests~/legacy-manifest.json', 'Tests~/migration.json', 'Tests~/scripts/check-migration.mjs'])
+        'Tests~/Framework/EntryContract.cs', 'Tests~/legacy-manifest.json', 'Tests~/archive-descriptor.json'])
         hash.update(io.readFileSync(localFile(root, file)));
     return hash.digest('hex');
 }
 export function currentBundleSources(files, root, io = fs) {
+    if (io === fs) io = legacyIO(root);
     const imports = new Set();
     const bodies = files.map(relative => {
         const source = io.readFileSync(localFile(root, relative), 'utf8');
@@ -237,7 +243,10 @@ export function inspectRuntimeReport(report, result, scenario, context) {
                 issues: [] };
             if (!input.verified) input.issues.push('Native bundle source list/order/SHA differs from current catalog bundle.');
         }
-        sourceCurrent = input.verified;
+        // A matching native bundle cannot re-certify a run made by an obsolete
+        // dispatcher/archive contract. Preserve that receipt as history instead.
+        sourceCurrent = input.verified && receiptMatches;
+        if (!receiptMatches) issues.push('Native receipt is historical: fingerprint differs from reviewFingerprint(current selected scenarios).');
         issues.push(...input.issues);
     }
     const invocation = inspectInvocation(result, scenario, context.projectPath, input?.file);
@@ -287,6 +296,194 @@ function dependencyPairs(row, audit) {
     add(row.supportSources, 'supportSources');
     add(audit.supportSourceHashes, 'audit.supportSourceHashes');
     return pairs;
+}
+
+// Narrow, source-reviewed relationship, not a generic metadata supersession mechanism.
+// The supplemental gradient-reload-helper-phases.json is deliberately NOT read here.
+const gradientWorkflowId = 'whimtex-gradient-reload-v2';
+const gradientLegacy = 'WhimTexGradientReloadSmoke.cs';
+const gradientFile = 'Tests~/Cases/UnityD/GradientReload.mjs';
+const gradientSources = ['Tests~/Cases/UnityD/WhimTexGradientReloadDiagnostic.cs', 'Tests~/Framework/TestApi.cs'];
+const gradientDependencies = [gradientFile, ...gradientSources, 'Tests~/Framework/test-api.mjs',
+    'Tests~/scripts/run-tests.mjs', 'Tests~/Cases/UnityD/GradientReloadProtocol.test.mjs', 'src/UnityObjectID.cs'];
+const gradientHelpers = { 'whimtex-gradient-reload-begin-v2': 'Begin', 'whimtex-gradient-reload-end-v2': 'End' };
+const gradientEntry = phase => 'WhimTexGradientReloadDiagnostic.' + phase;
+
+function gradientReviewBinding(records, archive, root, io) {
+    const issues = [], requiredIds = [gradientWorkflowId, ...Object.keys(gradientHelpers)];
+    const candidates = records.filter(({ row }) => row.newFile === gradientSources[0] && row.reviewStatus === 'source-reviewed'
+        && requiredIds.every(id => row.scenarioIds?.includes(id)) && row.coverage?.length
+        && ['Begin', 'End'].every(name => row.legacyEntries?.some(entry => entry.name === name &&
+            entry.signature === 'public static string ' + name + '()' &&
+            entry.replacementMethods?.includes('public static string ' + name + '(string runId)')))
+        && !(row.gaps ?? []).some(gap => splitGap(gap) === 'source'));
+    if (candidates.length !== 1) issues.push('Exactly one full Begin/End source review is required.');
+    const record = candidates[0], hashes = {};
+    if (record) {
+        if (!archive.verified || record.row.sourceHashes?.legacy !== archive.manifest.files.find(f => f.file === gradientLegacy)?.sha256)
+            issues.push('Frozen original/source review is not current.');
+        const pairs = [...dependencyPairs(record.row, record.audit), ...(record.row.composedSources ?? [])
+            .map(item => [item.file, item.sha256, 'composedSources'])];
+        for (const file of gradientDependencies) {
+            const claims = pairs.filter(pair => pair[0] === file);
+            try {
+                hashes[file] = sha256(io.readFileSync(localFile(root, file)));
+                if (!claims.length || claims.some(pair => !shaPattern.test(pair[1] ?? '') || pair[1] !== hashes[file]))
+                    issues.push('Unbound/stale gradient reviewed dependency: ' + file);
+            } catch { issues.push('Unavailable gradient reviewed dependency: ' + file); }
+        }
+    }
+    return { current: issues.length === 0, issues, auditFile: record?.auditFile ?? null, hashes };
+}
+
+// Inspect actual raw CLI request/reply pairs, not the sidecar's phase/check summaries.
+// Counts below identify the reviewed native contracts; they do not prove oracle equivalence.
+export function inspectGradientWorkflowPhases(report, result, context) {
+    const issues = [], phases = [];
+    try {
+        const require = (condition, message) => { if (!condition) throw Error(message); };
+        const wrapper = context.catalog.scenarios.find(s => s.id === gradientWorkflowId);
+        require(wrapper?.file === gradientFile && wrapper.runner === 'node' && wrapper.category === 'regression'
+            && wrapper.requiresUnity === true && same(wrapper.args, ['$projectPath']) && wrapper.result?.kind === 'structured'
+            && !wrapper.entry && !wrapper.async && !wrapper.cleanup && !wrapper.cancel
+            && same(wrapper.reviewFiles, gradientDependencies.slice(1)), 'Current gradient wrapper contract changed.');
+        for (const [id, phase] of Object.entries(gradientHelpers)) {
+            const helper = context.catalog.scenarios.find(s => s.id === id);
+            require(helper?.file === gradientSources[0] && helper.runner === 'run_script' && helper.category === 'diagnostic'
+                && helper.entry === gradientEntry(phase) && same(helper.args, ['$runId']) && helper.result?.kind === 'structured'
+                && same(helper.supportFiles, gradientSources.slice(1)) && same(helper.reviewFiles, ['src/UnityObjectID.cs'])
+                && helper.cleanup?.entry === gradientEntry('Cleanup') && same(helper.cleanup.args, ['$runId'])
+                && !helper.async && !helper.cancel, 'Current paired helper contract changed: ' + id);
+            require(context.scenarioReviewBindings?.get(id)?.current === true, 'Helper source review is stale: ' + id);
+        }
+        require(context.gradientReview?.current === true, 'Full original Begin/End/dependency source review is absent or stale.');
+        const base = inspectRuntimeReport(report, result, wrapper, context);
+        require(result.id === gradientWorkflowId && base.proof === 'current-regression-run' && base.receiptMatches
+            && base.productionMatches === true && report.recoveryRequired === false, 'Workflow is not a current certain run receipt.');
+        require(report.results.filter(r => r.id === gradientWorkflowId).length === 1, 'Duplicate workflow result.');
+        require(Number.isFinite(Date.parse(report.startedAt)) && Number.isFinite(Date.parse(report.finishedAt))
+            && Date.parse(report.finishedAt) >= Date.parse(report.startedAt), 'Completed report chronology is missing.');
+        const attempts = result.attempts;
+        require(attempts?.length === 1 && attempts[0].phase === 'result' && attempts[0].entry == null,
+            'Exactly one raw Node workflow invocation is required.');
+        const outer = attempts[0].reply;
+        require(outer?.code === 0 && outer.timedOut === false && !outer.error, 'Node workflow transport failed.');
+        const markers = outer.stdout.split(/\r?\n/).filter(line => line.startsWith('WHIMTEX_TEST_RESULT '));
+        require(markers.length === 1 && same(JSON.parse(markers[0].slice('WHIMTEX_TEST_RESULT '.length)), result.testResult),
+            'Workflow facts do not match the raw Node result marker.');
+        const facts = result.testResult.facts, input = facts.input;
+        const targetMatches = value => typeof value === 'string' && path.resolve(value) === path.resolve(context.projectPath);
+        require(targetMatches(report.projectPath) && targetMatches(facts.projectPath), 'Workflow project is not exact.');
+        require(typeof input.runId === 'string' && /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(input.runId)
+            && same(input.sources, gradientSources) && input.sha256 === sha256(currentBundleSources(gradientSources, context.root, context.io))
+            && typeof input.file === 'string' && path.isAbsolute(input.file)
+            && path.resolve(input.file) === path.join(context.projectPath, 'Temp/WhimTex/test-runs/gradient-reload-' + input.runId, 'input.cs'),
+            'Gradient native input list/order/SHA/GUID/file is not current.');
+        const current = { reviewed: currentReviewFingerprint([{ file: gradientFile, reviewFiles: gradientDependencies.slice(1) }], context.root, context.io),
+            production: context.productionFingerprint };
+        require(same(facts.fingerprint?.before, current) && same(facts.fingerprint?.after, current)
+            && facts.fingerprint.outer === report.fingerprint && facts.fingerprint.outerProduction === report.productionFingerprint,
+            'Workflow before/after/outer fingerprints are absent or stale.');
+        const parse = value => typeof value === 'string' ? JSON.parse(value) : value;
+        const clean = value => value && typeof value.message === 'string' && Number.isSafeInteger(value.checks) && value.checks >= 0
+            && Array.isArray(value.failures) && !value.failures.length
+            && (value.recoveryRequired === undefined || value.recoveryRequired === false);
+        const reloadShape = value => clean(value) && ['queued', 'requested', 'reloaded', 'oldDomainCleared'].every(k => typeof value[k] === 'boolean')
+            && Number.isSafeInteger(value.requests) && value.requests >= 0 && value.requests <= 1
+            && Array.isArray(value.errors) && !value.errors.length;
+        let stage = 0, idle = false, observedCompilation = false, lastEditor;
+        const native = {}, polls = [];
+        require(Array.isArray(facts.cliEvidence) && facts.cliEvidence.length, 'Raw native CLI evidence is missing.');
+        for (const call of facts.cliEvidence) {
+            require(stage !== 5, 'Commands after final cleanup are not the reviewed lifecycle.');
+            const statusProbe = call.phase === 'editor_status', command = statusProbe ? 'editor_status' : 'run_script';
+            require(Number.isSafeInteger(call.budgetMs) && call.budgetMs >= 1100 && call.budgetMs <= (call.phase === 'Cleanup' ? 10000 : 8000)
+                && Number.isFinite(call.durationMs) && call.durationMs >= 0, 'Unknown invocation budget/duration.');
+            const argv = ['command', command];
+            if (!statusProbe) argv.push('--file', slash(path.relative(context.projectPath, input.file)), '--entry', gradientEntry(call.phase),
+                '--args', JSON.stringify([input.runId]), '--timeout_ms', String(Math.max(1, Math.min(45000, call.budgetMs - 1000))));
+            argv.push('--project-path', context.projectPath, '--timeout', String(Math.ceil(call.budgetMs / 1000)), '--format', 'json');
+            require(same(call.argv, argv), 'Raw CLI command/entry/typed arguments/input/project differs: ' + call.phase);
+            const reply = call.reply;
+            // Only the two source-reviewed read-only reconnect forms are allowed, in their exact bounded phase.
+            if (statusProbe && stage === 2 && observedCompilation) {
+                const emptyTimeout = reply && Object.keys(reply).every(k => ['code', 'stdout', 'stderr', 'timedOut', 'error'].includes(k))
+                    && reply.timedOut === true && reply.error === undefined && (reply.code === null || Number.isSafeInteger(reply.code))
+                    && typeof reply.stdout === 'string' && !reply.stdout.trim() && typeof reply.stderr === 'string' && !reply.stderr.trim();
+                let envelope; try { envelope = JSON.parse(reply?.stdout); } catch { /* Empty timeout is separate. */ }
+                const network = reply?.code === 6 && reply.timedOut === false && !reply.error && envelope?.success === false
+                    && envelope.data === null && ['unity command editor_status', 'command editor_status'].includes(envelope.command)
+                    && Array.isArray(envelope.errors) && envelope.errors.length && envelope.errors.every(e => e?.code === 'COMMAND_FAILED'
+                        && typeof e.message === 'string' && /^Failed to execute command 'editor_status': Network error:/i.test(e.message))
+                    && [envelope.target?.projectPath, envelope.projectPath].every(p => p === undefined || targetMatches(p));
+                if (emptyTimeout || network) { idle = false; continue; }
+            }
+            require(reply?.code === 0 && reply.timedOut === false && !reply.error, 'Uncertain/failed CLI reply: ' + call.phase);
+            const envelope = JSON.parse(reply.stdout), data = envelope.data;
+            require(envelope.success === true && data?.success === true && data.command === command
+                && ['command ' + command, 'unity command ' + command].includes(envelope.command)
+                && targetMatches(data.target?.projectPath) && Array.isArray(envelope.errors) && !envelope.errors.length,
+                'CLI acknowledgement/target/errors invalid: ' + call.phase);
+            if (statusProbe) {
+                const editor = parse(data.result);
+                require(targetMatches(editor?.projectPath) && typeof editor.compiling === 'boolean'
+                    && typeof editor.domainReloadInProgress === 'boolean' && editor.playMode === 'stopped', 'Unknown/busy-play/wrong-project Editor state.');
+                idle = !editor.compiling && !editor.domainReloadInProgress;
+                if (stage === 0) require(idle && !lastEditor, 'Initial preflight must be stopped/idle, not a recovery sequence.');
+                if (stage === 2 && editor.compiling) observedCompilation = true;
+                lastEditor = editor;
+                continue;
+            }
+            require(idle, 'Native call was not preceded by a matching stopped/idle Editor: ' + call.phase);
+            const parameters = data.parameters, execution = data.result;
+            require(parameters?.entry === gradientEntry(call.phase) && same(parse(parameters.args), [input.runId])
+                && typeof parameters.file === 'string' && path.resolve(context.projectPath, parameters.file) === input.file
+                && parameters.timeout_ms === Math.max(1, Math.min(45000, call.budgetMs - 1000)), 'Native reply parameters do not bind the request.');
+            require(execution?.success === true && Array.isArray(execution.diagnostics)
+                && !execution.diagnostics.some(d => /error/i.test(d.severity ?? '')) && !execution.errorDetails?.length,
+                'Native compilation/execution failed.');
+            const value = parse(execution.result);
+            require(clean(value), 'Native structured result is malformed or has failures.');
+            if (stage === 0 && call.phase === 'Begin') {
+                require(value.status === 'skipped' && value.checks === 0, 'Begin is setup, never a standalone PASS.');
+                native.begin = value; stage = 1;
+            } else if (stage === 1 && call.phase === 'Trigger') {
+                require(reloadShape(value) && value.status === 'running' && value.checks === 0 && value.queued
+                    && !value.requested && value.requests === 0 && !value.reloaded && !value.oldDomainCleared, 'Trigger is not a fresh single queued request.');
+                native.trigger = value; stage = 2; idle = false;
+            } else if (stage === 2 && call.phase === 'ReloadPoll') {
+                require(reloadShape(value), 'Malformed native reload proof.');
+                polls.push(value); idle = false;
+                if (value.status === 'passed') {
+                    require(value.checks === 3 && !value.queued && value.requested && value.requests === 1
+                        && value.reloaded && value.oldDomainCleared, 'No real reload marker/old-domain release/single request.');
+                    native.reload = value; stage = 3;
+                } else require(value.status === 'running' && value.checks === 0, 'Pending reload cannot fail or invent checks.');
+            } else if (stage === 3 && call.phase === 'End') {
+                require(value.status === 'passed' && value.checks === 5 && same(facts.editorAfterReload, lastEditor),
+                    'End restored-owner/HDR4/alpha.3/midpoint.23 assertions or idle evidence absent.');
+                native.end = value; stage = 4;
+            } else if (stage === 4 && call.phase === 'Cleanup') {
+                require(value.status === 'passed' && value.checks === 1, 'Final fresh native SessionState cleanup assertion absent.');
+                native.cleanup = value; stage = 5;
+            } else throw Error('Unexpected/repeated/out-of-order native phase: ' + call.phase);
+            phases.push({ phase: call.phase, entry: parameters.entry, args: parse(parameters.args), status: value.status,
+                checks: value.checks, failures: value.failures, rawReplySha256: sha256(reply.stdout) });
+        }
+        require(stage === 5 && facts.nativeTriggerRequests === 1 && same(facts.nativeResults, native) && same(facts.reloadStates, polls),
+            'Complete raw native lifecycle differs from workflow summary.');
+        // On the successful path, false || undefined produces undefined in driveReload's
+        // suppression expression; JSON omits that field. The actual final native Cleanup
+        // above is mandatory in BOTH wire shapes; absence of a flag supplies no proof.
+        require(facts.tempInputRemoved === true
+            && (facts.cleanupCommandSuppressed === undefined || facts.cleanupCommandSuppressed === false)
+            && facts.retainedInputForRecovery === undefined
+            && (facts.localEvidenceCleanupErrors === undefined || Array.isArray(facts.localEvidenceCleanupErrors)
+                && facts.localEvidenceCleanupErrors.length === 0), 'Owned input/fixture cleanup is incomplete.');
+        return { verified: true, issues, input, phases, sourceReview: context.gradientReview,
+            proof: 'Raw current same-GUID native Begin -> one Trigger -> marker/old-domain release -> End -> final Cleanup; helper phases, not independent tests.' };
+    } catch (error) { issues.push(String(error)); }
+    return { verified: false, issues, phases, proof: 'No helper phase credit; metadata/sidecar/check counts alone cannot supply proof.' };
 }
 
 // Parent declaration belongs ONLY on a source-reviewed framework DocRelease row:
@@ -353,6 +550,7 @@ function combinedDocReleasePolicy(records, archive, catalog, root, io) {
 export function buildInventory({ root = defaultRoot, projectPath = path.resolve(root, '../..'), io = fs,
     names = auditNames, expectedManifestSha = frozenManifestSha } = {}) {
     root = path.resolve(root); projectPath = path.resolve(projectPath);
+    if (io === fs) io = legacyIO(root);
     const snapshots = new Map(), changedDuringRead = new Map();
     const trackedIo = { ...io, readFileSync(file, encoding) {
         const bytes = io.readFileSync(file);
@@ -363,6 +561,8 @@ export function buildInventory({ root = defaultRoot, projectPath = path.resolve(
         return encoding ? bytes.toString(encoding) : bytes;
     }, readdirSync: (...args) => io.readdirSync(...args) };
     const pending = [], sourceIssues = [], auditInputs = [], allRows = [];
+    // Freeze the archive contract even when no runtime report needs a fingerprint.
+    trackedIo.readFileSync(localFile(root, 'Tests~/archive-descriptor.json'));
     const archive = verifyFrozenLegacy(root, trackedIo, expectedManifestSha);
     const catalog = readJson(trackedIo, localFile(root, 'Tests~/scripts/test-catalog.json'));
     if (!Array.isArray(catalog.scenarios) || unique(catalog.scenarios.map(s => s.id)).length !== catalog.scenarios.length)
@@ -408,26 +608,41 @@ export function buildInventory({ root = defaultRoot, projectPath = path.resolve(
     }
     const fingerprintCache = new Map();
     const context = { root, projectPath, io: trackedIo, catalog, scenarioReviewBindings, productionFingerprint: currentProduction,
+        gradientReview: gradientReviewBinding(grouped.get(gradientLegacy) ?? [], archive, root, trackedIo),
         fingerprint(scenarios) {
             const key = JSON.stringify(scenarios.map(s => s.id));
             if (!fingerprintCache.has(key)) fingerprintCache.set(key, currentReviewFingerprint(scenarios, root, trackedIo));
             return fingerprintCache.get(key);
         } };
-    const evidence = new Map(), reportIssues = [], reportInputs = [];
+    const evidence = new Map(), reportIssues = [], reportInputs = [], retiredRuntimeEvidence = [];
     const directory = path.join(projectPath, 'Temp/WhimTex/test-runs');
     let reportFiles = [];
     try { reportFiles = io.readdirSync(directory, { withFileTypes: true }).filter(e => !e.isDirectory() && !e.isSymbolicLink() && e.name.endsWith('.json')).map(e => path.join(directory, e.name)).sort(); }
     catch (error) { pending.push({ kind: 'runtime-report-directory-unavailable', detail: String(error) }); }
     for (const file of reportFiles) {
-        let report;
-        try { report = readJson(io, file); } // Reports can be actively growing: excluded from source snapshot stability checks.
+        let report, reportRawSha256;
+        try {
+            const bytes = io.readFileSync(file); reportRawSha256 = sha256(bytes); report = JSON.parse(bytes.toString('utf8'));
+        } // Reports can be actively growing: excluded from source snapshot stability checks.
         catch (error) { reportIssues.push({ file, kind: 'unreadable-or-in-progress-report', detail: String(error) }); continue; }
-        reportInputs.push({ file, action: report.action ?? null, startedAt: report.startedAt ?? null });
+        reportInputs.push({ file, rawSha256: reportRawSha256, action: report.action ?? null, startedAt: report.startedAt ?? null });
         if (!Array.isArray(report.results)) continue; // Native artefacts/recovery journals are not uniform-runner reports.
         for (const result of report.results) {
             const scenario = catalog.scenarios.find(s => s.id === result.id);
-            if (!scenario) { reportIssues.push({ file, kind: 'historical-unknown-scenario', id: result.id }); continue; }
+            if (!scenario) {
+                reportIssues.push({ file, kind: 'historical-unknown-scenario', id: result.id });
+                retiredRuntimeEvidence.push({ report: slash(path.relative(projectPath, file)), reportRawSha256,
+                    id: result.id, file: result.file ?? null, runner: result.runner ?? null, category: result.category ?? null,
+                    action: report.action ?? null, startedAt: report.startedAt ?? null, status: result.status ?? null,
+                    recordedFingerprint: report.fingerprint ?? null, sourceCurrent: false, proof: 'not-current-proof',
+                    reason: 'ID absent from the current independent catalog; historical receipt retained without re-signing.' });
+                continue;
+            }
             const event = inspectRuntimeReport(report, result, scenario, context);
+            if (result.id === gradientWorkflowId) {
+                event.workflowPhases = inspectGradientWorkflowPhases(report, result, context);
+                event.reportRawSha256 = reportRawSha256;
+            }
             const timestamp = Date.parse(report.startedAt);
             event.chronologyKnown = Number.isFinite(timestamp);
             event.timestamp = Number.isFinite(timestamp) ? timestamp : 0;
@@ -440,6 +655,13 @@ export function buildInventory({ root = defaultRoot, projectPath = path.resolve(
             evidence.get(result.id).push(event);
         }
     }
+    // A newer current failure/SKIP/incomplete raw phase receipt blocks old phase credit.
+    // For equal timestamps an incomplete phase receipt outranks a complete one.
+    const phaseSelection = chooseNewestEvidence((evidence.get(gradientWorkflowId) ?? []).map(event => ({ ...event,
+        workflowStatus: event.status,
+        status: event.status === 'passed' && !event.workflowPhases?.verified ? 'incomplete-phase-proof' : event.status,
+        proof: event.workflowPhases?.verified ? event.proof : 'not-current-proof' })));
+    const phaseLatest = phaseSelection.latest;
     const sourceFiles = archive.manifest.files.filter(item => sourceExtension.test(item.file));
     const inventory = unique([...sourceFiles.map(item => item.file), ...grouped.keys()]).sort();
     const files = inventory.map(legacyFile => {
@@ -515,6 +737,18 @@ export function buildInventory({ root = defaultRoot, projectPath = path.resolve(
         if (subsets.length && legacyFile === 'DocumentReleaseValidation.cs' && selected.length < 2) gaps.push({ kind: 'missing-other-document-release-subset', details: subsets });
         const regressions = runtime.filter(item => !item.supersededRuntimeBy && ['regression', 'source-guard', 'runner'].includes(item.category));
         const sourceCurrent = selected.length > 0 && !missing.length && !stale.length && !gaps.length;
+        if (legacyFile === gradientLegacy) for (const item of runtime) {
+            if (!Object.hasOwn(gradientHelpers, item.id)) continue;
+            const verified = sourceCurrent && phaseLatest?.proof === 'current-regression-run' && phaseLatest.workflowPhases?.verified === true;
+            item.phaseCoverage = { status: verified ? 'current-workflow-phase-verified' : 'pending-workflow-phase-proof', verified,
+                phase: gradientHelpers[item.id], workflowId: gradientWorkflowId, standalonePassCredited: false,
+                standaloneCatalogLimitation: 'Paired helpers are not independent tests: generic Begin cleanup destroys the fixture; no intervening native Trigger is orchestrated. Standalone status above is unchanged.',
+                sourceReviewCurrent: sourceCurrent, workflowStatus: phaseLatest?.workflowStatus ?? null,
+                report: phaseLatest?.report ?? null, reportRawSha256: phaseLatest?.reportRawSha256 ?? null,
+                evidence: phaseLatest?.workflowPhases ?? null, earlierGreenOverridden: phaseSelection.earlierGreenOverridden,
+                workflowHistory: phaseSelection.history,
+                equivalence: 'Successful reviewed lifecycle only; unexecuted negative branches/manual visual oracles are not certified.' };
+        }
         return { legacyFile, sourceFile: sourceExtension.test(legacyFile), classification,
             mergePolicy: legacyFile === 'DocumentReleaseValidation.cs' ? combinedRelease.approved
                 ? 'explicit-parent-combined-source-review-obsolete-B-only; runtime-independent' : 'distinct-subsets-combined-no-source-suppression'
@@ -537,13 +771,35 @@ export function buildInventory({ root = defaultRoot, projectPath = path.resolve(
         try { const actual = sha256(io.readFileSync(file)); if (actual !== expected) snapshotChanges.push({ file, expected, actual }); }
         catch (error) { snapshotChanges.push({ file, expected, detail: String(error) }); }
     }
+    // Check the selected raw receipt again at the END, not just while scanning reports.
+    // Report races revoke only this derived proof; they are not source mutations.
+    if (phaseLatest?.workflowPhases?.verified) {
+        try {
+            if (sha256(io.readFileSync(path.join(projectPath, phaseLatest.report))) !== phaseLatest.reportRawSha256)
+                throw Error('Raw workflow report changed during inventory.');
+        } catch (error) {
+            for (const file of files) for (const item of file.runtime) if (item.phaseCoverage) {
+                item.phaseCoverage.verified = false; item.phaseCoverage.status = 'pending-workflow-phase-proof';
+                item.phaseCoverage.evidence = { ...item.phaseCoverage.evidence, verified: false,
+                    issues: [...(item.phaseCoverage.evidence?.issues ?? []), String(error)] };
+            }
+        }
+    }
     const sources = files.filter(f => f.sourceFile);
     if (snapshotChanges.length) {
         pending.push({ kind: 'source-freeze-required-before-runtime-binding', changedFiles: unique(snapshotChanges.map(change => change.file)) });
         for (const file of files) file.runtimeStatus = 'pending-source-freeze';
+        for (const file of files) for (const item of file.runtime) if (item.phaseCoverage) {
+            item.phaseCoverage.verified = false; item.phaseCoverage.status = 'pending-source-freeze';
+            if (item.phaseCoverage.evidence) item.phaseCoverage.evidence = { ...item.phaseCoverage.evidence, verified: false,
+                issues: [...item.phaseCoverage.evidence.issues, 'Source snapshot changed during inventory.'] };
+        }
     }
     return { version: 1, scope: 'Read-only merged source-review freshness and current runtime evidence inventory; no automatic equivalence verdict.',
-        archive: { ...archive, manifest: undefined }, auditInputs, reportInputs, pending, sourceIssues, reportIssues, snapshotChanges,
+        archive: { ...archive, manifest: undefined }, auditInputs, reportInputs, retiredRuntimeEvidence, pending, sourceIssues, reportIssues, snapshotChanges,
+        // Keep unlinked infrastructure receipts too; history is not source-coverage credit.
+        runtimeHistory: [...evidence].map(([id, events]) => ({ id, category: catalog.scenarios.find(s => s.id === id).category,
+            history: chooseNewestEvidence(events).history })),
         summary: { expectedSourceFiles: sourceFiles.length, expectedSourceCountMatches360: sourceFiles.length === 360,
             sourceFilesWithReview: sources.filter(f => f.reviews.length).length,
             currentReviewedSourceClaims: sources.filter(f => f.sourceReviewStatus === 'current-reviewed-claims').length,
@@ -553,6 +809,8 @@ export function buildInventory({ root = defaultRoot, projectPath = path.resolve(
             currentRegressionReportFiles: sources.filter(f => f.runtimeStatus === 'current-regression-reports-present').length,
             diagnosticOnlyFiles: sources.filter(f => ['diagnostic-only', 'manual-or-diagnostic'].includes(f.classification)).length,
             supportOrUnregisteredFiles: sources.filter(f => f.classification === 'support-or-unregistered').length,
+            verifiedWorkflowHelperPhases: sources.flatMap(f => f.runtime).filter(r => r.phaseCoverage?.verified).length,
+            pendingWorkflowHelperPhases: sources.flatMap(f => f.runtime).filter(r => r.phaseCoverage && !r.phaseCoverage.verified).length,
             snapshotStable: snapshotChanges.length === 0, automaticFullCoverage: false, archiveRemovalAllowed: false },
         archiveRemovalAllowed: false, automaticFullCoverage: false, files };
 }

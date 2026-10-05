@@ -1,0 +1,26 @@
+{
+  "argv": [
+    "command",
+    "run_script",
+    "--file",
+    "Temp\\WhimTex\\test-runs\\unity-b-reload-0162673e3749421e9ada097bfdba2a40.cs",
+    "--entry",
+    "DocumentReloadTests.ReloadPoll",
+    "--args",
+    "[\"0162673e3749421e9ada097bfdba2a40\"]",
+    "--timeout_ms",
+    "9000",
+    "--project-path",
+    "D:\\DCFA\\Projects\\Test6.6",
+    "--timeout",
+    "10",
+    "--format",
+    "json"
+  ],
+  "reply": {
+    "code": 0,
+    "stdout": "{\n  \"success\": true,\n  \"command\": \"command run_script\",\n  \"data\": {\n    \"command\": \"run_script\",\n    \"parameters\": {\n      \"file\": \"Temp\\\\WhimTex\\\\test-runs\\\\unity-b-reload-0162673e3749421e9ada097bfdba2a40.cs\",\n      \"entry\": \"DocumentReloadTests.ReloadPoll\",\n      \"args\": \"[\\\"0162673e3749421e9ada097bfdba2a40\\\"]\",\n      \"timeout_ms\": 9000\n    },\n    \"result\": {\n      \"diagnostics\": [],\n      \"compileMs\": 3192,\n      \"executeMs\": 1,\n      \"assemblyName\": \"PipelineRunScript_unity-b-reload-0162673e3749421e9ada097bfdba2a40_275ce73dae63404f8b0bd885b3d11cc6\",\n      \"success\": true,\n      \"result\": \"{\\\"status\\\":\\\"passed\\\",\\\"checks\\\":5,\\\"message\\\":\\\"One native request and actual domain reload confirmed\\\",\\\"failures\\\":[],\\\"requestQueued\\\":false,\\\"requestCount\\\":1,\\\"beforeReload\\\":1,\\\"oldDomainGone\\\":true,\\\"requestError\\\":\\\"\\\",\\\"compilationErrors\\\":[]}\"\n    },\n    \"target\": {\n      \"host\": \"127.0.0.1\",\n      \"port\": 7800,\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\"\n    },\n    \"success\": true\n  },\n  \"errors\": [],\n  \"warnings\": []\n}\n",
+    "stderr": "",
+    "timedOut": false
+  }
+}

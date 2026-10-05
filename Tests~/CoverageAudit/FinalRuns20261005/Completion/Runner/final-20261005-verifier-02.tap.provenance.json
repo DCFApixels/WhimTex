@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "generatedAt": "2026-10-05T06:38:03.676Z",
+  "argv": [
+    "--test",
+    "--test-isolation=none",
+    "Tests~/CoverageAudit/coverage-gate.test.mjs",
+    "Tests~/CoverageAudit/reviewed-oracle-image-sourceguard.test.mjs"
+  ],
+  "cwd": "D:\\DCFA\\Projects\\Test6.6\\Packages\\com.dcfapixels.whimtex",
+  "sourceHashes": [
+    {
+      "file": "Tests~/CoverageAudit/coverage-gate.test.mjs",
+      "sha256": "1197813cd7946bd2144353f0f7404c82de63d2f23577e1f0f8afbcf4948b3ec5"
+    },
+    {
+      "file": "Tests~/CoverageAudit/reviewed-oracle-image-sourceguard.test.mjs",
+      "sha256": "9d7b172d2631a6f0f3798b9669d46cc79cc0cb29a705942f4912771ca2091e28"
+    }
+  ],
+  "exitCode": 0,
+  "error": null,
+  "stderr": "",
+  "output": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\final-20261005-verifier-02.tap",
+  "outputSha256": "d4973b20f615afd6386a1a40420274e9779b40a1c85937a3da8ad0ab9a6bd85c"
+}

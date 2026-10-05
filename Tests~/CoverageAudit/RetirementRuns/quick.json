@@ -1,0 +1,352 @@
+{
+  "version": 2,
+  "action": "run",
+  "startedAt": "2026-10-05T04:30:35.461Z",
+  "projectPath": "D:\\DCFA\\Projects\\Test6.6",
+  "fingerprint": "db4b9fbc48f3ba93ef3ff5cd94c87c1f90a36ffb7f04f7a3c47fad98d6820235",
+  "archive": {
+    "files": 466,
+    "baselineCommit": "1269df51866959744a4b0763453eb667aefe6d8e",
+    "manifestHash": "c70816ea4220d9ebe08d4d2d087d7e5297bd943405bb3297e24f4b69756a6194",
+    "source": "pinned-git-reference",
+    "recoveryCommit": "ca8603c0961ce36064280f952259f8a6142d46cc",
+    "contentsVerified": false
+  },
+  "productionFingerprint": "a3da14871f6e0bf5c49a6f077b1026720e0fb2d3c28a49213dd715f3dd2b7738",
+  "selected": [
+    "framework",
+    "archive-integrity",
+    "frozen-files-v2"
+  ],
+  "environment": null,
+  "results": [
+    {
+      "id": "framework",
+      "file": "Tests~/Framework/Runner.test.mjs",
+      "runner": "node",
+      "category": "runner",
+      "status": "passed",
+      "detail": "Runner contracts and migration infrastructure",
+      "uncertain": false,
+      "testResult": {
+        "status": "passed",
+        "checks": 223,
+        "message": "Runner contracts and migration infrastructure",
+        "failures": [],
+        "cases": [
+          {
+            "name": "catalog has explicit invocations and valid bounded protocols",
+            "status": "passed"
+          },
+          {
+            "name": "rejects duplicate id",
+            "status": "passed"
+          },
+          {
+            "name": "rejects escaped path",
+            "status": "passed"
+          },
+          {
+            "name": "rejects missing entry",
+            "status": "passed"
+          },
+          {
+            "name": "rejects missing setup",
+            "status": "passed"
+          },
+          {
+            "name": "rejects unbounded timeout",
+            "status": "passed"
+          },
+          {
+            "name": "rejects unknown profile member",
+            "status": "passed"
+          },
+          {
+            "name": "rejects unknown effects",
+            "status": "passed"
+          },
+          {
+            "name": "rejects missing async completion",
+            "status": "passed"
+          },
+          {
+            "name": "rejects missing cleanup entry",
+            "status": "passed"
+          },
+          {
+            "name": "active dispatch cannot re-enable retired scenarios or historical result protocols",
+            "status": "passed"
+          },
+          {
+            "name": "synthetic historical protocols are independent of the active registry",
+            "status": "passed"
+          },
+          {
+            "name": "historical protocol rejects unanchored pass directly",
+            "status": "passed"
+          },
+          {
+            "name": "historical protocol rejects invalid regex directly",
+            "status": "passed"
+          },
+          {
+            "name": "historical protocol rejects missing async completion directly",
+            "status": "passed"
+          },
+          {
+            "name": "historical protocol rejects missing cleanup verdict directly",
+            "status": "passed"
+          },
+          {
+            "name": "historical protocol rejects unanchored async start directly",
+            "status": "passed"
+          },
+          {
+            "name": "historical protocol rejects invalid async start regex directly",
+            "status": "passed"
+          },
+          {
+            "name": "historical protocol rejects unanchored pending directly",
+            "status": "passed"
+          },
+          {
+            "name": "historical protocol rejects invalid pending regex directly",
+            "status": "passed"
+          },
+          {
+            "name": "historical protocol rejects unanchored cleanup directly",
+            "status": "passed"
+          },
+          {
+            "name": "historical protocol rejects invalid cleanup regex directly",
+            "status": "passed"
+          },
+          {
+            "name": "review receipt includes source and invocation, not just scenario names",
+            "status": "passed"
+          },
+          {
+            "name": "transport, API, execution and assertion verdicts remain distinct",
+            "status": "passed"
+          },
+          {
+            "name": "eval_file unwraps evaluation verdict separately from failing inner API",
+            "status": "passed"
+          },
+          {
+            "name": "JSON success requires an explicit result contract",
+            "status": "passed"
+          },
+          {
+            "name": "Node exit, skip, timeout and spawn error are not all pass",
+            "status": "passed"
+          },
+          {
+            "name": "CLI milliseconds and seconds are not confused; project path is explicit",
+            "status": "passed"
+          },
+          {
+            "name": "async start and Running are not final; cleanup runs once",
+            "status": "passed"
+          },
+          {
+            "name": "async failure runs cleanup without overwriting the failed verdict",
+            "status": "passed"
+          },
+          {
+            "name": "async timeout cannot be passed by a successful cleanup",
+            "status": "passed"
+          },
+          {
+            "name": "failed poll transport is uncertain; cleanup still runs",
+            "status": "passed"
+          },
+          {
+            "name": "cleanup failure is visible even after passed assertions",
+            "status": "passed"
+          },
+          {
+            "name": "sync thrown invoker returns infrastructure failure, not pass",
+            "status": "passed"
+          },
+          {
+            "name": "bounded selectors preserve order without adding implicit dependencies",
+            "status": "passed"
+          },
+          {
+            "name": "structured verdicts reject missing, contradictory and malformed data",
+            "status": "passed"
+          },
+          {
+            "name": "Node structured contract requires exactly one result and consistent exit",
+            "status": "passed"
+          },
+          {
+            "name": "structured async uses Start/Poll/Cleanup and retains final check count",
+            "status": "passed"
+          },
+          {
+            "name": "timed-out structured async requests cancellation with its own budget and then cleanup",
+            "status": "passed"
+          },
+          {
+            "name": "structured cleanup failure preserves the primary assertion failure",
+            "status": "passed"
+          },
+          {
+            "name": "support source changes participate in review receipts",
+            "status": "passed"
+          },
+          {
+            "name": "common Node API executes cases serially and reports assertion failures",
+            "status": "passed"
+          },
+          {
+            "name": "pure historical comparison rejects stale, duplicate, missing and weakened results without re-signing",
+            "status": "passed"
+          },
+          {
+            "name": "empty Node cases and empty case lists cannot pass",
+            "status": "passed"
+          },
+          {
+            "name": "passing structured domain results require actual assertions",
+            "status": "passed"
+          },
+          {
+            "name": "global support imports precede types while source line mappings remain",
+            "status": "passed"
+          },
+          {
+            "name": "nested live integration cannot erase uncertain Editor execution",
+            "status": "passed"
+          },
+          {
+            "name": "structured C# cleanup debt retains lock and cannot be erased by bridge cleanup",
+            "status": "passed"
+          },
+          {
+            "name": "compile-only verdict is separate from executing assertions",
+            "status": "passed"
+          },
+          {
+            "name": "entry validation explicitly includes all lifecycle phases without running bodies",
+            "status": "passed"
+          },
+          {
+            "name": "only explicit authorized Player workflows receive a long budget",
+            "status": "passed"
+          },
+          {
+            "name": "native fixture install and removal reloads receive only an explicit bounded workflow budget",
+            "status": "passed"
+          },
+          {
+            "name": "large native diagnostics have a separate bounded budget, not a regression waiver",
+            "status": "passed"
+          }
+        ],
+        "facts": {}
+      },
+      "durationMs": 922,
+      "attempts": [
+        {
+          "phase": "result",
+          "entry": null,
+          "reply": {
+            "code": 0,
+            "stdout": "WHIMTEX_TEST_RESULT {\"status\":\"passed\",\"checks\":223,\"message\":\"Runner contracts and migration infrastructure\",\"failures\":[],\"cases\":[{\"name\":\"catalog has explicit invocations and valid bounded protocols\",\"status\":\"passed\"},{\"name\":\"rejects duplicate id\",\"status\":\"passed\"},{\"name\":\"rejects escaped path\",\"status\":\"passed\"},{\"name\":\"rejects missing entry\",\"status\":\"passed\"},{\"name\":\"rejects missing setup\",\"status\":\"passed\"},{\"name\":\"rejects unbounded timeout\",\"status\":\"passed\"},{\"name\":\"rejects unknown profile member\",\"status\":\"passed\"},{\"name\":\"rejects unknown effects\",\"status\":\"passed\"},{\"name\":\"rejects missing async completion\",\"status\":\"passed\"},{\"name\":\"rejects missing cleanup entry\",\"status\":\"passed\"},{\"name\":\"active dispatch cannot re-enable retired scenarios or historical result protocols\",\"status\":\"passed\"},{\"name\":\"synthetic historical protocols are independent of the active registry\",\"status\":\"passed\"},{\"name\":\"historical protocol rejects unanchored pass directly\",\"status\":\"passed\"},{\"name\":\"historical protocol rejects invalid regex directly\",\"status\":\"passed\"},{\"name\":\"historical protocol rejects missing async completion directly\",\"status\":\"passed\"},{\"name\":\"historical protocol rejects missing cleanup verdict directly\",\"status\":\"passed\"},{\"name\":\"historical protocol rejects unanchored async start directly\",\"status\":\"passed\"},{\"name\":\"historical protocol rejects invalid async start regex directly\",\"status\":\"passed\"},{\"name\":\"historical protocol rejects unanchored pending directly\",\"status\":\"passed\"},{\"name\":\"historical protocol rejects invalid pending regex directly\",\"status\":\"passed\"},{\"name\":\"historical protocol rejects unanchored cleanup directly\",\"status\":\"passed\"},{\"name\":\"historical protocol rejects invalid cleanup regex directly\",\"status\":\"passed\"},{\"name\":\"review receipt includes source and invocation, not just scenario names\",\"status\":\"passed\"},{\"name\":\"transport, API, execution and assertion verdicts remain distinct\",\"status\":\"passed\"},{\"name\":\"eval_file unwraps evaluation verdict separately from failing inner API\",\"status\":\"passed\"},{\"name\":\"JSON success requires an explicit result contract\",\"status\":\"passed\"},{\"name\":\"Node exit, skip, timeout and spawn error are not all pass\",\"status\":\"passed\"},{\"name\":\"CLI milliseconds and seconds are not confused; project path is explicit\",\"status\":\"passed\"},{\"name\":\"async start and Running are not final; cleanup runs once\",\"status\":\"passed\"},{\"name\":\"async failure runs cleanup without overwriting the failed verdict\",\"status\":\"passed\"},{\"name\":\"async timeout cannot be passed by a successful cleanup\",\"status\":\"passed\"},{\"name\":\"failed poll transport is uncertain; cleanup still runs\",\"status\":\"passed\"},{\"name\":\"cleanup failure is visible even after passed assertions\",\"status\":\"passed\"},{\"name\":\"sync thrown invoker returns infrastructure failure, not pass\",\"status\":\"passed\"},{\"name\":\"bounded selectors preserve order without adding implicit dependencies\",\"status\":\"passed\"},{\"name\":\"structured verdicts reject missing, contradictory and malformed data\",\"status\":\"passed\"},{\"name\":\"Node structured contract requires exactly one result and consistent exit\",\"status\":\"passed\"},{\"name\":\"structured async uses Start/Poll/Cleanup and retains final check count\",\"status\":\"passed\"},{\"name\":\"timed-out structured async requests cancellation with its own budget and then cleanup\",\"status\":\"passed\"},{\"name\":\"structured cleanup failure preserves the primary assertion failure\",\"status\":\"passed\"},{\"name\":\"support source changes participate in review receipts\",\"status\":\"passed\"},{\"name\":\"common Node API executes cases serially and reports assertion failures\",\"status\":\"passed\"},{\"name\":\"pure historical comparison rejects stale, duplicate, missing and weakened results without re-signing\",\"status\":\"passed\"},{\"name\":\"empty Node cases and empty case lists cannot pass\",\"status\":\"passed\"},{\"name\":\"passing structured domain results require actual assertions\",\"status\":\"passed\"},{\"name\":\"global support imports precede types while source line mappings remain\",\"status\":\"passed\"},{\"name\":\"nested live integration cannot erase uncertain Editor execution\",\"status\":\"passed\"},{\"name\":\"structured C# cleanup debt retains lock and cannot be erased by bridge cleanup\",\"status\":\"passed\"},{\"name\":\"compile-only verdict is separate from executing assertions\",\"status\":\"passed\"},{\"name\":\"entry validation explicitly includes all lifecycle phases without running bodies\",\"status\":\"passed\"},{\"name\":\"only explicit authorized Player workflows receive a long budget\",\"status\":\"passed\"},{\"name\":\"native fixture install and removal reloads receive only an explicit bounded workflow budget\",\"status\":\"passed\"},{\"name\":\"large native diagnostics have a separate bounded budget, not a regression waiver\",\"status\":\"passed\"}],\"facts\":{}}\n",
+            "stderr": "",
+            "timedOut": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "archive-integrity",
+      "file": "Tests~/Cases/Files/LegacyIntegrity.mjs",
+      "runner": "node",
+      "category": "runner",
+      "status": "passed",
+      "detail": "Immutable Legacy archive",
+      "uncertain": false,
+      "testResult": {
+        "status": "passed",
+        "checks": 2,
+        "message": "Immutable Legacy archive",
+        "failures": [],
+        "cases": [
+          {
+            "name": "Inventory and all archived file bytes",
+            "status": "passed"
+          }
+        ],
+        "facts": {
+          "files": 466,
+          "baselineCommit": "1269df51866959744a4b0763453eb667aefe6d8e",
+          "manifestHash": "c70816ea4220d9ebe08d4d2d087d7e5297bd943405bb3297e24f4b69756a6194",
+          "source": "pinned-git",
+          "recoveryCommit": "ca8603c0961ce36064280f952259f8a6142d46cc"
+        }
+      },
+      "durationMs": 216,
+      "attempts": [
+        {
+          "phase": "result",
+          "entry": null,
+          "reply": {
+            "code": 0,
+            "stdout": "WHIMTEX_TEST_RESULT {\"status\":\"passed\",\"checks\":2,\"message\":\"Immutable Legacy archive\",\"failures\":[],\"cases\":[{\"name\":\"Inventory and all archived file bytes\",\"status\":\"passed\"}],\"facts\":{\"files\":466,\"baselineCommit\":\"1269df51866959744a4b0763453eb667aefe6d8e\",\"manifestHash\":\"c70816ea4220d9ebe08d4d2d087d7e5297bd943405bb3297e24f4b69756a6194\",\"source\":\"pinned-git\",\"recoveryCommit\":\"ca8603c0961ce36064280f952259f8a6142d46cc\"}}\n",
+            "stderr": "",
+            "timedOut": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "frozen-files-v2",
+      "file": "Tests~/Cases/Files/Frozen0125.mjs",
+      "runner": "node",
+      "category": "regression",
+      "status": "passed",
+      "detail": "Frozen 0.12.5 file integrity",
+      "uncertain": false,
+      "testResult": {
+        "status": "passed",
+        "checks": 24685,
+        "message": "Frozen 0.12.5 file integrity",
+        "failures": [],
+        "cases": [
+          {
+            "name": "Original file hashes, render coverage and unsupported asset boundary",
+            "status": "passed"
+          }
+        ],
+        "facts": {
+          "fileHashes": 30,
+          "supportedDocuments": 7,
+          "archivedDocuments": 1,
+          "distinctRenders": 3
+        }
+      },
+      "durationMs": 73,
+      "attempts": [
+        {
+          "phase": "result",
+          "entry": null,
+          "reply": {
+            "code": 0,
+            "stdout": "WHIMTEX_TEST_RESULT {\"status\":\"passed\",\"checks\":24685,\"message\":\"Frozen 0.12.5 file integrity\",\"failures\":[],\"cases\":[{\"name\":\"Original file hashes, render coverage and unsupported asset boundary\",\"status\":\"passed\"}],\"facts\":{\"fileHashes\":30,\"supportedDocuments\":7,\"archivedDocuments\":1,\"distinctRenders\":3}}\n",
+            "stderr": "",
+            "timedOut": false
+          }
+        }
+      ]
+    }
+  ],
+  "success": true,
+  "notRun": [],
+  "recoveryRequired": false,
+  "finishedAt": "2026-10-05T04:30:37.487Z"
+}

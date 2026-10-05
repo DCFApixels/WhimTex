@@ -1,0 +1,2206 @@
+{
+  "version": 1,
+  "scope": "C43 exact parent native report, authenticated current source bundles and original inputs; artifact sanity not visual equivalence",
+  "report": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\2026-10-04T17-22-11.610Z-124400.json",
+  "reportSha256": "8e88473a7685b1381d646fabc13c4d7d1c755b06ec9a296ea8c3ea73233cd81a",
+  "reportBytes": 161350631,
+  "startedAt": "2026-10-04T17:22:11.611Z",
+  "finishedAt": "2026-10-04T17:26:43.543Z",
+  "reportSuccess": false,
+  "notRun": [],
+  "recoveryRequired": false,
+  "reportFingerprint": "cf85ca299b7c49b2793051d00d2103d41d51ad66a864553698df9d11a78c4dc3",
+  "currentAggregateFingerprint": "cf85ca299b7c49b2793051d00d2103d41d51ad66a864553698df9d11a78c4dc3",
+  "counts": {
+    "passed": 30,
+    "skip": 13,
+    "failed": 0,
+    "regressionPassed": 30,
+    "diagnosticSkip": 13
+  },
+  "bindings": [
+    {
+      "id": "mirror-enhancements-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-mirror-enhancements-v2.cs",
+      "bundleSha256": "5addd299e774069313190e15e3bada47a81edce876d751d7fc0d16db687c4813",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/MirrorEnhancementsTests.cs",
+          "sha256": "6c72c4854ef6980017b1487873abd9467c3f531e7fc1ce14d2dd7c5b3ba3823c"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/ReviewedOracle.cs",
+          "sha256": "0a7383618feea3c2a4ba780738bbc0e3831ef78b7199ea0887f4ca4f71dc68e5"
+        }
+      ]
+    },
+    {
+      "id": "mirror-enhancements-transition-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-mirror-enhancements-transition-v2.cs",
+      "bundleSha256": "5addd299e774069313190e15e3bada47a81edce876d751d7fc0d16db687c4813",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/MirrorEnhancementsTests.cs",
+          "sha256": "6c72c4854ef6980017b1487873abd9467c3f531e7fc1ce14d2dd7c5b3ba3823c"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/ReviewedOracle.cs",
+          "sha256": "0a7383618feea3c2a4ba780738bbc0e3831ef78b7199ea0887f4ca4f71dc68e5"
+        }
+      ]
+    },
+    {
+      "id": "mirror-enhancements-integration-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-mirror-enhancements-integration-v2.cs",
+      "bundleSha256": "5addd299e774069313190e15e3bada47a81edce876d751d7fc0d16db687c4813",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/MirrorEnhancementsTests.cs",
+          "sha256": "6c72c4854ef6980017b1487873abd9467c3f531e7fc1ce14d2dd7c5b3ba3823c"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/ReviewedOracle.cs",
+          "sha256": "0a7383618feea3c2a4ba780738bbc0e3831ef78b7199ea0887f4ca4f71dc68e5"
+        }
+      ]
+    },
+    {
+      "id": "mirror-enhancements-preview-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-mirror-enhancements-preview-v2.cs",
+      "bundleSha256": "5addd299e774069313190e15e3bada47a81edce876d751d7fc0d16db687c4813",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/MirrorEnhancementsTests.cs",
+          "sha256": "6c72c4854ef6980017b1487873abd9467c3f531e7fc1ce14d2dd7c5b3ba3823c"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/ReviewedOracle.cs",
+          "sha256": "0a7383618feea3c2a4ba780738bbc0e3831ef78b7199ea0887f4ca4f71dc68e5"
+        }
+      ]
+    },
+    {
+      "id": "patch-quilting-contrast-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-patch-quilting-contrast-v2.cs",
+      "bundleSha256": "20c66be28e5b5873e7a36e77a5a5438f91c78884ee73c5ae5b96895c86546956",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/PatchQuiltingContrastTests.cs",
+          "sha256": "f97f7a82b4e6b92d3dc90991822232b6082a531037511de683be49533a076c25"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/ReviewedOracle.cs",
+          "sha256": "0a7383618feea3c2a4ba780738bbc0e3831ef78b7199ea0887f4ca4f71dc68e5"
+        }
+      ]
+    },
+    {
+      "id": "patch-quilting-contrast-variance-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-patch-quilting-contrast-variance-v2.cs",
+      "bundleSha256": "20c66be28e5b5873e7a36e77a5a5438f91c78884ee73c5ae5b96895c86546956",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/PatchQuiltingContrastTests.cs",
+          "sha256": "f97f7a82b4e6b92d3dc90991822232b6082a531037511de683be49533a076c25"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/ReviewedOracle.cs",
+          "sha256": "0a7383618feea3c2a4ba780738bbc0e3831ef78b7199ea0887f4ca4f71dc68e5"
+        }
+      ]
+    },
+    {
+      "id": "patch-quilting-contrast-capture-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-patch-quilting-contrast-capture-v2.cs",
+      "bundleSha256": "20c66be28e5b5873e7a36e77a5a5438f91c78884ee73c5ae5b96895c86546956",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/PatchQuiltingContrastTests.cs",
+          "sha256": "f97f7a82b4e6b92d3dc90991822232b6082a531037511de683be49533a076c25"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/ReviewedOracle.cs",
+          "sha256": "0a7383618feea3c2a4ba780738bbc0e3831ef78b7199ea0887f4ca4f71dc68e5"
+        }
+      ]
+    },
+    {
+      "id": "patch-quilting-contrast-memory-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-patch-quilting-contrast-memory-v2.cs",
+      "bundleSha256": "20c66be28e5b5873e7a36e77a5a5438f91c78884ee73c5ae5b96895c86546956",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/PatchQuiltingContrastTests.cs",
+          "sha256": "f97f7a82b4e6b92d3dc90991822232b6082a531037511de683be49533a076c25"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/ReviewedOracle.cs",
+          "sha256": "0a7383618feea3c2a4ba780738bbc0e3831ef78b7199ea0887f4ca4f71dc68e5"
+        }
+      ]
+    },
+    {
+      "id": "patch-quilting-equivalence-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-patch-quilting-equivalence-v2.cs",
+      "bundleSha256": "39ff9c8f6a0be5a7dafbaa21731dc9250905522cfc528ce1bf8bd15d0d42cfdc",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/QuiltingEquivalenceTests.cs",
+          "sha256": "6e07b0f82d923b95d3eee50f071e35be74557684bb5e8ae9ec3d1910ced2d18c"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/ReviewedOracle.cs",
+          "sha256": "0a7383618feea3c2a4ba780738bbc0e3831ef78b7199ea0887f4ca4f71dc68e5"
+        }
+      ]
+    },
+    {
+      "id": "patch-quilting-equivalence-managed-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-patch-quilting-equivalence-managed-v2.cs",
+      "bundleSha256": "39ff9c8f6a0be5a7dafbaa21731dc9250905522cfc528ce1bf8bd15d0d42cfdc",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/QuiltingEquivalenceTests.cs",
+          "sha256": "6e07b0f82d923b95d3eee50f071e35be74557684bb5e8ae9ec3d1910ced2d18c"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/ReviewedOracle.cs",
+          "sha256": "0a7383618feea3c2a4ba780738bbc0e3831ef78b7199ea0887f4ca4f71dc68e5"
+        }
+      ]
+    },
+    {
+      "id": "patch-quilting-equivalence-benchmark-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-patch-quilting-equivalence-benchmark-v2.cs",
+      "bundleSha256": "39ff9c8f6a0be5a7dafbaa21731dc9250905522cfc528ce1bf8bd15d0d42cfdc",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/QuiltingEquivalenceTests.cs",
+          "sha256": "6e07b0f82d923b95d3eee50f071e35be74557684bb5e8ae9ec3d1910ced2d18c"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/ReviewedOracle.cs",
+          "sha256": "0a7383618feea3c2a4ba780738bbc0e3831ef78b7199ea0887f4ca4f71dc68e5"
+        }
+      ]
+    },
+    {
+      "id": "patch-quilting-equivalence-current-timing-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-patch-quilting-equivalence-current-timing-v2.cs",
+      "bundleSha256": "39ff9c8f6a0be5a7dafbaa21731dc9250905522cfc528ce1bf8bd15d0d42cfdc",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/QuiltingEquivalenceTests.cs",
+          "sha256": "6e07b0f82d923b95d3eee50f071e35be74557684bb5e8ae9ec3d1910ced2d18c"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/ReviewedOracle.cs",
+          "sha256": "0a7383618feea3c2a4ba780738bbc0e3831ef78b7199ea0887f4ca4f71dc68e5"
+        }
+      ]
+    },
+    {
+      "id": "patch-quilting-feather-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-patch-quilting-feather-v2.cs",
+      "bundleSha256": "426deba492b5e8b63402c1ed249a111661f8955ff0a214ee333a27c46c8b7583",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/PatchQuiltingFeatherTests.cs",
+          "sha256": "cb420ee44cbced5ac6d8b784c36fb67aa2486d29210317965866ddb3c9391f52"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/ReviewedOracle.cs",
+          "sha256": "0a7383618feea3c2a4ba780738bbc0e3831ef78b7199ea0887f4ca4f71dc68e5"
+        }
+      ]
+    },
+    {
+      "id": "patch-quilting-feather-rendering-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-patch-quilting-feather-rendering-v2.cs",
+      "bundleSha256": "426deba492b5e8b63402c1ed249a111661f8955ff0a214ee333a27c46c8b7583",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/PatchQuiltingFeatherTests.cs",
+          "sha256": "cb420ee44cbced5ac6d8b784c36fb67aa2486d29210317965866ddb3c9391f52"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/ReviewedOracle.cs",
+          "sha256": "0a7383618feea3c2a4ba780738bbc0e3831ef78b7199ea0887f4ca4f71dc68e5"
+        }
+      ]
+    },
+    {
+      "id": "patch-quilting-feather-capture-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-patch-quilting-feather-capture-v2.cs",
+      "bundleSha256": "426deba492b5e8b63402c1ed249a111661f8955ff0a214ee333a27c46c8b7583",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/PatchQuiltingFeatherTests.cs",
+          "sha256": "cb420ee44cbced5ac6d8b784c36fb67aa2486d29210317965866ddb3c9391f52"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/ReviewedOracle.cs",
+          "sha256": "0a7383618feea3c2a4ba780738bbc0e3831ef78b7199ea0887f4ca4f71dc68e5"
+        }
+      ]
+    },
+    {
+      "id": "quilting-along-search-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-quilting-along-search-v2.cs",
+      "bundleSha256": "6aef70cba4305afa1bfa49615d9d90c6c74922a03afd2fb52ecb86b0ff4480ff",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/QuiltingAlongSearchTests.cs",
+          "sha256": "bee819aa5248a304d495f46cb6b2bbc6ca520def185e70ada2e7f04d6658bc1a"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/ReviewedOracle.cs",
+          "sha256": "0a7383618feea3c2a4ba780738bbc0e3831ef78b7199ea0887f4ca4f71dc68e5"
+        }
+      ]
+    },
+    {
+      "id": "quilting-along-search-capture-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-quilting-along-search-capture-v2.cs",
+      "bundleSha256": "6aef70cba4305afa1bfa49615d9d90c6c74922a03afd2fb52ecb86b0ff4480ff",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/QuiltingAlongSearchTests.cs",
+          "sha256": "bee819aa5248a304d495f46cb6b2bbc6ca520def185e70ada2e7f04d6658bc1a"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/ReviewedOracle.cs",
+          "sha256": "0a7383618feea3c2a4ba780738bbc0e3831ef78b7199ea0887f4ca4f71dc68e5"
+        }
+      ]
+    },
+    {
+      "id": "screened-seamless-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-screened-seamless-v2.cs",
+      "bundleSha256": "486c7947c32ae114f37d5b1645c1f42f8bf940ebc3ee154ee50e3b5d87affd2e",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/ScreenedSeamlessTests.cs",
+          "sha256": "7fdec0d00ac48fe9b4c8016b1fcd170b56da2f91b0715b6977e2f12e7832e801"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/ReviewedOracle.cs",
+          "sha256": "0a7383618feea3c2a4ba780738bbc0e3831ef78b7199ea0887f4ca4f71dc68e5"
+        }
+      ]
+    },
+    {
+      "id": "screened-seamless-preview-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-screened-seamless-preview-v2.cs",
+      "bundleSha256": "486c7947c32ae114f37d5b1645c1f42f8bf940ebc3ee154ee50e3b5d87affd2e",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/ScreenedSeamlessTests.cs",
+          "sha256": "7fdec0d00ac48fe9b4c8016b1fcd170b56da2f91b0715b6977e2f12e7832e801"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/ReviewedOracle.cs",
+          "sha256": "0a7383618feea3c2a4ba780738bbc0e3831ef78b7199ea0887f4ca4f71dc68e5"
+        }
+      ]
+    },
+    {
+      "id": "screened-seamless-large-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-screened-seamless-large-v2.cs",
+      "bundleSha256": "486c7947c32ae114f37d5b1645c1f42f8bf940ebc3ee154ee50e3b5d87affd2e",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/ScreenedSeamlessTests.cs",
+          "sha256": "7fdec0d00ac48fe9b4c8016b1fcd170b56da2f91b0715b6977e2f12e7832e801"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/ReviewedOracle.cs",
+          "sha256": "0a7383618feea3c2a4ba780738bbc0e3831ef78b7199ea0887f4ca4f71dc68e5"
+        }
+      ]
+    },
+    {
+      "id": "screened-seamless-benchmark-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-screened-seamless-benchmark-v2.cs",
+      "bundleSha256": "486c7947c32ae114f37d5b1645c1f42f8bf940ebc3ee154ee50e3b5d87affd2e",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/ScreenedSeamlessTests.cs",
+          "sha256": "7fdec0d00ac48fe9b4c8016b1fcd170b56da2f91b0715b6977e2f12e7832e801"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/ReviewedOracle.cs",
+          "sha256": "0a7383618feea3c2a4ba780738bbc0e3831ef78b7199ea0887f4ca4f71dc68e5"
+        }
+      ]
+    },
+    {
+      "id": "seamless-controls-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-seamless-controls-v2.cs",
+      "bundleSha256": "ff3ab635e7231a7562562f6c7dea438ef880c122de6648e2862e73ae9c169a8e",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/SeamlessControlsTests.cs",
+          "sha256": "2ec60c317c38d2e9311f6eaea0b6d3418cbfa11fdad11cdc8b679105892c1afb"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/ReviewedOracle.cs",
+          "sha256": "0a7383618feea3c2a4ba780738bbc0e3831ef78b7199ea0887f4ca4f71dc68e5"
+        }
+      ]
+    },
+    {
+      "id": "seamless-controls-preview-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-seamless-controls-preview-v2.cs",
+      "bundleSha256": "ff3ab635e7231a7562562f6c7dea438ef880c122de6648e2862e73ae9c169a8e",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/SeamlessControlsTests.cs",
+          "sha256": "2ec60c317c38d2e9311f6eaea0b6d3418cbfa11fdad11cdc8b679105892c1afb"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/ReviewedOracle.cs",
+          "sha256": "0a7383618feea3c2a4ba780738bbc0e3831ef78b7199ea0887f4ca4f71dc68e5"
+        }
+      ]
+    },
+    {
+      "id": "seamless-optimization-capture-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-seamless-optimization-capture-v2.cs",
+      "bundleSha256": "f61e9a1e576f8a8ffad4fe03be4ed0fb65da8f74dd4d9f0b8e9f1000788ce10d",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/SeamlessOptimizationTests.cs",
+          "sha256": "27b08303849d6b4c6dfd02f133cc3bc609447478c3ce02695728e5764bc880e5"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/ReviewedOracle.cs",
+          "sha256": "0a7383618feea3c2a4ba780738bbc0e3831ef78b7199ea0887f4ca4f71dc68e5"
+        }
+      ]
+    },
+    {
+      "id": "seamless-optimization-compare-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-seamless-optimization-compare-v2.cs",
+      "bundleSha256": "f61e9a1e576f8a8ffad4fe03be4ed0fb65da8f74dd4d9f0b8e9f1000788ce10d",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/SeamlessOptimizationTests.cs",
+          "sha256": "27b08303849d6b4c6dfd02f133cc3bc609447478c3ce02695728e5764bc880e5"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/ReviewedOracle.cs",
+          "sha256": "0a7383618feea3c2a4ba780738bbc0e3831ef78b7199ea0887f4ca4f71dc68e5"
+        }
+      ]
+    },
+    {
+      "id": "seamless-optimization-audit-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-seamless-optimization-audit-v2.cs",
+      "bundleSha256": "f61e9a1e576f8a8ffad4fe03be4ed0fb65da8f74dd4d9f0b8e9f1000788ce10d",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/SeamlessOptimizationTests.cs",
+          "sha256": "27b08303849d6b4c6dfd02f133cc3bc609447478c3ce02695728e5764bc880e5"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/ReviewedOracle.cs",
+          "sha256": "0a7383618feea3c2a4ba780738bbc0e3831ef78b7199ea0887f4ca4f71dc68e5"
+        }
+      ]
+    },
+    {
+      "id": "seamless-optimization-paired-poisson-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-seamless-optimization-paired-poisson-v2.cs",
+      "bundleSha256": "f61e9a1e576f8a8ffad4fe03be4ed0fb65da8f74dd4d9f0b8e9f1000788ce10d",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/SeamlessOptimizationTests.cs",
+          "sha256": "27b08303849d6b4c6dfd02f133cc3bc609447478c3ce02695728e5764bc880e5"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/ReviewedOracle.cs",
+          "sha256": "0a7383618feea3c2a4ba780738bbc0e3831ef78b7199ea0887f4ca4f71dc68e5"
+        }
+      ]
+    },
+    {
+      "id": "seamless-optimization-benchmark-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-seamless-optimization-benchmark-v2.cs",
+      "bundleSha256": "f61e9a1e576f8a8ffad4fe03be4ed0fb65da8f74dd4d9f0b8e9f1000788ce10d",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/SeamlessOptimizationTests.cs",
+          "sha256": "27b08303849d6b4c6dfd02f133cc3bc609447478c3ce02695728e5764bc880e5"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/ReviewedOracle.cs",
+          "sha256": "0a7383618feea3c2a4ba780738bbc0e3831ef78b7199ea0887f4ca4f71dc68e5"
+        }
+      ]
+    },
+    {
+      "id": "seamless-release-status-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-seamless-release-status-v2.cs",
+      "bundleSha256": "f7526bede942683a32bd44a6067eedd2634c06a343f970fb9db25ca5694d539f",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/SeamlessReleaseTests.cs",
+          "sha256": "fb573437f70c7fffdbe11c3368f173512644c42274069ca09071ad1880843d7f"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        }
+      ]
+    },
+    {
+      "id": "seamless-release-workflow-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-seamless-release-workflow-v2.cs",
+      "bundleSha256": "f7526bede942683a32bd44a6067eedd2634c06a343f970fb9db25ca5694d539f",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/SeamlessReleaseTests.cs",
+          "sha256": "fb573437f70c7fffdbe11c3368f173512644c42274069ca09071ad1880843d7f"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        }
+      ]
+    },
+    {
+      "id": "seamless-release-preview-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-seamless-release-preview-v2.cs",
+      "bundleSha256": "f7526bede942683a32bd44a6067eedd2634c06a343f970fb9db25ca5694d539f",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/SeamlessReleaseTests.cs",
+          "sha256": "fb573437f70c7fffdbe11c3368f173512644c42274069ca09071ad1880843d7f"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        }
+      ]
+    },
+    {
+      "id": "seamless-release-stress-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-seamless-release-stress-v2.cs",
+      "bundleSha256": "f7526bede942683a32bd44a6067eedd2634c06a343f970fb9db25ca5694d539f",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/SeamlessReleaseTests.cs",
+          "sha256": "fb573437f70c7fffdbe11c3368f173512644c42274069ca09071ad1880843d7f"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        }
+      ]
+    },
+    {
+      "id": "seamless-release-stress-mode-0-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-seamless-release-stress-mode-0-v2.cs",
+      "bundleSha256": "f7526bede942683a32bd44a6067eedd2634c06a343f970fb9db25ca5694d539f",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/SeamlessReleaseTests.cs",
+          "sha256": "fb573437f70c7fffdbe11c3368f173512644c42274069ca09071ad1880843d7f"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        }
+      ]
+    },
+    {
+      "id": "seamless-release-stress-mode-1-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-seamless-release-stress-mode-1-v2.cs",
+      "bundleSha256": "f7526bede942683a32bd44a6067eedd2634c06a343f970fb9db25ca5694d539f",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/SeamlessReleaseTests.cs",
+          "sha256": "fb573437f70c7fffdbe11c3368f173512644c42274069ca09071ad1880843d7f"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        }
+      ]
+    },
+    {
+      "id": "seamless-release-stress-mode-2-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-seamless-release-stress-mode-2-v2.cs",
+      "bundleSha256": "f7526bede942683a32bd44a6067eedd2634c06a343f970fb9db25ca5694d539f",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/SeamlessReleaseTests.cs",
+          "sha256": "fb573437f70c7fffdbe11c3368f173512644c42274069ca09071ad1880843d7f"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        }
+      ]
+    },
+    {
+      "id": "seamless-release-stress-mode-3-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-seamless-release-stress-mode-3-v2.cs",
+      "bundleSha256": "f7526bede942683a32bd44a6067eedd2634c06a343f970fb9db25ca5694d539f",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/SeamlessReleaseTests.cs",
+          "sha256": "fb573437f70c7fffdbe11c3368f173512644c42274069ca09071ad1880843d7f"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        }
+      ]
+    },
+    {
+      "id": "seamless-release-visuals-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-seamless-release-visuals-v2.cs",
+      "bundleSha256": "f7526bede942683a32bd44a6067eedd2634c06a343f970fb9db25ca5694d539f",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/SeamlessReleaseTests.cs",
+          "sha256": "fb573437f70c7fffdbe11c3368f173512644c42274069ca09071ad1880843d7f"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        }
+      ]
+    },
+    {
+      "id": "seamless-release-multi-window-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-seamless-release-multi-window-v2.cs",
+      "bundleSha256": "f7526bede942683a32bd44a6067eedd2634c06a343f970fb9db25ca5694d539f",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/SeamlessReleaseTests.cs",
+          "sha256": "fb573437f70c7fffdbe11c3368f173512644c42274069ca09071ad1880843d7f"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        }
+      ]
+    },
+    {
+      "id": "seamless-release-stress-2048-mode-0-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-seamless-release-stress-2048-mode-0-v2.cs",
+      "bundleSha256": "f7526bede942683a32bd44a6067eedd2634c06a343f970fb9db25ca5694d539f",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/SeamlessReleaseTests.cs",
+          "sha256": "fb573437f70c7fffdbe11c3368f173512644c42274069ca09071ad1880843d7f"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        }
+      ]
+    },
+    {
+      "id": "seamless-release-stress-2048-mode-2-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-seamless-release-stress-2048-mode-2-v2.cs",
+      "bundleSha256": "f7526bede942683a32bd44a6067eedd2634c06a343f970fb9db25ca5694d539f",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/SeamlessReleaseTests.cs",
+          "sha256": "fb573437f70c7fffdbe11c3368f173512644c42274069ca09071ad1880843d7f"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        }
+      ]
+    },
+    {
+      "id": "seamless-release-stress-2048-mode-3-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-seamless-release-stress-2048-mode-3-v2.cs",
+      "bundleSha256": "f7526bede942683a32bd44a6067eedd2634c06a343f970fb9db25ca5694d539f",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/SeamlessReleaseTests.cs",
+          "sha256": "fb573437f70c7fffdbe11c3368f173512644c42274069ca09071ad1880843d7f"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        }
+      ]
+    },
+    {
+      "id": "seamless-release-stress-2048-mode-4-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-seamless-release-stress-2048-mode-4-v2.cs",
+      "bundleSha256": "f7526bede942683a32bd44a6067eedd2634c06a343f970fb9db25ca5694d539f",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/SeamlessReleaseTests.cs",
+          "sha256": "fb573437f70c7fffdbe11c3368f173512644c42274069ca09071ad1880843d7f"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        }
+      ]
+    },
+    {
+      "id": "model-serialization-benchmark-v2",
+      "inputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\input-583353d9-5720-4581-a71f-a58552a6523a-model-serialization-benchmark-v2.cs",
+      "bundleSha256": "bf2f739c4bab63d974205cf2dc165eae08c7f48c5e6a5b7e42b3afbd5fb20f2c",
+      "savedInputHashMatches": true,
+      "currentRecomposedBundleMatches": true,
+      "sources": [
+        {
+          "file": "Tests~/Cases/UnityC/ModelSerializationBenchmarkTests.cs",
+          "sha256": "b9ab55efcf0e41a5d589087e1b82146abf017ca749bee5ed7903571eb5645eba"
+        },
+        {
+          "file": "Tests~/Framework/TestApi.cs",
+          "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658"
+        },
+        {
+          "file": "Tests~/Cases/UnityC/UnityCFixture.cs",
+          "sha256": "11fed83b70eebdf4cba08e3f6bed0f97f360b0720a72291d4c479dbaf134be7d"
+        }
+      ]
+    }
+  ],
+  "results": [
+    {
+      "id": "mirror-enhancements-v2",
+      "file": "Tests~/Cases/UnityC/MirrorEnhancementsTests.cs",
+      "category": "regression",
+      "status": "passed",
+      "durationMs": 17538,
+      "checks": 19200874,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 484,
+      "nativeExecuteMs": 16786,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "message": "MirrorEnhancementsTests.Main"
+    },
+    {
+      "id": "mirror-enhancements-transition-v2",
+      "file": "Tests~/Cases/UnityC/MirrorEnhancementsTests.cs",
+      "category": "regression",
+      "status": "passed",
+      "durationMs": 7162,
+      "checks": 3564410,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 249,
+      "nativeExecuteMs": 6641,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "message": "MirrorEnhancementsTests.Transition"
+    },
+    {
+      "id": "mirror-enhancements-integration-v2",
+      "file": "Tests~/Cases/UnityC/MirrorEnhancementsTests.cs",
+      "category": "regression",
+      "status": "passed",
+      "durationMs": 4758,
+      "checks": 621162,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 233,
+      "nativeExecuteMs": 4243,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "message": "MirrorEnhancementsTests.Integration"
+    },
+    {
+      "id": "mirror-enhancements-preview-v2",
+      "file": "Tests~/Cases/UnityC/MirrorEnhancementsTests.cs",
+      "category": "diagnostic",
+      "status": "skip",
+      "durationMs": 910,
+      "checks": 0,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 322,
+      "nativeExecuteMs": 345,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 4,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "message": "MirrorEnhancementsTests.Preview: diagnostic/manual result only. D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\UnityC-26917b8798494209b5bd043fc608e30d/"
+    },
+    {
+      "id": "patch-quilting-contrast-v2",
+      "file": "Tests~/Cases/UnityC/PatchQuiltingContrastTests.cs",
+      "category": "regression",
+      "status": "passed",
+      "durationMs": 1060,
+      "checks": 1404097,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 249,
+      "nativeExecuteMs": 570,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "message": "PatchQuiltingContrastTests.Main"
+    },
+    {
+      "id": "patch-quilting-contrast-variance-v2",
+      "file": "Tests~/Cases/UnityC/PatchQuiltingContrastTests.cs",
+      "category": "regression",
+      "status": "passed",
+      "durationMs": 456,
+      "checks": 4,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 170,
+      "nativeExecuteMs": 28,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "message": "PatchQuiltingContrastTests.Variance"
+    },
+    {
+      "id": "patch-quilting-contrast-capture-v2",
+      "file": "Tests~/Cases/UnityC/PatchQuiltingContrastTests.cs",
+      "category": "diagnostic",
+      "status": "skip",
+      "durationMs": 1455,
+      "checks": 42,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 175,
+      "nativeExecuteMs": 1011,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "message": "PatchQuiltingContrastTests.Capture: diagnostic/manual result only. D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\UnityC-b283f545eba54e1fb375d1d66e131ec4/compensation-0-50-100.png; 512x512, Normal/Linked/All, Feather 100%, Patch Width 20%/45%; columns compensation 0/50/100%; warm median incl. final synchronous test readback: off 5.46ms, on 12.57ms."
+    },
+    {
+      "id": "patch-quilting-contrast-memory-v2",
+      "file": "Tests~/Cases/UnityC/PatchQuiltingContrastTests.cs",
+      "category": "regression",
+      "status": "passed",
+      "durationMs": 464,
+      "checks": 8,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 178,
+      "nativeExecuteMs": 16,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "message": "PatchQuiltingContrastTests.Memory"
+    },
+    {
+      "id": "patch-quilting-equivalence-v2",
+      "file": "Tests~/Cases/UnityC/QuiltingEquivalenceTests.cs",
+      "category": "regression",
+      "status": "passed",
+      "durationMs": 16417,
+      "checks": 2133864,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 163,
+      "nativeExecuteMs": 15974,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "message": "QuiltingEquivalenceTests.Main"
+    },
+    {
+      "id": "patch-quilting-equivalence-managed-v2",
+      "file": "Tests~/Cases/UnityC/QuiltingEquivalenceTests.cs",
+      "category": "regression",
+      "status": "passed",
+      "durationMs": 16686,
+      "checks": 2133864,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 343,
+      "nativeExecuteMs": 16060,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "message": "QuiltingEquivalenceTests.Managed"
+    },
+    {
+      "id": "patch-quilting-equivalence-benchmark-v2",
+      "file": "Tests~/Cases/UnityC/QuiltingEquivalenceTests.cs",
+      "category": "regression",
+      "status": "passed",
+      "durationMs": 7840,
+      "checks": 6,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 373,
+      "nativeExecuteMs": 7202,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "user-state",
+        "temp-files"
+      ],
+      "message": "QuiltingEquivalenceTests.Benchmark: Paired warm medians, including output readback, G/B All, width20%, feather16, seed0, no Poisson.\nquality=0 matching=0: old=15.00ms new=4.29ms speedup=3.5x maxError=0\nquality=0 matching=1: old=21.21ms new=4.37ms speedup=4.9x maxError=0\nquality=1 matching=0: old=97.29ms new=6.45ms speedup=15.1x maxError=0\nquality=1 matching=1: old=148.24ms new=6.81ms speedup=21.8x maxError=0\nquality=2 matching=0: old=477.74ms new=11.89ms speedup=40.2x maxError=0\nquality=2 matching=1: old=794.72ms new=15.64ms speedup=50.8x maxError=0\n"
+    },
+    {
+      "id": "patch-quilting-equivalence-current-timing-v2",
+      "file": "Tests~/Cases/UnityC/QuiltingEquivalenceTests.cs",
+      "category": "diagnostic",
+      "status": "skip",
+      "durationMs": 2672,
+      "checks": 0,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 296,
+      "nativeExecuteMs": 2110,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "user-state",
+        "temp-files"
+      ],
+      "message": "QuiltingEquivalenceTests.CurrentTiming: diagnostic/manual result only. Warm current-only 512x512, 15 samples, no Poisson, Burst=True.\nquality=1 matching=0 width=0.2: min=5.91 median=7.45 p90=28.21ms\nquality=1 matching=0 width=0.45: min=5.75 median=6.65 p90=10.88ms\nquality=1 matching=1 width=0.2: min=5.62 median=6.57 p90=10.14ms\nquality=1 matching=1 width=0.45: min=6.64 median=7.50 p90=50.07ms\nquality=2 matching=0 width=0.2: min=7.79 median=8.79 p90=10.65ms\nquality=2 matching=0 width=0.45: min=9.17 median=10.09 p90=17.13ms\nquality=2 matching=1 width=0.2: min=9.30 median=10.30 p90=12.51ms\nquality=2 matching=1 width=0.45: min=10.37 median=11.24 p90=39.10ms\n"
+    },
+    {
+      "id": "patch-quilting-feather-v2",
+      "file": "Tests~/Cases/UnityC/PatchQuiltingFeatherTests.cs",
+      "category": "regression",
+      "status": "passed",
+      "durationMs": 8473,
+      "checks": 2642957,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 292,
+      "nativeExecuteMs": 7908,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "message": "PatchQuiltingFeatherTests.Main"
+    },
+    {
+      "id": "patch-quilting-feather-rendering-v2",
+      "file": "Tests~/Cases/UnityC/PatchQuiltingFeatherTests.cs",
+      "category": "regression",
+      "status": "passed",
+      "durationMs": 21745,
+      "checks": 171198792,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 303,
+      "nativeExecuteMs": 21162,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "message": "PatchQuiltingFeatherTests.Rendering"
+    },
+    {
+      "id": "patch-quilting-feather-capture-v2",
+      "file": "Tests~/Cases/UnityC/PatchQuiltingFeatherTests.cs",
+      "category": "diagnostic",
+      "status": "skip",
+      "durationMs": 1179,
+      "checks": 0,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 377,
+      "nativeExecuteMs": 532,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "message": "PatchQuiltingFeatherTests.Capture: diagnostic/manual result only. D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\UnityC-5942eb0e98164ef08530c657ba3be4ac/feather-0-50-100.png; columns: Feather 0/50/100%; top: Patch Width 2%, bottom: 45%; Normal, Linked, no Poisson; tile joins centered; RGB encoded for display."
+    },
+    {
+      "id": "quilting-along-search-v2",
+      "file": "Tests~/Cases/UnityC/QuiltingAlongSearchTests.cs",
+      "category": "regression",
+      "status": "passed",
+      "durationMs": 923,
+      "checks": 801421,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 181,
+      "nativeExecuteMs": 470,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "message": "QuiltingAlongSearchTests.Main"
+    },
+    {
+      "id": "quilting-along-search-capture-v2",
+      "file": "Tests~/Cases/UnityC/QuiltingAlongSearchTests.cs",
+      "category": "diagnostic",
+      "status": "skip",
+      "durationMs": 1509,
+      "checks": 24,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 256,
+      "nativeExecuteMs": 779,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "message": "QuiltingAlongSearchTests.Capture: diagnostic/manual result only. D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\UnityC-b3cb9e062a4b40f2865a088d88ef2ecd/comparison.png; columns 0/12.5/25%, Normal Linked, width20%, Feather100%, seed17, no correction/compensation. 0%: 6.599 ms; 12.5%: 6.895 ms; 25%: 8.155 ms; "
+    },
+    {
+      "id": "screened-seamless-v2",
+      "file": "Tests~/Cases/UnityC/ScreenedSeamlessTests.cs",
+      "category": "regression",
+      "status": "passed",
+      "durationMs": 2405,
+      "checks": 213230,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 219,
+      "nativeExecuteMs": 1928,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "message": "ScreenedSeamlessTests.Main"
+    },
+    {
+      "id": "screened-seamless-preview-v2",
+      "file": "Tests~/Cases/UnityC/ScreenedSeamlessTests.cs",
+      "category": "diagnostic",
+      "status": "skip",
+      "durationMs": 1851,
+      "checks": 0,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 203,
+      "nativeExecuteMs": 919,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 3,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "message": "ScreenedSeamlessTests.Preview: diagnostic/manual result only. GPU preview written: D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\UnityC-ad0738d5bcfb4524adf53d2c2e099625/"
+    },
+    {
+      "id": "screened-seamless-large-v2",
+      "file": "Tests~/Cases/UnityC/ScreenedSeamlessTests.cs",
+      "category": "regression",
+      "status": "passed",
+      "durationMs": 12280,
+      "checks": 4078852,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 478,
+      "nativeExecuteMs": 11543,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "message": "ScreenedSeamlessTests.Large"
+    },
+    {
+      "id": "screened-seamless-benchmark-v2",
+      "file": "Tests~/Cases/UnityC/ScreenedSeamlessTests.cs",
+      "category": "diagnostic",
+      "status": "skip",
+      "durationMs": 1494,
+      "checks": 0,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 396,
+      "nativeExecuteMs": 885,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "message": "ScreenedSeamlessTests.Benchmark: diagnostic/manual result only. GPU render + sync float readback, median 3: 256: 24.61 ms; 512: 33.91 ms; 1024: 123.70 ms; "
+    },
+    {
+      "id": "seamless-controls-v2",
+      "file": "Tests~/Cases/UnityC/SeamlessControlsTests.cs",
+      "category": "regression",
+      "status": "passed",
+      "durationMs": 2076,
+      "checks": 1214513,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 163,
+      "nativeExecuteMs": 1686,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "message": "SeamlessControlsTests.Main"
+    },
+    {
+      "id": "seamless-controls-preview-v2",
+      "file": "Tests~/Cases/UnityC/SeamlessControlsTests.cs",
+      "category": "diagnostic",
+      "status": "skip",
+      "durationMs": 5129,
+      "checks": 0,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 281,
+      "nativeExecuteMs": 3232,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 16,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "message": "SeamlessControlsTests.Preview: diagnostic/manual result only. D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\UnityC-9bde53589ac14d7cabd5922b56889b7e/"
+    },
+    {
+      "id": "seamless-optimization-capture-v2",
+      "file": "Tests~/Cases/UnityC/SeamlessOptimizationTests.cs",
+      "category": "diagnostic",
+      "status": "skip",
+      "durationMs": 463,
+      "checks": 0,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 247,
+      "nativeExecuteMs": 0,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [],
+      "message": "Baseline-generation helper; never regenerate references to obtain a pass."
+    },
+    {
+      "id": "seamless-optimization-compare-v2",
+      "file": "Tests~/Cases/UnityC/SeamlessOptimizationTests.cs",
+      "category": "regression",
+      "status": "passed",
+      "durationMs": 9405,
+      "checks": 3727332,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 198,
+      "nativeExecuteMs": 8912,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "user-state",
+        "temp-files"
+      ],
+      "message": "SeamlessOptimizationTests.Compare"
+    },
+    {
+      "id": "seamless-optimization-audit-v2",
+      "file": "Tests~/Cases/UnityC/SeamlessOptimizationTests.cs",
+      "category": "regression",
+      "status": "passed",
+      "durationMs": 8218,
+      "checks": 3727332,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 229,
+      "nativeExecuteMs": 7708,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "user-state",
+        "temp-files"
+      ],
+      "message": "SeamlessOptimizationTests.Audit: finiteness and caller-state assertions; delta report only, no equivalence tolerance"
+    },
+    {
+      "id": "seamless-optimization-paired-poisson-v2",
+      "file": "Tests~/Cases/UnityC/SeamlessOptimizationTests.cs",
+      "category": "regression",
+      "status": "passed",
+      "durationMs": 5972,
+      "checks": 3145728,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 298,
+      "nativeExecuteMs": 5432,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "message": "SeamlessOptimizationTests.PairedPoisson"
+    },
+    {
+      "id": "seamless-optimization-benchmark-v2",
+      "file": "Tests~/Cases/UnityC/SeamlessOptimizationTests.cs",
+      "category": "diagnostic",
+      "status": "skip",
+      "durationMs": 1554,
+      "checks": 0,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 371,
+      "nativeExecuteMs": 974,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "message": "SeamlessOptimizationTests.Benchmark: diagnostic/manual result only. 512x512, warm medians, 9 samples, final GPU readback included\nmode 0, contrast 0: 0.972 ms\r\nmode 0, contrast 1: 5.120 ms\r\nmode 1, contrast 0: 0.929 ms\r\nmode 1, contrast 1: 5.336 ms\r\nmode 2, contrast 1: 30.149 ms\r\nmode 3, contrast 0: 11.599 ms\r\nmode 3, contrast 1: 22.230 ms\r\n"
+    },
+    {
+      "id": "seamless-release-status-v2",
+      "file": "Tests~/Cases/UnityC/SeamlessReleaseTests.cs",
+      "category": "diagnostic",
+      "status": "skip",
+      "durationMs": 503,
+      "checks": 0,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 259,
+      "nativeExecuteMs": 6,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "user-state",
+        "temp-files"
+      ],
+      "message": "SeamlessReleaseTests.Status: historical progress helper, current Stress report is returned directly: diagnostic/manual result only. Editor main thread responsive; stress status: OffsetBlend 1024x768: first 165.85 ms; cached 11.39/11.30 ms (readback included)\r\nMirror 1024x768: first 144.27 ms; cached 12.10/11.72 ms (readback included)\r\nScreenedPoisson 1024x768: first 139.78 ms; cached 11.72/10.87 ms (readback included)\r\nPatchQuilting 1024x768: first 193.34 ms; cached 10.66/12.03 ms (readback included)\r\nCompleted cleanup"
+    },
+    {
+      "id": "seamless-release-workflow-v2",
+      "file": "Tests~/Cases/UnityC/SeamlessReleaseTests.cs",
+      "category": "regression",
+      "status": "passed",
+      "durationMs": 2254,
+      "checks": 393608,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 323,
+      "nativeExecuteMs": 1704,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows",
+        "assets"
+      ],
+      "message": "SeamlessReleaseTests.Workflow"
+    },
+    {
+      "id": "seamless-release-preview-v2",
+      "file": "Tests~/Cases/UnityC/SeamlessReleaseTests.cs",
+      "category": "regression",
+      "status": "passed",
+      "durationMs": 1431,
+      "checks": 1572870,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 299,
+      "nativeExecuteMs": 855,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows",
+        "assets"
+      ],
+      "message": "SeamlessReleaseTests.Preview"
+    },
+    {
+      "id": "seamless-release-stress-v2",
+      "file": "Tests~/Cases/UnityC/SeamlessReleaseTests.cs",
+      "category": "regression",
+      "status": "passed",
+      "durationMs": 14209,
+      "checks": 37748761,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 267,
+      "nativeExecuteMs": 13691,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows",
+        "assets"
+      ],
+      "message": "SeamlessReleaseTests.Stress: OffsetBlend 1024x768: first 110.08 ms; cached 10.95/11.84 ms (readback included)\r\nMirror 1024x768: first 135.75 ms; cached 12.11/10.44 ms (readback included)\r\nScreenedPoisson 1024x768: first 129.34 ms; cached 11.88/11.43 ms (readback included)\r\nPatchQuilting 1024x768: first 188.17 ms; cached 11.37/11.50 ms (readback included)\r\n"
+    },
+    {
+      "id": "seamless-release-stress-mode-0-v2",
+      "file": "Tests~/Cases/UnityC/SeamlessReleaseTests.cs",
+      "category": "regression",
+      "status": "passed",
+      "durationMs": 4377,
+      "checks": 9437191,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 335,
+      "nativeExecuteMs": 3783,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows",
+        "assets"
+      ],
+      "message": "SeamlessReleaseTests.Stress: Mirror 1024x768: first 167.23 ms; cached 11.25/10.66 ms (readback included)\r\n"
+    },
+    {
+      "id": "seamless-release-stress-mode-1-v2",
+      "file": "Tests~/Cases/UnityC/SeamlessReleaseTests.cs",
+      "category": "regression",
+      "status": "passed",
+      "durationMs": 4266,
+      "checks": 9437191,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 351,
+      "nativeExecuteMs": 3701,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows",
+        "assets"
+      ],
+      "message": "SeamlessReleaseTests.Stress: PatchQuilting 1024x768: first 206.88 ms; cached 11.92/13.58 ms (readback included)\r\n"
+    },
+    {
+      "id": "seamless-release-stress-mode-2-v2",
+      "file": "Tests~/Cases/UnityC/SeamlessReleaseTests.cs",
+      "category": "regression",
+      "status": "passed",
+      "durationMs": 4220,
+      "checks": 9437191,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 392,
+      "nativeExecuteMs": 3593,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows",
+        "assets"
+      ],
+      "message": "SeamlessReleaseTests.Stress: ScreenedPoisson 1024x768: first 141.88 ms; cached 13.36/11.26 ms (readback included)\r\n"
+    },
+    {
+      "id": "seamless-release-stress-mode-3-v2",
+      "file": "Tests~/Cases/UnityC/SeamlessReleaseTests.cs",
+      "category": "regression",
+      "status": "passed",
+      "durationMs": 4187,
+      "checks": 9437191,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 340,
+      "nativeExecuteMs": 3648,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows",
+        "assets"
+      ],
+      "message": "SeamlessReleaseTests.Stress: OffsetBlend 1024x768: first 144.32 ms; cached 11.38/13.35 ms (readback included)\r\n"
+    },
+    {
+      "id": "seamless-release-visuals-v2",
+      "file": "Tests~/Cases/UnityC/SeamlessReleaseTests.cs",
+      "category": "diagnostic",
+      "status": "skip",
+      "durationMs": 1434,
+      "checks": 0,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 357,
+      "nativeExecuteMs": 771,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 1,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "message": "SeamlessReleaseTests.Visuals: diagnostic/manual result only. Generated original five-by-five visual matrix; actual PNG is retained in the diagnostic artifacts envelope before owned cleanup. Manual review remains pending."
+    },
+    {
+      "id": "seamless-release-multi-window-v2",
+      "file": "Tests~/Cases/UnityC/SeamlessReleaseTests.cs",
+      "category": "regression",
+      "status": "passed",
+      "durationMs": 2510,
+      "checks": 3145735,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 296,
+      "nativeExecuteMs": 1940,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows",
+        "assets"
+      ],
+      "message": "SeamlessReleaseTests.MultiWindow"
+    },
+    {
+      "id": "seamless-release-stress-2048-mode-0-v2",
+      "file": "Tests~/Cases/UnityC/SeamlessReleaseTests.cs",
+      "category": "regression",
+      "status": "passed",
+      "durationMs": 15279,
+      "checks": 37748743,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 349,
+      "nativeExecuteMs": 14607,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows",
+        "assets"
+      ],
+      "message": "SeamlessReleaseTests.Stress: Mirror 2048x1536: first 750.64 ms; cached 39.47/94.99 ms (readback included)\r\n"
+    },
+    {
+      "id": "seamless-release-stress-2048-mode-2-v2",
+      "file": "Tests~/Cases/UnityC/SeamlessReleaseTests.cs",
+      "category": "regression",
+      "status": "passed",
+      "durationMs": 14989,
+      "checks": 37748743,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 430,
+      "nativeExecuteMs": 14324,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows",
+        "assets"
+      ],
+      "message": "SeamlessReleaseTests.Stress: ScreenedPoisson 2048x1536: first 740.94 ms; cached 41.80/102.75 ms (readback included)\r\n"
+    },
+    {
+      "id": "seamless-release-stress-2048-mode-3-v2",
+      "file": "Tests~/Cases/UnityC/SeamlessReleaseTests.cs",
+      "category": "regression",
+      "status": "passed",
+      "durationMs": 14850,
+      "checks": 37748743,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 251,
+      "nativeExecuteMs": 14341,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows",
+        "assets"
+      ],
+      "message": "SeamlessReleaseTests.Stress: OffsetBlend 2048x1536: first 735.72 ms; cached 87.30/88.43 ms (readback included)\r\n"
+    },
+    {
+      "id": "seamless-release-stress-2048-mode-4-v2",
+      "file": "Tests~/Cases/UnityC/SeamlessReleaseTests.cs",
+      "category": "regression",
+      "status": "passed",
+      "durationMs": 15045,
+      "checks": 37748743,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 462,
+      "nativeExecuteMs": 14352,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows",
+        "assets"
+      ],
+      "message": "SeamlessReleaseTests.Stress: PatchQuilting 2048x1536: first 908.53 ms; cached 99.65/163.27 ms (readback included)\r\n"
+    },
+    {
+      "id": "model-serialization-benchmark-v2",
+      "file": "Tests~/Cases/UnityC/ModelSerializationBenchmarkTests.cs",
+      "category": "diagnostic",
+      "status": "skip",
+      "durationMs": 487,
+      "checks": 0,
+      "uncertain": false,
+      "recoveryRequired": false,
+      "nativeCompileMs": 220,
+      "nativeExecuteMs": 68,
+      "nativeSuccess": true,
+      "failures": [],
+      "artifactCount": 0,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "message": "ModelSerializationBenchmarkTests.Run: diagnostic/manual result only. PROBE: model=8ms pixelHash=0ms for 2 blocks (1MB) => Hash128 fingerprint share 0%"
+    }
+  ],
+  "retainedArtifactGroups": [
+    {
+      "id": "mirror-enhancements-preview-v2",
+      "items": [
+        {
+          "name": "0.png",
+          "bytes": 7664,
+          "sha256": "385de0ade22cf067d0ed78289d620b28dd57c558e64110347061962fcf2d0e56",
+          "format": "PNG",
+          "pngSignature": "89504e470d0a1a0a",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "name": "1.png",
+          "bytes": 189358,
+          "sha256": "a5e01595d168bbd7db52c073edef78eaf62b2edb31738555a3c27fb9979200c9",
+          "format": "PNG",
+          "pngSignature": "89504e470d0a1a0a",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "name": "2.png",
+          "bytes": 7664,
+          "sha256": "385de0ade22cf067d0ed78289d620b28dd57c558e64110347061962fcf2d0e56",
+          "format": "PNG",
+          "pngSignature": "89504e470d0a1a0a",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "name": "3.png",
+          "bytes": 188673,
+          "sha256": "a7424db2a69f827b6135ad249011d5befe49475a3d2fb4ea63a1f3f8de1e6327",
+          "format": "PNG",
+          "pngSignature": "89504e470d0a1a0a",
+          "width": 600,
+          "height": 600
+        }
+      ]
+    },
+    {
+      "id": "screened-seamless-preview-v2",
+      "items": [
+        {
+          "name": "05_unity_gpu.png",
+          "bytes": 196962,
+          "sha256": "4e0084209b50cc680933cf5949f052c8cec2516969e6b19f5fc809474d71ce37",
+          "format": "PNG",
+          "pngSignature": "89504e470d0a1a0a",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "name": "05_unity_gpu_float.bin",
+          "bytes": 5760000,
+          "sha256": "55a86f5b61921aa0cff28ae4631c865689c01f60d6a2d499ade2224b3637a6d3",
+          "format": "headerless little-endian RGBAfloat32",
+          "width": 600,
+          "height": 600,
+          "expectedBytes": 5760000,
+          "dimensionsSource": "Original Preview source and decoded600x600 source PNG; no binary dimension header"
+        },
+        {
+          "name": "05_unity_input_float.bin",
+          "bytes": 5760000,
+          "sha256": "24fc548b00986afe90fa3e197d1b7e9fe2e2f19c1342eefbe629dc1aab8d026b",
+          "format": "headerless little-endian RGBAfloat32",
+          "width": 600,
+          "height": 600,
+          "expectedBytes": 5760000,
+          "dimensionsSource": "Original Preview source and decoded600x600 source PNG; no binary dimension header"
+        }
+      ]
+    },
+    {
+      "id": "seamless-controls-preview-v2",
+      "items": [
+        {
+          "name": "histogram_0.bin",
+          "bytes": 5760008,
+          "sha256": "8cdd51047e0ed2d8381add8d76fb06db6920b15d3cf61da324e4c121ebac3ded",
+          "format": "int32-width-height/RGBAfloat32",
+          "width": 600,
+          "height": 600,
+          "expectedBytes": 5760008
+        },
+        {
+          "name": "histogram_0.png",
+          "bytes": 198002,
+          "sha256": "aa184e131839dfdcf9101d838929358314dabe3e2efc898aab01f9aafdf32746",
+          "format": "PNG",
+          "pngSignature": "89504e470d0a1a0a",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "name": "histogram_1.bin",
+          "bytes": 5760008,
+          "sha256": "a843acea693519a4e8580d2e20d727e4062e7322b6d566e5336c11fd39d7539d",
+          "format": "int32-width-height/RGBAfloat32",
+          "width": 600,
+          "height": 600,
+          "expectedBytes": 5760008
+        },
+        {
+          "name": "histogram_1.png",
+          "bytes": 184638,
+          "sha256": "06aeacef533bdbefe8d733044279dfa74396dba57c3c8bed6a11bd9a7cdf3291",
+          "format": "PNG",
+          "pngSignature": "89504e470d0a1a0a",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "name": "histogram_2.bin",
+          "bytes": 5760008,
+          "sha256": "480a7fd99b386143d21e5ae82fa500f70f054a33f8059bf44c9a75c526c94d4e",
+          "format": "int32-width-height/RGBAfloat32",
+          "width": 600,
+          "height": 600,
+          "expectedBytes": 5760008
+        },
+        {
+          "name": "histogram_2.png",
+          "bytes": 185551,
+          "sha256": "972c08cbc930e099862fbfa91ecf88c88bb4ba1c5e536274002f65681298e9a7",
+          "format": "PNG",
+          "pngSignature": "89504e470d0a1a0a",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "name": "histogram_3.bin",
+          "bytes": 5760008,
+          "sha256": "e4d5b3f75d7ac4de7386362269220923f03b15a7dd8032e1ea0a969a98dc0083",
+          "format": "int32-width-height/RGBAfloat32",
+          "width": 600,
+          "height": 600,
+          "expectedBytes": 5760008
+        },
+        {
+          "name": "histogram_3.png",
+          "bytes": 187882,
+          "sha256": "f34a4740b49e3ea05bf15c82a70af4b7a9f014a3ed45aec5a747435e299805b3",
+          "format": "PNG",
+          "pngSignature": "89504e470d0a1a0a",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "name": "screened_0.bin",
+          "bytes": 5760008,
+          "sha256": "5ba2bdd696e786278a3e94f2d9e44f477d3ccb81928a51e2aa03d5b88d093a9a",
+          "format": "int32-width-height/RGBAfloat32",
+          "width": 600,
+          "height": 600,
+          "expectedBytes": 5760008
+        },
+        {
+          "name": "screened_0.png",
+          "bytes": 196962,
+          "sha256": "4e0084209b50cc680933cf5949f052c8cec2516969e6b19f5fc809474d71ce37",
+          "format": "PNG",
+          "pngSignature": "89504e470d0a1a0a",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "name": "screened_1.bin",
+          "bytes": 5760008,
+          "sha256": "c8dba397c65d78b15bbc12d13ed2435634a8856838f3fa28777cb635bacb2106",
+          "format": "int32-width-height/RGBAfloat32",
+          "width": 600,
+          "height": 600,
+          "expectedBytes": 5760008
+        },
+        {
+          "name": "screened_1.png",
+          "bytes": 190744,
+          "sha256": "5246ff6e3d1066befc6095e71243e8f4fc5eda7079b79f4aa4bad6b65bd079eb",
+          "format": "PNG",
+          "pngSignature": "89504e470d0a1a0a",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "name": "screened_2.bin",
+          "bytes": 5760008,
+          "sha256": "9c4ac1713a8330345e70ad9156136c80aef24f465131b543864188f47697030e",
+          "format": "int32-width-height/RGBAfloat32",
+          "width": 600,
+          "height": 600,
+          "expectedBytes": 5760008
+        },
+        {
+          "name": "screened_2.png",
+          "bytes": 192410,
+          "sha256": "d1eea4e25ee29a8f26f9236421a41e07697230cbd18833cadd8a8196bdca2b47",
+          "format": "PNG",
+          "pngSignature": "89504e470d0a1a0a",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "name": "screened_3.bin",
+          "bytes": 5760008,
+          "sha256": "5ba2bdd696e786278a3e94f2d9e44f477d3ccb81928a51e2aa03d5b88d093a9a",
+          "format": "int32-width-height/RGBAfloat32",
+          "width": 600,
+          "height": 600,
+          "expectedBytes": 5760008
+        },
+        {
+          "name": "screened_3.png",
+          "bytes": 196962,
+          "sha256": "4e0084209b50cc680933cf5949f052c8cec2516969e6b19f5fc809474d71ce37",
+          "format": "PNG",
+          "pngSignature": "89504e470d0a1a0a",
+          "width": 600,
+          "height": 600
+        }
+      ]
+    },
+    {
+      "id": "seamless-release-visuals-v2",
+      "items": [
+        {
+          "name": "visual-matrix.png",
+          "bytes": 736936,
+          "sha256": "df53faf02039f36cba572dd7c50aa8f0d368abe1b218561bde1c267796deffe4",
+          "format": "PNG",
+          "pngSignature": "89504e470d0a1a0a",
+          "width": 960,
+          "height": 960
+        }
+      ]
+    }
+  ],
+  "retainedArtifactCount": 24,
+  "observedOwnedCleanupFolders": [
+    {
+      "path": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\UnityC-26917b8798494209b5bd043fc608e30d",
+      "absentAfterCleanup": true
+    },
+    {
+      "path": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\UnityC-b283f545eba54e1fb375d1d66e131ec4",
+      "absentAfterCleanup": true
+    },
+    {
+      "path": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\UnityC-5942eb0e98164ef08530c657ba3be4ac",
+      "absentAfterCleanup": true
+    },
+    {
+      "path": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\UnityC-b3cb9e062a4b40f2865a088d88ef2ecd",
+      "absentAfterCleanup": true
+    },
+    {
+      "path": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\UnityC-ad0738d5bcfb4524adf53d2c2e099625",
+      "absentAfterCleanup": true
+    },
+    {
+      "path": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\UnityC-9bde53589ac14d7cabd5922b56889b7e",
+      "absentAfterCleanup": true
+    }
+  ],
+  "originalInputManifest": "Tests~/CoverageAudit/unity-cd-oracles.json",
+  "originalInputManifestSha256": "3d18e164d8016c1b1ce4f0338f5013b7b043429d0385447a57b7ed5737d256e4",
+  "originalRecordsVerified": 255,
+  "originalRecordsMatch": true,
+  "originalSnapshotCollectionSha256": "e9a315016987208ffba9d196dcda20da1cd7be4afd4986cd549b1c4a1c6bef24",
+  "bad": [],
+  "limitations": [
+    "All reported regression assertions passed for these supplied source bundles and inputs; totals do not establish universal original coverage.",
+    "Diagnostic SKIP is not regression/performance/visual PASS. Artifact dimensions/hash/format are sanity only; manual review not done.",
+    "Contrast/Feather/Along capture raw payloads contain no artifacts despite completed producer messages; owned output folders absent after cleanup. Retained timing text is evidence, not retained PNG visual proof.",
+    "Observed scope cleanup/final result has no failures; not independent proof of every prior user preference/window state. No current Unity state queried.",
+    "Existing original current hashes match; no historical per-file digest continuity established. No regeneration, data/source/catalog/global mutation or Unity execution by this worker."
+  ],
+  "runtimeProofBindingStage": "Report source bundles matched current bytes before authorized post-C43 Capture-trio and Mirror-pass repairs.13 affected IDs now require parent rerun; do not rebind old PASS to changed full files.",
+  "originalHistoryLimitation": "Historical docs/source assertion review plus current file hashes only; no historical per-file digest continuity."
+}

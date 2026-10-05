@@ -13,15 +13,44 @@
       ],
       "coverage": [
         "Original 24 runner cases retained: catalog validation, selectors, receipt sensitivity, transport/API/execution/assertion distinctions, eval unwrapping, explicit JSON success, Node exit/SKIP/timeout, CLI units and project, async polling/failure/timeout/cleanup.",
-        "Legacy core selection is explicitly legacy-core, not silently changed to the independent core. Shared counted Node assertions replace node:test scheduling.",
-        "Additional structured result, lifecycle cancellation, empty assertion, source bundling, compile-only, entry-only, nested uncertainty and bounded Player/diagnostic budget guards do not replace old checks."
+        "Additional structured result, lifecycle cancellation, empty assertion, source bundling, compile-only, entry-only, nested uncertainty and bounded Player/diagnostic budget guards do not replace old checks.",
+        "Original negative verdict, typed-argument, timeout, async polling and cleanup assertions are retained.",
+        "Catalog selectors now test the independent core and refusal of removed IDs/profiles; retired catalog remains immutable historical data.",
+        "Regex anchoring and invalid-pattern assertions now directly validate synthetic historical protocol metadata, rather than passing incidentally because the active structured-only catalog rejects legacy.",
+        "Historical pilot negatives use a pure synthetic comparison; only the separate fixed-hash comparison authenticates the original raw receipt.",
+        "53 named cases and 223 counted assertions passed; mock-invoker checks do not prove actual Unity reload."
       ],
       "gaps": [],
       "reviewStatus": "source-reviewed",
       "runtimeStatus": "pending-parent-validation",
       "sourceHashes": {
         "legacy": "14b0a02e549ad67c1a37c3ea8d720deeac53b19808ce9112641d89a040e538d7",
-        "replacement": "146fa0ba34530ee9cfb9f03e876ba869759950870d2655e17bc1ec81b71211eb"
+        "replacement": "ec834daaac1224cddf64b631da2d55a32165dd1348058f8620cc07325bd08130",
+        "support": {
+          "Tests~/Framework/Fixtures/HistoricalProtocol.mjs": "653bcbf74e38c636d0aaba5c2a39025e53d12a973e70c07635e824869ce4306a",
+          "Tests~/scripts/check-migration.mjs": "83343379343593c86ec51b6775426f4c9aaf4f6f227950d537e469b73895ddc8",
+          "Tests~/migration.json": "6943f040943a7c2a7f026ab818cf7a5703357ee1011590d774c2f6be55c98b82",
+          "Tests~/retirement-baseline.json": "fb59fe5a2f8167456091c262f1f40031192c13fd9403408ec638535608c746ef",
+          "Tests~/retired-catalog.json": "5af017f0a42f31164376fe17aa5ec1ef697c60de42d96b780ed90afa8d66039e"
+        }
+      },
+      "preRetirementSourceReviews": [
+        {
+          "reason": "Archive retirement: manually reviewed adaptation; prior receipt remains historical.",
+          "sourceHashes": {
+            "legacy": "14b0a02e549ad67c1a37c3ea8d720deeac53b19808ce9112641d89a040e538d7",
+            "replacement": "146fa0ba34530ee9cfb9f03e876ba869759950870d2655e17bc1ec81b71211eb"
+          },
+          "coverage": [
+            "Original 24 runner cases retained: catalog validation, selectors, receipt sensitivity, transport/API/execution/assertion distinctions, eval unwrapping, explicit JSON success, Node exit/SKIP/timeout, CLI units and project, async polling/failure/timeout/cleanup.",
+            "Legacy core selection is explicitly legacy-core, not silently changed to the independent core. Shared counted Node assertions replace node:test scheduling.",
+            "Additional structured result, lifecycle cancellation, empty assertion, source bundling, compile-only, entry-only, nested uncertainty and bounded Player/diagnostic budget guards do not replace old checks."
+          ]
+        }
+      ],
+      "retirementSourceReview": {
+        "file": "Tests~/CoverageAudit/retirement-source-review.json",
+        "runtimeReceiptResigned": false
       }
     },
     {
@@ -268,14 +297,38 @@
       ],
       "coverage": [
         "Infrastructure replacement keeps explicit bounded invocation, structured API versus inner execution versus domain assertion results, async polling with cleanup, review fingerprints, native source bundling and explicit project targeting.",
-        "Old text verdicts remain only for explicitly archived invocations. New cases cannot pass with zero checks, malformed output, missing cleanup or contradictory failed process exit."
+        "Active dispatch accepts independent structured-only cases. Archive paths are forbidden in case, support and review metadata, including normalized path aliases.",
+        "Legacy Node mirroring removed. Ordinary dispatch checks immutable descriptor/manifest metadata only; full archive bytes require the explicit pinned Git reader.",
+        "Runtime classifiers, bundle construction, runScenario polling/cancellation/cleanup, CLI budgets and child-process execution remain byte-identical to the pre-retirement runner.",
+        "The global receipt binds archive-descriptor instead of historical migration comparison files. Selected framework dependencies explicitly bind the historical comparison fixtures.",
+        "No old receipt fingerprint is recalculated or edited."
       ],
       "gaps": [],
       "reviewStatus": "source-reviewed",
       "runtimeStatus": "pending-parent-validation",
       "sourceHashes": {
         "legacy": "03f5365dcf63d3af3d28c21d31edbc2df85474868f90a7276017fa4be77de229",
-        "replacement": "ce026dddb9e65820de28bf9c9c95d85ee7d0dc8c0923619f46207adc5bccc493"
+        "replacement": "56b1f278c24837508c0d7559e1758e6ea6fe64849dff163129fe92190da04c98",
+        "support": {
+          "Tests~/scripts/legacy.mjs": "ae299fac143a7b5ab518dd13706e134f48c7deafa9a0fecee938c42e5d6c654d"
+        }
+      },
+      "preRetirementSourceReviews": [
+        {
+          "reason": "Archive retirement: manually reviewed adaptation; prior receipt remains historical.",
+          "sourceHashes": {
+            "legacy": "03f5365dcf63d3af3d28c21d31edbc2df85474868f90a7276017fa4be77de229",
+            "replacement": "ce026dddb9e65820de28bf9c9c95d85ee7d0dc8c0923619f46207adc5bccc493"
+          },
+          "coverage": [
+            "Infrastructure replacement keeps explicit bounded invocation, structured API versus inner execution versus domain assertion results, async polling with cleanup, review fingerprints, native source bundling and explicit project targeting.",
+            "Old text verdicts remain only for explicitly archived invocations. New cases cannot pass with zero checks, malformed output, missing cleanup or contradictory failed process exit."
+          ]
+        }
+      ],
+      "retirementSourceReview": {
+        "file": "Tests~/CoverageAudit/retirement-source-review.json",
+        "runtimeReceiptResigned": false
       }
     },
     {

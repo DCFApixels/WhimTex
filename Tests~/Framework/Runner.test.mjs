@@ -3,23 +3,22 @@ const context = new TestContext('Runner contracts and migration infrastructure')
 const assert = context.assert;
 const test = (name, body) => context.case(name, body);
 import fs from 'node:fs';
-import { compareMigration } from '../scripts/check-migration.mjs';
+import { compareHistoricalPilot } from '../scripts/check-migration.mjs';
+import { textCase as base, asyncTextCase as asyncCase, exitCodeCase as nodeCase, validateHistoricalProtocol } from './Fixtures/HistoricalProtocol.mjs';
 import { classifyReply, classifyCompileReply, runScenario, commandArgs, validateCatalog, selectScenarios, reviewFingerprint, bundleSources, entryContracts, root } from '../scripts/run-tests.mjs';
 
 const catalog = JSON.parse(fs.readFileSync(new URL('../scripts/test-catalog.json', import.meta.url), 'utf8'));
-const base = catalog.scenarios.find(s => s.id === 'protocol-pass');
-const asyncCase = catalog.scenarios.find(s => s.id === 'protocol-async');
-const nodeCase = catalog.scenarios.find(s => s.id === 'runner-unit');
+const activeCase = catalog.scenarios.find(s => s.id === 'canonical-reader-v2');
 const envelope = value => ({ code: 0, stdout: JSON.stringify({ success: true, data: { success: true, result: { success: true, diagnostics: [], result: value } } }), stderr: '' });
 const clone = value => JSON.parse(JSON.stringify(value));
 
 test('catalog has explicit invocations and valid bounded protocols', () => {
     assert.equal(validateCatalog(catalog), catalog);
-    assert.equal(selectScenarios(catalog, { profile: 'legacy-core' }).length, 6);
-    assert.equal(selectScenarios(catalog, { id: base.id })[0], base);
+    assert.deepEqual(selectScenarios(catalog, { profile: 'core' }).map(s => s.id), ['display-channels-v2', 'canonical-reader-v2', 'frozen-files-v2']);
+    assert.equal(selectScenarios(catalog, { id: activeCase.id })[0], activeCase);
     assert.throws(() => selectScenarios(catalog, { profile: 'missing' }), /Unknown profile/);
     assert.throws(() => selectScenarios(catalog, { id: 'missing' }), /Unknown scenario/);
-    assert.throws(() => selectScenarios(catalog, { id: base.id, profile: 'core' }), /Choose/);
+    assert.throws(() => selectScenarios(catalog, { id: activeCase.id, profile: 'core' }), /Choose/);
 });
 
 for (const [name, mutate] of [
@@ -29,12 +28,57 @@ for (const [name, mutate] of [
     ['missing setup', c => { c.scenarios[0].setup = ''; }],
     ['unbounded timeout', c => { c.scenarios[0].timeoutMs = 0; }],
     ['unknown profile member', c => { c.profiles.core.push('missing'); }],
-    ['unanchored pass', c => { c.scenarios.find(s => s.result.kind === 'text').result.pass = 'PASS'; }],
-    ['invalid regex', c => { c.scenarios.find(s => s.result.kind === 'text').result.pass = '^['; }],
     ['unknown effects', c => { c.scenarios[0].effects = ['anything']; }],
     ['missing async completion', c => { delete c.scenarios.find(s => s.async).async.entry; }],
-    ['missing cleanup verdict', c => { delete c.scenarios.find(s => s.cleanup).cleanup.pass; }]
+    ['missing cleanup entry', c => { delete c.scenarios.find(s => s.cleanup).cleanup.entry; }]
 ]) test('rejects ' + name, () => { const c = clone(catalog); mutate(c); assert.throws(() => validateCatalog(c)); });
+
+test('active dispatch cannot re-enable retired scenarios or historical result protocols', () => {
+    assert.ok(catalog.scenarios.every(s => s.legacy === undefined && !s.file.startsWith('Tests~/Legacy/') && s.result.kind === 'structured'));
+    for (const flag of [true, false, null]) {
+        const value = clone(catalog); value.scenarios[0].legacy = flag;
+        assert.throws(() => validateCatalog(value), /Retired archive scenarios/);
+    }
+    const archivePath = clone(catalog); archivePath.scenarios[0].file = 'Tests~/Legacy/TestRunner.test.mjs';
+    assert.throws(() => validateCatalog(archivePath), /Retired archive scenarios/);
+    for (const field of ['supportFiles', 'reviewFiles']) for (const file of [
+        'Tests~/Legacy/DisplayChannelsSmoke.cs', 'Tests~/Cases/../Legacy/DisplayChannelsSmoke.cs']) {
+        const value = clone(catalog), scenario = value.scenarios.find(s => s.runner === 'run_script');
+        scenario[field] = [file];
+        assert.throws(() => validateCatalog(value), /Retired archive dependencies/);
+    }
+    for (const kind of ['text', 'json-success', 'exit-code']) {
+        const value = clone(catalog);
+        const scenario = value.scenarios.find(s => kind === 'exit-code' ? s.runner === 'node' : s.runner === 'run_script');
+        scenario.result = { kind, pass: base.result.pass };
+        assert.throws(() => validateCatalog(value), /Active scenarios require structured results/);
+    }
+    for (const profile of ['legacy-core', 'migration-pilot']) assert.throws(() => selectScenarios(catalog, { profile }), /Unknown profile/);
+    for (const id of ['protocol-pass', 'protocol-async', 'runner-unit']) assert.throws(() => selectScenarios(catalog, { id }), /Unknown scenario/);
+});
+
+test('synthetic historical protocols are independent of the active registry', () => {
+    for (const scenario of [base, asyncCase, nodeCase]) {
+        assert.equal(validateHistoricalProtocol(scenario), scenario);
+        assert.ok(!catalog.scenarios.some(s => s.id === scenario.id));
+        assert.ok(!scenario.file.startsWith('Tests~/Legacy/'));
+    }
+});
+for (const [name, mutate, error] of [
+    ['unanchored pass', s => { s.result.pass = 'PASS'; }, /anchored pass/],
+    ['invalid regex', s => { s.result.pass = '^['; }, SyntaxError],
+    ['missing async completion', s => { delete s.async.entry; }, /Invalid async protocol/],
+    ['missing cleanup verdict', s => { delete s.cleanup.pass; }, /anchored cleanup/],
+    ['unanchored async start', s => { s.async.started = 'Started'; }, /anchored async start/],
+    ['invalid async start regex', s => { s.async.started = '^['; }, SyntaxError],
+    ['unanchored pending', s => { s.result.pending = 'Running'; }, /anchored async pending/],
+    ['invalid pending regex', s => { s.result.pending = '^['; }, SyntaxError],
+    ['unanchored cleanup', s => { s.cleanup.pass = 'PASS'; }, /anchored cleanup/],
+    ['invalid cleanup regex', s => { s.cleanup.pass = '^['; }, SyntaxError]
+]) test('historical protocol rejects ' + name + ' directly', () => {
+    const scenario = clone(asyncCase); mutate(scenario);
+    assert.throws(() => validateHistoricalProtocol(scenario), error);
+});
 
 test('review receipt includes source and invocation, not just scenario names', () => {
     const first = reviewFingerprint([base]);
@@ -200,7 +244,7 @@ test('common Node API executes cases serially and reports assertion failures', a
     assert.deepEqual(order, [1, 2]); assert.equal(result.status, 'failed');
     assert.equal(result.checks, 2); assert.equal(result.failures.length, 1);
 });
-test('migration comparison rejects stale, duplicate, missing and weakened results', () => {
+test('pure historical comparison rejects stale, duplicate, missing and weakened results without re-signing', () => {
     const registry = JSON.parse(fs.readFileSync(new URL('../migration.json', import.meta.url), 'utf8'));
     const manifestHash = 'c70816ea4220d9ebe08d4d2d087d7e5297bd943405bb3297e24f4b69756a6194';
     const selected = registry.pairs.flatMap(pair => [pair.legacyId, pair.newId]);
@@ -209,17 +253,46 @@ test('migration comparison rejects stale, duplicate, missing and weakened result
             detail: pair.legacyId === 'display-channels' ? 'Display channel checks passed: 96 across all 16 masks.'
                 : pair.legacyId === 'canonical-reader' ? 'PASS: 11 canonical name-resolution and unknown-data guards.'
                 : 'PASS: 30 frozen 0.12.5 file hashes, seven supported TIFF/JSON documents' },
-        { id: pair.newId, status: 'passed', uncertain: false, testResult: { checks: pair.newChecks, facts: pair.facts } }
+        { id: pair.newId, status: 'passed', uncertain: false, testResult: { status: 'passed', failures: [], checks: pair.newChecks, facts: pair.facts } }
     ]);
-    const report = { version: 2, success: true, recoveryRequired: false, productionFingerprint: 'mock-production',
-        archive: { manifestHash }, selected, results, fingerprint: reviewFingerprint(selectScenarios(catalog, { ids: selected.join(',') })) };
-    assert.equal(compareMigration(report).success, true);
-    assert.equal(compareMigration(report).archiveRemovalAllowed, false);
+    const expected = { fingerprint: 'synthetic-historical-review', productionFingerprint: 'mock-production', manifestHash };
+    const historicalCatalog = { profiles: { 'migration-pilot': selected }, scenarios: selected.map(id => ({ id })) };
+    const report = { version: 2, action: 'run', success: true, recoveryRequired: false, productionFingerprint: expected.productionFingerprint,
+        archive: { manifestHash }, selected, results, fingerprint: expected.fingerprint, notRun: [],
+        startedAt: '2026-10-04T18:02:02.749Z', finishedAt: '2026-10-04T18:04:00.000Z' };
+    const compare = (value, mapping = registry) => compareHistoricalPilot(value, mapping, historicalCatalog, expected);
+    assert.equal(compare(report).success, true);
+    assert.equal(compare(report).archiveRemovalAllowed, false);
+    assert.equal(compare(report).receiptVerified, false, 'Synthetic inputs cannot authenticate runtime evidence');
+    assert.equal(compare(report).currentRuntimeEquivalence, false);
+    assert.equal(compare(report).scope, 'historical-pilot-only');
     const weaker = clone(report); weaker.results[1].testResult.checks--;
-    assert.equal(compareMigration(weaker).success, false);
-    assert.throws(() => compareMigration({ ...report, fingerprint: 'stale' }), /changed/);
-    assert.throws(() => compareMigration({ ...report, results: [report.results[0], ...report.results.slice(0, -1)] }), /completed/);
-    assert.throws(() => compareMigration({ ...report, results: report.results.slice(1) }), /completed/);
+    assert.equal(compare(weaker).success, false);
+    assert.throws(() => compare({ ...report, fingerprint: 'stale' }), /changed/);
+    assert.throws(() => compare({ ...report, results: [report.results[0], ...report.results.slice(0, -1)] }), /completed/);
+    assert.throws(() => compare({ ...report, results: report.results.slice(1) }), /completed/);
+    assert.throws(() => compare({ ...report, selected: [report.selected[0], ...report.selected.slice(0, -1)] }), /completed/);
+    assert.throws(() => compare({ ...report, selected: [...report.selected].reverse() }), /frozen pilot catalog/);
+    assert.throws(() => compare({ ...report, selected: report.selected.map((id, i) => i === 0 ? 'unknown' : id) }), /frozen pilot catalog/);
+    assert.throws(() => compare({ ...report, notRun: ['missing'] }), /completed/);
+    assert.throws(() => compare({ ...report, recoveryRequired: true }), /completed/);
+    assert.throws(() => compare({ ...report, action: 'compile' }), /historical pilot runner/);
+    assert.throws(() => compare({ ...report, productionFingerprint: 'different-production' }), /historical pilot runner/);
+    assert.throws(() => compare({ ...report, archive: { manifestHash: 'changed' } }), /historical pilot runner/);
+    const failedOld = clone(report); failedOld.results[0].detail = 'FAILED: ' + failedOld.results[0].detail;
+    assert.equal(compare(failedOld).success, false, 'Anchored original count pattern still rejects prefixed failure');
+    const wrongOldCount = clone(report); wrongOldCount.results[0].detail = 'Display channel checks passed: 95 across all 16 masks.';
+    assert.equal(compare(wrongOldCount).success, false);
+    const wrongFacts = clone(report); wrongFacts.results.at(-1).testResult.facts.fileHashes--;
+    assert.equal(compare(wrongFacts).success, false);
+    const missingCoverage = clone(registry); missingCoverage.pairs[0].coverage = [];
+    assert.equal(compare(report, missingCoverage).success, false);
+    const uncertain = clone(report); uncertain.results[0].uncertain = true;
+    assert.equal(compare(uncertain).success, false);
+    const incomplete = clone(report); incomplete.results[0].status = 'skip';
+    assert.equal(compare(incomplete).success, false);
+    const malformed = clone(report); malformed.results[1].testResult.status = 'failed';
+    assert.equal(compare(malformed).success, false);
 });
 test('empty Node cases and empty case lists cannot pass', async () => {
     const empty = new TestContext('Empty');

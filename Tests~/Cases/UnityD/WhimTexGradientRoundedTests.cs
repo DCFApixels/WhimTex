@@ -27,6 +27,17 @@ public static class WhimTexGradientRoundedTests
     }
     static string CaptureFolder(string runId) => MigrationD.ProjectPath(
         "Temp/WhimTex/TestMigration/" + Guid.Parse(runId).ToString("N"));
+    [Serializable] sealed class CaptureArtifact
+    {
+        public string name, encoding, content;
+    }
+    [Serializable] sealed class CaptureResult
+    {
+        public string status, message;
+        public int checks;
+        public string[] failures;
+        public CaptureArtifact[] artifacts;
+    }
     public static string Capture(string runId)
     {
         string key = CaptureKey(runId), folder = CaptureFolder(runId);
@@ -37,7 +48,17 @@ public static class WhimTexGradientRoundedTests
             UnityEditor.SessionState.SetString(key, folder);
             Directory.CreateDirectory(folder);
             string path = ExecuteCapture(folder);
-            return TestContext.Result("skipped", 0, "Diagnostic only: 12291 CSV samples at " + path).ToJson();
+            var result = new CaptureResult {
+                status = "skipped", checks = 0,
+                message = "Diagnostic only: 12291 CSV samples at " + path + "; actual CSV retained in artifacts before owned cleanup",
+                failures = Array.Empty<string>(),
+                artifacts = new[] { new CaptureArtifact {
+                    name = Path.GetFileName(path), encoding = "base64",
+                    content = Convert.ToBase64String(File.ReadAllBytes(path)) } }
+            };
+            return (string)Type.GetType("Newtonsoft.Json.JsonConvert, Newtonsoft.Json", true)
+                .GetMethod("SerializeObject", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static,
+                    null, new[] { typeof(object) }, null).Invoke(null, new object[] { result });
         }
         catch (Exception error)
         {

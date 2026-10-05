@@ -188,24 +188,47 @@ public sealed class UnityBSkipException : System.Exception
 
 public static class UnityBTemp
 {
-    public static void Delete(string ownedRoot, string target)
+    const string Prefix = "WhimTexTestMigration-";
+    static readonly System.StringComparison PathComparison = System.IO.Path.DirectorySeparatorChar == '\\'
+        ? System.StringComparison.OrdinalIgnoreCase : System.StringComparison.Ordinal;
+    static string FullPath(string path) => System.IO.Path.GetFullPath(path).TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar);
+    public static string Root(string runId)
     {
-        string root = System.IO.Path.GetFullPath(ownedRoot).TrimEnd(System.IO.Path.DirectorySeparatorChar);
-        string full = System.IO.Path.GetFullPath(target).TrimEnd(System.IO.Path.DirectorySeparatorChar);
-        string name = System.IO.Path.GetFileName(root);
-        const string prefix = "WhimTexTestMigration-";
-        if (!name.StartsWith(prefix, System.StringComparison.Ordinal) || !System.Guid.TryParseExact(name.Substring(prefix.Length), "N", out _)
-            || !root.StartsWith(System.IO.Path.GetFullPath(System.IO.Path.GetTempPath()).TrimEnd(System.IO.Path.DirectorySeparatorChar) + System.IO.Path.DirectorySeparatorChar, System.StringComparison.OrdinalIgnoreCase))
-            throw new System.IO.IOException("Not an owned GUID temporary root");
-        if (full != root && !full.StartsWith(root + System.IO.Path.DirectorySeparatorChar, System.StringComparison.OrdinalIgnoreCase))
-            throw new System.IO.IOException("Temporary cleanup target escaped its owned root");
-        // Validate all existing ancestors before inspecting descendants. Never traverse a junction.
+        if (!System.Guid.TryParseExact(runId, "N", out _)) throw new System.ArgumentException("Owned GUID required");
+        return FullPath(System.IO.Path.Combine(UnityEngine.Application.dataPath, "../Temp/WhimTex", Prefix + runId));
+    }
+    internal static bool IsChild(string ownedRoot, string target) => FullPath(target).StartsWith(FullPath(ownedRoot) + System.IO.Path.DirectorySeparatorChar, PathComparison);
+    internal static void CheckPath(string path, bool directory = false)
+    {
+        string full = System.IO.Path.GetFullPath(path);
+        var ancestors = new System.Collections.Generic.Stack<string>();
         for (string current = full; current != null; current = System.IO.Path.GetDirectoryName(current))
+            ancestors.Push(current);
+        while (ancestors.Count != 0)
         {
-            try { RejectLink(current, System.IO.File.GetAttributes(current)); }
+            string current = ancestors.Pop();
+            try
+            {
+                var attributes = System.IO.File.GetAttributes(current); RejectLink(current, attributes);
+                if ((directory || current != full) && (attributes & System.IO.FileAttributes.Directory) == 0)
+                    throw new System.IO.IOException("Owned temporary directory was replaced by a file: " + current);
+            }
             catch (System.IO.FileNotFoundException) {}
             catch (System.IO.DirectoryNotFoundException) {}
         }
+    }
+    public static void Delete(string ownedRoot, string target)
+    {
+        string root = FullPath(ownedRoot);
+        string full = FullPath(target);
+        string name = System.IO.Path.GetFileName(root);
+        if (!name.StartsWith(Prefix, System.StringComparison.Ordinal) || !System.Guid.TryParseExact(name.Substring(Prefix.Length), "N", out _)
+            || !string.Equals(root, Root(name.Substring(Prefix.Length)), PathComparison))
+            throw new System.IO.IOException("Not an owned GUID temporary root");
+        if (!string.Equals(full, root, PathComparison) && !IsChild(root, full))
+            throw new System.IO.IOException("Temporary cleanup target escaped its owned root");
+        // Validate all existing ancestors before inspecting descendants. Never traverse a junction.
+        CheckPath(full, true);
         if (!System.IO.Directory.Exists(full))
         { if (System.IO.File.Exists(full)) throw new System.IO.IOException("Owned temporary directory was replaced by a file"); return; }
         var pending = new System.Collections.Generic.Stack<string>(); pending.Push(full);
@@ -217,12 +240,13 @@ public static class UnityBTemp
             {
                 var attributes = System.IO.File.GetAttributes(entry); RejectLink(entry, attributes);
                 string child = System.IO.Path.GetFullPath(entry);
-                if (!child.StartsWith(root + System.IO.Path.DirectorySeparatorChar, System.StringComparison.OrdinalIgnoreCase))
+                if (!IsChild(root, child))
                     throw new System.IO.IOException("Descendant escaped owned temporary root");
                 if ((attributes & System.IO.FileAttributes.Directory) != 0) pending.Push(child);
             }
         }
         // Only this checked, absolute target is recursively deleted.
+        CheckPath(full, true);
         System.IO.Directory.Delete(full, true);
     }
     static void RejectLink(string path, System.IO.FileAttributes attributes)
@@ -354,14 +378,20 @@ public sealed class UnityBOwned : System.IDisposable
     {
         if (temporary == null)
         {
-            string candidate = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "WhimTexTestMigration-" + id);
+            string candidate = UnityBTemp.Root(id);
+            UnityBTemp.CheckPath(candidate, true);
             if (System.IO.Directory.Exists(candidate) || System.IO.File.Exists(candidate)) throw new System.IO.IOException("Owned temporary directory already exists.");
             temporary = candidate;
             System.IO.Directory.CreateDirectory(temporary);
         }
+        UnityBTemp.CheckPath(temporary, true);
         if (leaf.Length == 0) return temporary;
-        string path = Child(temporary, leaf);
+        string path = System.IO.Path.GetFullPath(Child(temporary, leaf)).Replace('\\', '/');
+        if (!UnityBTemp.IsChild(temporary, path)) throw new System.IO.IOException("Fixture path escaped its owned directory.");
+        UnityBTemp.CheckPath(path);
+        UnityBTemp.CheckPath(System.IO.Path.GetDirectoryName(path), true);
         System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path));
+        UnityBTemp.CheckPath(path);
         return path;
     }
     public string EvidencePath(string leaf)
@@ -376,10 +406,15 @@ public sealed class UnityBOwned : System.IDisposable
         System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path));
         return path; // GUID evidence is retained, unlike disposable execution scratch files.
     }
-    public bool IsOwnedTemp(string path) => temporary != null && System.IO.Path.GetFullPath(path).StartsWith(System.IO.Path.GetFullPath(temporary) + System.IO.Path.DirectorySeparatorChar, System.StringComparison.OrdinalIgnoreCase);
+    public bool IsOwnedTemp(string path)
+    {
+        if (temporary == null || temporary != UnityBTemp.Root(id) || !UnityBTemp.IsChild(temporary, path)) return false;
+        UnityBTemp.CheckPath(path);
+        return true;
+    }
     public void DeleteTemp(string path)
     {
-        string expected = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "WhimTexTestMigration-" + id);
+        string expected = UnityBTemp.Root(id);
         if (temporary == null || System.IO.Path.GetFullPath(temporary) != System.IO.Path.GetFullPath(expected)) throw new System.IO.IOException("Unrecognized owned temporary root");
         UnityBTemp.Delete(temporary, path);
     }

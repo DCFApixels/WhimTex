@@ -1,0 +1,108 @@
+{
+  "generatedAt": "2026-10-05T06:01:37.951Z",
+  "scope": "Read-only state after Player timeout, before any recovery or dialog response.",
+  "commands": [
+    {
+      "name": "editor_status",
+      "argv": [
+        "command",
+        "editor_status",
+        "--project-path",
+        "D:/DCFA/Projects/Test6.6",
+        "--format",
+        "json"
+      ],
+      "reply": {
+        "code": 0,
+        "stdout": "{\n  \"success\": true,\n  \"command\": \"command editor_status\",\n  \"data\": {\n    \"command\": \"editor_status\",\n    \"parameters\": {},\n    \"result\": {\n      \"status\": \"blocked_by_dialog\",\n      \"compiling\": false,\n      \"domainReloadInProgress\": false,\n      \"playMode\": \"stopped\",\n      \"lastHeartbeat\": \"2026-10-05T06:01:37.6065847Z\",\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\",\n      \"unityVersion\": \"6000.7.0a6\",\n      \"dialog\": {\n        \"id\": 9,\n        \"source\": \"NativeMessageBox\",\n        \"title\": \"Scene(s) Have Been Modified\",\n        \"message\": \"Do you want to save the changes you made in the scenes:\\r\\n SampleScene\\r\\n\\r\\nYour changes will be lost if you don't save them.\",\n        \"level\": \"Warning\",\n        \"buttons\": [\n          \"Save\",\n          \"Don't Save\",\n          \"Cancel\"\n        ],\n        \"openedAt\": \"2026-10-05T05:46:42.3152586Z\",\n        \"dismissedAt\": null\n      }\n    },\n    \"target\": {\n      \"host\": \"127.0.0.1\",\n      \"port\": 7800,\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\"\n    },\n    \"success\": true\n  },\n  \"errors\": [],\n  \"warnings\": []\n}\n",
+        "stderr": "",
+        "timedOut": false
+      },
+      "envelope": {
+        "success": true,
+        "command": "command editor_status",
+        "data": {
+          "command": "editor_status",
+          "parameters": {},
+          "result": {
+            "status": "blocked_by_dialog",
+            "compiling": false,
+            "domainReloadInProgress": false,
+            "playMode": "stopped",
+            "lastHeartbeat": "2026-10-05T06:01:37.6065847Z",
+            "projectPath": "D:\\DCFA\\Projects\\Test6.6",
+            "unityVersion": "6000.7.0a6",
+            "dialog": {
+              "id": 9,
+              "source": "NativeMessageBox",
+              "title": "Scene(s) Have Been Modified",
+              "message": "Do you want to save the changes you made in the scenes:\r\n SampleScene\r\n\r\nYour changes will be lost if you don't save them.",
+              "level": "Warning",
+              "buttons": [
+                "Save",
+                "Don't Save",
+                "Cancel"
+              ],
+              "openedAt": "2026-10-05T05:46:42.3152586Z",
+              "dismissedAt": null
+            }
+          },
+          "target": {
+            "host": "127.0.0.1",
+            "port": 7800,
+            "projectPath": "D:\\DCFA\\Projects\\Test6.6"
+          },
+          "success": true
+        },
+        "errors": [],
+        "warnings": []
+      }
+    },
+    {
+      "name": "build_status",
+      "argv": [
+        "command",
+        "build_status",
+        "--project-path",
+        "D:/DCFA/Projects/Test6.6",
+        "--format",
+        "json"
+      ],
+      "reply": {
+        "code": 0,
+        "stdout": "{\n  \"success\": true,\n  \"command\": \"command build_status\",\n  \"data\": {\n    \"command\": \"build_status\",\n    \"parameters\": {},\n    \"result\": \"{\\\"status\\\":\\\"building\\\",\\\"buildId\\\":\\\"build_db8a17a48917\\\",\\\"elapsedMs\\\":29695869}\",\n    \"target\": {\n      \"host\": \"127.0.0.1\",\n      \"port\": 7800,\n      \"projectPath\": \"D:\\\\DCFA\\\\Projects\\\\Test6.6\"\n    },\n    \"success\": true\n  },\n  \"errors\": [],\n  \"warnings\": []\n}\n",
+        "stderr": "",
+        "timedOut": false
+      },
+      "envelope": {
+        "success": true,
+        "command": "command build_status",
+        "data": {
+          "command": "build_status",
+          "parameters": {},
+          "result": "{\"status\":\"building\",\"buildId\":\"build_db8a17a48917\",\"elapsedMs\":29695869}",
+          "target": {
+            "host": "127.0.0.1",
+            "port": 7800,
+            "projectPath": "D:\\DCFA\\Projects\\Test6.6"
+          },
+          "success": true
+        },
+        "errors": [],
+        "warnings": []
+      }
+    }
+  ],
+  "runnerLock": {
+    "pid": 98056,
+    "output": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\test-runs\\final-20261005-player-01.json",
+    "startedAt": "2026-10-05T05:46:09.694Z"
+  },
+  "pipelineBuildStatus": {
+    "status": "building",
+    "buildId": "build_db8a17a48917",
+    "buildStartedAt": "2026-10-05T05:46:42.2051242Z",
+    "platform": "StandaloneWindows64",
+    "outputPath": "D:\\DCFA\\Projects\\Test6.6\\Temp\\WhimTex\\player-release\\4817f7407dac483b94141d9e81bb6b17\\attempt-001\\Player.exe"
+  }
+}

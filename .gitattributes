@@ -15,3 +15,15 @@ Tests~/CoverageAudit/** text eol=lf
 Tests~/Batches/** text eol=lf
 Tests~/scripts/** text eol=lf
 Tests~/migration.json text eol=lf
+
+# Immutable run evidence must preserve its recorded raw byte hashes.
+Tests~/*.results.json -text
+Tests~/archive-descriptor.json -text
+Tests~/retired-catalog.json -text
+Tests~/retirement-baseline.json -text
+Tests~/CoverageAudit/FinalRuns20261005/** -text
+Tests~/CoverageAudit/RetirementRuns/** -text
+Tests~/CoverageAudit/legacy-backup-removal-20261005.json -text
+Tests~/Fixtures/CompositionMissingTestBehaviour.cs.txt -text
+Tests~/Fixtures/WhimTexImportFailureProbe.cs -text
+Tests~/Fixtures/WhimTexPlayerProbe.cs -text

@@ -1,17 +1,18 @@
 // Read-only coverage inspection. Does not import or execute test/production modules.
 // Uses the parser already bundled with Node; no package installation is required.
-import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import { legacyIO } from '../scripts/legacy.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const io = legacyIO(root);
 const parserModule = { exports: {} };
 vm.runInNewContext(process.binding('natives')['internal/deps/acorn/acorn/dist/acorn'],
     { exports: parserModule.exports, module: parserModule });
 const parse = source => parserModule.exports.parse(source, { ecmaVersion: 'latest', sourceType: 'module', locations: true });
-const read = file => fs.readFileSync(path.join(root, file), 'utf8');
+const read = file => io.readFileSync(path.join(root, file), 'utf8');
 const sha = data => crypto.createHash('sha256').update(data).digest('hex');
 const helperAliases = new Map([
     ['Tests~/GenerateBlueNoise.mjs', 'Tests~/Framework/NodeSupportA/BlueNoiseRanks.mjs'],
@@ -99,7 +100,7 @@ function inspect(file) {
         const gates = ancestors.filter(n => /^(ForStatement|ForOfStatement|ForInStatement|WhileStatement|DoWhileStatement|IfStatement|ConditionalExpression)$/.test(n.type));
         obligations.push({ kind, node, gates, line: node.loc.start.line, text: source.slice(node.start, node.end), key: encode(node, file) });
     });
-    return { file, source, ast, nodes, contexts, obligations, sourceSha256: sha(fs.readFileSync(path.join(root, file))) };
+    return { file, source, ast, nodes, contexts, obligations, sourceSha256: sha(io.readFileSync(path.join(root, file))) };
 }
 function compare(originalFile, replacementFiles) {
     const original = inspect(originalFile), replacements = replacementFiles.map(inspect);
@@ -232,7 +233,7 @@ function schemaRecord(report) {
         coverage.push('Every original assertion, input/formula, loop and branch is structurally matched. SoftRangeSmoke.Main, TwoChoiceDropdownSmoke.Main and the exact three multi-step/three regression families are restored on historical text inputs; current ACTIVE entry/lifecycle checks are additional, not substitutions. Production and Gaussian checks read current production.');
         const fixture = JSON.parse(read('Tests~/Cases/NodeA/Fixtures/AuditInputs.json'));
         for (const input of fixture.files) {
-            const old = fs.readFileSync(path.join(root, 'Tests~/Legacy', input.file));
+            const old = io.readFileSync(path.join(root, 'Tests~/Legacy', input.file));
             const exact = old.equals(Buffer.from(input.source)) && sha(old) === input.sha256;
             if (!exact) gaps.push('Historical raw source fixture mismatch: ' + input.file);
             coverage.push('Original classification input ' + input.file + ': exact raw byte snapshot=' + exact + ', SHA-256=' + sha(old) + '; data only, no archived C# execution.');
@@ -258,7 +259,7 @@ function schemaRecord(report) {
         reviewStatus: gaps.length ? 'gap' : 'source-reviewed', runtimeStatus: 'pending-parent-validation' };
 }
 function helperRecord(legacyFile, newFile, scenarioIds, coverage, gaps = []) {
-    const old = fs.readFileSync(path.join(root, 'Tests~/Legacy/', legacyFile)), replacement = fs.readFileSync(path.join(root, newFile));
+    const old = io.readFileSync(path.join(root, 'Tests~/Legacy/', legacyFile)), replacement = io.readFileSync(path.join(root, newFile));
     return { legacyFile, newFile, scenarioIds,
         sourceHashes: { legacy: sha(old), replacement: sha(replacement) },
         legacyEntries: legacyFile.endsWith('.json') ? ['Data-only fixture; no executable entry'] : entries('Tests~/Legacy/' + legacyFile),

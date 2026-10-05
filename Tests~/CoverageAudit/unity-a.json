@@ -1,6 +1,12 @@
 {
   "version": 1,
   "scope": "unity-a",
+  "parentBatchMetadataReceipt": {
+    "file": "Tests~/Batches/unity-a.json",
+    "previousSha256": "7d84e690295b686c624ec5fcb06eb4e57ccfd650a8a30507a000cce70a1e72fc",
+    "currentSha256": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec",
+    "review": "Parent added only one opt-in diagnostic scenario for the reviewed 15-second eyedropper helper. Existing replacement rows, original predicates, source inputs and their previous contracts were not edited. Batch dependency receipts refreshed for this metadata-only append; no runtime PASS or semantic equivalence supplied by this rehash."
+  },
   "files": [
     {
       "legacyFile": "AgentApiSmoke.cs",
@@ -15,7 +21,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -67,7 +73,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -163,7 +169,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -230,7 +236,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -296,7 +302,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -388,7 +394,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -478,7 +484,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -527,7 +533,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -571,7 +577,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -629,7 +635,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -676,7 +682,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -735,7 +741,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -851,7 +857,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -946,7 +952,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -1004,7 +1010,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -1053,7 +1059,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -1094,7 +1100,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -1142,7 +1148,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -1191,7 +1197,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -1233,7 +1239,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -1290,7 +1296,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -1359,7 +1365,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -1410,7 +1416,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -1454,7 +1460,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -1495,7 +1501,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -1534,7 +1540,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -1594,7 +1600,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -1637,7 +1643,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -1705,7 +1711,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -1765,7 +1771,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -1808,7 +1814,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -1884,7 +1890,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -1946,7 +1952,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -1999,7 +2005,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -2118,16 +2124,17 @@
       "scenarioIds": [
         "color-picker-eyedropper-v2",
         "color-picker-eyedropper-native-preview-v2",
-        "color-picker-eyedropper-native-render-v2"
+        "color-picker-eyedropper-native-render-v2",
+        "color-picker-eyedropper-native-inspection-v2"
       ],
       "sourceHashes": {
         "legacy": "6f5f42aa393eb57b1d04c9d104b6d00f5fbfd6a1f9d4aabb293faa14d6342be5",
-        "replacement": "cd606c17e092a0054a99e60be4185e7c99e7c43770fcf56d0230688f3d7c3f48"
+        "replacement": "eb07218b1a960f8a2b1b109a2459b25e16d94f84edb3d8d7d6b2a0c5ab27236d"
       },
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -2170,9 +2177,10 @@
           "entry": "NativeSetup()",
           "line": 98,
           "classification": "fixture-and-manual-diagnostic",
-          "replacement": "ColorPickerEyedropperTests.StartNativePreview",
+          "replacement": "ColorPickerEyedropperTests.StartNativePreview; explicit StartNativeInspection/InspectNativeSession/CancelNativeInspection/CleanupNativeInspection(runId)",
           "scenarioIds": [
-            "color-picker-eyedropper-native-preview-v2"
+            "color-picker-eyedropper-native-preview-v2",
+            "color-picker-eyedropper-native-inspection-v2"
           ],
           "originalBehaviorOracle": "none: original manual screenshot/state helper, no Check/Near/throw behavior assertion",
           "proofLevel": "source-reviewed manual diagnostic port only; successful completion is not original behavior green"
@@ -2181,10 +2189,11 @@
           "entry": "NativeInspect()",
           "line": 148,
           "classification": "manual-diagnostic",
-          "replacement": "ColorPickerEyedropperTests.NativeInspect (both native async bodies)",
+          "replacement": "ColorPickerEyedropperTests.NativeInspect (both native async bodies); explicit StartNativeInspection/InspectNativeSession/CancelNativeInspection/CleanupNativeInspection(runId)",
           "scenarioIds": [
             "color-picker-eyedropper-native-preview-v2",
-            "color-picker-eyedropper-native-render-v2"
+            "color-picker-eyedropper-native-render-v2",
+            "color-picker-eyedropper-native-inspection-v2"
           ],
           "originalBehaviorOracle": "none: original manual screenshot/state helper, no Check/Near/throw behavior assertion",
           "proofLevel": "source-reviewed manual diagnostic port only; successful completion is not original behavior green"
@@ -2202,10 +2211,11 @@
           "entry": "NativeCleanup()",
           "line": 203,
           "classification": "cleanup",
-          "replacement": "ColorPickerEyedropperTests.Cancel/Cleanup and scope finally",
+          "replacement": "ColorPickerEyedropperTests.Cancel/Cleanup and scope finally; explicit StartNativeInspection/InspectNativeSession/CancelNativeInspection/CleanupNativeInspection(runId)",
           "scenarioIds": [
             "color-picker-eyedropper-native-preview-v2",
-            "color-picker-eyedropper-native-render-v2"
+            "color-picker-eyedropper-native-render-v2",
+            "color-picker-eyedropper-native-inspection-v2"
           ]
         }
       ],
@@ -2244,10 +2254,16 @@
         "Independent classification review of complete frozen NativeSetup(L98-147) and NativeInspect(L148-154): no behavior Check, Near or conditional failure oracle on native preview/start/dwell/pixels. NativeSetup has exception-propagating cleanup, real scheduled pointer/capture work and automatic teardown, not an asserted native-lifetime contract. New native-preview scenario category is diagnostic; real capture/state and additional fixture guards retained, never fake success or original behavior equivalence. NativeRender(L156-202) contains two real original owned-start and Draw-success assertions and remains regression. FakeApi support entries are attributed only to Main/Run, never used as native evidence."
       ],
       "gaps": [
-        "Manual NativeSetup/NativeInspect original-versus-replacement screenshot/state equivalence is not verified. The observed native session ended between Polls; its closure cause is unestablished. Native-preview diagnostic completion and supplemental lifecycle guards are not an original behavior green result."
+        "RUNTIME: Manual visual/native sampling-duration equality has no original automated oracle. Actual new15s fixture/live getter/PNG/cleanup verified in parent final review, but native sampling ended before capture and its closure cause remains unknown. Diagnostic completion does not establish historical visual equivalence."
       ],
       "reviewStatus": "gap",
-      "runtimeStatus": "pending-parent-validation"
+      "runtimeStatus": "pending-parent-validation",
+      "parentManualAbilityReview": {
+        "sourceRead": "Full original NativeSetup/Inspect/Render/Cleanup and current new manual fixture/support reviewed by parent. Existing three bodies and allowed native bindings unchanged.",
+        "adaptation": "Original 15-second fixture and repeatable getter restored as opt-in diagnostic. Public getter uses BCL bridge across fresh assemblies; 200ms pointer and1200ms actual PNG, full15s window lifetime, ownership-only joined cleanup.",
+        "oracle": "The original Setup/Inspect had no visual golden or native sampling lifetime assertion. Additional fixture/capture/subscription checks are diagnostics, not product behavior equivalence.",
+        "runtime": "Tests~/CoverageAudit/eyedropper-native-inspection-final-runtime-review.json: four current native scenarios passed;22 distinct Poll assemblies bind repeated getter to same GUID/scope; actual15s owned window and PNG retained; early cancellation/join cleanup independently executed. Historical compile failure retained; no product behavior/visual oracle added."
+      }
     },
     {
       "legacyFile": "ColorPickerHexSmoke.cs",
@@ -2263,7 +2279,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -2330,7 +2346,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -2377,7 +2393,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -2465,7 +2481,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -2547,7 +2563,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -2782,7 +2798,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -2857,7 +2873,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -2926,7 +2942,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -2974,7 +2990,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -3022,7 +3038,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -3085,7 +3101,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -3133,7 +3149,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -3197,7 +3213,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -3254,7 +3270,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -3319,7 +3335,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -3409,7 +3425,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -3467,7 +3483,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -3533,7 +3549,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -3575,7 +3591,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -3662,12 +3678,12 @@
       ],
       "sourceHashes": {
         "legacy": "24d750db3a760d883a9c8eca22d13ac269b390128dcc1c2fdf3128cea9f2f762",
-        "replacement": "8d01793c685d4032e09486d96aa5222c734ec8f70449b57f30002a130a31f7e2"
+        "replacement": "cafac666a0494462d6f317c54ab413bd85df994212322513ae3a36528f7185a7"
       },
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056",
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec",
         "src/TextureCompositorWindow.Tools.cs": "1c1551af00387736deb176d866d5c83d4f5265bbaa74d16240b786249e151dba",
         "src/TextureCompositorWindow.ContextTools.cs": "59b896a140ed5fe881fc7e5bd3fd52b7b836246cea7874d068da99f953a86afe",
         "src/TextureCompositorWindow.UI.cs": "cb3fed8c413dda028f33d96f011094c5c8065490e9c41805519b9c321d0330ad",
@@ -3745,7 +3761,23 @@
         "2026-10-04 unchanged-input parent rerun: Temp/WhimTex/test-runs/2026-10-04T15-35-57.541Z-21160.json SHA-256 606df100fcb62e1a5e3a3ee2aa9763a543f194a5045b6a5d5494334e7f6658ac; context-tools-start-v2 passed in13329ms, uncertain=false, testResult status=passed, checks=701, failures=[]; Cleanup passed2 checks, Owned async carrier released, failures=[]; report success=true and recoveryRequired=false. Actual rerun composite input SHA-256 723626b70fe4fc0981a36de5a85e5025ab09ed3f6a83d247795df16493336e61 equals the14:33 failed-run input. Both receipts productionFingerprint=a3da14871f6e0bf5c49a6f077b1026720e0fb2d3c28a49213dd715f3dd2b7738. All ContextTools primary/support/reviewed-product source hashes remain unchanged. No case, native, assertion, wait, product or category change was made.",
         "Tail validation update superseding only the earlier runtime-reachability gap: UnityAAsync.Execute awaits Start's RunOwnedAsync/body and reports passed only after normal BodyRun completion and cleanup. BodyRun's sole successful return is after the unconditional post-fit narrow Fill wrapping/field containment/overlap/picking, GradientHandles empty-panel collapse/stable-preview checks, and all4 resize iterations1280/640/900/640 at height650, each traversing8 tools Fill/Zoom/Transform/Pencil/BlurBrush/HealingBrush/GradientHandles/Brush (32 CheckCanvasLayout invocations). Thus these retained tail sections completed in the successful rerun, based on control-flow review plus passed completion, not inference from the701 count alone. State-dependent helper subbranches remain conditional as in Legacy; not every possible UI state is claimed tested.",
         "Classification update: flaky timing/layout observation under unchanged test input and production fingerprint (original minimum-window fit failed14:33 and passed15:35). Keep the14:33 real original-oracle assertion failure and52px overflow as historical evidence. This is not a fixed product, loosened assertion, longer wait, diagnostic reclassification or proof that the old failure was false. Exact scheduler/ScrollTo/layout timing cause remains untraced; successful rerun validates replacement completion only, not an old/new runtime comparison.",
-        "Source/runtime separation: source review is complete with no missing ContextTools code, original predicates, inputs or tail entries (reviewStatus=source-reviewed;source gaps=[]). Historical assertion failure and unresolved flakiness are runtime evidence retained in runtimeHistory/currentRuntimeLimitations, not missing-port findings. runtimeStatus remains pending-parent-validation under the unified audit schema; it is not a claim that receipts are absent or runtime equivalence is proven."
+        "Source/runtime separation: source review is complete with no missing ContextTools code, original predicates, inputs or tail entries (reviewStatus=source-reviewed;source gaps=[]). Historical assertion failure and unresolved flakiness are runtime evidence retained in runtimeHistory/currentRuntimeLimitations, not missing-port findings. runtimeStatus remains pending-parent-validation under the unified audit schema; it is not a claim that receipts are absent or runtime equivalence is proven.",
+        "2026-10-05 full source re-review of parent-added ToolbarLayoutTrace/AwaitResizedPanel: raw replacement SHA-256 fd740b2ce4656750c971242adb888ee2c004cd8d734efd13ea725ecaaece8016; frozen Legacy SHA unchanged. All38 original Check call argument expressions remain identical; full diff shows original models, dimensions, layer/FX inputs, tool/selection/Undo/Redo/Escape branches and parameterized layout loops retained. Additional trace uses public root/ScrollView geometry, scrollOffset observations, GeometryChangedEvent and EditorApplication.update only; no new native/internal binding is introduced.",
+        "Current fixture readiness review: after original100ms delay, root.worldBound width640/height420 readiness is checked independent of button geometry, then a public scroll.schedule TCS callback is awaited against remaining1000ms budget; timeout/cancellation winner throws rather than treating readiness as a pass, and barrier.Pause() runs in finally. Normal success/timeout/cancel has no test-owned UI callback left from the barrier; a losing delay task references no Unity object. Earlier no-wait-change coverage statements describe the older recorded version and are not claims about the new readiness sampling point.",
+        "Eight new parent receipts are bound in runtimeHistory by report/composite SHA: five trace-only-original100ms runs and three trace-and-readiness-barrier runs; all701 PASS with normal cleanup2 PASS. Normal completion of the unchanged tail is established from awaited BodyRun control flow, not count alone. The three barrier composite snapshots include the current source body after runner line-ending/using-directive normalization; their currentNormalizedSourceBodyIncluded=true binds runtime evidence to this reviewed version.",
+        "Cleanup exception-safety source findings introduced by tracing: constructor attaches callbacks and EditorApplication.update before Sample(attached), without rollback if setup/sample throws before assignment to trace. Dispose calls Sample(finished) before detaching, and outer BodyRun finally calls Dispose before all original cleanup actions. Sample/unsubscribe/write failure can leave trace subscriptions, mask an original assertion failure or skip explicit FX/Undo destruction; outer scope independently attempts its registered windows/preferences/focus restoration but does not make this trace constructor/disposal exception-safe. This is a genuine new cleanup-path gap, not runtime flakiness or a missing original assertion.",
+        "2026-10-05 current fx-owned source review: parent changed only allocation to fx=Scope.OwnObject(ScriptableObject.CreateInstance<ShaderFX>()); reverting this one line makes the normalized source body match the preceding17:01 composite snapshot. No original predicate, input/branch,100ms wait, public readiness1000ms budget or scenario60000ms timeout changed. Scope.OwnObject registers independent Undo.ClearUndo and DestroyImmediate actions; Scope.Dispose attempts registered finalizers independently even if BodyRun finally is interrupted. This closes the newly identified unowned FX/Undo cleanup risk.",
+        "Current source runtime receipt review:17:08:35.126/17:08:47.824/17:09:01.356 receipts all701 PASS in12244/13032/12440ms, with2-check cleanup PASS and no failures/uncertainty/recovery requirement. Composite SHA3ea9e16e87d3a1a5b91310932a9314bba8bfd3751be482ccefff09994f6f9035 was checked against actual bytes; all3 snapshots contain the normalized current source body SHA23bd508c2a6032311d71e67528343f7029909ceef2afccde4f29c2a63cddc285. Earlier8 trace/barrier receipts are explicitly marked historical, not current-source validation. Full original tail completion follows normal awaited BodyRun return, not count alone.",
+        "Updated cleanup finding boundary: independent FX ownership fixes FX/Undo lifetime fallback, and outer scope already independently restores its windows/preferences/focus. It does not roll back a partial ToolbarLayoutTrace constructor, force detachment if Sample(finished) throws, or preserve a body assertion when Dispose throws from BodyRun finally. These remaining source exception-safety findings are not closed by the3 ordinary successful cleanup receipts.",
+        "2026-10-05 source fix bound to raw replacement SHAcafac666a0494462d6f317c54ab413bd85df994212322513ae3a36528f7185a7: optional Action<ToolbarLayoutTrace,string> probe is test-only; constructor catches setup/sample errors, marks disposed and rolls back every recorded geometry callback plus EditorApplication.update, aggregating setup and detach errors. ActiveSubscriptions counts remaining tracked registrations; failures do not falsely decrement successful-detach counters.",
+        "Dispose now guards reentrancy/idempotence, collects final Sample error, marks disposed, attempts every update/geometry detach independently and attempts trace write/log even after sample error, then throws an AggregateException preserving failures. A later Dispose retries only failed remaining detaches without repeated sampling/writes. GeometryCallbackCount increments on actual callback entry before the disposed Sample guard, so leaked callbacks cannot be hidden by that guard.",
+        "Normal trace is registered immediately with Scope.Finally(trace.Dispose) and is no longer disposed from BodyRun.finally. Original body error remains available to RunOwnedAsync, which aggregates scope cleanup failure and retains WhimTexCleanupFailure evidence. Original FX remains Scope.OwnObject-owned. State caches VisualElement references and never dereferences a destroyed EditorWindow.position; normal trace cleanup remains valid after scope/body window destruction.",
+        "All38 original Check argument expressions were re-compared and retained in source order; model/input/branch loops and original100ms/readiness1000ms/scenario60000ms parameters are unchanged. Twelve supplementary checks follow the entire original tail: constructor attached-Sample fault identity/zero registrations/no post-rollback geometry growth (3); six live registrations, live5-event positive control, finished-Sample fault identity, zero registrations, no post-dispose growth and idempotence (6); nested owned async scope retains exact injected body+cleanup exceptions and cleanup evidence, zero registrations and no subsequent geometry growth (3). Constructor/dispose/aggregate TXT paths are unique inside Scope.Temp; no deliberate outside-fixture IO faults.",
+        "Supplementary public geometry probes use GeometryChangedEvent.GetPooled(element.layout,element.layout), explicit public target and SendEvent on the5 observed elements. They deliver events without modifying bounds/styles or invoking native/internal APIs; the live callback positive control prevents availability-only or silently undelivered-event assertions. Test-only nested body/cleanup faults are accepted only when the exact injected exception identities remain in the aggregate; unrelated failures do not pass.",
+        "Context-only batch effects are now windows,user-state,temp-files, matching the existing parent catalog entry; catalog/global metadata were not edited. Other scenarios and scenario60000ms timeout are unchanged. Current source review is complete; previous exception-safety source gaps are closed by implementation, not by historical green receipts. No new runtime success is claimed.",
+        "Current-source runtime validation update: parent reports2026-10-04T17-27-24.339Z-54316/17-27-37.685Z-54316/17-27-51.017Z-54316 all713 passed with normal2-check cleanup passed in12841/12845/13583ms. Report raw SHA, compiled input raw SHA, current replacement/source support hashes, native bundle transport success and exact same-GUID/input-file lifecycle are recorded in runtimeHistory/currentRuntimeValidation. All3 compiled snapshots contain current ContextTools, Framework TestApi and UnityAScope normalized source bodies. Composite SHA0bc74bb679b49c787ad584350fcfe90589629153eb0add9a57c718208e11222d independently matches actual bytes.",
+        "Fault probes now runtime-validated on the current reviewed source: attached-Sample exception survives constructor rollback; all subscriptions detach and public geometry callbacks remain absent; live5-event positive control succeeds; finished-Sample exception survives all-action Dispose with0 subscriptions/no post-detach callback growth/idempotence; nested RunOwnedAsync preserves both exact injected body/cleanup faults and WhimTexCleanupFailure evidence. These12 assertions run only after all original predicates/tail loops. They are not availability-only guards or reinterpretation of a product assertion failure. All previous13 receipts stay historical, including the genuine52px failure.",
+        "Runtime readiness caveat remains unchanged despite current3/3 PASS: original100ms delay is retained, but additional layout-dimensions readiness plus one public scheduler turn changes when the original fit predicate is sampled. That shared nominal1000ms readiness budget is independent of unchanged60000ms scenario timeout, does not poll the desired fit or force ScrollTo, and is not exact original strict100ms temporal equivalence. The historical failure's particular cause remains unproven. Unified runtimeStatus=pending-parent-validation is retained for parent aggregate provenance; currentRuntimeValidation records the independently verified selected runtime outcome."
       ],
       "gaps": [],
       "reviewStatus": "source-reviewed",
@@ -3780,7 +3812,11 @@
           "tail": "Not reached in this run after the genuine original-oracle failure.",
           "cleanup": "passed;2 checks;Owned async carrier released;failures=[]",
           "compositeInputSha256": "723626b70fe4fc0981a36de5a85e5025ab09ed3f6a83d247795df16493336e61",
-          "productionFingerprint": "a3da14871f6e0bf5c49a6f077b1026720e0fb2d3c28a49213dd715f3dd2b7738"
+          "productionFingerprint": "a3da14871f6e0bf5c49a6f077b1026720e0fb2d3c28a49213dd715f3dd2b7738",
+          "replacementSourceSha256": "8d01793c685d4032e09486d96aa5222c734ec8f70449b57f30002a130a31f7e2",
+          "historicalEvidence": true,
+          "validatesCurrentReplacementSource": false,
+          "sourceVersionNote": "Historical fixture version; does not certify current exception-safe trace/probe replacement source."
         },
         {
           "report": "Temp/WhimTex/test-runs/2026-10-04T15-35-57.541Z-21160.json",
@@ -3794,13 +3830,780 @@
           "tail": "Normal awaited BodyRun completion confirms post-fit narrow Fill wrapping, containment, overlap/picking, GradientHandles collapse/stable preview and all4 resize iterations times8 tool/layout invocations completed. Source control flow, not check count alone, establishes reachability.",
           "cleanup": "passed;2 checks;Owned async carrier released;failures=[]",
           "compositeInputSha256": "723626b70fe4fc0981a36de5a85e5025ab09ed3f6a83d247795df16493336e61",
-          "productionFingerprint": "a3da14871f6e0bf5c49a6f077b1026720e0fb2d3c28a49213dd715f3dd2b7738"
+          "productionFingerprint": "a3da14871f6e0bf5c49a6f077b1026720e0fb2d3c28a49213dd715f3dd2b7738",
+          "replacementSourceSha256": "8d01793c685d4032e09486d96aa5222c734ec8f70449b57f30002a130a31f7e2",
+          "historicalEvidence": true,
+          "validatesCurrentReplacementSource": false,
+          "sourceVersionNote": "Historical fixture version; does not certify current exception-safe trace/probe replacement source."
+        },
+        {
+          "report": "Temp/WhimTex/test-runs/2026-10-04T16-55-44.770Z-118656.json",
+          "reportSha256": "bbc70a55e71a6cafa62f7a5b846d74aa55d0f656fc9ca7dad1d71b7b062edaf6",
+          "scenarioId": "context-tools-start-v2",
+          "variant": "trace-only-original100ms",
+          "status": "passed",
+          "durationMs": 12551,
+          "checks": 701,
+          "uncertain": false,
+          "failures": [],
+          "cleanup": [
+            {
+              "code": 0,
+              "timedOut": false,
+              "transportSuccess": true,
+              "result": {
+                "status": "passed",
+                "checks": 2,
+                "message": "Owned async carrier released",
+                "failures": []
+              }
+            }
+          ],
+          "compositeInputSha256": "ec99ae5cd88c7fdede6ca3ac3e86c600ccba560b06371bfcfa705de7227c438d",
+          "actualCompositeInputSha256": "ec99ae5cd88c7fdede6ca3ac3e86c600ccba560b06371bfcfa705de7227c438d",
+          "productionFingerprint": "a3da14871f6e0bf5c49a6f077b1026720e0fb2d3c28a49213dd715f3dd2b7738",
+          "reportSuccess": true,
+          "recoveryRequired": false,
+          "tail": "Awaited normal BodyRun return confirms narrow Fill wrapping/containment/overlap/picking, GradientHandles collapse/stable-preview assertions and4 width iterations times8 layout-tool invocations completed;701 is recorded as a receipt counter, not independent equivalence proof.",
+          "historicalEvidence": true,
+          "sourceBodyMatchAtPreviousReview": false,
+          "previousReviewReplacementSourceSha256": "fd740b2ce4656750c971242adb888ee2c004cd8d734efd13ea725ecaaece8016",
+          "validatesCurrentReplacementSource": false,
+          "sourceVersionNote": "Historical fixture version; does not certify current exception-safe trace/probe replacement source."
+        },
+        {
+          "report": "Temp/WhimTex/test-runs/2026-10-04T16-56-30.903Z-55092.json",
+          "reportSha256": "c62800d1c76cf02960c88a4d3c21027f7e4bc40bb305874abf12958c7a988bbe",
+          "scenarioId": "context-tools-start-v2",
+          "variant": "trace-only-original100ms",
+          "status": "passed",
+          "durationMs": 13046,
+          "checks": 701,
+          "uncertain": false,
+          "failures": [],
+          "cleanup": [
+            {
+              "code": 0,
+              "timedOut": false,
+              "transportSuccess": true,
+              "result": {
+                "status": "passed",
+                "checks": 2,
+                "message": "Owned async carrier released",
+                "failures": []
+              }
+            }
+          ],
+          "compositeInputSha256": "ec99ae5cd88c7fdede6ca3ac3e86c600ccba560b06371bfcfa705de7227c438d",
+          "actualCompositeInputSha256": "ec99ae5cd88c7fdede6ca3ac3e86c600ccba560b06371bfcfa705de7227c438d",
+          "productionFingerprint": "a3da14871f6e0bf5c49a6f077b1026720e0fb2d3c28a49213dd715f3dd2b7738",
+          "reportSuccess": true,
+          "recoveryRequired": false,
+          "tail": "Awaited normal BodyRun return confirms narrow Fill wrapping/containment/overlap/picking, GradientHandles collapse/stable-preview assertions and4 width iterations times8 layout-tool invocations completed;701 is recorded as a receipt counter, not independent equivalence proof.",
+          "historicalEvidence": true,
+          "sourceBodyMatchAtPreviousReview": false,
+          "previousReviewReplacementSourceSha256": "fd740b2ce4656750c971242adb888ee2c004cd8d734efd13ea725ecaaece8016",
+          "validatesCurrentReplacementSource": false,
+          "sourceVersionNote": "Historical fixture version; does not certify current exception-safe trace/probe replacement source."
+        },
+        {
+          "report": "Temp/WhimTex/test-runs/2026-10-04T16-57-21.238Z-125104.json",
+          "reportSha256": "e5d684216cfaf0c0f058b4c2fa67bd53c50a6d8419b0d8dd827fb8f7d746ed48",
+          "scenarioId": "context-tools-start-v2",
+          "variant": "trace-only-original100ms",
+          "status": "passed",
+          "durationMs": 12019,
+          "checks": 701,
+          "uncertain": false,
+          "failures": [],
+          "cleanup": [
+            {
+              "code": 0,
+              "timedOut": false,
+              "transportSuccess": true,
+              "result": {
+                "status": "passed",
+                "checks": 2,
+                "message": "Owned async carrier released",
+                "failures": []
+              }
+            }
+          ],
+          "compositeInputSha256": "ec99ae5cd88c7fdede6ca3ac3e86c600ccba560b06371bfcfa705de7227c438d",
+          "actualCompositeInputSha256": "ec99ae5cd88c7fdede6ca3ac3e86c600ccba560b06371bfcfa705de7227c438d",
+          "productionFingerprint": "a3da14871f6e0bf5c49a6f077b1026720e0fb2d3c28a49213dd715f3dd2b7738",
+          "reportSuccess": true,
+          "recoveryRequired": false,
+          "tail": "Awaited normal BodyRun return confirms narrow Fill wrapping/containment/overlap/picking, GradientHandles collapse/stable-preview assertions and4 width iterations times8 layout-tool invocations completed;701 is recorded as a receipt counter, not independent equivalence proof.",
+          "historicalEvidence": true,
+          "sourceBodyMatchAtPreviousReview": false,
+          "previousReviewReplacementSourceSha256": "fd740b2ce4656750c971242adb888ee2c004cd8d734efd13ea725ecaaece8016",
+          "validatesCurrentReplacementSource": false,
+          "sourceVersionNote": "Historical fixture version; does not certify current exception-safe trace/probe replacement source."
+        },
+        {
+          "report": "Temp/WhimTex/test-runs/2026-10-04T16-57-33.709Z-125104.json",
+          "reportSha256": "a00d9195448cce873d630a6ad41a1c5319cc361d752230ee4a64d6c3dea389de",
+          "scenarioId": "context-tools-start-v2",
+          "variant": "trace-only-original100ms",
+          "status": "passed",
+          "durationMs": 12155,
+          "checks": 701,
+          "uncertain": false,
+          "failures": [],
+          "cleanup": [
+            {
+              "code": 0,
+              "timedOut": false,
+              "transportSuccess": true,
+              "result": {
+                "status": "passed",
+                "checks": 2,
+                "message": "Owned async carrier released",
+                "failures": []
+              }
+            }
+          ],
+          "compositeInputSha256": "ec99ae5cd88c7fdede6ca3ac3e86c600ccba560b06371bfcfa705de7227c438d",
+          "actualCompositeInputSha256": "ec99ae5cd88c7fdede6ca3ac3e86c600ccba560b06371bfcfa705de7227c438d",
+          "productionFingerprint": "a3da14871f6e0bf5c49a6f077b1026720e0fb2d3c28a49213dd715f3dd2b7738",
+          "reportSuccess": true,
+          "recoveryRequired": false,
+          "tail": "Awaited normal BodyRun return confirms narrow Fill wrapping/containment/overlap/picking, GradientHandles collapse/stable-preview assertions and4 width iterations times8 layout-tool invocations completed;701 is recorded as a receipt counter, not independent equivalence proof.",
+          "historicalEvidence": true,
+          "sourceBodyMatchAtPreviousReview": false,
+          "previousReviewReplacementSourceSha256": "fd740b2ce4656750c971242adb888ee2c004cd8d734efd13ea725ecaaece8016",
+          "validatesCurrentReplacementSource": false,
+          "sourceVersionNote": "Historical fixture version; does not certify current exception-safe trace/probe replacement source."
+        },
+        {
+          "report": "Temp/WhimTex/test-runs/2026-10-04T16-57-46.306Z-125104.json",
+          "reportSha256": "c4730fe73686e38ca06b69f4f167498db70df684d3387f56645f5295fcd39db7",
+          "scenarioId": "context-tools-start-v2",
+          "variant": "trace-only-original100ms",
+          "status": "passed",
+          "durationMs": 12071,
+          "checks": 701,
+          "uncertain": false,
+          "failures": [],
+          "cleanup": [
+            {
+              "code": 0,
+              "timedOut": false,
+              "transportSuccess": true,
+              "result": {
+                "status": "passed",
+                "checks": 2,
+                "message": "Owned async carrier released",
+                "failures": []
+              }
+            }
+          ],
+          "compositeInputSha256": "ec99ae5cd88c7fdede6ca3ac3e86c600ccba560b06371bfcfa705de7227c438d",
+          "actualCompositeInputSha256": "ec99ae5cd88c7fdede6ca3ac3e86c600ccba560b06371bfcfa705de7227c438d",
+          "productionFingerprint": "a3da14871f6e0bf5c49a6f077b1026720e0fb2d3c28a49213dd715f3dd2b7738",
+          "reportSuccess": true,
+          "recoveryRequired": false,
+          "tail": "Awaited normal BodyRun return confirms narrow Fill wrapping/containment/overlap/picking, GradientHandles collapse/stable-preview assertions and4 width iterations times8 layout-tool invocations completed;701 is recorded as a receipt counter, not independent equivalence proof.",
+          "historicalEvidence": true,
+          "sourceBodyMatchAtPreviousReview": false,
+          "previousReviewReplacementSourceSha256": "fd740b2ce4656750c971242adb888ee2c004cd8d734efd13ea725ecaaece8016",
+          "validatesCurrentReplacementSource": false,
+          "sourceVersionNote": "Historical fixture version; does not certify current exception-safe trace/probe replacement source."
+        },
+        {
+          "report": "Temp/WhimTex/test-runs/2026-10-04T17-00-52.771Z-122500.json",
+          "reportSha256": "adb57ed5c92de4fc4b1352df1a1844da9cab09dec355d3aaf24d2ef85ef0bf9f",
+          "scenarioId": "context-tools-start-v2",
+          "variant": "trace-and-readiness-barrier",
+          "status": "passed",
+          "durationMs": 12396,
+          "checks": 701,
+          "uncertain": false,
+          "failures": [],
+          "cleanup": [
+            {
+              "code": 0,
+              "timedOut": false,
+              "transportSuccess": true,
+              "result": {
+                "status": "passed",
+                "checks": 2,
+                "message": "Owned async carrier released",
+                "failures": []
+              }
+            }
+          ],
+          "compositeInputSha256": "3efed80521f1b34a89e0a4c4332be7c8a868a94f9134866c0260bbba60db302d",
+          "actualCompositeInputSha256": "3efed80521f1b34a89e0a4c4332be7c8a868a94f9134866c0260bbba60db302d",
+          "productionFingerprint": "a3da14871f6e0bf5c49a6f077b1026720e0fb2d3c28a49213dd715f3dd2b7738",
+          "reportSuccess": true,
+          "recoveryRequired": false,
+          "replacementSourceSha256": "fd740b2ce4656750c971242adb888ee2c004cd8d734efd13ea725ecaaece8016",
+          "tail": "Awaited normal BodyRun return confirms narrow Fill wrapping/containment/overlap/picking, GradientHandles collapse/stable-preview assertions and4 width iterations times8 layout-tool invocations completed;701 is recorded as a receipt counter, not independent equivalence proof.",
+          "historicalEvidence": true,
+          "sourceBodyMatchAtPreviousReview": true,
+          "previousReviewReplacementSourceSha256": "fd740b2ce4656750c971242adb888ee2c004cd8d734efd13ea725ecaaece8016",
+          "validatesCurrentReplacementSource": false,
+          "sourceVersionNote": "Historical fixture version; does not certify current exception-safe trace/probe replacement source."
+        },
+        {
+          "report": "Temp/WhimTex/test-runs/2026-10-04T17-01-05.661Z-122500.json",
+          "reportSha256": "0a7faf924ff5f6eca0003e532563b7c29de76643d05d4d0bda4eb1970298e22d",
+          "scenarioId": "context-tools-start-v2",
+          "variant": "trace-and-readiness-barrier",
+          "status": "passed",
+          "durationMs": 12476,
+          "checks": 701,
+          "uncertain": false,
+          "failures": [],
+          "cleanup": [
+            {
+              "code": 0,
+              "timedOut": false,
+              "transportSuccess": true,
+              "result": {
+                "status": "passed",
+                "checks": 2,
+                "message": "Owned async carrier released",
+                "failures": []
+              }
+            }
+          ],
+          "compositeInputSha256": "3efed80521f1b34a89e0a4c4332be7c8a868a94f9134866c0260bbba60db302d",
+          "actualCompositeInputSha256": "3efed80521f1b34a89e0a4c4332be7c8a868a94f9134866c0260bbba60db302d",
+          "productionFingerprint": "a3da14871f6e0bf5c49a6f077b1026720e0fb2d3c28a49213dd715f3dd2b7738",
+          "reportSuccess": true,
+          "recoveryRequired": false,
+          "replacementSourceSha256": "fd740b2ce4656750c971242adb888ee2c004cd8d734efd13ea725ecaaece8016",
+          "tail": "Awaited normal BodyRun return confirms narrow Fill wrapping/containment/overlap/picking, GradientHandles collapse/stable-preview assertions and4 width iterations times8 layout-tool invocations completed;701 is recorded as a receipt counter, not independent equivalence proof.",
+          "historicalEvidence": true,
+          "sourceBodyMatchAtPreviousReview": true,
+          "previousReviewReplacementSourceSha256": "fd740b2ce4656750c971242adb888ee2c004cd8d734efd13ea725ecaaece8016",
+          "validatesCurrentReplacementSource": false,
+          "sourceVersionNote": "Historical fixture version; does not certify current exception-safe trace/probe replacement source."
+        },
+        {
+          "report": "Temp/WhimTex/test-runs/2026-10-04T17-01-18.586Z-122500.json",
+          "reportSha256": "48cc4cb98d41c40618cf673fd9863dfe8ee03ba0e79eaf23c8dff0b241c82723",
+          "scenarioId": "context-tools-start-v2",
+          "variant": "trace-and-readiness-barrier",
+          "status": "passed",
+          "durationMs": 12123,
+          "checks": 701,
+          "uncertain": false,
+          "failures": [],
+          "cleanup": [
+            {
+              "code": 0,
+              "timedOut": false,
+              "transportSuccess": true,
+              "result": {
+                "status": "passed",
+                "checks": 2,
+                "message": "Owned async carrier released",
+                "failures": []
+              }
+            }
+          ],
+          "compositeInputSha256": "3efed80521f1b34a89e0a4c4332be7c8a868a94f9134866c0260bbba60db302d",
+          "actualCompositeInputSha256": "3efed80521f1b34a89e0a4c4332be7c8a868a94f9134866c0260bbba60db302d",
+          "productionFingerprint": "a3da14871f6e0bf5c49a6f077b1026720e0fb2d3c28a49213dd715f3dd2b7738",
+          "reportSuccess": true,
+          "recoveryRequired": false,
+          "replacementSourceSha256": "fd740b2ce4656750c971242adb888ee2c004cd8d734efd13ea725ecaaece8016",
+          "tail": "Awaited normal BodyRun return confirms narrow Fill wrapping/containment/overlap/picking, GradientHandles collapse/stable-preview assertions and4 width iterations times8 layout-tool invocations completed;701 is recorded as a receipt counter, not independent equivalence proof.",
+          "historicalEvidence": true,
+          "sourceBodyMatchAtPreviousReview": true,
+          "previousReviewReplacementSourceSha256": "fd740b2ce4656750c971242adb888ee2c004cd8d734efd13ea725ecaaece8016",
+          "validatesCurrentReplacementSource": false,
+          "sourceVersionNote": "Historical fixture version; does not certify current exception-safe trace/probe replacement source."
+        },
+        {
+          "report": "Temp/WhimTex/test-runs/2026-10-04T17-08-35.126Z-133452.json",
+          "reportSha256": "edc784bd7e856a5fd3740c7ad6f1eb5829a5aa998bc6da2e4fe6f61513d16eaf",
+          "scenarioId": "context-tools-start-v2",
+          "variant": "trace-and-readiness-barrier-fx-owned",
+          "status": "passed",
+          "durationMs": 12244,
+          "checks": 701,
+          "uncertain": false,
+          "failures": [],
+          "cleanup": [
+            {
+              "code": 0,
+              "timedOut": false,
+              "transportSuccess": true,
+              "result": {
+                "status": "passed",
+                "checks": 2,
+                "message": "Owned async carrier released",
+                "failures": []
+              }
+            }
+          ],
+          "compositeInputSha256": "3ea9e16e87d3a1a5b91310932a9314bba8bfd3751be482ccefff09994f6f9035",
+          "actualCompositeInputSha256": "3ea9e16e87d3a1a5b91310932a9314bba8bfd3751be482ccefff09994f6f9035",
+          "replacementSourceSha256": "23bd508c2a6032311d71e67528343f7029909ceef2afccde4f29c2a63cddc285",
+          "productionFingerprint": "a3da14871f6e0bf5c49a6f077b1026720e0fb2d3c28a49213dd715f3dd2b7738",
+          "reportSuccess": true,
+          "recoveryRequired": false,
+          "historicalEvidence": true,
+          "validatesCurrentReplacementSource": false,
+          "tail": "Normal awaited BodyRun completion confirms the unchanged original narrow Fill wrapping/containment/overlap/picking, GradientHandles collapse/stable-preview checks and all4 resize iterations times8 CheckCanvasLayout tool invocations completed.701 is recorded as a counter, not the sole reachability/equivalence proof.",
+          "sourceBodyMatchAtPreviousReview": true,
+          "previousReviewReplacementSourceSha256": "23bd508c2a6032311d71e67528343f7029909ceef2afccde4f29c2a63cddc285",
+          "sourceVersionNote": "Historical fixture version; does not certify current exception-safe trace/probe replacement source."
+        },
+        {
+          "report": "Temp/WhimTex/test-runs/2026-10-04T17-08-47.824Z-133452.json",
+          "reportSha256": "338c8a4f4a55f69644e31374d146626b376e62c7694232e72e1cde7cd3493bf5",
+          "scenarioId": "context-tools-start-v2",
+          "variant": "trace-and-readiness-barrier-fx-owned",
+          "status": "passed",
+          "durationMs": 13032,
+          "checks": 701,
+          "uncertain": false,
+          "failures": [],
+          "cleanup": [
+            {
+              "code": 0,
+              "timedOut": false,
+              "transportSuccess": true,
+              "result": {
+                "status": "passed",
+                "checks": 2,
+                "message": "Owned async carrier released",
+                "failures": []
+              }
+            }
+          ],
+          "compositeInputSha256": "3ea9e16e87d3a1a5b91310932a9314bba8bfd3751be482ccefff09994f6f9035",
+          "actualCompositeInputSha256": "3ea9e16e87d3a1a5b91310932a9314bba8bfd3751be482ccefff09994f6f9035",
+          "replacementSourceSha256": "23bd508c2a6032311d71e67528343f7029909ceef2afccde4f29c2a63cddc285",
+          "productionFingerprint": "a3da14871f6e0bf5c49a6f077b1026720e0fb2d3c28a49213dd715f3dd2b7738",
+          "reportSuccess": true,
+          "recoveryRequired": false,
+          "historicalEvidence": true,
+          "validatesCurrentReplacementSource": false,
+          "tail": "Normal awaited BodyRun completion confirms the unchanged original narrow Fill wrapping/containment/overlap/picking, GradientHandles collapse/stable-preview checks and all4 resize iterations times8 CheckCanvasLayout tool invocations completed.701 is recorded as a counter, not the sole reachability/equivalence proof.",
+          "sourceBodyMatchAtPreviousReview": true,
+          "previousReviewReplacementSourceSha256": "23bd508c2a6032311d71e67528343f7029909ceef2afccde4f29c2a63cddc285",
+          "sourceVersionNote": "Historical fixture version; does not certify current exception-safe trace/probe replacement source."
+        },
+        {
+          "report": "Temp/WhimTex/test-runs/2026-10-04T17-09-01.356Z-133452.json",
+          "reportSha256": "cdb5162ac0270f0e35f92443e7f5e097c87b8e5efbab5fbe29fd7eb6fe6bf258",
+          "scenarioId": "context-tools-start-v2",
+          "variant": "trace-and-readiness-barrier-fx-owned",
+          "status": "passed",
+          "durationMs": 12440,
+          "checks": 701,
+          "uncertain": false,
+          "failures": [],
+          "cleanup": [
+            {
+              "code": 0,
+              "timedOut": false,
+              "transportSuccess": true,
+              "result": {
+                "status": "passed",
+                "checks": 2,
+                "message": "Owned async carrier released",
+                "failures": []
+              }
+            }
+          ],
+          "compositeInputSha256": "3ea9e16e87d3a1a5b91310932a9314bba8bfd3751be482ccefff09994f6f9035",
+          "actualCompositeInputSha256": "3ea9e16e87d3a1a5b91310932a9314bba8bfd3751be482ccefff09994f6f9035",
+          "replacementSourceSha256": "23bd508c2a6032311d71e67528343f7029909ceef2afccde4f29c2a63cddc285",
+          "productionFingerprint": "a3da14871f6e0bf5c49a6f077b1026720e0fb2d3c28a49213dd715f3dd2b7738",
+          "reportSuccess": true,
+          "recoveryRequired": false,
+          "historicalEvidence": true,
+          "validatesCurrentReplacementSource": false,
+          "tail": "Normal awaited BodyRun completion confirms the unchanged original narrow Fill wrapping/containment/overlap/picking, GradientHandles collapse/stable-preview checks and all4 resize iterations times8 CheckCanvasLayout tool invocations completed.701 is recorded as a counter, not the sole reachability/equivalence proof.",
+          "sourceBodyMatchAtPreviousReview": true,
+          "previousReviewReplacementSourceSha256": "23bd508c2a6032311d71e67528343f7029909ceef2afccde4f29c2a63cddc285",
+          "sourceVersionNote": "Historical fixture version; does not certify current exception-safe trace/probe replacement source."
+        },
+        {
+          "report": "Temp/WhimTex/test-runs/2026-10-04T17-27-24.339Z-54316.json",
+          "reportSha256": "53e1fbd7c7996ff4684421c1389d544e992633cf72037d99118bd31afb5abf41",
+          "scenarioId": "context-tools-start-v2",
+          "variant": "exception-safe-trace-and-fault-probes",
+          "status": "passed",
+          "durationMs": 12841,
+          "checks": 713,
+          "uncertain": false,
+          "failures": [],
+          "cleanup": [
+            {
+              "phase": "cleanup",
+              "entry": "ContextToolsTests.Cleanup",
+              "code": 0,
+              "timedOut": false,
+              "transportSuccess": true,
+              "bundleSuccess": true,
+              "result": {
+                "status": "passed",
+                "checks": 2,
+                "message": "Owned async carrier released",
+                "failures": []
+              }
+            }
+          ],
+          "compositeInputSha256": "0bc74bb679b49c787ad584350fcfe90589629153eb0add9a57c718208e11222d",
+          "actualCompositeInputSha256": "0bc74bb679b49c787ad584350fcfe90589629153eb0add9a57c718208e11222d",
+          "replacementSourceSha256": "cafac666a0494462d6f317c54ab413bd85df994212322513ae3a36528f7185a7",
+          "productionFingerprint": "a3da14871f6e0bf5c49a6f077b1026720e0fb2d3c28a49213dd715f3dd2b7738",
+          "reportSuccess": true,
+          "recoveryRequired": false,
+          "currentNormalizedSourceBodyIncluded": true,
+          "historicalEvidence": false,
+          "validatesCurrentReplacementSource": true,
+          "bundleLifecycle": {
+            "report": "Temp/WhimTex/test-runs/2026-10-04T17-27-24.339Z-54316.json",
+            "lifecycleRunId": "5e3b2f43-95d5-469f-8ce6-345318eb62ed",
+            "sameRunIdAllPhases": true,
+            "sameInputFileAllPhases": true,
+            "lifecycleEntries": [
+              "ContextToolsTests.Start",
+              "ContextToolsTests.Poll",
+              "ContextToolsTests.Cleanup"
+            ],
+            "sourceProofs": [
+              {
+                "file": "Tests~/Cases/UnityA/ContextToolsTests.cs",
+                "sha256": "cafac666a0494462d6f317c54ab413bd85df994212322513ae3a36528f7185a7",
+                "normalizedSourceIncluded": true
+              },
+              {
+                "file": "Tests~/Framework/TestApi.cs",
+                "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
+                "normalizedSourceIncluded": true
+              },
+              {
+                "file": "Tests~/Cases/UnityA/UnityAScope.cs",
+                "sha256": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
+                "normalizedSourceIncluded": true
+              }
+            ],
+            "transportAndBundleSuccessAllPhases": true,
+            "noTimedOutPhase": true,
+            "start": {
+              "status": "running",
+              "checks": 14,
+              "message": "Waiting for owned work and cleanup",
+              "failures": []
+            },
+            "terminalPoll": {
+              "status": "passed",
+              "checks": 713,
+              "message": "UnityA asynchronous case",
+              "failures": []
+            },
+            "cleanup": {
+              "status": "passed",
+              "checks": 2,
+              "message": "Owned async carrier released",
+              "failures": []
+            }
+          },
+          "tail": "Normal awaited BodyRun completion confirms original narrow Fill wrapping/containment/overlap/picking, GradientHandles collapse/stable-preview and all4 width iterations times8 layout-tool invocations, then all12 supplementary fault assertions. Reachability is established by the reviewed sole successful return after these sections plus terminal passed completion, not by713 count alone.",
+          "validatedFaultProbes": [
+            "Attached-Sample injected exception identity is retained; constructor ActiveSubscriptions=0; subsequent pooled public geometry events do not grow callback count.",
+            "Live probe has6 subscriptions and receives exactly5 public geometry callbacks as a positive delivery control; finished-Sample exception identity retained; post-dispose ActiveSubscriptions=0 and callback count stable; second Dispose remains idempotent.",
+            "Nested owned async scope retains exact injected body and cleanup exception identities plus WhimTexCleanupFailure evidence; combined-failure trace has0 subscriptions and stable subsequent geometry callback count."
+          ]
+        },
+        {
+          "report": "Temp/WhimTex/test-runs/2026-10-04T17-27-37.685Z-54316.json",
+          "reportSha256": "3c9e27724b11480830d9e1414f64456f500b04ba430ed74db616bdd50b68728f",
+          "scenarioId": "context-tools-start-v2",
+          "variant": "exception-safe-trace-and-fault-probes",
+          "status": "passed",
+          "durationMs": 12845,
+          "checks": 713,
+          "uncertain": false,
+          "failures": [],
+          "cleanup": [
+            {
+              "phase": "cleanup",
+              "entry": "ContextToolsTests.Cleanup",
+              "code": 0,
+              "timedOut": false,
+              "transportSuccess": true,
+              "bundleSuccess": true,
+              "result": {
+                "status": "passed",
+                "checks": 2,
+                "message": "Owned async carrier released",
+                "failures": []
+              }
+            }
+          ],
+          "compositeInputSha256": "0bc74bb679b49c787ad584350fcfe90589629153eb0add9a57c718208e11222d",
+          "actualCompositeInputSha256": "0bc74bb679b49c787ad584350fcfe90589629153eb0add9a57c718208e11222d",
+          "replacementSourceSha256": "cafac666a0494462d6f317c54ab413bd85df994212322513ae3a36528f7185a7",
+          "productionFingerprint": "a3da14871f6e0bf5c49a6f077b1026720e0fb2d3c28a49213dd715f3dd2b7738",
+          "reportSuccess": true,
+          "recoveryRequired": false,
+          "currentNormalizedSourceBodyIncluded": true,
+          "historicalEvidence": false,
+          "validatesCurrentReplacementSource": true,
+          "bundleLifecycle": {
+            "report": "Temp/WhimTex/test-runs/2026-10-04T17-27-37.685Z-54316.json",
+            "lifecycleRunId": "c4fff0de-fd53-42fd-bd17-45cdd4a69b02",
+            "sameRunIdAllPhases": true,
+            "sameInputFileAllPhases": true,
+            "lifecycleEntries": [
+              "ContextToolsTests.Start",
+              "ContextToolsTests.Poll",
+              "ContextToolsTests.Cleanup"
+            ],
+            "sourceProofs": [
+              {
+                "file": "Tests~/Cases/UnityA/ContextToolsTests.cs",
+                "sha256": "cafac666a0494462d6f317c54ab413bd85df994212322513ae3a36528f7185a7",
+                "normalizedSourceIncluded": true
+              },
+              {
+                "file": "Tests~/Framework/TestApi.cs",
+                "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
+                "normalizedSourceIncluded": true
+              },
+              {
+                "file": "Tests~/Cases/UnityA/UnityAScope.cs",
+                "sha256": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
+                "normalizedSourceIncluded": true
+              }
+            ],
+            "transportAndBundleSuccessAllPhases": true,
+            "noTimedOutPhase": true,
+            "start": {
+              "status": "running",
+              "checks": 14,
+              "message": "Waiting for owned work and cleanup",
+              "failures": []
+            },
+            "terminalPoll": {
+              "status": "passed",
+              "checks": 713,
+              "message": "UnityA asynchronous case",
+              "failures": []
+            },
+            "cleanup": {
+              "status": "passed",
+              "checks": 2,
+              "message": "Owned async carrier released",
+              "failures": []
+            }
+          },
+          "tail": "Normal awaited BodyRun completion confirms original narrow Fill wrapping/containment/overlap/picking, GradientHandles collapse/stable-preview and all4 width iterations times8 layout-tool invocations, then all12 supplementary fault assertions. Reachability is established by the reviewed sole successful return after these sections plus terminal passed completion, not by713 count alone.",
+          "validatedFaultProbes": [
+            "Attached-Sample injected exception identity is retained; constructor ActiveSubscriptions=0; subsequent pooled public geometry events do not grow callback count.",
+            "Live probe has6 subscriptions and receives exactly5 public geometry callbacks as a positive delivery control; finished-Sample exception identity retained; post-dispose ActiveSubscriptions=0 and callback count stable; second Dispose remains idempotent.",
+            "Nested owned async scope retains exact injected body and cleanup exception identities plus WhimTexCleanupFailure evidence; combined-failure trace has0 subscriptions and stable subsequent geometry callback count."
+          ]
+        },
+        {
+          "report": "Temp/WhimTex/test-runs/2026-10-04T17-27-51.017Z-54316.json",
+          "reportSha256": "d1fdf7686676783c75a10624f256bedc1ca4a47e8f922dbfd12a9e0594011723",
+          "scenarioId": "context-tools-start-v2",
+          "variant": "exception-safe-trace-and-fault-probes",
+          "status": "passed",
+          "durationMs": 13583,
+          "checks": 713,
+          "uncertain": false,
+          "failures": [],
+          "cleanup": [
+            {
+              "phase": "cleanup",
+              "entry": "ContextToolsTests.Cleanup",
+              "code": 0,
+              "timedOut": false,
+              "transportSuccess": true,
+              "bundleSuccess": true,
+              "result": {
+                "status": "passed",
+                "checks": 2,
+                "message": "Owned async carrier released",
+                "failures": []
+              }
+            }
+          ],
+          "compositeInputSha256": "0bc74bb679b49c787ad584350fcfe90589629153eb0add9a57c718208e11222d",
+          "actualCompositeInputSha256": "0bc74bb679b49c787ad584350fcfe90589629153eb0add9a57c718208e11222d",
+          "replacementSourceSha256": "cafac666a0494462d6f317c54ab413bd85df994212322513ae3a36528f7185a7",
+          "productionFingerprint": "a3da14871f6e0bf5c49a6f077b1026720e0fb2d3c28a49213dd715f3dd2b7738",
+          "reportSuccess": true,
+          "recoveryRequired": false,
+          "currentNormalizedSourceBodyIncluded": true,
+          "historicalEvidence": false,
+          "validatesCurrentReplacementSource": true,
+          "bundleLifecycle": {
+            "report": "Temp/WhimTex/test-runs/2026-10-04T17-27-51.017Z-54316.json",
+            "lifecycleRunId": "77798614-3a2c-4fed-b211-4ad075c652c1",
+            "sameRunIdAllPhases": true,
+            "sameInputFileAllPhases": true,
+            "lifecycleEntries": [
+              "ContextToolsTests.Start",
+              "ContextToolsTests.Poll",
+              "ContextToolsTests.Cleanup"
+            ],
+            "sourceProofs": [
+              {
+                "file": "Tests~/Cases/UnityA/ContextToolsTests.cs",
+                "sha256": "cafac666a0494462d6f317c54ab413bd85df994212322513ae3a36528f7185a7",
+                "normalizedSourceIncluded": true
+              },
+              {
+                "file": "Tests~/Framework/TestApi.cs",
+                "sha256": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
+                "normalizedSourceIncluded": true
+              },
+              {
+                "file": "Tests~/Cases/UnityA/UnityAScope.cs",
+                "sha256": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
+                "normalizedSourceIncluded": true
+              }
+            ],
+            "transportAndBundleSuccessAllPhases": true,
+            "noTimedOutPhase": true,
+            "start": {
+              "status": "running",
+              "checks": 14,
+              "message": "Waiting for owned work and cleanup",
+              "failures": []
+            },
+            "terminalPoll": {
+              "status": "passed",
+              "checks": 713,
+              "message": "UnityA asynchronous case",
+              "failures": []
+            },
+            "cleanup": {
+              "status": "passed",
+              "checks": 2,
+              "message": "Owned async carrier released",
+              "failures": []
+            }
+          },
+          "tail": "Normal awaited BodyRun completion confirms original narrow Fill wrapping/containment/overlap/picking, GradientHandles collapse/stable-preview and all4 width iterations times8 layout-tool invocations, then all12 supplementary fault assertions. Reachability is established by the reviewed sole successful return after these sections plus terminal passed completion, not by713 count alone.",
+          "validatedFaultProbes": [
+            "Attached-Sample injected exception identity is retained; constructor ActiveSubscriptions=0; subsequent pooled public geometry events do not grow callback count.",
+            "Live probe has6 subscriptions and receives exactly5 public geometry callbacks as a positive delivery control; finished-Sample exception identity retained; post-dispose ActiveSubscriptions=0 and callback count stable; second Dispose remains idempotent.",
+            "Nested owned async scope retains exact injected body and cleanup exception identities plus WhimTexCleanupFailure evidence; combined-failure trace has0 subscriptions and stable subsequent geometry callback count."
+          ]
         }
       ],
       "currentRuntimeLimitations": [
-        "Flaky timing/layout remains unresolved: the original minimum640x420 temporary-button fit failed14:33 with52px overflow and passed15:35 on identical composite input SHA and production fingerprint. Both results remain evidence; regression classification is unchanged. No product fix, assertion loosening, fixture-wait change or source-gap waiver occurred.",
-        "Exact delayed/missed reveal versus layout/scheduling cause is not proven: neither receipt captures scrollOffset, viewport geometry or callback-completion trace. The successful rerun closes the replacement tail-reachability limitation, but does not erase the historical failure, establish deterministic behavior or prove full old/new runtime equivalence."
-      ]
+        "Historical genuine minimum-window oracle failure14:33 (button444..472,root420,overflow52px), unchanged-source15:35 PASS, later trace-only5/5 and earlier readiness-barrier3/3 passes remain historical evidence. They do not erase the failure or prove its particular cause. Production fingerprint is unchanged across all13 reviewed receipts; current fx-owned fixture version is not a product fix.",
+        "Later trace846ed2cd326b477482bdd1454f622cc8 observes resized root420, viewport393, offset0 and button444..472 at47ms, followed by offset52 and button392..420 at63ms; original100ms sample already fits at165ms. This demonstrates a real intermediate geometry-to-scroll transition in that trace, not reproduction or definitive attribution of the historical failure. Trace subscription/sampling itself adds timing overhead.",
+        "Readiness adaptation is explicit: the original100ms delay is unchanged; an additional public root-dimensions readiness poll plus one scroll.schedule callback is bounded by a shared nominal1000ms budget (separate from unchanged scenario60000ms timeout). It never polls button fit, calls ScrollTo, writes scrollOffset or invokes product reveal. The original yMax<=root.yMax predicate then executes once; all original tail assertions remain. This is a changed sampling/readiness point, not exact100ms temporal equivalence.",
+        "Scheduler callback completion is not direct proof that every product reveal/layout callback completed in a specified FIFO order. The public Execute API promises later execution; this readiness callback adds a bounded panel turn while the unchanged oracle remains responsible for catching missing/broken scrolling. Main-thread stalls can delay timer/continuation delivery beyond a nominal wall-clock budget.",
+        "Current exception-safe trace/probe source SHAcafac666a0494462d6f317c54ab413bd85df994212322513ae3a36528f7185a7 is validated by3 parent receipts:713 PASS each in12841/12845/13583ms; cleanup2 PASS,failures=[],uncertain=false,recoveryRequired=false. Same-GUID native run_script Start/Poll/Cleanup phases use one composite input per run and all transport/bundle replies succeed without timeout. Constructor attached-Sample rollback, finished-Sample detach/idempotence, real public geometry delivery/no post-detach growth and exact body+cleanup aggregate identity/evidence checks all completed after the entire original tail. Normal scope-owned trace finalization after owned window cleanup completed without error. Deliberate IO-write failures or actual public unsubscribe-operation failures were not injected; generic aggregation of those branches remains source-reviewed only. Historical failure/strict100ms sampling limitations remain; no paired Legacy/new runtime-equivalence claim is made."
+      ],
+      "runtimeTraceArtifacts": [
+        {
+          "path": "Temp/WhimTex/tests-unity-a-artifacts/2d3d3b4718e548a8a1b378d0098e1078/context-tools-layout.txt",
+          "sha256": "f106798ca727d833bd2089b219c49c8b96bbef33f1d206e846d96ea86f973600",
+          "variant": "trace-and-readiness-barrier",
+          "receiptAssociation": "Variant identified from completion marker; individual report-to-scope GUID association is not asserted because receipts do not name artifact paths."
+        },
+        {
+          "path": "Temp/WhimTex/tests-unity-a-artifacts/468fb58bbe70480a8296270e633b913c/context-tools-layout.txt",
+          "sha256": "f5306b2c9f9e7bad326b191f7a2a6c3c46d5e73ca6f7ee27c7793e5fb6998d11",
+          "variant": "trace-and-readiness-barrier",
+          "receiptAssociation": "Variant identified from completion marker; individual report-to-scope GUID association is not asserted because receipts do not name artifact paths."
+        },
+        {
+          "path": "Temp/WhimTex/tests-unity-a-artifacts/5d39f859ecbb4b6f98225e5eb58f2632/context-tools-layout.txt",
+          "sha256": "dbbeb156712f79778b01b0c9f25857070638030cca2b6fc7ce48d65a42013f32",
+          "variant": "trace-and-readiness-barrier",
+          "receiptAssociation": "Variant identified from completion marker; individual report-to-scope GUID association is not asserted because receipts do not name artifact paths."
+        },
+        {
+          "path": "Temp/WhimTex/tests-unity-a-artifacts/5f9a0a0de63d48c5909a77466a7c4e22/context-tools-layout.txt",
+          "sha256": "12cf2a4ac952e7521d49f4d55348fc1a2ae682d5b02a282c9ce313e9fdfb5e25",
+          "variant": "trace-only-original100ms",
+          "receiptAssociation": "Variant identified from completion marker; individual report-to-scope GUID association is not asserted because receipts do not name artifact paths."
+        },
+        {
+          "path": "Temp/WhimTex/tests-unity-a-artifacts/846ed2cd326b477482bdd1454f622cc8/context-tools-layout.txt",
+          "sha256": "439497d81ac52d4bbe064519273ddc4923d12402ce292afbb106024d94b79485",
+          "variant": "trace-only-original100ms",
+          "receiptAssociation": "Variant identified from completion marker; individual report-to-scope GUID association is not asserted because receipts do not name artifact paths."
+        },
+        {
+          "path": "Temp/WhimTex/tests-unity-a-artifacts/bbb56c8282154c348e579040cbba5885/context-tools-layout.txt",
+          "sha256": "2c227c3b94c34f15158d5e08f00296b97549c880f6c0d1ac0e623409e8da9e09",
+          "variant": "trace-only-original100ms",
+          "receiptAssociation": "Variant identified from completion marker; individual report-to-scope GUID association is not asserted because receipts do not name artifact paths."
+        },
+        {
+          "path": "Temp/WhimTex/tests-unity-a-artifacts/dc1d37cbfd4b4135806f7fd509a8390b/context-tools-layout.txt",
+          "sha256": "6eaba9c0d6ea3b1f731130c4172991d54e6a8f93828ce9d4e3461db62759b5ca",
+          "variant": "trace-only-original100ms",
+          "receiptAssociation": "Variant identified from completion marker; individual report-to-scope GUID association is not asserted because receipts do not name artifact paths."
+        },
+        {
+          "path": "Temp/WhimTex/tests-unity-a-artifacts/ff63bcd8c15548d3986839a7236436d8/context-tools-layout.txt",
+          "sha256": "bb2b921a5bc96488c3d8ded5fcfd82842291e06d50e6b359812c179a9e7adecc",
+          "variant": "trace-only-original100ms",
+          "receiptAssociation": "Variant identified from completion marker; individual report-to-scope GUID association is not asserted because receipts do not name artifact paths."
+        }
+      ],
+      "sourceReviewHistory": [
+        {
+          "replacementSourceSha256": "23bd508c2a6032311d71e67528343f7029909ceef2afccde4f29c2a63cddc285",
+          "reviewStatus": "gap",
+          "gaps": [
+            "Remaining trace constructor exception-safety gap: partial GeometryChangedEvent registrations or EditorApplication.update subscription can survive a constructor/setup Sample exception before trace is assigned; no constructor rollback or independent scope cleanup owns these subscriptions (ContextToolsTests L47-L56). Independent FX ownership does not cover callback lifetime.",
+            "Remaining trace disposal/error-provenance gap: Sample(finished) precedes callback detachment (L109-L112); trace.Dispose precedes original cleanup (L372 onward). A Sample exception can prevent detachment, and a trace/write exception can replace the original body assertion. FX/Undo/window/preferences/focus fallback is now independently scope-owned; that resource fix does not preserve the lost original exception or detach trace callbacks. Current3 ordinary cleanup passes do not validate these exception branches."
+          ],
+          "resolution": "Superseded by constructor rollback, all-action aggregate disposal and independently scope-owned normal trace finalizer. New source/fault probes await parent validation; earlier successful receipts do not certify this version."
+        }
+      ],
+      "currentRuntimeValidation": {
+        "status": "passed-selected-parent-runtime",
+        "scenarioId": "context-tools-start-v2",
+        "replacementSourceSha256": "cafac666a0494462d6f317c54ab413bd85df994212322513ae3a36528f7185a7",
+        "compositeInputSha256": "0bc74bb679b49c787ad584350fcfe90589629153eb0add9a57c718208e11222d",
+        "supportSourceHashes": {
+          "Tests~/Cases/UnityA/ContextToolsTests.cs": "cafac666a0494462d6f317c54ab413bd85df994212322513ae3a36528f7185a7",
+          "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
+          "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264"
+        },
+        "reports": [
+          {
+            "report": "Temp/WhimTex/test-runs/2026-10-04T17-27-24.339Z-54316.json",
+            "sha256": "53e1fbd7c7996ff4684421c1389d544e992633cf72037d99118bd31afb5abf41",
+            "checks": 713,
+            "durationMs": 12841,
+            "cleanupStatus": "passed",
+            "cleanupChecks": 2
+          },
+          {
+            "report": "Temp/WhimTex/test-runs/2026-10-04T17-27-37.685Z-54316.json",
+            "sha256": "3c9e27724b11480830d9e1414f64456f500b04ba430ed74db616bdd50b68728f",
+            "checks": 713,
+            "durationMs": 12845,
+            "cleanupStatus": "passed",
+            "cleanupChecks": 2
+          },
+          {
+            "report": "Temp/WhimTex/test-runs/2026-10-04T17-27-51.017Z-54316.json",
+            "sha256": "d1fdf7686676783c75a10624f256bedc1ca4a47e8f922dbfd12a9e0594011723",
+            "checks": 713,
+            "durationMs": 13583,
+            "cleanupStatus": "passed",
+            "cleanupChecks": 2
+          }
+        ],
+        "proofLevel": "Three exact-current-input parent runtime receipts with verified source/support body inclusion and same-GUID Start/Poll/Cleanup lifecycle; validates current assertions and injected fault probes, not frozen Legacy runtime/strict100ms temporal equivalence."
+      }
     },
     {
       "legacyFile": "DeferredDrawingSmoke.cs",
@@ -3815,7 +4618,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -3857,7 +4660,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -3903,7 +4706,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {
@@ -3937,7 +4740,7 @@
       "additionalDependenciesSha": {
         "Tests~/Framework/TestApi.cs": "3d68c4e5c78fb9a20871de666a04d57febed3b95588152c3f0a373aafdc95658",
         "Tests~/Cases/UnityA/UnityAScope.cs": "d53e990c8fa6c36b3337e11b7a3b46ef74a39b2f3db90b9b499e0368de45b264",
-        "Tests~/Batches/unity-a.json": "4a65e627bf301e04589ced9ade0c8a301ca5c4de249e1eb190ffb6fa69481056"
+        "Tests~/Batches/unity-a.json": "63e1a3ec075d7e3f45c55238eb859be73da0a237ca1e833fe2a2d40f163f58ec"
       },
       "legacyEntries": [
         {

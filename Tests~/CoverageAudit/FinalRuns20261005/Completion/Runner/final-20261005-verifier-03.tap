@@ -1,0 +1,496 @@
+TAP version 13
+# Subtest: Frozen manifest and every raw byte: CRLF, missing/extra files and manifest mutation
+ok 1 - Frozen manifest and every raw byte: CRLF, missing/extra files and manifest mutation
+  ---
+  duration_ms: 4.287
+  type: 'test'
+  ...
+# Subtest: Bundle directive grammar, deduplication, file order, line preservation and raw receipt sensitivity
+ok 2 - Bundle directive grammar, deduplication, file order, line preservation and raw receipt sensitivity
+  ---
+  duration_ms: 0.9767
+  type: 'test'
+  ...
+# Subtest: Current C\# pass binds exact input order/SHA and invocation typed args; compile/entries never count
+ok 3 - Current C\# pass binds exact input order/SHA and invocation typed args; compile/entries never count
+  ---
+  duration_ms: 1.8909
+  type: 'test'
+  ...
+# Subtest: Receipt hashes exact independent-dispatcher dependencies; migration tools are not execution globals
+ok 4 - Receipt hashes exact independent-dispatcher dependencies; migration tools are not execution globals
+  ---
+  duration_ms: 0.7783
+  type: 'test'
+  ...
+# Subtest: Native receipt with unchanged bundle is historical after dispatcher or pinned archive changes
+ok 5 - Native receipt with unchanged bundle is historical after dispatcher or pinned archive changes
+  ---
+  duration_ms: 4.8314
+  type: 'test'
+  ...
+# Subtest: Native selected IDs missing from current catalog never bypass the receipt through a matching bundle
+ok 6 - Native selected IDs missing from current catalog never bypass the receipt through a matching bundle
+  ---
+  duration_ms: 0.3852
+  type: 'test'
+  ...
+# Subtest: Removed catalog results keep raw receipt identity and status as historical evidence only
+ok 7 - Removed catalog results keep raw receipt identity and status as historical evidence only
+  ---
+  duration_ms: 1.0844
+  type: 'test'
+  ...
+# Subtest: Unlinked infrastructure receipts remain in history without granting original-source coverage
+ok 8 - Unlinked infrastructure receipts remain in history without granting original-source coverage
+  ---
+  duration_ms: 1.3382
+  type: 'test'
+  ...
+# Subtest: Stored framework source review becomes stale after runner edits; its hashes are never rebound
+ok 9 - Stored framework source review becomes stale after runner edits; its hashes are never rebound
+  ---
+  duration_ms: 1.1795
+  type: 'test'
+  ...
+# Subtest: Async phases enforce same run identity, final poll, required cleanup and project
+ok 10 - Async phases enforce same run identity, final poll, required cleanup and project
+  ---
+  duration_ms: 0.4192
+  type: 'test'
+  ...
+# Subtest: Node current selected receipt required; historical pass and diagnostics never certify regression
+ok 11 - Node current selected receipt required; historical pass and diagnostics never certify regression
+  ---
+  duration_ms: 0.8234
+  type: 'test'
+  ...
+# Subtest: Latest same-source failure/SKIP/uncertain overrides green, historical failure does not
+ok 12 - Latest same-source failure/SKIP/uncertain overrides green, historical failure does not
+  ---
+  duration_ms: 0.1373
+  type: 'test'
+  ...
+# Subtest: Custom Player facts require both exact native bundle and global receipt; SKIP before input overrides
+ok 13 - Custom Player facts require both exact native bundle and global receipt; SKIP before input overrides
+  ---
+  duration_ms: 0.9481
+  type: 'test'
+  ...
+# Subtest: All declared support hash formats, additionalDependenciesSha, source gaps and pending separated
+ok 14 - All declared support hash formats, additionalDependenciesSha, source gaps and pending separated
+  ---
+  duration_ms: 2.602
+  type: 'test'
+  ...
+# Subtest: ONLY four restored B files superseded; DocumentRelease distinct subsets and gaps retained
+ok 15 - ONLY four restored B files superseded; DocumentRelease distinct subsets and gaps retained
+  ---
+  duration_ms: 1.276
+  type: 'test'
+  ...
+# Subtest: Missing parent audit/report races never grant coverage; inventory emits concrete current runtime
+ok 16 - Missing parent audit/report races never grant coverage; inventory emits concrete current runtime
+  ---
+  duration_ms: 1.3162
+  type: 'test'
+  ...
+# Subtest: PSD custom input SHA, global receipt, producer/decoder receipts and installed module bytes required
+ok 17 - PSD custom input SHA, global receipt, producer/decoder receipts and installed module bytes required
+  ---
+  duration_ms: 0.8451
+  type: 'test'
+  ...
+# Subtest: Fault native GUID fixture supersedes registered global import fixture after install/both bodies/removal proof
+ok 18 - Fault native GUID fixture supersedes registered global import fixture after install/both bodies/removal proof
+  ---
+  duration_ms: 5.1914
+  type: 'test'
+  ...
+# Subtest: Recovery-only JSON never promotes a failed current run to runtime pass
+ok 19 - Recovery-only JSON never promotes a failed current run to runtime pass
+  ---
+  duration_ms: 0.09
+  type: 'test'
+  ...
+# Subtest: Generic public-helper entry labels do not reclassify real regressions; explicit manual setup stays separate
+ok 20 - Generic public-helper entry labels do not reclassify real regressions; explicit manual setup stays separate
+  ---
+  duration_ms: 1.5663
+  type: 'test'
+  ...
+# Subtest: Source mutation during binding, even reverted, requires a freeze instead of fresh green
+ok 21 - Source mutation during binding, even reverted, requires a freeze instead of fresh green
+  ---
+  duration_ms: 1.1885
+  type: 'test'
+  ...
+# Subtest: Archive descriptor race revokes source freeze even without a runtime report
+ok 22 - Archive descriptor race revokes source freeze even without a runtime report
+  ---
+  duration_ms: 0.7579
+  type: 'test'
+  ...
+# Subtest: Unordered current evidence is conservative, not a reason to resurrect an older green
+ok 23 - Unordered current evidence is conservative, not a reason to resurrect an older green
+  ---
+  duration_ms: 0.0724
+  type: 'test'
+  ...
+# Subtest: Unavailable named historical input artefacts are external, not missing code
+ok 24 - Unavailable named historical input artefacts are external, not missing code
+  ---
+  duration_ms: 0.258
+  type: 'test'
+  ...
+# Subtest: Unverified manual screenshot/state and current-receipt binding are pending, never code omission
+ok 25 - Unverified manual screenshot/state and current-receipt binding are pending, never code omission
+  ---
+  duration_ms: 0.0976
+  type: 'test'
+  ...
+# Subtest: Already-integrated append metadata remains an owner-update pending claim with original provenance
+ok 26 - Already-integrated append metadata remains an owner-update pending claim with original provenance
+  ---
+  duration_ms: 0.8474
+  type: 'test'
+  ...
+# Subtest: Actual missing predicates/branches/cleanup/public modes cannot fall through softer pending/external/manual labels
+ok 27 - Actual missing predicates/branches/cleanup/public modes cannot fall through softer pending/external/manual labels
+  ---
+  duration_ms: 0.0613
+  type: 'test'
+  ...
+# Subtest: Retained original ContextTools failure and unreached tail remain explicit runtime blockers, not missing code
+ok 28 - Retained original ContextTools failure and unreached tail remain explicit runtime blockers, not missing code
+  ---
+  duration_ms: 0.6624
+  type: 'test'
+  ...
+# Subtest: Explicit current parent combined source review supersedes ONLY exact obsolete B row, with no runtime inference
+ok 29 - Explicit current parent combined source review supersedes ONLY exact obsolete B row, with no runtime inference
+  ---
+  duration_ms: 3.8198
+  type: 'test'
+  ...
+# Subtest: Combined source policy rejects absent/malformed/partial/stale/wrong-owner/overbroad handoffs without relaxing source gaps
+ok 30 - Combined source policy rejects absent/malformed/partial/stale/wrong-owner/overbroad handoffs without relaxing source gaps
+  ---
+  duration_ms: 18.9251
+  type: 'test'
+  ...
+# Subtest: Combined DocRelease source review never substitutes Fault PASS or cleanup-only Player for actual Player PASS
+ok 31 - Combined DocRelease source review never substitutes Fault PASS or cleanup-only Player for actual Player PASS
+  ---
+  duration_ms: 5.6189
+  type: 'test'
+  ...
+# Subtest: Retired absent-catalog global fixture IDs require explicit combined source handoff plus current native Fault proof
+ok 32 - Retired absent-catalog global fixture IDs require explicit combined source handoff plus current native Fault proof
+  ---
+  duration_ms: 3.8747
+  type: 'test'
+  ...
+# Subtest: Already-integrated structured parent combined declaration requires explicit full read and exact obsolete B SHA
+ok 33 - Already-integrated structured parent combined declaration requires explicit full read and exact obsolete B SHA
+  ---
+  duration_ms: 5.816
+  type: 'test'
+  ...
+# Subtest: Gradient helpers receive raw current same-GUID phase coverage, NEVER standalone/regression PASS credit
+ok 34 - Gradient helpers receive raw current same-GUID phase coverage, NEVER standalone/regression PASS credit
+  ---
+  duration_ms: 10.3898
+  type: 'test'
+  ...
+# Subtest: Gradient phase proof rejects sidecar/metadata alone
+ok 35 - Gradient phase proof rejects sidecar/metadata alone
+  ---
+  duration_ms: 1.7367
+  type: 'test'
+  ...
+# Subtest: Gradient phase proof rejects wrong typed GUID
+ok 36 - Gradient phase proof rejects wrong typed GUID
+  ---
+  duration_ms: 2.4365
+  type: 'test'
+  ...
+# Subtest: Gradient phase proof rejects different End GUID
+ok 37 - Gradient phase proof rejects different End GUID
+  ---
+  duration_ms: 2.0629
+  type: 'test'
+  ...
+# Subtest: Gradient phase proof rejects wrong entry
+ok 38 - Gradient phase proof rejects wrong entry
+  ---
+  duration_ms: 2.649
+  type: 'test'
+  ...
+# Subtest: Gradient phase proof rejects wrong argv
+ok 39 - Gradient phase proof rejects wrong argv
+  ---
+  duration_ms: 2.3139
+  type: 'test'
+  ...
+# Subtest: Gradient phase proof rejects wrong native input
+ok 40 - Gradient phase proof rejects wrong native input
+  ---
+  duration_ms: 2.4283
+  type: 'test'
+  ...
+# Subtest: Gradient phase proof rejects wrong project
+ok 41 - Gradient phase proof rejects wrong project
+  ---
+  duration_ms: 2.0075
+  type: 'test'
+  ...
+# Subtest: Gradient phase proof rejects native transport timeout
+ok 42 - Gradient phase proof rejects native transport timeout
+  ---
+  duration_ms: 2.7215
+  type: 'test'
+  ...
+# Subtest: Gradient phase proof rejects compile error
+ok 43 - Gradient phase proof rejects compile error
+  ---
+  duration_ms: 2.08
+  type: 'test'
+  ...
+# Subtest: Gradient phase proof rejects Begin fake pass
+ok 44 - Gradient phase proof rejects Begin fake pass
+  ---
+  duration_ms: 2.3714
+  type: 'test'
+  ...
+# Subtest: Gradient phase proof rejects no real reload marker
+ok 45 - Gradient phase proof rejects no real reload marker
+  ---
+  duration_ms: 1.9214
+  type: 'test'
+  ...
+# Subtest: Gradient phase proof rejects old AppDomain callback retained
+ok 46 - Gradient phase proof rejects old AppDomain callback retained
+  ---
+  duration_ms: 2.1584
+  type: 'test'
+  ...
+# Subtest: Gradient phase proof rejects two native requests
+ok 47 - Gradient phase proof rejects two native requests
+  ---
+  duration_ms: 1.9271
+  type: 'test'
+  ...
+# Subtest: Gradient phase proof rejects no requested compilation
+ok 48 - Gradient phase proof rejects no requested compilation
+  ---
+  duration_ms: 2.0796
+  type: 'test'
+  ...
+# Subtest: Gradient phase proof rejects terminal native compiler error
+ok 49 - Gradient phase proof rejects terminal native compiler error
+  ---
+  duration_ms: 1.8701
+  type: 'test'
+  ...
+# Subtest: Gradient phase proof rejects coerced native marker type
+ok 50 - Gradient phase proof rejects coerced native marker type
+  ---
+  duration_ms: 4.3731
+  type: 'test'
+  ...
+# Subtest: Gradient phase proof rejects native call during observed compilation
+ok 51 - Gradient phase proof rejects native call during observed compilation
+  ---
+  duration_ms: 1.9629
+  type: 'test'
+  ...
+# Subtest: Gradient phase proof rejects repeated Trigger
+ok 52 - Gradient phase proof rejects repeated Trigger
+  ---
+  duration_ms: 2.1368
+  type: 'test'
+  ...
+# Subtest: Gradient phase proof rejects no terminal reload
+ok 53 - Gradient phase proof rejects no terminal reload
+  ---
+  duration_ms: 2.0541
+  type: 'test'
+  ...
+# Subtest: Gradient phase proof rejects End before reload
+ok 54 - Gradient phase proof rejects End before reload
+  ---
+  duration_ms: 1.9888
+  type: 'test'
+  ...
+# Subtest: Gradient phase proof rejects missing final Cleanup
+ok 55 - Gradient phase proof rejects missing final Cleanup
+  ---
+  duration_ms: 2.1201
+  type: 'test'
+  ...
+# Subtest: Gradient phase proof rejects cleanup failure
+ok 56 - Gradient phase proof rejects cleanup failure
+  ---
+  duration_ms: 2.0668
+  type: 'test'
+  ...
+# Subtest: Gradient phase proof rejects native summary contradicts raw reply
+ok 57 - Gradient phase proof rejects native summary contradicts raw reply
+  ---
+  duration_ms: 2.2986
+  type: 'test'
+  ...
+# Subtest: Gradient phase proof rejects retained temporary input
+ok 58 - Gradient phase proof rejects retained temporary input
+  ---
+  duration_ms: 1.9684
+  type: 'test'
+  ...
+# Subtest: Gradient phase proof rejects suppressed cleanup flag
+ok 59 - Gradient phase proof rejects suppressed cleanup flag
+  ---
+  duration_ms: 2.0911
+  type: 'test'
+  ...
+# Subtest: Gradient phase proof rejects malformed cleanup flag
+ok 60 - Gradient phase proof rejects malformed cleanup flag
+  ---
+  duration_ms: 1.8598
+  type: 'test'
+  ...
+# Subtest: Gradient phase proof rejects malformed native recovery flag
+ok 61 - Gradient phase proof rejects malformed native recovery flag
+  ---
+  duration_ms: 2.3878
+  type: 'test'
+  ...
+# Subtest: Gradient phase proof rejects stale input SHA
+ok 62 - Gradient phase proof rejects stale input SHA
+  ---
+  duration_ms: 1.5333
+  type: 'test'
+  ...
+# Subtest: Gradient phase proof rejects reordered bundle sources
+ok 63 - Gradient phase proof rejects reordered bundle sources
+  ---
+  duration_ms: 1.5749
+  type: 'test'
+  ...
+# Subtest: Gradient phase proof rejects stale global selected receipt
+ok 64 - Gradient phase proof rejects stale global selected receipt
+  ---
+  duration_ms: 1.3843
+  type: 'test'
+  ...
+# Subtest: Gradient phase proof rejects stale within-workflow review
+ok 65 - Gradient phase proof rejects stale within-workflow review
+  ---
+  duration_ms: 1.9713
+  type: 'test'
+  ...
+# Subtest: Gradient phase proof rejects recovery debt
+ok 66 - Gradient phase proof rejects recovery debt
+  ---
+  duration_ms: 1.3359
+  type: 'test'
+  ...
+# Subtest: Gradient phase proof rejects duplicate wrapper result
+ok 67 - Gradient phase proof rejects duplicate wrapper result
+  ---
+  duration_ms: 1.6429
+  type: 'test'
+  ...
+# Subtest: Gradient phase proof rejects incomplete report
+ok 68 - Gradient phase proof rejects incomplete report
+  ---
+  duration_ms: 1.4333
+  type: 'test'
+  ...
+# Subtest: Gradient phase proof rejects compile action
+ok 69 - Gradient phase proof rejects compile action
+  ---
+  duration_ms: 1.4204
+  type: 'test'
+  ...
+# Subtest: Gradient phase proof rejects missing End oracle assertion
+ok 70 - Gradient phase proof rejects missing End oracle assertion
+  ---
+  duration_ms: 2.2218
+  type: 'test'
+  ...
+# Subtest: Gradient raw Node marker is mandatory; changing copied facts cannot promote helper phases
+ok 71 - Gradient raw Node marker is mandatory; changing copied facts cannot promote helper phases
+  ---
+  duration_ms: 0.7592
+  type: 'test'
+  ...
+# Subtest: Gradient omitted suppression flag matches native successful wire shape, but NEVER substitutes actual Cleanup
+ok 72 - Gradient omitted suppression flag matches native successful wire shape, but NEVER substitutes actual Cleanup
+  ---
+  duration_ms: 2.3858
+  type: 'test'
+  ...
+# Subtest: Gradient exact post-trigger observed-compilation read-only reconnect is not native proof by itself
+ok 73 - Gradient exact post-trigger observed-compilation read-only reconnect is not native proof by itself
+  ---
+  duration_ms: 3.6305
+  type: 'test'
+  ...
+# Subtest: Gradient latest current FAIL/SKIP/uncertain/incomplete phases block earlier green, including timestamp ties
+ok 74 - Gradient latest current FAIL/SKIP/uncertain/incomplete phases block earlier green, including timestamp ties
+  ---
+  duration_ms: 10.319
+  type: 'test'
+  ...
+# Subtest: Gradient phase credit needs complete current source review and unchanged paired catalog contract
+ok 75 - Gradient phase credit needs complete current source review and unchanged paired catalog contract
+  ---
+  duration_ms: 13.0465
+  type: 'test'
+  ...
+# Subtest: Gradient source/report races revoke phase coverage; diagnostics and unrelated rows remain distinct
+ok 76 - Gradient source/report races revoke phase coverage; diagnostics and unrelated rows remain distinct
+  ---
+  duration_ms: 4.9337
+  type: 'test'
+  ...
+# Subtest: only Image changed; other oracle authentication/assertion paths and shared fixture frozen
+ok 77 - only Image changed; other oracle authentication/assertion paths and shared fixture frozen
+  ---
+  duration_ms: 0.3151
+  type: 'test'
+  ...
+# Subtest: artifact JSON uses explicit public token objects, never interpreted DTO serialization
+ok 78 - artifact JSON uses explicit public token objects, never interpreted DTO serialization
+  ---
+  duration_ms: 0.1137
+  type: 'test'
+  ...
+# Subtest: capture is limited to current scope identity, GUID outputs and non-linked paths
+ok 79 - capture is limited to current scope identity, GUID outputs and non-linked paths
+  ---
+  duration_ms: 0.1079
+  type: 'test'
+  ...
+# Subtest: output bytes captured before delegate returns and owned disposal; status JSON parsed afterward
+ok 80 - output bytes captured before delegate returns and owned disposal; status JSON parsed afterward
+  ---
+  duration_ms: 0.0666
+  type: 'test'
+  ...
+# Subtest: failed body/assertion/capture/cleanup responses pass through; only skipped gets artifacts
+ok 81 - failed body/assertion/capture/cleanup responses pass through; only skipped gets artifacts
+  ---
+  duration_ms: 0.0746
+  type: 'test'
+  ...
+1..81
+# tests 81
+# suites 0
+# pass 81
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 219.7527

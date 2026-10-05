@@ -1,16 +1,15 @@
 // Read-only manifest-bound record of the parent's source review. Not runtime evidence.
-import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { verifyLegacy } from '../scripts/legacy.mjs';
+import { legacyIO } from '../scripts/legacy.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const hash = file => createHash('sha256').update(fs.readFileSync(path.join(root, file))).digest('hex');
-verifyLegacy(root);
+const io = legacyIO(root);
+const hash = file => createHash('sha256').update(io.readFileSync(path.join(root, file))).digest('hex');
 const rows = [
     ['TestRunner.test.mjs', 'Tests~/Framework/Runner.test.mjs', ['framework'], ['Node cases'], [
         'Original 24 runner cases retained: catalog validation, selectors, receipt sensitivity, transport/API/execution/assertion distinctions, eval unwrapping, explicit JSON success, Node exit/SKIP/timeout, CLI units and project, async polling/failure/timeout/cleanup.',
-        'Legacy core selection is explicitly legacy-core, not silently changed to the independent core. Shared counted Node assertions replace node:test scheduling.',
+        'Active selectors use the independent core; old IDs/profiles are explicitly rejected. Synthetic historical fixtures retain regex/negative verdict checks without reading archived sources. Shared counted Node assertions replace node:test scheduling.',
         'Additional structured result, lifecycle cancellation, empty assertion, source bundling, compile-only, entry-only, nested uncertainty and bounded Player/diagnostic budget guards do not replace old checks.'
     ]],
     ['RunnerProtocolSmoke.cs', 'Tests~/Cases/Runner/NegativeProtocol.cs', ['runner-live-v2'], ['Pass', 'InnerFailure', 'AssertionFailure', 'NeedsArgument', 'Skip', 'Start', 'Result', 'Cleanup'], [
@@ -52,7 +51,7 @@ const rows = [
     ]],
     ['scripts/run-tests.mjs', 'Tests~/scripts/run-tests.mjs', ['framework', 'runner-live-v2'], ['CLI dispatcher'], [
         'Infrastructure replacement keeps explicit bounded invocation, structured API versus inner execution versus domain assertion results, async polling with cleanup, review fingerprints, native source bundling and explicit project targeting.',
-        'Old text verdicts remain only for explicitly archived invocations. New cases cannot pass with zero checks, malformed output, missing cleanup or contradictory failed process exit.'
+        'Active dispatch is structured-only and rejects archived case/support/review paths. Historical classifiers are exercised only by synthetic mock-invoker fixtures. Zero checks, malformed output, missing cleanup and contradictory process exit cannot pass.'
     ]],
     ['DocumentPreparationSmoke.cs', 'Tests~/Cases/UnityB/DocumentPreparationTests.cs', ['document-preparation-smoke-v2'], ['Run'], [
         'All original owned document preparation checks retained; public Save rejection actually invoked for traversal and StreamingAssets paths, not substituted by a pure validator.',
@@ -71,8 +70,8 @@ const rows = [
         'Caller profiler enabled/deep state is not interrupted; editor/CPU area state restored in finally. ReadProfile captures observational data, not a new performance threshold.'
     ]]
 ];
-const batches = JSON.parse(fs.readFileSync(path.join(root, 'Tests~/Batches/framework-and-auxiliary.json')));
-const catalog = JSON.parse(fs.readFileSync(path.join(root, 'Tests~/scripts/test-catalog.json')));
+const batches = JSON.parse(io.readFileSync(path.join(root, 'Tests~/Batches/framework-and-auxiliary.json')));
+const catalog = JSON.parse(io.readFileSync(path.join(root, 'Tests~/scripts/test-catalog.json')));
 const ids = new Set(catalog.scenarios.map(s => s.id));
 const files = rows.map(([legacyFile,newFile,scenarioIds,legacyEntries,coverage]) => ({
     legacyFile,newFile,scenarioIds,legacyEntries,coverage,
@@ -81,7 +80,7 @@ const files = rows.map(([legacyFile,newFile,scenarioIds,legacyEntries,coverage])
     sourceHashes: { legacy: hash('Tests~/Legacy/' + legacyFile), replacement: hash(newFile) }
 }));
 const combined = files.find(r => r.legacyFile === 'DocumentReleaseValidation.cs');
-const obsolete = JSON.parse(fs.readFileSync(path.join(root, 'Tests~/CoverageAudit/unity-b-public.json'))).files.find(r => r.legacyFile === combined.legacyFile);
+const obsolete = JSON.parse(io.readFileSync(path.join(root, 'Tests~/CoverageAudit/unity-b-public.json'))).files.find(r => r.legacyFile === combined.legacyFile);
 const nativeFiles = ['Tests~/Cases/UnityB/FaultWorkflow.mjs', 'Tests~/Cases/UnityB/PlayerWorkflow.mjs',
     'Tests~/Cases/UnityB/PlayerRelease.mjs', 'Tests~/Cases/UnityB/PlayerReleaseTests.cs', 'Tests~/Cases/Support/PlayerProbe.cs'];
 combined.sourceHashes.support = Object.fromEntries(nativeFiles.map(file => [file, hash(file)]));

@@ -1,5 +1,6 @@
 // Independent read-only source/scalar replacement. Does not execute Unity, C#, or GPU code.
 import fs from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { registerHistoricalCases } from './HistoricalAuditChecks.mjs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -13,6 +14,47 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../.
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 let inventory;
 const audit = () => inventory ??= auditSources();
+
+context.case('Fresh audit import never reads the physical archive', () => {
+    // Start before the first import: an eager dependency read must also fail.
+    const probe = String.raw`
+        import fs from 'node:fs';
+        import path from 'node:path';
+        import { pathToFileURL, fileURLToPath } from 'node:url';
+        const root = process.argv[1];
+        const archive = path.resolve(root, 'Tests~/Legacy');
+        let attempts = 0;
+        for (const name of ['readFileSync', 'readdirSync']) {
+            const original = fs[name];
+            fs[name] = function(file, ...args) {
+                const target = path.resolve(file instanceof URL ? fileURLToPath(file) : String(file));
+                if (target === archive || target.startsWith(archive + path.sep)) {
+                    attempts++;
+                    throw new Error('WHIMTEX_PHYSICAL_ARCHIVE_IO_BLOCKED');
+                }
+                return original.call(this, file, ...args);
+            };
+        }
+        for (const name of ['readFileSync', 'readdirSync']) {
+            try { fs[name](archive); throw new Error('Guard did not reject ' + name); }
+            catch (error) { if (error.message !== 'WHIMTEX_PHYSICAL_ARCHIVE_IO_BLOCKED') throw error; }
+        }
+        if (attempts !== 2) throw new Error('Guard self-test failed');
+        attempts = 0;
+        const { auditSources } = await import(pathToFileURL(path.join(root,
+            'Tests~/Framework/NodeSupportA/AuditSources.mjs')).href);
+        const result = auditSources();
+        if (attempts !== 0 || result.tests.length === 0) throw new Error('Archive independence failed');
+        console.log(JSON.stringify({ attempts, tests: result.tests.length }));
+    `;
+    const result = spawnSync(process.execPath, ['--input-type=module', '--eval', probe, root],
+        { encoding: 'utf8', windowsHide: true, timeout: 60000 });
+    assert.ifError(result.error);
+    assert.equal(result.status, 0, result.stderr);
+    const evidence = JSON.parse(result.stdout.trim());
+    assert.equal(evidence.attempts, 0, 'No physical archive read or enumeration');
+    assert.ok(evidence.tests > 0, 'The active inventory was actually inspected');
+});
 
 // Original names are mapping identifiers only; no archived source is opened.
 function replacementScenario(original) {
