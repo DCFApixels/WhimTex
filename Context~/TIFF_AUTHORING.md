@@ -80,7 +80,6 @@ Batch, Headless Live и Assistant.
 CPU/GPU-буферы композиции; эти оптимизации не ограничивают всю память Editor и не делают Save мгновенным.
 HLSL-кеш нельзя считать вечным: includes, внешние текстуры и параметры могут менять результат.
 Windows64 Player проверен: runtime получает texture artifact, не этот backend и не слои документа.
-Исторический итог билда: [ArchiveRetirement.ru.md](../Tests~/ArchiveRetirement.ru.md).
 Методика замеров: [TIFF_SAVE_PERFORMANCE.md](TIFF_SAVE_PERFORMANCE.md).
 Замеры не заменяют проверку скорости загрузки на целевых устройствах.
 

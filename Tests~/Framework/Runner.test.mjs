@@ -1,16 +1,19 @@
 import { TestContext, finish } from './test-api.mjs';
-const context = new TestContext('Runner contracts and migration infrastructure');
+const context = new TestContext('Runner contracts');
 const assert = context.assert;
 const test = (name, body) => context.case(name, body);
 import fs from 'node:fs';
-import { compareHistoricalPilot } from '../scripts/check-migration.mjs';
-import { textCase as base, asyncTextCase as asyncCase, exitCodeCase as nodeCase, validateHistoricalProtocol } from './Fixtures/HistoricalProtocol.mjs';
 import { classifyReply, classifyCompileReply, runScenario, commandArgs, validateCatalog, selectScenarios, reviewFingerprint, bundleSources, entryContracts, root } from '../scripts/run-tests.mjs';
 
 const catalog = JSON.parse(fs.readFileSync(new URL('../scripts/test-catalog.json', import.meta.url), 'utf8'));
 const activeCase = catalog.scenarios.find(s => s.id === 'canonical-reader-v2');
 const envelope = value => ({ code: 0, stdout: JSON.stringify({ success: true, data: { success: true, result: { success: true, diagnostics: [], result: value } } }), stderr: '' });
 const clone = value => JSON.parse(JSON.stringify(value));
+const base = { id: 'mock-protocol', file: 'Tests~/Framework/TestApi.cs', runner: 'run_script',
+    entry: 'Mock.Run', args: [], timeoutMs: 5000, result: { kind: 'structured' } };
+const asyncCase = { ...base, entry: 'Mock.Start', async: { entry: 'Mock.Poll', args: [], pollMs: 100 },
+    cleanup: { entry: 'Mock.Cleanup', args: [] } };
+const nodeCase = { ...base, runner: 'node', file: 'Tests~/Framework/test-api.mjs' };
 
 test('catalog has explicit invocations and valid bounded protocols', () => {
     assert.equal(validateCatalog(catalog), catalog);
@@ -19,6 +22,31 @@ test('catalog has explicit invocations and valid bounded protocols', () => {
     assert.throws(() => selectScenarios(catalog, { profile: 'missing' }), /Unknown profile/);
     assert.throws(() => selectScenarios(catalog, { id: 'missing' }), /Unknown scenario/);
     assert.throws(() => selectScenarios(catalog, { id: activeCase.id, profile: 'core' }), /Choose/);
+});
+
+test('category profiles select their exact category without counting diagnostics as regressions', () => {
+    for (const [profile, category] of [['regressions', 'regression'], ['source-guards', 'source-guard'], ['runner', 'runner'], ['diagnostics', 'diagnostic']]) {
+        assert.deepEqual(selectScenarios(catalog, { profile }).map(s => s.id),
+            catalog.scenarios.filter(s => s.category === category).map(s => s.id));
+    }
+    assert.deepEqual(selectScenarios(catalog, { profile: 'verify' }).map(s => s.id),
+        catalog.scenarios.filter(s => s.category !== 'diagnostic').map(s => s.id));
+    assert.ok(selectScenarios(catalog, { profile: 'node' }).every(s => s.runner === 'node' && !s.requiresUnity && !s.effects.length));
+    assert.ok(Object.keys(catalog.profiles).every(name => !name.startsWith('new-')));
+});
+
+test('feature folders have matching groups and limited non-diagnostic profiles', () => {
+    const feature = s => s.file.startsWith('Tests~/Cases/') ? s.file.split('/')[2].toLowerCase() : 'runner';
+    for (const scenario of catalog.scenarios) {
+        assert.ok(scenario.groups.includes(feature(scenario)), scenario.id + ': discoverable feature group');
+        assert.ok(!scenario.groups.some(group => /^(?:unity-[abcd](?:-|$)|source-[ab]$|independent-port$)/.test(group)), scenario.id + ': no migration-batch navigation');
+    }
+    for (const group of new Set(catalog.scenarios.map(feature))) {
+        if (group === 'runner') continue; // The runner profile is a category, not a folder.
+        const profile = group === 'compatibility' ? 'compatibility-files' : group;
+        assert.deepEqual(selectScenarios(catalog, { profile }).map(s => s.id),
+            catalog.scenarios.filter(s => feature(s) === group && s.category !== 'diagnostic').map(s => s.id));
+    }
 });
 
 for (const [name, mutate] of [
@@ -33,62 +61,34 @@ for (const [name, mutate] of [
     ['missing cleanup entry', c => { delete c.scenarios.find(s => s.cleanup).cleanup.entry; }]
 ]) test('rejects ' + name, () => { const c = clone(catalog); mutate(c); assert.throws(() => validateCatalog(c)); });
 
-test('active dispatch cannot re-enable retired scenarios or historical result protocols', () => {
-    assert.ok(catalog.scenarios.every(s => s.legacy === undefined && !s.file.startsWith('Tests~/Legacy/') && s.result.kind === 'structured'));
-    for (const flag of [true, false, null]) {
-        const value = clone(catalog); value.scenarios[0].legacy = flag;
-        assert.throws(() => validateCatalog(value), /Retired archive scenarios/);
+test('executable sources belong to Cases/Framework and require structured results', () => {
+    assert.ok(catalog.scenarios.every(s => /Tests~\/(Cases|Framework)\//.test(s.file) && s.result.kind === 'structured'));
+    for (const file of ['Tests~/Fixtures/Reference.cs', 'Tests~/scripts/ci-docs.mjs', 'Tests~/Cases/../Fixtures/Reference.cs']) {
+        const value = clone(catalog); value.scenarios[0].file = file;
+        assert.throws(() => validateCatalog(value));
     }
-    const archivePath = clone(catalog); archivePath.scenarios[0].file = 'Tests~/Legacy/TestRunner.test.mjs';
-    assert.throws(() => validateCatalog(archivePath), /Retired archive scenarios/);
-    for (const field of ['supportFiles', 'reviewFiles']) for (const file of [
-        'Tests~/Legacy/DisplayChannelsSmoke.cs', 'Tests~/Cases/../Legacy/DisplayChannelsSmoke.cs']) {
+    for (const file of ['Tests~/Fixtures/Reference.cs', 'Tests~/Cases/../Fixtures/Reference.cs']) {
         const value = clone(catalog), scenario = value.scenarios.find(s => s.runner === 'run_script');
-        scenario[field] = [file];
-        assert.throws(() => validateCatalog(value), /Retired archive dependencies/);
+        scenario.supportFiles = [file];
+        assert.throws(() => validateCatalog(value), /Executable source must belong/);
     }
     for (const kind of ['text', 'json-success', 'exit-code']) {
         const value = clone(catalog);
         const scenario = value.scenarios.find(s => kind === 'exit-code' ? s.runner === 'node' : s.runner === 'run_script');
-        scenario.result = { kind, pass: base.result.pass };
+        scenario.result = { kind, pass: '^Passed' };
         assert.throws(() => validateCatalog(value), /Active scenarios require structured results/);
     }
-    for (const profile of ['legacy-core', 'migration-pilot']) assert.throws(() => selectScenarios(catalog, { profile }), /Unknown profile/);
-    for (const id of ['protocol-pass', 'protocol-async', 'runner-unit']) assert.throws(() => selectScenarios(catalog, { id }), /Unknown scenario/);
-});
-
-test('synthetic historical protocols are independent of the active registry', () => {
-    for (const scenario of [base, asyncCase, nodeCase]) {
-        assert.equal(validateHistoricalProtocol(scenario), scenario);
-        assert.ok(!catalog.scenarios.some(s => s.id === scenario.id));
-        assert.ok(!scenario.file.startsWith('Tests~/Legacy/'));
-    }
-});
-for (const [name, mutate, error] of [
-    ['unanchored pass', s => { s.result.pass = 'PASS'; }, /anchored pass/],
-    ['invalid regex', s => { s.result.pass = '^['; }, SyntaxError],
-    ['missing async completion', s => { delete s.async.entry; }, /Invalid async protocol/],
-    ['missing cleanup verdict', s => { delete s.cleanup.pass; }, /anchored cleanup/],
-    ['unanchored async start', s => { s.async.started = 'Started'; }, /anchored async start/],
-    ['invalid async start regex', s => { s.async.started = '^['; }, SyntaxError],
-    ['unanchored pending', s => { s.result.pending = 'Running'; }, /anchored async pending/],
-    ['invalid pending regex', s => { s.result.pending = '^['; }, SyntaxError],
-    ['unanchored cleanup', s => { s.cleanup.pass = 'PASS'; }, /anchored cleanup/],
-    ['invalid cleanup regex', s => { s.cleanup.pass = '^['; }, SyntaxError]
-]) test('historical protocol rejects ' + name + ' directly', () => {
-    const scenario = clone(asyncCase); mutate(scenario);
-    assert.throws(() => validateHistoricalProtocol(scenario), error);
 });
 
 test('review receipt includes source and invocation, not just scenario names', () => {
     const first = reviewFingerprint([base]);
     assert.equal(first, reviewFingerprint([base]));
     assert.notEqual(first, reviewFingerprint([{ ...base, entry: 'Changed.Entry' }]));
-    assert.notEqual(first, reviewFingerprint([{ ...base, result: { kind: 'text', pass: '^Different' } }]));
+    assert.notEqual(first, reviewFingerprint([{ ...base, args: ['changed'] }]));
 });
 
 test('transport, API, execution and assertion verdicts remain distinct', () => {
-    assert.equal(classifyReply(envelope('PASS: runner protocol fixture'), base).status, 'passed');
+    assert.equal(classifyReply(envelope(payload()), base).status, 'passed');
     assert.equal(classifyReply({ code: 1, stdout: '{"success":false,"errors":[{"code":"FAILED"}]}' }, base).status, 'transport-error');
     assert.equal(classifyReply({ code: 0, stdout: '{"success":true,"data":{"success":false}}' }, base).status, 'api-failed');
     assert.equal(classifyReply(envelope({ success: false, error: 'broken' }), base).status, 'api-failed');
@@ -101,30 +101,31 @@ test('transport, API, execution and assertion verdicts remain distinct', () => {
     delete inner.data.result.error;
     inner.data.result.success = true; inner.data.result.diagnostics = [{ severity: 'Error' }];
     assert.equal(classifyReply({ code: 0, stdout: JSON.stringify(inner) }, base).status, 'execution-failed');
-    assert.equal(classifyReply(envelope('FAILED: PASS: runner protocol fixture'), base).status, 'assertion-failed');
-    assert.equal(classifyReply(envelope('SKIP: fixture unavailable'), base).status, 'skip');
-    assert.equal(classifyReply(envelope('Started; call Result.'), base).status, 'protocol-error');
-    assert.equal(classifyReply(envelope('Running'), base).status, 'protocol-error');
+    assert.equal(classifyReply(envelope(payload('failed', 1, ['deliberate'])), base).status, 'assertion-failed');
+    assert.equal(classifyReply(envelope(payload('skipped', 0)), base).status, 'skip');
+    assert.equal(classifyReply(envelope(payload('running', 0)), base).status, 'protocol-error');
+    assert.equal(classifyReply(envelope('PASS: not a structured result'), base).status, 'protocol-error');
     assert.equal(classifyReply({ code: 0, stdout: 'not JSON' }, base).uncertain, true);
 });
 
 test('eval_file unwraps evaluation verdict separately from failing inner API', () => {
     const s = { ...base, runner: 'eval_file' };
-    assert.equal(classifyReply(envelope('PASS: runner protocol fixture'), s).status, 'passed');
+    assert.equal(classifyReply(envelope(payload()), s).status, 'passed');
     assert.equal(classifyReply(envelope({ success: false }), s).status, 'api-failed');
 });
 
-test('JSON success requires an explicit result contract', () => {
+test('bare JSON success cannot replace assertion status and counts', () => {
     assert.equal(classifyReply(envelope({ success: true }), base).status, 'protocol-error');
-    assert.equal(classifyReply(envelope({ success: true }), { ...base, result: { kind: 'json-success' } }).status, 'passed');
+    assert.equal(classifyReply(envelope('{"success":true}'), base).status, 'protocol-error');
 });
 
 test('Node exit, skip, timeout and spawn error are not all pass', () => {
-    assert.equal(classifyReply({ code: 0, stdout: 'assertions done' }, nodeCase).status, 'passed');
-    assert.equal(classifyReply({ code: 1, stderr: 'AssertionError' }, nodeCase).status, 'assertion-failed');
-    assert.equal(classifyReply({ code: 0, stdout: 'SKIP: intentional' }, nodeCase).status, 'skip');
-    assert.equal(classifyReply({ code: 0, stdout: 'ℹ skipped 1' }, nodeCase).status, 'skip');
-    assert.equal(classifyReply({ code: 0, stdout: 'FAILED: deliberate' }, nodeCase).status, 'assertion-failed');
+    const reply = (value, code = 0) => ({ code, stdout: 'WHIMTEX_TEST_RESULT ' + JSON.stringify(value) });
+    assert.equal(classifyReply(reply(payload()), nodeCase).status, 'passed');
+    assert.equal(classifyReply(reply(payload('failed', 1, ['AssertionError']), 1), nodeCase).status, 'assertion-failed');
+    assert.equal(classifyReply(reply(payload('skipped', 0)), nodeCase).status, 'skip');
+    for (const text of ['assertions done', 'SKIP: intentional', 'ℹ skipped 1', 'FAILED: deliberate'])
+        assert.equal(classifyReply({ code: 0, stdout: text }, nodeCase).status, 'protocol-error');
     assert.equal(classifyReply({ timedOut: true }, nodeCase).status, 'timeout');
     assert.equal(classifyReply({ timedOut: true }, { ...nodeCase, requiresUnity: true }).uncertain, true);
     assert.equal(classifyReply({ code: 1, stderr: 'Disconnected' }, { ...nodeCase, requiresUnity: true }).uncertain, true);
@@ -142,7 +143,7 @@ test('CLI milliseconds and seconds are not confused; project path is explicit', 
 
 test('async start and Running are not final; cleanup runs once', async () => {
     const entries = []; let tick = 0;
-    const results = ['Started; call Result.', 'Running', 'Passed: runner async fixture', 'PASS: runner fixture cleanup'];
+    const results = [payload('running', 0), payload('running', 0), payload(), payload()];
     const result = await runScenario(asyncCase, async (s, entry) => { entries.push(entry); return envelope(results.shift()); }, { now: () => tick, delay: async ms => { tick += ms; } });
     assert.equal(result.status, 'passed');
     assert.deepEqual(entries, [asyncCase.entry, asyncCase.async.entry, asyncCase.async.entry, asyncCase.cleanup.entry]);
@@ -150,7 +151,7 @@ test('async start and Running are not final; cleanup runs once', async () => {
 });
 
 test('async failure runs cleanup without overwriting the failed verdict', async () => {
-    const results = ['Started; call Result.', 'FAILED: deliberate', 'PASS: runner fixture cleanup'];
+    const results = [payload('running', 0), payload('failed', 1, ['deliberate']), payload()];
     const result = await runScenario(asyncCase, async () => envelope(results.shift()), { delay: async () => {} });
     assert.equal(result.status, 'assertion-failed');
     assert.equal(result.attempts.at(-1).phase, 'cleanup');
@@ -159,7 +160,7 @@ test('async failure runs cleanup without overwriting the failed verdict', async 
 test('async timeout cannot be passed by a successful cleanup', async () => {
     let tick = 0;
     const s = { ...asyncCase, timeoutMs: 1000 };
-    const result = await runScenario(s, async (s, entry) => envelope(entry === s.entry ? 'Started; call Result.' : entry === s.cleanup.entry ? 'PASS: runner fixture cleanup' : 'Running'), { now: () => tick, delay: async ms => { tick += ms; } });
+    const result = await runScenario(s, async (s, entry) => envelope(payload(entry === s.cleanup.entry ? 'passed' : 'running', entry === s.cleanup.entry ? 1 : 0)), { now: () => tick, delay: async ms => { tick += ms; } });
     assert.equal(result.status, 'timeout'); assert.equal(result.uncertain, true);
     assert.equal(result.attempts.at(-1).phase, 'cleanup');
 });
@@ -168,13 +169,13 @@ test('failed poll transport is uncertain; cleanup still runs', async () => {
     let count = 0;
     const result = await runScenario(asyncCase, async () => {
         count++; if (count === 2) throw Error('Disconnected');
-        return envelope(count === 1 ? 'Started; call Result.' : 'PASS: runner fixture cleanup');
+        return envelope(payload(count === 1 ? 'running' : 'passed', count === 1 ? 0 : 1));
     }, { delay: async () => {} });
     assert.equal(result.status, 'transport-error'); assert.equal(result.uncertain, true); assert.equal(count, 3);
 });
 
 test('cleanup failure is visible even after passed assertions', async () => {
-    const results = ['Started; call Result.', 'Passed: runner async fixture', 'FAILED: cleanup'];
+    const results = [payload('running', 0), payload(), payload('failed', 1, ['cleanup'])];
     const result = await runScenario(asyncCase, async () => envelope(results.shift()), { delay: async () => {} });
     assert.equal(result.status, 'cleanup-failed'); assert.equal(result.uncertain, true);
 });
@@ -210,6 +211,10 @@ test('Node structured contract requires exactly one result and consistent exit',
     assert.equal(classifyReply({ code: 0, stdout: line }, s).status, 'passed');
     for (const reply of [{ code: 0, stdout: '' }, { code: 1, stdout: line }, { code: 0, stdout: line + '\n' + line }])
         assert.equal(classifyReply(reply, s).status, 'protocol-error');
+    for (const value of [null, {}, payload('passed', 0), { ...payload(), failures: ['contradiction'] }]) {
+        const result = classifyReply({ code: 0, stdout: 'WHIMTEX_TEST_RESULT ' + JSON.stringify(value) }, { ...s, requiresUnity: true });
+        assert.equal(result.status, 'protocol-error'); assert.equal(result.uncertain, true);
+    }
 });
 test('structured async uses Start/Poll/Cleanup and retains final check count', async () => {
     let tick = 0;
@@ -243,56 +248,6 @@ test('common Node API executes cases serially and reports assertion failures', a
     const result = await inner.run();
     assert.deepEqual(order, [1, 2]); assert.equal(result.status, 'failed');
     assert.equal(result.checks, 2); assert.equal(result.failures.length, 1);
-});
-test('pure historical comparison rejects stale, duplicate, missing and weakened results without re-signing', () => {
-    const registry = JSON.parse(fs.readFileSync(new URL('../migration.json', import.meta.url), 'utf8'));
-    const manifestHash = 'c70816ea4220d9ebe08d4d2d087d7e5297bd943405bb3297e24f4b69756a6194';
-    const selected = registry.pairs.flatMap(pair => [pair.legacyId, pair.newId]);
-    const results = registry.pairs.flatMap(pair => [
-        { id: pair.legacyId, status: 'passed', uncertain: false,
-            detail: pair.legacyId === 'display-channels' ? 'Display channel checks passed: 96 across all 16 masks.'
-                : pair.legacyId === 'canonical-reader' ? 'PASS: 11 canonical name-resolution and unknown-data guards.'
-                : 'PASS: 30 frozen 0.12.5 file hashes, seven supported TIFF/JSON documents' },
-        { id: pair.newId, status: 'passed', uncertain: false, testResult: { status: 'passed', failures: [], checks: pair.newChecks, facts: pair.facts } }
-    ]);
-    const expected = { fingerprint: 'synthetic-historical-review', productionFingerprint: 'mock-production', manifestHash };
-    const historicalCatalog = { profiles: { 'migration-pilot': selected }, scenarios: selected.map(id => ({ id })) };
-    const report = { version: 2, action: 'run', success: true, recoveryRequired: false, productionFingerprint: expected.productionFingerprint,
-        archive: { manifestHash }, selected, results, fingerprint: expected.fingerprint, notRun: [],
-        startedAt: '2026-10-04T18:02:02.749Z', finishedAt: '2026-10-04T18:04:00.000Z' };
-    const compare = (value, mapping = registry) => compareHistoricalPilot(value, mapping, historicalCatalog, expected);
-    assert.equal(compare(report).success, true);
-    assert.equal(compare(report).archiveRemovalAllowed, false);
-    assert.equal(compare(report).receiptVerified, false, 'Synthetic inputs cannot authenticate runtime evidence');
-    assert.equal(compare(report).currentRuntimeEquivalence, false);
-    assert.equal(compare(report).scope, 'historical-pilot-only');
-    const weaker = clone(report); weaker.results[1].testResult.checks--;
-    assert.equal(compare(weaker).success, false);
-    assert.throws(() => compare({ ...report, fingerprint: 'stale' }), /changed/);
-    assert.throws(() => compare({ ...report, results: [report.results[0], ...report.results.slice(0, -1)] }), /completed/);
-    assert.throws(() => compare({ ...report, results: report.results.slice(1) }), /completed/);
-    assert.throws(() => compare({ ...report, selected: [report.selected[0], ...report.selected.slice(0, -1)] }), /completed/);
-    assert.throws(() => compare({ ...report, selected: [...report.selected].reverse() }), /frozen pilot catalog/);
-    assert.throws(() => compare({ ...report, selected: report.selected.map((id, i) => i === 0 ? 'unknown' : id) }), /frozen pilot catalog/);
-    assert.throws(() => compare({ ...report, notRun: ['missing'] }), /completed/);
-    assert.throws(() => compare({ ...report, recoveryRequired: true }), /completed/);
-    assert.throws(() => compare({ ...report, action: 'compile' }), /historical pilot runner/);
-    assert.throws(() => compare({ ...report, productionFingerprint: 'different-production' }), /historical pilot runner/);
-    assert.throws(() => compare({ ...report, archive: { manifestHash: 'changed' } }), /historical pilot runner/);
-    const failedOld = clone(report); failedOld.results[0].detail = 'FAILED: ' + failedOld.results[0].detail;
-    assert.equal(compare(failedOld).success, false, 'Anchored original count pattern still rejects prefixed failure');
-    const wrongOldCount = clone(report); wrongOldCount.results[0].detail = 'Display channel checks passed: 95 across all 16 masks.';
-    assert.equal(compare(wrongOldCount).success, false);
-    const wrongFacts = clone(report); wrongFacts.results.at(-1).testResult.facts.fileHashes--;
-    assert.equal(compare(wrongFacts).success, false);
-    const missingCoverage = clone(registry); missingCoverage.pairs[0].coverage = [];
-    assert.equal(compare(report, missingCoverage).success, false);
-    const uncertain = clone(report); uncertain.results[0].uncertain = true;
-    assert.equal(compare(uncertain).success, false);
-    const incomplete = clone(report); incomplete.results[0].status = 'skip';
-    assert.equal(compare(incomplete).success, false);
-    const malformed = clone(report); malformed.results[1].testResult.status = 'failed';
-    assert.equal(compare(malformed).success, false);
 });
 test('empty Node cases and empty case lists cannot pass', async () => {
     const empty = new TestContext('Empty');
@@ -391,7 +346,7 @@ test('native fixture install and removal reloads receive only an explicit bounde
         s => { delete s.workflow; }, s => { s.category = 'diagnostic'; },
         s => { s.requiresUnity = false; }, s => { s.runner = 'run_script'; s.entry = 'Case.Run'; },
         s => { s.effects = ['temp-files']; }, s => { s.effects.push('player-build'); },
-        s => { s.legacy = true; }, s => { s.timeoutMs = 180001; }
+        s => { s.timeoutMs = 180001; }
     ]) {
         const invalid = clone(value); mutate(invalid.scenarios.find(s => s.id === source.id));
         assert.throws(() => validateCatalog(invalid));
@@ -407,7 +362,7 @@ test('large native diagnostics have a separate bounded budget, not a regression 
         s => { s.category = 'regression'; },
         s => { s.timeoutMs = 300001; },
         s => { s.runner = 'node'; },
-        s => { s.legacy = true; }
+        s => { s.result = { kind: 'text' }; }
     ]) {
         const invalid = clone(value); mutate(invalid.scenarios.find(s => s.id === source.id));
         assert.throws(() => validateCatalog(invalid));

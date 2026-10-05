@@ -59,7 +59,7 @@
 | Healing / Content-Aware Fill | [HEALING_QUALITY.md](HEALING_QUALITY.md), [ContentAwareFill.cs](../src/ContentAwareFill.cs) |
 | Clipboard слоёв и кистей | [WhimTexApi.Clipboard.cs](../src/Automation/WhimTexApi.Clipboard.cs), [WhimTexApi.BrushClipboard.cs](../src/Automation/WhimTexApi.BrushClipboard.cs) |
 | Browser AI | [AI_AUTHORING.md](../AI_AUTHORING.md), [AI/README](../Documentation~/AI/README.md), [AI/BRUSHES](../Documentation~/AI/BRUSHES.md), [примеры](../Documentation~/Examples/Clipboard/README.md) |
-| Тесты и файловые образцы | [RUNNING_TESTS.md](../Tests~/RUNNING_TESTS.md), [Fixtures/README.md](../Tests~/Fixtures/README.md), [итог удаления Legacy](../Tests~/ArchiveRetirement.ru.md), [migration.json](../Tests~/migration.json) |
+| Тесты и файловые образцы | [Карта тестов](../Tests~/README.md), [RUNNING_TESTS.md](../Tests~/RUNNING_TESTS.md), [Fixtures/README.md](../Tests~/Fixtures/README.md) |
 | Документация и схемы | [building.md](../Documentation~/building.md), [DocumentJsonSchema.cs](../Documentation~/scripts/DocumentJsonSchema.cs); [live API field schema](../Documentation~/scripts/build-agent-fields-schema.mjs) — другой контракт, не формат документа |
 
 ## Предложения, не реализовывать автоматически

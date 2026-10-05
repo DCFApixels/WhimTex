@@ -1,22 +1,13 @@
-# Test API and migration
+# Running WhimTex tests
 
-All **466 original files** have immutable hashes/paths in `legacy-manifest.json`.
-`archive-descriptor.json` pins their complete recovery snapshot at commit
-`ca8603c0961ce36064280f952259f8a6142d46cc`; the older `baselineCommit` is not the complete
-final archive. Active dispatch never reads or executes the physical `Legacy/` folder.
-Archive integrity and source audits authenticate the pinned Git blobs against every frozen
-hash and byte count. Missing Git objects fail verification; no working-copy fallback exists.
-Never edit historical bytes or regenerate the manifest to make a test pass. Physical
-Legacy retirement requires explicit human authorization, completed final validation and
-a verified recoverable copy; the pinned Git originals remain available afterward. The active
-`Fixtures/` is independent required test data and must remain after archive retirement.
+Start with the [test map](README.md): `Cases/` is organized by subsystem, `Framework/`
+contains shared support, and `Fixtures/` contains required inputs. The explicit
+`scripts/test-catalog.json` owns IDs, invocation metadata and limited profiles; directory
+contents are not automatically discovered as runnable tests.
 
-`Framework/` contains test-only C#/Node helpers; `Cases/` contains replacement cases;
-`scripts/test-catalog.json` owns scenario invocation metadata. `migration.json` tracks original
-files and explicit old/new assertion coverage. All **360 source files** now have an explicit
-replacement/support/diagnostic mapping in `Batches/`; this is not proof that every entry has
-passed or that all coverage gaps are closed. See `ArchiveRetirement.ru.md` for the historical
-final verification summary and its limits.
+Tests are self-contained in the package: they do not require a Legacy archive, migration
+maps, Git objects or the old project's `output` directory. Frozen reference inputs and
+their provenance are in [Fixtures/Oracles](Fixtures/Oracles/README.md).
 Ordinary cases use ephemeral test assemblies. Opt-in native-fixture/Player workflows
 temporarily install GUID-owned native scripts under the authorized test subtree.
 Explicit human permission covers test-only internal bindings for eyedropper, dock/tab,
@@ -45,34 +36,33 @@ Choose **one** selector. None expands into unrelated scenarios or runs inferred 
 | `--ids canonical-reader-v2,display-channels-v2` | Exact list, in this order |
 | `--group rendering` | Scenarios with this explicit group |
 | `--profile quick` | Reviewed named subset |
-| `--profile new-node` | Independent read-only Node tests; no Unity |
-| `--profile new-unity-b-regressions` | Independent document/import/render cases, diagnostics excluded |
-| `--profile archive-detachment` | Opt-in GUID Temp mirror without Legacy; requires Git and `temp-files` acknowledgement |
-| `--all` | Every **catalogued** scenario, not the entire archived suite |
+| `--profile node` | Independent read-only Node tests; no Unity |
+| `--profile documents` | Document/import cases and source guards, diagnostics excluded |
+| `--profile regressions` | Only regression scenarios |
+| `--profile source-guards` | Only source/contract guards |
+| `--profile verify` | All non-diagnostic scenarios, including runner infrastructure |
+| `--all` | Every **catalogued** scenario, including diagnostics and permissioned workflows |
 
-`quick` checks framework/archive/frozen files without Unity. `core` has two Unity regressions
+`quick` checks the runner, 0.12.5 files and all registered references without Unity. `core` has two Unity regressions
 and the frozen-file Node regression. `compatibility` is a small subset, **not** the full file
 roundtrip suite. `async-protocol` checks Start/Poll/Cleanup using owned SessionState keys, not UI
-scheduling. Old `legacy-*` and `migration-pilot` profiles have been retired. Their original
-metadata is preserved in `retired-catalog.json`, not registered for execution.
-`new-unity-a/b/c/d` include explicitly declared diagnostics as well as regressions; use their
-`-regressions` variants for verification. The independent `runner-live-v2` tests actual Editor
-verdicts and cleanup. Source mappings classify helpers and manual diagnostics separately;
-they are not silently counted as passing tests.
+scheduling.
+Feature profiles such as `documents`, `layers`, `fx` and `painting` exclude diagnostics;
+`diagnostics` selects them explicitly. The independent `runner-live-v2` tests actual Editor
+verdicts and cleanup. Diagnostics are not silently counted as passing regressions.
 
 Gradient reload is one paired lifecycle: select `--id whimtex-gradient-reload-v2` to execute
 Begin → native Trigger → ReloadPoll → End → Cleanup with the same GUID. The two remaining
 standalone `whimtex-gradient-reload-begin-v2` / `-end-v2` entries are historical helper mappings,
 not independently runnable coverage: generic cleanup destroys Begin's fixture, and selecting
-both entries does not insert a real reload. Their separate inventory rows remain pending;
-the current wrapper's phase receipt is documented in `CoverageAudit/gradient-reload-helper-phases.json`.
+both entries does not insert a real reload. Use the complete paired workflow for coverage.
 
 ## Compile and validate entry points
 
 Use the same reviewed selector and explicit project for these separate actions:
 
 ```sh
-node Tests~/scripts/run-tests.mjs --compile --profile new-unity-b --reviewed "<fingerprint>" --project-path "<project-root>"
+node Tests~/scripts/run-tests.mjs --compile --profile documents --reviewed "<fingerprint>" --project-path "<project-root>"
 node Tests~/scripts/run-tests.mjs --check-entries --id psd-writer-v2 --reviewed "<fingerprint-for-this-id>" --project-path "<project-root>"
 ```
 
@@ -86,7 +76,7 @@ orchestrators must be narrowed with `--id` / `--ids`. Review each chosen selecto
 
 ## Common API
 
-New cases return one structured result: `status`, nonnegative `checks`, `message`, `failures`;
+Cases return one structured result: `status`, nonnegative `checks`, `message`, `failures`;
 Node can also include named `cases` and comparison `facts`. Statuses are `running`, `passed`,
 `failed`, `skipped`, `cancelled`. Passed results cannot include failures. SKIP/cancellation
 never count as an all-green run. Empty cases and Node case lists fail.
@@ -110,12 +100,10 @@ poll Editor status without running C# while compiling, then require the persiste
 before-reload marker and loss of the old AppDomain callback. A CLI `up_to_date` response
 or rebuilding the UI alone is never accepted as domain-reload evidence.
 
-Active scenarios require the structured protocol, including cleanup. Archived case/support/
-review paths are rejected, including normalized path aliases. Synthetic historical metadata
-in `Framework/Fixtures/HistoricalProtocol.mjs` exercises negative text/JSON/exit classifiers
-through mock invokers only; those fixtures do not register or dispatch archived code.
-The `archive-detachment` mirror copies current independent sources but omits Legacy. It
-retains its GUID-owned Temp files/reports as evidence; it does not rename the real archive.
+All scenarios require the structured protocol, including cleanup. Text PASS/FAIL strings,
+bare JSON success and exit codes cannot replace assertion results. Executable sources must
+belong to Cases/Framework (except the explicitly declared current PSD writer); path aliases
+cannot turn input data or scripts into executable test sources.
 
 ## Safety and results
 
@@ -125,9 +113,8 @@ runs only through the explicitly selected `player-release-workflow-v2` after sep
 authorization. Selecting a profile or acknowledging effects is not build permission.
 Read-only Node profiles also work in a standalone repository checkout, e.g. CI.
 
-The runner validates immutable archive metadata and checks source fingerprints between
-scenarios. It does not imply archive content verification: reports explicitly record
-`contentsVerified:false`. Select `archive-integrity` for authenticated pinned Git bytes.
+The runner checks reviewed source fingerprints between scenarios; no archival checks are
+part of listing, reviewing or running current tests.
 Reports separate transport, API, compile/execute, assertion, protocol, timeout and cleanup
 failures. By default the first non-pass stops the profile; remaining scenarios are `notRun`.
 Explicit `--keep-going` collects known failures, but still stops after uncertain execution,
@@ -153,24 +140,7 @@ declared dependencies and dispatcher helpers, not a guarantee of sufficient cove
 Node child-process restrictions (`spawn EPERM`) require the normal execution permission;
 do not introduce OS-specific bypasses. Direct framework tests can run without children.
 
-## Comparing replacements
-
-Historical pilot comparison is read-only; the retired six-case profile cannot be dispatched:
-
-```sh
-node Tests~/scripts/check-migration.mjs "<paired-run-report.json>"
-```
-
-Comparison requires both cases in the **same** report, unambiguous passes, expected check
-counts/facts and an explicit review of inputs, assertions and cleanup in `migration.json`.
-Green results alone are not coverage equivalence. New tests must not simply call the old ones.
-The comparison authenticates only the three historical pairs using fixed raw-report,
-retired-catalog and coverage-mapping hashes. It never recalculates the old fingerprint with
-current sources: `currentRuntimeEquivalence:false`. Historical baseline paths identify the
-original artifacts, not required working-tree copies. The pre-retirement snapshot and detailed
-migration reports are preserved at Git commit `9735e477dab3139919396dd9f72eea792be5f24a`;
-fresh limited runs are separate.
-The gate does not grant deletion authority: `archiveRemovalAllowed` remains false.
+## Documentation CI
 
 Documentation CI runs `node Tests~/scripts/ci-docs.mjs`: the existing eleven read-only Node
 checks through independent `ci-docs`, with a programmatic receipt for the checked-in CI profile.
@@ -195,35 +165,21 @@ reader source accepts an explicit preinstalled reader module and generated fixtu
 Select `--id psd-reader-roundtrip-v2` with `--allow-effects temp-files` and an explicit
 matching project. Set `WHIMTEX_PSD_READER` to the installed module's absolute entry path;
 the workflow creates its own GUID PSD through the native Editor before decoding it.
-The authorized 2026-10-05 run used ag-psd 31.0.2 under project
-`Temp/WhimTex/psd-reader-20261005-9c771397/node_modules/ag-psd/dist/index.js` and passed.
-See `CoverageAudit/psd-reader-final-runtime-review.json` for provenance. Installation
-remains a separate permissioned operation; the runner never installs a decoder itself.
+Installation remains a separate permissioned operation; the runner never installs a decoder itself.
 Player validation remains a separately authorized workflow; never infer build permission.
 The workflow targets the current supported Standalone platform without switching project
 settings, builds only its owned scene to Temp/WhimTex, executes the built Player and verifies
 runtime pixels, packed contents, saved document/meta preservation and native helper removal.
 
-## Final Legacy inventory
+## Reference inputs and diagnostics
 
-`node Tests~/CoverageAudit/coverage-gate.mjs` reads the immutable archive, per-file source
-reviews and retained runner reports. It checks raw source/support hashes, exact native input
-bundles and invocation arguments. Both native and Node proofs require the current selected
-receipt, including the dispatcher/archive-descriptor dependencies. Matching a native bundle
-alone cannot promote an old report after retirement. All earlier evidence remains historical.
-The latest same-source failure or SKIP overrides an earlier green. Diagnostics, compilation,
-entry validation and recovery-only reports do not prove regression equivalence.
-Historical image inputs require reviewed path/hash/provenance; an existing source PNG is not
-an algorithm golden. Never regenerate missing pre-change references with the current renderer
-to obtain a pass. A diagnostic SKIP can contain useful generated artifacts without certifying
-their visual correctness.
-Its inventory always keeps `archiveRemovalAllowed:false`: source review, runtime success and
-historical visual/binary equivalence remain separate claims. Pure inventory tests use
-`node --test --test-isolation=none Tests~/CoverageAudit/coverage-gate.test.mjs`.
-
-`workflowPhaseCoverage` records the verified same-GUID native gradient Begin/End phases
-from the complete raw reload receipt. It never promotes those paired helpers to standalone
-PASS. Use `whimtex-gradient-reload-v2`, not separate Begin/End runs.
+`--id reference-fixtures` authenticates all 255 registered files, their dimensions/layouts
+and reference-reader safety contracts without Unity. `ReviewedOracle` authenticates bytes
+again before native use. The reference paths are relative to package Fixtures, not absolute
+machine paths. Missing or altered files are errors; no automatic generation or substitution.
+Source PNG/live inputs are not algorithm output goldens. Never regenerate pre-change
+snapshots with the current renderer to obtain a pass. Diagnostics, compilation, entry
+validation and old reports do not prove current regression or visual equivalence.
 
 `color-picker-eyedropper-native-inspection-v2` is an opt-in15-second diagnostic. The public
 `InspectNativeSession(runId)` getter is repeatable between serial lifecycle calls; raw Poll
@@ -234,17 +190,15 @@ Fixture/capture success is not a native sampling-duration or image-golden verdic
 Seamless Release `Status` is an explicit SKIP/redirect: actual synchronous Stress outcomes and
 timings live in the selected Stress raw receipt after cleanup, not the old shared SessionState.
 Historical Capture must never regenerate pre-change references with the current renderer.
-Runner/catalog retirement and physical removal are complete; see `ArchiveRetirement.ru.md`.
-Keep the descriptor, frozen manifest, active fixtures, migration mappings and required source/oracle
-reviews. Detailed historical run receipts are in Git history, not duplicated package files.
+Original tests and completed migration evidence remain only in Git history; recovery
+references are in the [test map](README.md#история).
 
 ## Generated artifacts
 
 Runner reports, native input bundles and recovery logs stay under project `Temp/WhimTex`.
 Do not copy them into `Tests~` or commit expanded inventory snapshots. The package ignores
-generated result files and historical run-output directories. These ignore rules do not cover
-required source-review/oracle JSON. A compact human summary can link to the historical Git
-snapshot without embedding raw results; generate a fresh inventory for current evidence.
+generated result files. Fixture manifests and provenance are required input data, not reports.
+A compact human summary can link to the historical Git snapshot without embedding raw results.
 
 Generated diagnostics must retain their actual samples/artifacts before owned cleanup.
 Successful timing/manual producers can still return SKIP; a saved PNG, CSV or timing array

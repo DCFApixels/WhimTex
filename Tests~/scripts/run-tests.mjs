@@ -4,14 +4,11 @@ import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
-import { archiveMetadata } from './legacy.mjs';
 import { resultMarker } from '../Framework/test-api.mjs';
 
 export const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const catalogPath = path.join(root, 'Tests~/scripts/test-catalog.json');
 const verdict = (status, detail, uncertain = false) => ({ status, detail, uncertain });
-const failText = /^(?:FAIL(?:ED)?|ERROR)\b/i;
-const skipText = /^SKIP\b/i;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const sourceFiles = scenarios => [...new Set(scenarios.flatMap(s => [s.file, ...(s.supportFiles ?? []), ...(s.reviewFiles ?? [])]))].sort();
 const inside = (base, candidate) => {
@@ -41,13 +38,13 @@ export function validateCatalog(catalog, packageRoot = root) {
         ids.add(s.id);
         if (s.reviewFiles !== undefined && !Array.isArray(s.reviewFiles) || s.requiresUnity !== undefined && typeof s.requiresUnity !== 'boolean') throw Error('Invalid review/prerequisite metadata: ' + s.id);
         if (!Array.isArray(s.groups) || !s.groups.length || s.groups.some(group => !/^[a-z0-9-]+$/.test(group))) throw Error('Missing/invalid groups: ' + s.id);
-        if (s.legacy !== undefined || s.file.startsWith('Tests~/Legacy/')) throw Error('Retired archive scenarios are not executable: ' + s.id);
+        if (typeof s.file !== 'string' || !/^Tests~\/(?:Cases|Framework)\//.test(s.file)) throw Error('Scenario source must belong to Cases or Framework: ' + s.id);
         if (s.supportFiles !== undefined && (!Array.isArray(s.supportFiles) || s.runner !== 'run_script' || s.supportFiles.some(file => !file.endsWith('.cs')))) throw Error('Invalid support files: ' + s.id);
         for (const file of [s.file, ...(s.supportFiles ?? []), ...(s.reviewFiles ?? [])]) {
             if (typeof file === 'string') {
                 const normalized = path.relative(packageRoot, path.resolve(packageRoot, file)).replaceAll('\\', '/');
-                if (normalized === 'Tests~/Legacy' || normalized.startsWith('Tests~/Legacy/'))
-                    throw Error('Retired archive dependencies are not executable: ' + s.id);
+                if ((file === s.file || (s.supportFiles ?? []).includes(file)) && file.startsWith('Tests~/') && !/^Tests~\/(?:Cases|Framework)\//.test(normalized))
+                    throw Error('Executable source must belong to Cases or Framework: ' + s.id);
             }
             const dependency = (s.reviewFiles ?? []).includes(file);
             // The portable format writer is compiled from CURRENT source for its internal unit tests.
@@ -112,7 +109,7 @@ export function reviewFingerprint(scenarios, packageRoot = root) {
     for (const file of files) hash.update(file).update(fs.readFileSync(path.join(packageRoot, file)));
     // The dispatcher contract participates in every review receipt.
     hash.update(fs.readFileSync(path.join(packageRoot, 'Tests~/scripts/run-tests.mjs')));
-    for (const file of ['Tests~/scripts/legacy.mjs', 'Tests~/Framework/test-api.mjs', 'Tests~/Framework/TestApi.cs', 'Tests~/Framework/EntryContract.cs', 'Tests~/legacy-manifest.json', 'Tests~/archive-descriptor.json']) hash.update(fs.readFileSync(path.join(packageRoot, file)));
+    for (const file of ['Tests~/Framework/test-api.mjs', 'Tests~/Framework/TestApi.cs', 'Tests~/Framework/EntryContract.cs']) hash.update(fs.readFileSync(path.join(packageRoot, file)));
     return hash.digest('hex');
 }
 
@@ -159,23 +156,15 @@ export function classifyReply(reply, scenario, phase = 'result') {
     if (reply.error) return verdict('transport-error', reply.error, Boolean(reply.uncertain));
     let value;
     if (scenario.runner === 'node') {
-        if (scenario.result.kind === 'structured') {
-            const lines = (reply.stdout ?? '').split(/\r?\n/).filter(line => line.startsWith(resultMarker));
-            if (lines.length !== 1) return verdict('protocol-error', 'Node must emit exactly one structured result marker.');
-            try { value = JSON.parse(lines[0].slice(resultMarker.length)); } catch { return verdict('protocol-error', 'Invalid Node result JSON.'); }
-            const result = classifyStructured(value, scenario, phase);
-            if (reply.code !== 0 && result.status === 'passed') return verdict('protocol-error', 'Passed payload with unsuccessful Node exit.');
-            // A nested live runner can finish while an Editor task is still uncertain.
-            // Never release the outer lock merely because the Node process exited.
-            if (scenario.requiresUnity && value.recoveryRequired === true) result.uncertain = true;
-            return result;
-        }
-        if (reply.code !== 0) return verdict('assertion-failed', reply.stderr || reply.stdout || 'Node exit ' + reply.code, Boolean(scenario.requiresUnity));
-        value = (reply.stdout ?? '').trim();
-        if (/^(?:FAIL(?:ED)?|ERROR)\b/im.test(value)) return verdict('assertion-failed', value);
-        if (/^SKIP\b/im.test(value)) return verdict('skip', value);
-        if (/^(?:ℹ |# )?skipped [1-9][0-9]*\b/im.test(value)) return verdict('skip', value);
-        return verdict('passed', value);
+        const lines = (reply.stdout ?? '').split(/\r?\n/).filter(line => line.startsWith(resultMarker));
+        if (lines.length !== 1) return verdict('protocol-error', 'Node must emit exactly one structured result marker.', Boolean(scenario.requiresUnity));
+        try { value = JSON.parse(lines[0].slice(resultMarker.length)); } catch { return verdict('protocol-error', 'Invalid Node result JSON.', Boolean(scenario.requiresUnity)); }
+        const result = classifyStructured(value, scenario, phase);
+        if (reply.code !== 0 && result.status === 'passed') return verdict('protocol-error', 'Passed payload with unsuccessful Node exit.', Boolean(scenario.requiresUnity));
+        // A nested live runner can finish while an Editor task is still uncertain.
+        // Never release the outer lock merely because the Node process exited.
+        if (scenario.requiresUnity && (value?.recoveryRequired === true || result.status === 'protocol-error')) result.uncertain = true;
+        return result;
     }
     let envelope;
     try { envelope = JSON.parse(reply.stdout); } catch { return verdict('transport-error', 'CLI did not return a JSON envelope.', true); }
@@ -198,18 +187,7 @@ export function classifyReply(reply, scenario, phase = 'result') {
         try { value = JSON.parse(value); } catch { /* An ordinary result string is checked below. */ }
     }
     if (value?.success === false) return verdict('api-failed', JSON.stringify(value));
-    if (scenario.result.kind === 'structured') return classifyStructured(value, scenario, phase);
-    if (typeof value === 'string') {
-        const text = value.trim();
-        if (failText.test(text)) return verdict('assertion-failed', text);
-        if (skipText.test(text)) return verdict('skip', text);
-        if (phase === 'start') return new RegExp(scenario.async.started).test(text)
-            ? verdict('pending', text) : verdict('protocol-error', 'Unexpected start result: ' + text, true);
-        if (scenario.result.kind === 'text' && new RegExp(scenario.result.pass).test(text)) return verdict('passed', text);
-        if (scenario.async && new RegExp(scenario.result.pending).test(text)) return verdict('pending', text);
-    }
-    if (phase === 'result' && scenario.result.kind === 'json-success' && value?.success === true) return verdict('passed', JSON.stringify(value));
-    return verdict('protocol-error', 'No declared final verdict: ' + JSON.stringify(value));
+    return classifyStructured(value, scenario, phase);
 }
 
 export function classifyCompileReply(reply, scenario) {
@@ -265,7 +243,7 @@ export async function runScenario(scenario, invoke, { now = Date.now, delay = sl
             try { cleanup = await invoke(scenario, scenario.cleanup.entry, scenario.cleanup.args, 10000); }
             catch (error) { cleanup = { error: String(error) }; }
             attempts.push({ phase: 'cleanup', entry: scenario.cleanup.entry, reply: cleanup });
-            const cleanupScenario = { ...scenario, async: undefined, result: scenario.result.kind === 'structured' ? { kind: 'structured' } : { kind: 'text', pass: scenario.cleanup.pass } };
+            const cleanupScenario = { ...scenario, async: undefined };
             const cleanupResult = classifyReply(cleanup, cleanupScenario, 'cleanup');
             if (cleanupResult.status !== 'passed') result = { ...verdict('cleanup-failed', cleanupResult.detail, true), primaryResult: result, cleanupResult };
             // A timeout remains uncertain: successful cleanup does not prove a detached task stopped.
@@ -314,10 +292,6 @@ function options(argv) {
 
 export async function main(argv = process.argv.slice(2)) {
     const opt = options(argv);
-    const metadata = archiveMetadata();
-    const archive = { files: metadata.descriptor.files, baselineCommit: metadata.manifest.baselineCommit,
-        manifestHash: metadata.manifestHash, source: 'pinned-git-reference',
-        recoveryCommit: metadata.descriptor.commit, contentsVerified: false };
     const catalog = validateCatalog(JSON.parse(fs.readFileSync(catalogPath, 'utf8')));
     const scenarios = selectScenarios(catalog, opt);
     const fingerprint = reviewFingerprint(scenarios);
@@ -327,8 +301,8 @@ export async function main(argv = process.argv.slice(2)) {
         return 0;
     }
     if (!opt.run && !opt.compile && !opt['check-entries']) {
-        console.log(JSON.stringify({ scope: catalog.scope, profiles: catalog.profiles, scenarios, archive,
-            note: 'Only independent registered scenarios are executable. Archive contents are verified separately by archive-integrity from the pinned Git snapshot.' }, null, 2));
+        console.log(JSON.stringify({ scope: catalog.scope, profiles: catalog.profiles, scenarios,
+            note: 'Only registered scenarios are executable; sources and fixtures are self-contained in this package.' }, null, 2));
         return 0;
     }
     if (!opt.profile && !opt.id && !opt.ids && !opt.group && !opt.all) throw Error('Verification requires an explicit selector.');
@@ -352,7 +326,7 @@ export async function main(argv = process.argv.slice(2)) {
     const lockHandle = fs.openSync(lock, 'wx');
     let outputHandle;
     let keepLock = false;
-    const report = { version: 2, action: opt.compile ? 'compile' : opt['check-entries'] ? 'entries' : 'run', startedAt: new Date().toISOString(), projectPath, fingerprint, archive, productionFingerprint: productionFingerprint(),
+    const report = { version: 2, action: opt.compile ? 'compile' : opt['check-entries'] ? 'entries' : 'run', startedAt: new Date().toISOString(), projectPath, fingerprint, productionFingerprint: productionFingerprint(),
         selected: scenarios.map(s => s.id), environment: null, results: [], success: false };
     const save = () => { fs.ftruncateSync(outputHandle, 0); fs.writeSync(outputHandle, JSON.stringify(report, null, 2) + '\n', 0, 'utf8'); };
     try {
@@ -392,7 +366,6 @@ export async function main(argv = process.argv.slice(2)) {
         };
         for (const s of scenarios) {
             if (reviewFingerprint(scenarios) !== fingerprint) throw Error('Reviewed source changed during the run; stopping before next scenario.');
-            archiveMetadata();
             if (productionFingerprint() !== report.productionFingerprint) throw Error('Production sources changed during the run; stopping before next scenario.');
             const compileStarted = Date.now();
             const compileReply = opt.compile || opt['check-entries'] ? await invoke(s, s.entry, s.args, s.timeoutMs) : null;

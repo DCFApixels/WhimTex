@@ -265,7 +265,6 @@ Unity Editor, не отдельный сборщик. Для каждого вы
 - `document-performance-probe-ldr-random-v2` и соседние варианты: замеры Drawing LDR/HDR,
   first/unchanged/changed Save и Open; наблюдения не равны performance acceptance thresholds.
 
-Исторический итог обязательных прогонов: [ArchiveRetirement.ru.md](../Tests~/ArchiveRetirement.ru.md).
 Команды и текущие prerequisites принадлежат каталогу, не прежним журналам запусков.
 Проверен Windows64 Mono/DX12 Player; не проверены все платформенные компрессоры, AssetBundles/Addressables,
 все режимы Sprite Editor, реальный hard crash/power loss и все варианты import worker.
