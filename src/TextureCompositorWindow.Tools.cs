@@ -658,20 +658,24 @@ namespace DCFApixels.WhimTex
 
             private void DrawSmudgeBrush(Painter2D painter)
             {
-                // A single extended finger, distinct from the Transform hand.
                 painter.BeginPath();
-                painter.MoveTo(P(8, 20)); painter.LineTo(P(6, 16));
-                painter.BezierCurveTo(P(4, 13), P(6, 11), P(8, 13));
-                painter.LineTo(P(9, 14)); painter.LineTo(P(9, 5));
-                painter.BezierCurveTo(P(9, 2), P(13, 2), P(13, 5));
-                painter.LineTo(P(13, 11));
-                painter.BezierCurveTo(P(15, 9), P(17, 10), P(17, 12));
-                painter.BezierCurveTo(P(20, 11), P(21, 14), P(19, 17));
-                painter.LineTo(P(17, 20)); painter.ClosePath(); painter.Stroke();
-                painter.BeginPath();
-                painter.MoveTo(P(4, 5)); painter.LineTo(P(6, 5));
-                painter.MoveTo(P(3, 8)); painter.LineTo(P(6, 8));
-                painter.Stroke();
+                painter.MoveTo(P(12.27f, 2.02f));
+                painter.BezierCurveTo(P(9.35f, 2.28f), P(3.33f, 2.92f), P(3.45f, 6.96f));
+                painter.BezierCurveTo(P(3.51f, 9.06f), P(4.25f, 11.24f), P(5.42f, 12.32f));
+                painter.BezierCurveTo(P(5.75f, 12.64f), P(6.30f, 12.62f), P(6.55f, 12.75f));
+                painter.BezierCurveTo(P(6.20f, 13.25f), P(5.75f, 13.76f), P(5.31f, 14.39f));
+                painter.BezierCurveTo(P(4.48f, 15.57f), P(3.53f, 16.94f), P(2.72f, 18.18f));
+                painter.BezierCurveTo(P(2.01f, 19.26f), P(1.58f, 20.36f), P(2.29f, 21.14f));
+                painter.BezierCurveTo(P(3.00f, 21.92f), P(4.02f, 21.57f), P(4.81f, 20.80f));
+                painter.BezierCurveTo(P(6.67f, 18.98f), P(8.04f, 16.59f), P(10.54f, 14.98f));
+                painter.BezierCurveTo(P(12.76f, 13.55f), P(18.56f, 10.15f), P(16.56f, 15.12f));
+                painter.BezierCurveTo(P(15.85f, 16.89f), P(12.56f, 15.10f), P(11.79f, 16.75f));
+                painter.BezierCurveTo(P(10.03f, 20.55f), P(17.43f, 18.50f), P(18.76f, 17.75f));
+                painter.BezierCurveTo(P(21.84f, 16.01f), P(22.40f, 11.77f), P(22.35f, 8.65f));
+                painter.BezierCurveTo(P(22.33f, 7.50f), P(21.74f, 6.57f), P(20.80f, 5.91f));
+                painter.BezierCurveTo(P(18.10f, 4.02f), P(15.35f, 3.01f), P(12.27f, 2.02f));
+                painter.ClosePath();
+                painter.Fill();
             }
 
             private void DrawHealingBrush(Painter2D painter)
