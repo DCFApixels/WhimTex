@@ -48,7 +48,7 @@ public static class SmudgeBrushTests
     static void End(DrawingLayerBehaviour layer)
     {
         Call(layer, "EndStroke"); Call(layer, "SyncSurfaceToTexture");
-        foreach (string field in new[] { "smudgeCarry", "smudgePickup", "smudgeNext", "smudgeBackdrop", "smudgeSample", "smudgeSampleBackdrop" })
+        foreach (string field in new[] { "smudgeCarry", "smudgeNext", "smudgeBackdrop", "smudgeSample", "smudgeSampleBackdrop" })
             T.True(Get(layer, field) == null, "Owned Smudge buffer released: " + field);
     }
     static double Difference(Color[] a, Color[] b)
@@ -60,6 +60,244 @@ public static class SmudgeBrushTests
     static Color Split(int x, int y) => x < 48 ? new Color(3, .1f, -.2f, 1) : new Color(.1f, .2f, 2, 1);
     static Vector2 Start => new Vector2(40f / 128, .5f);
     static Vector2 Finish => new Vector2(84f / 128, .5f);
+
+    // Translating along stripes must not erase detail across the stroke. Compare
+    // actual stored pixels, not a replacement CPU model of the transport shader.
+    public static string Quality() => FixtureContext.RunReport("Smudge feedback and transverse pixel detail", () =>
+    {
+        var reports = new System.Collections.Generic.List<string>();
+        VerifyPaintedPatchFeedback(reports);
+        foreach (bool sampled in new[] { false, true })
+        foreach (int nativeScale in new[] { 1, 2 })
+        foreach (float phase in new[] { 0f, .35f })
+        foreach (bool soft in new[] { false, true })
+        {
+            const int width = 256, height = 128;
+            var doc = Document(width, height);
+            Color Stripe(int x, int y) => y % 4 < 2 ? Color.white : Color.black;
+            var layer = Drawing(doc, sampled ? (Func<int, int, Color>)((x, y) => Color.clear) : Stripe,
+                width * nativeScale, height * nativeScale);
+            var donor = sampled ? Drawing(doc, Stripe, width, height) : null;
+            RenderTexture sample = null;
+            if (sampled)
+            {
+                sample = S.Temporary(RenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear));
+                Graphics.Blit(Pixels(donor), sample);
+            }
+            var start = new Vector2(64f / width, (64 + phase) / height);
+            var finish = start + new Vector2(82f / width, 0);
+            Begin(doc, layer, start, 32, sample);
+            Segment(doc, layer, start, finish, .8f, soft ? .3f : 1, soft ? .55f : 1);
+            var source = sampled ? (RenderTexture)Get(layer, "smudgeSample") : (RenderTexture)Get(layer, "paintSurface");
+            var read = S.Own(new Texture2D(source.width, source.height, TextureFormat.RGBAFloat, false, true));
+            var active = RenderTexture.active;
+            try { RenderTexture.active = source; read.ReadPixels(new Rect(0, 0, source.width, source.height), 0, 0); }
+            finally { RenderTexture.active = active; }
+            double contrast = 0;
+            int scale = sampled ? 1 : nativeScale;
+            for (int y = 56 * scale; y < 72 * scale; y++)
+            for (int x = 136 * scale; x < 144 * scale; x++)
+                contrast += read.GetPixel(x, y).r * (y % 4 < 2 ? 1 : -1);
+            contrast /= 64 * scale * scale;
+            string label = "sample=" + sampled + " native=" + nativeScale + " phase=" + phase + " soft=" + soft;
+            T.Near(1, contrast, .01, "No cumulative transverse blur: " + label);
+            reports.Add(label + " contrast=" + contrast.ToString("F4", System.Globalization.CultureInfo.InvariantCulture));
+            End(layer);
+            if (sample != null) S.Release(sample);
+        }
+        foreach (bool perspective in new[] { false, true })
+        {
+            var doc = Document(256, 128);
+            var layer = Drawing(doc, (x, y) => y % 4 < 2 ? new Color(3, -.25f, .2f, .5f) : new Color(0, -.25f, .2f, .5f), 1024, 512);
+            var transform = layer.Owner.transform;
+            if (perspective)
+                T.True(transform.TrySetMatrix(new ProjectiveMatrix { m00 = 1.2, m11 = 1, m20 = 1, m22 = 1 }), "Set owned projective transform");
+            else { transform.rotation = 27; transform.scale = new Double2(.8, 1.1); }
+            layer.Owner.transform = transform;
+            var from = new Vector2(.25f, .503f); var to = new Vector2(.65f, .503f);
+            var original = Pixels(layer).GetPixels();
+            Begin(doc, layer, from, 20);
+            int beforeWidth = ((RenderTexture)Get(layer, "smudgeCarry")).width;
+            Segment(doc, layer, from, to, .8f, .65f, .6f);
+            int afterWidth = ((RenderTexture)Get(layer, "smudgeCarry")).width;
+            T.True(!perspective || afterWidth > beforeWidth, "Projective carry grows along the path");
+            End(layer);
+            double error = 0;
+            var actual = Pixels(layer).GetPixels();
+            for (int y = 240; y < 272; y++) for (int x = 512; x < 640; x++)
+                error += Difference(new[] { original[y * 1024 + x] }, new[] { actual[y * 1024 + x] });
+            error /= 32 * 128;
+            T.Near(0, error, .01, "Native transverse HDR/alpha detail survives " + (perspective ? "perspective growth" : "rotation"));
+            reports.Add("perspective=" + perspective + " error=" + error.ToString("F6", System.Globalization.CultureInfo.InvariantCulture));
+        }
+        var wideDoc = Document(2048, 128);
+        var wide = Drawing(wideDoc, (x, y) => y % 4 < 2 ? Color.white : Color.black, 2048, 128);
+        var wideStart = new Vector2(.35f, .503f);
+        Begin(wideDoc, wide, wideStart, 1120);
+        T.True(((RenderTexture)Get(wide, "smudgeCarry")).width > 1024, "Large tips are not downsampled to the old 1024 limit");
+        Segment(wideDoc, wide, wideStart, new Vector2(.65f, .503f), .8f, 1, 1); End(wide);
+        T.Near(1, Pixels(wide).GetPixel(1250, 64).r - Pixels(wide).GetPixel(1250, 66).r, .01, "Large tip preserves transverse stripes");
+
+        Color[][] masks = new Color[2][];
+        for (int variant = 0; variant < 2; variant++)
+        {
+            var doc = Document(); var layer = Drawing(doc, (x, y) => Color.clear);
+            var donor = Drawing(doc, (x, y) => Color.red);
+            var sample = S.Temporary(RenderTexture.GetTemporary(128, 64, 0, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear));
+            Graphics.Blit(Pixels(donor), sample);
+            var start = new Vector2(.5f, (32.2f + variant * .6f) / 64);
+            Begin(doc, layer, start, 10, sample);
+            Segment(doc, layer, start, start + new Vector2(1.01f / 128, 0), 1, 1, .5f); End(layer);
+            masks[variant] = Pixels(layer).GetPixels(); S.Release(sample);
+        }
+        T.True(Difference(masks[0], masks[1]) > .1, "Fractional positions change the soft mask even within one color-grid pixel");
+        return string.Join("; ", reports);
+    });
+
+    // Independent pixel-space reference: refresh carried pixels from the painted
+    // result, with explicit retention. No production shader or spacing helper is reused.
+    static void VerifyPaintedPatchFeedback(System.Collections.Generic.List<string> reports)
+    {
+        const int width = 128, height = 64, size = 20;
+        foreach (bool sampled in new[] { false, true })
+        foreach (bool curved in new[] { false, true })
+        foreach (float strength in new[] { 1f, .65f })
+        foreach (float flow in new[] { 1f, .45f })
+        {
+            Color Input(int x, int y) => x < 46
+                ? new Color(3, -.25f, .2f + .1f * Mathf.Sin(y * .8f), .65f)
+                : new Color(.1f, .4f, 2, .3f);
+            var doc = Document(width, height);
+            var layer = Drawing(doc, sampled ? (Func<int, int, Color>)((x, y) => Color.clear) : Input);
+            var donor = sampled ? Drawing(doc, Input) : layer;
+            RenderTexture sample = null;
+            if (sampled)
+            {
+                sample = S.Temporary(RenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear));
+                Graphics.Blit(Pixels(donor), sample);
+            }
+            var from = new Vector2(40.25f / width, 32.25f / height);
+            var path = curved ? new[] { new Vector2(40.25f, 32.25f), new Vector2(64.25f, 42.25f),
+                new Vector2(44.25f, 24.25f), new Vector2(65.25f, 32.25f) } :
+                new[] { new Vector2(40.25f, 32.25f), new Vector2(64.25f, 32.25f) };
+            Begin(doc, layer, from, size, sample);
+            var initialPixels = ReadSurface((RenderTexture)Get(layer, sampled ? "smudgeSample" : "paintSurface")).GetPixels();
+            var initialCarry = ReadSurface((RenderTexture)Get(layer, "smudgeCarry")).GetPixels();
+            Vector2 firstPoint = Vector2.LerpUnclamped(path[0], path[1], 1.01f / Vector2.Distance(path[0], path[1]));
+            Segment(doc, layer, from, new Vector2(firstPoint.x / width, firstPoint.y / height), strength, flow, .4f);
+            T.True((bool)typeof(DrawingLayerBehaviour).GetProperty("SmudgeStrokeChanged", Flags).GetValue(layer), "One reference dab was deposited");
+            var firstSurface = (RenderTexture)Get(layer, sampled ? "smudgeSample" : "paintSurface");
+            var firstPainted = ReadSurface(firstSurface).GetPixels();
+            var firstCarry = (RenderTexture)Get(layer, "smudgeCarry");
+            var firstCarried = ReadSurface(firstCarry).GetPixels();
+            Vector2 actualCenter = (Vector2)Get(layer, "smudgeLastCenter");
+            int firstLeft = Mathf.FloorToInt(actualCenter.x * width) - firstCarry.width / 2;
+            int firstBottom = Mathf.FloorToInt(actualCenter.y * height) - firstCarry.height / 2;
+            double firstError = 0;
+            for (int y = 0; y < firstCarry.height; y++) for (int x = 0; x < firstCarry.width; x++)
+            {
+                int i = y * firstCarry.width + x;
+                Color predicted = Color.LerpUnclamped(firstPainted[(firstBottom + y) * width + firstLeft + x], initialCarry[i], strength);
+                firstError += Difference(new[] { predicted }, new[] { firstCarried[i] });
+            }
+            T.Near(0, firstError / firstCarried.Length, .002, "Pickup uses actual post-deposit pixels and the requested retention (one half-float write)");
+            var centers = new System.Collections.Generic.List<Vector2>();
+            double nextDistance = 1;
+            for (int segment = 1; segment < path.Length; segment++)
+            {
+                Vector2 runtimeFrom = segment == 1 ? firstPoint : path[segment - 1];
+                Segment(doc, layer, new Vector2(runtimeFrom.x / width, runtimeFrom.y / height),
+                    new Vector2(path[segment].x / width, path[segment].y / height), strength, flow, .4f);
+                double distance = Vector2.Distance(path[segment - 1], path[segment]);
+                while (nextDistance <= distance + 1e-7)
+                {
+                    centers.Add(Vector2.LerpUnclamped(path[segment - 1], path[segment], (float)(nextDistance / distance)));
+                    nextDistance += 1;
+                }
+                nextDistance -= distance;
+            }
+            // Model both legal half-float write roundings without choosing an OS/GPU.
+            // This isolates transport correctness from accumulated format quantization.
+            var surface = (RenderTexture)Get(layer, sampled ? "smudgeSample" : "paintSurface");
+            var actual = ReadSurface(surface).GetPixels();
+            double error = double.PositiveInfinity;
+            foreach (bool truncate in new[] { false, true })
+            {
+            var expected = (Color[])initialPixels.Clone();
+            var expectedCarry = (Color[])initialPixels.Clone();
+            Vector2 previousCenter = path[0];
+            foreach (Vector2 center in centers)
+            {
+                var before = (Color[])expected.Clone();
+                var beforeCarry = (Color[])expectedCarry.Clone();
+                int dx = Mathf.FloorToInt(center.x) - Mathf.FloorToInt(previousCenter.x);
+                int dy = Mathf.FloorToInt(center.y) - Mathf.FloorToInt(previousCenter.y);
+                for (int y = 0; y < height; y++) for (int x = 0; x < width; x++)
+                {
+                    float radius = Vector2.Distance(new Vector2(x + .5f, y + .5f), center) / (size * .5f);
+                    float t = Mathf.Clamp01((radius - .4f) / .6f);
+                    float coverage = (1 - t * t * (3 - 2 * t)) * strength * flow;
+                    int sx = x - dx, sy = y - dy;
+                    Color source;
+                    if (strength == 1)
+                    {
+                        float px = x - (center.x - path[0].x), py = y - (center.y - path[0].y);
+                        int ix = Mathf.FloorToInt(px), iy = Mathf.FloorToInt(py);
+                        Color Read(int xx, int yy) => xx < 0 || xx >= width || yy < 0 || yy >= height ? Color.clear : initialPixels[yy * width + xx];
+                        source = Color.LerpUnclamped(Color.LerpUnclamped(Read(ix, iy), Read(ix + 1, iy), px - ix),
+                            Color.LerpUnclamped(Read(ix, iy + 1), Read(ix + 1, iy + 1), px - ix), py - iy);
+                    }
+                    else source = sx < 0 || sx >= width || sy < 0 || sy >= height ? Color.clear : beforeCarry[sy * width + sx];
+                    expected[y * width + x] = ReferenceHalf(Color.LerpUnclamped(before[y * width + x], source, coverage), truncate);
+                    expectedCarry[y * width + x] = ReferenceHalf(Color.LerpUnclamped(expected[y * width + x], source, strength), truncate);
+                }
+                previousCenter = center;
+            }
+            error = Math.Min(error, Difference(expected, actual) / expected.Length);
+            }
+            T.Near(0, error, .002, "Post-deposit feedback matches independent RGBA transport: sample=" + sampled + " curved=" + curved + " strength=" + strength + " flow=" + flow);
+            reports.Add("feedback=" + sampled + "/" + curved + "/" + strength + "/" + flow + " error=" + error.ToString("F6", System.Globalization.CultureInfo.InvariantCulture));
+            var carry = (RenderTexture)Get(layer, "smudgeCarry");
+            var carried = ReadSurface(carry).GetPixels();
+            if (strength == 1)
+                T.Near(0, Difference(initialCarry, carried), 0, "Strength 100 keeps initial HDR/RGBA patch exact on soft/low-Flow strokes and turns");
+            End(layer);
+            if (sample != null) S.Release(sample);
+        }
+
+        var hardDoc = Document(); var hard = Drawing(hardDoc, (x, y) => Color.clear);
+        var opaque = Drawing(hardDoc, (x, y) => Color.red);
+        var hardSample = S.Temporary(RenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear));
+        Graphics.Blit(Pixels(opaque), hardSample);
+        var hardStart = new Vector2(40.25f / width, 32.25f / height);
+        Begin(hardDoc, hard, hardStart, 20, hardSample);
+        Segment(hardDoc, hard, hardStart, hardStart + new Vector2(1f / width, 0), 1, 1, 1);
+        var hardPixels = ReadSurface((RenderTexture)Get(hard, "paintSurface")).GetPixels();
+        int partial = 0;
+        foreach (Color pixel in hardPixels) if (pixel.a > .01f && pixel.a < .99f) partial++;
+        T.True(partial > 8, "Fully hard round tip has antialiased boundary pixels");
+        End(hard); S.Release(hardSample);
+    }
+
+    static Color ReferenceHalf(Color value, bool truncate)
+    {
+        float Round(float component)
+        {
+            ushort bits = Mathf.FloatToHalf(component);
+            if (truncate && Mathf.Abs(Mathf.HalfToFloat(bits)) > Mathf.Abs(component)) bits--;
+            return Mathf.HalfToFloat(bits);
+        }
+        return new Color(Round(value.r), Round(value.g), Round(value.b), Round(value.a));
+    }
+
+    static Texture2D ReadSurface(RenderTexture surface)
+    {
+        var image = S.Own(new Texture2D(surface.width, surface.height, TextureFormat.RGBAFloat, false, true));
+        var active = RenderTexture.active;
+        try { RenderTexture.active = surface; image.ReadPixels(new Rect(0, 0, surface.width, surface.height), 0, 0); image.Apply(); }
+        finally { RenderTexture.active = active; }
+        return image;
+    }
 
     public static string Run() => FixtureContext.Run("Smudge pixels, spacing, masks, HDR, transforms and sampling", () =>
     {
@@ -87,6 +325,26 @@ public static class SmudgeBrushTests
         for (int i = 1; i <= 44; i++) { Vector2 next = Vector2.Lerp(Start, Finish, i / 44f); Segment(doc, segmented, last, next); last = next; }
         End(segmented);
         T.True(Difference(single, Pixels(segmented).GetPixels()) / single.Length < .0003, "The same path is independent of pointer-event segmentation");
+
+        var turns = new[] { Start, new Vector2(84f / 128, 24f / 64), new Vector2(60f / 128, 42f / 64) };
+        Color[][] turnResults = new Color[2][];
+        for (int density = 0; density < 2; density++)
+        {
+            var turning = Drawing(doc, Split); Begin(doc, turning, turns[0]);
+            for (int segment = 1; segment < turns.Length; segment++)
+            {
+                int pieces = density == 0 ? 1 : 40;
+                Vector2 previousPoint = turns[segment - 1];
+                for (int piece = 1; piece <= pieces; piece++)
+                {
+                    Vector2 next = Vector2.Lerp(turns[segment - 1], turns[segment], piece / (float)pieces);
+                    Segment(doc, turning, previousPoint, next, 1, .65f, .4f); previousPoint = next;
+                }
+            }
+            End(turning); turnResults[density] = Pixels(turning).GetPixels();
+        }
+        T.Near(0, Difference(turnResults[0], turnResults[1]) / single.Length, .0003,
+            "Soft diagonal stroke and direction reversal do not depend on pointer-event density");
 
         var gentle = Drawing(doc, Split);
         Begin(doc, gentle, Start); Segment(doc, gentle, Start, Finish, .95f, .1f); End(gentle);
@@ -179,6 +437,15 @@ public static class SmudgeBrushTests
         var copy = S.Own((TextureCompositor)Call(typeof(WhimTexDocumentFile), "CreateEditableCopy", alphaDoc));
         var restored = (DrawingLayerBehaviour)copy.layers[0].Behaviour;
         T.Near(carried.r, Pixels(restored).GetPixel(72, 32).r, .005, "Smudged HDR pixels survive document roundtrip");
+        var exportImage = S.Own(alphaDoc.ComposeCanvas());
+        var encode = typeof(TextureCompositorWindow).GetMethod("EncodeExportTexture", Flags);
+        object Format(string name) => Enum.Parse(encode.GetParameters()[1].ParameterType, name);
+        var png = (byte[])encode.Invoke(null, new[] { (object)exportImage, Format("Png") });
+        var decoded = S.Own(new Texture2D(1, 1, TextureFormat.RGBA32, false));
+        T.True(decoded.LoadImage(png), "Actual smudged composition exports as readable PNG");
+        T.Near(carried.a, decoded.GetPixel(72, 32).a, .01, "PNG export preserves carried alpha");
+        var exr = (byte[])encode.Invoke(null, new[] { (object)exportImage, Format("Exr") });
+        T.True(exr.Length > 100 && BitConverter.ToUInt32(exr, 0) == 20000630, "Actual smudged HDR composition exports as EXR");
     });
 
     static TextureCompositorWindow Window(out TextureCompositor doc)
@@ -215,6 +482,14 @@ public static class SmudgeBrushTests
         for (int i = 0; i < longPath.Length; i++) longPath[i] = i % 2 == 0 ? "[-128,0]" : "[256,128]";
         var oversized = Batch("{\"op\":\"smudgeStroke\",\"layer\":" + Q(layer.Id) + ",\"points\":[" + string.Join(",", longPath) + "],\"size\":512}", true);
         T.True(!oversized.success && oversized.error.Contains("budget"), "Oversized tip work is rejected during dry run");
+        var originalTransform = layer.Owner.transform;
+        try
+        {
+            var tiny = originalTransform; tiny.scale = new Double2(.001, .001); layer.Owner.transform = tiny;
+            var nativeBudget = Batch(Operation(), true);
+            T.True(!nativeBudget.success && nativeBudget.error.Contains("budget"), "Dry run rejects excessive native footprint before allocation");
+        }
+        finally { layer.Owner.transform = originalTransform; }
         T.Near(0, Difference(before, Pixels(layer).GetPixels()), 0, "Invalid operation preserves pixels");
         var result = Batch(Operation()); T.True(result.success, "Smudge API succeeds: " + result.error);
         DrawingLayerBehaviour Current() => (DrawingLayerBehaviour)((Layer)Call(doc, "FindLayer", layer.Id)).Behaviour;
@@ -326,6 +601,7 @@ public static class SmudgeBrushTests
     public static string Capture()
     {
         string before = null, after = null;
+        string detailBefore = null, detailAfter = null;
         string reply = FixtureContext.Diagnostic("Smudge visual sample", () =>
         {
             var doc = Document(256, 128);
@@ -335,7 +611,14 @@ public static class SmudgeBrushTests
             Segment(doc, layer, start, new Vector2(185f / 256, .63f), .97f, .65f); End(layer);
             var image = S.Own(doc.ComposeCanvas());
             after = Convert.ToBase64String(image.EncodeToPNG());
-            return "Before and after PNGs; visual inspection is separate from regression verdicts.";
+            var detailDoc = Document(256, 128);
+            var detail = Drawing(detailDoc, (x, y) => y % 4 < 2 ? (x < 96 ? Color.red : Color.blue) : Color.black, 256, 128);
+            detailBefore = Convert.ToBase64String(Pixels(detail).EncodeToPNG());
+            var detailStart = new Vector2(64f / 256, 64.35f / 128);
+            Begin(detailDoc, detail, detailStart, 32);
+            Segment(detailDoc, detail, detailStart, detailStart + new Vector2(82f / 256, 0), .8f, 1, 1); End(detail);
+            detailAfter = Convert.ToBase64String(Pixels(detail).EncodeToPNG());
+            return "Actual curved color-boundary and fractional striped strokes; visual inspection is separate from regression verdicts.";
         });
         // Ephemeral Unity serialization can omit nested artifact types. Preserve
         // the actual images explicitly, after all fixture cleanup has completed.
@@ -343,7 +626,9 @@ public static class SmudgeBrushTests
         string json = result.ToJson();
         return before == null || after == null ? json : json.Substring(0, json.Length - 1) +
             ",\"artifacts\":[{\"name\":\"before.png\",\"encoding\":\"base64\",\"content\":\"" + before +
-            "\"},{\"name\":\"after.png\",\"encoding\":\"base64\",\"content\":\"" + after + "\"}]}";
+            "\"},{\"name\":\"after.png\",\"encoding\":\"base64\",\"content\":\"" + after +
+            "\"},{\"name\":\"detail-before.png\",\"encoding\":\"base64\",\"content\":\"" + detailBefore +
+            "\"},{\"name\":\"detail-after.png\",\"encoding\":\"base64\",\"content\":\"" + detailAfter + "\"}]}";
     }
 
     // Opt-in timing, not a regression threshold. One-pixel readback drains queued GPU

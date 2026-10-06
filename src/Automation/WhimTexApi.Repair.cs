@@ -59,10 +59,31 @@ namespace DCFApixels.WhimTex
                 }
                 Require(distance / Math.Max(.5f, size * .05f) + points.Length <= 32768, "Repair stroke exceeds the stamp limit.", "resource_limit");
                 float tipSize = size;
-                Require(!smudge || distance / Math.Max(1f, tipSize * .08f) + points.Length <= 32768,
+                Require(!smudge || distance / DrawingLayerBehaviour.SmudgeSpacing(tipSize) + points.Length <= 32768,
                     "Smudge stroke exceeds the stamp limit.", "resource_limit");
-                Require(!smudge || distance / Math.Max(1f, tipSize * .08f) * tipSize * tipSize <= 268435456,
-                    "Smudge stroke exceeds the tip-pixel budget; use a smaller tip or shorter path.", "resource_limit");
+                if (smudge)
+                {
+                    // Native Drawing detail is no longer reduced to a canvas-sized tip.
+                    // Dry run must account for the same source-space footprint as rendering.
+                    var native = drawing.StoredTexture;
+                    int sourceWidth = source == "CurrentLayer" && native != null ? native.width : width;
+                    int sourceHeight = source == "CurrentLayer" && native != null ? native.height : height;
+                    var toColor = source == "CurrentLayer" ? inverse : ProjectiveMatrix.Identity;
+                    int maximumWidth = 0, maximumHeight = 0;
+                    foreach (Vector2 point in points)
+                    {
+                        Vector2 center = new Vector2(point.x / width, point.y / height);
+                        if (tiled) center = TiledCanvasUtility.Wrap(center);
+                        Vector2Int footprint;
+                        try { footprint = DrawingLayerBehaviour.SmudgeCarrySize(toColor, sourceWidth, sourceHeight, center, tipSize, width, height); }
+                        catch (InvalidOperationException error) { throw new WhimTexApiException("resource_limit", error.Message); }
+                        maximumWidth = Math.Max(maximumWidth, footprint.x); maximumHeight = Math.Max(maximumHeight, footprint.y);
+                    }
+                    long pixels = (long)maximumWidth * maximumHeight;
+                    Require(pixels <= DrawingLayerBehaviour.SmudgeMaximumCarryPixels, "Smudge native-pixel tip exceeds the buffer budget.", "resource_limit");
+                    Require(distance / DrawingLayerBehaviour.SmudgeSpacing(tipSize) * pixels <= 268435456,
+                        "Smudge stroke exceeds the native tip-pixel budget; use a smaller tip or shorter path.", "resource_limit");
+                }
             }
             Require(!healing || (long)width * height <= HealingBrushUtility.MaximumWorkingPixels, "Healing API currently supports canvases up to 1,048,576 pixels.", "resource_limit");
             Require(healing || smudge || (long)width * height * points.Length <= 67108864, "Blur stroke exceeds the pixel-pass budget; simplify the path.", "resource_limit");

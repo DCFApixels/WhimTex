@@ -411,13 +411,29 @@ It is frozen at stroke start. Strength and flow are each 0..1, default 1. Work i
 ```
 
 Smudge carries existing RGBA pixels along the path, without adding a painting color.
-One point alone does not paint. Strength (0..1, default 0.8) controls color retention;
-flow (0..1, default 1) controls deposition. Sources match Blur. CurrentLayer samples
+One point alone does not paint. Strength (0..1, default 0.8) scales transport and controls
+retention of the picked-up patch; flow (0..1, default 1) scales deposition independently.
+Below full Strength, the carry is refreshed after deposition from the painted result,
+including mask, selection and Flow: carry = lerp(paintedPatch, previousCarry, strength).
+At Strength 1, the initial captured patch remains unchanged throughout the stroke;
+Hardness and Flow affect deposition, not this retention. No foreground color or spatial
+blur is added.
+Sources match Blur. CurrentLayer samples
 the changing raw Drawing; visible-stack sources freeze other layers/FX at stroke start
 and feed back this stroke's deposits. Writes affect only the selected Drawing.
-Spacing follows canvas distance rather than input-point frequency. Up to 32,768 generated
-stamps are accepted, with a 268,435,456 tip-pixel × stamp budget; large tips use a
-carry buffer capped at 1024×1024 pixels.
+Spacing is 2.5% of the tip diameter, at least one canvas pixel, and follows canvas distance
+rather than input-point frequency. Hard tips have a pixel-wide antialiased boundary. Color pickup and feedback
+stay on the source pixel grid, separately from the smoothly positioned round mask:
+CurrentLayer uses native Drawing resolution; visible-stack sources use canvas resolution.
+At full Strength, only deposition reconstructs the frozen patch at fractional pointer
+positions; the unchanged carry is never replaced by that reconstruction.
+The accumulator preserves individual pixels rather than reducing large tips to 1024×1024.
+Transformed native footprints may be rectangular and grow during a projective stroke without
+rescaling carried pixels. Up to 32,768 generated stamps are accepted, with a 268,435,456
+native tip-pixel × stamp budget. Dry run checks the padded source-space footprint at path
+vertices. Each carry buffer is limited to 18,874,368 pixels and the device's maximum texture
+dimensions; a footprint crossing the inverse projection horizon is rejected rather than
+downsampled. Use a smaller tip or adjust the layer transform if these limits are exceeded.
 
 ```json
 {"op":"healStroke","layer":"DRAWING-ID","points":[[10,20],[40,20]],

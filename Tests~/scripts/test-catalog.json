@@ -126,10 +126,11 @@
       "reference-fixtures"
     ],
     "verify": [
+      "smudge-quality",
       "smudge-brush",
       "smudge-api",
       "smudge-ui",
-      "incomplete-document-save",
+      "effect-cache-fingerprints",
       "unity-a-owned-window-journal-unity-v2",
       "entry-contract",
       "display-channels-v2",
@@ -376,12 +377,12 @@
       "document-round-trip-smoke-v2",
       "document-save-cache-smoke-v2",
       "document-storage-boundary-smoke-v2",
+      "incomplete-document-save",
       "document-vector-widening-smoke-v2",
       "drawing-pattern-smoke-v2",
       "drawing-reload-smoke-v2",
       "drawing-resolution-smoke-v2",
       "edge-selector-smoke-v2",
-      "effect-cache-fingerprints",
       "effect-cache-smoke-v2",
       "effect-thumbnails-smoke-v2",
       "enum-fx-smoke-v2",
@@ -602,10 +603,11 @@
       "reference-fixtures"
     ],
     "regressions": [
+      "smudge-quality",
       "smudge-brush",
       "smudge-api",
       "smudge-ui",
-      "incomplete-document-save",
+      "effect-cache-fingerprints",
       "display-channels-v2",
       "canonical-reader-v2",
       "frozen-files-v2",
@@ -789,12 +791,12 @@
       "document-round-trip-smoke-v2",
       "document-save-cache-smoke-v2",
       "document-storage-boundary-smoke-v2",
+      "incomplete-document-save",
       "document-vector-widening-smoke-v2",
       "drawing-pattern-smoke-v2",
       "drawing-reload-smoke-v2",
       "drawing-resolution-smoke-v2",
       "edge-selector-smoke-v2",
-      "effect-cache-fingerprints",
       "effect-cache-smoke-v2",
       "effect-thumbnails-smoke-v2",
       "enum-fx-smoke-v2",
@@ -1082,10 +1084,10 @@
       "unity-b-async-skip-protocol-v2"
     ],
     "diagnostics": [
-      "effect-cache-fingerprint-performance",
+      "smudge-visual",
       "smudge-performance",
       "smudge-precision",
-      "smudge-visual",
+      "effect-cache-fingerprint-performance",
       "small-document-save-scheduling-v2",
       "small-document-save-carrier-v2",
       "whimtex-gradient-reload-begin-v2",
@@ -1251,6 +1253,7 @@
       "seamless-release-stress-2048-mode-4-v2"
     ],
     "rendering": [
+      "effect-cache-fingerprints",
       "display-channels-v2",
       "output-dependencies-v2",
       "swizzle-math-v2",
@@ -1258,7 +1261,6 @@
       "tiling-v2",
       "all-below-input-v2",
       "clipping-mask-v2",
-      "effect-cache-fingerprints",
       "effect-cache-smoke-v2",
       "effect-thumbnails-smoke-v2",
       "gpu-preview-smoke-v2",
@@ -1344,7 +1346,6 @@
       "psd-reader-roundtrip-v2"
     ],
     "automation": [
-      "smudge-api",
       "agent-command-inventory-v2",
       "agent-documentation-v2",
       "agent-samples-v2",
@@ -1505,6 +1506,7 @@
       "procedural-clipboard-unity-v2"
     ],
     "painting": [
+      "smudge-quality",
       "smudge-brush",
       "smudge-api",
       "smudge-ui",
@@ -1592,7 +1594,6 @@
       "guide-reload-smoke-v2"
     ],
     "documents": [
-      "incomplete-document-save",
       "document-json-schema-v2",
       "document-title-v2",
       "empty-document-save-v2",
@@ -1622,6 +1623,7 @@
       "document-round-trip-smoke-v2",
       "document-save-cache-smoke-v2",
       "document-storage-boundary-smoke-v2",
+      "incomplete-document-save",
       "document-vector-widening-smoke-v2",
       "file-navigation-smoke-v2",
       "missing-layer-data-v2",
@@ -1748,6 +1750,23 @@
   },
   "scenarios": [
     {
+      "id": "smudge-quality",
+      "file": "Tests~/Cases/Painting/SmudgeBrushTests.cs",
+      "runner": "run_script",
+      "entry": "SmudgeBrushTests.Quality",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["temp-files", "user-state"],
+      "groups": ["painting"],
+      "prerequisites": "Idle graphical Test6.6 Editor; reviewed case and declared framework.",
+      "setup": "Compare post-deposit pickup/retention to an independent premultiplied RGBA reference on straight/turning paths; require an unchanged initial patch at full Strength; verify hard-tip antialiasing, striped HDR/native Drawing surfaces, fractional/soft masks, rotation, growing projective footprints and tips above 1024 without user assets.",
+      "teardown": "End owned strokes, release transient resources and restore borrowed Editor state through FixtureScope.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
+      "reviewFiles": []
+    },
+    {
       "id": "smudge-brush",
       "file": "Tests~/Cases/Painting/SmudgeBrushTests.cs",
       "runner": "run_script",
@@ -1829,7 +1848,7 @@
       "effects": ["temp-files", "user-state"],
       "groups": ["painting"],
       "prerequisites": "Idle graphical Test6.6 Editor; reviewed case and framework; no concurrent painting.",
-      "setup": "Owned 2K/4K Drawing surfaces, 32/128 pixel tips, current/frozen sources; measure 100 pointer segments and drain GPU with public one-pixel readback.",
+      "setup": "Owned 2K/4K Drawing surfaces, 32/128/512 pixel tips, current/frozen sources; measure 100 pointer segments and drain GPU with public one-pixel readback.",
       "teardown": "Release owned strokes, sources, previews and documents; timing is diagnostic, not regression PASS.",
       "result": {"kind": "structured"},
       "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
