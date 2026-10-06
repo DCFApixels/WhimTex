@@ -555,7 +555,8 @@
     flex-shrink: 0;
 }
 
-.whimtex-blur-hardness > .unity-base-field__label {
+.whimtex-blur-hardness > .unity-base-field__label,
+.whimtex-smudge-hardness > .unity-base-field__label {
     width: 58px;
     min-width: 58px;
     flex-shrink: 0;
@@ -563,32 +564,38 @@
     -unity-text-align: middle-left;
 }
 
-.whimtex-blur-size {
+.whimtex-blur-size,
+.whimtex-smudge-size {
     flex-shrink: 0;
 }
 
-.whimtex-blur-size > .unity-base-field__label {
+.whimtex-blur-size > .unity-base-field__label,
+.whimtex-smudge-size > .unity-base-field__label {
     width: 30px;
     min-width: 30px;
     flex-shrink: 0;
 }
 
-.whimtex-blur-size > .unity-base-field__input {
+.whimtex-blur-size > .unity-base-field__input,
+.whimtex-smudge-size > .unity-base-field__input {
     flex-grow: 1;
     min-width: 0;
 }
 
-.whimtex-blur-hardness {
+.whimtex-blur-hardness,
+.whimtex-smudge-hardness {
     flex-shrink: 0;
 }
 
-.whimtex-blur-hardness > .unity-base-field__input {
+.whimtex-blur-hardness > .unity-base-field__input,
+.whimtex-smudge-hardness > .unity-base-field__input {
     flex-grow: 1;
     min-width: 0;
 }
 
 .whimtex-brush-pressure > .unity-base-field__label,
-.whimtex-blur-pressure > .unity-base-field__label {
+.whimtex-blur-pressure > .unity-base-field__label,
+.whimtex-smudge-pressure > .unity-base-field__label {
     width: 52px;
     min-width: 52px;
     flex-shrink: 0;
@@ -596,12 +603,14 @@
 }
 
 .whimtex-brush-pressure > .unity-base-field__input,
-.whimtex-blur-pressure > .unity-base-field__input {
+.whimtex-blur-pressure > .unity-base-field__input,
+.whimtex-smudge-pressure > .unity-base-field__input {
     flex-grow: 1;
     min-width: 0;
 }
 
-.whimtex-blur-mode {
+.whimtex-blur-mode,
+.whimtex-smudge-mode {
     flex-shrink: 0;
 }
 

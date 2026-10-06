@@ -14,7 +14,7 @@ namespace DCFApixels.WhimTex
         private VisualElement contextToolSeparator;
         private Button gradientToolButton, uvIslandToolButton, temporaryToolButton;
 
-        private static bool IsBaseCanvasTool(CanvasTool tool) => tool <= CanvasTool.Shape || tool == CanvasTool.HealingBrush;
+        private static bool IsBaseCanvasTool(CanvasTool tool) => tool <= CanvasTool.Shape || tool == CanvasTool.HealingBrush || tool == CanvasTool.SmudgeBrush;
         private static bool IsTemporaryCanvasTool(CanvasTool tool) =>
             tool == CanvasTool.FXTransform || tool == CanvasTool.FXPoint || tool == CanvasTool.FXNormal;
         private bool IsUvToolAvailable => compositor != null && uvEnabled;

@@ -1588,6 +1588,7 @@ namespace DCFApixels.WhimTex
             brushRow.Add(brushPressure);
             toolkitCanvasViewHeader.Add(brushRow);
             AddBlurBrushSettings();
+            AddSmudgeBrushSettings();
             AddHealingSettings();
         }
 
@@ -1624,6 +1625,43 @@ namespace DCFApixels.WhimTex
             mode.AddToClassList("whimtex-blur-mode");
             toolkitHeaderBindings.Track(mode, () => (Enum)paintSettings.blurSampleMode);
             mode.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() => paintSettings.blurSampleMode = (BlurBrushSampleMode)evt.newValue));
+            row.Add(mode);
+            toolkitCanvasViewHeader.Add(row);
+        }
+
+        private void AddSmudgeBrushSettings()
+        {
+            VisualElement row = CreateCanvasSettingsRow();
+            row.name = "smudgeBrushSettings";
+            BindCanvasSettingsRow(row, CanvasTool.SmudgeBrush);
+            FloatField size = CompactField(new FloatField("Size"), 88f);
+            size.name = "smudgeSize";
+            size.AddToClassList("whimtex-smudge-size");
+            toolkitHeaderBindings.Track(size, () => paintSettings.smudgeSize);
+            size.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() => paintSettings.smudgeSize = Mathf.Clamp(evt.newValue, 1, 4096)));
+            row.Add(size);
+            Slider hardness = CompactField(new Slider("Hardness", 0, 100) { showInputField = true }, 160f);
+            hardness.name = "smudgeHardness";
+            hardness.AddToClassList("whimtex-smudge-hardness");
+            toolkitHeaderBindings.Track(hardness, () => paintSettings.smudgeHardness * 100);
+            hardness.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() => paintSettings.smudgeHardness = Mathf.Clamp01(evt.newValue * .01f)));
+            row.Add(hardness);
+            AddBrushHeaderPercent(row, "Strength", () => paintSettings.smudgeStrength,
+                v => paintSettings.smudgeStrength = v, "How much picked-up color the brush retains as it moves.");
+            AddBrushHeaderPercent(row, "Flow", () => paintSettings.smudgeFlow,
+                v => paintSettings.smudgeFlow = v, "How strongly each stamp deposits carried pixels.");
+            Toggle pressure = CompactField(new Toggle("Pressure") { tooltip = "Use tablet pressure to scale Flow." }, 86f);
+            pressure.name = "smudgePressure";
+            pressure.AddToClassList("whimtex-smudge-pressure");
+            toolkitHeaderBindings.Track(pressure, () => paintSettings.smudgePressure);
+            pressure.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() => paintSettings.smudgePressure = evt.newValue));
+            row.Add(pressure);
+            EnumField mode = CompactField(new EnumField(paintSettings.smudgeSampleMode), 118f);
+            mode.name = "smudgeSampleMode";
+            mode.AddToClassList("whimtex-smudge-mode");
+            mode.tooltip = "Sample this layer, this layer and those below, or all visible layers. Only this Drawing layer is changed.";
+            toolkitHeaderBindings.Track(mode, () => (Enum)paintSettings.smudgeSampleMode);
+            mode.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() => paintSettings.smudgeSampleMode = (BlurBrushSampleMode)evt.newValue));
             row.Add(mode);
             toolkitCanvasViewHeader.Add(row);
         }
@@ -1713,10 +1751,10 @@ namespace DCFApixels.WhimTex
             toolkitCanvas.SetPencilCursor(canvasTool == CanvasTool.Pencil);
             toolkitCanvas.SetDocument(channelCanvasTexture != null ? (Texture)channelCanvasTexture : CanvasPresentationSource,
                 compositor.width, compositor.height,
-                IsCanvasBrushEnabled || IsCanvasBlurBrushEnabled ? drawing : null, transforming,
+                IsCanvasBrushEnabled || IsCanvasBlurBrushEnabled || IsCanvasSmudgeBrushEnabled ? drawing : null, transforming,
                 IsCanvasPaintTool || canvasTool == CanvasTool.HealingBrush ? paintSettings : null);
             toolkitCanvas.SetRoundCursorSize(canvasTool == CanvasTool.HealingBrush ? paintSettings.healingSize :
-                canvasTool == CanvasTool.BlurBrush ? paintSettings.blurSize : paintSettings.brushSize);
+                canvasTool == CanvasTool.BlurBrush ? paintSettings.blurSize : canvasTool == CanvasTool.SmudgeBrush ? paintSettings.smudgeSize : paintSettings.brushSize);
             RefreshCanvasPointerCursor();
             if (toolkitCanvasError != null)
             {
@@ -1761,6 +1799,10 @@ namespace DCFApixels.WhimTex
                 else if (canvasTool == CanvasTool.HealingBrush)
                 {
                     toolkitCanvasViewFooter.text = "Paint over defect • Release to heal • Esc cancel • [ ] size • Click non-Drawing layer to convert";
+                }
+                else if (canvasTool == CanvasTool.SmudgeBrush && IsCanvasToolAvailable(CanvasTool.SmudgeBrush))
+                {
+                    toolkitCanvasViewFooter.text = "LMB drag to smudge • no color added • Pressure scales Flow • [ ] size";
                 }
                 else if (canvasTool == CanvasTool.BlurBrush && IsCanvasToolAvailable(CanvasTool.BlurBrush))
                 {
@@ -1812,14 +1854,15 @@ namespace DCFApixels.WhimTex
             if (HandleHealingDown(evt)) return;
             if (HandleFillPointerDown(evt)) return;
             DrawingLayerBehaviour layer = GetSelectedLayer()?.Behaviour as DrawingLayerBehaviour;
-            if (!(IsCanvasBrushEnabled || IsCanvasBlurBrushEnabled) || paintingLayer != null || layer == null ||
+            if (!(IsCanvasBrushEnabled || IsCanvasBlurBrushEnabled || IsCanvasSmudgeBrushEnabled) || paintingLayer != null || layer == null ||
                 (evt.button != 0 && evt.button != 1) || evt.altKey)
                 return;
             if (!toolkitCanvas.contentRect.Contains(evt.localPosition)) return;
 
             Focus();
             toolkitCanvas.Focus();
-            bool erase = evt.button == 1 || paintSettings.tool == PaintToolMode.Eraser;
+            if (canvasTool == CanvasTool.SmudgeBrush && evt.button != 0) return;
+            bool erase = canvasTool != CanvasTool.SmudgeBrush && (evt.button == 1 || paintSettings.tool == PaintToolMode.Eraser);
             if (!erase && (canvasChannels & 8) == 0)
             {
                 WhimTexUI.ConsumeEvent(evt);
@@ -1864,7 +1907,12 @@ namespace DCFApixels.WhimTex
                     _ => layer.CaptureBlurSource(compositor.width, compositor.height)
                 };
             RememberPaintingPoint(originUv);
-            if (canvasTool == CanvasTool.BlurBrush)
+            if (canvasTool == CanvasTool.SmudgeBrush)
+            {
+                BeginCanvasSmudge(layer, originUv);
+                if (connect && originUv != startUv) PaintTowardsLayerPoint(startUv);
+            }
+            else if (canvasTool == CanvasTool.BlurBrush)
                 layer.BlurSegment(startUv, startUv, compositor.width, compositor.height,
                     paintSettings.blurSize, paintSettings.blurHardness, GetBlurStrength(), blurSampleTexture);
             else if (connect && originUv != startUv)
@@ -1915,7 +1963,9 @@ namespace DCFApixels.WhimTex
                 if (hasLastPaintingUv && paintingLayer.TryClipStrokeSegmentToRepeatShape(
                         lastPaintingUv, pointUv, compositor.width, compositor.height, out Vector2 clippedUv))
                 {
-                    if (canvasTool == CanvasTool.BlurBrush)
+                    if (canvasTool == CanvasTool.SmudgeBrush)
+                        SmudgeTowardsLayerPoint(lastPaintingUv, clippedUv);
+                    else if (canvasTool == CanvasTool.BlurBrush)
                         paintingLayer.BlurSegment(lastPaintingUv, clippedUv, compositor.width, compositor.height,
                             paintSettings.blurSize, paintSettings.blurHardness, GetBlurStrength(), blurSampleTexture);
                     else
@@ -1932,7 +1982,9 @@ namespace DCFApixels.WhimTex
             {
                 if (lastPaintingUv == pointUv)
                     return;
-                if (canvasTool == CanvasTool.BlurBrush)
+                if (canvasTool == CanvasTool.SmudgeBrush)
+                    SmudgeTowardsLayerPoint(lastPaintingUv, pointUv);
+                else if (canvasTool == CanvasTool.BlurBrush)
                     paintingLayer.BlurSegment(lastPaintingUv, pointUv, compositor.width, compositor.height,
                         paintSettings.blurSize, paintSettings.blurHardness, GetBlurStrength(), blurSampleTexture);
                 else
@@ -1941,7 +1993,9 @@ namespace DCFApixels.WhimTex
             }
             else
             {
-                if (canvasTool == CanvasTool.BlurBrush)
+                if (canvasTool == CanvasTool.SmudgeBrush)
+                    BeginCanvasSmudge(paintingLayer, pointUv);
+                else if (canvasTool == CanvasTool.BlurBrush)
                     paintingLayer.BlurSegment(pointUv, pointUv, compositor.width, compositor.height,
                         paintSettings.blurSize, paintSettings.blurHardness, GetBlurStrength(), blurSampleTexture);
                 else
@@ -1950,6 +2004,34 @@ namespace DCFApixels.WhimTex
             RememberPaintingPoint(pointUv);
             hasLastPaintingUv = true;
             RefreshCanvasDuringPainting();
+        }
+
+        private void BeginCanvasSmudge(DrawingLayerBehaviour layer, Vector2 point)
+        {
+            RenderTexture sample = null;
+            RenderTexture previous = RenderTexture.active;
+            try
+            {
+                sample = paintSettings.smudgeSampleMode switch
+                {
+                    BlurBrushSampleMode.BelowLayers => compositor.RenderLayerAndBelow(layer, compositor.width, compositor.height),
+                    BlurBrushSampleMode.AllLayers => compositor.RenderCanvasAtSize(compositor.width, compositor.height),
+                    _ => null
+                };
+                layer.BeginSmudgeStroke(point, compositor.width, compositor.height, paintSettings.smudgeSize, sample, tiledCanvas);
+            }
+            finally
+            {
+                RenderTexture.active = previous;
+                if (sample != null) RenderTexture.ReleaseTemporary(sample);
+            }
+        }
+
+        private void SmudgeTowardsLayerPoint(Vector2 from, Vector2 to)
+        {
+            float pressure = paintSettings.smudgePressure ? Mathf.Clamp01(paintingPressure) : 1;
+            paintingLayer.SmudgeSegment(from, to, compositor.width, compositor.height, paintSettings.smudgeHardness,
+                paintSettings.smudgeStrength, paintSettings.smudgeFlow * pressure, GetAreaSelectionTexture());
         }
 
         private float GetBlurStrength()
@@ -2041,7 +2123,7 @@ namespace DCFApixels.WhimTex
             toolkitCanvas?.SetCursor(
                 visible,
                 visible ? GetCanvasPaintPosition(localPosition, paintingShiftHeld, canvasPointerControl, updateConstraint: false) : localPosition,
-                canvasTool != CanvasTool.HealingBrush && (paintingLayer != null ? paintingErase : paintSettings.tool == PaintToolMode.Eraser));
+                canvasTool != CanvasTool.HealingBrush && canvasTool != CanvasTool.SmudgeBrush && (paintingLayer != null ? paintingErase : paintSettings.tool == PaintToolMode.Eraser));
             MouseCursor transformCursor = !panning && canvasPointerInside && IsCanvasTransformEnabled
                 ? canvasTransformManipulator?.GetCursor(localPosition, alt) ?? MouseCursor.Pan
                 : MouseCursor.Pan;
@@ -2194,11 +2276,16 @@ namespace DCFApixels.WhimTex
             if (!decrease && !increase)
                 return;
 
-            float currentSize = canvasTool == CanvasTool.Pencil ? paintSettings.pencilSize : paintSettings.brushSize;
+            float currentSize = canvasTool == CanvasTool.Pencil ? paintSettings.pencilSize :
+                canvasTool == CanvasTool.BlurBrush ? paintSettings.blurSize : canvasTool == CanvasTool.SmudgeBrush ? paintSettings.smudgeSize : paintSettings.brushSize;
             float step = PaintToolSettings.GetSizeShortcutStep(currentSize);
             float nextSize = Mathf.Max(1f, Mathf.Round(currentSize + (increase ? step : -step)));
             if (canvasTool == CanvasTool.Pencil)
                 ApplyPaintToolChange(() => paintSettings.pencilSize = Mathf.Clamp(Mathf.RoundToInt(nextSize), 1, 4096));
+            else if (canvasTool == CanvasTool.BlurBrush)
+                ApplyPaintToolChange(() => paintSettings.blurSize = nextSize);
+            else if (canvasTool == CanvasTool.SmudgeBrush)
+                ApplyPaintToolChange(() => paintSettings.smudgeSize = Mathf.Clamp(nextSize, 1, 4096));
             else
                 ApplyPaintToolChange(() => paintSettings.brushSize = nextSize);
             WhimTexUI.ConsumeEvent(evt);

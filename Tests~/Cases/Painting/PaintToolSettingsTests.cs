@@ -31,6 +31,8 @@ public static class PaintToolSettingsTests
         string beforeSecond = UnityEngine.JsonUtility.ToJson(second);
         Check(Read<float>(settings, "brushSize") == 32f, "Shared brush starts with its own default size");
         Check(Read<int>(settings, "pencilSize") == 1, "Pencil starts at one pixel");
+        Check(Read<float>(settings, "smudgeSize") == 32 && Read<float>(settings, "smudgeStrength") == .8f,
+            "Smudge has independent defaults");
         Check(type.GetField("pencilShape").GetValue(settings).ToString() == "Circle", "Pencil starts with a circular tip");
         var sizeStep = type.GetMethod("GetSizeShortcutStep", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
         foreach (int size in new[] { 1, 5, 15, 19, 20, 50, 100, 500, 4096 })
@@ -39,6 +41,7 @@ public static class PaintToolSettingsTests
             Check(actual == System.Math.Max(1, size / 10), "Size shortcut step scales gradually: " + size);
         }
         type.GetField("pencilSize").SetValue(settings, 5);
+        type.GetField("smudgeSize").SetValue(settings, 19f);
         Check(Read<bool>(settings, "fillContiguous"), "Shared fill defaults to contiguous");
         Check(Read<DCFApixels.WhimTex.FillSampleMode>(settings, "fillSampleMode") ==
             DCFApixels.WhimTex.FillSampleMode.CurrentLayer, "Shared fill defaults to current-layer sampling");
@@ -52,6 +55,8 @@ public static class PaintToolSettingsTests
         Check(Read<float>(restored, "brushSize") == 47f && Read<int>(restored, "fillTolerance") == 123,
             "Shared brush/fill settings survive preference serialization");
         Check(Read<int>(restored, "pencilSize") == 5, "Independent pencil size survives preference serialization");
+        Check(Read<float>(restored, "smudgeSize") == 19f && Read<float>(restored, "blurSize") == 32f,
+            "Independent Smudge/Blur sizes survive preference serialization");
         Check(UnityEngine.JsonUtility.ToJson(first) == beforeFirst && UnityEngine.JsonUtility.ToJson(second) == beforeSecond,
             "Changing shared tools does not overwrite either layer's legacy or local settings");
         Check(type.GetField("repeatMode") == null && type.GetField("transform") == null,
@@ -63,7 +68,7 @@ public static class PaintToolSettingsTests
         var parseTool = windowType.GetMethod("ParseCanvasTool", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
         foreach (string name in System.Enum.GetNames(toolType))
         {
-            bool basic = (int)System.Enum.Parse(toolType, name) <= (int)System.Enum.Parse(toolType, "Shape") || name == "HealingBrush";
+            bool basic = (int)System.Enum.Parse(toolType, name) <= (int)System.Enum.Parse(toolType, "Shape") || name == "HealingBrush" || name == "SmudgeBrush";
             Check(parseTool.Invoke(null, new object[] { name }).ToString() == (basic ? name : "None"),
                 "Only base tools survive preferences: " + name);
         }

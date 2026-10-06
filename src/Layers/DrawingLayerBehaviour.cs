@@ -238,6 +238,7 @@ namespace DCFApixels.WhimTex
         internal void BeginStroke(Vector2 sourceUv)
         {
             ReleaseAdvancedStroke();
+            ReleaseSmudgeStroke();
             brushSpacingState = default;
             brushRandomState = 0;
             brushStampIndex = 0;
@@ -263,6 +264,7 @@ namespace DCFApixels.WhimTex
         internal void EndStroke()
         {
             ReleaseAdvancedStroke();
+            ReleaseSmudgeStroke();
             clipStrokeToInitialShape = false;
             strokeWrapCanvas = false;
         }
@@ -1027,6 +1029,7 @@ namespace DCFApixels.WhimTex
         private void ReleasePaintSurface()
         {
             ReleaseAdvancedStroke();
+            ReleaseSmudgeStroke();
             paintSurfaceDirty = false;
             if (paintSurface == null)
                 return;

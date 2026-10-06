@@ -29,7 +29,7 @@ namespace DCFApixels.WhimTex
         {
             JObject result = Success();
             result["operations"] = new JArray("add", "set", "transform", "target", "move", "stroke", "compact",
-                "fx", "delete", "duplicate", "merge", "convertToDrawing", "blurStroke", "healStroke", "resize");
+                "fx", "delete", "duplicate", "merge", "convertToDrawing", "blurStroke", "smudgeStroke", "healStroke", "resize");
             result["resize"] = "Document operation: width/height (1..16384, at most 16,777,216 pixels), preserveLayout=true. Preserves normalized layer transforms, not pixel-valued effects or source raster dimensions. Result layerId/name are null.";
             result["fxOperations"] = new JArray("add", "replace", "set", "remove", "move", "copy", "apply", "applyAll");
             result["fxCatalog"] = "whimtex_fx_catalog: query installed presets; pass presetId for parameter details. Use returned id in FX add/replace.";

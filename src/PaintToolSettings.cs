@@ -85,6 +85,12 @@ namespace DCFApixels.WhimTex
         public float blurFlow = 1f;
         public bool blurPressure = true;
         public BlurBrushSampleMode blurSampleMode = BlurBrushSampleMode.CurrentLayer;
+        public float smudgeSize = 32f;
+        public float smudgeHardness = .8f;
+        public float smudgeStrength = .8f;
+        public float smudgeFlow = 1f;
+        public bool smudgePressure = true;
+        public BlurBrushSampleMode smudgeSampleMode = BlurBrushSampleMode.CurrentLayer;
         public float healingSize = 32f;
         public float healingHardness = .8f;
         public int healingSearch = 64;

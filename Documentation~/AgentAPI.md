@@ -389,9 +389,9 @@ blending; lower layers remain separate. See [baking details](ShaderFX.md#baking-
 Removed aliases cannot address detached layers. Existing dependency validation still applies:
 do not delete an input while leaving an invalid explicit target reference.
 
-### Blur and healing strokes
+### Blur, smudge and healing strokes
 
-Both require Drawing; convert explicitly when appropriate. Points are canvas pixels with a
+These tools require Drawing; convert explicitly when appropriate. Points are canvas pixels with a
 **top-left origin**. They do not implicitly use the window's area selection or brush settings.
 `tiled:true` wraps the canvas boundary; repeating layer transforms are not supported (Clip and
 Unbounded are accepted). Size is 1..512 px, hardness 0..1, up to 4096 points.
@@ -406,6 +406,20 @@ It is frozen at stroke start. Strength and flow are each 0..1, default 1. Work i
 67,108,864 canvas-pixel × input-point passes; simplify a path rather than repeating thousands of points.
 
 ```json
+{"op":"smudgeStroke","layer":"DRAWING-ID","points":[[10,20],[40,20]],
+ "size":24,"hardness":0.8,"strength":0.8,"flow":1,"source":"CurrentLayer","tiled":true}
+```
+
+Smudge carries existing RGBA pixels along the path, without adding a painting color.
+One point alone does not paint. Strength (0..1, default 0.8) controls color retention;
+flow (0..1, default 1) controls deposition. Sources match Blur. CurrentLayer samples
+the changing raw Drawing; visible-stack sources freeze other layers/FX at stroke start
+and feed back this stroke's deposits. Writes affect only the selected Drawing.
+Spacing follows canvas distance rather than input-point frequency. Up to 32,768 generated
+stamps are accepted, with a 268,435,456 tip-pixel × stamp budget; large tips use a
+carry buffer capped at 1024×1024 pixels.
+
+```json
 {"op":"healStroke","layer":"DRAWING-ID","points":[[10,20],[40,20]],
  "size":24,"hardness":0.8,"source":"CurrentLayer","search":64,
  "quality":"Balanced","seed":1,"transparentOnly":false,"tiled":true}
@@ -418,7 +432,7 @@ Use linear-data import settings for an exact grayscale mask. Alpha is not used a
 The API uses the same buffered stroke mask, tiled recentering and fill algorithm as the tool.
 Healing currently limits the full canvas to 1,048,576 pixels and cancels computation after
 20 seconds; cancellation fails the operation without applying a patch. It is synchronous,
-not a background job. Both tools also limit total generated stroke stamps to 32,768.
+not a background job. All three tools limit total generated stroke stamps to 32,768.
 
 ### Diagnostic rendering
 

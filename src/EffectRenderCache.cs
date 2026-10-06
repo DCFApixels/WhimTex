@@ -185,7 +185,7 @@ namespace DCFApixels.WhimTex
                         hash = Mix(hash, unchecked((ulong)UnityEditor.EditorUtility.GetDirtyCount(modifier)));
                         if (modifier is ShaderFX shaderFX)
                         {
-                            foreach (char c in JsonUtility.ToJson(modifier)) hash = Mix(hash, c);
+                            hash = Mix(hash, shaderFX.RenderCacheStamp());
                             foreach (var parameter in shaderFX.Parameters)
                                 if (parameter?.textureValue != null) hash = MixTexture(hash, parameter.textureValue);
                             foreach (var parameter in shaderFX.TextureLayerParameters())
@@ -226,6 +226,7 @@ namespace DCFApixels.WhimTex
                 if (layer?.AsGroup() is Layer group && group.layers != null)
                     foreach (Layer child in group.layers)
                     {
+                        if (child?.enabled != true || child.Behaviour is PendingLayerBehaviour) continue;
                         ulong dependency = Stamp(child);
                         if (dependency == 0) return stamps[layer] = 0;
                         hash = Mix(hash, dependency);
@@ -240,6 +241,7 @@ namespace DCFApixels.WhimTex
                     document.TryFindLayer(layer, out var container, out int index))
                     for (int i = index + 1; i < container.Count; i++)
                     {
+                        if (container[i]?.enabled != true || container[i].Behaviour is PendingLayerBehaviour) continue;
                         ulong dependency = Stamp(container[i]);
                         if (dependency == 0) return stamps[layer] = 0;
                         hash = Mix(hash, dependency);

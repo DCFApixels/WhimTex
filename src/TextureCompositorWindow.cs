@@ -426,11 +426,14 @@ namespace DCFApixels.WhimTex
 
             canvasRequested = false;
             bool paintingCanvas = paintingLayer != null;
+            // Limit update starts, not render completion + another full interval.
+            // Otherwise an expensive composition lowers the stroke's refresh rate twice.
+            double canvasStartedAt = EditorApplication.timeSinceStartup;
             UpdateCanvasRender();
             if (canvasTransformManipulator != null && canvasTransformManipulator.IsDragging)
-                nextTransformCanvasAt = EditorApplication.timeSinceStartup + PaintingCanvasInterval;
+                nextTransformCanvasAt = canvasStartedAt + PaintingCanvasInterval;
             if (paintingCanvas)
-                nextPaintingCanvasAt = EditorApplication.timeSinceStartup + PaintingCanvasInterval;
+                nextPaintingCanvasAt = canvasStartedAt + PaintingCanvasInterval;
         }
 
         private Layer GetDraggedLayer() => GetDraggedLayerForDocument(compositor);
@@ -612,6 +615,7 @@ namespace DCFApixels.WhimTex
             if (finishedLayer == null)
                 return;
 
+            bool pixelsChanged = canvasTool != CanvasTool.SmudgeBrush || finishedLayer.SmudgeStrokeChanged;
             finishedLayer.EndStroke();
             if (!ReferenceEquals(finishedLayer.Owner.Behaviour, finishedLayer) || compositor == null ||
                 !ReferenceEquals(compositor.FindLayer(finishedLayer.Id), finishedLayer.Owner))
@@ -619,12 +623,17 @@ namespace DCFApixels.WhimTex
                 lineAnchorLayer = null;
                 return;
             }
+            if (!pixelsChanged)
+            {
+                Undo.FlushUndoRecordObjects();
+                return;
+            }
             finishedLayer.SyncSurfaceToTexture();
             nextPaintingCanvasAt = 0d;
-            if (canvasTool == CanvasTool.BlurBrush)
+            if (canvasTool == CanvasTool.BlurBrush || canvasTool == CanvasTool.SmudgeBrush)
             {
-                // Blur Brush changes pixels using a stable source snapshot. Once
-                // the stroke ends, do not keep the surrounding FX stack in its
+                // Pixel retouching changes the sampled image. Once the stroke
+                // ends, do not keep the surrounding FX stack in its
                 // interactive approximation: the next preview must use settled
                 // quality (notably for Sharpen layers above the Drawing layer).
                 effectInteractiveUntil = 0d;

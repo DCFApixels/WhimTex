@@ -65,6 +65,7 @@ namespace DCFApixels.WhimTex
                     layer = EditLayerStructure(document, layer, operation, aliases, execute);
                     break;
                 case "blurStroke":
+                case "smudgeStroke":
                 case "healStroke":
                     PaintRepair(document, layer, operation, execute);
                     break;

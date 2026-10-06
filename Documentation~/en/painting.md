@@ -156,6 +156,25 @@ If the stroke starts snapped to a [guide](preview.md#guides), `Shift` follows th
 To connect points, click the first point, then hold `Shift` and click the next one.
 Repeat to draw a chain of straight segments.
 
+## Smudge Brush
+
+Choose the **finger icon** and drag to stretch existing pixels along the stroke.
+A click without movement does not paint. Smudge uses a round tip and does not add
+the selected painting color.
+
+- **Size / Hardness** set the diameter and edge softness; `[` / `]` change Size.
+- **Strength** controls how much picked-up color the brush retains. Higher values carry it farther; lower values mix in nearby pixels sooner.
+- **Flow** controls how strongly each stamp deposits the carried pixels. **Pressure** scales Flow with tablet pressure.
+- **Current Layer** samples raw Drawing pixels. **Below Layers** includes the active layer and the visible layers below it in its group; **All Layers** samples the visible composition.
+
+Only the active Drawing layer is changed, and the area selection limits deposits.
+Other layer types offer conversion on click. Use an empty Drawing above the image
+with Below Layers to keep the original intact. Sampled FX become pixels in the
+stroke; painting back onto a layer with those FX can apply them again.
+
+Each drag is one Undo step. **Tiled** wraps strokes across canvas edges.
+Smudge settings are independent of Blur Brush; brush presets and symmetry do not apply.
+
 ## Healing Brush
 
 Choose the bandage icon, paint over a scratch, small hole or seam, then release the
