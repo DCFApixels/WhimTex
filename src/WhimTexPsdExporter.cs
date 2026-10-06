@@ -118,7 +118,7 @@ namespace DCFApixels.WhimTex
                 {
                     report.groupCount++;
                     records.Add(new PsdWriter.LayerRecord { name = "</Group>", id = LayerId(group, ids, ":end"), section = 3, visible = false });
-                    bool bakedSwizzle = !missingBehaviour && (!group.swizzle.IsIdentity || group.HasModifiers);
+                    bool bakedSwizzle = !missingBehaviour && (!group.swizzle.IsIdentity || group.HasFx);
                     if (bakedSwizzle)
                         records.Add(new PsdWriter.LayerRecord { name = "</Group>", id = LayerId(group, ids, ":source-end"), section = 3, visible = false });
                     Collect(document, group.layers, records, report, visited, ids);
@@ -126,7 +126,7 @@ namespace DCFApixels.WhimTex
                     {
                         records.Add(new PsdWriter.LayerRecord { name = "Source Layers", id = LayerId(group, ids, ":sources"),
                             section = 1, visible = false, opacity = 255, blend = "norm", sectionBlend = "norm" });
-                        records.Add(new PsdWriter.LayerRecord { name = group.HasModifiers ? "FX Result" : "Swizzle Result", id = LayerId(group, ids, ":swizzle"),
+                        records.Add(new PsdWriter.LayerRecord { name = group.HasFx ? "FX Result" : "Swizzle Result", id = LayerId(group, ids, ":swizzle"),
                             visible = true, opacity = 255, blend = "norm",
                             openPixels = () => new Pixels(document.RenderPsdGroupContent(group), document.width, document.height) });
                         report.Note(group, "Group FX and Swizzle are baked into a child layer. Original children are preserved in the hidden Source Layers folder.");
@@ -156,9 +156,9 @@ namespace DCFApixels.WhimTex
                 if (approximate) report.Note(layer, layer.blendMode + " is approximated by " + record.blend + "; the merged image retains the original result.");
                 if (layer.blendMode == BlendMode.None) report.Note(layer, "No-op blend is represented by a hidden layer.");
 
-                bool modifiers = HasModifiers(layer) || !layer.swizzle.IsIdentity;
+                bool requiresRasterization = HasFx(layer) || !layer.swizzle.IsIdentity;
                 if (!layer.swizzle.IsIdentity) report.Note(layer, "Swizzle is baked into the layer pixels.");
-                if (layer?.Behaviour is ColorFillLayerBehaviour fill && fill.mode == ColorFillLayerBehaviour.FillMode.Color && !modifiers)
+                if (layer?.Behaviour is ColorFillLayerBehaviour fill && fill.mode == ColorFillLayerBehaviour.FillMode.Color && !requiresRasterization)
                 {
                     record.adjustment = true;
                     record.mask = true;
@@ -166,7 +166,7 @@ namespace DCFApixels.WhimTex
                     record.openPixels = () => new Pixels(document.RenderPsdPixels(layer), document.width, document.height, alphaAsMask: true);
                     report.editableFillCount++;
                 }
-                else if (layer?.Behaviour is GradientLayerBehaviour gradient && CanExportGradient(gradient, modifiers))
+                else if (layer?.Behaviour is GradientLayerBehaviour gradient && CanExportGradient(gradient, requiresRasterization))
                 {
                     record.adjustment = true;
                     record.mask = gradient.transform.tiling == TransformTilingMode.Clip;
@@ -177,7 +177,7 @@ namespace DCFApixels.WhimTex
                         (gradient.gradientType != GradientLayerBehaviour.GradientType.Horizontal && gradient.gradientType != GradientLayerBehaviour.GradientType.Vertical))
                         report.Note(layer, "Gradient geometry/interpolation is editable but may differ, especially on a non-square canvas.");
                 }
-                else if (layer?.Behaviour is OutlineLayerBehaviour outline && CanExportOutline(outline, modifiers))
+                else if (layer?.Behaviour is OutlineLayerBehaviour outline && CanExportOutline(outline, requiresRasterization))
                 {
                     record.fillOpacity = 0;
                     Add(record, "lfx2", Stroke(outline));
@@ -187,16 +187,16 @@ namespace DCFApixels.WhimTex
                 }
                 else if (!(layer?.Behaviour is DrawingLayerBehaviour) && !(layer?.Behaviour is FileLayerBehaviour))
                     report.Note(layer, "Rasterized with its transform and FX; no compatible editable representation for these settings.");
-                else if (HasModifiers(layer))
+                else if (HasFx(layer))
                     report.Note(layer, "Shader/Material FX are baked into the layer pixels.");
                 records.Add(record);
             }
         }
 
-        private static bool HasModifiers(Layer layer)
+        private static bool HasFx(Layer layer)
         {
-            if (layer.modifiers == null) return false;
-            foreach (UnityEngine.Object modifier in layer.modifiers) if (modifier != null) return true;
+            if (layer.fx == null) return false;
+            foreach (UnityEngine.Object fxEntry in layer.fx) if (fxEntry != null) return true;
             return false;
         }
 
@@ -210,14 +210,14 @@ namespace DCFApixels.WhimTex
             return id;
         }
 
-        private static bool CanExportOutline(OutlineLayerBehaviour layer, bool modifiers) =>
-            !modifiers && !layer.fillCenter && layer.outlineOffset == 0f &&
+        private static bool CanExportOutline(OutlineLayerBehaviour layer, bool requiresRasterization) =>
+            !requiresRasterization && !layer.fillCenter && layer.outlineOffset == 0f &&
             layer.Owner.CanvasTransform.IsIdentity() && layer.outlineWidth > 0f && layer.outlineWidth <= 250f &&
             (layer.metric == DistanceMetric.EuclideanExact || layer.metric == DistanceMetric.EuclideanApproximate);
 
-        private static bool CanExportGradient(GradientLayerBehaviour layer, bool modifiers)
+        private static bool CanExportGradient(GradientLayerBehaviour layer, bool requiresRasterization)
         {
-            if (modifiers || layer.Owner.CanvasTransform.storage == TransformStorage.Projective || layer.gradient == null || layer.gradient.Mode != WhimTexGradientMode.Classic ||
+            if (requiresRasterization || layer.Owner.CanvasTransform.storage == TransformStorage.Projective || layer.gradient == null || layer.gradient.Mode != WhimTexGradientMode.Classic ||
                 layer.gradient.ColorSpace != ColorSpace.Gamma || layer.gradient.Smoothness != 0f ||
                 (layer.Owner.CanvasTransform.tiling != TransformTilingMode.Clip && layer.Owner.CanvasTransform.tiling != TransformTilingMode.Source)) return false;
             bool linear = layer.gradientType == GradientLayerBehaviour.GradientType.Horizontal || layer.gradientType == GradientLayerBehaviour.GradientType.Vertical;

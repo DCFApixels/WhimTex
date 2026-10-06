@@ -94,7 +94,7 @@ namespace DCFApixels.WhimTex
                 colored = RenderTexture.GetTemporary(context.width, context.height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
                 GL.sRGBWrite = false;
                 Graphics.Blit(resultTexture, colored, gradientMaterial);
-                return ApplyTransformAndModifiers(colored, context);
+                return ApplyTransformAndFx(colored, context);
             }
             finally
             {

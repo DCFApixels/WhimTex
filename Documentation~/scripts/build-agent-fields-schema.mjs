@@ -100,7 +100,7 @@ for (const field of ['poissonEdges', 'mirrorPoissonEdges', 'offsetPoissonEdges',
 for (const field of ['screeningRadius', 'mirrorCorrectionRadius', 'offsetCorrectionRadius', 'quiltingCorrectionRadius'])
   seamlessDescriptions[field] = 'Poisson Radius: fraction of the smaller canvas dimension. Global correction, not a hard band. Manual correction radii are unused while their Automatic Radius is enabled.';
 for (const field of ['processRed', 'processGreen', 'processBlue', 'processAlpha'])
-  seamlessDescriptions[field] = 'Channels: false restores this input channel after seam processing, before normal layer modifiers/FX/compositing. All false bypasses seam processing.';
+  seamlessDescriptions[field] = 'Channels: false restores this input channel after seam processing, before normal layer FX/compositing. All false bypasses seam processing.';
 for (const [field, description] of Object.entries(seamlessDescriptions)) seamless[field].description = description;
 defs.transform.allOf = [{ if: { required: ['matrix'] }, then: { not: { anyOf: ['position','scale','rotation'].map(key => ({required:[key]})) } } }];
 defs.sdf = object({

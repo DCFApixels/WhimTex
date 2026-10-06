@@ -99,7 +99,7 @@ namespace DCFApixels.WhimTex
                 drawing.PrepareStroke(width, height, UndoName);
                 sample = source == "AllLayers" ? document.RenderCanvasAtSize(width, height) :
                     source == "CurrentAndBelow" ? document.RenderLayerAndBelow(target, width, height) :
-                    healing ? target.Render(new LayerRenderContext(document, null, width, height, 1, applyModifiers: false)) :
+                    healing ? target.Render(new LayerRenderContext(document, null, width, height, 1, applyFx: false)) :
                     smudge ? null : drawing.CaptureBlurSource(width, height);
                 Require(smudge && source == "CurrentLayer" || sample != null, "No repair source available.");
                 if (healing) HealPixels(document, drawing, sample, points, suppliedMask, size, hardness, search, tiled, quality, seed, transparentOnly, inverse);

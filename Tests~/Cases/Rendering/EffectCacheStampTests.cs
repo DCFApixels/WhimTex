@@ -26,7 +26,7 @@ public static class EffectCacheStampTests
             var fx = S.Own(ScriptableObject.CreateInstance<ShaderFX>());
             string source = "// " + new string((char)('a' + i % 20), 100000) + "\nfloat4 ApplyFX(float2 uv, float4 color) { return color; }";
             Set(fx, "code", source); Set(fx, "appliedCode", source); Set(fx, "appliedSource", source);
-            layer.modifiers.Add(fx); doc.layers.Add(layer);
+            layer.fx.Add(fx); doc.layers.Add(layer);
         }
         Call(doc, "NormalizeModel");
         void Frame() { Call(cache, "BeginFrame", doc, null); Call(cache, "Stamp", processor); }
@@ -42,7 +42,7 @@ public static class EffectCacheStampTests
         var doc = S.Own(ScriptableObject.CreateInstance<TextureCompositor>());
         var cache = S.OwnDisposable((IDisposable)Activator.CreateInstance(CacheType, true));
         var fx = S.Own(ScriptableObject.CreateInstance<ShaderFX>());
-        Layer layer = new ColorFillLayerBehaviour(); layer.modifiers.Add(fx); doc.layers.Add(layer);
+        Layer layer = new ColorFillLayerBehaviour(); layer.fx.Add(fx); doc.layers.Add(layer);
         Call(doc, "NormalizeModel");
         ulong Stamp() { Call(cache, "BeginFrame", doc, null); return (ulong)Call(cache, "Stamp", layer); }
         ulong previous = Stamp();
@@ -118,7 +118,7 @@ public static class EffectCacheStampTests
         Set(renderFx, "code", "// @param float _Amount = 1 [0 .. 4]\nfloat4 ApplyFX(float2 uv, float4 color) { return color * float4(_Amount, 1, 1, 1); }");
         Call(renderFx, "ApplyAgentDraft");
         Layer color = new ColorFillLayerBehaviour { color = new Color(.25f, .5f, .75f, 1), colorRange = LayerColorRange.HDR };
-        color.modifiers.Add(renderFx); doc.layers.Clear(); doc.layers.Add(color); doc.width = doc.height = 16;
+        color.fx.Add(renderFx); doc.layers.Clear(); doc.layers.Add(color); doc.width = doc.height = 16;
         Call(doc, "NormalizeModel");
         var baseImage = S.Own(doc.ComposeCanvas()); var baseColor = baseImage.GetPixel(8, 8);
         var read = S.Own(new Texture2D(16, 16, TextureFormat.RGBAFloat, false, true));

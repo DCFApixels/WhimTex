@@ -16,7 +16,7 @@ namespace DCFApixels.WhimTex
             get
             {
                 if (canvasTool != CanvasTool.FXNormal || normalFX == null || compositor == null || GetSelectedLayer() is not Layer layer ||
-                    !layer.modifiers.Contains(normalFX) || WhimTexApi.IsLayerContentLocked(compositor, layer) ||
+                    !layer.fx.Contains(normalFX) || WhimTexApi.IsLayerContentLocked(compositor, layer) ||
                     WhimTexApi.IsShaderFXContentLocked(normalFX)) return null;
                 foreach (var p in normalFX.Parameters)
                     if (p != null && p.id == normalParameterId && p.type == ShaderFXParameterType.Normal) return p;
@@ -33,7 +33,7 @@ namespace DCFApixels.WhimTex
             if (!exists) return;
             TextureCompositorWindow best = null;
             foreach (var w in Resources.FindObjectsOfTypeAll<TextureCompositorWindow>())
-                if (w.compositor != null && w.GetSelectedLayer() is Layer layer && layer.modifiers.Contains(effect) &&
+                if (w.compositor != null && w.GetSelectedLayer() is Layer layer && layer.fx.Contains(effect) &&
                     !WhimTexApi.IsLayerContentLocked(w.compositor, layer) &&
                     (best == null || w == focusedWindow || best != focusedWindow && w.AgentFocusOrder > best.AgentFocusOrder)) best = w;
             if (best == null) return;

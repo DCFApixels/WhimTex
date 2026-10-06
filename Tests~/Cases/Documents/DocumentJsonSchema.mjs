@@ -12,7 +12,7 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     const schema = JSON.parse(fs.readFileSync(path.join(root, 'Documentation~/AI/document.schema.json')));
     // The generated schema deliberately uses this small, dependency-free Draft 2020-12 vocabulary.
     const keywords = new Set(['$schema', '$ref', '$defs', 'title', 'type', 'enum', 'const', 'anyOf', 'allOf',
-      'properties', 'additionalProperties', 'required', 'items', 'prefixItems', 'minItems', 'maxItems', 'minLength', 'minimum', 'maximum', 'deprecated', 'description']);
+      'properties', 'additionalProperties', 'required', 'items', 'prefixItems', 'minItems', 'maxItems', 'minLength', 'minimum', 'maximum', 'deprecated', 'description', 'not']);
     function validate(value, rule, location = '$') {
       for (const key of Object.keys(rule)) assert(keywords.has(key), `Unsupported schema keyword ${key}`);
       if (rule.$ref) validate(value, schema.$defs[rule.$ref.slice('#/$defs/'.length)], location);
@@ -22,6 +22,11 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
         assert(valid, `${location}: no allowed variant: ${errors.join('; ')}`);
       }
       if (rule.allOf) for (const r of rule.allOf) validate(value, r, location);
+      if (rule.not) {
+        let matches = false;
+        try { validate(value, rule.not, location); matches = true; } catch {}
+        assert(!matches, `${location}: excluded combination`);
+      }
       if ('const' in rule) assert.deepEqual(value, rule.const, `${location}: constant`);
       if (rule.enum) assert(rule.enum.includes(value), `${location}: enum ${value}`);
       if (typeof value === 'string') assert(value.length >= (rule.minLength ?? 0), `${location}: string length`);
@@ -65,6 +70,14 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     const compatibilityFiles = ['procedural-Full.json', 'procedural-FullOptimized.json', 'procedural-Compact.json', 'fragment.json'];
     for (const file of compatibilityFiles) validate(JSON.parse(fs.readFileSync(path.join(compatibilityDirectory, file))), schema, file);
     assert.equal(schema.$defs.TextureCompositor.properties.spriteSlices.deprecated, true);
+    assert.ok(schema.$defs.Layer.properties.fx);
+    assert.equal(schema.$defs.Layer.properties.modifiers.deprecated, true);
+    const layerFx = fields => ({ format: 'whimtex.document', version: 1,
+      layers: [{ id: 'fx', behaviour: { $type: 'ColorFillLayerBehaviour' }, ...fields }] });
+    validate(layerFx({ fx: [] }), schema);
+    validate(layerFx({ modifiers: [] }), schema);
+    for (const fields of [{ fx: [], modifiers: [] }, { fx: null, modifiers: [] }, { modifiers: null, fx: [] }])
+      assert.throws(() => validate(layerFx(fields), schema));
     for (const file of ['Documentation~/AI/README.md', 'Documentation~/JSON_FORMAT.md'])
       for (const match of fs.readFileSync(path.join(root, file), 'utf8').matchAll(/\x60\x60\x60json\s*\n([\s\S]*?)\x60\x60\x60/g)) {
         const value = JSON.parse(match[1]);
@@ -101,7 +114,7 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     validate(noise({ scale: 0, scaleY: 0, seed: -2147483648, offset: [-100, 200, 0] }), schema);
     validate(noise({ scale: 2000, warpStrength: -25 }), schema);
     const curve = (key) => ({ ...empty, layers: [{ id: 'curve', behaviour: { $type: 'ColorFillLayerBehaviour' },
-      modifiers: [{ $type: 'ShaderFX', parameters: [{ type: 'Curve', curveValue: { preWrap: 'Default', postWrap: 'Default', keys: [key] } }] }] }] });
+      fx: [{ $type: 'ShaderFX', parameters: [{ type: 'Curve', curveValue: { preWrap: 'Default', postWrap: 'Default', keys: [key] } }] }] }] });
     validate(curve([0, 1, 'Infinity', '-Infinity', 0.3, 0.3, 'Both']), schema);
     for (const key of [[0, 1, 'NaN', 0, 0, 0, 'None'], [0, 1, 0, 0, 0, 0, '999'], ['Infinity', 1, 0, 0, 0, 0, 'None']])
       assert.throws(() => validate(curve(key), schema));

@@ -56,27 +56,35 @@ public static class GroupFXTests
             group.children.Add(new ColorFillLayerBehaviour { color = Color.red });
             doc.layers.Add(group);
             Near(Pixel(), Color.red, "No FX");
-            group.modifiers.Add(fx);
+            group.fx.Add(fx);
+            var fxEditor = UnityBRun.Create<LayerFxEditorWindow>();
+            typeof(LayerFxEditorWindow).GetField("compositor", flags).SetValue(fxEditor, doc);
+            typeof(LayerFxEditorWindow).GetField("layerId", flags).SetValue(fxEditor, group.Id);
+            fxEditor.CreateGUI();
+            var fxList = fxEditor.rootVisualElement.Q<ListView>();
+            UnityBRun.Check(fxList != null && ReferenceEquals(fxList.itemsSource, group.fx), "Layer FX editor binds the canonical list");
+            UnityBRun.Check(fxEditor.rootVisualElement.Q<VisualElement>(className: "whimtex-layer-fx-buttons") != null,
+                "Layer FX editor retains its matching button-row style");
             Near(Pixel(), Color.green, "Group FX");
             UnityBRun.Check(!((bool)typeof(Layer).GetProperty("IsPassThrough", flags).GetValue(group)), "Not isolated");
-            group.modifiers.Add(fx);
+            group.fx.Add(fx);
             Near(Pixel(), Color.blue, "FX order");
-            group.modifiers.RemoveAt(1);
-            Layer outer = new GroupLayerBehaviour(); outer.children.Add(group); outer.modifiers.Add(fx);
+            group.fx.RemoveAt(1);
+            Layer outer = new GroupLayerBehaviour(); outer.children.Add(group); outer.fx.Add(fx);
             doc.layers.Clear(); doc.layers.Add(outer);
             Near(Pixel(), Color.blue, "Nested FX applied once");
             doc.layers.Clear(); doc.layers.Add(group);
             doc.layers.Add(new ColorFillLayerBehaviour { color = Color.blue });
             group.opacity = .5f;
             var withFx = Pixel();
-            group.modifiers.Clear();
+            group.fx.Clear();
             ((ColorFillLayerBehaviour)group.children[0].Behaviour).color = Color.green;
             group.compositing = GroupCompositing.Isolated;
             Near(Pixel(), withFx, "Opacity after FX / backdrop untouched");
             group.compositing = GroupCompositing.PassThrough;
             group.opacity = 1;
             ((ColorFillLayerBehaviour)group.children[0].Behaviour).color = Color.red;
-            group.modifiers.Add(fx);
+            group.fx.Add(fx);
             group.clippingMask = true;
             Near(Pixel(), Color.green, "Clipped group FX");
             group.clippingMask = false;
@@ -84,7 +92,7 @@ public static class GroupFXTests
             var exported = (Texture2D)typeof(TextureCompositor).GetMethod("RenderPsdGroupContent", flags).Invoke(doc, new object[] { group });
             try { Near(exported.GetPixel(4, 4), Color.green, "Layered export"); }
             finally { UnityEngine.Object.DestroyImmediate(exported); }
-            group.modifiers.Clear();
+            group.fx.Clear();
             UnityBRun.Check(!(!(bool)typeof(Layer).GetProperty("IsPassThrough", flags).GetValue(group)), "Pass Through not restored");
             Near(Pixel(), Color.red, "Removed FX");
             var ui = typeof(TextureCompositor).Assembly.GetType("DCFApixels.WhimTex.WhimTexUI");
@@ -98,13 +106,13 @@ public static class GroupFXTests
                 true, (Action<bool>)(_ => {}) });
             var mode = root.Q<TextField>("groupCompositing");
             UnityBRun.Check(!(fxView == null || mode == null || !mode.isReadOnly || mode.value != "Pass Through" || !mode.enabledInHierarchy), "Group inspector availability");
-            group.modifiers.Add(fx);
+            group.fx.Add(fx);
             bindingsType.GetMethod("Refresh").Invoke(bindings, new object[] { true });
             UnityBRun.Check(!(mode.value != "Isolated"), "Group inspector refresh");
-            group.modifiers.Clear();
+            group.fx.Clear();
             bindingsType.GetMethod("Refresh").Invoke(bindings, new object[] { true });
             UnityBRun.Check(!(mode.value != "Pass Through"), "Group inspector restoration");
-            string json = "{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"group\",\"group\":true,\"behaviour\":{\"$type\":\"GroupLayerBehaviour\"},\"modifiers\":[{\"$type\":\"ShaderFX\",\"code\":\"" + code + "\"}],\"children\":[{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"storedColor\":[1,0,0,1]}}]}]}";
+            string json = "{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"group\",\"group\":true,\"behaviour\":{\"$type\":\"GroupLayerBehaviour\"},\"fx\":[{\"$type\":\"ShaderFX\",\"code\":\"" + code + "\"}],\"children\":[{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"storedColor\":[1,0,0,1]}}]}]}";
             using (var data = (IDisposable)typeof(WhimTexApi).GetMethod("ReadProceduralClipboard", flags).Invoke(null, new object[] { json, 8, 8 }))
             {
                 data.GetType().GetMethod("Compile", flags).Invoke(data, null);
@@ -124,4 +132,3 @@ public static class GroupFXTests
     }
     public static string Main() => UnityBRun.Run("GroupFXSmoke.Main", () => ExecuteMain());
 }
-

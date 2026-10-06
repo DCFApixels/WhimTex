@@ -121,7 +121,7 @@ public static class NoiseRandomizeTests
                 Check(sawTrue && sawFalse, "Random All still varies Inverted: " + output);
                 Check(outputs.Count == (output == NoiseLayerBehaviour.OutputEncoding.Gradient ? 1 : 2), "Expected output choices reached: " + output);
             }
-            Check(layer.layerName == "Preserve" && layer.opacity == .7f && JsonUtility.ToJson(layer.transform) == transform && layer.modifiers.Count == 0, "Layer settings stay intact");
+            Check(layer.layerName == "Preserve" && layer.opacity == .7f && JsonUtility.ToJson(layer.transform) == transform && layer.fx.Count == 0, "Layer settings stay intact");
 
             window = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<NoiseLayerEditorWindow>());
             typeof(LayerEditorWindowBase).GetMethod("Initialize", Any).Invoke(window, new object[] {layer,doc});

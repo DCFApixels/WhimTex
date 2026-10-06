@@ -37,7 +37,7 @@
       "swizzle": {
         "packed": 0
       },
-      "modifiers": [],
+      "fx": [],
       "transform": {
         "pivot": {
           "x": 0.5,
@@ -85,7 +85,7 @@
           "swizzle": {
             "packed": 0
           },
-          "modifiers": [],
+          "fx": [],
           "transform": {
             "pivot": {
               "x": 0.5,
@@ -153,7 +153,7 @@
           "swizzle": {
             "packed": 0
           },
-          "modifiers": [],
+          "fx": [],
           "transform": {
             "pivot": {
               "x": 0.5,
@@ -223,7 +223,7 @@
           "swizzle": {
             "packed": 0
           },
-          "modifiers": [],
+          "fx": [],
           "transform": {
             "pivot": {
               "x": 0.5,
@@ -291,7 +291,7 @@
           "swizzle": {
             "packed": 0
           },
-          "modifiers": [],
+          "fx": [],
           "transform": {
             "pivot": {
               "x": 0.5,
@@ -359,7 +359,7 @@
           "swizzle": {
             "packed": 0
           },
-          "modifiers": [],
+          "fx": [],
           "transform": {
             "pivot": {
               "x": 0.5,
@@ -421,7 +421,7 @@
           "swizzle": {
             "packed": 0
           },
-          "modifiers": [],
+          "fx": [],
           "transform": {
             "pivot": {
               "x": 0.5,

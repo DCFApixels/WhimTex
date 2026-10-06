@@ -119,7 +119,7 @@ namespace DCFApixels.WhimTex
                 material.SetFloat("_Encoding", (int)encoding);
                 var result = Allocate(true);
                 Graphics.Blit(context.input, result, material, 2);
-                return ApplyTransformAndModifiers(result, context);
+                return ApplyTransformAndFx(result, context);
             }
             finally
             {

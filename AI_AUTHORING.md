@@ -7,7 +7,7 @@ Read the [authoring guide](Documentation~/AI/README.md), the
 
 Open the [clipboard example index](Documentation~/Examples/Clipboard/README.md), then read an
 actual procedural recipe matching the task. These are stored documents, not live API requests.
-Use `behaviour.$type`, native model fields and `modifiers`; do not use legacy `type/properties/fx`.
+Use `behaviour.$type`, native model fields and `fx`; do not use legacy `type/properties` or live FX operation envelopes.
 `document` is optional, but specify width and height for predictable source-canvas context.
 There is no root `kind` discriminator. Default export mode is `FullOptimized`; use Full/Compact on request.
 

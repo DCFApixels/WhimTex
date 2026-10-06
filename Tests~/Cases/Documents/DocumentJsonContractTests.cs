@@ -44,11 +44,11 @@ public static class DocumentJsonContractTests
             Rejected(() => WhimTexDocumentJson.Read(Full(document).Replace("\"version\": 1", "\"version\": 999"), false).Dispose(), "Unsupported version accepted.");
             Rejected(() => WhimTexDocumentJson.Read("{\"format\":\"whimtex.document\",\"version\":1,\"document\":{},\"layers\":[{}]}", false).Dispose(), "Incomplete layer silently accepted.");
             const string fxJson = "{\"format\":\"whimtex.document\",\"version\":1,\"document\":{},\"layers\":[" +
-                "{\"id\":\"first\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"},\"modifiers\":[{\"$type\":\"ShaderFX\",\"$id\":\"shared\",\"code\":\"float4 ApplyFX(float2 uv,float4 color){return color;}\"}]}," +
-                "{\"id\":\"second\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"},\"modifiers\":[{\"$ref\":\"shared\"}]}]}";
+                "{\"id\":\"first\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"},\"fx\":[{\"$type\":\"ShaderFX\",\"$id\":\"shared\",\"code\":\"float4 ApplyFX(float2 uv,float4 color){return color;}\"}]}," +
+                "{\"id\":\"second\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"},\"fx\":[{\"$ref\":\"shared\"}]}]}";
             using (var shared = WhimTexDocumentJson.Read(fxJson, false))
             using (var again = WhimTexDocumentJson.Read(Full(shared.Document), false))
-                Check(ReferenceEquals(again.Document.layers[0].modifiers[0], again.Document.layers[1].modifiers[0]), "Shared FX identity lost.");
+                Check(ReferenceEquals(again.Document.layers[0].fx[0], again.Document.layers[1].fx[0]), "Shared FX identity lost.");
             var fragment = WhimTexDocumentJson.WriteLayers(document, new[] { layer });
             using (var read = WhimTexDocumentJson.Read(fragment.Json, false)) Check(!fragment.Json.Contains("\"kind\"") && read.Document.width == 128, "Selected-layer context lost or obsolete discriminator written.");
 

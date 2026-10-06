@@ -1698,7 +1698,7 @@
     display: none;
 }
 
-.whimtex-modifier-buttons {
+.whimtex-layer-fx-buttons {
     flex-wrap: wrap;
 }
 

@@ -52,7 +52,7 @@ namespace DCFApixels.WhimTex
                 return false;
             foreach (Layer layer in source)
             {
-                if (layer?.modifiers != null && layer.modifiers.Contains(effect))
+                if (layer?.fx != null && layer.fx.Contains(effect))
                     return true;
                 if (layer?.AsGroup() is Layer group && ContainsShaderFX(group.layers, effect))
                     return true;
@@ -98,19 +98,19 @@ namespace DCFApixels.WhimTex
             ShaderFX effect = ShaderFX.CreateEmbedded(this);
             Undo.RecordObject(this, "Add Shader FX");
             embeddedShaderFX.Add(effect);
-            layer.modifiers.Add(effect);
+            layer.fx.Add(effect);
             return effect;
         }
 
         internal void EmbedShaderFX(Layer layer, int index)
         {
-            if (!(layer.modifiers[index] is ShaderFX source))
+            if (!(layer.fx[index] is ShaderFX source))
                 return;
             ShaderFX copy = source.CloneForDocument(this);
             Undo.RegisterCreatedObjectUndo(copy, "Embed Shader FX");
             Undo.RecordObject(this, "Embed Shader FX");
             embeddedShaderFX.Add(copy);
-            layer.modifiers[index] = copy;
+            layer.fx[index] = copy;
         }
 
         internal void AddCatalogShaderFX(Layer layer, ShaderFXCatalog.Entry entry)
@@ -120,7 +120,7 @@ namespace DCFApixels.WhimTex
             catch (Exception error) { Debug.LogError("WhimTex FX: " + error.Message); return; }
             Undo.RecordObject(this, "Add Catalog FX");
             AdoptAgentShaderFX(effect, "Add Catalog FX");
-            layer.modifiers.Add(effect);
+            layer.fx.Add(effect);
         }
 
         internal void AdoptAgentShaderFX(ShaderFX effect, string undoName)
@@ -265,7 +265,7 @@ namespace DCFApixels.WhimTex
                 else
                 {
                     rendered = RenderStandalone(container, index, width, height, 1f, new HashSet<Layer>(),
-                        applyTransform: applyTransform, applyModifiers: false, includeDisabled: true, applyClipping: false);
+                        applyTransform: applyTransform, applyFx: false, includeDisabled: true, applyClipping: false);
                     if (rendered == null)
                         rendered = GetClearRenderTexture(width, height);
                 }
@@ -776,7 +776,7 @@ namespace DCFApixels.WhimTex
                         try
                         {
                             CompositeLayers(group.layers, ref result, w, h, scale, stack, included);
-                            group.ApplyModifiers(ref result, new LayerRenderContext(this, null, w, h, scale, false, true));
+                            group.ApplyFx(ref result, new LayerRenderContext(this, null, w, h, scale, false, true));
                             result = FinishStage(result, group.colorRange == LayerColorRange.Standard, group.swizzle);
                             return result;
                         }
@@ -794,7 +794,7 @@ namespace DCFApixels.WhimTex
                     CompositeLayers(group.layers, ref content, w, h, scale, stack, included, localAccumulator: !passThrough);
                     if (!passThrough)
                     {
-                        group.ApplyModifiers(ref content, new LayerRenderContext(this, null, w, h, scale, false, true));
+                        group.ApplyFx(ref content, new LayerRenderContext(this, null, w, h, scale, false, true));
                         content = FinishStage(content, group.colorRange == LayerColorRange.Standard, group.swizzle);
                     }
                 }
@@ -813,7 +813,7 @@ namespace DCFApixels.WhimTex
             float scaleMultiplier,
             HashSet<Layer> renderStack,
             bool applyTransform = true,
-            bool applyModifiers = true,
+            bool applyFx = true,
             bool includeDisabled = false,
             bool applyClipping = true,
             bool finishLayer = true, RenderTexture accumulatedInput = null)
@@ -868,12 +868,12 @@ namespace DCFApixels.WhimTex
                     outputHeight,
                     scaleMultiplier,
                     applyTransform,
-                    applyModifiers);
+                    applyFx);
                 RenderTexture raw = layer.Render(context);
                 try
                 {
                     if (finishLayer)
-                        raw = FinishStage(raw, layer.colorRange == LayerColorRange.Standard, applyModifiers ? layer.swizzle : default);
+                        raw = FinishStage(raw, layer.colorRange == LayerColorRange.Standard, applyFx ? layer.swizzle : default);
                     if (applyClipping && raw != null && layer.clippingMask)
                         ApplyClippingCoverage(ref raw, container, index, outputWidth, outputHeight, scaleMultiplier, renderStack);
                     return raw;
@@ -994,7 +994,7 @@ namespace DCFApixels.WhimTex
                 // Render only the group's own content against transparency, never its external backdrop.
                 // This also respects nested opacity and alpha-replacing blend modes.
                 CompositeLayers(group.layers, ref mask, outputWidth, outputHeight, scaleMultiplier, renderStack);
-                group.ApplyModifiers(ref mask, new LayerRenderContext(this, null, outputWidth, outputHeight, scaleMultiplier, false, true));
+                group.ApplyFx(ref mask, new LayerRenderContext(this, null, outputWidth, outputHeight, scaleMultiplier, false, true));
                 if (preserveColor || !group.swizzle.IsIdentity)
                     mask = FinishStage(mask, group.colorRange == LayerColorRange.Standard, group.swizzle);
                 if (group.clippingMask && TryFindLayer(group, out var container, out int index))
@@ -1147,9 +1147,9 @@ namespace DCFApixels.WhimTex
             if (!visited.Add(candidate))
                 return false;
 
-            if (candidate.modifiers != null)
-                foreach (var modifier in candidate.modifiers)
-                    if (modifier is ShaderFX fx)
+            if (candidate.fx != null)
+                foreach (var fxEntry in candidate.fx)
+                    if (fxEntry is ShaderFX fx)
                         foreach (var parameter in fx.TextureLayerParameters())
                             if (LayerDependsOn(FindLayer(parameter.textureLayerId), soughtLayer, visited)) return true;
 

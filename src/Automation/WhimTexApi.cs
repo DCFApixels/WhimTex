@@ -264,9 +264,9 @@ namespace DCFApixels.WhimTex
                 if (layer?.Behaviour is FileLayerBehaviour file && file.sourceTexture != null)
                     Require(!string.Equals(AssetDatabase.GetAssetPath(file.sourceTexture), path, StringComparison.OrdinalIgnoreCase),
                         "A document cannot sample its own saved output texture.", "invalid_target");
-                if (!string.IsNullOrEmpty(path) && layer.modifiers != null)
-                    foreach (var modifier in layer.modifiers)
-                        if (modifier is ShaderFX fx)
+                if (!string.IsNullOrEmpty(path) && layer.fx != null)
+                    foreach (var fxEntry in layer.fx)
+                        if (fxEntry is ShaderFX fx)
                             foreach (var parameter in fx.Parameters)
                                 if (parameter != null && parameter.type == ShaderFXParameterType.Texture2D &&
                                     parameter.textureSource == ShaderFXTextureSource.Texture && parameter.textureValue != null)

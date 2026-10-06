@@ -164,17 +164,17 @@ namespace DCFApixels.WhimTex
                         .Append(':').Append(drawing.StoredTexture.mipmapCount).Append(':').Append(drawing.StoredTexture.isDataSRGB).Append(':');
                     text.Append(Convert.ToBase64String(hash.ComputeHash(drawing.StoredTexture.GetRawTextureData())));
                 }
-                if (!json && layer.modifiers != null)
-                    foreach (UnityEngine.Object modifier in layer.modifiers)
-                        if (modifier != null) text.Append(DocumentModifierRevision(modifier));
+                if (!json && layer.fx != null)
+                    foreach (UnityEngine.Object fxEntry in layer.fx)
+                        if (fxEntry != null) text.Append(DocumentFxRevision(fxEntry));
             }
             return Convert.ToBase64String(hash.ComputeHash(Encoding.UTF8.GetBytes(text.ToString())));
         }
 
-        private static string DocumentModifierRevision(UnityEngine.Object modifier)
+        private static string DocumentFxRevision(UnityEngine.Object fxEntry)
         {
-            string json = EditorJsonUtility.ToJson(modifier);
-            if (modifier is not ShaderFX) return json;
+            string json = EditorJsonUtility.ToJson(fxEntry);
+            if (fxEntry is not ShaderFX) return json;
             // Opening/rendering an embedded FX rebuilds these derived fields. They are not
             // document edits and must not make Inspect disagree with a detached TIFF load.
             var model = JObject.Parse(json);
@@ -255,7 +255,7 @@ namespace DCFApixels.WhimTex
                         transformJson["scale"] = new JArray(t.scale.x, t.scale.y);
                         transformJson["rotation"] = t.rotation;
                     }
-                    entry["modifierCount"] = layer.modifiers?.Count ?? 0;
+                    entry["fxCount"] = layer.fx?.Count ?? 0;
                     if (layer?.Behaviour is FileLayerBehaviour file)
                     {
                         settings["source"] = file.sourceTexture != null ? AssetDatabase.GetAssetPath(file.sourceTexture) : "";

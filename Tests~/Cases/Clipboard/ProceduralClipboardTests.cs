@@ -113,14 +113,14 @@ public static class ProceduralClipboardTests
             {
                 Compile(data);
                 paste.Invoke(shaderDestination, new object[] { Document(data) });
-                Check(shaderDestination.layers[0].modifiers[0] != Document(data).layers[0].modifiers[0], "Shader instance was shared with the temporary source.");
+                Check(shaderDestination.layers[0].fx[0] != Document(data).layers[0].fx[0], "Shader instance was shared with the temporary source.");
             }
-            Check(shaderDestination.layers[0].modifiers[0] != null, "Shader was destroyed with source.");
+            Check(shaderDestination.layers[0].fx[0] != null, "Shader was destroyed with source.");
             Render(shaderDestination);
             Undo.PerformUndo();
             Check(shaderDestination.layers.Count == 0, "Shader paste Undo failed.");
             Undo.PerformRedo();
-            Check(shaderDestination.layers.Count == 1 && shaderDestination.layers[0].modifiers[0] != null, "Shader paste Redo failed.");
+            Check(shaderDestination.layers.Count == 1 && shaderDestination.layers[0].fx[0] != null, "Shader paste Redo failed.");
             Render(shaderDestination);
         }
         finally { Undo.ClearUndo(shaderDestination); WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy(shaderDestination); }

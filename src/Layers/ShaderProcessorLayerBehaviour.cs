@@ -14,6 +14,6 @@ namespace DCFApixels.WhimTex
 
         public override string ToString() => "Shader Processor";
         internal override RenderTexture Render(in LayerRenderContext context) =>
-            ApplyTransformAndModifiers(context.input, context);
+            ApplyTransformAndFx(context.input, context);
     }
 }

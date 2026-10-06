@@ -63,13 +63,13 @@ context.case("LiveShaderFx original assertion inputs and source contracts", asyn
   const metadata={Parse:code=>Array.from({length:code==='LIMIT'?MaxFxParameters:code==='OVER'?MaxFxParameters+1:0},()=>({}))};
   const mutate=new Function('Require','Text','Int','Keys','Obj','List','ShaderFXMetadata','RequireGraphics','ShaderFX','WhimTexApiException','MaxFxParameters',
     `return (layer,token,owner,created)=>{${code}}`)(Require,Text,Int,Keys,v=>v,List,metadata,()=>{}, {CreateAgentDraft:create},class extends Error{},MaxFxParameters);
-  const a={},b={}; const make=()=>({modifiers:new List([a,b]),IsGroup:false});
+  const a={},b={}; const make=()=>({fx:new List([a,b]),IsGroup:false});
   let target=make(), created=new List();
   mutate(target,[{code:'A'},{op:'replace',index:0,code:'B'},{op:'remove',index:1}],doc,created);
-  assert.deepEqual(Array.from(target.modifiers,v=>v.code),['B','A']);
+  assert.deepEqual(Array.from(target.fx,v=>v.code),['B','A']);
   assert.equal(created.length,2); assert.equal(created[0].owner,doc);
   target=make(); mutate(target,[{code:'C',index:1}],doc,new List());
-  assert.equal(target.modifiers[0],a); assert.equal(target.modifiers[2],b); assert.equal(target.modifiers[1].code,'C');
+  assert.equal(target.fx[0],a); assert.equal(target.fx[2],b); assert.equal(target.fx[1].code,'C');
   for(const operations of [
     [{op:'replace',code:'A'}],[{op:'remove',index:7}],[{op:'remove',index:0,code:'A'}],
     [{op:'unknown'}],[{code:''}],[{code:'X'.repeat(65537)}],[{code:'A',typo:1}],Array.from({length:17},()=>({code:'A'})),
@@ -77,13 +77,13 @@ context.case("LiveShaderFx original assertion inputs and source contracts", asyn
   ]) assert.throws(()=>mutate(make(),operations,doc,new List()));
   target=make();
   mutate(target,[{code:'LIMIT'}],doc,new List());
-  assert.equal(target.modifiers.at(-1).Parameters.Count,MaxFxParameters,'The inclusive boundary remains accepted');
+  assert.equal(target.fx.at(-1).Parameters.Count,MaxFxParameters,'The inclusive boundary remains accepted');
   target=make(); assert.throws(()=>mutate(target,[{op:'replace',index:0,code:'INVALID'}],doc,new List()));
-  assert.equal(target.modifiers[0],a); // Failed compilation cannot publish the failing effect.
-  assert.throws(()=>mutate({modifiers:new List(),IsGroup:false},[{op:'remove',index:0}],doc,new List()));
-  const groupTarget={modifiers:new List(),IsGroup:true};
+  assert.equal(target.fx[0],a); // Failed compilation cannot publish the failing effect.
+  assert.throws(()=>mutate({fx:new List(),IsGroup:false},[{op:'remove',index:0}],doc,new List()));
+  const groupTarget={fx:new List(),IsGroup:true};
   mutate(groupTarget,[{code:'A'}],doc,new List());
-  assert.equal(groupTarget.modifiers.length,1);
+  assert.equal(groupTarget.fx.length,1);
   const compile=body(read('src/ShaderFX.cs'),'internal void ApplyAgentDraft(');
   for(const forbidden of ['Undo.','AssetDatabase.AddObjectToAsset','SaveAsset','PersistEmbedded','NotifyValuesChanged','SetDirty'])
     assert.ok(!compile.includes(forbidden),`Trial compilation must not mutate live state: ${forbidden}`);

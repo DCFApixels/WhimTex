@@ -44,7 +44,7 @@ namespace DCFApixels.WhimTex
             get
             {
                 if (canvasTool != CanvasTool.FXTransform || canvasTransformFX == null || compositor == null || GetSelectedLayer() is not Layer selected ||
-                    !selected.modifiers.Contains(canvasTransformFX) || WhimTexApi.IsLayerContentLocked(compositor, selected) ||
+                    !selected.fx.Contains(canvasTransformFX) || WhimTexApi.IsLayerContentLocked(compositor, selected) ||
                     WhimTexApi.IsShaderFXContentLocked(canvasTransformFX)) return null;
                 foreach (var p in canvasTransformFX.Parameters)
                     if (p != null && p.id == canvasTransformParameterId && p.type == ShaderFXParameterType.Transform2D) return p;
@@ -60,7 +60,7 @@ namespace DCFApixels.WhimTex
             if (effect.EmbeddedOwner != null) return effect.EmbeddedOwner;
             TextureCompositorWindow best = null;
             foreach (var window in Resources.FindObjectsOfTypeAll<TextureCompositorWindow>())
-                if (window.compositor != null && window.GetSelectedLayer() is Layer layer && layer.modifiers.Contains(effect) &&
+                if (window.compositor != null && window.GetSelectedLayer() is Layer layer && layer.fx.Contains(effect) &&
                     (best == null || window == focusedWindow || best != focusedWindow && window.AgentFocusOrder > best.AgentFocusOrder)) best = window;
             return best != null ? best.compositor : null;
         }
@@ -74,7 +74,7 @@ namespace DCFApixels.WhimTex
             if (!found) return;
             TextureCompositorWindow best = null;
             foreach (var window in Resources.FindObjectsOfTypeAll<TextureCompositorWindow>())
-                if (window.compositor != null && window.GetSelectedLayer() is Layer selected && selected.modifiers.Contains(effect) &&
+                if (window.compositor != null && window.GetSelectedLayer() is Layer selected && selected.fx.Contains(effect) &&
                     !WhimTexApi.IsLayerContentLocked(window.compositor, selected) &&
                     (best == null || window == focusedWindow || best != focusedWindow && window.AgentFocusOrder > best.AgentFocusOrder)) best = window;
             if (best == null) { EditorUtility.DisplayDialog("FX Transform", "Select a layer using this FX in a WhimTex window first.", "OK"); return; }

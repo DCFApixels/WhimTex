@@ -54,7 +54,7 @@ context.case('AgentSamples original assertions and branches', async () => {
         assert.ok(!['DrawingLayerBehaviour', 'FileLayerBehaviour'].includes(l.behaviour.$type));
         assert.ok(!l.asset && !l.url);
         if (l.behaviour.inputMode === 'Specific') assert.ok(ids.has(l.behaviour.targetLayerId), entry.id + ': missing target');
-        for (const fx of l.modifiers ?? []) {
+        for (const fx of l.fx ?? []) {
           if (fx.$ref) continue;
           assert.equal(fx.$type, 'ShaderFX');
           assert.ok(fx.code.trim());

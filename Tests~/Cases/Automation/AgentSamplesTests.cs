@@ -28,10 +28,10 @@ static System.Threading.CancellationToken Cancellation;
             Check(!string.IsNullOrWhiteSpace(layer.layerName), "Missing layer name.");
             Check(layer.Behaviour != null, "Missing layer behaviour.");
             Check(!(layer.Behaviour is DrawingLayerBehaviour) && !(layer.Behaviour is FileLayerBehaviour), "Unexpected raster dependency.");
-            foreach (var modifier in layer.modifiers)
+            foreach (var fxEntry in layer.fx)
             {
-                Check(modifier is ShaderFX, "Missing or non-HLSL modifier.");
-                var fx = (ShaderFX)modifier;
+                Check(fxEntry is ShaderFX, "Missing or non-HLSL FX entry.");
+                var fx = (ShaderFX)fxEntry;
                 Check(!(bool)typeof(ShaderFX).GetProperty("LastApplyFailed", Hidden).GetValue(fx), fx.name + " failed compilation.");
                 Check(!(bool)typeof(ShaderFX).GetProperty("HasPendingChanges", Hidden).GetValue(fx), fx.name + " has pending changes.");
                 string diagnostics = (string)typeof(ShaderFX).GetProperty("Diagnostics", Hidden).GetValue(fx);

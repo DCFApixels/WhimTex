@@ -29,7 +29,7 @@ public static class ShaderFXActivityTests
                 "float4 ApplyFX(float2 uv,float4 c){return float4(0,0,0,1);}", new List<ShaderFXParameter>() });
             typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(fx, null);
             Layer layer = new ColorFillLayerBehaviour();
-            doc.layers.Add(layer); layer.modifiers.Add(fx);
+            doc.layers.Add(layer); layer.fx.Add(fx);
             float Render()
             {
                 var image = doc.ComposeCanvas();
@@ -44,8 +44,8 @@ public static class ShaderFXActivityTests
             fx.Active = true;
             context.True(!(Render() > .01f || copy.Active), "Independent reactivation");
             Layer group = new GroupLayerBehaviour();
-            group.modifiers.Add(fx);
-            var has = typeof(Layer).GetProperty("HasModifiers", F);
+            group.fx.Add(fx);
+            var has = typeof(Layer).GetProperty("HasFx", F);
             context.True(!(!(bool)has.GetValue(group)), "Active group FX");
             fx.Active = false;
             context.True(!((bool)has.GetValue(group)), "Disabled group FX must not force isolation");

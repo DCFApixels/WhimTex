@@ -8,23 +8,23 @@ using UnityEngine.UIElements;
 
 namespace DCFApixels.WhimTex
 {
-    public sealed class ModifierEditorWindow : EditorWindow
+    public sealed class LayerFxEditorWindow : EditorWindow
     {
         [SerializeField] private TextureCompositor compositor;
         [SerializeField] private string layerId;
 
         [NonSerialized] private Layer layer;
-        [NonSerialized] private ListView modifiersList;
+        [NonSerialized] private ListView fxList;
         [NonSerialized] private bool applyingChange;
         [NonSerialized] private bool interfaceBuilt;
         [NonSerialized] private bool refreshRequested;
         [NonSerialized] private TextureCompositor boundCompositor;
         [NonSerialized] private string boundLayerId;
-        private readonly List<UnityEngine.Object> displayedModifiers = new List<UnityEngine.Object>();
+        private readonly List<UnityEngine.Object> displayedFx = new List<UnityEngine.Object>();
 
         public static void Open(Layer layer, TextureCompositor compositor)
         {
-            ModifierEditorWindow window = CreateInstance<ModifierEditorWindow>();
+            LayerFxEditorWindow window = CreateInstance<LayerFxEditorWindow>();
             window.titleContent = WhimTexBranding.WindowTitle("FX — " + layer?.layerName);
             window.compositor = compositor;
             window.layer = layer;
@@ -60,7 +60,7 @@ namespace DCFApixels.WhimTex
 
         private void Update()
         {
-            if (refreshRequested && (modifiersList == null || !WhimTexUI.HasPointerCaptureWithin(modifiersList)))
+            if (refreshRequested && (fxList == null || !WhimTexUI.HasPointerCaptureWithin(fxList)))
                 RefreshInterface();
         }
 
@@ -69,17 +69,17 @@ namespace DCFApixels.WhimTex
             refreshRequested = false;
             bool valid = ResolveLayer();
             if (interfaceBuilt && boundCompositor == compositor && boundLayerId == layerId &&
-                valid == (modifiersList != null))
+                valid == (fxList != null))
             {
                 if (valid)
-                    RefreshModifierItems();
+                    RefreshFxItems();
                 return;
             }
             interfaceBuilt = true;
             boundCompositor = compositor;
             boundLayerId = layerId;
-            modifiersList = null;
-            displayedModifiers.Clear();
+            fxList = null;
+            displayedFx.Clear();
             VisualElement root = rootVisualElement;
             root.Clear();
             WhimTexUI.ApplyWindowStyles(root);
@@ -103,8 +103,8 @@ namespace DCFApixels.WhimTex
                 "Materials and Shader FX are applied in list order after the layer transform. Select an entry and click Edit to open its Inspector.",
                 HelpBoxMessageType.Info);
 
-            layer.modifiers ??= new List<UnityEngine.Object>();
-            modifiersList = new ListView(layer.modifiers, 22f, MakeModifierField, BindModifierField)
+            layer.fx ??= new List<UnityEngine.Object>();
+            fxList = new ListView(layer.fx, 22f, MakeFxField, BindFxField)
             {
                 selectionType = SelectionType.Single,
                 reorderable = true,
@@ -112,14 +112,14 @@ namespace DCFApixels.WhimTex
                 showBorder = true,
                 showAlternatingRowBackgrounds = AlternatingRowBackground.ContentOnly
             };
-            modifiersList.style.flexGrow = 1f;
-            modifiersList.style.minHeight = 120f;
-            modifiersList.RegisterCallback<PointerDownEvent>(evt =>
+            fxList.style.flexGrow = 1f;
+            fxList.style.minHeight = 120f;
+            fxList.RegisterCallback<PointerDownEvent>(evt =>
             {
                 if (evt.button == 0 && compositor != null)
-                    Undo.RecordObject(compositor, "Reorder Layer Modifiers");
+                    Undo.RecordObject(compositor, "Reorder Layer FX");
             }, TrickleDown.TrickleDown);
-            modifiersList.itemIndexChanged += (_, _) =>
+            fxList.itemIndexChanged += (_, _) =>
             {
                 if (compositor == null)
                     return;
@@ -132,30 +132,30 @@ namespace DCFApixels.WhimTex
                 {
                     applyingChange = false;
                 }
-                RememberModifierItems();
+                RememberFxItems();
             };
-            root.Add(modifiersList);
-            RememberModifierItems();
+            root.Add(fxList);
+            RememberFxItems();
 
             VisualElement buttons = WhimTexUI.CreateRow();
-            buttons.AddToClassList("whimtex-modifier-buttons");
+            buttons.AddToClassList("whimtex-layer-fx-buttons");
             buttons.style.justifyContent = Justify.FlexEnd;
             buttons.style.marginTop = 6f;
-            buttons.Add(WhimTexUI.CreateButton("Add", AddModifier, 64f));
+            buttons.Add(WhimTexUI.CreateButton("Add", AddFx, 64f));
             buttons.Add(WhimTexUI.CreateButton("New Shader FX", CreateShaderFX));
             buttons.Add(WhimTexUI.CreateButton("Preset ▾", () => ShaderFXCatalog.ShowMenu(entry =>
             {
                 if (!ResolveLayer()) return;
                 ApplyChange("Add Catalog FX", () => compositor.AddCatalogShaderFX(layer, entry));
-                RefreshModifierItems();
+                RefreshFxItems();
             })));
-            buttons.Add(WhimTexUI.CreateButton("Edit", EditSelectedModifier));
-            buttons.Add(WhimTexUI.CreateButton("Remove", RemoveSelectedModifier, 72f));
+            buttons.Add(WhimTexUI.CreateButton("Edit", EditSelectedFx));
+            buttons.Add(WhimTexUI.CreateButton("Remove", RemoveSelectedFx, 72f));
             buttons.Add(WhimTexUI.CreateButton("Close", Close, 64f));
             root.Add(buttons);
         }
 
-        private VisualElement MakeModifierField()
+        private VisualElement MakeFxField()
         {
             ObjectField field = new ObjectField
             {
@@ -168,38 +168,38 @@ namespace DCFApixels.WhimTex
                 if (!(field.userData is int index) ||
                     layer == null ||
                     index < 0 ||
-                    index >= layer.modifiers.Count)
+                    index >= layer.fx.Count)
                 {
                     return;
                 }
 
                 if (evt.newValue != null && !(evt.newValue is Material) && !(evt.newValue is ShaderFX))
                 {
-                    field.SetValueWithoutNotify(layer.modifiers[index]);
+                    field.SetValueWithoutNotify(layer.fx[index]);
                     return;
                 }
-                ApplyChange("Edit Layer Modifier", () => layer.modifiers[index] = evt.newValue);
-                RememberModifierItems();
+                ApplyChange("Edit Layer FX", () => layer.fx[index] = evt.newValue);
+                RememberFxItems();
             });
             return field;
         }
 
-        private void BindModifierField(VisualElement element, int index)
+        private void BindFxField(VisualElement element, int index)
         {
             ObjectField field = (ObjectField)element;
             field.userData = index;
-            field.SetValueWithoutNotify(index >= 0 && index < layer.modifiers.Count
-                ? layer.modifiers[index]
+            field.SetValueWithoutNotify(index >= 0 && index < layer.fx.Count
+                ? layer.fx[index]
                 : null);
         }
 
-        private void AddModifier()
+        private void AddFx()
         {
             if (!ResolveLayer())
                 return;
-            ApplyChange("Add Layer Modifier", () => layer.modifiers.Add(null));
-            RefreshModifierItems();
-            modifiersList?.SetSelection(layer.modifiers.Count - 1);
+            ApplyChange("Add Layer FX", () => layer.fx.Add(null));
+            RefreshFxItems();
+            fxList?.SetSelection(layer.fx.Count - 1);
         }
 
         private void CreateShaderFX()
@@ -207,62 +207,62 @@ namespace DCFApixels.WhimTex
             if (!ResolveLayer())
                 return;
             ApplyChange("Add Shader FX", () => compositor.AddEmbeddedShaderFX(layer));
-            RefreshModifierItems();
-            modifiersList?.SetSelection(layer.modifiers.Count - 1);
+            RefreshFxItems();
+            fxList?.SetSelection(layer.fx.Count - 1);
         }
 
-        private void EditSelectedModifier()
+        private void EditSelectedFx()
         {
-            if (!ResolveLayer() || modifiersList == null)
+            if (!ResolveLayer() || fxList == null)
                 return;
-            int index = modifiersList.selectedIndex;
-            if (index >= 0 && index < layer.modifiers.Count && layer.modifiers[index] != null)
+            int index = fxList.selectedIndex;
+            if (index >= 0 && index < layer.fx.Count && layer.fx[index] != null)
             {
-                Selection.activeObject = layer.modifiers[index];
-                EditorGUIUtility.PingObject(layer.modifiers[index]);
+                Selection.activeObject = layer.fx[index];
+                EditorGUIUtility.PingObject(layer.fx[index]);
             }
         }
 
-        private void RemoveSelectedModifier()
+        private void RemoveSelectedFx()
         {
-            if (!ResolveLayer() || modifiersList == null)
+            if (!ResolveLayer() || fxList == null)
                 return;
 
-            int[] selected = modifiersList.selectedIndices.OrderByDescending(index => index).ToArray();
+            int[] selected = fxList.selectedIndices.OrderByDescending(index => index).ToArray();
             if (selected.Length == 0)
                 return;
 
-            ApplyChange("Remove Layer Modifier", () =>
+            ApplyChange("Remove Layer FX", () =>
             {
                 for (int i = 0; i < selected.Length; i++)
                 {
                     int index = selected[i];
-                    if (index >= 0 && index < layer.modifiers.Count)
-                        layer.modifiers.RemoveAt(index);
+                    if (index >= 0 && index < layer.fx.Count)
+                        layer.fx.RemoveAt(index);
                 }
             });
-            RefreshModifierItems();
+            RefreshFxItems();
         }
 
-        private void RememberModifierItems()
+        private void RememberFxItems()
         {
-            displayedModifiers.Clear();
-            displayedModifiers.AddRange(layer.modifiers);
+            displayedFx.Clear();
+            displayedFx.AddRange(layer.fx);
         }
 
-        private void RefreshModifierItems()
+        private void RefreshFxItems()
         {
-            if (modifiersList == null)
+            if (fxList == null)
                 return;
-            bool changed = displayedModifiers.Count != layer.modifiers.Count;
-            for (int i = 0; !changed && i < displayedModifiers.Count; i++)
-                changed = displayedModifiers[i] != layer.modifiers[i];
+            bool changed = displayedFx.Count != layer.fx.Count;
+            for (int i = 0; !changed && i < displayedFx.Count; i++)
+                changed = displayedFx[i] != layer.fx[i];
 
-            if (!ReferenceEquals(modifiersList.itemsSource, layer.modifiers))
-                modifiersList.itemsSource = layer.modifiers;
+            if (!ReferenceEquals(fxList.itemsSource, layer.fx))
+                fxList.itemsSource = layer.fx;
             else if (changed)
-                modifiersList.RefreshItems();
-            RememberModifierItems();
+                fxList.RefreshItems();
+            RememberFxItems();
         }
 
         private void ApplyChange(string undoName, Action change)
@@ -295,7 +295,7 @@ namespace DCFApixels.WhimTex
                 return false;
             }
             layer = resolved;
-            layer.modifiers ??= new List<UnityEngine.Object>();
+            layer.fx ??= new List<UnityEngine.Object>();
             return true;
         }
 

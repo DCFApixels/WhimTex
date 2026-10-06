@@ -12,7 +12,7 @@ context.case("LayerComposition original assertion inputs and source contracts", 
   assert.match(wrapper, /public sealed class Layer/);
   assert.match(wrapper, /\[SerializeReference\] private LayerBehaviour behaviour/);
   assert.match(wrapper, /\[SerializeReference\] public List<Layer> children/);
-  for (const field of ['layerName', 'enabled', 'opacity', 'blendMode', 'colorRange', 'blendRange', 'transform', 'swizzle', 'modifiers']) {
+  for (const field of ['layerName', 'enabled', 'opacity', 'blendMode', 'colorRange', 'blendRange', 'transform', 'swizzle', 'fx']) {
     assert.match(wrapper, new RegExp('public [^\\n]+ ' + field + '[ ;=]'));
     assert.doesNotMatch(behaviour, new RegExp('public \\w+(?:<[^>]+>)? ' + field + '\\s*[;=]'), field + ' has one serialized owner');
   }

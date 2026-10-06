@@ -885,7 +885,7 @@ namespace DCFApixels.WhimTex
                 menu.AddItem(new GUIContent("FX"), false, () =>
                 {
                     foreach (Layer target in targets)
-                        if (target?.Behaviour != null) ModifierEditorWindow.Open(target, compositor);
+                        if (target?.Behaviour != null) LayerFxEditorWindow.Open(target, compositor);
                 });
             }
             if (targets.Exists(target => !(target?.IsGroup == true)))

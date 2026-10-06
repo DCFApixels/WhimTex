@@ -45,7 +45,7 @@ public static class ShaderFXControlTests
         try
         {
             var draft=typeof(ShaderFX).GetMethod("CreateAgentDraft",F,null,new[]{typeof(TextureCompositor),typeof(string),typeof(List<ShaderFXParameter>)},null);
-            effect=(ShaderFX)draft.Invoke(null,new object[]{doc,source,Parse(source)});layer.modifiers.Add(effect);
+            effect=(ShaderFX)draft.Invoke(null,new object[]{doc,source,Parse(source)});layer.fx.Add(effect);
             typeof(ShaderFX).GetMethod("ApplyAgentDraft",F).Invoke(effect,null);
             var viewType=assembly.GetType("DCFApixels.WhimTex.ShaderFXParameterView");
             VisualElement View(bool header)=>(VisualElement)Activator.CreateInstance(viewType,F,null,new object[]{effect,header},null);
@@ -81,7 +81,7 @@ public static class ShaderFXControlTests
             folder=fixture.AssetFolder();
             // GUID asset folder already created by fixture.
             loaded=WhimTexDocumentFile.Load(WhimTexDocumentFile.Save(doc,folder+"/control.tiff"));
-            var restored=(ShaderFX)loaded.layers[0].modifiers[0];
+            var restored=(ShaderFX)loaded.layers[0].fx[0];
             Check(Read((string)typeof(ShaderFX).GetProperty("Code",F).GetValue(restored),out warning)=="_Opacity","TIFF preserves binding");
             void Set(string code)
             {

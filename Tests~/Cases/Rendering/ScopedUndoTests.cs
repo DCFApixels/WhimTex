@@ -104,7 +104,7 @@ public static class ScopedUndoTests
         
             effect = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<DCFApixels.WhimTex.ShaderFX>());
             effect.hideFlags = HideFlags.HideAndDontSave;
-            drawing.modifiers.Add(effect);
+            drawing.fx.Add(effect);
             Call(first, "MarkChanged");
             group = Begin("Scoped effect edit");
             Undo.RecordObject(effect, "Scoped effect edit");

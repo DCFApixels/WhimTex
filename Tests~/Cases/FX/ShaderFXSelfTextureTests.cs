@@ -41,15 +41,15 @@ public static class ShaderFXSelfTextureTests
             Layer layer=new ColorFillLayerBehaviour(); doc.layers.Add(layer);
             var before=Create("float4 ApplyFX(float2 uv,float4 color){return float4(0.2,0.4,0.6,1);}");
             var sample=Create("// @param texture2D _Source = self\nfloat4 ApplyFX(float2 uv,float4 color){return tex2D(_Source,uv);}");
-            layer.modifiers.Add(before); layer.modifiers.Add(sample);
+            layer.fx.Add(before); layer.fx.Add(sample);
             Pixel(new Color(.2f,.4f,.6f,1));
             var p=((List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters",F).GetValue(sample))[0];
             Check(p.textureSource==ShaderFXTextureSource.Self,"self parsed");
             p.textureSource=ShaderFXTextureSource.None; Pixel(Color.clear);
             p.textureSource=ShaderFXTextureSource.Texture; Pixel(Color.white);
             p.textureSource=ShaderFXTextureSource.Self;
-            layer.modifiers.Reverse(); Pixel(new Color(.2f,.4f,.6f,1));
-            layer.modifiers.Reverse();
+            layer.fx.Reverse(); Pixel(new Color(.2f,.4f,.6f,1));
+            layer.fx.Reverse();
             var export=typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetWriter").GetMethod("BuildSource",F);
             foreach(var mode in new[]{ShaderFXTextureSource.Self,ShaderFXTextureSource.None})
             {
@@ -61,8 +61,8 @@ public static class ShaderFXSelfTextureTests
             }
             p.textureSource=ShaderFXTextureSource.Self;
             Layer group=new GroupLayerBehaviour();
-            layer.modifiers.Clear(); layer.modifiers.Add(before);
-            group.children.Add(layer); group.modifiers.Add(sample);
+            layer.fx.Clear(); layer.fx.Add(before);
+            group.children.Add(layer); group.fx.Add(sample);
             doc.layers.Clear(); doc.layers.Add(group);
             Pixel(new Color(.2f,.4f,.6f,1));
             return;

@@ -42,7 +42,7 @@ public static class PortableIncludesTests
             var fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.TextureCompositor), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { doc, original, new List<ShaderFXParameter>() });
             effects.Add(fx);
             typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(fx, null); Check(true, "Original include draft compiles successfully");
-            Layer layer = new ColorFillLayerBehaviour(); doc.layers.Add(layer); layer.modifiers.Add(fx);
+            Layer layer = new ColorFillLayerBehaviour(); doc.layers.Add(layer); layer.fx.Add(fx);
             typeof(Layer).GetMethod("AssignNewId", F).Invoke(layer, null);
             string json = (string)typeof(WhimTexApi).GetMethod("WritePortableClipboard", F).Invoke(null, new object[] { doc, doc.layers });
             Check(!json.Contains(folder) && json.Contains("float Helper"), "Writer expands original file references");

@@ -24,7 +24,7 @@ namespace DCFApixels.WhimTex
                 int resolution = Mathf.Max(64, size * 2);
                 document.width = document.height = resolution;
                 var context = new LayerRenderContext(document, null, resolution, resolution, 1f,
-                    applyTransform: false, applyModifiers: false);
+                    applyTransform: false, applyFx: false);
                 rendered = layer.Render(context);
                 if (rendered == null) return null;
                 reduced = RenderTexture.GetTemporary(size, size, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);

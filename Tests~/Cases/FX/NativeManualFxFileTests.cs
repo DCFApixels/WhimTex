@@ -52,7 +52,7 @@ public static class NativeManualFxFileTests
             Check(next[0].floatValue == .8f && applied[0].floatValue == .8f, "Effective saved hard-clamped value retained");
             Check(!(bool)typeof(ShaderFX).GetProperty("HasPendingChanges", F).GetValue(fx), "Clean cached preset remains applied");
             clone = (ShaderFX)typeof(ShaderFX).GetMethod("CloneForDocument", F).Invoke(fx, new object[] { doc });
-            doc.layers[0].modifiers.Add(clone);
+            doc.layers[0].fx.Add(clone);
             var image = doc.ComposeCanvas();
             try { Check(Math.Abs(image.GetPixel(4, 4).r - .8f) < .002f, "Cached native preset renders its original effective value"); }
             finally { WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy(image); }
@@ -69,7 +69,7 @@ public static class NativeManualFxFileTests
         }
         finally
         {
-            doc.layers[0].modifiers.Clear();
+            doc.layers[0].fx.Clear();
             if (clone != null) WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy(clone);
             WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy(doc);
             Check(folder == WhimTex.Tests.UnityC.FixtureContext.Scope.Assets && Path.GetFileName(folder).Length == "UnityC-".Length + 32, "Owned folder");

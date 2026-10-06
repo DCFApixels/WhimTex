@@ -72,7 +72,7 @@ texture update/dirty counters and live painting frames. Fingerprints are memoize
 Resolution, scale and interactive quality must match. Undo invalidates the window cache; changing
 documents, closing the window or reloading scripts releases it. Source-less cycles cannot hit a
 cached image. Deterministic Shader FX and Shader Processor results participate in the same cache.
-Arbitrary Material modifiers, or FX that use unsupported time inputs, bypass caching because their
+Arbitrary Material FX, or FX that use unsupported time inputs, bypass caching because their
 state is not represented safely by the layer model.
 
 Numeric-error masks are captured locally with each entry and accumulated again on cache hits.

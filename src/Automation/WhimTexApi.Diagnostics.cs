@@ -303,10 +303,10 @@ namespace DCFApixels.WhimTex
                 {
                     layerCount++;
                     if (layer?.Behaviour is DrawingLayerBehaviour) drawingCount++;
-                    if (layer?.modifiers == null) continue;
-                    foreach (UnityEngine.Object modifier in layer.modifiers)
+                    if (layer?.fx == null) continue;
+                    foreach (UnityEngine.Object fxEntry in layer.fx)
                     {
-                        if (!(modifier is ShaderFX effect)) continue;
+                        if (!(fxEntry is ShaderFX effect)) continue;
                         var fx = new JObject { ["name"] = effect.name, ["pendingChanges"] = effect.HasPendingChanges,
                             ["lastApplyFailed"] = effect.LastApplyFailed, ["diagnostics"] = effect.Diagnostics ?? "" };
                         shaderFx.Add(fx);

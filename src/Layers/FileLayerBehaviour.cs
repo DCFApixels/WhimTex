@@ -58,7 +58,7 @@ namespace DCFApixels.WhimTex
             Texture2D source = context.compositor != null
                 ? context.compositor.ResolveOriginalFileTexture(sourceTexture)
                 : sourceTexture;
-            return ApplyTransformAndModifiers(source != null ? source : sourceTexture, context);
+            return ApplyTransformAndFx(source != null ? source : sourceTexture, context);
         }
     }
 }

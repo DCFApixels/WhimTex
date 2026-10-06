@@ -36,7 +36,7 @@ context.case("Shape original assertion inputs and source contracts", async () =>
   assert.match(read('TextureCompositorWindow.Zoom.cs'), /CancelCanvasZoomGesture\(\)[\s\S]*?shapeManipulator\?\.Cancel\(\)/);
   assert.match(behaviour, /RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear/);
   assert.match(behaviour, /SetVector\("_ShapeFill", HdrUtility.Decode\(fillColor\)\)/);
-  assert.match(behaviour, /applyTransform: false, applyModifiers: context.applyModifiers/);
+  assert.match(behaviour, /applyTransform: false, applyFx: context.applyFx/);
   assert.match(behaviour, /finally[\s\S]*GL.sRGBWrite = srgb;[\s\S]*RenderTexture.active = previous;[\s\S]*ReleaseTemporary\(source\)/);
   assert.match(behaviour, /\[NonSerialized\] private Vector4\[\] polygonVertices/);
   assert.match(shader, /float4 _ShapeVertices\[64\]/);

@@ -33,7 +33,7 @@ source pixels or convert groups to isolated mode in the main composition.
   canvas boundary, independently of preview tiling and output Transform tiling.
 
 Zero Strength, zero Distance in Linear mode, or zero Arc in Circular mode bypasses filtering while still
-applying the effect's output Transform and modifiers. Both Layer Settings and separate Properties
+applying the effect's output Transform and FX. Both Layer Settings and separate Properties
 windows use the same stable controls and existing parameter Undo path.
 
 ## Filtering and quality
@@ -71,7 +71,7 @@ is shared by Normal Map, Gaussian Blur and Motion Blur so caching and source ren
 
 Output settings, targets, source changes, dimensions and interactive quality invalidate the
 existing fingerprints. Deterministic Shader FX inputs use the same cache; arbitrary Material
-modifiers and FX with unsupported time inputs still bypass caching.
+Material FX and Shader FX with unsupported time inputs still bypass caching.
 Diagnostic masks follow existing cache behavior. Undo and document changes use existing invalidation.
 
 Working buffers are temporary GPU textures, released as soon as each stage no longer needs them

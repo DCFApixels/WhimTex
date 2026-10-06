@@ -218,7 +218,7 @@ namespace DCFApixels.WhimTex
                 GL.sRGBWrite = false;
                 var renderedContext = ProceduralUv.Prepare(material, Owner, context);
                 Graphics.Blit(null, source, material, 0);
-                return ApplyTransformAndModifiers(source, renderedContext);
+                return ApplyTransformAndFx(source, renderedContext);
             }
             finally
             {

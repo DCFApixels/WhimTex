@@ -78,7 +78,7 @@ static System.Threading.CancellationToken Cancellation;
             Check(group.children.Count == 2 && Math.Abs(group.opacity - .73f) < 1e-6f, entry.file + ": group structure");
             var outline = (OutlineLayerBehaviour)actual.Find(layer => layer.Behaviour is OutlineLayerBehaviour).Behaviour;
             Check(outline.TargetLayerId == group.Id, entry.file + ": target identity");
-            var fx = group.modifiers[0] as ShaderFX;
+            var fx = group.fx[0] as ShaderFX;
             var embedded = (List<ShaderFX>)Field(doc, "embeddedShaderFX");
             Check(embedded.Count == 1 && ReferenceEquals(embedded[0], fx), entry.file + ": shared FX identity after retired object slots");
             var parameters = (List<ShaderFXParameter>)Field(fx, "parameters");

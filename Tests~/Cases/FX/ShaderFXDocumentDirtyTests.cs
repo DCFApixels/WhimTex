@@ -61,7 +61,7 @@ public static class ShaderFXDocumentDirtyTests
             Call(effect, "ApplyAgentDraft");
         }
         else if (preset != null) effect = (ShaderFX)Invoke(typeof(ShaderFX), null, "FromCatalog", doc, Entry(preset));
-        if (effect != null) { owned.Add(effect); doc.layers[0].modifiers.Add(effect); Call(effect, "SuspendDocumentCatalogReload"); }
+        if (effect != null) { owned.Add(effect); doc.layers[0].fx.Add(effect); Call(effect, "SuspendDocumentCatalogReload"); }
         return doc;
     }
 
@@ -75,7 +75,7 @@ public static class ShaderFXDocumentDirtyTests
         owned.Add(doc); doc.hideFlags = HideFlags.HideAndDontSave;
         // Only creates an in-memory binding; the path is never written or imported.
         Invoke(Type("WhimTexDocumentService"), null, "Bind", doc, "Temp/WhimTex/DirtySmoke-" + Guid.NewGuid().ToString("N") + ".tiff");
-        foreach (ShaderFX effect in doc.layers[0].modifiers)
+        foreach (ShaderFX effect in doc.layers[0].fx)
         {
             owned.Add(effect);
             Call(effect, "RestoreDocumentOwner", doc);
@@ -148,7 +148,7 @@ public static class ShaderFXDocumentDirtyTests
                 var doc = RoundTrip(source);
                 Check(!(bool)Get(doc, "undoDeserialized"), preset + ": file load is not model Undo");
                 Check(!(bool)Call(doc, "NativeUndoVersionsChanged"), preset + ": loaded native Undo baseline");
-                foreach (ShaderFX effect in doc.layers[0].modifiers)
+                foreach (ShaderFX effect in doc.layers[0].fx)
                     Check(!(bool)Call(effect, "ConsumeUndoChanges"), preset + ": file load is not FX Undo");
                 int dirtyBefore = EditorUtility.GetDirtyCount(doc);
                 int undoBefore = Undo.GetCurrentGroup();
@@ -157,7 +157,7 @@ public static class ShaderFXDocumentDirtyTests
                 Check(Undo.GetCurrentGroup() == undoBefore, preset + ": restoration does not alter Undo group");
                 var window = Window(doc);
                 AssertDirty(window, doc, false, preset + " before delayed notification");
-                foreach (ShaderFX effect in doc.layers[0].modifiers) Drain(effect);
+                foreach (ShaderFX effect in doc.layers[0].fx) Drain(effect);
                 AssertDirty(window, doc, false, preset + " after delayed notification");
                 Check(changes == 0 && refreshes == (preset == null ? 0 : 1), preset + ": render-only notification");
                 var expected = source.ComposeCanvas(); var actual = doc.ComposeCanvas();
@@ -171,7 +171,7 @@ public static class ShaderFXDocumentDirtyTests
                     AssertDirty(window, doc, true, "ordinary layer edit");
                     continue;
                 }
-                var fx = (ShaderFX)doc.layers[0].modifiers[0];
+                var fx = (ShaderFX)doc.layers[0].fx[0];
                 ((ISerializationCallbackReceiver)fx).OnAfterDeserialize();
                 Check((bool)Call(fx, "ConsumeUndoChanges"), "real FX Undo is still detected");
                 Check(!(bool)Call(fx, "ConsumeUndoChanges"), "FX Undo consumed once");
@@ -209,22 +209,22 @@ public static class ShaderFXDocumentDirtyTests
             }
             // A changed catalog revision during OPEN (notification queued before SetCompositor).
             var stale = Source("Levels.hlsl");
-            Set(stale.layers[0].modifiers[0], "catalogDependencyHash", "old-saved-revision");
+            Set(stale.layers[0].fx[0], "catalogDependencyHash", "old-saved-revision");
             var updated = RoundTrip(stale);
             Invoke(typeof(WhimTexDocumentFile), null, "CompileEmbeddedEffects", updated);
             var updatedWindow = Window(updated);
-            Drain((ShaderFX)updated.layers[0].modifiers[0]);
+            Drain((ShaderFX)updated.layers[0].fx[0]);
             AssertDirty(updatedWindow, updated, true, "changed catalog on open");
 
             // Missing source detaches to saved fallback: that IS a document change.
-            Set(stale.layers[0].modifiers[0], "catalogGuid", "missing-dirty-smoke-guid");
+            Set(stale.layers[0].fx[0], "catalogGuid", "missing-dirty-smoke-guid");
             var fallback = RoundTrip(stale);
             Invoke(typeof(WhimTexDocumentFile), null, "CompileEmbeddedEffects", fallback);
             var fallbackWindow = Window(fallback);
-            Drain((ShaderFX)fallback.layers[0].modifiers[0]);
+            Drain((ShaderFX)fallback.layers[0].fx[0]);
             AssertDirty(fallbackWindow, fallback, true, "missing catalog fallback");
-            Check((Shader)Get(fallback.layers[0].modifiers[0], "compiledShader") != null, "fallback compiled");
-            Check((string)Get(fallback.layers[0].modifiers[0], "catalogGuid") == null, "fallback detached");
+            Check((Shader)Get(fallback.layers[0].fx[0], "compiledShader") != null, "fallback compiled");
+            Check((string)Get(fallback.layers[0].fx[0], "catalogGuid") == null, "fallback detached");
 
             foreach (var item in originals)
                 Check(item.window != null && ReferenceEquals(Get(item.window, "compositor"), item.document) &&

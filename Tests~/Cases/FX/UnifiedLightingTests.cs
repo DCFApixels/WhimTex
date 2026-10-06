@@ -51,13 +51,13 @@ public static class UnifiedLightingTests
             foreach(float weight in new[]{0f,.25f,.5f,1f})for(int output=0;output<3;output++)
             {
                 foreach(var fx in new[]{normal,bevel}){P(fx,"_BaseColor").colorValue=new Color(.3f,.5f,.7f,weight);P(fx,"_Output").floatValue=output;}
-                host.modifiers.Clear();host.modifiers.Add(ramp);host.modifiers.Add(bevel);var a=Render();
-                host.modifiers.Clear();host.modifiers.Add(packed);host.modifiers.Add(normal);var b=Render();
+                host.fx.Clear();host.fx.Add(ramp);host.fx.Add(bevel);var a=Render();
+                host.fx.Clear();host.fx.Add(packed);host.fx.Add(normal);var b=Render();
                 for(int y=8;y<120;y++)for(int x=8;x<120;x++)for(int c=0;c<4;c++)
                     Check(Mathf.Abs(a[y*128+x][c]-b[y*128+x][c])<.004,"identical normals produce identical lighting");
                 if(weight==1)Check(Mathf.Abs(a[8256].a-1)<.004,"surface alpha is not multiplied twice");
             }
-            host.modifiers.Clear();host.modifiers.Add(ramp);host.modifiers.Add(bevel);
+            host.fx.Clear();host.fx.Add(ramp);host.fx.Add(bevel);
             P(bevel,"_Output").floatValue=0;
             P(bevel,"_BaseColor").colorValue=new Color(.3f,.5f,.7f,0);var overlay=Render();
             P(bevel,"_BaseColor").colorValue=new Color(.3f,.5f,.7f,1);var surface=Render();

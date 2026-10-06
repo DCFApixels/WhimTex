@@ -28,6 +28,10 @@ namespace DCFApixels.WhimTex
         }
         internal static bool IsReadOnlyField(Type owner, string name) => owner == typeof(ShapeLayerBehaviour) && name == "roundness";
 
+        // File input only: the old layer FX list name is not a C# or agent API alias.
+        internal static string ReadFieldName(Type owner, string name) =>
+            owner == typeof(Layer) && name == "modifiers" ? "fx" : name;
+
         internal static void Normalize(object value, float? uniformRoundness = null)
         {
             if (value is NoiseLayerBehaviour noise)

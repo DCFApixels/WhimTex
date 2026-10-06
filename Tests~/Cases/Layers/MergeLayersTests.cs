@@ -55,7 +55,7 @@ public static class MergeLayersTests
             var merged = Merge(doc, false, bottom, top, top);
             Check(doc.layers.Count == 1 && doc.layers[0] == merged.Owner, "Replacement deduplicates and uses document order");
             Near(Pixel(doc), before, "Normal layers preserve their merged RGBA");
-            Check(merged.modifiers.Count == 0 && merged.opacity == 1 && merged.transform.Equals(DCFApixels.WhimTex.TextureTransform.Default),
+            Check(merged.fx.Count == 0 && merged.opacity == 1 && merged.transform.Equals(DCFApixels.WhimTex.TextureTransform.Default),
                 "Result has baked settings and identity transform");
             Check(merged.GetPreviewTexture(8).format == TextureFormat.RGBAHalf, "Merged pixels retain half precision");
             Undo.PerformUndo();

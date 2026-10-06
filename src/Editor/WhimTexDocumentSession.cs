@@ -408,8 +408,8 @@ namespace DCFApixels.WhimTex
                 {
                     if (layer == null) continue;
                     if (layer.Behaviour is FileLayerBehaviour || layer.Behaviour is ShaderProcessorLayerBehaviour) return true;
-                    if (layer.modifiers != null)
-                        foreach (var modifier in layer.modifiers) if (modifier != null) return true;
+                    if (layer.fx != null)
+                        foreach (var fxEntry in layer.fx) if (fxEntry != null) return true;
                     if (HasDynamicInputs(layer.children)) return true;
                 }
                 return false;

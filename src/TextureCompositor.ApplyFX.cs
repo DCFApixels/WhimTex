@@ -11,12 +11,12 @@ namespace DCFApixels.WhimTex
         {
             if (layer?.Behaviour == null || !TryFindLayer(layer, out _, out _))
                 return "The layer no longer belongs to this document.";
-            if (lastIndex < 0 || lastIndex >= layer.modifiers.Count)
+            if (lastIndex < 0 || lastIndex >= layer.fx.Count)
                 return "There are no effects to apply.";
             if (WhimTexApi.IsLayerContentLocked(this, layer) || WhimTexApi.ContainsReservation(layer))
                 return "Finish or cancel generation before applying effects.";
             for (int i = 0; i <= lastIndex; i++)
-                if (layer.modifiers[i] is ShaderFX fx && WhimTexApi.IsShaderFXContentLocked(fx))
+                if (layer.fx[i] is ShaderFX fx && WhimTexApi.IsShaderFXContentLocked(fx))
                     return "An effect is being edited by an agent.";
             return null;
         }
@@ -42,7 +42,7 @@ namespace DCFApixels.WhimTex
                 prepared.transform = layer.transform;
                 prepared.swizzle = layer.swizzle;
                 prepared.colorRange = layer.colorRange;
-                prepared.modifiers = layer.modifiers.GetRange(lastIndex + 1, layer.modifiers.Count - lastIndex - 1);
+                prepared.fx = layer.fx.GetRange(lastIndex + 1, layer.fx.Count - lastIndex - 1);
                 prepared.SetBakedPixelFrame(canvasToLayer);
                 if (layer.IsGroup) prepared.SetBakedFxFrame(layer.CanvasTransform.ToMatrix(width, height));
                 if (layer.Behaviour is ShaderProcessorLayerBehaviour)
@@ -87,13 +87,13 @@ namespace DCFApixels.WhimTex
                 interactiveEffects = false;
                 var context = new LayerRenderContext(this, null, width, height, 1f, transformFxCoordinates: !layer.IsGroup);
                 for (int i = 0; i < count; i++)
-                    if (layer.modifiers[i] is ShaderFX fx && fx.Active && fx.GetMaterial(context) == null)
+                    if (layer.fx[i] is ShaderFX fx && fx.Active && fx.GetMaterial(context) == null)
                         throw new InvalidOperationException($"Apply the code for '{fx.name}' successfully before baking it.");
 
                 if (layer.Behaviour is ShaderProcessorLayerBehaviour)
                 {
                     RenderTexture input = RenderBackdropBefore(layer, new HashSet<Layer> { layer });
-                    try { rendered = layer.Render(new LayerRenderContext(this, input, width, height, 1f, applyModifiers: false)); }
+                    try { rendered = layer.Render(new LayerRenderContext(this, input, width, height, 1f, applyFx: false)); }
                     finally { RenderTexture.ReleaseTemporary(input); }
                 }
                 else if (layer.IsGroup)
@@ -103,9 +103,9 @@ namespace DCFApixels.WhimTex
                 }
                 else
                     rendered = RenderStandaloneUncached(container, index, width, height, 1f, new HashSet<Layer>(),
-                        applyModifiers: false, includeDisabled: true, applyClipping: false, finishLayer: false);
+                        applyFx: false, includeDisabled: true, applyClipping: false, finishLayer: false);
                 if (rendered == null) rendered = GetClearRenderTexture(width, height);
-                layer.ApplyModifiers(ref rendered, context, layer.ResolveFilterMode(), count);
+                layer.ApplyFx(ref rendered, context, layer.ResolveFilterMode(), count);
                 return HdrUtility.ReadLinear(rendered);
             }
             finally

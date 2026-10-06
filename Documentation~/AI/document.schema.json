@@ -268,7 +268,7 @@
         "swizzle": {
           "$ref": "#/$defs/LayerSwizzle"
         },
-        "modifiers": {
+        "fx": {
           "type": [
             "array",
             "null"
@@ -676,12 +676,92 @@
             "PassThrough",
             "Isolated"
           ]
+        },
+        "modifiers": {
+          "allOf": [
+            {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "$asset"
+                    ],
+                    "properties": {
+                      "$asset": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "guid": {
+                            "type": "string"
+                          },
+                          "path": {
+                            "type": "string"
+                          },
+                          "localId": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "guid",
+                          "path",
+                          "localId",
+                          "type"
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "anyOf": [
+                      {
+                        "$ref": "#/$defs/ShaderFX"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "$ref"
+                    ],
+                    "properties": {
+                      "$ref": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "deprecated": true,
+          "description": "0.12.5 file input; converted to fx. Never written by current writers."
         }
       },
       "required": [
         "id",
         "behaviour"
-      ]
+      ],
+      "not": {
+        "required": [
+          "fx",
+          "modifiers"
+        ]
+      }
     },
     "LayerSwizzle": {
       "type": "object",

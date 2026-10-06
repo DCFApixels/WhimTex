@@ -223,7 +223,7 @@ For `replacePixels`, only the original Drawing's pixel content is updated. Its i
 blend, FX, name and visibility remain. The selection is mapped into Drawing coordinates; rotation
 and scale are supported. Repeating/mirrored transforms are rejected because one stored pixel can
 appear both inside and outside the selected region. Use a new layer for such edits. A transformed
-source can still be sampled for a new-layer result. Existing modifiers and swizzles still apply after
+source can still be sampled for a new-layer result. Existing FX and swizzles still apply after
 replacement; prefer a new layer when editing their already-processed appearance.
 
 Pixel replacement checks the target's content/settings fingerprint. Independent edits to other layers,
@@ -270,9 +270,9 @@ For generated Drawing content, `imagePath` and `fx` can be supplied together at 
 For parameter layers, put `fx` inside `layer` or at the root, never both. Pixel-replacement jobs do
 not accept FX changes; lock the existing layer for a separate FX edit instead.
 
-Each `fx` entry has `op` (`add` by default, `replace`, `remove`) and an optional modifier `index`.
+Each `fx` entry has `op` (`add` by default, `replace`, `remove`) and an optional FX `index`.
 Add appends by default, or inserts at the specified index. Replace/remove require an explicit index
-from the layer's `fx` snapshot. Indices refer to the entire modifier list, including Material references,
+from the layer's `fx` snapshot. Indices refer to the entire FX list, including Material references,
 and each operation uses the list after the preceding operation. Unmentioned entries stay unchanged.
 Replace copies the new code into a fresh embedded FX; it never edits a shared external asset.
 Remove accepts only op/index. Add/replace accept `code`; define parameters with HLSL `@param` declarations.
@@ -324,7 +324,7 @@ Remove accepts only op/index. Add/replace accept `code`; define parameters with 
 - Inline code may instead declare parameters using [HLSL metadata](ShaderFX.md#parameter-declarations).
   If JSON values are supplied as well, every entry must match a code declaration by name and type;
   those values override defaults. The first-line catalog marker is required only for catalog files.
-- At most 16 FX operations per request and 32 resulting modifier entries. Keep GPU work bounded:
+- At most 16 FX operations per request and 32 resulting FX entries. Keep GPU work bounded:
   no unbounded loops or enormous per-pixel sampling loops. Successful compilation does not prove
   that a shader is fast or numerically stable; inspect a small preview and use HDR Debug as needed.
 

@@ -829,22 +829,22 @@
         "processRed": {
           "type": "boolean",
           "default": true,
-          "description": "Channels: false restores this input channel after seam processing, before normal layer modifiers/FX/compositing. All false bypasses seam processing."
+          "description": "Channels: false restores this input channel after seam processing, before normal layer FX/compositing. All false bypasses seam processing."
         },
         "processGreen": {
           "type": "boolean",
           "default": true,
-          "description": "Channels: false restores this input channel after seam processing, before normal layer modifiers/FX/compositing. All false bypasses seam processing."
+          "description": "Channels: false restores this input channel after seam processing, before normal layer FX/compositing. All false bypasses seam processing."
         },
         "processBlue": {
           "type": "boolean",
           "default": true,
-          "description": "Channels: false restores this input channel after seam processing, before normal layer modifiers/FX/compositing. All false bypasses seam processing."
+          "description": "Channels: false restores this input channel after seam processing, before normal layer FX/compositing. All false bypasses seam processing."
         },
         "processAlpha": {
           "type": "boolean",
           "default": true,
-          "description": "Channels: false restores this input channel after seam processing, before normal layer modifiers/FX/compositing. All false bypasses seam processing."
+          "description": "Channels: false restores this input channel after seam processing, before normal layer FX/compositing. All false bypasses seam processing."
         },
         "horizontal": {
           "type": "string",

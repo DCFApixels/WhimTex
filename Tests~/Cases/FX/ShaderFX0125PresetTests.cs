@@ -90,7 +90,7 @@ public static class ShaderFX0125PresetTests
                     fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
                         new[] { typeof(TextureCompositor), typeof(string), typeof(List<ShaderFXParameter>) }, null)
                         .Invoke(null, new object[] { doc, old, saved });
-                    layer.modifiers.Add(fx);
+                    layer.fx.Add(fx);
                     Call(fx, "ApplyAgentDraft");
                     VerifyValues(fx, id);
                     var reference = doc.ComposeCanvas();
@@ -110,7 +110,7 @@ public static class ShaderFX0125PresetTests
                     loaded = WhimTexDocumentFile.Load(path);
                     Check(string.IsNullOrEmpty((string)typeof(TextureCompositor).GetField("documentLoadWarning", F).GetValue(loaded)),
                         "Complete TIFF read: " + name);
-                    VerifyValues((ShaderFX)loaded.layers[0].modifiers[0], id);
+                    VerifyValues((ShaderFX)loaded.layers[0].fx[0], id);
                     Compare(expected, loaded, name + ": TIFF reopen");
                     // Native preset serialization remains supported; this is a current-writer test, not an old binary fixture.
                     var native = ScriptableObject.CreateInstance<ShaderFX>();

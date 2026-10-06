@@ -63,7 +63,7 @@ namespace DCFApixels.WhimTex
                 foreach (var layer in list)
                 {
                     if (layer == null) continue;
-                    if (layer.modifiers != null && layer.modifiers.Contains(effect))
+                    if (layer.fx != null && layer.fx.Contains(effect))
                     {
                         found = true;
                         if (!IsUsableShaderTexture(layer, sourceId)) return false;

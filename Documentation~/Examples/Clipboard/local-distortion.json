@@ -33,7 +33,7 @@
       "swizzle": {
         "packed": 0
       },
-      "modifiers": [
+      "fx": [
         {
           "$type": "ShaderFX",
           "$id": "fx0",

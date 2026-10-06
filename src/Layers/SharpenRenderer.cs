@@ -12,7 +12,7 @@ namespace DCFApixels.WhimTex
             float strength = Safe(layer.strength, 0f, MaximumStrength, 1f);
             float radius = Safe(layer.radius, 0f, MaximumRadius, 1f) / context.scaleMultiplier;
             if (strength <= 0f || radius <= .0001f)
-                return layer.ApplyTransformAndModifiers(context.input, context);
+                return layer.ApplyTransformAndFx(context.input, context);
 
             Material material = WhimTexMaterials.Sharpen;
             Material blurMaterial = WhimTexMaterials.GaussianBlur;
@@ -62,7 +62,7 @@ namespace DCFApixels.WhimTex
                     result = Allocate(context.width, context.height);
                     Graphics.Blit(context.input, result, material, 0);
                 }
-                return layer.ApplyTransformAndModifiers(result, context);
+                return layer.ApplyTransformAndFx(result, context);
             }
             finally
             {

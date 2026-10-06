@@ -30,7 +30,7 @@ namespace DCFApixels.WhimTex
                     {
                         effect = ReadPreset(null, entry, false);
                         var layer = new Layer(new ColorFillLayerBehaviour());
-                        layer.modifiers.Add(effect);
+                        layer.fx.Add(effect);
                         item["effect"] = LiveFxSnapshot(layer, null)[0];
                     }
                     catch (Exception error) { item["error"] = error.Message; }
@@ -71,19 +71,19 @@ namespace DCFApixels.WhimTex
                 {
                     Keys(spec, "op", "index", "allowRasterize");
                     Require(op != "applyAll" || spec["index"] == null, "applyAll does not take index.");
-                    int last = op == "applyAll" ? layer.modifiers.Count - 1 : RequiredFxIndex(layer, spec);
+                    int last = op == "applyAll" ? layer.fx.Count - 1 : RequiredFxIndex(layer, spec);
                     Require(last >= 0, "No FX to apply.");
                     Require(layer.Behaviour is DrawingLayerBehaviour || Bool(spec, "allowRasterize"),
                         "Applying FX rasterizes this layer/group. Supply allowRasterize:true to consent.", "rasterize_required");
                     if (execute) document.ApplyLayerFX(layer, last);
                     else
                     {
-                        var remaining = layer.modifiers.GetRange(last + 1, layer.modifiers.Count - last - 1);
+                        var remaining = layer.fx.GetRange(last + 1, layer.fx.Count - last - 1);
                         var placeholder = new DrawingLayerBehaviour();
                         placeholder.CopyRasterizedIdentityFrom(layer);
                         placeholder.transform = layer.transform;
                         layer.AdoptContent(placeholder);
-                        layer.modifiers = remaining;
+                        layer.fx = remaining;
                     }
                     continue;
                 }
@@ -93,17 +93,17 @@ namespace DCFApixels.WhimTex
                     else Keys(spec, "op", "index", "toIndex");
                     int index = RequiredFxIndex(layer, spec);
                     Require(op != "move" || spec["toIndex"] != null, "move requires toIndex.");
-                    int destination = op == "move" ? Int(spec, "toIndex", -1, 0, layer.modifiers.Count - 1) : 0;
-                    var modifier = layer.modifiers[index];
-                    layer.modifiers.RemoveAt(index);
-                    if (op == "move") layer.modifiers.Insert(destination, modifier);
+                    int destination = op == "move" ? Int(spec, "toIndex", -1, 0, layer.fx.Count - 1) : 0;
+                    var fxEntry = layer.fx[index];
+                    layer.fx.RemoveAt(index);
+                    if (op == "move") layer.fx.Insert(destination, fxEntry);
                     continue;
                 }
                 Require(op == "add" || op == "replace" || op == "set" || op == "copy", "Unknown FX edit: " + op);
                 Keys(spec, "op", "index", "code", "includeBasePath", "presetId", "parameters", "enabled", "sourceLayer", "sourceIndex");
                 bool insert = op == "add" || op == "copy";
                 Require(op == "copy" || spec["sourceLayer"] == null && spec["sourceIndex"] == null, "Only copy takes sourceLayer/sourceIndex.");
-                int at = insert ? Int(spec, "index", layer.modifiers.Count, 0, layer.modifiers.Count) : RequiredFxIndex(layer, spec);
+                int at = insert ? Int(spec, "index", layer.fx.Count, 0, layer.fx.Count) : RequiredFxIndex(layer, spec);
                 ShaderFX effect = null;
                 try
                 {
@@ -113,11 +113,11 @@ namespace DCFApixels.WhimTex
                             "set/copy edits values without replacing code.");
                         var sourceLayer = op == "copy" ? Resolve(document, Text(spec, "sourceLayer"), aliases) : layer;
                         Require(sourceLayer != null, "Copy source layer not found.", "layer_not_found");
-                        Require(op != "copy" || spec["sourceIndex"] != null && sourceLayer.modifiers.Count > 0, "copy requires an existing sourceIndex.");
-                        int sourceIndex = op == "copy" ? Int(spec, "sourceIndex", -1, 0, sourceLayer.modifiers.Count - 1) : at;
-                        Require(sourceLayer.modifiers[sourceIndex] is ShaderFX, "This operation requires a Shader FX, not a Material.");
+                        Require(op != "copy" || spec["sourceIndex"] != null && sourceLayer.fx.Count > 0, "copy requires an existing sourceIndex.");
+                        int sourceIndex = op == "copy" ? Int(spec, "sourceIndex", -1, 0, sourceLayer.fx.Count - 1) : at;
+                        Require(sourceLayer.fx[sourceIndex] is ShaderFX, "This operation requires a Shader FX, not a Material.");
                         // Copy-on-write never changes a shared external ShaderFX asset or another layer's values.
-                        effect = ((ShaderFX)sourceLayer.modifiers[sourceIndex]).CloneForDocument(document);
+                        effect = ((ShaderFX)sourceLayer.fx[sourceIndex]).CloneForDocument(document);
                     }
                     else
                     {
@@ -150,9 +150,9 @@ namespace DCFApixels.WhimTex
                     Require(effect.Parameters.Count <= MaxFxParameters, "At most 128 FX parameters are supported.", "resource_limit");
                     foreach (var parameter in effect.TextureLayerParameters())
                         Require(document.IsUsableShaderTexture(layer, parameter.textureLayerId), "Texture input creates a cycle.", "invalid_target");
-                    Require(!insert || layer.modifiers.Count < 32, "At most 32 FX entries per layer.", "resource_limit");
+                    Require(!insert || layer.fx.Count < 32, "At most 32 FX entries per layer.", "resource_limit");
                     document.AdoptAgentShaderFX(effect, execute ? UndoName : null);
-                    if (insert) layer.modifiers.Insert(at, effect); else layer.modifiers[at] = effect;
+                    if (insert) layer.fx.Insert(at, effect); else layer.fx[at] = effect;
                     effect.NotifyValuesChanged();
                     effect = null;
                 }
@@ -162,8 +162,8 @@ namespace DCFApixels.WhimTex
 
         private static int RequiredFxIndex(Layer layer, JObject spec)
         {
-            Require(spec["index"] != null && layer.modifiers.Count > 0, "An explicit existing FX index is required.");
-            return Int(spec, "index", -1, 0, layer.modifiers.Count - 1);
+            Require(spec["index"] != null && layer.fx.Count > 0, "An explicit existing FX index is required.");
+            return Int(spec, "index", -1, 0, layer.fx.Count - 1);
         }
 
         private static ShaderFXParameter ReadFxParameterValue(ShaderFXParameter target, JToken token, TextureCompositor owner)

@@ -24,7 +24,7 @@ namespace DCFApixels.WhimTex
             float pixels = Limit(distance, 0f, MaximumDistance) / context.scaleMultiplier;
             float radians = Limit(arc, 0f, 360f) * Mathf.Deg2Rad;
             if (amount == 0f || (circular ? radians : pixels) <= .0001f)
-                return layer.ApplyTransformAndModifiers(context.input, context);
+                return layer.ApplyTransformAndFx(context.input, context);
 
             Material material = WhimTexMaterials.MotionBlur;
             if (material == null) throw new InvalidOperationException("Motion Blur shader is unavailable.");
@@ -74,7 +74,7 @@ namespace DCFApixels.WhimTex
                 Graphics.Blit(blurred, straight, material, 4);
                 RenderTexture.ReleaseTemporary(blurred);
                 blurred = null;
-                return layer.ApplyTransformAndModifiers(straight, context);
+                return layer.ApplyTransformAndFx(straight, context);
             }
             finally
             {

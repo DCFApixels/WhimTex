@@ -168,7 +168,7 @@ namespace DCFApixels.WhimTex
 
         private static readonly Dictionary<Type, Dictionary<string, FieldInfo>> FieldNames =
             new Dictionary<Type, Dictionary<string, FieldInfo>>();
-        /// <summary>Canonical names written by 0.12.5 and the current writer; order is irrelevant.</summary>
+        /// <summary>Current field names; file-only input conversions are resolved before lookup.</summary>
         private static Dictionary<string, FieldInfo> FieldNameMap(Type type)
         {
             lock (FieldNames)
@@ -985,8 +985,8 @@ namespace DCFApixels.WhimTex
             private FieldInfo FindField(Type type, string name)
             {
                 // Index and base type are irrelevant: the value in the payload carries its field name, and
-                // only canonical field names are accepted. Unknown names are reported, never dropped quietly.
-                if (FieldNameMap(type).TryGetValue(name, out FieldInfo known)) return known;
+                // Explicit file conversions precede lookup. Unknown names are reported, never dropped quietly.
+                if (FieldNameMap(type).TryGetValue(WhimTexFileCompatibility0125.ReadFieldName(type, name), out FieldInfo known)) return known;
                 RecordSkippedField(type, name);
                 return null;
             }
@@ -1173,9 +1173,15 @@ namespace DCFApixels.WhimTex
                 Type type = value.GetType();
                 int count = ReadCount(65536, 2);
                 float? uniformRoundness = null;
+                bool readLayerFx = false;
                 for (int i = 0; i < count; i++)
                 {
                     string fieldName = ReadText();
+                    if (type == typeof(Layer) && WhimTexFileCompatibility0125.ReadFieldName(type, fieldName) == "fx")
+                    {
+                        if (readLayerFx) throw new WhimTexDocumentException("Duplicate layer FX field in the document.");
+                        readLayerFx = true;
+                    }
                     if (value is ShaderFXParameter parameter && fieldName == "declaredInCode")
                     {
                         object flag = Read(typeof(bool));

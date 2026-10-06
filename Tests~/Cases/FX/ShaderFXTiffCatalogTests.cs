@@ -70,7 +70,7 @@ public static class ShaderFXTiffCatalogTests
             var shaderType = typeof(DCFApixels.WhimTex.ShaderFX);
             var effect = (DCFApixels.WhimTex.ShaderFX)CallStatic(shaderType, "FromCatalog", document, selected);
             owned.Add(effect);
-            layer.modifiers.Add(effect);
+            layer.fx.Add(effect);
             Call(document, "AdoptAgentShaderFX", effect, "Catalog smoke");
             string guid = (string)Field(effect, "catalogGuid");
             string source = (string)Field(effect, "catalogSourcePath");
@@ -84,7 +84,7 @@ public static class ShaderFXTiffCatalogTests
             Check(File.Exists(path), "Catalog smoke TIFF was not written.");
             Check(DCFApixels.WhimTex.WhimTexDocumentFile.TryLoad(path, out var loaded, out string error), "Reload failed: " + error);
             owned.Add(loaded);
-            var loadedEffect = (DCFApixels.WhimTex.ShaderFX)loaded.layers[0].modifiers[0];
+            var loadedEffect = (DCFApixels.WhimTex.ShaderFX)loaded.layers[0].fx[0];
             Check(string.Equals((string)Field(loadedEffect, "catalogGuid"), guid, StringComparison.Ordinal), "Catalog GUID was lost after TIFF round trip.");
             Check(string.Equals((string)Field(loadedEffect, "catalogSourcePath"), source, StringComparison.Ordinal), "Catalog source path was lost after TIFF round trip.");
             Check((bool)shaderType.GetProperty("IsCatalogLinked", Hidden).GetValue(loadedEffect), "Reloaded preset became an inline Shader FX.");
@@ -100,7 +100,7 @@ public static class ShaderFXTiffCatalogTests
             AssetDatabase.ImportAsset(fallbackPath, ImportAssetOptions.ForceUpdate);
             Check(DCFApixels.WhimTex.WhimTexDocumentFile.TryLoad(fallbackPath, out var fallback, out string fallbackError), "Fallback reload failed: " + fallbackError);
             owned.Add(fallback);
-            var fallbackEffect = (DCFApixels.WhimTex.ShaderFX)fallback.layers[0].modifiers[0];
+            var fallbackEffect = (DCFApixels.WhimTex.ShaderFX)fallback.layers[0].fx[0];
             Check(!(bool)shaderType.GetProperty("IsCatalogLinked", Hidden).GetValue(fallbackEffect), "Missing preset stayed linked instead of detaching to fallback.");
             Check(string.Equals((string)Field(fallbackEffect, "code"), sourceCode, StringComparison.Ordinal), "Missing preset did not retain fallback code.");
             Check((Shader)Field(fallbackEffect, "compiledShader") != null, "Fallback Shader FX was not compiled.");

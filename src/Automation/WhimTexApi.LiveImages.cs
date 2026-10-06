@@ -178,9 +178,9 @@ namespace DCFApixels.WhimTex
             model.Remove("children");
             using var hash = SHA256.Create();
             var text = new StringBuilder(model.ToString(Newtonsoft.Json.Formatting.None));
-            if (layer.modifiers != null)
-                foreach (var modifier in layer.modifiers)
-                    if (modifier != null) text.Append(EditorJsonUtility.ToJson(modifier));
+            if (layer.fx != null)
+                foreach (var fxEntry in layer.fx)
+                    if (fxEntry != null) text.Append(EditorJsonUtility.ToJson(fxEntry));
             if (layer?.Behaviour is DrawingLayerBehaviour drawing && drawing.StoredTexture != null)
                 text.Append(Convert.ToBase64String(hash.ComputeHash(drawing.StoredTexture.GetRawTextureData())));
             return Convert.ToBase64String(hash.ComputeHash(Encoding.UTF8.GetBytes(text.ToString())));

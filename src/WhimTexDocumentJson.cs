@@ -289,9 +289,9 @@ namespace DCFApixels.WhimTex
                         (target.inputMode == EffectInputMode.Specific && !document.IsUsableEffectTarget(target, target.TargetLayerId) ||
                          target.inputMode == EffectInputMode.AllBelow && document.TryFindLayer(layer, out var siblings, out int index) && !document.HasUsableEffectInput(target, siblings, index)))
                         throw new WhimTexDocumentException("Invalid or cyclic layer input: " + layer.Id);
-                    if (layer?.modifiers != null)
-                        foreach (var modifier in layer.modifiers)
-                            if (modifier is ShaderFX fx)
+                    if (layer?.fx != null)
+                        foreach (var fxEntry in layer.fx)
+                            if (fxEntry is ShaderFX fx)
                                 foreach (var parameter in fx.TextureLayerParameters())
                                     if (!document.IsUsableShaderTexture(layer, parameter.textureLayerId))
                                         throw new WhimTexDocumentException("Invalid or cyclic FX input: " + parameter.name);
@@ -525,6 +525,7 @@ namespace DCFApixels.WhimTex
                 }
                 else result = Activator.CreateInstance(type, true);
                 var fields = Fields(type).ToDictionary(f => f.Name, StringComparer.Ordinal);
+                JToken savedLayerFx = null;
                 foreach (var property in node.Properties())
                 {
                     if (property.Name == "$type" || property.Name == "$id" || property.Name == "$name") continue;
@@ -538,12 +539,20 @@ namespace DCFApixels.WhimTex
                     }
                     if (property.Name == "pixels" && result is DrawingLayerBehaviour)
                         throw JsonError(property.Value, "Drawing pixels are not supported in JSON.");
-                    if (!fields.ContainsKey(property.Name)) throw new WhimTexDocumentException("Unknown field: " + property.Path);
+                    string fieldName = WhimTexFileCompatibility0125.ReadFieldName(type, property.Name);
+                    if (!fields.ContainsKey(fieldName)) throw new WhimTexDocumentException("Unknown field: " + property.Path);
+                    if (type == typeof(Layer) && fieldName == "fx")
+                    {
+                        if (savedLayerFx != null) throw JsonError(property.Value, "Use only one layer FX field: fx or the old modifiers input.");
+                        savedLayerFx = property.Value;
+                    }
                 }
                 JObject defaults = DefaultsFor(type);
                 foreach (var field in fields.Values)
                 {
-                    JToken value = node[field.Name] ?? defaults?[field.Name];
+                    JToken value = type == typeof(Layer) && field.Name == "fx"
+                        ? savedLayerFx ?? defaults?["modifiers"]
+                        : node[field.Name] ?? defaults?[field.Name];
                     if (value != null) field.SetValue(result, Value(value, field.FieldType, result, field.Name));
                     else if (defaults != null && field.Name != "id" && field.Name != "recoveryId" && field.Name != "shaderKey")
                         field.SetValue(result, field.FieldType.IsValueType ? Activator.CreateInstance(field.FieldType) : null);

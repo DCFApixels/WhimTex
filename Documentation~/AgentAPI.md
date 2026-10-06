@@ -1061,7 +1061,7 @@ Enum names are case-sensitive strings; unknown fields, removed mode names and ou
 | API field | Allowed values / new-layer default | Meaning |
 | --- | --- | --- |
 | `mode` | `OffsetBlend` (default), `Mirror`, `ScreenedPoisson`, `PatchQuilting` | UI **Method**; choose the base algorithm explicitly in reusable recipes. |
-| `processRed`, `processGreen`, `processBlue`, `processAlpha` | Booleans, all `true` | UI **Channels**; unchecked channels are restored from the input after seam processing, before ordinary layer modifiers/FX/compositing. All false skips seam processing. |
+| `processRed`, `processGreen`, `processBlue`, `processAlpha` | Booleans, all `true` | UI **Channels**; unchecked channels are restored from the input after seam processing, before ordinary layer FX/compositing. All false skips seam processing. |
 
 All paired-edge fields below accept `AllEdges` (default), `TopAndBottom`, `LeftAndRight`, `None`.
 `TopAndBottom` joins the top/bottom borders for vertical tiling; `LeftAndRight` joins left/right
@@ -1408,7 +1408,7 @@ staggered grids retain complete row pairs. Changing palette colors does not chan
 - **Assistant:** edits the open document with Undo, never autosaves. After Undo/Redo, save through
   the window if persistence is wanted. An empty TIFF Batch does not save unsaved Assistant edits.
 - Internal rollback of a failed Batch is not a user Undo contract for the written TIFF.
-- A revision hashes serialized model state, materialized Drawing pixels and modifier state;
+- A revision hashes serialized model state, materialized Drawing pixels and FX state;
   it is not a complete
   guarantee against changes to every external texture or include file.
   It is an opaque optimistic-concurrency token, not a portable version-control ID. Re-inspect after

@@ -177,7 +177,7 @@ public static class DocumentReliabilityTests
             Call(typeof(ShaderFX), effect, "ApplyAgentDraft");
             paintPath = WhimTexDocumentFile.Save(paintDoc, paintPath);
             var fxLoaded = WhimTexDocumentFile.Load(paintPath); Owned.Add(fxLoaded);
-            var restoredFx = (ShaderFX)fxLoaded.layers[0].modifiers[0];
+            var restoredFx = (ShaderFX)fxLoaded.layers[0].fx[0];
             Check((TextureCompositor)typeof(ShaderFX).GetProperty("EmbeddedOwner", Any).GetValue(restoredFx) == fxLoaded, "embedded FX ownership restored");
             Check((string)typeof(ShaderFX).GetProperty("SourcePath", Any).GetValue(restoredFx) == paintPath, "embedded FX relative includes use the TIFF path");
             var embedded = (List<ShaderFX>)typeof(TextureCompositor).GetField("embeddedShaderFX", Any).GetValue(fxLoaded);

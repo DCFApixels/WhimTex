@@ -26,7 +26,7 @@ static System.Threading.CancellationToken Cancellation;
     static string Fixture(string code, bool active) =>
         "{\"format\":\"whimtex.document\",\"version\":1,\"document\":{\"width\":16,\"height\":16},\"layers\":[" +
         "{\"id\":\"group\",\"group\":true,\"behaviour\":{\"$type\":\"GroupLayerBehaviour\"},\"children\":[" +
-        "{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"storedColor\":[0.2,0.4,0.6,1]},\"modifiers\":[" +
+        "{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"storedColor\":[0.2,0.4,0.6,1]},\"fx\":[" +
         "{\"$type\":\"ShaderFX\",\"$name\":\"Clipboard failure fixture\",\"active\":" + (active ? "true" : "false") + ",\"code\":" + Quote(code) +
         ",\"parameters\":[{\"name\":\"_Amount\",\"type\":\"Float\",\"floatValue\":0.37},{\"name\":\"_Map\",\"type\":\"Texture2D\",\"textureSource\":\"Layer\",\"textureLayerId\":\"source\"}]}," +
         "{\"$type\":\"ShaderFX\",\"code\":\"float4 ApplyFX(float2 uv,float4 color){return float4(color.rgb * 0.5,color.a);}\"}]}]}," +
@@ -50,14 +50,14 @@ static System.Threading.CancellationToken Cancellation;
             Call(data, "Compile");
             var source = Doc(data);
             var layer = source.layers[0].children[0];
-            var fx = (ShaderFX)layer.modifiers[0];
+            var fx = (ShaderFX)layer.fx[0];
             Check(Unavailable(fx) && fx.Active == active, "Failure changed enabled state or was not marked.");
             Check(((IList)Get(data, "Warnings")).Count == 1, "Compilation warning missing.");
             Call(data, "Compile");
             Check(((IList)Get(data, "Warnings")).Count == 1, "Repeated compilation duplicated warning.");
-            Check(!Unavailable((ShaderFX)layer.modifiers[1]), "Healthy later FX did not compile.");
+            Check(!Unavailable((ShaderFX)layer.fx[1]), "Healthy later FX did not compile.");
             var actual = Pixel(source);
-            layer.modifiers.RemoveAt(0); Same(actual, Pixel(source)); layer.modifiers.Insert(0, fx);
+            layer.fx.RemoveAt(0); Same(actual, Pixel(source)); layer.fx.Insert(0, fx);
             foreach (WhimTexJsonWriteMode mode in Enum.GetValues(typeof(WhimTexJsonWriteMode)))
             {
                 string json = WhimTexDocumentJson.Write(source, new WhimTexJsonWriteOptions { Mode = mode }).Json;
@@ -73,7 +73,7 @@ static System.Threading.CancellationToken Cancellation;
                     Undo.IncrementCurrentGroup();
                     Call(destination, "PasteLayers", Doc(clipboard));
                     var copyLayer = destination.layers[0].children[0];
-                    var copyFx = (ShaderFX)copyLayer.modifiers[0];
+                    var copyFx = (ShaderFX)copyLayer.fx[0];
                     Check(copyFx != fx && Unavailable(copyFx) && copyFx.Active == active, "Paste lost failed FX state/ownership.");
                     Check(copyLayer.Id != layer.Id && destination.layers[1].Id != source.layers[1].Id, "Layer IDs were not remapped.");
                     var parameters = (IList)Get(copyFx, "parameters");
@@ -83,7 +83,7 @@ static System.Threading.CancellationToken Cancellation;
                     Undo.PerformUndo(); Check(destination.layers.Count == 0, "Paste Undo failed.");
                     Undo.PerformRedo(); Check(destination.layers.Count == 2, "Paste Redo failed.");
                     Same(actual, Pixel(destination));
-                    var restoredFx = (ShaderFX)destination.layers[0].children[0].modifiers[0];
+                    var restoredFx = (ShaderFX)destination.layers[0].children[0].fx[0];
                     Check(Unavailable(restoredFx), "Redo lost warning state.");
                     Check(WhimTexDocumentJson.Write(destination).Json.Contains("0.37"), "Resave lost broken FX values.");
                     Call(restoredFx, "SetDraftCode", Good);

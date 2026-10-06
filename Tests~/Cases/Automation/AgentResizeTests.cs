@@ -102,7 +102,7 @@ static System.Threading.CancellationToken Cancellation;
                 Undo.PerformRedo();
                 Check(document.width == 64 && document.layers[0].transform.position.x == 16, "Redo restores resize");
                 var layer = document.layers[0].children[0];
-                var effect = (ShaderFX)layer.modifiers[0];
+                var effect = (ShaderFX)layer.fx[0];
                 var parameters = (System.Collections.Generic.List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", flags).GetValue(effect);
                 string revision = InspectLive()["document"]["revision"].ToString();
                 parameters[0].id = Guid.NewGuid().ToString("N");

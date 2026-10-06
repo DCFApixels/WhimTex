@@ -13,7 +13,7 @@ namespace DCFApixels.WhimTex
             EdgeMode edges = layer.edges;
             float amount = float.IsNaN(strength) || float.IsInfinity(strength) ? 1f : Mathf.Clamp(strength, 0f, MaximumStrength);
             float pixels = Mathf.Clamp(float.IsNaN(radius) ? 0f : radius, 0f, MaximumRadius) / context.scaleMultiplier;
-            if (amount == 0f || pixels <= .0001f) return layer.ApplyTransformAndModifiers(context.input, context);
+            if (amount == 0f || pixels <= .0001f) return layer.ApplyTransformAndFx(context.input, context);
             Material material = WhimTexMaterials.GaussianBlur;
             if (material == null) throw new InvalidOperationException("Gaussian Blur shader is unavailable.");
             RenderTexture current = null, scratch = null, straight = null;
@@ -53,7 +53,7 @@ namespace DCFApixels.WhimTex
                 material.SetFloat("_Strength", amount);
                 material.SetTexture("_SourceTex", amount < 1f ? context.input : null);
                 Graphics.Blit(current, straight, material, 3);
-                return layer.ApplyTransformAndModifiers(straight, context);
+                return layer.ApplyTransformAndFx(straight, context);
             }
             finally
             {

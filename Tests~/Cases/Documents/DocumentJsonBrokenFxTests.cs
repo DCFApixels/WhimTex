@@ -13,7 +13,7 @@ public static class DocumentJsonBrokenFxTests
     const BindingFlags F = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
     const string Good = "float4 ApplyFX(float2 uv,float4 color){return color;}";
     const string Broken = "float4 ApplyFX(float2 uv,float4 color){return missingFunction(color);}";
-    const string Json = "{\"format\":\"whimtex.document\",\"version\":1,\"document\":{\"width\":16,\"height\":16},\"layers\":[{\"id\":\"fixture\",\"layerName\":\"Broken FX fixture\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"storedColor\":[0.2,0.4,0.6,1]},\"modifiers\":[{\"$type\":\"ShaderFX\",\"$name\":\"Broken fixture\",\"code\":\"SOURCE\",\"parameters\":[{\"name\":\"_Amount\",\"type\":\"Float\",\"floatValue\":0.37}]}]}]}";
+    const string Json = "{\"format\":\"whimtex.document\",\"version\":1,\"document\":{\"width\":16,\"height\":16},\"layers\":[{\"id\":\"fixture\",\"layerName\":\"Broken FX fixture\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"storedColor\":[0.2,0.4,0.6,1]},\"fx\":[{\"$type\":\"ShaderFX\",\"$name\":\"Broken fixture\",\"code\":\"SOURCE\",\"parameters\":[{\"name\":\"_Amount\",\"type\":\"Float\",\"floatValue\":0.37}]}]}]}";
     static int checks, warnings;
     static void Check(bool ok, string message) { checks++; UnityBRun.Check(!(!ok), message); }
     static object Call(object obj, string name, params object[] args) => obj.GetType().GetMethod(name, F).Invoke(obj, args);
@@ -37,9 +37,9 @@ public static class DocumentJsonBrokenFxTests
             using var read = WhimTexDocumentJson.Read(Json.Replace("SOURCE", Broken));
             var doc = read.Document;
             var layer = doc.layers[0];
-            var fx = (ShaderFX)layer.modifiers[0];
+            var fx = (ShaderFX)layer.fx[0];
             Check(read.Warnings.Count == 1 && Flag(fx, "LastApplyFailed"), "Broken shader must open with a warning.");
-            Check(fx.Active && layer.modifiers.Count == 1, "Failure changed enabled state or removed effect.");
+            Check(fx.Active && layer.fx.Count == 1, "Failure changed enabled state or removed effect.");
             Check(warnings == 1, "Failure must log once.");
             for (int i = 0; i < 2; i++)
             {
@@ -48,9 +48,9 @@ public static class DocumentJsonBrokenFxTests
             }
             Check(warnings == 1, "Repeated same failure spammed Console.");
             var actual = Pixel(doc);
-            layer.modifiers.Clear();
+            layer.fx.Clear();
             var expected = Pixel(doc);
-            layer.modifiers.Add(fx);
+            layer.fx.Add(fx);
             Check((actual - expected).maxColorComponent < .0001f && (expected - actual).maxColorComponent < .0001f, "Broken FX changed pixels.");
 
             window = UnityBRun.Create<TextureCompositorWindow>();

@@ -80,8 +80,8 @@ public static class LayerClipboardTests
             Check(Pixels(snapshotPaint) != texture, "Snapshot owns its pixels");
             Check(Pixels(snapshotPaint).width == 4 && Pixels(snapshotPaint).height == 2, "Original Drawing resolution preserved");
             Check(Pixels(snapshotPaint).GetPixel(0, 0).r == 4, "HDR pixels preserved");
-            Check(snapshotPaint.modifiers[0] != effect, "Embedded FX copied independently");
-            Check((string)effect.GetType().GetField("code", Flags).GetValue(snapshotPaint.modifiers[0]) == originalCode, "FX code preserved");
+            Check(snapshotPaint.fx[0] != effect, "Embedded FX copied independently");
+            Check((string)effect.GetType().GetField("code", Flags).GetValue(snapshotPaint.fx[0]) == originalCode, "FX code preserved");
             Check(snapshotPaint.layerName == "Paint" && snapshotPaint.opacity == .6f && !snapshotPaint.enabled, "Common settings preserved");
             Check(snapshotPaint.transform.position == paint.transform.position && snapshotPaint.transform.scale == paint.transform.scale, "Transform preserved");
             Check(((DCFApixels.WhimTex.BlurLayerBehaviour)snapshotBlur.Behaviour).radius == 9, "Behaviour settings preserved");
@@ -89,7 +89,7 @@ public static class LayerClipboardTests
             texture.SetPixel(0, 0, Color.black); texture.Apply(false, false);
             Call(effect, "SetDraftCode", "changed after copy");
             Check(Pixels(snapshotPaint).GetPixel(0, 0).r == 4, "Later source paint does not change clipboard");
-            Check((string)effect.GetType().GetField("code", Flags).GetValue(snapshotPaint.modifiers[0]) == originalCode, "Later source FX edits do not change clipboard");
+            Check((string)effect.GetType().GetField("code", Flags).GetValue(snapshotPaint.fx[0]) == originalCode, "Later source FX edits do not change clipboard");
         
             // A Previous effect copied without its source must not bind to unrelated destination layers.
             orphanSnapshot = (DCFApixels.WhimTex.TextureCompositor)Call(source, "CaptureLayerClipboard", Layers(blur));
@@ -115,8 +115,8 @@ public static class LayerClipboardTests
             Check(pasted.Id != snapshotPaint.Id, "Paste generates new IDs");
             Check(Pixels(pasted) != Pixels(snapshotPaint) && Pixels(pasted).GetPixel(0, 0).r == 4, "Paste owns independent HDR pixels");
             Check(Pixels(pasted).width == 4 && Pixels(pasted).height == 2, "Different canvas does not resize stored pixels");
-            Check(pasted.modifiers[0] != snapshotPaint.modifiers[0], "Paste owns its embedded FX");
-            Check((DCFApixels.WhimTex.TextureCompositor)pasted.modifiers[0].GetType().GetProperty("EmbeddedOwner", Flags).GetValue(pasted.modifiers[0]) == destination, "Pasted FX owned by destination");
+            Check(pasted.fx[0] != snapshotPaint.fx[0], "Paste owns its embedded FX");
+            Check((DCFApixels.WhimTex.TextureCompositor)pasted.fx[0].GetType().GetProperty("EmbeddedOwner", Flags).GetValue(pasted.fx[0]) == destination, "Pasted FX owned by destination");
             string firstPasteId = destination.layers[0].Id;
             Undo.PerformUndo();
             Check(destination.layers.Count == 0, "One Undo removes entire paste");

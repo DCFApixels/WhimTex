@@ -23,8 +23,8 @@ try {
     assert.doesNotMatch(view, /text = "⋮"/);
     assert.doesNotMatch(view, /text = "Paste FX"/);
     assert.doesNotMatch(view, /ShaderFXClipboard\.Changed \+= RefreshClipboardActionState/);
-    assert.match(view, /ShaderFXClipboard\.Copy\(owner, modifier\)/);
-    assert.match(view, /layer\.modifiers\.Insert\(destinationIndex, pasted\)/);
+    assert.match(view, /ShaderFXClipboard\.Copy\(owner, fxEntry\)/);
+    assert.match(view, /layer\.fx\.Insert\(destinationIndex, pasted\)/);
     assert.match(view, /owner\.AdoptAgentShaderFX\(effect, "Paste FX"\)/);
     assert.match(view, /Undo\.SetCurrentGroupName\("Paste FX"\)/);
     assert.match(view, /Undo\.CollapseUndoOperations\(undoGroup\)/);
@@ -66,7 +66,7 @@ try {
     assert.match(view, /panel\?\.Pick\(panelPosition\)/);
     assert.match(view, /ClassListContains\("whimtex-layer-row"\)/);
     assert.match(view, /!WhimTexApi\.IsLayerContentLocked\(owner, layer\)[\s\S]*!WhimTexApi\.IsLayerContentLocked\(owner, destination\)/);
-    assert.match(view, /layer\.modifiers\.RemoveAt\(sourceIndex\);\s*destination\.modifiers \?\?= new List<UnityEngine\.Object>\(\);\s*destination\.modifiers\.Add\(modifier\);/);
+    assert.match(view, /layer\.fx\.RemoveAt\(sourceIndex\);\s*destination\.fx \?\?= new List<UnityEngine\.Object>\(\);\s*destination\.fx\.Add\(fxEntry\);/);
     assert.match(view, /moveToLayer\(sourceIndex, destinationLayerAtRelease\)/);
     assert.match(styles, /\.whimtex-layer-row--drop-fx\s*>\s*\.whimtex-layer-drop-marker/);
   });

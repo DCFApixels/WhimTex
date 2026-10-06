@@ -34,7 +34,7 @@ Brush JSON replaces the brush rather than creating layers.
   use HLSL only where a custom algorithm is useful. Name layers and groups meaningfully.
 - Use exact model fields and case-sensitive enum names from the schema. Do not put live API
   `settings`/operations or legacy `type`/`properties` objects into document JSON.
-- Layer arrays are **top to bottom**; `modifiers` execute **first to last**.
+- Layer arrays are **top to bottom**; `fx` execute **first to last**.
   Give every layer a unique nonempty `id`. IDs may be descriptive local strings;
   paste remaps them and internal references to fresh document IDs.
 - Omit values only when the version-1 default is intended. Do not infer storage defaults from
@@ -102,7 +102,7 @@ Every layer requires `id` and `behaviour`. Settings belong to their native model
 | Layer | `layerName`, `enabled`, `opacity`, `blendMode`, `colorRange`, `blendRange`, `filterMode`, `clippingMask` |
 | `behaviour` | `$type` and type-specific persistent fields |
 | `transform` | Native `TextureTransform` fields; inspect the schema and an exported example |
-| `modifiers` | FX with `$type: "ShaderFX"`, `code`, `parameters`, `active`, optional `$name` |
+| `fx` | FX with `$type: "ShaderFX"`, `code`, `parameters`, `active`, optional `$name` |
 | `children` | Group children in top-to-bottom order |
 
 `$type` is an allowlisted model name, not an arbitrary assembly-qualified type.
@@ -190,12 +190,12 @@ Command envelopes are separate from content; see the [JSON agent API](../AgentAP
 | --- | --- |
 | `"format": "whimtex.layers"` for new output | `"format": "whimtex.document"` |
 | Root `kind: "document"` or `kind: "layers"` | Omit it; the caller chooses the operation. |
-| `canvas`, `type`, `name`, `properties`, `fx` from legacy recipes | `document`, `behaviour.$type`, `layerName`, native fields and `modifiers` |
+| `canvas`, `type`, `name`, `properties` from legacy recipes | `document`, `behaviour.$type`, `layerName` and native fields |
 | `scale: [8,12]` for Noise | `scale: 8, scaleY: 12` in its behaviour |
 | A remote Drawing `url` or Base64 pixels | TIFF for Drawing pixels, or a verified File asset reference |
 | `opacity: 80` for 80% | `opacity: 0.8` |
 | ShaderLab, GLSL `mix`, invented helpers | HLSL `ApplyFX`, `lerp`, documented helpers below |
-| `fx[].code` or live API operations inside stored content | `modifiers[].code` and native parameter values |
+| Live FX operations (`op`, `presetId`, `set`) inside stored content | `fx[]` with `$type: "ShaderFX"`, `code` and native parameter values |
 
 ## Upgrading old clipboard data
 
@@ -397,7 +397,7 @@ FX-only `curve` declares a scalar mapping: `// @param curve _Profile`, sampled w
 `_Profile_Sample(t)`. Default: linear (0,0) to (1,1). Input clamps to 0..1; output is unrestricted.
 Named defaults: `// @param curve _Profile = linear` or `// @param curve _Profile = easeInOut`.
 The latter smoothly eases between the same endpoints with horizontal endpoint tangents.
-For clipboard FX, an optional default can be included directly in `modifiers[].code`:
+For clipboard FX, an optional default can be included directly in `fx[].code`:
 `// @param curve _Profile = keys((0, 0, 1, 1, 0, 0, 0), (1, 1, 1, 1, 0, 0, 0))`.
 Each tuple is `(time, value, inTangent, outTangent, inWeight, outWeight, weightedMode)`.
 Use strictly increasing finite times, finite values, weights 0..1 and mode 0/1/2/3

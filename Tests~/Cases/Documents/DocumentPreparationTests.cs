@@ -158,7 +158,7 @@ public static class DocumentPreparationTests
 
             Effect(doc);
             WhimTexDocumentFile.Save(doc, path);
-            var fx = (ShaderFX)doc.layers[0].modifiers[0];
+            var fx = (ShaderFX)doc.layers[0].fx[0];
             string applied = (string)typeof(ShaderFX).GetField("code", Any).GetValue(fx);
             Set(fx, "code", applied + "\n// pending");
             latest = File.ReadAllBytes(path);
@@ -172,7 +172,7 @@ public static class DocumentPreparationTests
             using (var build = (IDisposable)Call(buildType, null, "Open", path))
             {
                 var opened = (TextureCompositor)Get(build, "Document");
-                var restored = (ShaderFX)opened.layers[0].modifiers[0];
+                var restored = (ShaderFX)opened.layers[0].fx[0];
                 Check((bool)Get(restored, "HasAppliedShader"), "headless Open restores applied FX");
                 var preview = (Texture2D)Call(buildType, build, "Render"); Owned.Add(preview);
                 Check((bool)Get(restored, "HasAppliedShader") && preview.width == 64, "headless Render prepares effects");
@@ -191,10 +191,10 @@ public static class DocumentPreparationTests
             AssetDatabase.SaveAssetIfDirty(external);
             byte[] externalBytes = File.ReadAllBytes(externalPath);
             int externalDirty = EditorUtility.GetDirtyCount(external);
-            var externalDoc = Document(); externalDoc.layers[0].modifiers.Add(external);
+            var externalDoc = Document(); externalDoc.layers[0].fx.Add(external);
             var externalFile = WhimTexDocumentFile.Save(externalDoc, folder + "/ExternalDoc.tiff");
             var externalLoaded = Load(externalFile);
-            Check(externalLoaded.layers[0].modifiers[0] == external, "external FX identity preserved");
+            Check(externalLoaded.layers[0].fx[0] == external, "external FX identity preserved");
             Check(EditorUtility.GetDirtyCount(external) == externalDirty && File.ReadAllBytes(externalPath).SequenceEqual(externalBytes), "loading TIFF does not mutate external FX");
 
             // Drawing is owned by the in-memory model and embedded into TIFF, never a sub-asset.
@@ -244,14 +244,14 @@ public static class DocumentPreparationTests
             string originalCode = (string)typeof(ShaderFX).GetField("code", Any).GetValue(includeFx);
             var includedPath = WhimTexDocumentFile.Save(includeDoc, folder + "/Nested/Includes.tiff");
             var included = Load(includedPath);
-            var includedFx = (ShaderFX)included.layers[0].modifiers[0];
+            var includedFx = (ShaderFX)included.layers[0].fx[0];
             Check((bool)Get(includedFx, "HasAppliedShader"), "relative include compiles after Save As to another folder");
             string includedCode = (string)typeof(ShaderFX).GetField("code", Any).GetValue(includedFx);
             Check(includedCode.Contains(folder + "/Shared.hlsl") && !includedCode.Contains("return c;"), "include rebased, not expanded");
             Check((string)typeof(ShaderFX).GetField("code", Any).GetValue(includeFx) == originalCode, "saving does not edit source HLSL");
             WhimTexDocumentFile.Save(includeDoc, includedPath);
             var twiceIncluded = Load(includedPath);
-            Check((bool)Get((ShaderFX)twiceIncluded.layers[0].modifiers[0], "HasAppliedShader"), "relative include still works on a second save after Save As");
+            Check((bool)Get((ShaderFX)twiceIncluded.layers[0].fx[0], "HasAppliedShader"), "relative include still works on a second save after Save As");
 
             // Saving an active session keeps temporary Read/Write instead of stopping/restarting it.
             var liveDoc = Document(); string livePath = WhimTexDocumentFile.Save(liveDoc, folder + "/Live.tiff");

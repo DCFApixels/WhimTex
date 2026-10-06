@@ -417,9 +417,9 @@ namespace DCFApixels.WhimTex
             {
                 Layer layer = stack.Pop();
                 if (layer == null) continue;
-                if (layer.modifiers != null)
-                    foreach (UnityEngine.Object modifier in layer.modifiers)
-                        if (modifier is ShaderFX effect && seen.Add(effect)) yield return effect;
+                if (layer.fx != null)
+                    foreach (UnityEngine.Object fxEntry in layer.fx)
+                        if (fxEntry is ShaderFX effect && seen.Add(effect)) yield return effect;
                 if (layer.children != null)
                     foreach (Layer child in layer.children) stack.Push(child);
             }

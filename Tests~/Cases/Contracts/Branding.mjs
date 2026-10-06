@@ -80,7 +80,7 @@ context.case('Branding original assertions and branches', async () => {
     const iconGuid = read('src/WhimTexIcon.png.meta').match(/^guid: (\w+)$/m)[1];
     assert.ok(read('src/WhimTexBranding.cs').includes(`GUIDToAssetPath("${iconGuid}")`));
     for (const file of ['src/TextureCompositorWindow.DocumentTitle.cs', 'src/WhimTexUserSettingsWindow.cs',
-      'src/ModifierEditorWindow.cs', 'src/Utils.cs'])
+      'src/LayerFxEditorWindow.cs', 'src/Utils.cs'])
       assert.ok(read(file).includes('WhimTexBranding.WindowTitle('), `${file}: branded title`);
     for (const [file, size] of [
       ['src/WhimTexIcon.png', 64], ['src/WhimTexCanvasViewBackdrop.png', 1024], ['Documentation~/Images/favicon-32.png', 32],
@@ -112,7 +112,8 @@ context.case('Branding original assertions and branches', async () => {
     assert.match(toolbar, /CanvasTool displayedTool = canvasTool;/);
     assert.match(toolbar, /Layer selected = hasLayers \? GetSelectedLayer\(\) : null;/);
     assert.ok(!/canvasTool\s*=(?!=)|SetCanvasTool\(|SetEnabled\(/.test(toolbar), 'Empty styling preserves tool choice and configuration');
-    assert.equal((toolbar.match(/--selected", displayedTool == CanvasTool\./g) || []).length, 11);
+    assert.deepEqual([...toolbar.matchAll(/--selected", displayedTool == CanvasTool\.(\w+)/g)].map(m => m[1]).sort(),
+      ['Shape', 'RectangleSelect', 'PolygonSelect', 'Zoom', 'None', 'Brush', 'BlurBrush', 'Pencil', 'SmudgeBrush', 'HealingBrush', 'Transform', 'Fill'].sort());
     for (const button of ['canvasRectangleSelectButton', 'canvasPolygonSelectButton', 'canvasZoomButton'])
       assert.ok(toolbar.includes(`${button}?.EnableInClassList("whimtex-tool-button--unavailable", !hasLayers)`));
     assert.match(toolSource, /HandlePaintConversionPrompt\(PointerDownEvent evt\)\s*\{\s*if \(!HasCanvasLayers\)\s*\{\s*WhimTexUI.ConsumeEvent\(evt\);\s*return true;/);
@@ -134,4 +135,3 @@ context.case('Branding original assertions and branches', async () => {
 });
 
 await finish(context);
-

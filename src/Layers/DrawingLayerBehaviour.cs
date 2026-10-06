@@ -134,7 +134,7 @@ namespace DCFApixels.WhimTex
                 if (((Layer)source).IsPassThrough)
                     result.colorRange = LayerColorRange.HDR;
                 result.swizzle = default;
-                result.modifiers.Clear();
+                result.fx.Clear();
             }
             if ((applyTransform || source.IsGroup) && source.transformCache?.parent != null)
                 result.transform.TrySetMatrix(source.transformCache.parentInverse);
@@ -184,7 +184,7 @@ namespace DCFApixels.WhimTex
             {
                 BlitStraightSurface(straight, 1f);
 
-                return ApplyTransformAndModifiers(straight, context);
+                return ApplyTransformAndFx(straight, context);
             }
             finally
             {

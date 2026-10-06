@@ -38,7 +38,7 @@ Code and declarations stay drafts until **Apply**, including an Apply request fr
 
 `LayerToLocal(uv)` converts canvas UV to local layer UV, including parent transforms and perspective. Use it for procedural shapes that should follow the layer. It does not clamp or wrap UV; `SampleInput` still expects canvas UV.
 
-`SampleInput(uv)` reads the layer after earlier modifiers. Return straight RGBA; opacity/blending
+`SampleInput(uv)` reads the layer after earlier FX. Return straight RGBA; opacity/blending
 come later. Built-in inputs include `_MainTex`, `_MainTex_TexelSize`, `_InputSize`,
 `_CanvasSize` (width, height, 1/width, 1/height) and `_PreviewScale`. Do not redeclare generated uniforms.
 WhimTex FX are deterministic: Unity time inputs such as `_Time`, `_SinTime`, `_CosTime`,
@@ -74,7 +74,7 @@ Layer inputs use the shared effect-render cache for deterministic sources. Shade
 results are cached when their inputs and serialized parameters are unchanged; the cache also tracks
 external texture updates and referenced layer stamps. Switching sources does not recompile HLSL.
 HLSL preset export omits document-local layer bindings. Unified document/clipboard JSON stores them
-in `modifiers[].parameters[]` as `textureSource: "Layer"` and `textureLayerId`; include the source layer
+in `fx[].parameters[]` as `textureSource: "Layer"` and `textureLayerId`; include the source layer
 in the exported tree. Copy as JSON rejects missing required dependencies, and insertion remaps their IDs.
 The live FX API instead accepts a texture parameter value `{ "layer": "layer-id" }`.
 Ordinary Ctrl+C and cross-window dragging remap copied sources and clear uncopied external sources

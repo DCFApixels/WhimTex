@@ -213,7 +213,7 @@ namespace DCFApixels.WhimTex
                 if (targets == 0) throw new InvalidOperationException("The stroke does not cover editable pixels. Check the selection and layer frame.");
                 if (tiledCanvas) bounds = HealingBrushUtility.RecenterTiledRegion(bounds, ref coverage, width, height);
                 rendered = paintSettings.healingSample == HealingSampleMode.CurrentLayer
-                    ? healingLayer.Render(new LayerRenderContext(compositor, null, width, height, 1, applyModifiers: false))
+                    ? healingLayer.Render(new LayerRenderContext(compositor, null, width, height, 1, applyFx: false))
                     : compositor.RenderLayerAndBelow(healingLayer, width, height);
                 if (rendered == null) throw new InvalidOperationException("No source image available.");
                 var pixels = ReadRegion(rendered);

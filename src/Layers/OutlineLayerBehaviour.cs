@@ -70,7 +70,7 @@ namespace DCFApixels.WhimTex
                 job.Schedule(outputPixels.Length, 128).Complete();
 
                 resultTexture.Apply(false, false);
-                return ApplyTransformAndModifiers(resultTexture, context);
+                return ApplyTransformAndFx(resultTexture, context);
             }
             finally
             {

@@ -59,10 +59,10 @@ public static class RemainingLegacyCleanupTests
         foreach (bool declared in new[] { false, true })
         {
             const string removed = "float4 ApplyFX(float2 uv, float4 color) { return color; }";
-            string json = "{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"fx-layer\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"},\"modifiers\":[{\"$type\":\"ShaderFX\",\"code\":\"" + removed +
+            string json = "{\"format\":\"whimtex.document\",\"version\":1,\"layers\":[{\"id\":\"fx-layer\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"},\"fx\":[{\"$type\":\"ShaderFX\",\"code\":\"" + removed +
                 "\",\"parameters\":[{\"name\":\"_Removed\",\"type\":\"Float\",\"floatValue\":0.625,\"declaredInCode\":" + (declared ? "true" : "false") + "}]}]}]}";
             using var read = WhimTexDocumentJson.Read(json, false);
-            var effect = (ShaderFX)read.Document.layers[0].modifiers[0];
+            var effect = (ShaderFX)read.Document.layers[0].fx[0];
             Check(Parameters(effect).Count == (declared ? 0 : 1), "Only saved manual definitions are converted; declared=" + declared);
             if (declared) Check(Code(effect) == removed, "A removed 0.12.5 code declaration is not resurrected");
             else
@@ -70,7 +70,7 @@ public static class RemainingLegacyCleanupTests
                 Set(effect, "code", removed);
                 string jsonDraft = WhimTexDocumentJson.Write(read.Document).Json;
                 using var again = WhimTexDocumentJson.Read(jsonDraft, false);
-                Check(Parameters((ShaderFX)again.Document.layers[0].modifiers[0]).Count == 0, "New JSON does not restore an unapplied declaration deletion");
+                Check(Parameters((ShaderFX)again.Document.layers[0].fx[0]).Count == 0, "New JSON does not restore an unapplied declaration deletion");
                 Check(Parameters(effect).Count == 1, "JSON writing does not mutate the pending authoring state");
             }
         }

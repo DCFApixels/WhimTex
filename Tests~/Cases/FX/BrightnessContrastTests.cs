@@ -102,8 +102,8 @@ static System.Threading.CancellationToken Cancellation;
             sourceFx = (ShaderFX)draft.Invoke(null, new object[] { doc,
                 "float4 ApplyFX(float2 uv, float4 color) { return float4(.25,.5,.75,.37); }", new List<ShaderFXParameter>() });
             typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(sourceFx, null);
-            Layer child = new ColorFillLayerBehaviour(); child.modifiers.Add(sourceFx);
-            Layer group = new GroupLayerBehaviour(); group.children.Add(child); group.modifiers.Add(fx); doc.layers.Add(group);
+            Layer child = new ColorFillLayerBehaviour(); child.fx.Add(sourceFx);
+            Layer group = new GroupLayerBehaviour(); group.children.Add(child); group.fx.Add(fx); doc.layers.Add(group);
             Color expectedColor = new Color(Tone(.25f, 100, 0), Tone(.5f, 100, 0), Tone(.75f, 100, 0), .37f);
             void Near(Color actual, Color expected, string label)
             {

@@ -46,7 +46,7 @@ namespace DCFApixels.WhimTex
             if (effect == null) return false;
             foreach (var job in liveJobs.Values)
                 if (job.editing && job.state == "pending" && job.document != null &&
-                    job.document.FindLayer(job.layerId)?.modifiers?.Contains(effect) == true) return true;
+                    job.document.FindLayer(job.layerId)?.fx?.Contains(effect) == true) return true;
             return false;
         }
 
@@ -111,7 +111,7 @@ namespace DCFApixels.WhimTex
         {
             if (token == null) return;
             Require(token is JArray array && array.Count <= 16, "fx must be an array of at most 16 operations.");
-            layer.modifiers = layer.modifiers == null ? new List<Object>() : new List<Object>(layer.modifiers);
+            layer.fx = layer.fx == null ? new List<Object>() : new List<Object>(layer.fx);
             foreach (var item in (JArray)token)
             {
                 JObject spec = Obj(item, "fx operation");
@@ -119,10 +119,10 @@ namespace DCFApixels.WhimTex
                 Require(op == "add" || op == "replace" || op == "remove", "FX op must be add, replace or remove.");
                 if (op == "remove") Keys(spec, "op", "index");
                 else Keys(spec, "op", "index", "code");
-                Require(op == "add" || spec["index"] != null, "replace/remove requires an explicit modifier index.");
-                Require(op == "add" || layer.modifiers.Count > 0, "Cannot replace/remove from an empty FX list.");
-                int index = Int(spec, "index", layer.modifiers.Count, 0, op == "add" ? layer.modifiers.Count : layer.modifiers.Count - 1);
-                if (op == "remove") { layer.modifiers.RemoveAt(index); continue; }
+                Require(op == "add" || spec["index"] != null, "replace/remove requires an explicit FX index.");
+                Require(op == "add" || layer.fx.Count > 0, "Cannot replace/remove from an empty FX list.");
+                int index = Int(spec, "index", layer.fx.Count, 0, op == "add" ? layer.fx.Count : layer.fx.Count - 1);
+                if (op == "remove") { layer.fx.RemoveAt(index); continue; }
                 Require(spec["code"]?.Type == JTokenType.String && ((string)spec["code"]).Length > 0 &&
                     ((string)spec["code"]).Length <= 65536, "code must contain 1..65536 characters of inline HLSL.");
 
@@ -132,23 +132,23 @@ namespace DCFApixels.WhimTex
                 try { fx.ApplyAgentDraft(); }
                 catch (Exception error) { throw new WhimTexApiException("shader_compile_failed", error.Message); }
                 Require(fx.Parameters.Count <= MaxFxParameters, "At most 128 FX parameters are supported by live authoring.", "resource_limit");
-                if (op == "add") layer.modifiers.Insert(index, fx);
-                else layer.modifiers[index] = fx;
+                if (op == "add") layer.fx.Insert(index, fx);
+                else layer.fx[index] = fx;
                 foreach (var parameter in fx.TextureLayerParameters())
                     Require(owner.IsUsableShaderTexture(layer, parameter.textureLayerId), "Texture layer would create a cyclic dependency.", "invalid_target");
-                Require(layer.modifiers.Count <= 32, "At most 32 FX entries per layer are supported by live authoring.", "resource_limit");
+                Require(layer.fx.Count <= 32, "At most 32 FX entries per layer are supported by live authoring.", "resource_limit");
             }
         }
 
         private static JArray LiveFxSnapshot(Layer layer, TextureCompositor owner)
         {
             var result = new JArray();
-            if (layer.modifiers == null) return result;
-            for (int i = 0; i < layer.modifiers.Count; i++)
+            if (layer.fx == null) return result;
+            for (int i = 0; i < layer.fx.Count; i++)
             {
-                var modifier = layer.modifiers[i];
-                var entry = new JObject { ["index"] = i, ["assetPath"] = modifier == null ? null : AssetDatabase.GetAssetPath(modifier) };
-                if (modifier is ShaderFX fx)
+                var fxEntry = layer.fx[i];
+                var entry = new JObject { ["index"] = i, ["assetPath"] = fxEntry == null ? null : AssetDatabase.GetAssetPath(fxEntry) };
+                if (fxEntry is ShaderFX fx)
                 {
                     entry["type"] = "shaderFX"; entry["embedded"] = fx.EmbeddedOwner == owner;
                     entry["enabled"] = fx.Active;
@@ -182,7 +182,7 @@ namespace DCFApixels.WhimTex
                     entry["parameters"] = parameters;
                     entry["catalogPath"] = fx.CatalogPath;
                 }
-                else entry["type"] = modifier is Material ? "material" : "empty";
+                else entry["type"] = fxEntry is Material ? "material" : "empty";
                 result.Add(entry);
             }
             return result;
@@ -245,7 +245,7 @@ namespace DCFApixels.WhimTex
                 {
                     ApplyLiveEditSettings(job.document, target, changes);
                     if (target?.Behaviour is DrawingLayerBehaviour drawing) drawing.SetColorRange(target.colorRange);
-                    target.modifiers = new List<Object>(candidate.modifiers);
+                    target.fx = new List<Object>(candidate.fx);
                     foreach (var fx in created) job.document.AdoptAgentShaderFX(fx, "Complete Agent Edit");
                 });
                 committed = true;

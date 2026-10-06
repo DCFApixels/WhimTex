@@ -60,7 +60,7 @@
       "swizzle": {
         "packed": 0
       },
-      "modifiers": [
+      "fx": [
         {
           "$type": "ShaderFX",
           "$id": "fx0",
@@ -148,7 +148,7 @@
       "swizzle": {
         "packed": 0
       },
-      "modifiers": [],
+      "fx": [],
       "transform": {
         "pivot": {
           "x": 0.5,
@@ -205,7 +205,7 @@
       "swizzle": {
         "packed": 0
       },
-      "modifiers": [],
+      "fx": [],
       "transform": {
         "pivot": {
           "x": 0.5,
@@ -253,7 +253,7 @@
           "swizzle": {
             "packed": 0
           },
-          "modifiers": [],
+          "fx": [],
           "transform": {
             "pivot": {
               "x": 0.5,
@@ -335,7 +335,7 @@
           "swizzle": {
             "packed": 0
           },
-          "modifiers": [
+          "fx": [
             {
               "$type": "ShaderFX",
               "$id": "fx1",
@@ -473,7 +473,7 @@
           "swizzle": {
             "packed": 0
           },
-          "modifiers": [
+          "fx": [
             {
               "$type": "ShaderFX",
               "$id": "fx2",

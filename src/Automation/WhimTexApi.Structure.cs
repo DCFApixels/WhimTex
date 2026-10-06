@@ -69,7 +69,7 @@ namespace DCFApixels.WhimTex
                         var drawing = new DrawingLayerBehaviour();
                         drawing.CopyRasterizedIdentityFrom(layer);
                         drawing.transform = layer.transform;
-                        drawing.modifiers = new List<UnityEngine.Object>(layer.modifiers);
+                        drawing.fx = new List<UnityEngine.Object>(layer.fx);
                         layer.AdoptContent(drawing);
                     }
                 }

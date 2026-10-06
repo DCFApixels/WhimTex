@@ -233,10 +233,10 @@ public static class FillPatternTests
                 "float4 ApplyFX(float2 uv,float4 color){ return float4(1-color.rgb,color.a); }",
                 new System.Collections.Generic.List<ShaderFXParameter>()});
             typeof(ShaderFX).GetMethod("ApplyAgentDraft",F).Invoke(effect,null);
-            layer.modifiers.Add(effect);
+            layer.fx.Add(effect);
             var withFx=doc.ComposeCanvas();
-            layer.modifiers.Clear();
-            group.modifiers.Add(effect);
+            layer.fx.Clear();
+            group.fx.Add(effect);
             doc.layers.Clear();doc.layers.Add(group);
             group.transform=TextureTransform.Default;
             var groupFx=doc.ComposeCanvas();
@@ -245,7 +245,7 @@ public static class FillPatternTests
             var exported=(Texture2D)typeof(TextureCompositor).GetMethod("RenderPsdGroupContent",F).Invoke(doc,new object[]{group});
             try { Check(exported!=null && exported.width==127,"Layered group export"); }
             finally { UnityEngine.Object.DestroyImmediate(exported); }
-            group.modifiers.Clear();doc.layers.Clear();doc.layers.Add(layer);
+            group.fx.Clear();doc.layers.Clear();doc.layers.Add(layer);
             layer.clippingMask=true;
             doc.layers.Add(new ColorFillLayerBehaviour { color=new Color(0,0,0,.5f) });
             var clipped=doc.ComposeCanvas();

@@ -23,6 +23,11 @@ omit it. Unknown settings outside that explicit allowlist remain errors. The sch
 marks `document.spriteSlices` as deprecated input-only metadata. The version-1 default
 snapshot is unchanged, so omitted values in existing Compact files retain their meaning.
 
+The layer FX list is `fx` in new JSON and TIFF writes. Readers also accept the old
+`Layer.modifiers` field from existing files and convert it to `fx`, preserving list order
+and shared references. Both names in one layer are rejected as ambiguous. This input
+conversion is not a C# or agent API alias; new content must use `fx`.
+
 ## Write modes
 
 | Mode | Stored values |
@@ -96,7 +101,7 @@ output settings during export.
 
 Use the exact enum spellings in the [generated schema](AI/document.schema.json).
 Fields match the persistent model: `behaviour` contains type-specific settings; `transform`,
-`modifiers` and `children` belong to the layer. Layer order is top to bottom. `$type` selects an
+`fx` and `children` belong to the layer. Layer order is top to bottom. `$type` selects an
 allowlisted model type, not an arbitrary assembly-qualified runtime type. Unity vectors and colors
 are fixed-length numeric arrays; transform `Double2` values use objects with `x` and `y`.
 Writers use the field's current component count. TIFF and JSON readers accept lossless float-vector

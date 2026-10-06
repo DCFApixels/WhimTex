@@ -12,7 +12,7 @@ public static class DocumentJsonValidationTests
     static string Layer(string behaviour, string extra = "") => "[{\"id\":\"fixture\",\"behaviour\":" + behaviour + extra + "}]";
     static string Noise(string fields) => Doc(layers: Layer("{\"$type\":\"NoiseLayerBehaviour\"," + fields + "}"));
     static string Curve(string key, string wrap = "\"Default\"") => Doc(layers: Layer("{\"$type\":\"ColorFillLayerBehaviour\"}",
-        ",\"modifiers\":[{\"$type\":\"ShaderFX\",\"parameters\":[{\"type\":\"Curve\",\"curveValue\":{\"preWrap\":" + wrap +
+        ",\"fx\":[{\"$type\":\"ShaderFX\",\"parameters\":[{\"type\":\"Curve\",\"curveValue\":{\"preWrap\":" + wrap +
         ",\"postWrap\":\"Default\",\"keys\":[" + key + "]}}]}]"));
     static void Check(bool ok, string message) { checks++; UnityBRun.Check(!(!ok), message); }
     static void Accept(string json)
@@ -98,7 +98,7 @@ public static class DocumentJsonValidationTests
             Check(report.success && report.valid && report.warnings.Length == 1 && report.warnings[0].Contains("Missing asset"), "Load warning missing from Validate.");
             Check(File.ReadAllText(path) == missing, "Validation changed source bytes.");
             string broken = Doc(layers: Layer("{\"$type\":\"ColorFillLayerBehaviour\"}",
-                ",\"modifiers\":[{\"$type\":\"ShaderFX\",\"code\":\"// @param float _Amount = invalid\\nfloat4 ApplyFX(float2 uv,float4 color){return color;}\"}]"));
+                ",\"fx\":[{\"$type\":\"ShaderFX\",\"code\":\"// @param float _Amount = invalid\\nfloat4 ApplyFX(float2 uv,float4 color){return color;}\"}]"));
             File.WriteAllText(path, broken);
             report = ReplyOf(WhimTexApi.Validate(path));
             Check(report.success && !report.valid && report.warnings.Length > 0 && report.errors.Length > 0, "Failed FX readiness/load warnings not reported.");

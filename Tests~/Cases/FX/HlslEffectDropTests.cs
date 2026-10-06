@@ -24,11 +24,11 @@ public static class HlslEffectDropTests
             drop.Invoke(window, new object[] { entry, null });
             UnityBRun.Check(!(document.layers.Count != 1 || !(document.layers[0].Behaviour is ShaderProcessorLayerBehaviour)), "Processor missing");
             var layer = document.layers[0];
-            UnityBRun.Check(!(layer.modifiers.Count != 1), "Unexpected default FX");
+            UnityBRun.Check(!(layer.fx.Count != 1), "Unexpected default FX");
             drop.Invoke(window, new object[] { entry, layer });
-            UnityBRun.Check(!(document.layers.Count != 1 || layer.modifiers.Count != 2 || layer.modifiers[0] == layer.modifiers[1]), "Append did not create independent FX");
+            UnityBRun.Check(!(document.layers.Count != 1 || layer.fx.Count != 2 || layer.fx[0] == layer.fx[1]), "Append did not create independent FX");
             Undo.PerformUndo();
-            UnityBRun.Check(!(document.layers.Count != 1 || document.layers[0].modifiers.Count != 1), "Append Undo failed");
+            UnityBRun.Check(!(document.layers.Count != 1 || document.layers[0].fx.Count != 1), "Append Undo failed");
             Undo.PerformUndo();
             UnityBRun.Check(!(document.layers.Count != 0), "Processor Undo failed");
             return "";

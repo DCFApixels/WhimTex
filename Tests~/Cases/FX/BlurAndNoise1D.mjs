@@ -15,11 +15,11 @@ context.case('one serialized Blur type dispatches to the existing filters, apply
         assert.match(blur, /enum BlurType \{ Gaussian, Linear, Circular \}/);
         assert.match(blur, /public BlurType mode;/);
         assert.match(blur, /mode == BlurType.Gaussian\s*\? GaussianBlurRenderer.RenderBlur\(this, context\) : MotionBlurRenderer.RenderBlur\(this, context\)/);
-        assert.doesNotMatch(blur, /ApplyTransformAndModifiers|selectedBlurType|DefaultBlurType|FormerlySerializedAs/);
+        assert.doesNotMatch(blur, /ApplyTransformAndFx|selectedBlurType|DefaultBlurType|FormerlySerializedAs/);
         for (const name of ['Gaussian', 'Motion']) {
             const renderer = read(`src/Layers/${name}BlurRenderer.cs`);
-            assert.match(renderer, /layer.ApplyTransformAndModifiers\(straight, context\)/);
-            assert.match(renderer, /layer.ApplyTransformAndModifiers\(context.input, context\)/);
+            assert.match(renderer, /layer.ApplyTransformAndFx\(straight, context\)/);
+            assert.match(renderer, /layer.ApplyTransformAndFx\(context.input, context\)/);
             assert.ok(!existsSync(new URL(`../../../src/Layers/${name}BlurLayerBehaviour.cs`, import.meta.url)));
         }
         assert.match(read('src/Layers/MotionBlurRenderer.cs'), /layer.mode == BlurType.Circular/);

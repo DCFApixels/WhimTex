@@ -125,8 +125,8 @@ namespace DCFApixels.WhimTex
                 GL.sRGBWrite = false;
                 Graphics.Blit(null, source, material);
                 var renderedContext = new LayerRenderContext(context.compositor, context.input, context.width,
-                    context.height, context.scaleMultiplier, applyTransform: false, applyModifiers: context.applyModifiers);
-                return ApplyTransformAndModifiers(source, renderedContext);
+                    context.height, context.scaleMultiplier, applyTransform: false, applyFx: context.applyFx);
+                return ApplyTransformAndFx(source, renderedContext);
             }
             finally
             {

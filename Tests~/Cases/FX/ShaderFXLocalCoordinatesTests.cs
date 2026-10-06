@@ -31,7 +31,7 @@ public static class ShaderFXLocalCoordinatesTests
             fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.TextureCompositor), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null,new object[]{doc,code,new List<ShaderFXParameter>()});
             typeof(ShaderFX).GetMethod("ApplyAgentDraft",F).Invoke(fx,null);
             Layer group=new GroupLayerBehaviour(), layer=new ColorFillLayerBehaviour();
-            doc.layers.Add(group); group.children.Add(layer); layer.modifiers.Add(fx);
+            doc.layers.Add(group); group.children.Add(layer); layer.fx.Add(fx);
             group.transform.position=new Double2(9,-4);
             group.transform.rotation=17;
             layer.transform.scale=new Double2(.65,.8);

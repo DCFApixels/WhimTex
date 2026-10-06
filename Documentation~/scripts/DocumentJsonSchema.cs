@@ -89,6 +89,12 @@ public static class DocumentJsonSchema
                         properties[f.Name] = type == typeof(TextureCompositor) && (f.Name == "width" || f.Name == "height")
                             ? D(("type", "integer"), ("minimum", 1), ("maximum", 16384)) :
                             type == typeof(Layer) && f.Name == "id" ? D(("type", "string"), ("minLength", 1)) : Schema(f.FieldType);
+                if (type == typeof(Layer))
+                {
+                    properties["modifiers"] = D(("allOf", new[] { properties["fx"] }), ("deprecated", true),
+                        ("description", "0.12.5 file input; converted to fx. Never written by current writers."));
+                    ((Dictionary<string, object>)definitions[name])["not"] = D(("required", new[] { "fx", "modifiers" }));
+                }
             }
             object modelRef = D(("$ref", "#/$defs/" + name));
             return !type.IsValueType && type != typeof(TextureCompositor) && type != typeof(Layer)

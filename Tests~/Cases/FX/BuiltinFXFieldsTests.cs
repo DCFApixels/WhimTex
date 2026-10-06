@@ -36,7 +36,7 @@ static System.Threading.CancellationToken Cancellation;
             var source=FX("float4 ApplyFX(float2 uv,float4 color){return float4(.37,.37,.37,1);}");
             foreach(string name in new[]{"Pixelate","Posterize"})
             {
-                var fx=Preset(name); layer.modifiers.Clear();layer.modifiers.Add(source);layer.modifiers.Add(fx);
+                var fx=Preset(name); layer.fx.Clear();layer.fx.Add(source);layer.fx.Add(fx);
                 P(fx,"_Levels").floatValue=64; float a=Render();
                 P(fx,"_Levels").floatValue=128; float b=Render();
                 Check(Mathf.Abs(a-b)>.0001f,name+" levels beyond 64 work");
@@ -44,12 +44,12 @@ static System.Threading.CancellationToken Cancellation;
                 P(fx,"_Gamma").floatValue=8;b=Render();
                 Check(Mathf.Abs(a-b)>.001f,name+" gamma beyond 5 works");
             }
-            var map=Preset("GradientMap");layer.modifiers.Clear();layer.modifiers.Add(source);layer.modifiers.Add(map);
+            var map=Preset("GradientMap");layer.fx.Clear();layer.fx.Add(source);layer.fx.Add(map);
             float normal=Render();P(map,"_Mapping").curveValue=AnimationCurve.Linear(0,1,1,1);
             Check(Render()>normal+.1f,"gradient mapping curve affects GPU output");
             var balance=Preset("ColorBalance");
             var levels=Preset("Levels");
-            layer.modifiers.Clear(); layer.modifiers.Add(source); layer.modifiers.Add(levels);
+            layer.fx.Clear(); layer.fx.Add(source); layer.fx.Add(levels);
             Check(Mathf.Abs(Render()-.37f)<.001f,"Levels default curve is neutral");
             P(levels,"_Curve").curveValue=AnimationCurve.Linear(0,1,1,0);
             Check(Mathf.Abs(Render()-.63f)<.001f,"Levels luminance curve");
@@ -59,7 +59,7 @@ static System.Threading.CancellationToken Cancellation;
             P(levels,"_OutWhite").floatValue=.8f;
             Check(Mathf.Abs(Render()-(.2f+.6f*(1-Mathf.Sqrt(.37f))))<.001f,"Levels Gamma/Curve/output order");
             var channels=FX("float4 ApplyFX(float2 uv,float4 c){return float4(.1,.3,.7,.4);}");
-            layer.modifiers[0]=channels;
+            layer.fx[0]=channels;
             P(levels,"_Gamma").floatValue=1; P(levels,"_OutBlack").floatValue=0; P(levels,"_OutWhite").floatValue=1;
             var result=doc.ComposeCanvas();
             try

@@ -152,7 +152,7 @@ namespace DCFApixels.WhimTex
 
         private static bool IsDefault(Type type, string field, JToken value)
         {
-            if (field == "id" || field == "behaviour" || field == "behaviourId" || field == "children" || field == "modifiers") return false;
+            if (field == "id" || field == "behaviour" || field == "behaviourId" || field == "children" || field == "fx") return false;
             return DefaultsFor(type)?[field] is JToken baseline && JToken.DeepEquals(value, baseline);
         }
 
