@@ -88,6 +88,7 @@ namespace DCFApixels.WhimTex
         public float smudgeSize = 32f;
         public float smudgeHardness = .8f;
         public float smudgeStrength = .8f;
+        public float smudgeMixing = .25f;
         public float smudgeFlow = 1f;
         public bool smudgePressure = true;
         public BlurBrushSampleMode smudgeSampleMode = BlurBrushSampleMode.CurrentLayer;

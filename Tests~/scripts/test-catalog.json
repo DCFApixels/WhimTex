@@ -126,6 +126,8 @@
       "reference-fixtures"
     ],
     "verify": [
+      "smudge-hybrid",
+      "smudge-hybrid-integration",
       "smudge-quality",
       "smudge-brush",
       "smudge-api",
@@ -603,6 +605,8 @@
       "reference-fixtures"
     ],
     "regressions": [
+      "smudge-hybrid",
+      "smudge-hybrid-integration",
       "smudge-quality",
       "smudge-brush",
       "smudge-api",
@@ -1084,6 +1088,8 @@
       "unity-b-async-skip-protocol-v2"
     ],
     "diagnostics": [
+      "smudge-hybrid-performance-2048",
+      "smudge-hybrid-performance-4096",
       "smudge-visual",
       "smudge-performance",
       "smudge-precision",
@@ -1253,6 +1259,7 @@
       "seamless-release-stress-2048-mode-4-v2"
     ],
     "rendering": [
+      "smudge-hybrid-integration",
       "effect-cache-fingerprints",
       "display-channels-v2",
       "output-dependencies-v2",
@@ -1506,6 +1513,8 @@
       "procedural-clipboard-unity-v2"
     ],
     "painting": [
+      "smudge-hybrid",
+      "smudge-hybrid-integration",
       "smudge-quality",
       "smudge-brush",
       "smudge-api",
@@ -1749,6 +1758,74 @@
     ]
   },
   "scenarios": [
+    {
+      "id": "smudge-hybrid-performance-2048",
+      "file": "Tests~/Cases/Painting/SmudgeBrushTests.cs",
+      "runner": "run_script",
+      "entry": "SmudgeBrushTests.HybridBenchmark",
+      "args": [2048],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": ["temp-files", "user-state"],
+      "groups": ["painting", "diagnostics"],
+      "prerequisites": "Idle graphical Test6.6 Editor; reviewed case and framework.",
+      "setup": "Measure GPU-drained 100-event strokes at Mixing 25, tips 32/128/512, current and sampled source on owned 2K textures. Diagnostic, not a performance acceptance assertion.",
+      "teardown": "End owned strokes and dispose transient fixtures.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
+      "reviewFiles": []
+    },
+    {
+      "id": "smudge-hybrid-performance-4096",
+      "file": "Tests~/Cases/Painting/SmudgeBrushTests.cs",
+      "runner": "run_script",
+      "entry": "SmudgeBrushTests.HybridBenchmark",
+      "args": [4096],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": ["temp-files", "user-state"],
+      "groups": ["painting", "diagnostics"],
+      "prerequisites": "Idle graphical Test6.6 Editor; reviewed case and framework.",
+      "setup": "Measure GPU-drained 100-event strokes at Mixing 25, tips 32/128/512, current and sampled source on owned 4K textures. Diagnostic, not a performance acceptance assertion.",
+      "teardown": "End owned strokes and dispose transient fixtures.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
+      "reviewFiles": []
+    },
+    {
+      "id": "smudge-hybrid",
+      "file": "Tests~/Cases/Painting/SmudgeBrushTests.cs",
+      "runner": "run_script",
+      "entry": "SmudgeBrushTests.Hybrid",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["temp-files", "user-state"],
+      "groups": ["painting"],
+      "prerequisites": "Idle graphical Test6.6 Editor; reviewed case and framework.",
+      "setup": "Own transient documents and textures; verify 16-circle color/alpha bounds, cropped positive history, endpoints, detail, no-ops and pointer-event density.",
+      "teardown": "End owned strokes and dispose fixtures, restoring borrowed Editor state.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
+      "reviewFiles": []
+    },
+    {
+      "id": "smudge-hybrid-integration",
+      "file": "Tests~/Cases/Painting/SmudgeBrushTests.cs",
+      "runner": "run_script",
+      "entry": "SmudgeBrushTests.HybridIntegration",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["temp-files", "user-state"],
+      "groups": ["painting", "rendering"],
+      "prerequisites": "Idle graphical Test6.6 Editor; reviewed case and framework.",
+      "setup": "Run the full pixel/mask/HDR/transform/Tiled/sampling/group/Target/clipping/thumbnail/roundtrip/export integration at Mixing 25, using only transient inputs.",
+      "teardown": "End owned strokes and dispose fixtures, restoring borrowed Editor state.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
+      "reviewFiles": []
+    },
     {
       "id": "smudge-quality",
       "file": "Tests~/Cases/Painting/SmudgeBrushTests.cs",

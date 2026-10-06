@@ -11,6 +11,7 @@ using WhimTex.Tests.UnityC;
 public static class SmudgeBrushTests
 {
     const BindingFlags Flags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
+    static float scenarioMixing = 1;
     static FixtureScope S => FixtureContext.Scope;
     static WhimTex.Tests.TestContext T => FixtureContext.Context;
     static object Call(object owner, string name, params object[] args) =>
@@ -35,12 +36,12 @@ public static class SmudgeBrushTests
         Call(doc, "NormalizeModel");
         return drawing;
     }
-    static void Begin(TextureCompositor doc, DrawingLayerBehaviour layer, Vector2 uv, float size = 20, RenderTexture sample = null, bool tiled = false)
+    static void Begin(TextureCompositor doc, DrawingLayerBehaviour layer, Vector2 uv, float size = 20, RenderTexture sample = null, bool tiled = false, float mixing = -1)
     {
         Call(doc, "GetPaintTransform", layer.Owner);
         Call(layer, "PrepareStroke", doc.width, doc.height, "Smudge test");
         Call(layer, "BeginStroke", uv);
-        Call(layer, "BeginSmudgeStroke", uv, doc.width, doc.height, size, sample, tiled);
+        Call(layer, "BeginSmudgeStroke", uv, doc.width, doc.height, size, sample, tiled, mixing < 0 ? scenarioMixing : mixing);
     }
     static void Segment(TextureCompositor doc, DrawingLayerBehaviour layer, Vector2 from, Vector2 to,
         float strength = .95f, float flow = 1, float hardness = .8f, Texture selection = null) =>
@@ -48,7 +49,7 @@ public static class SmudgeBrushTests
     static void End(DrawingLayerBehaviour layer)
     {
         Call(layer, "EndStroke"); Call(layer, "SyncSurfaceToTexture");
-        foreach (string field in new[] { "smudgeCarry", "smudgeNext", "smudgeBackdrop", "smudgeSample", "smudgeSampleBackdrop" })
+        foreach (string field in new[] { "smudgeCarry", "smudgeNext", "smudgeBackdrop", "smudgeSample", "smudgeSampleBackdrop", "smudgeTransport" })
             T.True(Get(layer, field) == null, "Owned Smudge buffer released: " + field);
     }
     static double Difference(Color[] a, Color[] b)
@@ -61,12 +62,99 @@ public static class SmudgeBrushTests
     static Vector2 Start => new Vector2(40f / 128, .5f);
     static Vector2 Finish => new Vector2(84f / 128, .5f);
 
+    public static string Hybrid() => FixtureContext.Run("Smudge coupled deformation and positive color history", () =>
+    {
+        foreach (float mixing in new[] { 0f, .25f, .5f, .75f, 1f })
+        foreach (float strength in new[] { .8f, 1f })
+        {
+            var doc = Document(256, 128);
+            var layer = Drawing(doc, (x, y) => Mathf.Sin(x * .19f) * Mathf.Sin(y * .16f) > 0
+                ? new Color(.12f, .7f, .82f, 1) : new Color(.7f, .82f, .12f, 1), 256, 128);
+            var last = new Vector2(80.25f / 256, 64.25f / 128);
+            Begin(doc, layer, last, 40, mixing: mixing);
+            for (int i = 1; i <= 16 * 84; i++)
+            {
+                float a = i / 84f * Mathf.PI * 2;
+                var next = new Vector2((66.25f + 14 * Mathf.Cos(a)) / 256, (64.25f + 14 * Mathf.Sin(a)) / 128);
+                Segment(doc, layer, last, next, strength, 1, 1); last = next;
+            }
+            var actual = ReadSurface((RenderTexture)Get(layer, "paintSurface")).GetPixels();
+            bool finite = true, bounded = true, opaque = true;
+            foreach (var c in actual)
+            {
+                finite &= float.IsFinite(c.r) && float.IsFinite(c.g) && float.IsFinite(c.b) && float.IsFinite(c.a);
+                opaque &= c.a >= .998f && c.a <= 1.002f;
+                bounded &= c.r / c.a >= .117f && c.r / c.a <= .703f && c.g / c.a >= .697f && c.g / c.a <= .823f && c.b / c.a >= .117f && c.b / c.a <= .823f;
+            }
+            string label = mixing + "/" + strength;
+            T.True(finite && opaque, "16 repeated circles remain finite and opaque: " + label);
+            T.True(bounded, "Positive contributions do not invent dark/bright colors on overlaps: " + label);
+            var transport = Get(layer, "smudgeTransport");
+            if (mixing == 0)
+            {
+                T.True(Get(transport, "paint") == null && Get(layer, "smudgeCarry") == null, "Pure deformation has no cumulative RGB history or carry");
+                var coordinates = (RenderTexture)Get(transport, "coordinates");
+                T.True(coordinates.width < 256, "Stroke history is cropped, not full-canvas");
+            }
+            T.True(mixing != 1 || transport == null, "Mixing 100 uses the original endpoint without deformation buffers");
+            End(layer); S.Destroy(doc); S.Destroy(Pixels(layer));
+        }
+        Color[][] outputs = new Color[3][];
+        for (int variant = 0; variant < 3; variant++)
+        {
+            var doc = Document(256, 128);
+            var layer = Drawing(doc, (x, y) => y % 4 < 2 ? (x < 90 ? Color.white : Color.blue) : Color.black, 256, 128);
+            var from = new Vector2(64.25f / 256, 64.25f / 128); var to = new Vector2(175.25f / 256, 64.25f / 128);
+            Begin(doc, layer, from, 32, mixing: variant * .5f); Segment(doc, layer, from, to, .8f, 1, 1); End(layer);
+            outputs[variant] = Pixels(layer).GetPixels();
+            if (variant == 0)
+            {
+                double contrast = 0;
+                for (int y = 56; y < 72; y++) for (int x = 130; x < 138; x++) contrast += outputs[0][y * 256 + x].r * (y % 4 < 2 ? 1 : -1);
+                T.True(contrast / 64 > .6, "Pure deformation retains transverse high-frequency detail without compensation");
+            }
+        }
+        var lerp = new Color[outputs[0].Length];
+        for (int i = 0; i < lerp.Length; i++) lerp[i] = Color.LerpUnclamped(outputs[0][i], outputs[2][i], .5f);
+        T.True(Difference(lerp, outputs[1]) / lerp.Length > .001, "Hybrid couples each dab rather than interpolating finished images");
+
+        foreach (float mixing in new[] { 0f, .25f, .75f })
+        {
+            var doc = Document(); var layer = Drawing(doc, Split); var original = Pixels(layer).GetPixels();
+            Begin(doc, layer, Start, mixing: mixing); End(layer);
+            T.Near(0, Difference(original, Pixels(layer).GetPixels()), .001, "Hybrid click is a no-op");
+            foreach (var settings in new[] { new Vector2(0, 1), new Vector2(1, 0) })
+            {
+                Begin(doc, layer, Start, mixing: mixing); Segment(doc, layer, Start, Finish, settings.x, settings.y); End(layer);
+                T.Near(0, Difference(original, Pixels(layer).GetPixels()), .001, "Hybrid zero Strength/Flow is a no-op");
+            }
+            Color[][] results = new Color[2][];
+            for (int variant = 0; variant < 2; variant++)
+            {
+                var target = Drawing(doc, Split); Begin(doc, target, Start, mixing: mixing);
+                Vector2 last = Start;
+                int pieces = variant == 0 ? 1 : 44;
+                for (int i = 1; i <= pieces; i++) { var next = Vector2.Lerp(Start, Finish, i / (float)pieces); Segment(doc, target, last, next, .8f, .7f, .6f); last = next; }
+                End(target); results[variant] = Pixels(target).GetPixels();
+            }
+            T.Near(0, Difference(results[0], results[1]) / original.Length, .001, "Hybrid sampling is independent of raw pointer-event density");
+        }
+    });
+
+    public static string HybridIntegration()
+    {
+        scenarioMixing = .25f;
+        try { return Run(); }
+        finally { scenarioMixing = 1; }
+    }
+
     // Translating along stripes must not erase detail across the stroke. Compare
     // actual stored pixels, not a replacement CPU model of the transport shader.
     public static string Quality() => FixtureContext.RunReport("Smudge feedback and transverse pixel detail", () =>
     {
         var reports = new System.Collections.Generic.List<string>();
         VerifyPaintedPatchFeedback(reports);
+        VerifyPickupMixture(reports);
         foreach (bool sampled in new[] { false, true })
         foreach (int nativeScale in new[] { 1, 2 })
         foreach (float phase in new[] { 0f, .35f })
@@ -290,6 +378,53 @@ public static class SmudgeBrushTests
         return new Color(Round(value.r), Round(value.g), Round(value.b), Round(value.a));
     }
 
+    static void VerifyPickupMixture(System.Collections.Generic.List<string> reports)
+    {
+        const int width = 24, height = 24;
+        var material = S.Own(new Material(Shader.Find("Hidden/TextureCompositor/SmudgeBrush")));
+        var source = S.Own(new Texture2D(width, height, TextureFormat.RGBAFloat, false, true));
+        var carry = S.Own(new Texture2D(width, height, TextureFormat.RGBAFloat, false, true));
+        var target = S.Temporary(RenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear));
+        var samples = new Color[width * height]; var retained = new Color[samples.Length];
+        material.SetVector("_ColorDimensions", new Vector4(width, height, 0, 0));
+        material.SetVector("_ColorSize", new Vector4(width, height, 0, 0));
+        material.SetVector("_ColorOrigin", Vector4.zero); material.SetFloat("_Wrap", 0);
+        foreach (int pattern in new[] { 0, 1, 2, 3 })
+        foreach (float strength in new[] { 0f, .2f, .8f, .95f, 1f })
+        {
+            for (int y = 0; y < height; y++) for (int x = 0; x < width; x++)
+            {
+                int i = y * width + x;
+                float stripe = (x / 3 + y / 3) % 2 == 0 ? 1 : 0;
+                samples[i] = new Color(.2f, -.3f, 1.2f, .7f);
+                retained[i] = pattern == 0 ? new Color(3, -.25f, .8f, .7f) : new Color(1 + 2 * stripe, -.25f + .5f * stripe, .8f, .7f);
+                if (pattern == 2) samples[i] = retained[i];
+                if (pattern == 3) samples[i].a = x % 2 == 0 ? 0 : 1;
+            }
+            source.SetPixels(samples); source.Apply(); carry.SetPixels(retained); carry.Apply();
+            material.SetTexture("_Carry", carry); material.SetFloat("_PickupRetention", strength);
+            RenderTexture active = RenderTexture.active; bool srgb = GL.sRGBWrite;
+            try { GL.sRGBWrite = false; Graphics.Blit(source, target, material, 0); }
+            finally { RenderTexture.active = active; GL.sRGBWrite = srgb; }
+            var actual = ReadSurface(target).GetPixels(); double error = 0, alphaError = 0;
+            bool bounded = true;
+            for (int y = 0; y < height; y++) for (int x = 0; x < width; x++)
+            {
+                int i = y * width + x;
+                var predicted = Color.LerpUnclamped(samples[i], retained[i], strength);
+                error += Difference(new[] { predicted }, new[] { actual[i] });
+                alphaError = Math.Max(alphaError, Math.Abs(predicted.a - actual[i].a));
+                bounded &= actual[i].r >= .1999f && actual[i].r <= 3.0001f && actual[i].g >= -.3001f && actual[i].g <= .2501f;
+            }
+            T.Near(0, alphaError, 1e-6, "Pickup alpha is the requested linear mixture");
+            T.True(bounded, "HDR/negative colors remain inside input ranges, without overshoot");
+            T.Near(0, error / actual.Length, 2e-6, "Pickup is a pointwise RGBA mixture, with no sharpening or neighbor-dependent contours: " + pattern + "/" + strength);
+        }
+        S.Release(target);
+
+        reports.Add("pointwise pickup: 20 HDR/RGBA pattern and retention combinations, no detail compensation");
+    }
+
     static Texture2D ReadSurface(RenderTexture surface)
     {
         var image = S.Own(new Texture2D(surface.width, surface.height, TextureFormat.RGBAFloat, false, true));
@@ -478,6 +613,9 @@ public static class SmudgeBrushTests
         T.True(Batch(Operation(), true).success, "Smudge dry run is accepted");
         T.Near(0, Difference(before, Pixels(layer).GetPixels()), 0, "Dry run does not paint");
         T.True(!Batch(Operation(",\"flow\":2")).success, "Invalid Flow is rejected");
+        T.True(!Batch(Operation(",\"mixing\":2")).success, "Invalid Mixing is rejected");
+        foreach (float mix in new[] { 0f, .25f, 1f })
+            T.True(Batch(Operation(",\"mixing\":" + mix.ToString(System.Globalization.CultureInfo.InvariantCulture)), true).success, "Mixing endpoints and partial value validate");
         var longPath = new string[500];
         for (int i = 0; i < longPath.Length; i++) longPath[i] = i % 2 == 0 ? "[-128,0]" : "[256,128]";
         var oversized = Batch("{\"op\":\"smudgeStroke\",\"layer\":" + Q(layer.Id) + ",\"points\":[" + string.Join(",", longPath) + "],\"size\":512}", true);
@@ -558,6 +696,10 @@ public static class SmudgeBrushTests
             T.True(size.Q(className: "unity-base-field__input").worldBound.width > 30, "Compact Size field has usable input width");
             T.True(row.Q<Slider>("smudgeHardness") != null && row.Q<Toggle>("smudgePressure") != null && row.Q<EnumField>("smudgeSampleMode") != null,
                 "Hardness, Pressure and source controls exist");
+            var mixing = row.Q<Slider>("smudgeMixing");
+            T.True(mixing != null && mixing.showInputField, "Mixing slider has editable percentage");
+            mixing.value = 25;
+            T.Near(.25, (float)Get(settings, "smudgeMixing"), 1e-6, "Mixing control updates the actual tool");
             T.True(Call(typeof(TextureCompositorWindow), "ParseCanvasTool", "SmudgeBrush").ToString() == "SmudgeBrush", "Smudge is a persistent base tool");
             var capture = new IconCapture { button = button, owner = window };
             capture.style.height = 1; window.rootVisualElement.Add(capture); window.Repaint();
@@ -579,6 +721,7 @@ public static class SmudgeBrushTests
             T.True(Difference(original, Pixels(layer).GetPixels()) < .001, "Canvas click without dragging does not paint");
             T.True(!(bool)Get(window, "temporaryDocumentDirty"), "A click does not mark the document dirty");
             T.True((bool)Call(window, "TryBeginCanvasStroke", View(Start), false), "Canvas starts another Smudge stroke");
+            T.True(Get(layer, "smudgeTransport") != null, "Canvas routes to coupled Smudge, not only the old endpoint");
             Call(window, "PaintTowardsLayerPoint", Finish); Call(window, "FinishPaintingStroke");
             T.True(Difference(original, Pixels(layer).GetPixels()) > 10, "Canvas movement uses Smudge, not the ordinary Brush");
             double pressureDifference = Difference(original, Pixels(layer).GetPixels());
@@ -633,7 +776,10 @@ public static class SmudgeBrushTests
 
     // Opt-in timing, not a regression threshold. One-pixel readback drains queued GPU
     // work; setup and final storage synchronization are outside the stroke measurement.
-    public static string Benchmark()
+    public static string Benchmark() => BenchmarkCore(1, new[] { 2048, 4096 });
+    public static string HybridBenchmark(int resolution) => BenchmarkCore(.25f, new[] { resolution });
+
+    static string BenchmarkCore(float mixing, int[] resolutions)
     {
         var measurements = new System.Collections.Generic.List<string>();
         return FixtureContext.Diagnostic("Smudge interactive timing", () =>
@@ -645,7 +791,7 @@ public static class SmudgeBrushTests
                 try { RenderTexture.active = surface; drain.ReadPixels(new Rect(0, 0, 1, 1), 0, 0, false); }
                 finally { RenderTexture.active = active; }
             }
-            foreach (int resolution in new[] { 2048, 4096 })
+            foreach (int resolution in resolutions)
             foreach (int size in new[] { 32, 128, 512 })
             foreach (bool sampled in new[] { false, true })
             {
@@ -660,7 +806,7 @@ public static class SmudgeBrushTests
                     Graphics.Blit(Pixels(layer), sample);
                 }
                 var start = new Vector2(.35f, .5f);
-                Begin(doc, layer, start, size, sample);
+                Begin(doc, layer, start, size, sample, mixing: mixing);
                 var surface = (RenderTexture)Get(layer, "paintSurface");
                 Flush(surface);
                 var clock = new System.Diagnostics.Stopwatch();
@@ -685,7 +831,7 @@ public static class SmudgeBrushTests
                     S.Release(preview);
                     if (trial > 0) { queued += submitted / 3; completed += drained / 3; canvas += rendered / 3; }
                 }
-                measurements.Add(resolution + "px tip=" + size + " sample=" + sampled +
+                measurements.Add(resolution + "px mixing=" + mixing + " tip=" + size + " sample=" + sampled +
                     " events=" + events + " enqueueMs=" + queued.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) +
                     " completedMs=" + completed.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) +
                     " canvasMs=" + canvas.ToString("F2", System.Globalization.CultureInfo.InvariantCulture));

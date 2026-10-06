@@ -407,20 +407,28 @@ It is frozen at stroke start. Strength and flow are each 0..1, default 1. Work i
 
 ```json
 {"op":"smudgeStroke","layer":"DRAWING-ID","points":[[10,20],[40,20]],
- "size":24,"hardness":0.8,"strength":0.8,"flow":1,"source":"CurrentLayer","tiled":true}
+ "size":24,"hardness":0.8,"strength":0.8,"flow":1,"mixing":0.25,"source":"CurrentLayer","tiled":true}
 ```
 
 Smudge carries existing RGBA pixels along the path, without adding a painting color.
 One point alone does not paint. Strength (0..1, default 0.8) scales transport and controls
-retention of the picked-up patch; flow (0..1, default 1) scales deposition independently.
+retention of the picked-up patch; flow (0..1, default 1) scales each dab independently.
+Mixing (0..1, default 0.25) couples two mechanisms within each dab: deformation is
+scaled by `1 - mixing`, while carried-color deposition is scaled by `mixing`.
+At 0, only a coordinate map is advected; colors are reconstructed from a mipmapped,
+immutable stroke-start image, so repeated movement does not repeatedly filter RGB.
+Partial Mixing advects positive accumulated paint contributions and original-image
+weights, then deposits and picks up from their shared result. It is not interpolation
+between finished strokes. No contrast compensation or signed color residuals are used.
+At 1, only the carried-color mechanism is active.
 Below full Strength, the carry is refreshed after deposition from the painted result,
 including mask, selection and Flow: carry = lerp(paintedPatch, previousCarry, strength).
 At Strength 1, the initial captured patch remains unchanged throughout the stroke;
-Hardness and Flow affect deposition, not this retention. No foreground color or spatial
-blur is added.
+Hardness and Flow affect the dab, not this retention. No foreground color is added;
+larger Mixing intentionally produces cumulative color blending.
 Sources match Blur. CurrentLayer samples
-the changing raw Drawing; visible-stack sources freeze other layers/FX at stroke start
-and feed back this stroke's deposits. Writes affect only the selected Drawing.
+raw Drawing pixels; visible-stack sources freeze other layers/FX at stroke start
+and feed back this stroke's deformations and deposits. Writes affect only the selected Drawing.
 Spacing is 2.5% of the tip diameter, at least one canvas pixel, and follows canvas distance
 rather than input-point frequency. Hard tips have a pixel-wide antialiased boundary. Color pickup and feedback
 stay on the source pixel grid, separately from the smoothly positioned round mask:
@@ -434,6 +442,9 @@ native tip-pixel × stamp budget. Dry run checks the padded source-space footpri
 vertices. Each carry buffer is limited to 18,874,368 pixels and the device's maximum texture
 dimensions; a footprint crossing the inverse projection horizon is rejected rather than
 downsampled. Use a smaller tip or adjust the layer transform if these limits are exceeded.
+Deformation snapshots and the growing stroke-history region are also limited to
+18,874,368 native pixels. History is cropped to the touched area, with tile-aligned
+growth; rendering operates on dab bounds rather than running full-canvas passes per dab.
 
 ```json
 {"op":"healStroke","layer":"DRAWING-ID","points":[[10,20],[40,20]],

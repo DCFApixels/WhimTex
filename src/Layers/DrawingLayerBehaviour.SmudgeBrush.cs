@@ -20,7 +20,7 @@ namespace DCFApixels.WhimTex
         // Color travels on the source's pixel grid, independently of the continuous
         // canvas-space brush mask. Resampling both ways at every dab causes diffusion.
         internal void BeginSmudgeStroke(Vector2 sourceUv, int width, int height, float size,
-            RenderTexture canvasSample = null, bool tiled = false)
+            RenderTexture canvasSample = null, bool tiled = false, float mixing = 1f)
         {
             ReleaseSmudgeStroke();
             RenderTexture surface = EnsurePaintSurface(width, height);
@@ -30,6 +30,7 @@ namespace DCFApixels.WhimTex
             if (material == null || !material.shader.isSupported)
                 throw new InvalidOperationException("Smudge Brush shader is unavailable.");
             smudgeDiameter = Mathf.Clamp(size, 1f, 4096f);
+            smudgeMixing = Mathf.Clamp01(mixing);
             smudgeWrap = tiled;
             smudgeSpacing = default;
             RenderTexture previous = RenderTexture.active;
@@ -37,11 +38,12 @@ namespace DCFApixels.WhimTex
             try
             {
                 GL.sRGBWrite = false;
-                smudgeBackdrop = SmudgeTemporary(surface.width, surface.height);
+                if (smudgeMixing >= 1 || canvasSample != null)
+                    smudgeBackdrop = SmudgeTemporary(surface.width, surface.height);
                 if (canvasSample != null)
                 {
-                    smudgeSample = SmudgeTemporary(width, height);
-                    if (surface.width != width || surface.height != height)
+                    smudgeSample = SmudgeTemporary(width, height, smudgeMixing > 0 && smudgeMixing < 1 ? RenderTextureFormat.ARGBFloat : RenderTextureFormat.ARGBHalf);
+                    if (smudgeMixing >= 1 && (surface.width != width || surface.height != height))
                         smudgeSampleBackdrop = SmudgeTemporary(width, height);
                     Material conversion = WhimTexMaterials.AlphaConversion;
                     conversion.SetFloat("_Mode", 0);
@@ -50,13 +52,19 @@ namespace DCFApixels.WhimTex
                 }
                 ConfigureSmudge(material, width, height, null);
                 smudgeLastCenter = smudgeToCanvas.Point(sourceUv);
+                smudgeTransportLastCenter = smudgeLastCenter;
                 if (smudgeWrap) smudgeLastCenter = TiledCanvasUtility.Wrap(smudgeLastCenter);
-                RenderTexture colorSource = smudgeSample != null ? smudgeSample : surface;
+                if (smudgeMixing < 1)
+                    smudgeTransport = new SmudgeTransport(smudgeSample != null ? smudgeSample : surface, smudgeMixing > 0, smudgeSample != null);
+                RenderTexture colorSource = SmudgeColorSource(surface);
                 Vector2 colorCenter = smudgeSample != null ? smudgeLastCenter : (Vector2)smudgeToSource.Point(smudgeLastCenter);
                 var colorPixel = Vector2.Scale(colorCenter, new Vector2(colorSource.width, colorSource.height));
                 smudgeInitialPhase = new Vector2(colorPixel.x - Mathf.Floor(colorPixel.x), colorPixel.y - Mathf.Floor(colorPixel.y));
-                EnsureSmudgeCarry(material, surface, smudgeLastCenter, width, height);
-                PickupSmudge(material, surface, smudgeLastCenter, smudgeCarry);
+                if (smudgeMixing > 0)
+                {
+                    EnsureSmudgeCarry(material, surface, smudgeLastCenter, width, height);
+                    PickupSmudge(material, surface, smudgeLastCenter, smudgeCarry);
+                }
             }
             catch { ReleaseSmudgeStroke(); throw; }
             finally { RenderTexture.active = previous; GL.sRGBWrite = previousSrgb; }
@@ -65,7 +73,7 @@ namespace DCFApixels.WhimTex
         internal void SmudgeSegment(Vector2 fromSourceUv, Vector2 toSourceUv, int width, int height,
             float hardness, float strength, float flow, Texture selection = null)
         {
-            if (smudgeCarry == null) return;
+            if (smudgeCarry == null && smudgeTransport == null) return;
             Vector2 from = smudgeToCanvas.Point(fromSourceUv), to = smudgeToCanvas.Point(toSourceUv);
             Vector2 dimensions = new Vector2(width, height);
             float distance = Vector2.Scale(to - from, dimensions).magnitude;
@@ -73,7 +81,12 @@ namespace DCFApixels.WhimTex
             double spacing = SmudgeSpacing(smudgeDiameter);
             int count = smudgeSpacing.Sample(distance, spacing, false, out double first);
             if (count > 32768) throw new InvalidOperationException("Smudge stroke segment is too long.");
-            if (count == 0 || strength <= 0f || flow <= 0f) return;
+            if (count == 0) return;
+            if (strength <= 0f || flow <= 0f)
+            {
+                if (smudgeTransport != null) smudgeTransportLastCenter = Vector2.Lerp(from, to, (float)((first + (count - 1) * spacing) / distance));
+                return;
+            }
             RenderTexture surface = EnsurePaintSurface(width, height);
             Material material = WhimTexMaterials.SmudgeBrush;
             RenderTexture previous = RenderTexture.active;
@@ -89,6 +102,11 @@ namespace DCFApixels.WhimTex
                 for (int i = 0; i < count; i++)
                 {
                     Vector2 center = Vector2.Lerp(from, to, (float)((first + i * spacing) / distance));
+                    if (smudgeTransport != null)
+                    {
+                        TransportSmudgeDab(material, surface, center, width, height, hardness, strength, flow, selection);
+                        continue;
+                    }
                     if (smudgeWrap) center = TiledCanvasUtility.Wrap(center);
                     EnsureSmudgeCarry(material, surface, center, width, height);
                     material.SetTexture("_Carry", smudgeCarry);
@@ -113,9 +131,9 @@ namespace DCFApixels.WhimTex
 
         internal static double SmudgeSpacing(float diameter) => Math.Max(1d, diameter * .025d);
 
-        private static RenderTexture SmudgeTemporary(int width, int height)
+        private static RenderTexture SmudgeTemporary(int width, int height, RenderTextureFormat format = RenderTextureFormat.ARGBHalf)
         {
-            var result = RenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
+            var result = RenderTexture.GetTemporary(width, height, 0, format, RenderTextureReadWrite.Linear);
             result.filterMode = FilterMode.Bilinear;
             result.wrapMode = TextureWrapMode.Clamp;
             return result;
@@ -131,7 +149,7 @@ namespace DCFApixels.WhimTex
 
         private void PickupSmudge(Material material, RenderTexture surface, Vector2 center, RenderTexture target, float retention = 0f)
         {
-            RenderTexture source = smudgeSample != null ? smudgeSample : surface;
+            RenderTexture source = SmudgeColorSource(surface);
             ProjectiveMatrix toColor = smudgeSample != null ? ProjectiveMatrix.Identity : smudgeToSource;
             SetSmudgeGrid(material, source, center, target.width, target.height);
             material.SetFloat("_PickupRetention", retention);
@@ -185,7 +203,7 @@ namespace DCFApixels.WhimTex
 
         private void EnsureSmudgeCarry(Material material, RenderTexture surface, Vector2 center, int width, int height)
         {
-            RenderTexture source = smudgeSample != null ? smudgeSample : surface;
+            RenderTexture source = SmudgeColorSource(surface);
             var size = SmudgeCarrySize(smudgeSample != null ? ProjectiveMatrix.Identity : smudgeToSource,
                 source.width, source.height, center, smudgeDiameter, width, height);
             if (smudgeCarry != null)
@@ -198,8 +216,9 @@ namespace DCFApixels.WhimTex
             RenderTexture carry = null, next = null;
             try
             {
-                carry = SmudgeTemporary(size.x, size.y);
-                next = SmudgeTemporary(size.x, size.y);
+                var format = smudgeMixing > 0 && smudgeMixing < 1 ? RenderTextureFormat.ARGBFloat : RenderTextureFormat.ARGBHalf;
+                carry = SmudgeTemporary(size.x, size.y, format);
+                next = SmudgeTemporary(size.x, size.y, format);
                 if (smudgeCarry != null)
                 {
                     PickupSmudge(material, surface, smudgeLastCenter, next);
@@ -280,11 +299,14 @@ namespace DCFApixels.WhimTex
 
         private void ReleaseSmudgeStroke()
         {
+            smudgeTransport?.Dispose(); smudgeTransport = null;
             ReleaseSmudgeTexture(ref smudgeCarry); ReleaseSmudgeTexture(ref smudgeNext);
             ReleaseSmudgeTexture(ref smudgeBackdrop); ReleaseSmudgeTexture(ref smudgeSample); ReleaseSmudgeTexture(ref smudgeSampleBackdrop);
             smudgeSpacing = default;
             smudgeStrokeChanged = false;
         }
+
+        private RenderTexture SmudgeColorSource(RenderTexture surface) => smudgeSample != null ? smudgeSample : smudgeTransport != null ? smudgeTransport.Image : surface;
 
         private static void ReleaseSmudgeTexture(ref RenderTexture texture)
         {

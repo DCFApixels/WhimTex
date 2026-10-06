@@ -113,6 +113,14 @@ defs.sdf = object({
   gradient: { $ref: '#/$defs/gradient' }
 });
 defs.blend = enumeration('Utils.cs', 'BlendMode');
+defs.smudgeStroke = object({
+  op: { const: 'smudgeStroke' }, layer: str(256),
+  points: { type: 'array', minItems: 1, maxItems: 4096, items: tuple(number(-1e6, 1e6), 2), description: 'Canvas pixels, top-left origin. One point does not paint.' },
+  size: { ...number(1,512), default: 32 }, hardness: { ...number(0,1), default: .8 },
+  strength: { ...number(0,1), default: .8 }, flow: { ...number(0,1), default: 1 },
+  mixing: { ...number(0,1), default: .25, description: '0: coordinate deformation without cumulative RGB feedback; 1: carried-color mixing. Partial values couple both on every dab.' },
+  source: { ...choice('CurrentLayer CurrentAndBelow AllLayers'), default: 'CurrentLayer' }, tiled: { ...bool, default: false }
+}, ['op', 'layer', 'points']);
 const schema = {
   $schema: 'https://json-schema.org/draft/2020-12/schema',
   title: 'WhimTex live API field definitions',

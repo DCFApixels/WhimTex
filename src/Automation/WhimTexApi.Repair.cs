@@ -15,6 +15,7 @@ namespace DCFApixels.WhimTex
             bool healing = Text(operation, "op") == "healStroke";
             bool smudge = Text(operation, "op") == "smudgeStroke";
             if (healing) Keys(operation, "op", "layer", "points", "size", "hardness", "source", "tiled", "search", "quality", "seed", "transparentOnly", "maskPath");
+            else if (smudge) Keys(operation, "op", "layer", "points", "size", "hardness", "source", "tiled", "strength", "flow", "mixing");
             else Keys(operation, "op", "layer", "points", "size", "hardness", "source", "tiled", "strength", "flow");
             Require(target.Behaviour is DrawingLayerBehaviour, "Repair requires Drawing. Convert explicitly first.");
             var drawing = (DrawingLayerBehaviour)target.Behaviour;
@@ -28,6 +29,7 @@ namespace DCFApixels.WhimTex
             int seed = healing ? Int(operation, "seed", 1, int.MinValue, int.MaxValue) : 0;
             bool transparentOnly = healing && Bool(operation, "transparentOnly");
             float flow = healing ? 1 : Number(operation, "flow", 1, 0, 1);
+            float mixing = smudge ? Number(operation, "mixing", .25f, 0, 1) : 1;
             float strength = healing ? 1 : Number(operation, "strength", smudge ? .8f : 1, 0, 1) * (smudge ? 1 : flow);
             var transform = document.GetPaintTransform(drawing);
             Require(transform.ToMatrix(width, height).TryInverse(out var inverse), "Repair needs an invertible transform.");
@@ -68,6 +70,8 @@ namespace DCFApixels.WhimTex
                     var native = drawing.StoredTexture;
                     int sourceWidth = source == "CurrentLayer" && native != null ? native.width : width;
                     int sourceHeight = source == "CurrentLayer" && native != null ? native.height : height;
+                    Require(mixing >= 1 || (long)sourceWidth * sourceHeight <= DrawingLayerBehaviour.SmudgeMaximumCarryPixels,
+                        "Smudge deformation snapshot exceeds the native-pixel buffer budget; use a smaller source or mixing:1.", "resource_limit");
                     var toColor = source == "CurrentLayer" ? inverse : ProjectiveMatrix.Identity;
                     int maximumWidth = 0, maximumHeight = 0;
                     foreach (Vector2 point in points)
@@ -106,7 +110,7 @@ namespace DCFApixels.WhimTex
                     if (smudge)
                     {
                         drawing.BeginStroke(last);
-                        drawing.BeginSmudgeStroke(last, width, height, size, sample, tiled);
+                        drawing.BeginSmudgeStroke(last, width, height, size, sample, tiled, mixing);
                     }
                     else drawing.BlurSegment(last, last, width, height, size, hardness, strength, sample, tiled);
                     for (int i = 1; i < points.Length; i++)

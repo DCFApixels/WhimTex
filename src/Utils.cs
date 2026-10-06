@@ -274,6 +274,7 @@ namespace DCFApixels.WhimTex
         private static Material gaussianBlurMaterial;
         private static Material blurBrushMaterial;
         private static Material smudgeBrushMaterial;
+        private static Material smudgeTransportMaterial;
         private static Material healingBrushMaterial;
         private static Material sharpenMaterial;
         private static Material motionBlurMaterial;
@@ -301,6 +302,7 @@ namespace DCFApixels.WhimTex
         public static Material GaussianBlur => GetOrCreate(ref gaussianBlurMaterial, "Hidden/TextureCompositor/GaussianBlur");
         public static Material BlurBrush => GetOrCreate(ref blurBrushMaterial, "Hidden/TextureCompositor/BlurBrush");
         public static Material SmudgeBrush => GetOrCreate(ref smudgeBrushMaterial, "Hidden/TextureCompositor/SmudgeBrush");
+        public static Material SmudgeTransport => GetOrCreate(ref smudgeTransportMaterial, "Hidden/TextureCompositor/SmudgeTransport");
         public static Material HealingBrush => GetOrCreate(ref healingBrushMaterial, "Hidden/TextureCompositor/HealingBrush");
         public static Material Sharpen => GetOrCreate(ref sharpenMaterial, "Hidden/TextureCompositor/Sharpen");
         public static Material MotionBlur => GetOrCreate(ref motionBlurMaterial, "Hidden/TextureCompositor/MotionBlur");
@@ -343,6 +345,8 @@ namespace DCFApixels.WhimTex
 
         private static void Dispose()
         {
+            if (smudgeTransportMaterial != null) UnityEngine.Object.DestroyImmediate(smudgeTransportMaterial);
+            smudgeTransportMaterial = null;
             if (smudgeBrushMaterial != null) UnityEngine.Object.DestroyImmediate(smudgeBrushMaterial);
             smudgeBrushMaterial = null;
             if (healingBrushMaterial != null) UnityEngine.Object.DestroyImmediate(healingBrushMaterial);

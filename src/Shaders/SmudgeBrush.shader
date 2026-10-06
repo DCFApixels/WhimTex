@@ -39,6 +39,7 @@ Shader "Hidden/TextureCompositor/SmudgeBrush"
             }
             if (_PickupRetention <= 0) return sampled;
             float4 retained = tex2Dlod(_Carry, float4(i.uv, 0, 0));
+            // Refresh premultiplied RGBA without high-pass or contrast compensation.
             return sampled + (retained - sampled) * _PickupRetention;
         }
         float4 deposit(v2f_img i) : SV_Target

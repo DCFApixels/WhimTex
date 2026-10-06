@@ -1647,9 +1647,14 @@ namespace DCFApixels.WhimTex
             hardness.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() => paintSettings.smudgeHardness = Mathf.Clamp01(evt.newValue * .01f)));
             row.Add(hardness);
             AddBrushHeaderPercent(row, "Strength", () => paintSettings.smudgeStrength,
-                v => paintSettings.smudgeStrength = v, "How much picked-up color the brush retains as it moves.");
+                v => paintSettings.smudgeStrength = v, "Stretching strength and retention of picked-up pixels when Mixing is enabled.");
             AddBrushHeaderPercent(row, "Flow", () => paintSettings.smudgeFlow,
-                v => paintSettings.smudgeFlow = v, "How strongly each stamp deposits carried pixels.");
+                v => paintSettings.smudgeFlow = v, "How strongly each step stretches and mixes existing pixels.");
+            Slider mixing = CompactField(new Slider("Mixing", 0, 100) { showInputField = true,
+                name = "smudgeMixing", tooltip = "0% stretches details; higher values add cumulative color mixing. 100% uses only color mixing." }, 150f);
+            toolkitHeaderBindings.Track(mixing, () => paintSettings.smudgeMixing * 100);
+            mixing.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() => paintSettings.smudgeMixing = Mathf.Clamp01(evt.newValue * .01f)));
+            row.Add(mixing);
             Toggle pressure = CompactField(new Toggle("Pressure") { tooltip = "Use tablet pressure to scale Flow." }, 86f);
             pressure.name = "smudgePressure";
             pressure.AddToClassList("whimtex-smudge-pressure");
@@ -2018,7 +2023,7 @@ namespace DCFApixels.WhimTex
                     BlurBrushSampleMode.AllLayers => compositor.RenderCanvasAtSize(compositor.width, compositor.height),
                     _ => null
                 };
-                layer.BeginSmudgeStroke(point, compositor.width, compositor.height, paintSettings.smudgeSize, sample, tiledCanvas);
+                layer.BeginSmudgeStroke(point, compositor.width, compositor.height, paintSettings.smudgeSize, sample, tiledCanvas, paintSettings.smudgeMixing);
             }
             finally
             {
