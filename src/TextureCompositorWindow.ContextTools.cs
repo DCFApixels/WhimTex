@@ -147,6 +147,10 @@ namespace DCFApixels.WhimTex
 
         private void ChangeCanvasTool(CanvasTool tool)
         {
+            CanvasTool previous = IsTemporaryCanvasTool(canvasTool) ? ResolveTemporaryReturnTool() : canvasTool;
+            if (previous != tool && !IsTemporaryCanvasTool(tool) &&
+                (IsBaseCanvasTool(previous) || IsContextToolAvailable(previous)))
+                previousCanvasTool = previous;
             StopKeyboardNudge();
             areaSelectionManipulator?.Cancel();
             shapeManipulator?.Cancel();
@@ -180,6 +184,28 @@ namespace DCFApixels.WhimTex
             normalOverlay?.MarkDirtyRepaint();
             RevealActiveCanvasTool();
             if (changePixelCanvas) RequestCanvasRender(immediate: true);
+        }
+
+        private bool HandlePreviousCanvasToolKey(KeyDownEvent evt)
+        {
+            if (evt.keyCode != CanvasToolToggleKey || evt.ctrlKey || evt.commandKey || evt.altKey || evt.shiftKey)
+                return false;
+            WhimTexUI.ConsumeEvent(evt);
+            if (canvasToolToggleKeyHeld) return true;
+            canvasToolToggleKeyHeld = true;
+            if (paintingLayer != null || healingPointer >= 0 || activeLayerDrag != null ||
+                canvasTransformManipulator?.IsDragging == true || canvasZoomManipulator?.IsDragging == true ||
+                canvasGuideManipulator?.IsDragging == true || gradientCanvasManipulator?.IsDragging == true ||
+                pointManipulator?.IsDragging == true || normalManipulator?.IsDragging == true ||
+                shapeManipulator?.IsDragging == true || areaSelectionManipulator?.HasGesture == true)
+                return true;
+            ReconcileCanvasToolContext();
+            if (IsTemporaryCanvasTool(canvasTool))
+                ExitContextTool();
+            else if (previousCanvasTool is CanvasTool previous &&
+                (IsBaseCanvasTool(previous) || IsContextToolAvailable(previous)))
+                SetCanvasTool(previous);
+            return true;
         }
     }
 }

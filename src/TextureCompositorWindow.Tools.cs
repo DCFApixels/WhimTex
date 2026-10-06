@@ -14,6 +14,9 @@ namespace DCFApixels.WhimTex
         }
 
         [NonSerialized] private CanvasTool canvasTool = CanvasTool.None;
+        [NonSerialized] private CanvasTool? previousCanvasTool;
+        [NonSerialized] private bool canvasToolToggleKeyHeld;
+        private const KeyCode CanvasToolToggleKey = KeyCode.Q;
         [NonSerialized] private CanvasTool canvasTransformReturnTool = CanvasTool.None;
         [NonSerialized] private PaintToolSettings paintSettings = new PaintToolSettings();
         private const string PaintToolSettingsPrefKey = "DCFApixels.WhimTex.Canvas.PaintToolSettings";
@@ -70,6 +73,8 @@ namespace DCFApixels.WhimTex
 
         private void LoadCanvasToolSettings()
         {
+            previousCanvasTool = null;
+            canvasToolToggleKeyHeld = false;
             canvasTool = ParseCanvasTool(EditorPrefs.GetString(CanvasToolPrefKey, string.Empty));
             lastBaseCanvasTool = canvasTool;
             canvasTransformReturnTool = ParseCanvasTool(
@@ -217,7 +222,7 @@ namespace DCFApixels.WhimTex
 
         private static VisualElement CreateCanvasSettingsRow()
         {
-            var row = new VisualElement();
+            var row = new WhimTexCanvasHeaderRow();
             row.AddToClassList("whimtex-tool-settings-row");
             return row;
         }
@@ -271,12 +276,12 @@ namespace DCFApixels.WhimTex
             canvasShapeButton.AddManipulator(shapePicker);
             toolbar.Add(canvasShapeButton);
             toolbar.Add(canvasBrushButton);
+            toolbar.Add(canvasPencilButton);
             toolbar.Add(canvasBlurBrushButton);
             toolbar.Add(canvasSmudgeBrushButton);
             canvasHealingButton = CreateCanvasToolButton("healingBrushTool", CanvasTool.HealingBrush,
                 "Healing Brush. Paint over a defect, then release to reconstruct it from nearby pixels. Esc cancels. Writes only the selected Drawing layer.");
             toolbar.Add(canvasHealingButton);
-            toolbar.Add(canvasPencilButton);
             toolbar.Add(canvasFillButton);
             canvasZoomButton = CreateCanvasToolButton("zoomTool", CanvasTool.Zoom,
                 "Zoom (Z). Click to zoom in, drag a rectangle to frame an area, or Alt-click to zoom out. MMB-drag pans the canvas.");

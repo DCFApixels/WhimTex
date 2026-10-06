@@ -9,7 +9,6 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
-        private const float ToolkitCanvasViewHeaderRowHeight = 24f;
         private const float ToolkitLayerRowHeight = 26f;
         private const float ToolkitLayerIndent = 14f;
 
@@ -252,8 +251,9 @@ namespace DCFApixels.WhimTex
             pane.style.flexDirection = FlexDirection.Column;
             pane.style.backgroundColor = WhimTexUI.PanelColor;
 
-            toolkitCanvasToolbar = WhimTexUI.CreateToolbar();
+            toolkitCanvasToolbar = new WhimTexCanvasHeaderRow();
             toolkitCanvasToolbar.AddToClassList("whimtex-canvas-toolbar");
+            toolkitCanvasToolbar.EnableInClassList("whimtex-canvas-toolbar--light", !EditorGUIUtility.isProSkin);
             pane.Add(toolkitCanvasToolbar);
 
             var canvasBody = new VisualElement();
@@ -471,7 +471,7 @@ namespace DCFApixels.WhimTex
                     ApplyToolkitChange("Change Sprite Canvas Height", () => compositor.height = value);
             });
             toolkitCanvasToolbar.Add(height);
-            Button outputSettings = WhimTexUI.CreateToolbarButton("Output", OpenDocumentOutputSettings, 58f);
+            Button outputSettings = WhimTexUI.CreateToolbarButton("Output", OpenDocumentOutputSettings);
             outputSettings.name = "canvasOutputSettings";
             outputSettings.tooltip = "Select the saved TIFF to edit its native texture import settings in Inspector. An unsaved document must be saved first.";
             toolkitCanvasToolbar.Add(outputSettings);
@@ -1519,6 +1519,7 @@ namespace DCFApixels.WhimTex
             if (toolkitHeaderBuilt)
             {
                 toolkitHeaderBindings.Refresh(forceValues);
+                RefreshCanvasHeaderLayout();
                 return;
             }
 
@@ -1528,6 +1529,13 @@ namespace DCFApixels.WhimTex
             toolkitCanvasViewHeader.Clear();
             BuildToolkitCanvasHeader();
             toolkitHeaderBindings.Refresh(forceValues);
+            RefreshCanvasHeaderLayout();
+        }
+
+        private void RefreshCanvasHeaderLayout()
+        {
+            (toolkitCanvasToolbar as WhimTexCanvasHeaderRow)?.RefreshControls();
+            toolkitCanvasViewHeader.Query<WhimTexCanvasHeaderRow>().ForEach(row => row.RefreshControls());
         }
 
         private void BuildToolkitCanvasHeader()
@@ -1536,10 +1544,10 @@ namespace DCFApixels.WhimTex
             Button clear = WhimTexUI.CreateToolbarButton("Clear", () =>
             {
                 if (GetSelectedLayer()?.Behaviour is DrawingLayerBehaviour drawing) ClearDrawingLayer(drawing);
-            }, 46f);
+            });
             toolkitHeaderBindings.Add(() => clear.SetEnabled(GetSelectedLayer()?.Behaviour is DrawingLayerBehaviour layer && !WhimTexApi.IsLayerContentLocked(compositor, layer)));
             toolkitCanvasActions.Add(clear);
-            toolkitCanvasActions.Add(WhimTexUI.CreateToolbarButton("Refresh", () => RequestCanvasRender(true), 64f));
+            toolkitCanvasActions.Add(WhimTexUI.CreateToolbarButton("Refresh", () => RequestCanvasRender(true)));
             AddCanvasTransformSettings();
             AddCanvasZoomSettings();
             AddShapeSettings();
@@ -1687,8 +1695,7 @@ namespace DCFApixels.WhimTex
             size.RegisterValueChangedCallback(evt => ApplyPaintToolChange(
                 () => paintSettings.pencilSize = Mathf.Clamp(evt.newValue, 1, 4096)));
             row.Add(size);
-            row.Add(CreateCompactLabel("Shape", 42f));
-            EnumField shape = CompactField(new EnumField(paintSettings.pencilShape), 94f);
+            EnumField shape = CompactField(new EnumField("Shape", paintSettings.pencilShape), 94f);
             toolkitHeaderBindings.Track(shape, () => (Enum)paintSettings.pencilShape);
             shape.RegisterValueChangedCallback(evt => ApplyPaintToolChange(
                 () => paintSettings.pencilShape = (PencilShape)evt.newValue));
@@ -1698,20 +1705,7 @@ namespace DCFApixels.WhimTex
 
         private static T CompactField<T>(T field, float width) where T : VisualElement
         {
-            TwoChoiceDropdown.Attach(field);
-            field.style.width = width;
-            field.style.height = ToolkitCanvasViewHeaderRowHeight - 2f;
-            field.style.marginLeft = 1f;
-            field.style.marginRight = 1f;
-            return field;
-        }
-
-        private static Label CreateCompactLabel(string text, float width)
-        {
-            Label result = new Label(text);
-            result.style.width = width;
-            result.style.unityTextAlign = TextAnchor.MiddleLeft;
-            return result;
+            return WhimTexCanvasHeaderRow.ConfigureInput(field, width);
         }
 
         private void ApplyToolkitChange(
@@ -2176,6 +2170,8 @@ namespace DCFApixels.WhimTex
                 return;
             }
 
+            if (HandlePreviousCanvasToolKey(evt)) return;
+
             if (evt.keyCode == KeyCode.Escape && canvasGuideManipulator?.IsDragging == true)
             {
                 canvasGuideManipulator.Cancel();
@@ -2298,6 +2294,7 @@ namespace DCFApixels.WhimTex
 
         private void OnToolkitKeyUp(KeyUpEvent evt)
         {
+            if (evt.keyCode == CanvasToolToggleKey) canvasToolToggleKeyHeld = false;
             if (keyboardTransform != null && evt.keyCode == nudgeKey)
             {
                 StopKeyboardNudge();

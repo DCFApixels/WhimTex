@@ -103,10 +103,7 @@ namespace DCFApixels.WhimTex
             VisualElement row = CreateCanvasSettingsRow();
             row.AddToClassList("whimtex-transform-settings");
             toolkitHeaderBindings.Add(() => row.SetEnabled(CanvasFXParameter == null && !HasMultipleTransformSelection));
-            VisualElement tilingGroup = WhimTexUI.CreateRow();
-            tilingGroup.AddToClassList("whimtex-transform-option");
-            tilingGroup.Add(CreateCompactLabel("Tiling", 38f));
-            EnumField tiling = CompactField(new EnumField(TransformTilingMode.Clip), 100f);
+            EnumField tiling = CompactField(new EnumField("Tiling", TransformTilingMode.Clip), 100f);
             tiling.tooltip = "Clip: transparent outside the frame. Repeat: tile. Mirror: reflected tiles. " +
                 "Source: inherit texture wrap modes. Clamp: extend edge pixels. " +
                 "Unbounded: continue procedural UVs; raster layers use Clip.";
@@ -121,12 +118,8 @@ namespace DCFApixels.WhimTex
                 FinishCanvasTransform();
                 ApplyToolkitChange("Change Transform Tiling", () => selected.transform.tiling = (TransformTilingMode)evt.newValue);
             });
-            tilingGroup.Add(tiling);
-            row.Add(tilingGroup);
-            VisualElement filterGroup = WhimTexUI.CreateRow();
-            filterGroup.AddToClassList("whimtex-transform-option");
-            filterGroup.Add(CreateCompactLabel("Filter", 36f));
-            EnumField filter = CompactField(new EnumField(LayerFilterMode.Source), 100f);
+            row.Add(tiling);
+            EnumField filter = CompactField(new EnumField("Filter", LayerFilterMode.Source), 100f);
             filter.tooltip = "Source: inherit the texture's Filter Mode. Point: sharp pixels. Bilinear: smooth. " +
                 "Trilinear: smooth mip transitions (requires source mipmaps). Independent of Tiling.";
             toolkitHeaderBindings.Track(filter, () => (Enum)(GetSelectedLayer()?.filterMode ?? LayerFilterMode.Source));
@@ -140,8 +133,7 @@ namespace DCFApixels.WhimTex
                 FinishPaintingStroke();
                 ApplyToolkitChange("Change Layer Filter", () => selected.filterMode = (LayerFilterMode)evt.newValue);
             });
-            filterGroup.Add(filter);
-            row.Add(filterGroup);
+            row.Add(filter);
             row.Add(WhimTexUI.CreateOriginalAspectButton(
                 GetSelectedLayer, () => compositor,
                 (undoName, change) =>

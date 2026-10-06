@@ -219,6 +219,14 @@ static System.Threading.CancellationToken Cancellation;
                 using var key = KeyDownEvent.GetPooled(new Event { type = EventType.KeyDown, keyCode = KeyCode.Escape });
                 Call(window, "OnToolkitKeyDown", key);
             }
+            void TogglePrevious()
+            {
+                var shortcut = (KeyCode)Convert.ToInt32(WindowType.GetField("CanvasToolToggleKey", BindingFlags.Static | BindingFlags.NonPublic).GetRawConstantValue());
+                using var down = KeyDownEvent.GetPooled(new Event { type = EventType.KeyDown, keyCode = shortcut });
+                using var up = KeyUpEvent.GetPooled(new Event { type = EventType.KeyUp, keyCode = shortcut });
+                Call(window, "OnToolkitKeyDown", down);
+                Call(window, "OnToolkitKeyUp", up);
+            }
             bool Visible(string name) => !window.rootVisualElement.Q<Button>(name).ClassListContains("whimtex-context-tool--hidden");
             Select(ordinary.Owner);
             SetTool("Brush");
@@ -243,6 +251,11 @@ static System.Threading.CancellationToken Cancellation;
             Write(window, "uvEnabled", false); Refresh();
             IsTool("Pencil", "Disabling UV returns base");
             Check(!Visible("uvIslandSelectTool"), "UV button hidden when disabled");
+            Write(window, "uvEnabled", true); Refresh(); SetTool("UvIslandSelect");
+            TogglePrevious(); IsTool("Pencil", "Previous shortcut exits UV context to preceding tool");
+            TogglePrevious(); IsTool("UvIslandSelect", "Previous shortcut restores available UV context");
+            Write(window, "uvEnabled", false); Refresh(); TogglePrevious();
+            IsTool("Pencil", "Previous shortcut never reactivates unavailable UV context");
 
             fx = Scope.OwnObject(ScriptableObject.CreateInstance<ShaderFX>());
             fx.hideFlags = HideFlags.HideAndDontSave;
@@ -253,6 +266,10 @@ static System.Threading.CancellationToken Cancellation;
             first.Owner.modifiers.Add(fx);
             Select(first.Owner, true);
             void Activate(string kind, ShaderFXParameter parameter) => Call(window, "ActivateTemporaryTool", Tool(kind), fx, parameter.id);
+            SetTool("Brush"); SetTool("SmudgeBrush"); Activate("FXPoint", point);
+            TogglePrevious(); IsTool("SmudgeBrush", "Previous shortcut exits temporary FX to its return tool");
+            TogglePrevious(); IsTool("Brush", "Temporary FX does not replace ordinary tool history");
+            TogglePrevious(); IsTool("SmudgeBrush", "Ordinary tool history still switches both ways after FX");
             SetTool("Brush");
             await WhimTex.Tests.UnityA.UnityAAsync.Delay(100, Cancellation);
             var previewCanvas = (VisualElement)Read(window, "toolkitCanvas");
@@ -353,6 +370,10 @@ static System.Threading.CancellationToken Cancellation;
                 canvas.CapturePointer(PointerId.mousePointerId);
                 Undo.RecordObject(fx, "Context tools smoke gesture");
                 pair.Item3.vectorValue = new Vector4(.2f, .7f, .4f, 0);
+                TogglePrevious();
+                IsTool(pair.Item1, "Previous shortcut does not interrupt a captured FX gesture");
+                Check(Property(manipulator, "IsDragging") && canvas.HasPointerCapture(PointerId.mousePointerId),
+                    "Blocked shortcut retains the active FX gesture and capture");
                 Escape();
                 IsTool(pair.Item1, "Escape cancels gesture, not temporary tool");
                 Check(pair.Item3.vectorValue == original, "Escape restores parameter value");

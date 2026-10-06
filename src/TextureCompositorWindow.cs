@@ -160,6 +160,8 @@ namespace DCFApixels.WhimTex
             SelectOnlyLayer(null);
             groupExpansion?.Clear();
             canvasTool = CanvasTool.None;
+            previousCanvasTool = null;
+            canvasToolToggleKeyHeld = false;
             lastBaseCanvasTool = CanvasTool.None;
             temporaryReturnTool = CanvasTool.None;
             temporaryDocument = toolContextDocument = null;
@@ -325,6 +327,7 @@ namespace DCFApixels.WhimTex
 
         private void OnLostFocus()
         {
+            canvasToolToggleKeyHeld = false;
             if (healingPointer >= 0) CancelHealing();
             StopKeyboardNudge();
             ClearLayerDragGhost();

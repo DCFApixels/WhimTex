@@ -16,6 +16,8 @@ next_page: "en/color.md"
 Canvas View is the whole panel, including its tool settings and footer. The canvas is the image area inside it: use it to paint, inspect details and check seams or individual channels.
 Changing the view does not resize the document.
 
+The two rows above the canvas contain document and tool settings. In a narrow panel, slider tracks hide while their number fields remain available. You can type a value or drag a numeric field's label; controls wrap to another line if needed.
+
 The Canvas View footer holds controls for quality, live texture updates, post-processing,
 UV overlays, guides and channel viewing. It also contains **HDR**, the color-input mode,
 and hints for the active tool.
