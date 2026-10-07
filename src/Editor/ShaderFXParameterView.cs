@@ -431,6 +431,24 @@ namespace DCFApixels.WhimTex
             return true;
         }
 
+        private static Button CreateCanvasEditButton(string name, Action edit, string tooltip)
+        {
+            var button = new Button(edit) { name = name, tooltip = "Edit on Canvas. " + tooltip };
+            button.AddToClassList("whimtex-fx-parameter-action");
+            button.Add(TextureCompositorWindow.CreateTransformToolIcon());
+            return button;
+        }
+
+        private static void AddCanvasField(VisualElement parent, VisualElement field, Button edit)
+        {
+            var row = new VisualElement();
+            row.AddToClassList("whimtex-fx-canvas-row");
+            field.AddToClassList("whimtex-fx-canvas-field");
+            row.Add(field);
+            row.Add(edit);
+            parent.Add(row);
+        }
+
         private void AddParameter(VisualElement parent, ShaderFXParameter declaration, ShaderFXParameterControl control)
         {
             VisualElement rowRoot = parent;
@@ -553,20 +571,24 @@ namespace DCFApixels.WhimTex
                 case ShaderFXParameterType.Point:
                     var vector2 = new Vector2Field(label);
                     if (declaration.type == ShaderFXParameterType.Point)
-                        vector2.tooltip = "Normalized canvas UV: bottom-left (0, 0), top-right (1, 1).";
-                    vector2.RegisterValueChangedCallback(e => Change(id, p => p.vectorValue = declaration.type == ShaderFXParameterType.Point
-                        ? new Vector2(Mathf.Clamp01(e.newValue.x), Mathf.Clamp01(e.newValue.y)) : e.newValue));
-                    rowRoot.Add(vector2); refresh.Add(() => vector2.SetValueWithoutNotify(Find(id).vectorValue));
+                        vector2.tooltip = "Canvas UV: bottom-left (0, 0), top-right (1, 1). Values outside the canvas are allowed.";
+                    vector2.RegisterValueChangedCallback(e => Change(id, p => p.vectorValue = e.newValue));
+                    refresh.Add(() => vector2.SetValueWithoutNotify(Find(id).vectorValue));
                     if (declaration.type == ShaderFXParameterType.Point)
-                        rowRoot.Add(new Button(() => TextureCompositorWindow.EditFXPoint(effect, id)) { text = "Edit on Canvas", tooltip = "Drag the point handle on the selected layer. Coordinates are normalized canvas UV from bottom-left (0, 0) to top-right (1, 1)." });
+                        AddCanvasField(rowRoot, vector2, CreateCanvasEditButton("editFXPoint", () => TextureCompositorWindow.EditFXPoint(effect, id),
+                            "Drag the point handle, including outside the canvas."));
+                    else rowRoot.Add(vector2);
                     break;
                 case ShaderFXParameterType.Vector3:
                 case ShaderFXParameterType.Normal:
                     var vector3 = new Vector3Field(label);
                     bool normal = declaration.type == ShaderFXParameterType.Normal;
                     vector3.RegisterValueChangedCallback(e => Change(id, p => p.vectorValue = normal ? ShaderFXParameter.NormalizeNormal(e.newValue) : e.newValue));
-                    rowRoot.Add(vector3); refresh.Add(() => vector3.SetValueWithoutNotify(Find(id).vectorValue));
-                    if (normal) rowRoot.Add(new Button(() => TextureCompositorWindow.EditFXNormal(effect,id)) { text = "Edit on Canvas" });
+                    refresh.Add(() => vector3.SetValueWithoutNotify(Find(id).vectorValue));
+                    if (normal)
+                        AddCanvasField(rowRoot, vector3, CreateCanvasEditButton("editFXNormal", () => TextureCompositorWindow.EditFXNormal(effect, id),
+                            "Drag the direction handle. Click its endpoint to switch hemisphere."));
+                    else rowRoot.Add(vector3);
                     break;
                 case ShaderFXParameterType.Vector:
                     var vector = new Vector4Field(label);
@@ -588,7 +610,22 @@ namespace DCFApixels.WhimTex
                     rowRoot.Add(texture); refresh.Add(texture.Refresh);
                     break;
                 case ShaderFXParameterType.Transform2D:
-                    var foldout = new Foldout { text = label, value = true };
+                    var foldout = new Foldout { text = label, value = false };
+                    foldout.AddToClassList("whimtex-fx-transform");
+                    var transformHeader = new VisualElement();
+                    transformHeader.AddToClassList("whimtex-fx-transform-header");
+                    var transformToggle = foldout.Q<Toggle>();
+                    foldout.hierarchy.Insert(0, transformHeader);
+                    transformHeader.Add(transformToggle);
+                    var editTransform = CreateCanvasEditButton("editFXTransform", () => TextureCompositorWindow.EditFXTransform(effect, id),
+                        "Toggle the green FX frame on the selected layer.");
+                    var resetTransform = new Button(() => Change(id, p => p.transformValue = ShaderFXTransform.Default))
+                    {
+                        name = "resetFXTransform", text = "↺", tooltip = "Reset Transform"
+                    };
+                    resetTransform.AddToClassList("whimtex-fx-parameter-action");
+                    transformHeader.Add(editTransform);
+                    transformHeader.Add(resetTransform);
                     rowRoot.Add(foldout);
                     var position = new Vector2Field("Position");
                     var size = new Vector2Field("Size");
@@ -601,8 +638,6 @@ namespace DCFApixels.WhimTex
                     size.RegisterValueChangedCallback(e => Change(id, p => p.transformValue.EditSize(new Vector2(ShaderFXTransform.SafeSize(e.newValue.x), ShaderFXTransform.SafeSize(e.newValue.y)), Dimensions())));
                     rotation.RegisterValueChangedCallback(e => Change(id, p => p.transformValue.EditRotation(e.newValue, Dimensions())));
                     foldout.Add(position); foldout.Add(size); foldout.Add(rotation);
-                    foldout.Add(new Button(() => TextureCompositorWindow.EditFXTransform(effect, id)) { text = "Edit on Canvas", tooltip = "Toggle the green FX frame on the selected layer. Rotate around its center; no pivot handle." });
-                    foldout.Add(new Button(() => Change(id, p => p.transformValue = ShaderFXTransform.Default)) { text = "Reset Transform" });
                     refresh.Add(() => { var p = Find(id); p.transformValue.GetDisplay(Dimensions(), out var location, out var scale, out var angle); position.SetValueWithoutNotify(location); size.SetValueWithoutNotify(scale); rotation.SetValueWithoutNotify(angle); });
                     break;
             }

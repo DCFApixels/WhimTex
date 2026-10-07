@@ -373,6 +373,7 @@ namespace DCFApixels.WhimTex
                 textureInputs?.Apply(material);
                 if (fx[i] is ShaderFX)
                 {
+                    material.SetFloat("_WhimTex_InputFilter", current.filterMode == FilterMode.Point ? 0f : 1f);
                     if (!context.transformFxCoordinates)
                         ProjectiveMatrix.Identity.SetShader(material, "_WhimTex_LayerToLocalRow");
                     else if (Behaviour is DrawingLayerBehaviour drawing && drawing.HasBakedFxFrame)

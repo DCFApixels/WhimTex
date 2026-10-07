@@ -297,8 +297,9 @@ Remove accepts only op/index. Add/replace accept `code`; define parameters with 
   FX, `"none"` for no source, or `{"layer":"EXISTING-LAYER-ID"}`. Layer references use stable IDs,
   not names or `@aliases`. Sampling the document's own saved output is rejected; use `self` instead.
   Texture uniforms include `<name>_TexelSize`.
-- `Point` accepts two numbers in `[0,1]`, normalized bottom-left-origin UV coordinates. Code declares it as
-  `// @param point _Center = (0.5, 0.5)`; its editor handle can be dragged across the selected layer's canvas.
+- `Point` accepts two finite numbers in `[-1000000,1000000]`, normalized bottom-left-origin UV coordinates.
+  `(0,0)` and `(1,1)` are canvas corners, not value limits. Code declares it as
+  `// @param point _Center = (0.5, 0.5)`; its editor handle can also be dragged outside the canvas.
   Snapshot and update values use the two-number array form, the same JSON shape as `Vector2`.
 - `Transform2D` accepts `value: {"position":[0.5,0.5],"size":[1,1],"rotation":0}`; omitted fields use these defaults, not the previous parameter value. Alternatively use `value: {"matrix":[1,0.2,0,0,1,0,0.15,0,1]}` for skew/perspective: nine row-major doubles mapping local UV to input UV. Matrix and TRS fields cannot be combined. The matrix must be invertible with no horizon crossing the unit rectangle. Inspection returns either TRS fields or `matrix`.
   Position/size are normalized to the input image, rotation is in degrees. Size components must have

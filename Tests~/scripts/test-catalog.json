@@ -295,7 +295,10 @@
       "blue-noise-unity-v2",
       "bool-fx-v2",
       "brightness-contrast-v2",
+      "edge-outline-v2",
       "brush-dynamics-v2",
+      "distortion-controls-v2",
+      "input-tiling-v2",
       "brush-header-layout-v2",
       "brush-hlsl-v2",
       "brush-preset-asset-v2",
@@ -714,7 +717,10 @@
       "blue-noise-unity-v2",
       "bool-fx-v2",
       "brightness-contrast-v2",
+      "edge-outline-v2",
       "brush-dynamics-v2",
+      "distortion-controls-v2",
+      "input-tiling-v2",
       "brush-header-layout-v2",
       "brush-hlsl-v2",
       "brush-preset-asset-v2",
@@ -1307,6 +1313,8 @@
       "shader-processor-visibility-v2",
       "signal-fx-v2",
       "shader-fx0125-preset-v2",
+      "distortion-controls-v2",
+      "input-tiling-v2",
       "shader-fx-activity-v2",
       "shader-fx-catalog-performance-v2",
       "shader-fx-catalog-v2",
@@ -1332,6 +1340,7 @@
       "apply-fx-v2",
       "bool-fx-v2",
       "brightness-contrast-v2",
+      "edge-outline-v2",
       "builtin-fx-fields-v2",
       "enum-fx-smoke-v2",
       "gaussian-blur-api-smoke-v2",
@@ -6499,6 +6508,57 @@
         "Tests~/Framework/Unity/UnityAScope.cs"
       ],
       "reviewFiles": []
+    },
+    {
+      "id": "distortion-controls-v2",
+      "file": "Tests~/Cases/FX/DistortionControlsTests.cs",
+      "runner": "run_script",
+      "entry": "DistortionControlsTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": ["fx", "shader-fx", "regression"],
+      "prerequisites": "Idle matching Unity Editor with imported package presets and a graphics device. Serialized execution only.",
+      "setup": "Owned unsaved models, linked catalog FX and float textures. No scenes, imported assets or user documents are changed.",
+      "teardown": "Finally destroys owned objects and temporary RTs; MigrationD restores caller render state.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/MigrationD.cs"],
+      "reviewFiles": ["src/FXPresets/Spherize.hlsl", "src/FXPresets/Twirl.hlsl", "src/FXPresets/RadialShear.hlsl", "src/FXPresets/PolarCoordinates.hlsl", "src/FXPresets/DisplacementMap.hlsl"]
+    },
+    {
+      "id": "input-tiling-v2",
+      "file": "Tests~/Cases/FX/InputTilingTests.cs",
+      "runner": "run_script",
+      "entry": "InputTilingTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["windows", "user-state"],
+      "groups": ["fx", "shader-fx", "regression"],
+      "prerequisites": "Idle matching Unity Editor with current WhimTex compiled, imported built-in presets and a graphics device.",
+      "setup": "Owned unsaved documents, FX, one test-only Editor window, UI controls, float textures and temporary render targets. No scene, imported fixture, user document or project settings changes.",
+      "teardown": "Harness destroys owned objects and RTs; MigrationD restores borrowed Editor/GPU state.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/MigrationD.cs"],
+      "reviewFiles": ["src/ShaderFXSourceBuilder.cs", "src/Layers/Layer.cs", "src/WhimTexFileCompatibility0125.cs", "src/FXPresets/UVTransform.hlsl", "src/FXPresets/Spherize.hlsl", "src/FXPresets/Twirl.hlsl", "src/FXPresets/RadialShear.hlsl", "src/FXPresets/PolarCoordinates.hlsl", "src/FXPresets/DisplacementMap.hlsl"]
+    },
+    {
+      "id": "edge-outline-v2",
+      "file": "Tests~/Cases/FX/EdgeOutlineTests.cs",
+      "runner": "run_script",
+      "entry": "EdgeOutlineTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["temp-files"],
+      "groups": ["fx", "shader-fx", "regression"],
+      "prerequisites": "Idle matching Unity Editor with imported package presets and a graphics device. Serialized execution only.",
+      "setup": "Owned in-memory models, linked catalog FX and float textures; no user document, scene or imported fixture assets.",
+      "teardown": "Finally destroys owned objects and temporary RTs; MigrationD restores caller render state. The GUID contact sheet remains in project Temp/WhimTex.",
+      "result": {"kind": "structured"},
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/MigrationD.cs"],
+      "reviewFiles": ["src/FXPresets/EdgeOutline.hlsl"]
     },
     {
       "id": "brush-dynamics-v2",
@@ -14375,7 +14435,9 @@
         "Tests~/Framework/Unity/UnityCFixture.cs"
       ],
       "reviewFiles": [
-        "src/FXPresets/PolarCoordinates.hlsl"
+        "src/FXPresets/PolarCoordinates.hlsl",
+        "src/ShaderFX.Catalog.cs",
+        "src/WhimTexFileCompatibility0125.cs"
       ]
     },
     {

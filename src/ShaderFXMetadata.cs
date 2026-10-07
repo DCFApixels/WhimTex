@@ -284,8 +284,6 @@ namespace DCFApixels.WhimTex
                                 if (values.Length != count) throw new FormatException("Expected " + count + " components.");
                                 for (int i=0;i<count;i++) p.vectorValue[i] = Number(values[i]);
                             }
-                            if (kind == "point" && (p.vectorValue.x < 0 || p.vectorValue.x > 1 || p.vectorValue.y < 0 || p.vectorValue.y > 1))
-                                throw new FormatException("Point coordinates must be in the normalized canvas range 0..1.");
                             if (kind == "normal") p.vectorValue = ShaderFXParameter.NormalizeNormal(p.vectorValue);
                             break;
                         case "float4":

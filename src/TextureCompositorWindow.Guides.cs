@@ -22,7 +22,11 @@ namespace DCFApixels.WhimTex
         private VisualElement canvasGuideLeftRail;
 
         private bool CanMoveCanvasGuides => canvasTool == CanvasTool.None ||
-            canvasTool == CanvasTool.Transform || canvasTool == CanvasTool.Zoom;
+            canvasTool == CanvasTool.Transform || canvasTool == CanvasTool.Zoom || IsTemporaryCanvasTool(canvasTool);
+
+        private bool CanvasToolWantsPointer(Vector2 point) => IsCanvasZoomEnabled || canvasTool == CanvasTool.None ||
+            canvasTransformManipulator?.WantsPointer(point) == true || pointManipulator?.WantsPointer(point) == true ||
+            normalManipulator?.WantsPointer(point) == true;
 
         private void BuildCanvasGuides()
         {
@@ -32,9 +36,9 @@ namespace DCFApixels.WhimTex
             canvasGuideOverlay.AddToClassList("whimtex-guides-overlay");
             canvasGuideOverlay.AddToClassList("whimtex-canvas-surface");
             canvasGuideManipulator = new CanvasGuideManipulator(this);
-            toolkitCanvas.AddManipulator(canvasGuideManipulator);
+            toolkitCanvas.RegisterCallback<PointerDownEvent>(canvasGuideManipulator.RailDown, TrickleDown.TrickleDown);
             canvasGuideOverlay.generateVisualContent += canvasGuideManipulator.Draw;
-            toolkitCanvas.Add(canvasGuideOverlay);
+            toolkitCanvas.AddBelowToolOverlays(canvasGuideOverlay);
             AddGuideRail(true);
             AddGuideRail(false);
             toolkitCanvasViewHeader.RegisterCallback<GeometryChangedEvent>(UpdateCanvasGuideRails);
@@ -99,9 +103,9 @@ namespace DCFApixels.WhimTex
 
             protected override void RegisterCallbacksOnTarget()
             {
-                target.RegisterCallback<PointerDownEvent>(Down, TrickleDown.TrickleDown);
-                target.RegisterCallback<PointerMoveEvent>(Move, TrickleDown.TrickleDown);
-                target.RegisterCallback<PointerUpEvent>(Up, TrickleDown.TrickleDown);
+                target.RegisterCallback<PointerDownEvent>(Down);
+                target.RegisterCallback<PointerMoveEvent>(Move);
+                target.RegisterCallback<PointerUpEvent>(Up);
                 target.RegisterCallback<PointerLeaveEvent>(Leave);
                 target.RegisterCallback<PointerEnterEvent>(Enter);
                 target.RegisterCallback<KeyDownEvent>(ModifierDown);
@@ -116,9 +120,10 @@ namespace DCFApixels.WhimTex
             protected override void UnregisterCallbacksFromTarget()
             {
                 Cancel();
-                target.UnregisterCallback<PointerDownEvent>(Down, TrickleDown.TrickleDown);
-                target.UnregisterCallback<PointerMoveEvent>(Move, TrickleDown.TrickleDown);
-                target.UnregisterCallback<PointerUpEvent>(Up, TrickleDown.TrickleDown);
+                target.UnregisterCallback<PointerDownEvent>(Down);
+                target.UnregisterCallback<PointerDownEvent>(RailDown, TrickleDown.TrickleDown);
+                target.UnregisterCallback<PointerMoveEvent>(Move);
+                target.UnregisterCallback<PointerUpEvent>(Up);
                 target.UnregisterCallback<PointerLeaveEvent>(Leave);
                 target.UnregisterCallback<PointerEnterEvent>(Enter);
                 target.UnregisterCallback<KeyDownEvent>(ModifierDown);
@@ -146,6 +151,8 @@ namespace DCFApixels.WhimTex
             private bool CanGrab(bool control, bool alt) => Ready && !control && !alt &&
                 owner.paintingLayer == null && !(owner.canvasZoomManipulator?.IsDragging ?? false) &&
                 !(owner.canvasTransformManipulator?.IsDragging ?? false) &&
+                !(owner.pointManipulator?.IsDragging ?? false) &&
+                !(owner.normalManipulator?.IsDragging ?? false) &&
                 !(owner.shapeManipulator?.IsDragging ?? false) &&
                 !(owner.areaSelectionManipulator?.HasGesture ?? false);
 
@@ -156,10 +163,11 @@ namespace DCFApixels.WhimTex
                 return Vector2.Dot((point - canvas.ImageRect.position) / canvas.PixelScale, normal);
             }
 
-            private int Hit(Vector2 point)
+            private int Hit(Vector2 point, bool toolPriority = true)
             {
                 if (!owner.CanMoveCanvasGuides || owner.canvasGuidesHidden || owner.canvasGuidesLocked ||
-                    !target.contentRect.Contains(point)) return -1;
+                    !target.contentRect.Contains(point) ||
+                    toolPriority && owner.CanvasToolWantsPointer(point)) return -1;
                 int result = -1;
                 float best = GrabDistance;
                 for (int i = owner.canvasGuides.Count - 1; i >= 0; i--)
@@ -174,6 +182,16 @@ namespace DCFApixels.WhimTex
             internal bool WantsCursor(Vector2 point, bool alt) => IsDragging ||
                 (CanGrab(controlHeld, alt) && (RailAt(point) >= 0 || Hit(point) >= 0));
 
+            internal void RailDown(PointerDownEvent evt)
+            {
+                if (RailAt(evt.localPosition) >= 0) Down(evt);
+                else if (!IsDragging && evt.button == 0 && owner.selectedCanvasGuide >= 0)
+                {
+                    owner.selectedCanvasGuide = -1;
+                    owner.canvasGuideOverlay.MarkDirtyRepaint();
+                }
+            }
+
             private void Down(PointerDownEvent evt)
             {
                 controlHeld = evt.ctrlKey;
@@ -182,7 +200,7 @@ namespace DCFApixels.WhimTex
                 if (!CanGrab(evt.ctrlKey, evt.altKey)) { owner.selectedCanvasGuide = -1; return; }
                 Vector2 point = evt.localPosition;
                 int rail = RailAt(point);
-                int hit = rail < 0 ? Hit(point) : -1;
+                int hit = rail < 0 ? Hit(point, evt.button == 0) : -1;
                 owner.selectedCanvasGuide = hit;
                 if (rail < 0 && hit < 0) return;
                 owner.CancelCanvasEyedropper();

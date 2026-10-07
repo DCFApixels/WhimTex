@@ -116,6 +116,8 @@ namespace DCFApixels.WhimTex
                 contentChanged = hash != catalogDependencyHash || path != catalogSourcePath;
                 if (!force && !contentChanged) return;
                 ShaderFXMetadata.Parse(source, true, out string menuPath);
+                var upgraded = WhimTexFileCompatibility0125.UpgradeLinkedPresetParameters(catalogGuid, code, source, parameters);
+                if (upgraded != null) parameters = upgraded;
                 code = source;
                 catalogSourcePath = path;
                 catalogDependencyHash = hash;

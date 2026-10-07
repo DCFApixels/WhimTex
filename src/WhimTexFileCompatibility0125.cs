@@ -51,6 +51,65 @@ namespace DCFApixels.WhimTex
             else if (value is ShaderFX effect) effect.NormalizeFileParameters();
         }
 
+        // A linked 0.12.5 From Polar preset used Area for the source circle.
+        // Move that frame to Input when adopting the current input/output contract.
+        internal static List<ShaderFXParameter> UpgradeLinkedPresetParameters(string guid, string previousSource,
+            string nextSource, IReadOnlyList<ShaderFXParameter> saved)
+        {
+            bool polar = guid == "e7b9ac025e35456fbb94bcb6f05b24ba";
+            bool displacement = guid == "7d755646c7a839e478c67bb36a2189f8";
+            if (!polar && !displacement) return null;
+            List<ShaderFXParameter> previous, next;
+            try
+            {
+                previous = ShaderFXMetadata.Parse(previousSource, false, out _);
+                next = ShaderFXMetadata.Parse(nextSource, false, out _);
+            }
+            catch (FormatException) { return null; }
+            if (displacement)
+            {
+                var filtering = next.Find(p => p.name == "_RepeatFiltering" && ShaderFXMetadata.IsScalar(p.type));
+                if (filtering == null || previous.Exists(p => p.name == "_RepeatFiltering") ||
+                    !previous.Exists(p => p.name == "_InputEdge") || !previousSource.Contains("AddressInputUV")) return null;
+                ShaderFXMetadata.PreserveValues(next, saved);
+                filtering.floatValue = 0f;
+                return next;
+            }
+            var input = next.Find(p => p.name == "_Input" && p.type == ShaderFXParameterType.Transform2D);
+            var output = next.Find(p => p.name == "_Output" && p.type == ShaderFXParameterType.Transform2D);
+            if (input == null || output == null || previous.Exists(p => p.name == "_Output") ||
+                !previous.Exists(p => p.name == "_Area" && p.type == ShaderFXParameterType.Transform2D)) return null;
+            ShaderFXMetadata.PreserveValues(previous, saved);
+            var oldArea = previous.Find(p => p.name == "_Area");
+            var oldMode = previous.Find(p => p.name == "_Mode");
+            ShaderFXMetadata.PreserveValues(next, saved);
+            if (previous.Exists(p => p.name == "_Input" && p.type == ShaderFXParameterType.Transform2D))
+            {
+                output.transformValue = oldArea.transformValue;
+                output.id = oldArea.id;
+                return next;
+            }
+            var alignment = ShaderFXTransform.Default;
+            var center = previous.Find(p => p.name == "_Center" &&
+                (p.type == ShaderFXParameterType.Point || p.type == ShaderFXParameterType.Vector2));
+            if (center != null && previousSource.Contains("sourceOffset"))
+                alignment.position = new Double2(center.vectorValue.x, center.vectorValue.y);
+            if (oldMode != null && oldMode.floatValue >= .5f)
+            {
+                input.transformValue = oldArea.transformValue;
+                input.id = oldArea.id;
+                output.transformValue = alignment;
+                output.id = Guid.NewGuid().ToString("N");
+            }
+            else
+            {
+                input.transformValue = alignment;
+                output.transformValue = oldArea.transformValue;
+                output.id = oldArea.id;
+            }
+            return next;
+        }
+
         // File input only. Values remain stored, including arbitrary gradients/curves and references.
         internal static string DeclareSavedParameters(string source, IReadOnlyList<ShaderFXParameter> saved)
         {

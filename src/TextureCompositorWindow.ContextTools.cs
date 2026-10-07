@@ -22,6 +22,8 @@ namespace DCFApixels.WhimTex
             tool == CanvasTool.GradientHandles ? IsGradientCanvasAvailable :
             tool == CanvasTool.UvIslandSelect && IsUvToolAvailable;
 
+        internal static VisualElement CreateTransformToolIcon() => new CanvasToolIcon(CanvasTool.Transform);
+
         private void BuildContextToolButtons(VisualElement toolbar)
         {
             contextToolSeparator = new VisualElement { pickingMode = PickingMode.Ignore };

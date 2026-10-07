@@ -105,8 +105,7 @@ namespace DCFApixels.WhimTex
             private void Down(PointerDownEvent e)
             {
                 var value = owner.PointParameter;
-                if (pointer >= 0 || value == null || e.button != 0 || e.altKey || owner.toolkitCanvas.ImageRect.width <= 0 ||
-                    Vector2.Distance(e.localPosition, Handle(value)) > 11) return;
+                if (pointer >= 0 || e.button != 0 || e.altKey || !WantsPointer(e.localPosition)) return;
                 owner.Focus(); target.Focus();
                 parameter = value; effect = owner.pointFX; pointer = e.pointerId;
                 originalValue = value.vectorValue;
@@ -117,6 +116,9 @@ namespace DCFApixels.WhimTex
                 e.StopImmediatePropagation();
             }
 
+            internal bool WantsPointer(Vector2 point) => owner.PointParameter is ShaderFXParameter value &&
+                owner.toolkitCanvas.ImageRect.width > 0 && Vector2.Distance(point, Handle(value)) <= 11;
+
             private void Set(Vector2 uv)
             {
                 Undo.RecordObject(effect, "Move FX Point");
@@ -124,6 +126,20 @@ namespace DCFApixels.WhimTex
                 EditorUtility.SetDirty(effect);
                 effect.NotifyValuesChanged();
                 owner.pointOverlay.MarkDirtyRepaint();
+            }
+
+            private Vector2 Snap(Vector2 uv)
+            {
+                Vector2 dimensions = new Vector2(owner.compositor.width, owner.compositor.height);
+                Vector2 point = Vector2.Scale(uv, dimensions);
+                float tolerance = GuideSnapPixels / owner.toolkitCanvas.PixelScale;
+                for (int axis = 0; axis < 2; axis++)
+                {
+                    float edge = Mathf.Abs(point[axis]) <= Mathf.Abs(point[axis] - dimensions[axis]) ? 0f : dimensions[axis];
+                    if (Mathf.Abs(point[axis] - edge) <= tolerance) point[axis] = edge;
+                }
+                point = owner.SnapCanvasGuidePoint(point);
+                return new Vector2(point.x / dimensions.x, point.y / dimensions.y);
             }
 
             private void Move(PointerMoveEvent e)
@@ -135,9 +151,9 @@ namespace DCFApixels.WhimTex
                 if (!moved) return;
                 Rect image = owner.toolkitCanvas.ImageRect;
                 Vector2 canvas = owner.toolkitCanvas.ToCanvas((Vector2)e.localPosition + offset);
-                var uv = new Vector2(Mathf.Clamp01((canvas.x - image.xMin) / image.width),
-                    Mathf.Clamp01(1f - (canvas.y - image.yMin) / image.height));
-                Set(uv);
+                var uv = new Vector2((canvas.x - image.xMin) / image.width,
+                    1f - (canvas.y - image.yMin) / image.height);
+                Set(e.ctrlKey || e.commandKey ? uv : Snap(uv));
             }
 
             private void Up(PointerUpEvent e)

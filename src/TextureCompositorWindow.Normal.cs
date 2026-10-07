@@ -104,8 +104,7 @@ namespace DCFApixels.WhimTex
             private void Down(PointerDownEvent e)
             {
                 var p = owner.NormalParameter;
-                if (pointer >= 0 || p == null || e.button != 0 || e.altKey ||
-                    Vector2.Distance(e.localPosition, Tip(p)) > 12) return;
+                if (pointer >= 0 || e.button != 0 || e.altKey || !WantsPointer(e.localPosition)) return;
                 parameter = p; effect = owner.normalFX; pointer = e.pointerId;
                 originalValue = p.vectorValue;
                 owner.Focus(); target.Focus();
@@ -117,6 +116,9 @@ namespace DCFApixels.WhimTex
                 target.CapturePointer(pointer);
                 e.StopImmediatePropagation();
             }
+
+            internal bool WantsPointer(Vector2 point) => owner.NormalParameter is ShaderFXParameter value &&
+                Vector2.Distance(point, Tip(value)) <= 12;
             private void Set(Vector3 n)
             {
                 Undo.RecordObject(effect, "Change FX Normal");

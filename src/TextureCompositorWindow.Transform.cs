@@ -396,6 +396,16 @@ namespace DCFApixels.WhimTex
                 return hit >= 0 && hit < Handles.Length ? MouseCursor.ScaleArrow : MouseCursor.Pan;
             }
 
+            internal bool WantsPointer(Vector2 point)
+            {
+                if (!owner.IsCanvasTransformEnabled) return false;
+                Rect rect = owner.toolkitCanvas.ImageRect;
+                if (rect.width <= 0f || rect.height <= 0f) return false;
+                int hit = HitTest(owner.toolkitCanvas.ToCanvas(point), owner.CurrentCanvasTransform, rect,
+                    new Vector2(owner.compositor.width, owner.compositor.height), owner.CanvasFXParameter == null);
+                return hit >= 0;
+            }
+
             private void OnDown(PointerDownEvent evt)
             {
                 if (!owner.IsCanvasTransformEnabled || evt.button != 0 || IsDragging)

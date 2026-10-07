@@ -296,6 +296,7 @@ namespace DCFApixels.WhimTex
             toolkitCanvas.RegisterCallback<PointerEnterEvent>(OnCanvasPointerEnter);
             toolkitCanvas.RegisterCallback<PointerLeaveEvent>(OnCanvasPointerLeave);
             toolkitCanvas.RegisterCallback<PointerCaptureOutEvent>(OnCanvasPointerCaptureOut);
+            toolkitCanvas.AddManipulator(canvasGuideManipulator);
             canvasBody.Add(BuildCanvasViewWorkspace(toolkitCanvas));
 
             canvasBody.Add(BuildCanvasViewFooter());
@@ -2442,6 +2443,8 @@ namespace DCFApixels.WhimTex
                     UpdateImageLayout();
                 });
             }
+
+            public void AddBelowToolOverlays(VisualElement element) => Insert(IndexOf(overlay), element);
 
             private sealed class CanvasViewInsetShadow : VisualElement
             {

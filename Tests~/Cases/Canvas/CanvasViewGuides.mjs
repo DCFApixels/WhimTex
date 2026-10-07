@@ -111,15 +111,32 @@ context.case('CanvasViewGuides original assertions and branches', async () => {
     assert.match(src, /else if \(!discard && owner.canvasGuides.Count < MaxCanvasGuides\)\s*\{\s*owner.RememberCanvasGuides\(\);\s*owner.canvasGuides.Add\(pending\)/);
     assert.match(src, /!control && !alt/);
     const guideToolPolicy = src.match(/private bool CanMoveCanvasGuides => ([\s\S]*?);/)[1];
-    const canInteract = new Function('canvasTool', `return ${guideToolPolicy.replace(/CanvasTool\.(\w+)/g, '"$1"')};`);
+    const contextTools = read('TextureCompositorWindow.ContextTools.cs');
+    const temporaryPolicy = contextTools.match(/private static bool IsTemporaryCanvasTool\(CanvasTool tool\) =>\s*([\s\S]*?);/)[1];
+    const isTemporary = new Function('tool', `return ${temporaryPolicy.replace(/CanvasTool\.(\w+)/g, '"$1"')};`);
+    const evaluatePolicy = new Function('canvasTool', 'IsTemporaryCanvasTool', `return ${guideToolPolicy.replace(/CanvasTool\.(\w+)/g, '"$1"')};`);
+    const canInteract = tool => evaluatePolicy(tool, isTemporary);
     const toolsSource = read('TextureCompositorWindow.Tools.cs');
     const toolNames = toolsSource.match(/enum CanvasTool\s*\{([^}]+)\}/)[1].split(',').map(name => name.trim());
     for (const tool of toolNames)
-        assert.equal(canInteract(tool), ['None', 'Transform', 'Zoom'].includes(tool), `${tool}: guide interaction policy`);
+        assert.equal(canInteract(tool), ['None', 'Transform', 'Zoom', 'FXTransform', 'FXPoint', 'FXNormal'].includes(tool), `${tool}: guide interaction policy`);
     assert.equal(canInteract('Unknown'), false);
     const beginPolicy = src.match(/private bool CanGrab\(bool control, bool alt\) => ([\s\S]*?);/)[1];
     assert.ok(!beginPolicy.includes('CanMoveCanvasGuides'), 'Creating a guide must not be restricted by the selected tool');
-    assert.match(src, /private int Hit\(Vector2 point\)\s*\{\s*if \(!owner.CanMoveCanvasGuides \|\|/);
+    for (const manipulator of ['pointManipulator', 'normalManipulator'])
+        assert.ok(beginPolicy.includes(`!(owner.${manipulator}?.IsDragging ?? false)`), 'An active FX parameter drag blocks guide capture');
+    assert.match(src, /private int Hit\(Vector2 point, bool toolPriority = true\)\s*\{\s*if \(!owner.CanMoveCanvasGuides \|\|/);
+    const guideHit = src.split('private int Hit(Vector2 point, bool toolPriority = true)')[1].split('internal bool WantsCursor')[0];
+    assert.ok(guideHit.indexOf('owner.CanvasToolWantsPointer(point)') < guideHit.indexOf('for ('),
+        'Guide hover yields to any active tool before selecting a guide');
+    const transformSource = read('TextureCompositorWindow.Transform.cs');
+    const priority = transformSource.split('internal bool WantsPointer(Vector2 point)')[1].split('private void OnDown')[0];
+    assert.match(priority, /!owner.IsCanvasTransformEnabled/);
+    assert.match(priority, /HitTest\(owner.toolkitCanvas.ToCanvas\(point\), owner.CurrentCanvasTransform/);
+    assert.match(priority, /owner.CanvasFXParameter == null/);
+    assert.match(priority, /return hit >= 0;/);
+    for (const tool of ['canvasTransformManipulator', 'pointManipulator', 'normalManipulator'])
+        assert.ok(src.includes(`${tool}?.WantsPointer(point) == true`), 'Guide cursor respects each temporary tool hit-test');
     const continuePolicy = src.match(/private bool CanContinueDrag => ([\s\S]*?);/)[1];
     const canContinue = new Function('Ready', 'movingIndex', 'owner', `return ${continuePolicy};`);
     for (const tool of toolNames) {
@@ -139,7 +156,7 @@ context.case('CanvasViewGuides original assertions and branches', async () => {
     assert.ok(!src.includes('rail.pickingMode ='), 'Edge strips remain interactive for every tool');
     const down = src.split('private void Down(PointerDownEvent evt)')[1].split('private void Update(Vector2 point)')[0];
     assert.ok(!down.includes('CanMoveCanvasGuides'), 'Creation must not be blocked before the rail hit test');
-    assert.match(down, /int hit = rail < 0 \? Hit\(point\) : -1;/);
+    assert.match(down, /int hit = rail < 0 \? Hit\(point, evt.button == 0\) : -1;/);
     assert.match(src, /if \(!CanContinueDrag \|\|/);
     assert.match(src, /if \(CanContinueDrag\)/);
     assert.match(src, /bounds, owner.CanMoveCanvasGuides && !owner.canvasGuidesLocked &&\s*\(i == hovered \|\| i == owner.selectedCanvasGuide\), false/);
@@ -148,10 +165,23 @@ context.case('CanvasViewGuides original assertions and branches', async () => {
     assert.ok(setTool.indexOf('CancelCanvasZoomGesture();') >= 0 && setTool.indexOf('CancelCanvasZoomGesture();') < setTool.indexOf('canvasTool = tool;'), 'Switching tools must cancel an uncommitted guide drag');
     assert.match(read('TextureCompositorWindow.Zoom.cs'), /CancelCanvasZoomGesture\(\)\s*\{\s*canvasGuideManipulator\?\.Cancel\(\);/);
     assert.match(src, /owner.areaSelectionManipulator\?\.HasGesture/);
-    for (const [event, callback] of [['PointerDown', 'Down'], ['PointerMove', 'Move'], ['PointerUp', 'Up'], ['Wheel', 'Wheel']])
+    for (const [event, callback] of [['PointerDown', 'Down'], ['PointerMove', 'Move'], ['PointerUp', 'Up']])
         for (const op of ['Register', 'Unregister'])
-            assert.ok(src.includes(`${op}Callback<${event}Event>(${callback}, TrickleDown.TrickleDown)`));
+            assert.ok(src.includes(`${op}Callback<${event}Event>(${callback})`), 'Guide gestures use the final bubble-phase fallback');
+    for (const op of ['Register', 'Unregister'])
+        assert.ok(src.includes(`${op}Callback<WheelEvent>(Wheel, TrickleDown.TrickleDown)`));
     assert.ok(ui.indexOf('BuildCanvasGuides();') < ui.indexOf('BuildCanvasZoomTool();'));
+    assert.match(src, /toolkitCanvas\.AddBelowToolOverlays\(canvasGuideOverlay\)/);
+    assert.match(ui, /AddBelowToolOverlays\(VisualElement element\) => Insert\(IndexOf\(overlay\), element\)/,
+        'Guides draw above the image and below every tool overlay, including the brush cursor');
+    assert.ok(ui.indexOf('toolkitCanvas.AddManipulator(canvasGuideManipulator);') > ui.indexOf('RegisterCallback<PointerDownEvent>(OnCanvasPointerDown)'),
+        'Guide fallback is registered after all tools and standard canvas input');
+    assert.match(src, /RegisterCallback<PointerDownEvent>\(canvasGuideManipulator.RailDown, TrickleDown.TrickleDown\)/);
+    assert.match(src, /UnregisterCallback<PointerDownEvent>\(RailDown, TrickleDown.TrickleDown\)/);
+    for (const tool of ['Point', 'Normal']) {
+        const code = read(`TextureCompositorWindow.${tool}.cs`);
+        assert.match(code, /!WantsPointer\(e.localPosition\)/, 'Hover and actual tool capture share one hit-test');
+    }
     assert.match(ui, /KeyCode.Escape && canvasGuideManipulator\?\.IsDragging == true/);
     assert.match(read('TextureCompositorWindow.cs'), /ClearCanvasGuides\(\);\s*canvasGuidesDocument = next;[\s\S]*?compositor = next/);
     assert.ok(!/\bUndo\.|RenderTexture|MarkChanged|SetDirty/.test(src), 'Guides remain window-local and outside the render/Undo pipeline');
@@ -179,4 +209,3 @@ context.case('CanvasViewGuides original assertions and branches', async () => {
 });
 
 await finish(context);
-

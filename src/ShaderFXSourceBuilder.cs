@@ -13,6 +13,42 @@ namespace DCFApixels.WhimTex
     {
         internal const string NoiseLibraryInclude = "#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ThirdParty/FastNoiseLite.hlsl\"\n";
         private const int MaximumCharacters = 2 * 1024 * 1024;
+        private const string InputSamplingSource = @"
+float _WhimTex_InputFilter;
+float4 SampleInput(float2 uv) { return tex2D(_MainTex, uv); }
+float4 SampleInput(float2 uv, float tiling, float filterRepeat)
+{
+    float4 result = 0.0;
+    if (tiling < 0.5) result = SampleInput(uv);
+    else if (tiling >= 2.5)
+    {
+        if (all(uv >= 0.0) && all(uv <= 1.0)) result = SampleInput(uv);
+    }
+    else if (tiling >= 1.5)
+        result = SampleInput(1.0 - abs(frac(uv * 0.5) * 2.0 - 1.0));
+    else
+    {
+        uv = frac(uv);
+        if (_WhimTex_InputFilter < 0.5 || filterRepeat < 0.5) result = SampleInput(uv);
+        else
+        {
+            float2 size = _MainTex_TexelSize.zw;
+            float2 pixel = uv * size - 0.5;
+            float2 origin = floor(pixel);
+            float2 weight = pixel - origin;
+            float2 first = frac((origin + 0.5) / size);
+            float2 second = frac((origin + 1.5) / size);
+            float4 a = tex2Dlod(_MainTex, float4(first, 0.0, 0.0));
+            float4 b = tex2Dlod(_MainTex, float4(second.x, first.y, 0.0, 0.0));
+            float4 c = tex2Dlod(_MainTex, float4(first.x, second.y, 0.0, 0.0));
+            float4 d = tex2Dlod(_MainTex, float4(second, 0.0, 0.0));
+            result = lerp(lerp(a, b, weight.x), lerp(c, d, weight.x), weight.y);
+        }
+    }
+    return result;
+}
+float4 SampleInput(float2 uv, float tiling) { return SampleInput(uv, tiling, 1.0); }
+";
         private static readonly Regex Include = new Regex("^\\s*#\\s*(include|include_with_pragmas)\\s+\"([^\"]+)\"\\s*$");
         private static readonly Regex Identifier = new Regex("^[A-Za-z_][A-Za-z0-9_]*$");
         private static readonly Regex UnsupportedTimeInput = new Regex(
@@ -149,14 +185,15 @@ namespace DCFApixels.WhimTex
             if (Regex.IsMatch(expanded, @"\b_WhimTex_[A-Za-z0-9_]*"))
                 throw new InvalidOperationException("The _WhimTex_ prefix is reserved for generated shader data.");
             return "Shader \"Hidden/TextureCompositor/ShaderFX/" + effect.ShaderKey + "\"\n{\n" +
-                "Properties {\n_MainTex (\"Input\", 2D) = \"white\" {}\n" + properties + "}\n" +
+                "Properties {\n_MainTex (\"Input\", 2D) = \"white\" {}\n" +
+                "[HideInInspector] _WhimTex_InputFilter (\"Input Filter\", Float) = 1\n" + properties + "}\n" +
                 "SubShader { Cull Off ZWrite Off ZTest Always Blend Off\nPass {\nCGPROGRAM\n" +
                 "#pragma vertex vert_img\n#pragma fragment SpriteFXFragment\n#pragma target 3.5\n" +
                 "#include \"UnityCG.cginc\"\n" + NoiseLibraryInclude + "sampler2D _MainTex;\nfloat4 _MainTex_TexelSize;\n" +
                 "float4 _InputSize;\nfloat4 _CanvasSize;\nfloat _PreviewScale;\n" + uniforms +
                 "float4 _WhimTex_LayerToLocalRow0, _WhimTex_LayerToLocalRow1, _WhimTex_LayerToLocalRow2;\n" +
                 "float2 LayerToLocal(float2 uv) { float3 p = float3(uv, 1); float w = dot(_WhimTex_LayerToLocalRow2.xyz, p); w = abs(w) < 1e-8 ? (w < 0 ? -1e-8 : 1e-8) : w; return float2(dot(_WhimTex_LayerToLocalRow0.xyz, p), dot(_WhimTex_LayerToLocalRow1.xyz, p)) / w; }\n" +
-                "float4 SampleInput(float2 uv) { return tex2D(_MainTex, uv); }\n" +
+                InputSamplingSource +
                 LineDirective(1, assetPath) + expanded + "\n#line 1 \"SpriteFXWrapper\"\n" +
                 "float4 SpriteFXFragment(v2f_img input) : SV_Target { return ApplyFX(input.uv, SampleInput(input.uv)); }\n" +
                 "ENDCG\n}\n}\nFallback Off\n}\n";

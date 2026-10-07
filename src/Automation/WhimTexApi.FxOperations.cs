@@ -192,9 +192,6 @@ namespace DCFApixels.WhimTex
                         Require(spec["value"] is JArray values && values.Count == components, "Wrong vector component count.");
                         value.vectorValue = Vector4.zero;
                         for (int i=0;i<components;i++) value.vectorValue[i] = Number(spec["value"][i], "component", -1000000, 1000000);
-                        if (value.type == ShaderFXParameterType.Point)
-                            Require(value.vectorValue.x >= 0 && value.vectorValue.x <= 1 && value.vectorValue.y >= 0 && value.vectorValue.y <= 1,
-                                "Point coordinates must be in the normalized canvas range 0..1.");
                         if (value.type == ShaderFXParameterType.Normal) value.vectorValue = ShaderFXParameter.NormalizeNormal(value.vectorValue);
                         break;
                     case ShaderFXParameterType.Vector:

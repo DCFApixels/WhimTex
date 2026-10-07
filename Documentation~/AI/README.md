@@ -310,6 +310,45 @@ White Noise and Blue Noise are separate Noise-layer implementations, not functio
 The same noise calls work inside `float4 BrushTip(float2 uv)` for a brush;
 its script still starts with `// @whimtex-brush Category/Name`.
 
+### Built-in distortion controls
+
+Distortion presets expose `_Strength` (Spherize, Radial Shear), `_Angle` (Twirl, degrees)
+or `_Amount` (Polar Coordinates, Displacement Map) in the FX header. Amount defaults to 1,
+preserving the full configured mapping; zero returns the original image. Polar Amount
+interpolates sampling coordinates (hard range 0–1). Displacement Amount multiplies vector
+X/Y strength, Grayscale strength or Parallax depth (range `[0 .. ~2]`); `_Mix` remains an
+independent output blend. Spherize Sphere clipping and Radial Shear Offset remain when
+their existing Strength is zero. See [the shader reference](../ShaderFX.md#distortion-header-controls).
+Polar Coordinates has independent `transform2D` frames: `_Input` selects the source,
+`_Output` places the output. Both default to position `(0.5, 0.5)`, size `(1, 1)`, rotation `0`.
+To Polar maps Output's circle to Input's strip; From Polar maps Output's strip to Input's circle.
+Sampling is `_Input_ToInput(P_or_Q(_Output_ToLocal(uv)))`; reverse Mode and swap frames
+for the inverse coordinate map. Both use standard Edit on Canvas/reset controls.
+See the shader reference for linked 0.12.5 preset conversion.
+Distortion presets expose **Tiling** (`_Tiling`); UV Transform uses **Input Tiling** (`_InputTiling`):
+`Clamp: 0`, `Repeat: 1`, `Mirror: 2`, `Clip: 3`. Rename metadata preserves saved `_InputTiling`
+values in distortions and `_InputEdge` in Displacement Map; map wrapping is independent. UV Transform
+defaults to Clip, distortions to Clamp. These modes read the existing input image, not
+unbounded procedural noise outside its raster.
+
+### Built-in edge contours
+
+`Stylization/Edge Outline` offers Color (RGB differences), Luminance (brightness only)
+and Hue (color tone) detection with two methods: Boundary (default) creates uniform
+contours; Scharr weights opacity by a 3×3 gradient. Strength amplifies Scharr only and is
+hidden in Boundary. Detection sensitivity, Thickness, Shape, Softness, tint and Output
+are shared. Broad transitions may produce bands in Scharr; thick Scharr contours cost more.
+Hue Threshold is the shortest color-wheel difference in
+degrees (0–180); Min Saturation excludes a boundary if either side is too muted. Gray
+and black never seed Hue boundaries. Threshold applies to Color/Luminance only.
+Detection sensitivity filters transitions independently of Thickness
+(0–32 canvas pixels). Shape selects Round, Square or Diamond joins; Softness controls the
+line edges. Overlay preserves source alpha; Outline Only emits transparent contours within
+source coverage. Neither mode outlines alpha-only silhouettes. Use the linked preset when
+available rather than duplicating its code; see [the shader reference](../ShaderFX.md#edge-outline-preset).
+`_Opacity` (0–1, default 1; FX header control) blends the complete selected output with
+the original input. Zero leaves the image unchanged, including in Outline Only.
+
 ### Effect entry point
 
 Write a fragment function, **not a complete ShaderLab shader**:
@@ -327,6 +366,13 @@ float4 ApplyFX(float2 uv, float4 color)
 input at another UV, including earlier FX. Return straight RGBA in linear working space.
 Shader Processor receives the lower composite; a regular layer's FX receives that layer's image.
 To generate an image from scratch, use a Color layer with FX replacing its color.
+
+`SampleInput(uv, tiling)` addresses the input as Clamp (0), Repeat (1), Mirror (2), or
+Clip (3; transparent outside UV 0–1). Repeat filters across opposite edges and respects
+the current input's Point/Bilinear filtering without changing texture import settings.
+Expose tiling through a normal enum `@param`. The one-argument function is unchanged.
+`SampleInput(uv, tiling, filterRepeat)` with zero in the last argument retains unfiltered
+repeat seams; converted linked Displacement Map files use it to preserve their rendered result.
 
 `LayerToLocal(uv)` converts canvas UV to the owning layer's local UV, including parent group transforms and perspective. Use it for procedural shapes that must follow the layer transform. `ApplyFX` UV and `SampleInput` remain canvas-space; do not pass local UV to `SampleInput`. The helper does not wrap or clamp coordinates.
 
@@ -383,7 +429,7 @@ All parameter types allow omitting `= value`. The last explicit default for a va
 exists, scalar/vector/color defaults are zero. Repeated `float`/`bool`/`enum` controls share one float
 uniform. Other repeated types must match exactly. Control ranges do not clamp values set through
 another control. Preset export saves the current value once. These dropdown/linked controls are FX-only.
-`float2`, `float3` and `float4` are raw vectors with two, three and four components. `point` is a `float2` position in normalized canvas UV, from bottom-left `(0, 0)` to top-right `(1, 1)`, and adds an **Edit on Canvas** handle that can be dragged across the canvas. Its default is `(0.5, 0.5)`; an explicit tuple is optional and ranges are not accepted. `normal` generates a normalized `float3`; its default and zero-vector fallback are `(0, 0, 1)`. It also offers an on-canvas direction handle; no range is accepted. Defaults are optional. Unknown parameter types are rejected.
+`float2`, `float3` and `float4` are raw vectors with two, three and four components. `point` is a `float2` position in normalized canvas UV: bottom-left `(0, 0)`, top-right `(1, 1)`. Coordinates and tuple defaults may lie outside these bounds. Its hand button (**Edit on Canvas**) activates a handle that can also be dragged outside the canvas. Its default is `(0.5, 0.5)`; an explicit tuple is optional and ranges are not accepted. `normal` generates a normalized `float3`; its default and zero-vector fallback are `(0, 0, 1)`. It also offers an on-canvas direction handle; no range is accepted. Defaults are optional. Unknown parameter types are rejected.
 
 FX use ordinary input images and explicit parameters, not hidden layer-specific data. Lighting/Bevel Emboss reads a height texture (Self by default) and shares lighting with Normal Map/Lighting. Base Color alpha blends transparent lighting (0) into the shaded surface (1); Output selects Both/Highlight Only/Shadow Only for the transparent part. SDF inputs use their visible gradient, not raw distances. See [shader reference](../ShaderFX.md) for the complete contract.
 

@@ -41,7 +41,8 @@ HLSL 画笔预设和没有效果标记的文件不会被接受。
 如果预设的代码或参数无效，选择时会在 Console 中报告错误，图层保持不变。
 
 每个目录效果都有自己的设置。内置的 **Color → Gain** 用于调整亮度和色调；
-**Transform → UV Transform** 在可见边框内移动输入图像，边框外为透明，因此移动时会沿框裁剪图像。扭曲效果没有这种裁剪。
+**Transform → UV Transform** 移动输入图像。默认的 **Input Tiling → Clip** 使边框外透明；
+Repeat 或 Mirror 则用重复图像填充边框外的区域。
 添加到项目中的效果会自动可用；无需设置预设文件夹。
 
 ## 参数控件
@@ -72,7 +73,7 @@ Gain、Levels、Threshold、环境光及扭曲偏移在适当位置提供软边�
 
 ### 点与方向
 
-向量参数提供两个、三个或四个数值分量。`point` 参数是归一化画布 UV 中的 `float2` 坐标，左下角为 `(0, 0)`、右上角为 `(1, 1)`，默认值为 `(0.5, 0.5)`。点击 **Edit on Canvas** 后，可在画布上拖动该点。法线参数表示单位方向，也提供此按钮。拖动法线端点：靠近中心时朝向相机，到达最大半径时平行于画布。单击端点可切换 **+**（朝向相机）与 **−**（背向相机）。
+向量参数提供两个、三个或四个数值分量。`point` 参数表示点的位置：左下角为 `(0, 0)`、右上角为 `(1, 1)`，默认值为 `(0.5, 0.5)`。点击字段右侧的手形按钮（**Edit on Canvas**）即可拖动该点。可以将点拖到画布外，也可以输入超出画布的坐标。拖动时会吸附到画布边缘和可见参考线；按住 Ctrl 可禁用吸附。吸附半径使用 **User Settings → Guides & Snapping → Snap Radius (px)**。法线参数表示单位方向，也提供此按钮。拖动法线端点：靠近中心时朝向相机，到达最大半径时平行于画布。单击端点可切换 **+**（朝向相机）与 **−**（背向相机）。
 
 ### 曲线与渐变
 
@@ -100,7 +101,7 @@ Ctrl/Cmd + Alt 会对称移动对角点。Position、Size 和 Rotation 保留已
 
 该边框编辑的是效果，而不是图层的变换。其用途取决于具体效果：
 它可能用于放置图像、更改图案的缩放，或定义局部区域。边框本身不是遮罩，
-但 **UV Transform** 的边框外没有像素。
+但使用 **Input Tiling → Clip** 的 **UV Transform** 会让边框外透明。
 
 ## 顺序、复制与共享效果
 
@@ -225,6 +226,28 @@ Bevel Emboss 的 **Profile** 将选定的高度通道映射为浮雕高度。Gra
 **Color → Quantization** 使用 Levels 和 Gamma；**Color → One Bit** 则按亮度选择 **Low Color** 或 **High Color**。
 **Offset** 移动网格而不移动图层。默认保留透明度；启用 **Alpha Clip** 后，**Alpha Cutoff** 决定透明与不透明的分界。同一组图案也可在 **Stylization → Posterize** 中逐像素使用。
 
+### 边界轮廓
+
+选择 **FX → + Preset → Stylization → Edge Outline**，在明显的变化处绘制轮廓。
+**Method → Boundary** 绘制均匀轮廓；**Scharr** 使较弱变化处的线条更透明。
+在 Scharr 中提高 **Strength** 可增强这些线条；此控件在 Boundary 中隐藏。
+其他控件由两种方法共用，切换方法保留参数值。
+**Detection → Color** 检测 RGB 差异，包括亮度相同的不同颜色；**Luminance** 仅检测亮度变化，
+忽略亮度相同的颜色变化。提高 **Threshold** 可忽略较弱的变化、平缓渐变或细小纹理变化。
+**Hue** 描绘色相变化，而非亮度或饱和度变化。**Hue Threshold (°)** 设置最小色相差，单位为度
+（0–180）。提高 **Min Saturation** 可忽略接近灰色的颜色；边界任一侧低于此阈值时不绘制轮廓。
+灰色和黑色始终被排除。
+
+**Thickness (px)** 设置以边界为中心的总线宽，**Softness (px)** 柔化线条边缘，单位均为画布像素。
+Scharr 也会响应图像中过渡区域的宽度，因此平缓过渡可能形成带状区域，而非严格均匀的线条。
+**Contour** 选择圆角（**Round**）、方角（**Square**）或菱形斜角（**Diamond**）。
+Output 中的 **Color** 设置颜色，其 Alpha 控制不透明度。**Output → Overlay** 保留原图，
+**Outline Only** 仅输出透明背景上的轮廓。
+FX 标题栏中的 Opacity 将完整效果与原图混合：0 保留原图，1 完全应用效果；Outline Only 也遵循此规则。
+Thickness 为零时不绘制轮廓。
+源图透明度保持不变：此 FX 不描绘仅由 Alpha 形成的剪影，也不填充透明区域。
+较宽的轮廓需要更多渲染时间，尤其是 Scharr。
+
 ### 其他风格化效果
 - **Step** 分别对已启用的颜色通道进行阈值处理。Red、Green、Blue 默认启用，Alpha 默认关闭。选择 **Hard** 得到两级结果，或选择 **Smoothstep** 并用 **Hardness** 调整过渡柔和度。 **Apply To → Color** 使用 RGBA 分量控制各通道的效果强度，而非替换颜色：0 保留原通道，1 完整应用阈值效果。**Threshold** 则比较亮度（或 Alpha）与阈值，在两种颜色之间映射；可平滑边缘，并保留源 Alpha。
 - **Halftone** 将图像转换为单色、CMYK 或 RGB 网点屏幕。可设置网点大小与形状；CMYK/RGB 模式还提供屏幕角度以及手动或自动色版套准。
@@ -249,16 +272,26 @@ Bevel Emboss 的 **Profile** 将选定的高度通道映射为浮雕高度。Gra
 
 选择 **FX → + Preset → Distortion → Spherize**、**Twirl**、**Radial Shear** 或 **Displacement Map**。
 
+每个 FX 标题栏中的数值字段控制扭曲：Spherize 和 Radial Shear 使用 **Strength**，
+Twirl 使用 **Angle**，Displacement Map 和 Polar Coordinates 使用 **Amount**。
+它改变坐标映射，而不是对完成的结果调整不透明度。
+
 - **Spherize / Mode：** `Classic` 保留当前不受边框限制的径向扭曲；`Sphere` 将图像投影到球面并裁切为圆形。边缘会以约一个像素进行抗锯齿。
 - **Spherize / Strength：** 正值会扩张中心；负值会收缩它。`Classic` 模式下零表示不改变图像；`Sphere` 模式下零仍保留圆形，但不扭曲纹理。
 - **Twirl / Angle：** 围绕中心扭曲；符号会反转方向。角度以边框局部半径 1 处的度数计量，并随距离增长。
 - **Radial Shear：** 采样坐标会随离 **Center** 的距离增加而逐渐旋转；**Strength** 控制方向和强度，**Offset** 添加基础偏移。
 - **Area / Edit on Canvas：** 移动、缩放或旋转绿色坐标框。拉伸它可使扭曲变为椭圆形。
 - **Displacement Map / Mode：** `VectorRG` 将 R/G 作为有符号方向场；默认 `Neutral` 为 0.5，表示不偏移。矢量贴图和高度贴图应使用线性数据设置。X/Y 强度以画布像素为单位。`Grayscale` 读取所选通道，并按水平、垂直、径向、切向或指定角度移动像素。`ParallaxOcclusion` 将所选贴图通道作为高度，并沿虚拟视线移动采样位置。
+- **Displacement Map / Amount：** 乘以 X/Y 强度、Grayscale 强度或 Parallax 深度。0 保留原图，1 使用设定值，大于 1 则增强扭曲。**Output Mix** 仍用于单独混合图像。
 - **Parallax / Depth 与 View：** **Depth** 设置以画布像素为单位的高度范围；**View Angle** 设置射线方向，降低 **View Elevation** 会增大位移。**Invert Height** 可交换凸起与凹陷区域。**Parallax Steps** 用于调整质量与开销（4–32 次高度采样），默认值为 8。
 - **Map / Transform 与 Wrap：** 独立定位和缩放贴图。`Clamp`、`Repeat` 和 `Mirror` 只控制贴图坐标，不影响被扭曲图像的边缘。
 - **Strength Mask：** 默认 `Constant1`，因此只需一张贴图，也可以不设置强度遮罩。`MapChannel` 重用同一贴图的一个通道，`InputAlpha` 使用输入图像的透明度，`SeparateTexture` 则额外提供一张遮罩贴图。可反转遮罩或用 **Mask Profile** 曲线重新映射。
-- **Output / Mix 与 Input Edge：** 将扭曲采样与原图混合，并选择图像坐标超出边界时的处理方式：`Clamp`、`Repeat`、`Mirror` 或 `Transparent`。
+- **Output / Mix：** 将扭曲采样与原图混合。
+
+每个扭曲效果的参数下方都有 **Tiling**：`Clamp` 延伸边缘像素，`Repeat` 重复图像，
+`Mirror` 交替镜像平铺，`Clip` 在输入图像外返回透明。扭曲效果默认为 Clamp，UV Transform
+默认为 Clip。它独立于图层的 Tiling 和 Displacement Map 的 Map Wrap。Sphere 模式始终保留
+圆形边界。这些模式采样已有图像，不会在栅格边界之外继续生成程序化源。
 
 `Classic` Spherize、Twirl 和 Polar Coordinates 在边框处不会遮罩，扭曲会继续延伸到框外。
 `Sphere` 是例外：它会创建带清晰抗锯齿边缘的圆形遮罩。未遮罩模式下，较强设置可能显示输入图像外的区域，
@@ -268,13 +301,18 @@ Bevel Emboss 的 **Profile** 将选定的高度通道映射为浮雕高度。Gra
 
 **Distortion → Polar Coordinates** 是一个带有 **Mode** 切换的效果（默认为 To Polar）：
 
+- FX 标题栏中的 **Amount** 逐渐改变采样坐标：0 保留原图，1 完全应用下列所选映射。
 - **To Polar** 将条带卷成圆形：水平方向绕中心环绕，垂直方向向外延伸。
 - **From Polar** 将圆形展开为条带：从左到右覆盖一整圈，从下到上覆盖距中心的距离。
 
-**Area / Edit on Canvas** 定位并塑造圆形：To Polar 时是输出圆形，From Polar 时是源圆形。
+**Input** 设置源坐标框：To Polar 使用条带，From Polar 使用圆形。
+**Output** 设置输出的位置和形状：To Polar 输出圆形，From Polar 输出条带。
+两个坐标框均支持位置、大小和旋转，并提供 **Edit on Canvas** 和重置按钮。
+默认位置 `(0.5, 0.5)`、大小 `(1, 1)` 和旋转 `0` 覆盖整张图像。
+移动、缩放或旋转 Input，即可独立选择源图案，而不改变其在 Output 中的放置方式。
 **Angle Offset** 以度数移动环绕的起点；零表示从中心右侧开始并逆时针延伸。
 **Radial Offset** 移动起始半径：正值在 To Polar 中将图案向外移动，
-或在 From Polar 中从距中心更远处开始采样。一个单位沿着坐标轴从中心延伸到边框边缘。
+或在 From Polar 中从距中心更远处开始采样。一个单位等于圆形坐标框沿相应轴的半宽或半高：To Polar 使用 Output，From Polar 使用 Input。
 
 半径会继续延伸到边框之外而不淡出。请匹配源条带的左右边缘，
 以避免圆形周围出现可见接缝。整条条带的宽度会在中心汇聚，

@@ -23,7 +23,7 @@ source pixels or convert groups to isolated mode in the main composition.
 - **Linear:** Distance is the total exposure length in original canvas pixels, 0–512, default 16.
   Angle is −180–180 degrees, default 0 (right); positive angles turn counterclockwise.
 - **Circular:** Arc is the total swept angle, 0–360 degrees, default 15. Center is normalized
-  canvas position, `[0,0]` bottom-left to `[1,1]` top-right, default `[0.5,0.5]`.
+  canvas position, `[0,0]` bottom-left to `[1,1]` top-right, default `[0.5,0.5]`; it may lie outside the canvas.
   Rotation is computed in pixel space, so nonsquare canvases do not turn circles into ellipses.
   This is rotational blur, not zoom blur. Center is independent of the layer's output Transform pivot.
 - **Direction:** Centered distributes exposure equally to both sides; Forward trails along Angle

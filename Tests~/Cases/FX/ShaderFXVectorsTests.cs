@@ -35,18 +35,20 @@ public static class ShaderFXVectorsTests
         var assembly=typeof(ShaderFX).Assembly;
         var parse=assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata").GetMethod("Parse",F);
         List<ShaderFXParameter> Parse(string code) => (List<ShaderFXParameter>)parse.Invoke(null,new object[]{code,false,null});
+        List<ShaderFXParameter> Parameters(ShaderFX effect) => (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters",F).GetValue(effect);
         int checks=0;
         void Check(bool ok,string text) { context.True(ok, text); }
-        string code="// @param float2 _Offset = (0.2, 0.3)\n// @param float3 _Vector = (0.4, 0.5, 0.6)\n// @param normal _Normal = (0, 0, 4)\n// @param point _Point = (0.2, 0.37)\nfloat4 ApplyFX(float2 uv,float4 color){return float4(_Offset.x,_Vector.y,_Normal.z,_Point.y);}";
+        string code="// @param float2 _Offset = (0.2, 0.3)\n// @param float3 _Vector = (0.4, 0.5, 0.6)\n// @param normal _Normal = (0, 0, 4)\n// @param point _Point = (0.2, 0.37)\nfloat4 ApplyFX(float2 uv,float4 color){return float4(_Offset.x + _Point.x * .1,_Vector.y,_Normal.z,_Point.y * .2 + .3);}";
         var values=Parse(code);
         Check(values.Count==4,"count");
         Check(values[0].type==ShaderFXParameterType.Vector2 && values[1].type==ShaderFXParameterType.Vector3,"types");
         Check(values[2].vectorValue==new Vector4(0,0,1,0),"normalization");
         Check(values[3].type==ShaderFXParameterType.Point && values[3].vectorValue.x==.2f && values[3].vectorValue.y==.37f,"point parsing");
         Check(Parse("// @param point _P")[0].vectorValue == new Vector4(.5f,.5f,0,0),"point default");
+        Check(Parse("// @param point _P = (-0.25, 1.25)")[0].vectorValue == new Vector4(-.25f,1.25f,0,0),"point defaults outside canvas");
         Check(Parse("// @param normal _N")[0].vectorValue.z==1,"normal default");
         Check(Parse("// @param normal _N = (0,0,0)")[0].vectorValue.z==1,"zero fallback");
-        foreach(var bad in new[]{"float2 _A = (1,2,3)","float3 _A = (1,2)","normal _A = (1,2,3,4)","float3 _A = (1,2,3) [0 .. 1]","float7 _A","point _P = (1.1, 0.5)","point _P = (0.5, 0.5) [0 .. 1]"})
+        foreach(var bad in new[]{"float2 _A = (1,2,3)","float3 _A = (1,2)","normal _A = (1,2,3,4)","float3 _A = (1,2,3) [0 .. 1]","float7 _A","point _P = (0.5)","point _P = (NaN, 0)","point _P = (0.5, 0.5) [0 .. 1]"})
         {
             bool rejected=false;
             try{Parse("// @param "+bad);}catch(TargetInvocationException e) when(e.InnerException is FormatException){rejected=true;}
@@ -69,11 +71,33 @@ public static class ShaderFXVectorsTests
             typeof(ShaderFX).GetMethod("ApplyAgentDraft",F).Invoke(fx,null);
             Layer layer=new ColorFillLayerBehaviour(); layer.fx.Add(fx); doc.layers.Add(layer);
             var image=doc.ComposeCanvas();
-            try { var c=image.GetPixel(8,8); Check(Mathf.Abs(c.r-.2f)<.005 && Mathf.Abs(c.g-.5f)<.005 && Mathf.Abs(c.b-1)<.005 && Mathf.Abs(c.a-.37f)<.005,"GPU uniforms"); }
+            try { var c=image.GetPixel(8,8); Check(Mathf.Abs(c.r-.22f)<.005 && Mathf.Abs(c.g-.5f)<.005 && Mathf.Abs(c.b-1)<.005 && Mathf.Abs(c.a-.374f)<.005,"GPU uniforms"); }
             finally{UnityEngine.Object.DestroyImmediate(image);}
+            var point = Parameters(fx)[3];
+            var readValue = typeof(WhimTexApi).GetMethod("ReadFxParameterValue",F);
+            var outside = (ShaderFXParameter)readValue.Invoke(null, new object[] { point, At(ParseJson("{\"value\":[-0.25,1.25]}"), "value"), doc });
+            Check(outside.vectorValue == new Vector4(-.25f,1.25f,0,0), "Agent Point values outside canvas");
+            foreach (string invalid in new[] { "[0]", "[0,1,2]", "[1000001,0]", "[0,-1000001]" })
+            {
+                bool rejected = false;
+                try { readValue.Invoke(null, new object[] { point, At(ParseJson("{\"value\":" + invalid + "}"), "value"), doc }); }
+                catch (TargetInvocationException) { rejected = true; }
+                Check(rejected, "Agent Point still validates component count and resource bounds: " + invalid);
+            }
+            point.vectorValue = outside.vectorValue; typeof(ShaderFX).GetMethod("NotifyValuesChanged",F).Invoke(fx,null);
+            image = doc.ComposeCanvas();
+            try { var c = image.GetPixel(8,8); Check(Mathf.Abs(c.r-.175f)<.005 && Mathf.Abs(c.a-.55f)<.005,"Out-of-canvas Point GPU uniforms are not clamped"); }
+            finally { UnityEngine.Object.DestroyImmediate(image); }
             string preset=(string)assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetWriter").GetMethod("BuildSource",F).Invoke(null,new object[]{fx,"Test/Vectors"});
             var restored=Parse(preset);
-            Check(restored.Count==4 && restored[0].type==values[0].type && restored[2].vectorValue==values[2].vectorValue && restored[3].type==ShaderFXParameterType.Point && restored[3].vectorValue==values[3].vectorValue,"preset roundtrip");
+            Check(restored.Count==4 && restored[0].type==values[0].type && restored[2].vectorValue==values[2].vectorValue && restored[3].type==ShaderFXParameterType.Point && restored[3].vectorValue==outside.vectorValue,"preset roundtrip outside canvas");
+            foreach (WhimTexJsonWriteMode mode in Enum.GetValues(typeof(WhimTexJsonWriteMode)))
+            {
+                using var loaded = WhimTexDocumentJson.Read(WhimTexDocumentJson.Write(doc, new WhimTexJsonWriteOptions { Mode = mode }).Json, false);
+                var loadedPoint = Parameters((ShaderFX)loaded.Document.layers[0].fx[0])[3];
+                Check(loaded.Warnings.Count == 0 && loadedPoint.type == ShaderFXParameterType.Point && loadedPoint.vectorValue == outside.vectorValue,
+                    "Point JSON roundtrip outside canvas: " + mode);
+            }
             var ui=(VisualElement)Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.ShaderFXParameterView"),F,null,new object[]{fx},null);
             Check(ui.Q<Vector2Field>()!=null && ui.Query<Vector3Field>().ToList().Count==2 && ui.Q<Button>()!=null,"parameter UI");
         }
@@ -96,4 +120,3 @@ public static class ShaderFXVectorsTests
         return;
     }
 }
-

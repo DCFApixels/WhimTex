@@ -46,8 +46,9 @@ context.case('classic distortions keep their existing unbounded Transform 2D map
         assert.match(spherize, /float4 result = color/);
         assert.match(spherize, /exp2\(_Strength\)/);
         assert.match(spherize, /pow\(max\(dot\(p, p\), 1e-12\), 0\.5 \* \(exponent - 1\.0\)\)/);
-        assert.match(spherize, /result = SampleInput\(_Area_ToInput\(0\.5 \+ p \* scale \* 0\.5\)\)/);
-        assert.equal((spherize.match(/\breturn\b/g) ?? []).length, 1, 'ApplyFX has one initialized return path');
+        assert.match(spherize, /result = SampleInput\(_Area_ToInput\(0\.5 \+ p \* scale \* 0\.5\), _Tiling\)/);
+        assert.equal((spherize.slice(spherize.indexOf('float4 ApplyFX(')).match(/\breturn\b/g) ?? []).length, 1,
+            'ApplyFX has one initialized return path; parameter tooltips are not shader statements');
         assert.match(source('Twirl'), /-radians\(_Angle\) \* length\(p\)/);
     }
 });
@@ -218,10 +219,10 @@ context.case('displacement map supports a single map with an optional strength m
         assert.match(code, /texture2D _StrengthMask = none/);
         assert.match(code, /tex2D\(_StrengthMask, strengthMaskUV\)/);
         assert.match(code, /displacementPixels \* strengthMask \* _CanvasSize\.zw/);
-        assert.match(code, /enum _InputEdge = Clamp \{Clamp: 0, Repeat: 1, Mirror: 2, Transparent: 3\}/);
+        assert.match(code, /@formerlyserializedas\(_InputEdge\)\s*\/\/ @param enum _Tiling = Clamp \{Clamp: 0, Repeat: 1, Mirror: 2, Clip: 3\}/);
         assert.match(code, /float2 AddressMapUV\(/);
-        assert.match(code, /float2 AddressInputUV\(/);
-        assert.match(code, /float4 distorted = SampleInput\(inputUV\) \* inside/);
+        assert.doesNotMatch(code, /float2 AddressInputUV\(/, 'Input addressing uses the shared sampler');
+        assert.match(code, /float4 distorted = SampleInput\(inputUV, _Tiling, _RepeatFiltering\)/);
         assert.match(code, /@param enum _ParallaxSteps = Balanced \{Fast: 4, Balanced: 8, High: 16, Ultra: 32\}/);
         assert.match(code, /float2 TraceParallax\(float2 uv, float strengthMask, float2 mapDDX, float2 mapDDY, out float hitHeight\)/);
         assert.match(code, /tex2Dgrad\(_DisplacementMap, mapUV, mapDDX, mapDDY\)/);
@@ -241,7 +242,8 @@ context.case('displacement map supports a single map with an optional strength m
         }
         assert.equal(directiveDepth, 0, 'All conditional parameter blocks are closed');
         const applyFX = code.slice(code.indexOf('float4 ApplyFX('));
-        assert.equal((applyFX.match(/\breturn\b/g) ?? []).length, 1, 'ApplyFX has one initialized return path');
+        assert.match(applyFX, /if \(_Amount <= 0\.0\) return color;/, 'Zero Amount is an exact bypass');
+        assert.equal((applyFX.match(/\breturn\b/g) ?? []).length, 2, 'Exact bypass plus one initialized result path');
     
         const vectorOffset = (sample, neutral, strength, mask) => sample.map((value, i) => 2 * (value - neutral) * strength[i] * mask);
         const strengthMask = (source, value) => source === 'Constant1' ? 1 : value;
@@ -249,6 +251,57 @@ context.case('displacement map supports a single map with an optional strength m
         vectorOffset([1, 0], .5, [80, -40], strengthMask('Constant1', 0)).forEach((value, i) => near(value, [80, 40][i]));
         vectorOffset([1, 0], .5, [80, -40], strengthMask('MapChannel', .25)).forEach((value, i) => near(value, [20, 10][i]));
     }
+});
+
+context.case('every distortion exposes a coordinate-strength control, not a result crossfade', async () => {
+    const bindings = { Spherize: '_Strength', Twirl: '_Angle', RadialShear: '_Strength',
+        PolarCoordinates: '_Amount', DisplacementMap: '_Amount' };
+    for (const [name, parameter] of Object.entries(bindings)) {
+        const code = readFileSync(new URL(`../../../src/FXPresets/${name}.hlsl`, import.meta.url), 'utf8');
+        assert.equal(code.split(/\r?\n/)[1], `// @control(${parameter})`);
+        assert.equal((code.match(/^\/\/ @control\(/gm) ?? []).length, 1, 'One FX header binding');
+    }
+    const displacement = readFileSync(new URL('../../../src/FXPresets/DisplacementMap.hlsl', import.meta.url), 'utf8');
+    assert.match(displacement, /@param hidden float _Amount = 1 \[0 \.\. ~2\]/);
+    assert.match(displacement, /strengthMask \*= max\(_Amount, 0\.0\);\s*if \(_Mode > 1\.5\)/);
+    assert.match(displacement, /TraceParallax\(uv, strengthMask,/);
+    assert.match(displacement, /displacementPixels \* strengthMask \* _CanvasSize\.zw/);
+});
+
+context.case('transform and distortion presets share input tiling without changing their defaults', async () => {
+    const files = ['UVTransform', 'Spherize', 'Twirl', 'RadialShear', 'PolarCoordinates', 'DisplacementMap'];
+    for (const name of files) {
+        const code = readFileSync(new URL(`../../../src/FXPresets/${name}.hlsl`, import.meta.url), 'utf8');
+        const parameter = name === 'UVTransform' ? '_InputTiling' : '_Tiling';
+        const declaration = code.split(/\r?\n/).find(line => line.startsWith('// @param') && line.includes(`enum ${parameter} `));
+        assert.ok(declaration, `${name} declares input addressing`);
+        assert.ok(declaration.includes(`= ${name === 'UVTransform' ? 'Clip' : 'Clamp'} {Clamp: 0, Repeat: 1, Mirror: 2, Clip: 3}`));
+        assert.equal((code.match(new RegExp(`enum ${parameter}\\b`, 'g')) ?? []).length, 1, 'One addressing field');
+        const functionSource = code.slice(code.indexOf('float4 ApplyFX('));
+        assert.ok(functionSource.includes(`, ${parameter}`), `${name} calls the common sampler`);
+        assert.doesNotMatch(code, /float2 AddressInputUV\(/, 'No duplicate image-addressing implementation');
+        assert.doesNotMatch(declaration, /Unbounded|Source/, 'Only real raster sampling modes');
+        assert.ok(code.lastIndexOf('// @param transform2D') < code.indexOf(declaration), 'Tiling follows frame parameters');
+        if (name !== 'UVTransform') {
+            const previousName = name === 'DisplacementMap' ? '_InputEdge' : '_InputTiling';
+            assert.ok(code.includes(`// @formerlyserializedas(${previousName})\n${declaration}`) ||
+                code.includes(`// @formerlyserializedas(${previousName})\r\n${declaration}`), 'Rename metadata belongs to the tiling declaration');
+        }
+    }
+    const builder = readFileSync(new URL('../../../src/ShaderFXSourceBuilder.cs', import.meta.url), 'utf8');
+    assert.match(builder, /float4 SampleInput\(float2 uv\) \{ return tex2D\(_MainTex, uv\); \}/, 'Original sampling function stays intact');
+    assert.match(builder, /float4 SampleInput\(float2 uv, float tiling\)/);
+    assert.match(builder, /float4 SampleInput\(float2 uv, float tiling, float filterRepeat\)/);
+    assert.match(builder, /_WhimTex_InputFilter < 0\.5 \|\| filterRepeat < 0\.5/);
+    assert.match(builder, /float2 size = _MainTex_TexelSize.zw;/, 'Uses actual input texture dimensions');
+    assert.equal((builder.match(/tex2Dlod\(_MainTex,/g) ?? []).length, 4, 'Repeat bilinear sampling wraps all four texels');
+    const layer = readFileSync(new URL('../../../src/Layers/Layer.cs', import.meta.url), 'utf8');
+    assert.match(layer, /SetFloat\("_WhimTex_InputFilter", current.filterMode == FilterMode.Point \? 0f : 1f\)/);
+    const compatibility = readFileSync(new URL('../../../src/WhimTexFileCompatibility0125.cs', import.meta.url), 'utf8');
+    assert.match(compatibility, /7d755646c7a839e478c67bb36a2189f8/);
+    assert.match(compatibility, /filtering.floatValue = 0f;/, 'Previous linked repeat filtering is retained');
+    const negative = readFileSync(new URL('../../../src/FXPresets/Negative.hlsl', import.meta.url), 'utf8');
+    assert.doesNotMatch(negative, /_InputTiling|_InputEdge|_Tiling/, 'Pointwise color FX do not gain unrelated controls');
 });
 
 await finish(context);
