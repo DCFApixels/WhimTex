@@ -18,12 +18,11 @@ namespace DCFApixels.WhimTex
         public Shape shape = Shape.Hexagons;
         public CircleLayout circleLayout = CircleLayout.Dense;
         public float size = 64f;
-        // Zero inherits the legacy scalar size until the axes are edited explicitly.
-        public float sizeY;
+        public float sizeY = 64f;
         public bool linkSize = true;
         public Vector2 Size
         {
-            get => new Vector2(Limit(size, 1, 16384, 64), Limit(sizeY == 0 ? size : sizeY, 1, 16384, 64));
+            get => new Vector2(Limit(size, 1, 16384, 64), Limit(sizeY, 1, 16384, 64));
             set { size = Limit(value.x, 1, 16384, 64); sizeY = Limit(value.y, 1, 16384, 64); }
         }
         internal Vector2 AdjustSize(Vector2 value)

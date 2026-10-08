@@ -1,11 +1,8 @@
 using System;
 using UnityEngine;
-using UnityEngine.Scripting.APIUpdating;
 
 namespace DCFApixels.WhimTex
 {
-    // Pending DCFApixels.WhimTex rename marker; do not remove.
-    [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "NoiseLayerBehaviour")]
     [Serializable]
     public sealed class NoiseLayerBehaviour : LayerBehaviour
     {
@@ -27,17 +24,21 @@ namespace DCFApixels.WhimTex
         public float direction;
         public int seed = 1337;
         public float scale = 8f;
-        public float scaleY;
+        public float scaleY = 8f;
+        public float scaleZ = 1f;
         public bool linkScale = true;
         public Vector3 offset;
         public PeriodicAxes periodic;
         public bool periodic1D;
-        // A missing Y keeps the existing uniform scale; no document rewrite is needed.
         public Vector2 Scale
         {
-            get => new Vector2(Limit(scale, .01f, 1000f, 8f), scaleY == 0f
-                ? Limit(scale, .01f, 1000f, 8f) : Limit(scaleY, .01f, 1000f, 8f));
+            get => new Vector2(Limit(scale, .01f, 1000f, 8f), Limit(scaleY, .01f, 1000f, 8f));
             set { scale = Limit(value.x, .01f, 1000f, 8f); scaleY = Limit(value.y, .01f, 1000f, 8f); }
+        }
+        public Vector3 Scale3D
+        {
+            get => new Vector3(Scale.x, Scale.y, Limit(scaleZ, .01f, 1000f, 1f));
+            set { Scale = value; scaleZ = Limit(value.z, .01f, 1000f, 1f); }
         }
         internal bool IsGrain => noiseType == NoiseType.WhiteNoise || noiseType == NoiseType.BlueNoise;
         internal NoiseDimensions EffectiveDimensions => IsGrain && dimensions == NoiseDimensions.ThreeD ? NoiseDimensions.TwoD : dimensions;
@@ -46,6 +47,18 @@ namespace DCFApixels.WhimTex
 
         internal Vector2 AdjustScale(Vector2 next)
             => AdjustLinkedScale(Scale, next, linkScale);
+
+        internal Vector3 AdjustScale3D(Vector3 next)
+        {
+            Vector3 old = Scale3D;
+            next = new Vector3(Limit(next.x, .01f, 1000f, old.x), Limit(next.y, .01f, 1000f, old.y),
+                Limit(next.z, .01f, 1000f, old.z));
+            if (!linkScale) return next;
+            float ratio = next.x != old.x ? next.x / old.x : next.y != old.y ? next.y / old.y : next.z / old.z;
+            ratio = Mathf.Clamp(ratio, Mathf.Max(.01f / old.x, .01f / old.y, .01f / old.z),
+                Mathf.Min(1000f / old.x, 1000f / old.y, 1000f / old.z));
+            return old * ratio;
+        }
 
         internal Vector2 AdjustWarpScale(Vector2 next)
             => AdjustLinkedScale(WarpScale, next, linkWarpScale);
@@ -70,12 +83,11 @@ namespace DCFApixels.WhimTex
         public WarpType warp;
         public float warpStrength = 1f;
         public float warpScale = 1f;
-        public float warpScaleY;
+        public float warpScaleY = 1f;
         public bool linkWarpScale = true;
         public Vector2 WarpScale
         {
-            get => new Vector2(Limit(warpScale, .01f, 1000f, 1f), warpScaleY == 0f
-                ? Limit(warpScale, .01f, 1000f, 1f) : Limit(warpScaleY, .01f, 1000f, 1f));
+            get => new Vector2(Limit(warpScale, .01f, 1000f, 1f), Limit(warpScaleY, .01f, 1000f, 1f));
             set { warpScale = Limit(value.x, .01f, 1000f, 1f); warpScaleY = Limit(value.y, .01f, 1000f, 1f); }
         }
         public OutputEncoding encoding = OutputEncoding.LinearData;
@@ -97,7 +109,7 @@ namespace DCFApixels.WhimTex
             var hash = new HashCode();
             hash.Add(noiseType); hash.Add(whiteNoiseColor); hash.Add(whiteNoiseSize);
             hash.Add(dimensions); hash.Add(direction); hash.Add(seed); hash.Add(scale); hash.Add(offset);
-            hash.Add(scaleY); hash.Add(periodic); hash.Add(periodic1D);
+            hash.Add(scaleY); hash.Add(scaleZ); hash.Add(periodic); hash.Add(periodic1D);
             hash.Add(fractal); hash.Add(octaves); hash.Add(lacunarity); hash.Add(gain);
             hash.Add(weightedStrength); hash.Add(pingPongStrength);
             hash.Add(cellularDistance); hash.Add(cellularReturn); hash.Add(cellularJitter);
@@ -140,7 +152,7 @@ namespace DCFApixels.WhimTex
                 Limit(offset.x, -10000f, 10000f, 0f), Limit(offset.y, -10000f, 10000f, 0f)));
             Vector2 axesScale = Scale;
             material.SetVector("_NoiseScale", new Vector4(axesScale.x, axesScale.y, 0, 0));
-            material.SetFloat("_NoiseZ", Limit(offset.z, -10000f, 10000f, 0f));
+            material.SetFloat("_NoiseZ", Limit(offset.z, -10000f, 10000f, 0f) * Scale3D.z);
             material.SetInteger("_NoiseThreeD", EffectiveDimensions == NoiseDimensions.ThreeD ? 1 : 0);
             material.SetInteger("_NoisePeriodic", (int)EffectivePeriodic);
             float radians = Limit(direction, -180f, 180f, 0f) * Mathf.Deg2Rad;
@@ -206,7 +218,7 @@ namespace DCFApixels.WhimTex
                 GL.sRGBWrite = false;
                 var renderedContext = ProceduralUv.Prepare(material, Owner, context);
                 Graphics.Blit(null, source, material, 0);
-                return ApplyTransformAndModifiers(source, renderedContext);
+                return ApplyTransformAndFx(source, renderedContext);
             }
             finally
             {

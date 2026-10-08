@@ -23,6 +23,11 @@ Shader "Hidden/TextureCompositor/Hdr"
         float _UseSwizzle;
         float channel(float4 c, float source)
         {
+            if (source > 12.5)
+            {
+                float luminance = dot(c.rgb, float3(0.2126, 0.7152, 0.0722));
+                return source < 13.5 ? luminance : luminance * c.a;
+            }
             if (source > 9.5) return (source < 10.5 ? c.r : source < 11.5 ? c.g : c.b) * c.a;
             if (source > 8.5) return 1.0;
             if (source > 7.5) return 0.0;

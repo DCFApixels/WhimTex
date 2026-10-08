@@ -276,7 +276,6 @@ namespace DCFApixels.WhimTex
                 if (WhimTexApi.IsProceduralClipboard(clipboardText))
                 {
                     WhimTexApi.ProceduralClipboard generated = WhimTexApi.ReadProceduralClipboard(clipboardText, compositor.width, compositor.height);
-                    bool handedOver = false;
                     try
                     {
                         bool resize = generated.HasCanvas && (compositor.width != generated.Document.width || compositor.height != generated.Document.height);
@@ -288,10 +287,9 @@ namespace DCFApixels.WhimTex
                             $"This JSON contains {generated.Effects.Count} custom GPU shader(s). Only paste code you trust: expensive shaders can freeze rendering.\n\nCompile and paste?",
                             "Compile and Paste", "Cancel")) return;
                         generated.Compile();
-                        // Linked images are fetched first; the batch then owns the data and pastes it itself.
-                        handedOver = PasteProceduralClipboard(generated, resize);
+                        PasteProceduralClipboard(generated, resize);
                     }
-                    finally { if (!handedOver) generated.Dispose(); }
+                    finally { generated.Dispose(); }
                     return;
                 }
                 TextureCompositor copiedLayers = LayerClipboard.Current;
@@ -317,7 +315,6 @@ namespace DCFApixels.WhimTex
                         var placement = TextureTransform.Default;
                         placement.scale = new Vector2((float)source.width / compositor.width, (float)source.height / compositor.height);
                         layer.transform = placement;
-                        layer.MakeTexturePersistent(compositor);
                         Undo.RegisterCreatedObjectUndo(source, "Paste Clipboard Image");
                         compositor.layers.Insert(0, layer);
                         SelectOnlyLayer(layer.Id);
@@ -349,7 +346,6 @@ namespace DCFApixels.WhimTex
                 {
                     DrawingLayerBehaviour layer = DrawingLayerBehaviour.FromMergedTexture(pasted);
                     layer.layerName = compositor.AllocateLayerName(layer);
-                    layer.MakeTexturePersistent(compositor);
                     Undo.RegisterCreatedObjectUndo(pasted, "Paste Drawing Layer");
                     compositor.layers.Insert(0, layer);
                     SelectOnlyLayer(layer.Id);

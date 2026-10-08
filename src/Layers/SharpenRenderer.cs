@@ -12,7 +12,7 @@ namespace DCFApixels.WhimTex
             float strength = Safe(layer.strength, 0f, MaximumStrength, 1f);
             float radius = Safe(layer.radius, 0f, MaximumRadius, 1f) / context.scaleMultiplier;
             if (strength <= 0f || radius <= .0001f)
-                return layer.ApplyTransformAndModifiers(context.input, context);
+                return layer.ApplyTransformAndFx(context.input, context);
 
             Material material = WhimTexMaterials.Sharpen;
             Material blurMaterial = WhimTexMaterials.GaussianBlur;
@@ -52,7 +52,7 @@ namespace DCFApixels.WhimTex
                     Graphics.Blit(context.input, premultiplied, blurMaterial, 0);
                     horizontal = Allocate(context.width, context.height);
                     blurred = Allocate(context.width, context.height);
-                    SetKernel(blurMaterial, radius / 3f, radius);
+                    GaussianKernel.Set(blurMaterial, radius / 3f, radius);
                     blurMaterial.SetVector("_Direction", new Vector4(1f / context.width, 0f, 0f, 0f));
                     Graphics.Blit(premultiplied, horizontal, blurMaterial, 2);
                     blurMaterial.SetVector("_Direction", new Vector4(0f, 1f / context.height, 0f, 0f));
@@ -62,7 +62,7 @@ namespace DCFApixels.WhimTex
                     result = Allocate(context.width, context.height);
                     Graphics.Blit(context.input, result, material, 0);
                 }
-                return layer.ApplyTransformAndModifiers(result, context);
+                return layer.ApplyTransformAndFx(result, context);
             }
             finally
             {
@@ -77,27 +77,6 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private static void SetKernel(Material material, float sigma, float support)
-        {
-            int extent = Mathf.Clamp(Mathf.CeilToInt(support), 1, 256);
-            double divisor = 2d * Math.Max(.0001d, sigma * sigma);
-            double total = 1d;
-            int count = 0;
-            for (int i = 1; i <= extent; i += 2)
-            {
-                double a = Math.Exp(-(double)i * i / divisor);
-                double b = i + 1 <= extent ? Math.Exp(-(double)(i + 1) * (i + 1) / divisor) : 0d;
-                double weight = a + b;
-                Kernel[count++] = new Vector4((float)(i + (weight > 0d ? b / weight : 0d)), (float)weight, 0f, 0f);
-                total += 2d * weight;
-            }
-            for (int i = 0; i < count; i++) Kernel[i].y /= (float)total;
-            material.SetFloat("_CenterWeight", (float)(1d / total));
-            material.SetInt("_PairCount", count);
-            material.SetVectorArray("_Kernel", Kernel);
-        }
-
-        private static readonly Vector4[] Kernel = new Vector4[128];
 
         private static RenderTexture Allocate(int width, int height)
         {

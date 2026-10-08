@@ -1,8 +1,11 @@
 // @whimtex-effect Distortion/Spherize
+// @control(_Strength)
 // @group(Spherize Mode; _Mode)
 // @param hidden enum _Mode = 0 {Classic: 0, Sphere: 1} // Classic is the current unbounded radial distortion. Sphere wraps the image over a sphere and clips outside its circular edge.
-// @param float _Strength = 0.5 [~-1 .. ~1]
+// @param float _Strength = 0.5 [~-1 .. ~1] // Positive values bulge; negative values pinch. Zero removes distortion but keeps the circular clip in Sphere mode.
 // @param transform2D _Area
+// @formerlyserializedas(_InputTiling)
+// @param enum _Tiling = Clamp {Clamp: 0, Repeat: 1, Mirror: 2, Clip: 3} // Sampling outside the input image: extend its edge, repeat, mirror, or return transparency.
 // @endgroup
 
 float4 ApplyFX(float2 uv, float4 color)
@@ -17,8 +20,8 @@ float4 ApplyFX(float2 uv, float4 color)
             float exponent = exp2(_Strength);
             // The epsilon only protects the center; the radius is not limited to the frame.
             float scale = pow(max(dot(p, p), 1e-12), 0.5 * (exponent - 1.0));
-            result = SampleInput(_Area_ToInput(0.5 + p * scale * 0.5));
-        }
+			result = SampleInput(_Area_ToInput(0.5 + p * scale * 0.5), _Tiling);
+		}
     }
     else
     {
@@ -38,7 +41,7 @@ float4 ApplyFX(float2 uv, float4 color)
         else
             sampleRadius = 1.0 - (1.0 - sampleRadius) * exp2(-excessStrength * sampleRadius);
         float radialScale = sampleRadius / max(radius, 1e-6);
-        result = SampleInput(_Area_ToInput(0.5 + p * radialScale * 0.5));
+        result = SampleInput(_Area_ToInput(0.5 + p * radialScale * 0.5), _Tiling);
 
         // Keep a crisp circular silhouette with a sub-pixel antialiased edge.
         float edgeWidth = max(fwidth(radius), 1e-4);

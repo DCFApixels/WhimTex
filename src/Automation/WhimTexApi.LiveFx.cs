@@ -46,7 +46,7 @@ namespace DCFApixels.WhimTex
             if (effect == null) return false;
             foreach (var job in liveJobs.Values)
                 if (job.editing && job.state == "pending" && job.document != null &&
-                    job.document.FindLayer(job.layerId)?.modifiers?.Contains(effect) == true) return true;
+                    job.document.FindLayer(job.layerId)?.fx?.Contains(effect) == true) return true;
             return false;
         }
 
@@ -111,147 +111,44 @@ namespace DCFApixels.WhimTex
         {
             if (token == null) return;
             Require(token is JArray array && array.Count <= 16, "fx must be an array of at most 16 operations.");
-            layer.modifiers = layer.modifiers == null ? new List<Object>() : new List<Object>(layer.modifiers);
+            layer.fx = layer.fx == null ? new List<Object>() : new List<Object>(layer.fx);
             foreach (var item in (JArray)token)
             {
                 JObject spec = Obj(item, "fx operation");
                 string op = Text(spec, "op", "add");
                 Require(op == "add" || op == "replace" || op == "remove", "FX op must be add, replace or remove.");
                 if (op == "remove") Keys(spec, "op", "index");
-                else Keys(spec, "op", "index", "code", "parameters");
-                Require(op == "add" || spec["index"] != null, "replace/remove requires an explicit modifier index.");
-                Require(op == "add" || layer.modifiers.Count > 0, "Cannot replace/remove from an empty FX list.");
-                int index = Int(spec, "index", layer.modifiers.Count, 0, op == "add" ? layer.modifiers.Count : layer.modifiers.Count - 1);
-                if (op == "remove") { layer.modifiers.RemoveAt(index); continue; }
+                else Keys(spec, "op", "index", "code");
+                Require(op == "add" || spec["index"] != null, "replace/remove requires an explicit FX index.");
+                Require(op == "add" || layer.fx.Count > 0, "Cannot replace/remove from an empty FX list.");
+                int index = Int(spec, "index", layer.fx.Count, 0, op == "add" ? layer.fx.Count : layer.fx.Count - 1);
+                if (op == "remove") { layer.fx.RemoveAt(index); continue; }
                 Require(spec["code"]?.Type == JTokenType.String && ((string)spec["code"]).Length > 0 &&
                     ((string)spec["code"]).Length <= 65536, "code must contain 1..65536 characters of inline HLSL.");
-                var parameters = ReadLiveFxParameters(spec["parameters"], owner);
+
                 RequireGraphics();
-                var fx = ShaderFX.CreateAgentDraft(owner, (string)spec["code"], parameters);
+                var fx = ShaderFX.CreateAgentDraft(owner, (string)spec["code"], ShaderFXMetadata.Parse((string)spec["code"], false, out _));
                 created.Add(fx);
                 try { fx.ApplyAgentDraft(); }
                 catch (Exception error) { throw new WhimTexApiException("shader_compile_failed", error.Message); }
                 Require(fx.Parameters.Count <= MaxFxParameters, "At most 128 FX parameters are supported by live authoring.", "resource_limit");
-                if (op == "add") layer.modifiers.Insert(index, fx);
-                else layer.modifiers[index] = fx;
+                if (op == "add") layer.fx.Insert(index, fx);
+                else layer.fx[index] = fx;
                 foreach (var parameter in fx.TextureLayerParameters())
                     Require(owner.IsUsableShaderTexture(layer, parameter.textureLayerId), "Texture layer would create a cyclic dependency.", "invalid_target");
-                Require(layer.modifiers.Count <= 32, "At most 32 FX entries per layer are supported by live authoring.", "resource_limit");
+                Require(layer.fx.Count <= 32, "At most 32 FX entries per layer are supported by live authoring.", "resource_limit");
             }
-        }
-
-        private static List<ShaderFXParameter> ReadLiveFxParameters(JToken token, TextureCompositor owner)
-        {
-            var result = new List<ShaderFXParameter>();
-            if (token == null) return result;
-            Require(token is JArray array && array.Count <= MaxFxParameters, "parameters must be an array of at most 128 entries.");
-            foreach (var item in (JArray)token)
-            {
-                JObject spec = Obj(item, "parameter");
-                Keys(spec, "name", "type", "value");
-                var value = new ShaderFXParameter { name = Text(spec, "name"), type = Enum(spec, "type", ShaderFXParameterType.Float) };
-                Require(spec["value"] != null, "Parameter value is required.");
-                switch (value.type)
-                {
-                    case ShaderFXParameterType.Curve:
-                        Require(spec["value"].Type == JTokenType.String, "Curve value must be linear, easeIn, easeOut, easeInOut, one or a keys(...) string.");
-                        value.curveValue = WhimTexCurveTexture.Parse((string)spec["value"]);
-                        break;
-                    case ShaderFXParameterType.Gradient: value.gradientValue = ReadGradient(spec["value"]); break;
-                    case ShaderFXParameterType.Bool:
-                        Require(spec["value"].Type == JTokenType.Boolean, "Bool value must be true or false.");
-                        value.floatValue = (bool)spec["value"] ? 1f : 0f;
-                        break;
-                    case ShaderFXParameterType.Enum:
-                    case ShaderFXParameterType.Float: value.floatValue = Number(spec["value"], "value", -1000000, 1000000); break;
-                    case ShaderFXParameterType.Color: value.colorValue = AgentJson.Color(spec["value"]); break;
-                    case ShaderFXParameterType.Vector2:
-                    case ShaderFXParameterType.Point:
-                    case ShaderFXParameterType.Vector3:
-                    case ShaderFXParameterType.Normal:
-                        int components = value.type == ShaderFXParameterType.Vector2 || value.type == ShaderFXParameterType.Point ? 2 : 3;
-                        Require(spec["value"] is JArray values && values.Count == components, "Wrong vector component count.");
-                        value.vectorValue = Vector4.zero;
-                        for (int i=0;i<components;i++) value.vectorValue[i] = Number(spec["value"][i], "component", -1000000, 1000000);
-                        if (value.type == ShaderFXParameterType.Point)
-                            Require(value.vectorValue.x >= 0 && value.vectorValue.x <= 1 && value.vectorValue.y >= 0 && value.vectorValue.y <= 1,
-                                "Point coordinates must be in the normalized canvas range 0..1.");
-                        if (value.type == ShaderFXParameterType.Normal) value.vectorValue = ShaderFXParameter.NormalizeNormal(value.vectorValue);
-                        break;
-                    case ShaderFXParameterType.Vector:
-                        Require(spec["value"] is JArray vector && vector.Count == 4, "Vector value must have four components.");
-                        value.vectorValue = new Vector4(Number(spec["value"][0], "x", -1000000, 1000000), Number(spec["value"][1], "y", -1000000, 1000000),
-                            Number(spec["value"][2], "z", -1000000, 1000000), Number(spec["value"][3], "w", -1000000, 1000000));
-                        break;
-                    case ShaderFXParameterType.Texture2D:
-                        if (spec["value"] is JObject layerSource)
-                        {
-                            Keys(layerSource, "layer");
-                            string layerId = Text(layerSource, "layer");
-                            Require(owner != null && owner.FindLayer(layerId)?.Behaviour != null, "Texture source layer not found.", "invalid_target");
-                            value.textureSource = ShaderFXTextureSource.Layer;
-                            value.textureLayerId = layerId;
-                            break;
-                        }
-                        string path = Text(spec, "value");
-                        if (path == "self" || path == "none")
-                        {
-                            value.textureSource = path == "self" ? ShaderFXTextureSource.Self : ShaderFXTextureSource.None;
-                            break;
-                        }
-                        value.textureSource = ShaderFXTextureSource.Texture;
-                        Require(path.StartsWith("Assets/", StringComparison.Ordinal) || path.StartsWith("Packages/", StringComparison.Ordinal), "Texture value must be a project asset path.");
-                        ValidateSegments(path);
-                        value.textureValue = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
-                        Require(value.textureValue != null, "Texture parameter asset not found.");
-                        Require(!string.Equals(path, DocumentAssetPath(owner), StringComparison.OrdinalIgnoreCase), "An FX cannot sample its own document output.", "invalid_target");
-                        break;
-                    case ShaderFXParameterType.Transform2D:
-                        JObject area = Obj(spec["value"], "Transform2D value");
-                        Keys(area, "position", "size", "rotation", "matrix");
-                        var dimensions = owner != null ? new Vector2(owner.width, owner.height) : Vector2.one;
-                        if (area["matrix"] != null)
-                        {
-                            Require(area["position"] == null && area["size"] == null && area["rotation"] == null,
-                                "matrix cannot be combined with position, size or rotation.");
-                            Require(area["matrix"] is JArray && ((JArray)area["matrix"]).Count == 9, "matrix must contain nine row-major numbers.");
-                            var a = (JArray)area["matrix"];
-                            var m = new ProjectiveMatrix {
-                                m00=TransformNumber(a[0]),m01=TransformNumber(a[1]),m02=TransformNumber(a[2]),
-                                m10=TransformNumber(a[3]),m11=TransformNumber(a[4]),m12=TransformNumber(a[5]),
-                                m20=TransformNumber(a[6]),m21=TransformNumber(a[7]),m22=TransformNumber(a[8]) };
-                            Require(value.transformValue.TrySetMatrix(m), "Transform2D matrix must be invertible with no horizon crossing its rectangle.");
-                            break;
-                        }
-                        foreach (string field in new[] { "position", "size" })
-                        {
-                            if (area[field] == null) continue;
-                            Require(area[field] is JArray pair && pair.Count == 2, field + " must have two components.");
-                            var v = TransformVector(area[field], field);
-                            if (field == "position") value.transformValue.EditPosition(v, dimensions);
-                            else
-                            {
-                                Require(Math.Abs(v.x) >= 0.00001 && Math.Abs(v.y) >= 0.00001, "Transform2D size cannot be zero.");
-                                value.transformValue.EditSize(v, dimensions);
-                            }
-                        }
-                        if (area["rotation"] != null) value.transformValue.EditRotation(TransformNumber(area["rotation"]), dimensions);
-                        break;
-                }
-                result.Add(value);
-            }
-            return result;
         }
 
         private static JArray LiveFxSnapshot(Layer layer, TextureCompositor owner)
         {
             var result = new JArray();
-            if (layer.modifiers == null) return result;
-            for (int i = 0; i < layer.modifiers.Count; i++)
+            if (layer.fx == null) return result;
+            for (int i = 0; i < layer.fx.Count; i++)
             {
-                var modifier = layer.modifiers[i];
-                var entry = new JObject { ["index"] = i, ["assetPath"] = modifier == null ? null : AssetDatabase.GetAssetPath(modifier) };
-                if (modifier is ShaderFX fx)
+                var fxEntry = layer.fx[i];
+                var entry = new JObject { ["index"] = i, ["assetPath"] = fxEntry == null ? null : AssetDatabase.GetAssetPath(fxEntry) };
+                if (fxEntry is ShaderFX fx)
                 {
                     entry["type"] = "shaderFX"; entry["embedded"] = fx.EmbeddedOwner == owner;
                     entry["enabled"] = fx.Active;
@@ -285,7 +182,7 @@ namespace DCFApixels.WhimTex
                     entry["parameters"] = parameters;
                     entry["catalogPath"] = fx.CatalogPath;
                 }
-                else entry["type"] = modifier is Material ? "material" : "empty";
+                else entry["type"] = fxEntry is Material ? "material" : "empty";
                 result.Add(entry);
             }
             return result;
@@ -332,7 +229,7 @@ namespace DCFApixels.WhimTex
                     string view = Text(request, "view", "composite");
                     Require(view == "composite" || view == "layer", "view must be composite or layer.");
                     int size = Int(request, "maxSize", 1024, 1, 4096);
-                    if (view == "composite") image = probe.ComposePreview(size);
+                    if (view == "composite") image = probe.ComposeCanvas(size);
                     else
                     {
                         rt = probe.RenderAgentLayerPreview(candidate, size);
@@ -348,7 +245,7 @@ namespace DCFApixels.WhimTex
                 {
                     ApplyLiveEditSettings(job.document, target, changes);
                     if (target?.Behaviour is DrawingLayerBehaviour drawing) drawing.SetColorRange(target.colorRange);
-                    target.modifiers = new List<Object>(candidate.modifiers);
+                    target.fx = new List<Object>(candidate.fx);
                     foreach (var fx in created) job.document.AdoptAgentShaderFX(fx, "Complete Agent Edit");
                 });
                 committed = true;

@@ -1,11 +1,8 @@
 using System;
 using UnityEngine;
-using UnityEngine.Scripting.APIUpdating;
 
 namespace DCFApixels.WhimTex
 {
-    // Pending DCFApixels.WhimTex rename marker; do not remove.
-    [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "ColorFillLayerBehaviour")]
     [Serializable]
     public sealed class ColorFillLayerBehaviour : LayerBehaviour
     {
@@ -81,7 +78,7 @@ namespace DCFApixels.WhimTex
                     var patternContext = pattern.Prepare(material, Owner, context);
                     GL.sRGBWrite = false;
                     Graphics.Blit(null, source, material, 0);
-                    return ApplyTransformAndModifiers(source, patternContext);
+                    return ApplyTransformAndFx(source, patternContext);
                 }
                 if (mode == FillMode.UV)
                 {
@@ -91,13 +88,13 @@ namespace DCFApixels.WhimTex
                     GL.sRGBWrite = false;
                     var uvContext = ProceduralUv.Prepare(material, Owner, context);
                     Graphics.Blit(null, source, material, 0);
-                    return ApplyTransformAndModifiers(source, uvContext);
+                    return ApplyTransformAndFx(source, uvContext);
                 }
                 RenderTexture.active = source;
                 GL.Clear(true, true, LinearColor);
                 var renderedContext = context.applyTransform && transform.tiling == TransformTilingMode.Unbounded
                     ? ProceduralUv.WithoutTransform(context) : context;
-                return ApplyTransformAndModifiers(source, renderedContext);
+                return ApplyTransformAndFx(source, renderedContext);
             }
             finally
             {

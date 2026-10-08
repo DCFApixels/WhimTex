@@ -101,7 +101,8 @@ namespace DCFApixels.WhimTex
                 long fileId = (long)reference["fileID"];
                 if (fileId == 0) { value = null; report.Copied++; return true; }
                 string guid = reference["guid"]?.Annotation<MissingLayerData.ScalarText>()?.Text ?? (string)reference["guid"];
-                string assetPath = string.IsNullOrEmpty(guid) ? AssetDatabase.GetAssetPath(document) : AssetDatabase.GUIDToAssetPath(guid);
+                if (string.IsNullOrEmpty(guid)) return false;
+                string assetPath = AssetDatabase.GUIDToAssetPath(guid);
                 if (string.IsNullOrEmpty(assetPath)) return false;
                 foreach (Object asset in AssetDatabase.LoadAllAssetsAtPath(assetPath))
                     if (asset != null && type.IsInstanceOfType(asset) &&
@@ -182,12 +183,5 @@ namespace DCFApixels.WhimTex
             catch (ArgumentException) { gradient = null; return false; }
         }
 
-        private static bool GradientTime(JToken token, out float time)
-        {
-            time = 0;
-            if (token?.Type != JTokenType.Integer || (long)token < 0 || (long)token > 65535) return false;
-            time = (long)token / 65535f;
-            return true;
-        }
     }
 }

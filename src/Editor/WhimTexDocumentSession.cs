@@ -383,7 +383,7 @@ namespace DCFApixels.WhimTex
                 try
                 {
                     // Reuse the window's GPU preview. API-only changes also stay entirely on the GPU.
-                    if (source == null) source = owned = Document.RenderCachedPreview(Math.Max(Document.width, Document.height), _cache, false, null);
+                    if (source == null) source = owned = Document.RenderCanvasWithCache(Math.Max(Document.width, Document.height), _cache, false, null);
                     GL.sRGBWrite = GraphicsFormatUtility.IsSRGBFormat(_staging.graphicsFormat);
                     Graphics.Blit(source, _staging);
                     if (_mips > 1) _staging.GenerateMips();
@@ -408,8 +408,8 @@ namespace DCFApixels.WhimTex
                 {
                     if (layer == null) continue;
                     if (layer.Behaviour is FileLayerBehaviour || layer.Behaviour is ShaderProcessorLayerBehaviour) return true;
-                    if (layer.modifiers != null)
-                        foreach (var modifier in layer.modifiers) if (modifier != null) return true;
+                    if (layer.fx != null)
+                        foreach (var fxEntry in layer.fx) if (fxEntry != null) return true;
                     if (HasDynamicInputs(layer.children)) return true;
                 }
                 return false;

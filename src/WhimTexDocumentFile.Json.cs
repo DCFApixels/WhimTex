@@ -24,6 +24,7 @@ namespace DCFApixels.WhimTex
 
         public static string SaveJson(TextureCompositor document, string path, WhimTexJsonWriteOptions options = null, bool deferImport = false)
         {
+            if (document == null) throw new WhimTexDocumentException("There is no document to save.");
             options ??= new WhimTexJsonWriteOptions { Mode = document.JsonWriteMode };
             if (!WhimTexDocumentJson.IsJsonPath(path)) throw new WhimTexDocumentException("Expected a .json destination.");
             path = WhimTexDocumentService.NormalizeDestination(path);
@@ -36,6 +37,7 @@ namespace DCFApixels.WhimTex
             // Exporting without pixels does not make the live, pixel-bearing model match the file.
             if (result.Warnings.Count > 0) document.documentBinding.dirty = true;
             foreach (string warning in result.Warnings) Debug.LogWarning("WhimTex: " + warning);
+            if (options.AllowDataLoss) document.documentLoadWarning = null;
             return path;
         }
 
@@ -51,6 +53,8 @@ namespace DCFApixels.WhimTex
 
         private static WhimTexJsonWriteResult WriteJsonFile(TextureCompositor document, string path, WhimTexJsonWriteOptions options)
         {
+            if (document == null || AssetDatabase.Contains(document))
+                throw new WhimTexDocumentException("Editable documents must be in-memory models, not Unity assets.");
             var result = WhimTexDocumentJson.Write(document, options);
             using (WhimTexDocumentJson.Read(result.Json, false)) { }
             byte[] data = new UTF8Encoding(false).GetBytes(result.Json);

@@ -55,11 +55,11 @@ namespace DCFApixels.WhimTex
         {
             if (asset == null) return false;
             string path = AssetDatabase.GetAssetPath(asset);
-            return !string.IsNullOrEmpty(path) && (WhimTexDocumentFile.IsDocument(path) || TextureCompositor.FindDocument(asset) != null);
+            return !string.IsNullOrEmpty(path) && WhimTexDocumentFile.IsDocument(path);
         }
 
         internal static bool IsOwnOutput(TextureCompositor document, UnityEngine.Object asset) => document != null && asset != null &&
-            (asset == document.OutputTexture || TextureCompositor.FindDocument(asset) == document || !string.IsNullOrEmpty(PathOf(document)) &&
+            (asset == document.OutputTexture || !string.IsNullOrEmpty(PathOf(document)) &&
                 string.Equals(PathOf(document), AssetDatabase.GetAssetPath(asset), StringComparison.OrdinalIgnoreCase));
 
         internal static IDisposable BeginWrite(TextureCompositor document, string path)
@@ -84,6 +84,8 @@ namespace DCFApixels.WhimTex
         {
             if (string.IsNullOrWhiteSpace(path)) throw new WhimTexDocumentException("The document path is empty.");
             path = path.Replace('\\', '/');
+            if (string.Equals(System.IO.Path.GetExtension(path), ".asset", StringComparison.OrdinalIgnoreCase))
+                throw new WhimTexDocumentException("Editable documents use TIFF or JSON, not Unity asset destinations.");
             if (!path.StartsWith("Assets/", StringComparison.Ordinal) || path.StartsWith("Assets/StreamingAssets/", StringComparison.OrdinalIgnoreCase))
                 throw new WhimTexDocumentException("Save documents inside Assets, outside StreamingAssets.");
             foreach (string part in path.Split('/'))

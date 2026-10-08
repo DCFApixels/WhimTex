@@ -47,9 +47,9 @@ namespace DCFApixels.WhimTex
                 foreach (var layer in layers)
                 {
                     if (layer == null) continue;
-                    if (layer.modifiers != null)
-                        foreach (var modifier in layer.modifiers)
-                            if (modifier is ShaderFX effect && seen.Add(effect) && !AssetDatabase.Contains(effect))
+                    if (layer.fx != null)
+                        foreach (var fxEntry in layer.fx)
+                            if (fxEntry is ShaderFX effect && seen.Add(effect) && !AssetDatabase.Contains(effect))
                             {
                                 effect.RestoreDocumentOwner(Document);
                                 effect.RestoreDocumentShader();
@@ -61,7 +61,7 @@ namespace DCFApixels.WhimTex
         }
 
         // The caller owns/disposes the returned preview, independently of the session.
-        internal Texture2D Render() { Prepare(); return Document.Compose(); }
+        internal Texture2D Render() { Prepare(); return Document.ComposeCanvas(); }
         internal string Save(string path) { Prepare(); return WhimTexDocumentFile.Save(Document, path); }
 
         public void Dispose()

@@ -1,11 +1,8 @@
 using System;
 using UnityEngine;
-using UnityEngine.Scripting.APIUpdating;
 
 namespace DCFApixels.WhimTex
 {
-    // Pending DCFApixels.WhimTex rename marker; do not remove.
-    [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "ShapeLayerBehaviour")]
     [Serializable]
     public sealed class ShapeLayerBehaviour : LayerBehaviour
     {
@@ -19,8 +16,8 @@ namespace DCFApixels.WhimTex
         public float strokeWidth = 2f;
         public float feather;
         public FeatherPosition featherPosition = FeatherPosition.Centered;
-        public float roundness;
-        public Vector4 cornerRoundness = -Vector4.one;
+        public float roundness { get => cornerRoundness.x; set => cornerRoundness = Vector4.one * value; }
+        public Vector4 cornerRoundness;
         public bool linkCorners = true;
         public int sides = 5;
         public float innerRadius = .5f;
@@ -74,9 +71,8 @@ namespace DCFApixels.WhimTex
         internal Vector4 GetCornerRoundness()
         {
             Vector4 result = cornerRoundness;
-            float uniform = Limit(roundness, 0f, 1f, 0f);
             for (int i = 0; i < 4; i++)
-                result[i] = result[i] < 0f ? uniform : Limit(result[i], 0f, 1f, uniform);
+                result[i] = Limit(result[i], 0f, 1f, 0f);
             return result;
         }
 
@@ -129,8 +125,8 @@ namespace DCFApixels.WhimTex
                 GL.sRGBWrite = false;
                 Graphics.Blit(null, source, material);
                 var renderedContext = new LayerRenderContext(context.compositor, context.input, context.width,
-                    context.height, context.scaleMultiplier, applyTransform: false, applyModifiers: context.applyModifiers);
-                return ApplyTransformAndModifiers(source, renderedContext);
+                    context.height, context.scaleMultiplier, applyTransform: false, applyFx: context.applyFx);
+                return ApplyTransformAndFx(source, renderedContext);
             }
             finally
             {

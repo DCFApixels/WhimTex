@@ -212,6 +212,7 @@ namespace DCFApixels.WhimTex
                 if (!owner.HasCanvasLayers || (evt.button != 2 && !(evt.button == 0 && owner.IsCanvasZoomEnabled)) ||
                     !target.contentRect.Contains(evt.localPosition)) return;
                 owner.CancelCanvasEyedropper();
+                owner.canvasGuideManipulator?.Cancel();
                 owner.shapeManipulator?.Cancel();
                 owner.FinishCanvasTransform();
                 owner.FinishPaintingStroke();
@@ -236,6 +237,7 @@ namespace DCFApixels.WhimTex
                 if (!owner.HasCanvasLayers || !target.contentRect.Contains(point) || evt.delta.y == 0f ||
                     float.IsNaN(evt.delta.y) || float.IsInfinity(evt.delta.y)) return;
                 WhimTexUI.ConsumeEvent(evt);
+                owner.canvasGuideManipulator?.Cancel();
                 if (IsDragging && !panning) Cancel();
                 owner.shapeManipulator?.Cancel();
                 owner.FinishCanvasTransform();

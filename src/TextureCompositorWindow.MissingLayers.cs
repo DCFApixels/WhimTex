@@ -65,7 +65,6 @@ namespace DCFApixels.WhimTex
                         {
                             drawing.InitializeCanvas(compositor.width, compositor.height);
                             drawing.InvalidatePaintSurface();
-                            drawing.MakeTexturePersistent(compositor);
                             UnityEditor.Undo.RegisterCreatedObjectUndo(drawing.StoredTexture, "Replace Layer Behaviour");
                         }
                         catch
@@ -75,7 +74,7 @@ namespace DCFApixels.WhimTex
                             throw;
                         }
                     }
-                    if (draft is ShaderProcessorLayerBehaviour && layer.modifiers.Count == 0) compositor.AddEmbeddedShaderFX(layer);
+                    if (draft is ShaderProcessorLayerBehaviour && layer.fx.Count == 0) compositor.AddEmbeddedShaderFX(layer);
                 });
                 if (layer.Behaviour == draft) ShowNotification(new GUIContent("Layer behaviour restored."));
             };

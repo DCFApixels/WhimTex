@@ -44,7 +44,7 @@ namespace DCFApixels.WhimTex
             get
             {
                 if (canvasTool != CanvasTool.FXTransform || canvasTransformFX == null || compositor == null || GetSelectedLayer() is not Layer selected ||
-                    !selected.modifiers.Contains(canvasTransformFX) || WhimTexApi.IsLayerContentLocked(compositor, selected) ||
+                    !selected.fx.Contains(canvasTransformFX) || WhimTexApi.IsLayerContentLocked(compositor, selected) ||
                     WhimTexApi.IsShaderFXContentLocked(canvasTransformFX)) return null;
                 foreach (var p in canvasTransformFX.Parameters)
                     if (p != null && p.id == canvasTransformParameterId && p.type == ShaderFXParameterType.Transform2D) return p;
@@ -60,7 +60,7 @@ namespace DCFApixels.WhimTex
             if (effect.EmbeddedOwner != null) return effect.EmbeddedOwner;
             TextureCompositorWindow best = null;
             foreach (var window in Resources.FindObjectsOfTypeAll<TextureCompositorWindow>())
-                if (window.compositor != null && window.GetSelectedLayer() is Layer layer && layer.modifiers.Contains(effect) &&
+                if (window.compositor != null && window.GetSelectedLayer() is Layer layer && layer.fx.Contains(effect) &&
                     (best == null || window == focusedWindow || best != focusedWindow && window.AgentFocusOrder > best.AgentFocusOrder)) best = window;
             return best != null ? best.compositor : null;
         }
@@ -74,7 +74,7 @@ namespace DCFApixels.WhimTex
             if (!found) return;
             TextureCompositorWindow best = null;
             foreach (var window in Resources.FindObjectsOfTypeAll<TextureCompositorWindow>())
-                if (window.compositor != null && window.GetSelectedLayer() is Layer selected && selected.modifiers.Contains(effect) &&
+                if (window.compositor != null && window.GetSelectedLayer() is Layer selected && selected.fx.Contains(effect) &&
                     !WhimTexApi.IsLayerContentLocked(window.compositor, selected) &&
                     (best == null || window == focusedWindow || best != focusedWindow && window.AgentFocusOrder > best.AgentFocusOrder)) best = window;
             if (best == null) { EditorUtility.DisplayDialog("FX Transform", "Select a layer using this FX in a WhimTex window first.", "OK"); return; }
@@ -103,10 +103,7 @@ namespace DCFApixels.WhimTex
             VisualElement row = CreateCanvasSettingsRow();
             row.AddToClassList("whimtex-transform-settings");
             toolkitHeaderBindings.Add(() => row.SetEnabled(CanvasFXParameter == null && !HasMultipleTransformSelection));
-            VisualElement tilingGroup = WhimTexUI.CreateRow();
-            tilingGroup.AddToClassList("whimtex-transform-option");
-            tilingGroup.Add(CreateCompactLabel("Tiling", 38f));
-            EnumField tiling = CompactField(new EnumField(TransformTilingMode.Clip), 100f);
+            EnumField tiling = CompactField(new EnumField("Tiling", TransformTilingMode.Clip), 100f);
             tiling.tooltip = "Clip: transparent outside the frame. Repeat: tile. Mirror: reflected tiles. " +
                 "Source: inherit texture wrap modes. Clamp: extend edge pixels. " +
                 "Unbounded: continue procedural UVs; raster layers use Clip.";
@@ -121,12 +118,8 @@ namespace DCFApixels.WhimTex
                 FinishCanvasTransform();
                 ApplyToolkitChange("Change Transform Tiling", () => selected.transform.tiling = (TransformTilingMode)evt.newValue);
             });
-            tilingGroup.Add(tiling);
-            row.Add(tilingGroup);
-            VisualElement filterGroup = WhimTexUI.CreateRow();
-            filterGroup.AddToClassList("whimtex-transform-option");
-            filterGroup.Add(CreateCompactLabel("Filter", 36f));
-            EnumField filter = CompactField(new EnumField(LayerFilterMode.Source), 100f);
+            row.Add(tiling);
+            EnumField filter = CompactField(new EnumField("Filter", LayerFilterMode.Source), 100f);
             filter.tooltip = "Source: inherit the texture's Filter Mode. Point: sharp pixels. Bilinear: smooth. " +
                 "Trilinear: smooth mip transitions (requires source mipmaps). Independent of Tiling.";
             toolkitHeaderBindings.Track(filter, () => (Enum)(GetSelectedLayer()?.filterMode ?? LayerFilterMode.Source));
@@ -140,8 +133,7 @@ namespace DCFApixels.WhimTex
                 FinishPaintingStroke();
                 ApplyToolkitChange("Change Layer Filter", () => selected.filterMode = (LayerFilterMode)evt.newValue);
             });
-            filterGroup.Add(filter);
-            row.Add(filterGroup);
+            row.Add(filter);
             row.Add(WhimTexUI.CreateOriginalAspectButton(
                 GetSelectedLayer, () => compositor,
                 (undoName, change) =>
@@ -402,6 +394,16 @@ namespace DCFApixels.WhimTex
                 if (hit == RotateHandle) return MouseCursor.RotateArrow;
                 if (hit == PivotHandle) return MouseCursor.MoveArrow;
                 return hit >= 0 && hit < Handles.Length ? MouseCursor.ScaleArrow : MouseCursor.Pan;
+            }
+
+            internal bool WantsPointer(Vector2 point)
+            {
+                if (!owner.IsCanvasTransformEnabled) return false;
+                Rect rect = owner.toolkitCanvas.ImageRect;
+                if (rect.width <= 0f || rect.height <= 0f) return false;
+                int hit = HitTest(owner.toolkitCanvas.ToCanvas(point), owner.CurrentCanvasTransform, rect,
+                    new Vector2(owner.compositor.width, owner.compositor.height), owner.CanvasFXParameter == null);
+                return hit >= 0;
             }
 
             private void OnDown(PointerDownEvent evt)

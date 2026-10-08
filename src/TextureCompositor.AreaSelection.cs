@@ -7,7 +7,7 @@ namespace DCFApixels.WhimTex
     {
         internal Texture2D RenderAreaSelectionSource(Layer layer)
         {
-            if (layer == null) return Compose();
+            if (layer == null) return ComposeCanvas();
             return RasterizeMerge(CreateMergePlan(new List<Layer> { layer }));
         }
 

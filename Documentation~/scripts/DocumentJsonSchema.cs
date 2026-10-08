@@ -26,7 +26,7 @@ public static class DocumentJsonSchema
             type == typeof(int) ? D(("type", "integer"), ("minimum", int.MinValue), ("maximum", int.MaxValue)) :
             type == typeof(byte) ? D(("type", "integer"), ("minimum", 0), ("maximum", 255)) :
             D(("type", type == typeof(double) || type == typeof(decimal) ? "number" : "integer"));
-        object Tuple(int count, Type component = null) => D(("type", "array"), ("minItems", count), ("maxItems", count), ("items", Number(component ?? typeof(float))));
+        object Tuple(int count, Type component = null, int? minimum = null) => D(("type", "array"), ("minItems", minimum ?? count), ("maxItems", count), ("items", Number(component ?? typeof(float))));
         string Name(Type t) => t.FullName.Substring("DCFApixels.WhimTex.".Length);
         object Schema(Type type)
         {
@@ -39,8 +39,9 @@ public static class DocumentJsonSchema
             if (type == typeof(RectInt)) return Tuple(4, typeof(int));
             if (type == typeof(Color32)) return Tuple(4, typeof(byte));
             if (type == typeof(Vector2)) return Tuple(2);
-            if (type == typeof(Vector3)) return Tuple(3);
-            if (type == typeof(Vector4) || type == typeof(Quaternion) || type == typeof(Color) || type == typeof(Rect)) return Tuple(4);
+            if (type == typeof(Vector3)) return Tuple(3, minimum: 2);
+            if (type == typeof(Vector4)) return Tuple(4, minimum: 2);
+            if (type == typeof(Quaternion) || type == typeof(Color) || type == typeof(Rect)) return Tuple(4);
             if (type == typeof(Bounds)) return Tuple(6);
             if (type == typeof(AnimationCurve))
             {
@@ -74,12 +75,26 @@ public static class DocumentJsonSchema
                 properties["$type"] = D(("const", name));
                 if (type == typeof(ShaderFX))
                 { properties["$id"] = D(("type", "string")); properties["$name"] = D(("type", "string")); }
+                if (type == typeof(ShapeLayerBehaviour)) properties["roundness"] = D(
+                    ("type", "number"), ("deprecated", true), ("description", "0.12.5 input; normalized to explicit cornerRoundness."));
+                if (type == typeof(ShaderFXParameter)) properties["declaredInCode"] = D(
+                    ("type", "boolean"), ("deprecated", true), ("description", "0.12.5 input; distinguishes saved manual parameters from removed code declarations. Never written by current writers."));
                 if (type == typeof(DrawingLayerBehaviour)) properties["contentOmitted"] = D(("const", true));
+                if (type == typeof(TextureCompositor)) properties["spriteSlices"] = D(
+                    ("type", new[] { "array", "null" }), ("deprecated", true),
+                    ("description", "Ignored 0.12.5 file metadata; never written by current writers."),
+                    ("items", new Dictionary<string, object>()));
                 foreach (FieldInfo f in (FieldInfo[])fields.Invoke(null, new object[] { type }))
                     if (!(type == typeof(TextureCompositor) && f.Name == "layers") && !(type == typeof(DrawingLayerBehaviour) && f.Name == "pixels"))
                         properties[f.Name] = type == typeof(TextureCompositor) && (f.Name == "width" || f.Name == "height")
                             ? D(("type", "integer"), ("minimum", 1), ("maximum", 16384)) :
                             type == typeof(Layer) && f.Name == "id" ? D(("type", "string"), ("minLength", 1)) : Schema(f.FieldType);
+                if (type == typeof(Layer))
+                {
+                    properties["modifiers"] = D(("allOf", new[] { properties["fx"] }), ("deprecated", true),
+                        ("description", "0.12.5 file input; converted to fx. Never written by current writers."));
+                    ((Dictionary<string, object>)definitions[name])["not"] = D(("required", new[] { "fx", "modifiers" }));
+                }
             }
             object modelRef = D(("$ref", "#/$defs/" + name));
             return !type.IsValueType && type != typeof(TextureCompositor) && type != typeof(Layer)
@@ -89,7 +104,6 @@ public static class DocumentJsonSchema
         var schema = D(("$schema", "https://json-schema.org/draft/2020-12/schema"), ("title", "WhimTex document v1"),
             ("type", "object"), ("additionalProperties", false), ("required", new[] { "format", "version", "layers" }),
             ("properties", D(("format", D(("const", WhimTexDocumentJson.Format))), ("version", D(("const", 1))),
-                ("kind", D(("type", "string"), ("deprecated", true), ("description", "Obsolete, ignored on read and never written. The caller's operation selects open, insert or replace."))),
                 ("writeMode", Schema(typeof(WhimTexJsonWriteMode))),
                 ("document", document), ("layers", layers))), ("$defs", definitions));
         var json = Type.GetType("Newtonsoft.Json.JsonConvert, Newtonsoft.Json", true);

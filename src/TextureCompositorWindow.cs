@@ -22,7 +22,7 @@ namespace DCFApixels.WhimTex
         private const float PanePadding = 8f;
         private const string DraggedLayerIdKey = "DCFApixels.WhimTex.DraggedLayerId";
         private const string DraggedCompositorIdKey = "DCFApixels.WhimTex.DraggedCompositorId";
-        private const string PaintingCanvasScalePrefKey = "DCFApixels.WhimTex.PaintingPreviewScale";
+        private const string PaintingCanvasScalePrefKey = "DCFApixels.WhimTex.Canvas.PaintingScale";
 
         private static readonly Color DropIndicatorColor = new Color(0.20f, 0.58f, 0.95f, 1f);
         private static readonly Color GroupDropHighlightColor = new Color(0.20f, 0.58f, 0.95f, 0.22f);
@@ -160,6 +160,8 @@ namespace DCFApixels.WhimTex
             SelectOnlyLayer(null);
             groupExpansion?.Clear();
             canvasTool = CanvasTool.None;
+            previousCanvasTool = null;
+            canvasToolToggleKeyHeld = false;
             lastBaseCanvasTool = CanvasTool.None;
             temporaryReturnTool = CanvasTool.None;
             temporaryDocument = toolContextDocument = null;
@@ -208,7 +210,7 @@ namespace DCFApixels.WhimTex
             WhimTexDocumentSession.StateChanged += RefreshLiveOutputButton;
             EditorApplication.projectChanged += OnLiveOutputProjectChanged;
 
-            if (compositor == null)
+            if (compositor == null || AssetDatabase.Contains(compositor))
                 SetCompositor(CreateTemporaryCompositor());
             else
                 compositor.NormalizeModel();
@@ -304,7 +306,7 @@ namespace DCFApixels.WhimTex
         }
 
         private bool HasDocumentChanges() => compositor != null &&
-            (AssetDatabase.Contains(compositor) ? compositor.HasUnsavedAssetChanges() : temporaryDocumentDirty || compositor.documentBinding?.dirty == true);
+            (temporaryDocumentDirty || compositor.documentBinding?.dirty == true);
 
         public override void SaveChanges()
         {
@@ -325,6 +327,7 @@ namespace DCFApixels.WhimTex
 
         private void OnLostFocus()
         {
+            canvasToolToggleKeyHeld = false;
             if (healingPointer >= 0) CancelHealing();
             StopKeyboardNudge();
             ClearLayerDragGhost();
@@ -426,11 +429,14 @@ namespace DCFApixels.WhimTex
 
             canvasRequested = false;
             bool paintingCanvas = paintingLayer != null;
+            // Limit update starts, not render completion + another full interval.
+            // Otherwise an expensive composition lowers the stroke's refresh rate twice.
+            double canvasStartedAt = EditorApplication.timeSinceStartup;
             UpdateCanvasRender();
             if (canvasTransformManipulator != null && canvasTransformManipulator.IsDragging)
-                nextTransformCanvasAt = EditorApplication.timeSinceStartup + PaintingCanvasInterval;
+                nextTransformCanvasAt = canvasStartedAt + PaintingCanvasInterval;
             if (paintingCanvas)
-                nextPaintingCanvasAt = EditorApplication.timeSinceStartup + PaintingCanvasInterval;
+                nextPaintingCanvasAt = canvasStartedAt + PaintingCanvasInterval;
         }
 
         private Layer GetDraggedLayer() => GetDraggedLayerForDocument(compositor);
@@ -572,7 +578,7 @@ namespace DCFApixels.WhimTex
             Undo.RecordObject(compositor, "Clear Drawing Layer");
             layer.PrepareStroke(compositor.width, compositor.height, "Clear Drawing Layer");
             layer.ClearSurface(compositor.width, compositor.height);
-            temporaryDocumentDirty |= !AssetDatabase.Contains(compositor);
+            temporaryDocumentDirty = true;
             compositor.MarkChanged();
             RequestCanvasRender(true);
         }
@@ -612,6 +618,7 @@ namespace DCFApixels.WhimTex
             if (finishedLayer == null)
                 return;
 
+            bool pixelsChanged = canvasTool != CanvasTool.SmudgeBrush || finishedLayer.SmudgeStrokeChanged;
             finishedLayer.EndStroke();
             if (!ReferenceEquals(finishedLayer.Owner.Behaviour, finishedLayer) || compositor == null ||
                 !ReferenceEquals(compositor.FindLayer(finishedLayer.Id), finishedLayer.Owner))
@@ -619,18 +626,23 @@ namespace DCFApixels.WhimTex
                 lineAnchorLayer = null;
                 return;
             }
+            if (!pixelsChanged)
+            {
+                Undo.FlushUndoRecordObjects();
+                return;
+            }
             finishedLayer.SyncSurfaceToTexture();
             nextPaintingCanvasAt = 0d;
-            if (canvasTool == CanvasTool.BlurBrush)
+            if (canvasTool == CanvasTool.BlurBrush || canvasTool == CanvasTool.SmudgeBrush)
             {
-                // Blur Brush changes pixels using a stable source snapshot. Once
-                // the stroke ends, do not keep the surrounding FX stack in its
+                // Pixel retouching changes the sampled image. Once the stroke
+                // ends, do not keep the surrounding FX stack in its
                 // interactive approximation: the next preview must use settled
                 // quality (notably for Sharpen layers above the Drawing layer).
                 effectInteractiveUntil = 0d;
                 effectRefinementPending = false;
             }
-            temporaryDocumentDirty |= compositor != null && !AssetDatabase.Contains(compositor);
+            temporaryDocumentDirty |= compositor != null;
             if (compositor != null)
                 compositor.MarkChanged();
             Undo.FlushUndoRecordObjects();
@@ -873,7 +885,7 @@ namespace DCFApixels.WhimTex
                 menu.AddItem(new GUIContent("FX"), false, () =>
                 {
                     foreach (Layer target in targets)
-                        if (target?.Behaviour != null) ModifierEditorWindow.Open(target, compositor);
+                        if (target?.Behaviour != null) LayerFxEditorWindow.Open(target, compositor);
                 });
             }
             if (targets.Exists(target => !(target?.IsGroup == true)))
@@ -933,7 +945,6 @@ namespace DCFApixels.WhimTex
                 Undo.SetCurrentGroupName(undoName);
                 for (int i = 0; i < layers.Count; i++)
                 {
-                    replacements[i].MakeTexturePersistent(compositor);
                     Undo.RegisterCreatedObjectUndo(textures[i], undoName);
                     registeredTextures++;
                 }
@@ -1068,7 +1079,7 @@ namespace DCFApixels.WhimTex
 
         private void CommitModelChange()
         {
-            temporaryDocumentDirty |= !AssetDatabase.Contains(compositor);
+            temporaryDocumentDirty = true;
             compositor.NormalizeModel();
             compositor.MarkChanged();
             RequestCanvasRender();
@@ -1106,11 +1117,11 @@ namespace DCFApixels.WhimTex
             try
             {
                 bool interactive = EffectsAreInteractive;
-                int maxSize = canvasTool == CanvasTool.Pencil || liveOutputEnabled && !interactive
+                int maxSize = canvasTool == CanvasTool.Pencil
                     ? Mathf.Max(compositor.width, compositor.height)
                     : paintingLayer != null ? GetPaintingCanvasMaxSize() : CanvasMaxSize;
                 canvasEffectCache ??= new EffectRenderCache();
-                canvasTexture = compositor.RenderCachedPreview(maxSize, canvasEffectCache, interactive, paintingLayer);
+                canvasTexture = compositor.RenderCanvasWithCache(maxSize, canvasEffectCache, interactive, paintingLayer);
                 effectRefinementPending = interactive;
                 ApplyCanvasTextureFilter();
                 PublishLiveOutput();
@@ -1166,6 +1177,8 @@ namespace DCFApixels.WhimTex
 
         private void SetCompositor(TextureCompositor next)
         {
+            if (next != null && AssetDatabase.Contains(next))
+                throw new System.InvalidOperationException("Editable documents must be in-memory models, not Unity assets.");
             if (next == null || next == compositor)
                 return;
 
@@ -1282,7 +1295,7 @@ namespace DCFApixels.WhimTex
                 return;
             }
 
-            temporaryDocumentDirty |= contentChanged && !AssetDatabase.Contains(compositor);
+            temporaryDocumentDirty |= contentChanged;
             if (!contentChanged) ReleaseEffectCache();
             effectInteractiveUntil = EditorApplication.timeSinceStartup + .2d;
             UpdateUnsavedChangesState();
@@ -1311,7 +1324,7 @@ namespace DCFApixels.WhimTex
             paintingLockedAxis = 0;
             paintingPointerId = -1;
             selectedLayerId = compositor.FindLayer(selectedLayerId)?.Id;
-            temporaryDocumentDirty |= !AssetDatabase.Contains(compositor);
+            temporaryDocumentDirty = true;
             RequestCanvasRender(true);
             RefreshToolkitInterface(forceValues: true);
         }

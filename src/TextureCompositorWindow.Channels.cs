@@ -20,11 +20,9 @@ namespace DCFApixels.WhimTex
                 }
             return match == null ? null : () => match != null && match.compositor == document ? match.canvasChannels : -1;
         }
-        [UnityEngine.Serialization.FormerlySerializedAs("previewChannels")]
         [SerializeField] private int canvasChannels = AllCanvasChannels;
         [NonSerialized] private RenderTexture channelCanvasTexture;
         [NonSerialized] private Button[] channelButtons;
-        [UnityEngine.Serialization.FormerlySerializedAs("previewDebug")]
         [SerializeField] private bool canvasDebug;
         [NonSerialized] private float canvasExposure;
         [NonSerialized] private Slider canvasQualitySlider;

@@ -8,25 +8,16 @@ namespace DCFApixels.WhimTex
     /// <summary>
     /// Menu entries and asset opening for documents stored in the carrier image format.
     ///
-    /// TIFF files keep their native importer. Legacy .asset files remain readable for migration only;
-    /// the window never writes them back. Live Update temporarily enables Read/Write through the
-    /// document session when it is needed.
+    /// TIFF files keep their native importer. Live Update temporarily enables Read/Write
+    /// through the document session when it is needed.
     /// </summary>
     public sealed partial class TextureCompositorWindow
     {
-        /// <summary>Compatibility with existing serialized windows; new identity lives on the document.</summary>
-        [SerializeField] private string documentFilePath;
-        [SerializeField] private string documentFileGuid;
-        [SerializeField] private TextureCompositor documentFileOwner;
-
         private void BindDocumentFile(string path)
         {
             ClearSourceImage();
             if (WhimTexDocumentService.PathOf(compositor) != path) WhimTexDocumentService.Bind(compositor, path);
             WhimTexDocumentService.Attach(this, compositor);
-            documentFileOwner = compositor;
-            documentFilePath = path;
-            documentFileGuid = AssetDatabase.AssetPathToGUID(path);
             RefreshDocumentTitle(true);
         }
 
@@ -34,9 +25,6 @@ namespace DCFApixels.WhimTex
         {
             WhimTexDocumentService.Detach(this);
             ClearSourceImage();
-            documentFileOwner = null;
-            documentFileGuid = null;
-            documentFilePath = null;
         }
 
         private void BindSourceImage(Texture2D texture)
@@ -75,21 +63,7 @@ namespace DCFApixels.WhimTex
             path = null;
             if (document == null) return false;
             path = WhimTexDocumentService.PathOf(document);
-            if (!string.IsNullOrEmpty(path)) return true;
-            TextureCompositorWindow owner = WindowFor(document);
-            path = null;
-            // Upgrade a window serialized before bindings stored their owner/GUID. The imported
-            // output is proof of ownership; a stale window path alone must never be trusted.
-            if (owner != null && owner.documentFileOwner == null && string.IsNullOrEmpty(owner.documentFileGuid) &&
-                !string.IsNullOrEmpty(owner.documentFilePath) && document.OutputTexture != null &&
-                AssetDatabase.GetAssetPath(document.OutputTexture) == owner.documentFilePath)
-                owner.BindDocumentFile(owner.documentFilePath);
-            if (owner == null || owner.documentFileOwner != document) return false;
-            path = AssetDatabase.GUIDToAssetPath(owner.documentFileGuid);
-            if (string.IsNullOrEmpty(path) || !File.Exists(path)) return false;
-            owner.documentFilePath = path;
-            owner.BindDocumentFile(path);
-            return true;
+            return !string.IsNullOrEmpty(path);
         }
 
         [MenuItem("Assets/WhimTex/Save Document As WhimTex File…", true)]
@@ -105,26 +79,14 @@ namespace DCFApixels.WhimTex
             if (TrySaveLinkedImage()) return true;
             if (TryGetDocumentFile(compositor, out string path))
             {
-                // Legacy ScriptableObject documents remain openable for migration, but are
-                // permanently read-only. Never let Ctrl+S overwrite the .asset; route it to
-                // the explicit TIFF Save As flow instead.
-                if (IsLegacyAssetPath(path))
-                    return SaveDocumentAs(compositor);
                 if (WhimTexDocumentJson.IsJsonPath(path))
                     return SaveJsonToPath(path, compositor.JsonWriteMode);
                 return SaveDocumentTo(compositor, path);
             }
-            if (WhimTexLegacyMigration.IsLegacyAsset(compositor))
-                return SaveDocumentAs(compositor);
             return SaveDocumentAs(compositor);
         }
 
         private void SaveDocumentAs() => SaveDocumentAs(compositor);
-
-        internal static bool SaveDocumentAsTiff(TextureCompositor document) => SaveDocumentAs(document);
-
-        internal static bool IsLegacyAssetPath(string path) =>
-            !string.IsNullOrEmpty(path) && string.Equals(Path.GetExtension(path), ".asset", System.StringComparison.OrdinalIgnoreCase);
 
         private static bool SaveDocumentAs(TextureCompositor document)
         {
@@ -141,37 +103,22 @@ namespace DCFApixels.WhimTex
         private static bool SaveDocumentTo(TextureCompositor document, string path)
         {
             if (document == null || string.IsNullOrEmpty(path)) return false;
-            if (IsLegacyAssetPath(path))
-            {
-                EditorUtility.DisplayDialog("Legacy WhimTex asset is read-only",
-                    "Legacy .asset documents can no longer be saved in place. Use Save As to create a TIFF document.", "OK");
-                return false;
-            }
-            TextureCompositor copy = null;
             using var operation = new WhimTexDocumentOperation("Save WhimTex document");
             try
             {
                 TextureCompositorWindow owner = WindowFor(document);
                 owner?.PrepareDocumentSave();
-                if (AssetDatabase.Contains(document))
-                    copy = WhimTexDocumentFile.CreateEditableCopy(document);
-                var target = copy != null ? copy : document;
+                if (!ConfirmIncompleteDocumentSave(document, ref path, out bool allowDataLoss)) return false;
                 bool wasLive = WhimTexDocumentSession.IsLiveFor(document);
-                string written = WhimTexDocumentFile.Save(target, path, deferImport: !wasLive);
+                string written = WhimTexDocumentFile.Save(document, path, deferImport: !wasLive, allowDataLoss: allowDataLoss);
                 if (owner != null)
                 {
-                    if (copy != null)
-                    {
-                        WhimTexApi.TransferLiveDocument(owner.agentSessionId, document, copy);
-                        owner.agentSessionDocument = copy;
-                        owner.SetCompositor(copy);
-                        copy = null; // window now owns the working document
-                    }
                     owner.BindDocumentFile(written);
                     // The document is not an asset, so its dirty state lives on the window and has to be
                     // cleared here: otherwise the title keeps its asterisk and Save stays enabled.
                     owner.temporaryDocumentDirty = false;
                     owner.UpdateUnsavedChangesState();
+                    owner.RefreshDocumentLoadWarning();
                 }
                 var image = AssetDatabase.LoadAssetAtPath<Texture2D>(written);
                 if (image != null)
@@ -188,7 +135,36 @@ namespace DCFApixels.WhimTex
                 EditorUtility.DisplayDialog("WhimTex", error.Message, "OK");
                 return false;
             }
-            finally { if (copy != null) DestroyImmediate(copy); }
+        }
+
+        private static bool ConfirmIncompleteDocumentSave(TextureCompositor document, ref string path, out bool allowDataLoss)
+        {
+            allowDataLoss = false;
+            if (string.IsNullOrEmpty(document.documentLoadWarning)) return true;
+            int choice = EditorUtility.DisplayDialogComplex("Save an incompletely loaded document?",
+                "Some document data could not be read:\n\n" + document.documentLoadWarning +
+                "\n\nSaving will keep your edits and the data this version could read, but may permanently discard unread fields, layer types or asset references. " +
+                "Save a copy to keep the original file for recovery, or cancel and reopen after restoring the required version or assets.",
+                "Save a Copy…", "Cancel", "Save Anyway");
+            if (choice == 1) return false;
+            if (choice == 0)
+            {
+                string copyPath = EditorUtility.SaveFilePanelInProject("Save recovered document copy",
+                    Path.GetFileNameWithoutExtension(path) + "_Recovered", Path.GetExtension(path).TrimStart('.'),
+                    "The copy contains only the data that was loaded. Keep the original file to recover unread data later.");
+                if (string.IsNullOrEmpty(copyPath)) return false;
+                string sourcePath = WhimTexDocumentService.PathOf(document);
+                if (string.Equals(Path.GetFullPath(copyPath), Path.GetFullPath(path), System.StringComparison.OrdinalIgnoreCase) ||
+                    !string.IsNullOrEmpty(sourcePath) && string.Equals(Path.GetFullPath(copyPath), Path.GetFullPath(sourcePath), System.StringComparison.OrdinalIgnoreCase))
+                {
+                    EditorUtility.DisplayDialog("Choose a different file", "A recovery copy must not overwrite the original or selected destination. Choose Save Anyway if you intend to overwrite.", "OK");
+                    return false;
+                }
+                path = copyPath;
+            }
+            else if (choice != 2) return false;
+            allowDataLoss = true;
+            return true;
         }
 
         private void OpenDocumentOutputSettings()
@@ -199,7 +175,6 @@ namespace DCFApixels.WhimTex
                 EditorUtility.DisplayDialog("JSON document", "JSON has no texture importer. Use Export or Save As TIFF to create an image asset with import settings.", "OK");
                 return;
             }
-            if (AssetDatabase.Contains(compositor)) { WhimTexOutputSettingsWindow.Open(compositor); return; }
             if (!TryGetDocumentFile(compositor, out string path))
             {
                 if (!SaveDocument()) return;
@@ -265,7 +240,6 @@ namespace DCFApixels.WhimTex
             if (OpenWhimTexDocumentPath(path)) return true;
             if (WhimTexUserSettings.ImageOpening != ImageOpenMode.AllSupportedImages ||
                 !IsSupportedImagePath(path)) return false;
-            if (TextureCompositor.FindDocument(target) != null) return false;
             var texture = target as Texture2D ?? (target as Sprite)?.texture;
             return texture != null && OpenImageDocument(texture);
         }
@@ -275,7 +249,7 @@ namespace DCFApixels.WhimTex
             switch (Path.GetExtension(path ?? string.Empty).ToLowerInvariant())
             {
                 case ".png": case ".jpg": case ".jpeg": case ".tga": case ".bmp":
-                case ".exr": case ".tif": case ".tiff": case ".asset": return true;
+                case ".exr": case ".tif": case ".tiff": return true;
                 default: return false;
             }
         }

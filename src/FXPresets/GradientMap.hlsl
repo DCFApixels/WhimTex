@@ -1,7 +1,6 @@
 // @whimtex-effect Color/Gradient Map
 // @control(_Opacity)
 // @group
-// @formerlyserializedas(_Amount)
 // @param hidden float _Opacity = 1 [0 .. 1] // Blend the mapped colors and gradient opacity with the original image.
 // @param enum _SourceChannel = Luminance {Luminance: 0, R: 1, G: 2, B: 3, Alpha: 4} // Select the input used to look up the full gradient color. RGB uses sRGB values; alpha is read directly.
 // @param gradient _Gradient // Colors from shadows to highlights; gradient alpha multiplies source alpha.

@@ -177,8 +177,11 @@ Do not resave the TIFF in another image editor: it may remove the editable layer
 See [TIFF document](tiff-format.md) for what the file contains.
 
 Apply pending Shader FX code before saving. If the file changed externally, reopen it or use
-**Save As**. If missing types, fields or referenced assets block saving, restore the required
-package or assets and reopen the document. If Unity reports an import error after a successful
+**Save As**. If some document data could not be read, a warning appears below the document toolbar
+as soon as it opens. Save offers **Save a Copy…**, **Cancel**, or **Save Anyway**. A copy keeps the original
+file for recovery; either save choice keeps your edits but may discard unread fields, layer types or
+asset references. To recover that data without loss, restore the required package or assets and reopen
+the original. If Unity reports an import error after a successful
 write, fix it and save again to retry the import.
 
 ### Long operations and limits
@@ -204,10 +207,4 @@ then choose **Tools → WhimTex → Recovery → Retry Live Update Recovery**. D
 
 ## Migrate an old document
 
-Legacy `.asset` documents can be opened, but cannot be saved back to that format.
-Use **Save As** in WhimTex, or select the old asset and choose
-**Assets → WhimTex → Migrate Legacy .asset to TIFF…**.
-
-Migration copies editable layers and Drawing pixels into a new TIFF; the original asset and its GUID
-remain unchanged. Existing materials and File layers still reference the old output: assign the
-new TIFF where needed and review its import settings. Use the TIFF Inspector for future output settings.
+Legacy `.asset` documents are no longer supported. Before upgrading, open them in WhimTex 0.12.5 and use **Save As** to create TIFF files. Check layers, Drawing pixels and import settings, then assign the new TIFF to materials and File layers where needed. The current version reads TIFF/JSON, not old `.asset` documents.

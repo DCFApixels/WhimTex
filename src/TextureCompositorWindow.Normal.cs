@@ -16,7 +16,7 @@ namespace DCFApixels.WhimTex
             get
             {
                 if (canvasTool != CanvasTool.FXNormal || normalFX == null || compositor == null || GetSelectedLayer() is not Layer layer ||
-                    !layer.modifiers.Contains(normalFX) || WhimTexApi.IsLayerContentLocked(compositor, layer) ||
+                    !layer.fx.Contains(normalFX) || WhimTexApi.IsLayerContentLocked(compositor, layer) ||
                     WhimTexApi.IsShaderFXContentLocked(normalFX)) return null;
                 foreach (var p in normalFX.Parameters)
                     if (p != null && p.id == normalParameterId && p.type == ShaderFXParameterType.Normal) return p;
@@ -33,7 +33,7 @@ namespace DCFApixels.WhimTex
             if (!exists) return;
             TextureCompositorWindow best = null;
             foreach (var w in Resources.FindObjectsOfTypeAll<TextureCompositorWindow>())
-                if (w.compositor != null && w.GetSelectedLayer() is Layer layer && layer.modifiers.Contains(effect) &&
+                if (w.compositor != null && w.GetSelectedLayer() is Layer layer && layer.fx.Contains(effect) &&
                     !WhimTexApi.IsLayerContentLocked(w.compositor, layer) &&
                     (best == null || w == focusedWindow || best != focusedWindow && w.AgentFocusOrder > best.AgentFocusOrder)) best = w;
             if (best == null) return;
@@ -104,8 +104,7 @@ namespace DCFApixels.WhimTex
             private void Down(PointerDownEvent e)
             {
                 var p = owner.NormalParameter;
-                if (pointer >= 0 || p == null || e.button != 0 || e.altKey ||
-                    Vector2.Distance(e.localPosition, Tip(p)) > 12) return;
+                if (pointer >= 0 || e.button != 0 || e.altKey || !WantsPointer(e.localPosition)) return;
                 parameter = p; effect = owner.normalFX; pointer = e.pointerId;
                 originalValue = p.vectorValue;
                 owner.Focus(); target.Focus();
@@ -117,6 +116,9 @@ namespace DCFApixels.WhimTex
                 target.CapturePointer(pointer);
                 e.StopImmediatePropagation();
             }
+
+            internal bool WantsPointer(Vector2 point) => owner.NormalParameter is ShaderFXParameter value &&
+                Vector2.Distance(point, Tip(value)) <= 12;
             private void Set(Vector3 n)
             {
                 Undo.RecordObject(effect, "Change FX Normal");

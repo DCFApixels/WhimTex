@@ -49,7 +49,7 @@ namespace DCFApixels.WhimTex
                     {
                         var layer = document.FindLayer(Text(request, "layer"));
                         Require(layer != null, "Layer not found.", "layer_not_found");
-                        int count = layer.modifiers.Count;
+                        int count = layer.fx.Count;
                         if (stage != "layer") count = RequiredFxIndex(layer, request) + (stage == "afterFx" ? 1 : 0);
                         image = document.RasterizeFXPrefix(layer, count);
                     }

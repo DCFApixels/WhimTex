@@ -33,7 +33,6 @@ namespace DCFApixels.WhimTex
                     Undo.IncrementCurrentGroup();
                     undoGroup = Undo.GetCurrentGroup();
                     Undo.SetCurrentGroupName(undoName);
-                    merged.MakeTexturePersistent(this);
                     // Registering a new native object flushes pending object records in Unity.
                     // Register the document afterwards so Redo captures the actual merged tree.
                     Undo.RegisterCreatedObjectUndo(texture, undoName);

@@ -58,7 +58,6 @@ namespace DCFApixels.WhimTex
                         var pixels = document.RasterizeLayer(layer, false);
                         var drawing = DrawingLayerBehaviour.FromRasterizedLayer(layer, pixels, false,
                             layer.IsGroup && document.IsGroupIsolatedByClipping(layer));
-                        drawing.MakeTexturePersistent(document);
                         Undo.RegisterCreatedObjectUndo(pixels, UndoName);
                         Undo.RegisterCompleteObjectUndo(document, UndoName);
                         document.DestroyLayerAssets(layer);
@@ -70,7 +69,7 @@ namespace DCFApixels.WhimTex
                         var drawing = new DrawingLayerBehaviour();
                         drawing.CopyRasterizedIdentityFrom(layer);
                         drawing.transform = layer.transform;
-                        drawing.modifiers = new List<UnityEngine.Object>(layer.modifiers);
+                        drawing.fx = new List<UnityEngine.Object>(layer.fx);
                         layer.AdoptContent(drawing);
                     }
                 }

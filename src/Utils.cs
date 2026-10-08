@@ -273,6 +273,8 @@ namespace DCFApixels.WhimTex
         private static Material normalMapMaterial;
         private static Material gaussianBlurMaterial;
         private static Material blurBrushMaterial;
+        private static Material smudgeBrushMaterial;
+        private static Material smudgeTransportMaterial;
         private static Material healingBrushMaterial;
         private static Material sharpenMaterial;
         private static Material motionBlurMaterial;
@@ -299,6 +301,8 @@ namespace DCFApixels.WhimTex
         public static Material NormalMap => GetOrCreate(ref normalMapMaterial, "Hidden/TextureCompositor/NormalMap");
         public static Material GaussianBlur => GetOrCreate(ref gaussianBlurMaterial, "Hidden/TextureCompositor/GaussianBlur");
         public static Material BlurBrush => GetOrCreate(ref blurBrushMaterial, "Hidden/TextureCompositor/BlurBrush");
+        public static Material SmudgeBrush => GetOrCreate(ref smudgeBrushMaterial, "Hidden/TextureCompositor/SmudgeBrush");
+        public static Material SmudgeTransport => GetOrCreate(ref smudgeTransportMaterial, "Hidden/TextureCompositor/SmudgeTransport");
         public static Material HealingBrush => GetOrCreate(ref healingBrushMaterial, "Hidden/TextureCompositor/HealingBrush");
         public static Material Sharpen => GetOrCreate(ref sharpenMaterial, "Hidden/TextureCompositor/Sharpen");
         public static Material MotionBlur => GetOrCreate(ref motionBlurMaterial, "Hidden/TextureCompositor/MotionBlur");
@@ -341,6 +345,10 @@ namespace DCFApixels.WhimTex
 
         private static void Dispose()
         {
+            if (smudgeTransportMaterial != null) UnityEngine.Object.DestroyImmediate(smudgeTransportMaterial);
+            smudgeTransportMaterial = null;
+            if (smudgeBrushMaterial != null) UnityEngine.Object.DestroyImmediate(smudgeBrushMaterial);
+            smudgeBrushMaterial = null;
             if (healingBrushMaterial != null) UnityEngine.Object.DestroyImmediate(healingBrushMaterial);
             healingBrushMaterial = null;
             if (fillUvMaterial != null) UnityEngine.Object.DestroyImmediate(fillUvMaterial);
@@ -417,15 +425,8 @@ namespace DCFApixels.WhimTex
 
         protected Layer CurrentLayer => currentLayer;
         protected TextureCompositor Compositor => compositor;
-#pragma warning disable CS0618
-        protected virtual string LayerPreviewTitle => PreviewTitle;
-        protected virtual bool ImmediateLayerPreviewUpdates => ImmediatePreviewUpdates;
-        // Keep virtual legacy hooks so existing derived property windows still work.
-        [Obsolete("Override LayerPreviewTitle instead.")]
-        protected virtual string PreviewTitle => "Layer Preview";
-        [Obsolete("Override ImmediateLayerPreviewUpdates instead.")]
-        protected virtual bool ImmediatePreviewUpdates => false;
-#pragma warning restore CS0618
+        protected virtual string LayerPreviewTitle => "Layer Preview";
+        protected virtual bool ImmediateLayerPreviewUpdates => false;
         protected abstract Type EditedLayerType { get; }
 
         protected static void OpenPropertiesWindow<T>(Layer layer, TextureCompositor owner)
@@ -516,9 +517,6 @@ namespace DCFApixels.WhimTex
             effectTargetSettings = new EffectTargetSettingsView(compositor, ApplyLayerChange, SettingsBindings);
             effectTargetSettings.Build(root, effect);
         }
-
-        [Obsolete("Use RequestLayerPreview instead.")]
-        protected void RequestPreview(bool immediate = false) => RequestLayerPreview(immediate);
 
         protected void RequestLayerPreview(bool immediate = false)
         {

@@ -1,0 +1,44 @@
+{
+  "format": "whimtex.gradient",
+  "version": 1,
+  "gradient": {
+    "mode": "Perceptual",
+    "wrapMode": "Clamp",
+    "colorSpace": "Gamma",
+    "smoothness": 1.0,
+    "colors": [
+      {
+        "time": 0.0,
+        "color": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "midpoint": 0.5
+      },
+      {
+        "time": 1.0,
+        "color": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "midpoint": 0.5
+      }
+    ],
+    "alphas": [
+      {
+        "time": 0.0,
+        "alpha": 1.0,
+        "midpoint": 0.5
+      },
+      {
+        "time": 1.0,
+        "alpha": 1.0,
+        "midpoint": 0.5
+      }
+    ]
+  }
+}

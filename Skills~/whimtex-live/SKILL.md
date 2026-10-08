@@ -175,7 +175,7 @@ layer is not yet identified, inspect first; never choose an arbitrary layer. A l
 an authorized edit, not for merely reading code. A competing job returns layer_locked; do not cancel
 someone else's job to take over. Keep the same requestId/arguments on transport retries.
 
-Complete this job with `changes.fx` (add/replace/remove by modifier index), optionally settings or
+Complete this job with `changes.fx` (add/replace/remove by FX index), optionally settings or
 transform. Read the existing code before replacing an FX and preserve unrelated entries and uniforms.
 Replacing an external reference creates a local embedded FX, leaving the shared asset untouched.
 Implement `float4 ApplyFX(float2 uv, float4 color)` in linear straight RGBA; use SampleInput for neighbours.

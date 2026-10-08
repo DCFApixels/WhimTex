@@ -13,7 +13,7 @@ namespace DCFApixels.WhimTex
             try
             {
                 CompositeLayers(group.layers, ref rendered, width, height, 1f, new HashSet<Layer>());
-                group.ApplyModifiers(ref rendered, new LayerRenderContext(this, null, width, height, 1f, false, true));
+                group.ApplyFx(ref rendered, new LayerRenderContext(this, null, width, height, 1f, false, true));
                 rendered = FinishStage(rendered, group.colorRange == LayerColorRange.Standard, group.swizzle);
                 return CopyToTexture2D(rendered, uploadToGpu: false);
             }
@@ -50,7 +50,7 @@ namespace DCFApixels.WhimTex
             try
             {
                 if (layer == null)
-                    rendered = RenderComposite(width, height, 1f);
+                    rendered = RenderCanvasCore(width, height, 1f);
                 else if (TryFindLayer(layer, out List<Layer> container, out int index))
                 {
                     var stack = new HashSet<Layer>();
@@ -61,7 +61,7 @@ namespace DCFApixels.WhimTex
                     }
                     else
                         rendered = RenderStandalone(container, index, width, height, 1f, stack,
-                            applyTransform: true, applyModifiers: true, includeDisabled: true, applyClipping: false);
+                            applyTransform: true, applyFx: true, includeDisabled: true, applyClipping: false);
                 }
                 return rendered == null ? null : CopyToTexture2D(rendered, uploadToGpu: false);
             }

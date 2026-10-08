@@ -40,7 +40,10 @@ proportionally; linking retains the current proportions. Scale is measured acros
 ### 3D slices
 
 For OpenSimplex2, OpenSimplex2S, Cellular, Perlin, ValueCubic and Value, choose **Dimensions → 3D**
-to see a slice of a volume. **Offset** gains a **Z** component: move it to explore adjacent slices.
+to see a slice of a volume. **Scale** and **Offset** gain a **Z** component: Offset Z selects
+the slice, and Scale Z controls how far through the volume that offset moves (`Offset Z × Scale Z`).
+The Scale chain links all three axes proportionally. Scale Z defaults to 1 and is retained
+when switching to 1D/2D. At Offset Z = 0, changing Scale Z alone does not move the slice.
 Cellular slices have a different character from 2D cells. Fractal and Domain Warp work in both 2D and 3D.
 
 ### Repeat without a seam
@@ -65,7 +68,7 @@ per octave. With Fractal None, the minimum-cell limit remains. Existing 2D seaml
 patterns may change, including at Scale above 1; other noise types and 3D are unchanged.
 
 
-Warp Scale applies in 1D, 2D and 3D; Z frequency is unchanged. With Seamless, each selected
+Warp Scale applies in 1D, 2D and 3D; it adds no separate Z multiplier. With Seamless, each selected
 warp axis fits complete cells from its final scale. BasicGrid with only one cell on both axes
 becomes a uniform shift: increase the Warp Scale multipliers to get distortion without
 increasing Noise Scale. For example, Scale 0.5 × Warp Scale 6 requests a warp scale of 3.
@@ -138,5 +141,5 @@ Noise Type stays within the selected group: **White Noise / Blue Noise**, or all
 
 ### How Random All distributes Scale
 
-Random All gently favors an average X/Y Scale near **8**, without excluding small or large patterns.
+Random All gently favors an average Scale near **8** (X/Y, or X/Y/Z in 3D), without excluding small or large patterns.
 Linked axes keep their proportions. See the [technical sampling rules](../AgentAPI.md#noise-settings) for the distribution and limits.

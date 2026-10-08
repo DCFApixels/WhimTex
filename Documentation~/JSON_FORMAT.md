@@ -10,10 +10,23 @@ permalink: /reference/json-format/
 
 `whimtex.document`, version **1**, is the shared editable format for `.json` files,
 layer clipboard data and agent serialization. It stores settings, not rendered pixels.
-TIFF remains the image-backed format; its binary model is unchanged.
+TIFF remains the image-backed format; its tagged binary encoding remains version 1.
 New saves and exports use `.json`; existing `.whimtex.json` names remain readable without renaming.
-The old `whimtex.layers` envelope is accepted only by the compatibility clipboard reader.
+The old `whimtex.layers` clipboard envelope is unsupported. Paste it in 0.12.5 and save
+as TIFF or export `whimtex.document` JSON before upgrading.
 New exports and Copy as JSON use this format. Brush and gradient preset formats remain separate.
+
+Compatibility during legacy cleanup covers files written by package **0.12.5**, not
+its C# or agent APIs. Readers accept retired compositor output/slice metadata and
+Drawing source-URL/revision bookkeeping at their original owner types; current writers
+omit it. Unknown settings outside that explicit allowlist remain errors. The schema
+marks `document.spriteSlices` as deprecated input-only metadata. The version-1 default
+snapshot is unchanged, so omitted values in existing Compact files retain their meaning.
+
+The layer FX list is `fx` in new JSON and TIFF writes. Readers also accept the old
+`Layer.modifiers` field from existing files and convert it to `fx`, preserving list order
+and shared references. Both names in one layer are rejected as ambiguous. This input
+conversion is not a C# or agent API alias; new content must use `fx`.
 
 ## Write modes
 
@@ -88,10 +101,12 @@ output settings during export.
 
 Use the exact enum spellings in the [generated schema](AI/document.schema.json).
 Fields match the persistent model: `behaviour` contains type-specific settings; `transform`,
-`modifiers` and `children` belong to the layer. Layer order is top to bottom. `$type` selects an
+`fx` and `children` belong to the layer. Layer order is top to bottom. `$type` selects an
 allowlisted model type, not an arbitrary assembly-qualified runtime type. Unity vectors and colors
 are fixed-length numeric arrays; transform `Double2` values use objects with `x` and `y`.
-Use the schema's exact component count; binary TIFF vector widening is not a JSON shorthand.
+Writers use the field's current component count. TIFF and JSON readers accept lossless float-vector
+expansion: Vector2 to Vector3/Vector4 and Vector3 to Vector4, filling added components with zero.
+Scalars, integer-vector conversions, narrowing and shortened colors/quaternions remain invalid.
 Shader FX have `$type: "ShaderFX"`, source `code`, `parameters`, `active` and optional
 `$name`. Shared FX use `$id`/`$ref`; these IDs are distinct from layer IDs.
 
@@ -104,8 +119,7 @@ only those layers, with source-canvas settings. The caller's operation determine
 - Insert/paste adds layers with remapped IDs; it does not replace existing layers or apply source output settings.
 - Replace changes only the explicitly selected layer through the API; content never requests replacement itself.
 
-New output never includes root `kind`. The obsolete optional root string field is ignored when reading earlier
-exports, regardless of its value, and is not returned by the JSON API. It does not select an operation.
+Root `kind` is rejected; 0.12.5 writers already omit it. The caller chooses the operation.
 The required `format` and `version` fields still identify the format and its version.
 This does not remove type-specific fields such as Shape's `behaviour.kind`.
 
@@ -158,7 +172,12 @@ representable by their stored type; integer fields reject fractions. Value types
 Errors identify the field or component path. Curve tangents alone also accept `"Infinity"` and
 `"-Infinity"` for stepped keys. Vector/color components follow their numeric types.
 These are storage checks, not the stricter agent-property patch/UI slider bounds: finite persisted values
-and native sentinels (such as Noise `scaleY: 0`) remain supported, with the model's existing rendering clamps.
+are retained, with the model's rendering clamps. The 0.12.5 reader normalizes zero Y axes and
+negative Shape corner values into explicit coordinates; those sentinels are no longer runtime modes.
+Saved manual FX parameters become `@param` declarations with their values and references preserved.
+The read-only `declaredInCode` metadata distinguishes them from intentionally removed code declarations.
+Manual scalar values outside their hard range become the effective clamped value used by 0.12.5.
+Current writers do not emit `declaredInCode` or Shape's former uniform `roundness` field.
 The generated schema describes per-field constraints; graph dependencies, total layer count and the
 combined canvas pixel budget additionally require the reader/API validator.
 The reader does not silently discard invalid data. JSON limits are 64 MiB characters, depth 128,
@@ -177,7 +196,11 @@ For the artist workflow, see [Save and export](en/saving.md).
 ## C# and agents
 
 `WhimTexDocumentJson.Write(document, options)` and `WriteLayers(document, layers, options)` return
-JSON and warnings. Options use `Mode` and `AllowDrawingOmission` (false by default).
+JSON and Drawing-omission warnings. Options use `Mode`, `AllowDrawingOmission` and `AllowDataLoss`
+(both false by default). `AllowDataLoss` explicitly permits writing the loaded part of an incomplete
+document; it does not recover unread data. Writing or exporting JSON keeps the source load warning.
+An accepted `SaveJson` clears it only after successful saving. Interactive Save asks for confirmation,
+with a recovery-copy option; C#/agent defaults remain protected.
 `Read(json, prepareEffects)` returns an owned, disposable detached document. Call `TakeDocument()`
 only when taking over its lifetime. `WhimTexDocumentFile.Load/Save` support TIFF and JSON;
 `ExportJson` writes a separate file without changing source identity. Saves are atomic and reject

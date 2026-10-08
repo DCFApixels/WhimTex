@@ -15,11 +15,6 @@
     "version": {
       "const": 1
     },
-    "kind": {
-      "type": "string",
-      "deprecated": true,
-      "description": "Obsolete, ignored on read and never written. The caller's operation selects open, insert or replace."
-    },
     "writeMode": {
       "type": "string",
       "enum": [
@@ -46,6 +41,15 @@
       "properties": {
         "$type": {
           "const": "TextureCompositor"
+        },
+        "spriteSlices": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "deprecated": true,
+          "description": "Ignored 0.12.5 file metadata; never written by current writers.",
+          "items": {}
         },
         "colorHistory": {
           "type": [
@@ -83,22 +87,6 @@
           "type": "integer",
           "minimum": -2147483648,
           "maximum": 2147483647
-        },
-        "spriteSlices": {
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/TextureCompositor+SpriteSlice"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
         },
         "width": {
           "type": "integer",
@@ -201,57 +189,6 @@
         }
       }
     },
-    "TextureCompositor+SpriteSlice": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "$type": {
-          "const": "TextureCompositor+SpriteSlice"
-        },
-        "id": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "name": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "rect": {
-          "type": "array",
-          "minItems": 4,
-          "maxItems": 4,
-          "items": {
-            "type": "number",
-            "minimum": -3.40282347E+38,
-            "maximum": 3.40282347E+38
-          }
-        },
-        "pivot": {
-          "type": "array",
-          "minItems": 2,
-          "maxItems": 2,
-          "items": {
-            "type": "number",
-            "minimum": -3.40282347E+38,
-            "maximum": 3.40282347E+38
-          }
-        },
-        "border": {
-          "type": "array",
-          "minItems": 4,
-          "maxItems": 4,
-          "items": {
-            "type": "number",
-            "minimum": -3.40282347E+38,
-            "maximum": 3.40282347E+38
-          }
-        }
-      }
-    },
     "Layer": {
       "type": "object",
       "additionalProperties": false,
@@ -331,7 +268,7 @@
         "swizzle": {
           "$ref": "#/$defs/LayerSwizzle"
         },
-        "modifiers": {
+        "fx": {
           "type": [
             "array",
             "null"
@@ -739,12 +676,92 @@
             "PassThrough",
             "Isolated"
           ]
+        },
+        "modifiers": {
+          "allOf": [
+            {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "$asset"
+                    ],
+                    "properties": {
+                      "$asset": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "guid": {
+                            "type": "string"
+                          },
+                          "path": {
+                            "type": "string"
+                          },
+                          "localId": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "guid",
+                          "path",
+                          "localId",
+                          "type"
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "anyOf": [
+                      {
+                        "$ref": "#/$defs/ShaderFX"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "$ref"
+                    ],
+                    "properties": {
+                      "$ref": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "deprecated": true,
+          "description": "0.12.5 file input; converted to fx. Never written by current writers."
         }
       },
       "required": [
         "id",
         "behaviour"
-      ]
+      ],
+      "not": {
+        "required": [
+          "fx",
+          "modifiers"
+        ]
+      }
     },
     "LayerSwizzle": {
       "type": "object",
@@ -813,6 +830,11 @@
         "$type": {
           "const": "ShaderFXParameter"
         },
+        "declaredInCode": {
+          "type": "boolean",
+          "deprecated": true,
+          "description": "0.12.5 input; distinguishes saved manual parameters from removed code declarations. Never written by current writers."
+        },
         "name": {
           "type": [
             "string",
@@ -854,7 +876,7 @@
         },
         "vectorValue": {
           "type": "array",
-          "minItems": 4,
+          "minItems": 2,
           "maxItems": 4,
           "items": {
             "type": "number",
@@ -1041,9 +1063,6 @@
             "string",
             "null"
           ]
-        },
-        "declaredInCode": {
-          "type": "boolean"
         },
         "hasMinimum": {
           "type": "boolean"
@@ -2686,12 +2705,17 @@
           "minimum": -3.40282347E+38,
           "maximum": 3.40282347E+38
         },
+        "scaleZ": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
         "linkScale": {
           "type": "boolean"
         },
         "offset": {
           "type": "array",
-          "minItems": 3,
+          "minItems": 2,
           "maxItems": 3,
           "items": {
             "type": "number",
@@ -3351,6 +3375,11 @@
         "$type": {
           "const": "ShapeLayerBehaviour"
         },
+        "roundness": {
+          "type": "number",
+          "deprecated": true,
+          "description": "0.12.5 input; normalized to explicit cornerRoundness."
+        },
         "kind": {
           "type": "string",
           "enum": [
@@ -3405,14 +3434,9 @@
             "Centered"
           ]
         },
-        "roundness": {
-          "type": "number",
-          "minimum": -3.40282347E+38,
-          "maximum": 3.40282347E+38
-        },
         "cornerRoundness": {
           "type": "array",
-          "minItems": 4,
+          "minItems": 2,
           "maxItems": 4,
           "items": {
             "type": "number",

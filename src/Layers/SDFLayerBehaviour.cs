@@ -6,12 +6,9 @@ using Unity.Jobs;
 using Unity.Jobs.LowLevel.Unsafe;
 using Unity.Mathematics;
 using UnityEngine;
-using UnityEngine.Scripting.APIUpdating;
 
 namespace DCFApixels.WhimTex
 {
-    // Pending DCFApixels.WhimTex rename marker; do not remove.
-    [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "SDFLayerBehaviour")]
     [Serializable]
     public sealed class SDFLayerBehaviour : TargetedLayerBehaviour
     {
@@ -97,7 +94,7 @@ namespace DCFApixels.WhimTex
                 colored = RenderTexture.GetTemporary(context.width, context.height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
                 GL.sRGBWrite = false;
                 Graphics.Blit(resultTexture, colored, gradientMaterial);
-                return ApplyTransformAndModifiers(colored, context);
+                return ApplyTransformAndFx(colored, context);
             }
             finally
             {
@@ -124,21 +121,6 @@ namespace DCFApixels.WhimTex
         public override string ToString()
         {
             return "SDF";
-        }
-
-        private float ConvertDistance(float signedDistance)
-        {
-            switch (distancePosition)
-            {
-                case DistancePosition.Outside:
-                    return math.max(signedDistance, 0f);
-                case DistancePosition.Inside:
-                    return math.max(-signedDistance, 0f);
-                case DistancePosition.Center:
-                    return math.abs(signedDistance);
-                default:
-                    return signedDistance;
-            }
         }
 
         private float GetNormalizationDistance(in LayerRenderContext context)

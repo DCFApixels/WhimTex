@@ -127,7 +127,7 @@ namespace DCFApixels.WhimTex
             Undo.RecordObject(compositor, "Change UV Reference");
             change();
             EditorUtility.SetDirty(compositor);
-            temporaryDocumentDirty |= !AssetDatabase.Contains(compositor);
+            temporaryDocumentDirty = true;
             uvCachedChannel = -1;
             RefreshUvReference(); UpdateUnsavedChangesState();
         }

@@ -128,7 +128,7 @@ namespace DCFApixels.WhimTex
                         compositor.layers.Insert(0, layer);
                     }
                     compositor.AdoptAgentShaderFX(effect, "Drop HLSL Effect");
-                    layer.modifiers.Add(effect);
+                    layer.fx.Add(effect);
                     SelectOnlyLayer(layer.Id);
                     layerFxExpanded = true;
                 });

@@ -42,7 +42,7 @@ namespace DCFApixels.WhimTex
             finally { RenderTexture.active=previous; GL.sRGBWrite=srgb; }
         }
 
-        internal RenderTexture RenderCachedPreview(int maxSize, EffectRenderCache cache, bool interactive, DrawingLayerBehaviour painting)
+        internal RenderTexture RenderCanvasWithCache(int maxSize, EffectRenderCache cache, bool interactive, DrawingLayerBehaviour painting)
         {
             var previous = effectCache;
             bool previousQuality = interactiveEffects;
@@ -53,7 +53,7 @@ namespace DCFApixels.WhimTex
                 interactiveEffects = interactive;
                 publishingLayerPreview = true;
                 cache.BeginFrame(this, painting);
-                var result = RenderPreview(maxSize);
+                var result = RenderCanvas(maxSize);
                 lastLayerPreviewCache = cache;
                 lastLayerPreviewSize = maxSize;
                 lastLayerPreviewInteractive = interactive;
@@ -140,19 +140,19 @@ namespace DCFApixels.WhimTex
         }
 
         private RenderTexture RenderStandalone(List<Layer> container, int index, int outputWidth, int outputHeight,
-            float scaleMultiplier, HashSet<Layer> renderStack, bool applyTransform = true, bool applyModifiers = true,
+            float scaleMultiplier, HashSet<Layer> renderStack, bool applyTransform = true, bool applyFx = true,
             bool includeDisabled = false, bool applyClipping = true, RenderTexture accumulatedInput = null)
         {
             if (container == null || index < 0 || index >= container.Count) return null;
             Layer layer = container[index];
             if (layer?.Behaviour == null || !includeDisabled && !layer.enabled || renderStack != null && renderStack.Contains(layer)) return null;
             if ((layer?.Behaviour is TargetedLayerBehaviour || EffectRenderCache.CanCacheLayer(layer)) &&
-                applyTransform && applyModifiers && applyClipping)
+                applyTransform && applyFx && applyClipping)
                 return CachedEffectRender(layer, "effect", outputWidth, outputHeight, scaleMultiplier, false,
                     () => RenderStandaloneUncached(container, index, outputWidth, outputHeight, scaleMultiplier,
-                        renderStack, applyTransform, applyModifiers, includeDisabled, applyClipping, accumulatedInput: accumulatedInput));
+                        renderStack, applyTransform, applyFx, includeDisabled, applyClipping, accumulatedInput: accumulatedInput));
             return RenderStandaloneUncached(container, index, outputWidth, outputHeight, scaleMultiplier,
-                renderStack, applyTransform, applyModifiers, includeDisabled, applyClipping, accumulatedInput: accumulatedInput);
+                renderStack, applyTransform, applyFx, includeDisabled, applyClipping, accumulatedInput: accumulatedInput);
         }
 
         private RenderTexture RenderGroupEffectInput(Layer group, int outputWidth, int outputHeight,

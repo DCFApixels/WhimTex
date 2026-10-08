@@ -34,7 +34,7 @@ Brush JSON replaces the brush rather than creating layers.
   use HLSL only where a custom algorithm is useful. Name layers and groups meaningfully.
 - Use exact model fields and case-sensitive enum names from the schema. Do not put live API
   `settings`/operations or legacy `type`/`properties` objects into document JSON.
-- Layer arrays are **top to bottom**; `modifiers` execute **first to last**.
+- Layer arrays are **top to bottom**; `fx` execute **first to last**.
   Give every layer a unique nonempty `id`. IDs may be descriptive local strings;
   paste remaps them and internal references to fresh document IDs.
 - Omit values only when the version-1 default is intended. Do not infer storage defaults from
@@ -102,7 +102,7 @@ Every layer requires `id` and `behaviour`. Settings belong to their native model
 | Layer | `layerName`, `enabled`, `opacity`, `blendMode`, `colorRange`, `blendRange`, `filterMode`, `clippingMask` |
 | `behaviour` | `$type` and type-specific persistent fields |
 | `transform` | Native `TextureTransform` fields; inspect the schema and an exported example |
-| `modifiers` | FX with `$type: "ShaderFX"`, `code`, `parameters`, `active`, optional `$name` |
+| `fx` | FX with `$type: "ShaderFX"`, `code`, `parameters`, `active`, optional `$name` |
 | `children` | Group children in top-to-bottom order |
 
 `$type` is an allowlisted model name, not an arbitrary assembly-qualified type.
@@ -171,7 +171,7 @@ is absent. Missing assets warn rather than preventing opening, and their identit
 The [example index](../Examples/Clipboard/README.md) contains nine current procedural recipes:
 neon ring, shock wave, car wheel, forked lightning, heart, mystic fog, seamless noise,
 retro processor and local distortion. Schema checks cover their structures; Unity tests read,
-compile and compare their rendered results with the original recipes.
+compile and compare their renders before and after saving/reopening.
 
 A schema check alone does not test dependencies, shader compilation or visual quality.
 Use the connected API's document JSON validation when available, then inspect an actual render.
@@ -190,20 +190,19 @@ Command envelopes are separate from content; see the [JSON agent API](../AgentAP
 | --- | --- |
 | `"format": "whimtex.layers"` for new output | `"format": "whimtex.document"` |
 | Root `kind: "document"` or `kind: "layers"` | Omit it; the caller chooses the operation. |
-| `canvas`, `type`, `name`, `properties`, `fx` from legacy recipes | `document`, `behaviour.$type`, `layerName`, native fields and `modifiers` |
+| `canvas`, `type`, `name`, `properties` from legacy recipes | `document`, `behaviour.$type`, `layerName` and native fields |
 | `scale: [8,12]` for Noise | `scale: 8, scaleY: 12` in its behaviour |
 | A remote Drawing `url` or Base64 pixels | TIFF for Drawing pixels, or a verified File asset reference |
 | `opacity: 80` for 80% | `opacity: 0.8` |
 | ShaderLab, GLSL `mix`, invented helpers | HLSL `ApplyFX`, `lerp`, documented helpers below |
-| `fx[].code` or live API operations inside stored content | `modifiers[].code` and native parameter values |
+| Live FX operations (`op`, `presetId`, `set`) inside stored content | `fx[]` with `$type: "ShaderFX"`, `code` and native parameter values |
 
-## Legacy input compatibility
+## Upgrading old clipboard data
 
-Existing `whimtex.layers` data remains readable by the clipboard compatibility reader.
-Its `type/properties`, Drawing `url`, limits and schema are described only in the
-[legacy input reference](LEGACY_LAYERS.md). These are not an alternative format for new exports.
-The linked-image example remains an explicitly labeled legacy fixture because unified JSON
-does not download Drawing pixels. Brush and standalone gradient formats below are unaffected.
+The `whimtex.layers` reader is removed. Before upgrading, paste old payloads in **0.12.5**
+and save as TIFF or export `whimtex.document` JSON. Choose TIFF for Drawing pixels.
+Plain image URL paste, brush-tip URL downloads and standalone gradient presets remain available.
+See the [upgrade note](LEGACY_LAYERS.md).
 
 ## Standalone gradient JSON
 
@@ -240,10 +239,11 @@ If `alphas` is omitted, color alpha components define the alpha track. Interpola
 `Classic`, `Linear`, `Perceptual`, `Fixed`; default `Perceptual`. `colorSpace`: `Gamma` (default)
 or `Linear`. `smoothness`: 0..1, default 1. `midpoint`: 0.01..0.99, default 0.5;
 the last key's midpoint has no following segment. Rounded is the built-in algorithm, not a serialized setting.
-The retired `transition` input field is ignored in old JSON/documents; it is not converted,
-validated as a mode, exposed in UI, or written to new output. Old documents render through
-Rounded directly without migration or resaving. Older artwork may therefore look different.
-Other unknown fields are still rejected.
+Modes use string names and colors use RGBA arrays. The old `WhimTex.Gradient/1` prefix,
+color objects, numeric enums and retired `transition` field are not accepted.
+Unknown fields are rejected. Files saved by 0.12.5 already use the current gradient
+model; convert older files through 0.12.5 before upgrading. The standalone clipboard
+format is not the internal gradient representation in `whimtex.document` files.
 Rounded partitions the curve at complete equal-color intervals and uses monotone cubic
 interpolation with adjacent-secant boundary slopes on each nonconstant block. In Perceptual,
 opposing chroma is reduced by `0.5*(1-|a+b|/(|a|+|b|))`, where a/b are the neighboring
@@ -310,6 +310,45 @@ White Noise and Blue Noise are separate Noise-layer implementations, not functio
 The same noise calls work inside `float4 BrushTip(float2 uv)` for a brush;
 its script still starts with `// @whimtex-brush Category/Name`.
 
+### Built-in distortion controls
+
+Distortion presets expose `_Strength` (Spherize, Radial Shear), `_Angle` (Twirl, degrees)
+or `_Amount` (Polar Coordinates, Displacement Map) in the FX header. Amount defaults to 1,
+preserving the full configured mapping; zero returns the original image. Polar Amount
+interpolates sampling coordinates (hard range 0–1). Displacement Amount multiplies vector
+X/Y strength, Grayscale strength or Parallax depth (range `[0 .. ~2]`); `_Mix` remains an
+independent output blend. Spherize Sphere clipping and Radial Shear Offset remain when
+their existing Strength is zero. See [the shader reference](../ShaderFX.md#distortion-header-controls).
+Polar Coordinates has independent `transform2D` frames: `_Input` selects the source,
+`_Output` places the output. Both default to position `(0.5, 0.5)`, size `(1, 1)`, rotation `0`.
+To Polar maps Output's circle to Input's strip; From Polar maps Output's strip to Input's circle.
+Sampling is `_Input_ToInput(P_or_Q(_Output_ToLocal(uv)))`; reverse Mode and swap frames
+for the inverse coordinate map. Both use standard Edit on Canvas/reset controls.
+See the shader reference for linked 0.12.5 preset conversion.
+Distortion presets expose **Tiling** (`_Tiling`); UV Transform uses **Input Tiling** (`_InputTiling`):
+`Clamp: 0`, `Repeat: 1`, `Mirror: 2`, `Clip: 3`. Rename metadata preserves saved `_InputTiling`
+values in distortions and `_InputEdge` in Displacement Map; map wrapping is independent. UV Transform
+defaults to Clip, distortions to Clamp. These modes read the existing input image, not
+unbounded procedural noise outside its raster.
+
+### Built-in edge contours
+
+`Stylization/Edge Outline` offers Color (RGB differences), Luminance (brightness only)
+and Hue (color tone) detection with two methods: Boundary (default) creates uniform
+contours; Scharr weights opacity by a 3×3 gradient. Strength amplifies Scharr only and is
+hidden in Boundary. Detection sensitivity, Thickness, Shape, Softness, tint and Output
+are shared. Broad transitions may produce bands in Scharr; thick Scharr contours cost more.
+Hue Threshold is the shortest color-wheel difference in
+degrees (0–180); Min Saturation excludes a boundary if either side is too muted. Gray
+and black never seed Hue boundaries. Threshold applies to Color/Luminance only.
+Detection sensitivity filters transitions independently of Thickness
+(0–32 canvas pixels). Shape selects Round, Square or Diamond joins; Softness controls the
+line edges. Overlay preserves source alpha; Outline Only emits transparent contours within
+source coverage. Neither mode outlines alpha-only silhouettes. Use the linked preset when
+available rather than duplicating its code; see [the shader reference](../ShaderFX.md#edge-outline-preset).
+`_Opacity` (0–1, default 1; FX header control) blends the complete selected output with
+the original input. Zero leaves the image unchanged, including in Outline Only.
+
 ### Effect entry point
 
 Write a fragment function, **not a complete ShaderLab shader**:
@@ -327,6 +366,13 @@ float4 ApplyFX(float2 uv, float4 color)
 input at another UV, including earlier FX. Return straight RGBA in linear working space.
 Shader Processor receives the lower composite; a regular layer's FX receives that layer's image.
 To generate an image from scratch, use a Color layer with FX replacing its color.
+
+`SampleInput(uv, tiling)` addresses the input as Clamp (0), Repeat (1), Mirror (2), or
+Clip (3; transparent outside UV 0–1). Repeat filters across opposite edges and respects
+the current input's Point/Bilinear filtering without changing texture import settings.
+Expose tiling through a normal enum `@param`. The one-argument function is unchanged.
+`SampleInput(uv, tiling, filterRepeat)` with zero in the last argument retains unfiltered
+repeat seams; converted linked Displacement Map files use it to preserve their rendered result.
 
 `LayerToLocal(uv)` converts canvas UV to the owning layer's local UV, including parent group transforms and perspective. Use it for procedural shapes that must follow the layer transform. `ApplyFX` UV and `SampleInput` remain canvas-space; do not pass local UV to `SampleInput`. The helper does not wrap or clamp coordinates.
 
@@ -383,7 +429,7 @@ All parameter types allow omitting `= value`. The last explicit default for a va
 exists, scalar/vector/color defaults are zero. Repeated `float`/`bool`/`enum` controls share one float
 uniform. Other repeated types must match exactly. Control ranges do not clamp values set through
 another control. Preset export saves the current value once. These dropdown/linked controls are FX-only.
-`float2`, `float3` and `float4` are raw vectors with two, three and four components. `point` is a `float2` position in normalized canvas UV, from bottom-left `(0, 0)` to top-right `(1, 1)`, and adds an **Edit on Canvas** handle that can be dragged across the canvas. Its default is `(0.5, 0.5)`; an explicit tuple is optional and ranges are not accepted. `normal` generates a normalized `float3`; its default and zero-vector fallback are `(0, 0, 1)`. It also offers an on-canvas direction handle; no range is accepted. Defaults are optional. Unknown parameter types are rejected.
+`float2`, `float3` and `float4` are raw vectors with two, three and four components. `point` is a `float2` position in normalized canvas UV: bottom-left `(0, 0)`, top-right `(1, 1)`. Coordinates and tuple defaults may lie outside these bounds. Its hand button (**Edit on Canvas**) activates a handle that can also be dragged outside the canvas. Its default is `(0.5, 0.5)`; an explicit tuple is optional and ranges are not accepted. `normal` generates a normalized `float3`; its default and zero-vector fallback are `(0, 0, 1)`. It also offers an on-canvas direction handle; no range is accepted. Defaults are optional. Unknown parameter types are rejected.
 
 FX use ordinary input images and explicit parameters, not hidden layer-specific data. Lighting/Bevel Emboss reads a height texture (Self by default) and shares lighting with Normal Map/Lighting. Base Color alpha blends transparent lighting (0) into the shaded surface (1); Output selects Both/Highlight Only/Shadow Only for the transparent part. SDF inputs use their visible gradient, not raw distances. See [shader reference](../ShaderFX.md) for the complete contract.
 
@@ -397,7 +443,7 @@ FX-only `curve` declares a scalar mapping: `// @param curve _Profile`, sampled w
 `_Profile_Sample(t)`. Default: linear (0,0) to (1,1). Input clamps to 0..1; output is unrestricted.
 Named defaults: `// @param curve _Profile = linear` or `// @param curve _Profile = easeInOut`.
 The latter smoothly eases between the same endpoints with horizontal endpoint tangents.
-For clipboard FX, an optional default can be included directly in `modifiers[].code`:
+For clipboard FX, an optional default can be included directly in `fx[].code`:
 `// @param curve _Profile = keys((0, 0, 1, 1, 0, 0, 0), (1, 1, 1, 1, 0, 0, 0))`.
 Each tuple is `(time, value, inTangent, outTangent, inWeight, outWeight, weightedMode)`.
 Use strictly increasing finite times, finite values, weights 0..1 and mode 0/1/2/3
@@ -430,7 +476,5 @@ To encode HLSL inside JSON, use a string with `\n` for newlines; escape quotes n
 is decoded before compilation. Keep generated FX self-contained and use the built-in helpers.
 Copy as JSON expands project includes when possible; an expansion failure preserves the original
 source for repair, so unresolved dependencies can still prevent compilation on another machine.
-The restrictions of the [legacy clipboard reader](LEGACY_LAYERS.md#legacy-shader-restrictions)
-are not the storage contract for unified JSON.
 
 For additional engine-specific authoring details, see [Shader authoring](../ShaderFX.md).

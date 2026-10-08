@@ -23,18 +23,15 @@ Copy the JSON content, not the filename. The same content can be opened as a doc
 as layers. These are reference examples, not built-in presets.
 
 Schema checks validate all current recipes. Unity tests compile and compare their 64-pixel
-renders with the original compatibility fixtures; no network or user document is required.
+renders before and after saving/reopening; no network or user document is required.
 More examples with individual previews: [38 texture samples](../../../Samples~/AgentTextures/README.md).
 
-## Legacy linked-image fixture
+## Image URL paste
 
-[Stone wall: linked Drawing + Processor](stone-wall-retro.json) is intentionally **not** a current
-document example. It tests the input-only `whimtex.layers` compatibility reader.
-See the [legacy reference](../../AI/LEGACY_LAYERS.md); do not copy its envelope or field structure
-into new recipes. Unified JSON omits Drawing pixels and does not download a Drawing URL.
+JSON does not store Drawing pixels or download image links. Paste a direct HTTP(S) image
+URL separately to create a Drawing layer, then add any procedural effects.
+The example image below can be used for this workflow.
 
-![Legacy source image](stone-wall.png)
+![Example source image](stone-wall.png)
 
-This old fixture downloads a direct PNG URL after host confirmation. The image must be available
-online; a failed download cancels insertion. It retains source resolution and uses a transform to
-fit its 1024 × 1024 canvas. Only the Processor is procedural.
+Old `whimtex.layers` payloads must be [converted in 0.12.5 before upgrading](../../AI/LEGACY_LAYERS.md).

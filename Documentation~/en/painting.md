@@ -122,6 +122,9 @@ stay unchanged. The preview updates when you select a preset.
 In **Window tab ⋮ → User Settings… → Presets**, choose **Presets Folder** with **…**
 or enter an absolute path. The folder setting is shared across projects on this computer
 for your user account. **↺** restores the default location without deleting files.
+If presets are missing after an update, select their existing folder here; the files are not
+moved or deleted. Tool and Canvas View preferences may reset after updates.
+
 Brushes are stored in its **Brushes** subfolder. Each `.sebrush` file includes its texture
 tip, so you can copy it to another computer's Brushes folder without importing the original
 texture. Overwriting keeps the previous file as `.sebrush.bak`; to restore it, rename that
@@ -152,6 +155,26 @@ These directions follow the screen, even when the canvas view is rotated.
 If the stroke starts snapped to a [guide](preview.md#guides), `Shift` follows that guide instead, at any angle and regardless of the pointer's distance from it.
 To connect points, click the first point, then hold `Shift` and click the next one.
 Repeat to draw a chain of straight segments.
+
+## Smudge Brush
+
+Choose the **finger icon** and drag to stretch existing pixels along the stroke.
+A click without movement does not paint. Smudge uses a round tip and does not add
+the selected painting color.
+
+- **Size / Hardness** set the diameter and edge softness; `[` / `]` change Size.
+- **Mixing** balances stretching and color mixing. At 0%, details stretch without cumulative color blur. Higher values mix colors more; 100% uses only color mixing. The default is 25%.
+- **Strength** controls the amount of stretching and, when Mixing is enabled, how long the picked-up image is retained. At 100%, the carried patch stays unchanged; lower values gradually pick up the painted result.
+- **Flow** controls the amount applied at each step. **Pressure** scales Flow with tablet pressure.
+- **Current Layer** samples raw Drawing pixels. **Below Layers** includes the active layer and the visible layers below it in its group; **All Layers** samples the visible composition.
+
+Only the active Drawing layer is changed, and the area selection limits deposits.
+Other layer types offer conversion on click. Use an empty Drawing above the image
+with Below Layers to keep the original intact. Sampled FX become pixels in the
+stroke; painting back onto a layer with those FX can apply them again.
+
+Each drag is one Undo step. **Tiled** wraps strokes across canvas edges.
+Smudge settings are independent of Blur Brush; brush presets and symmetry do not apply.
 
 ## Healing Brush
 

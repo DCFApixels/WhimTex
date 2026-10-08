@@ -15,8 +15,6 @@ namespace DCFApixels.WhimTex
         internal Action OpenPickerOverride;
         internal object PickerContext;
         public bool UseCanvasChannels { get; set; }
-        [Obsolete("Use UseCanvasChannels instead.")]
-        public bool UsePreviewChannels { get => UseCanvasChannels; set => UseCanvasChannels = value; }
         internal Func<int> ReadCanvasChannels;
         private Func<int> attachedChannelSource;
         private VisualElement channelSwatch;

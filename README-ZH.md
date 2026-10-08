@@ -4,9 +4,9 @@ start at AI_AUTHORING.md, then Documentation~/AI/README.md for the clipboard JSO
 and shader contract. Schema: Documentation~/AI/document.schema.json.
 Clipboard example folder: Documentation~/Examples/Clipboard/.
 Read Documentation~/Examples/Clipboard/README.md, then the matching .json file.
-Use the procedural document examples. stone-wall-retro.json is only a legacy URL-input fixture.
+Use the current procedural document examples.
 The contract covers native document fields, standalone gradients and the HLSL interface.
-Return unified whimtex.document JSON for Ctrl+V. Drawing pixels are not stored; use verified asset references for existing project images. Legacy Drawing `url` inputs are compatibility-only.
+Return unified whimtex.document JSON for Ctrl+V. Drawing pixels are not stored; use verified asset references for existing project images. Paste plain image URLs separately; old whimtex.layers JSON is unsupported.
 Use the documented native model fields, not Unity YAML or live API request envelopes.
 These relative paths refer to the same branch as this README.
 For brushes use Documentation~/AI/BRUSHES.md and Documentation~/AI/brush.schema.json.

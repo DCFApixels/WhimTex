@@ -10,7 +10,6 @@ namespace DCFApixels.WhimTex
         [SerializeField] private bool colorSettingsExpanded;
         [SerializeField] private bool layerPropertiesExpanded = true;
         [SerializeField] private bool layerFxExpanded;
-        [UnityEngine.Serialization.FormerlySerializedAs("inspectorPreviewState")]
         [SerializeField] private LayerPreviewPanel.ViewState layerPreviewState = new LayerPreviewPanel.ViewState { collapsed = true };
         [NonSerialized] private LayerPreviewPanel toolkitLayerPreview;
         [NonSerialized] private ScrollView toolkitLayerSettingsScroll;

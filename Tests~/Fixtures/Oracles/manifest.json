@@ -1,0 +1,1538 @@
+{
+  "version": 1,
+  "policy": "Read only the explicitly registered package fixtures, authenticate SHA-256 before use. Never regenerate references with the current algorithm to obtain a pass.",
+  "live4": {
+    "name": "live_4.bin",
+    "path": "live_4.bin",
+    "sha256": "1c0a5568503bfc8730bca20a41e65f0c6459d5b9e8053e932761c03b21d1b0b3",
+    "provenance": "Source input, not an algorithm golden. See provenance.json and README.md."
+  },
+  "seamlessOptimization": [
+    {
+      "name": "1-7-0-0-0-0.bin",
+      "path": "seamless/1-7-0-0-0-0.bin",
+      "sha256": "5ed630feea8f1467001196f3a326353ced7bac1e3a11d841138d8939084f160d",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-0-0-0-1.bin",
+      "path": "seamless/1-7-0-0-0-1.bin",
+      "sha256": "3f14924766000b2c106acc4618e884949ffc11c1b4891c3590ac9da43227e90b",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-0-0-1-0.bin",
+      "path": "seamless/1-7-0-0-1-0.bin",
+      "sha256": "5ed630feea8f1467001196f3a326353ced7bac1e3a11d841138d8939084f160d",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-0-0-1-1.bin",
+      "path": "seamless/1-7-0-0-1-1.bin",
+      "sha256": "3f14924766000b2c106acc4618e884949ffc11c1b4891c3590ac9da43227e90b",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-0-0-2-0.bin",
+      "path": "seamless/1-7-0-0-2-0.bin",
+      "sha256": "585c4ed01acfbfd809fd0476d5752e74d8e63a56b2a936dadefa9a0e9f1ef28c",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-0-0-2-1.bin",
+      "path": "seamless/1-7-0-0-2-1.bin",
+      "sha256": "585c4ed01acfbfd809fd0476d5752e74d8e63a56b2a936dadefa9a0e9f1ef28c",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-0-1-0-0.bin",
+      "path": "seamless/1-7-0-1-0-0.bin",
+      "sha256": "74259028180e841ff33a2d12bc285f1aab4c6dc771380b2191737a2dcdb73ea7",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-0-1-0-1.bin",
+      "path": "seamless/1-7-0-1-0-1.bin",
+      "sha256": "0d969aa779f55b11494b042a125c17410779488f44f03e8d6c8e22b48a7d3c2d",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-0-1-1-0.bin",
+      "path": "seamless/1-7-0-1-1-0.bin",
+      "sha256": "74259028180e841ff33a2d12bc285f1aab4c6dc771380b2191737a2dcdb73ea7",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-0-1-1-1.bin",
+      "path": "seamless/1-7-0-1-1-1.bin",
+      "sha256": "0d969aa779f55b11494b042a125c17410779488f44f03e8d6c8e22b48a7d3c2d",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-0-1-2-0.bin",
+      "path": "seamless/1-7-0-1-2-0.bin",
+      "sha256": "585c4ed01acfbfd809fd0476d5752e74d8e63a56b2a936dadefa9a0e9f1ef28c",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-0-1-2-1.bin",
+      "path": "seamless/1-7-0-1-2-1.bin",
+      "sha256": "585c4ed01acfbfd809fd0476d5752e74d8e63a56b2a936dadefa9a0e9f1ef28c",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-0-2-0-1.bin",
+      "path": "seamless/1-7-0-2-0-1.bin",
+      "sha256": "c4bd55ac48035e65ae16ea36084f413c55e330ef5b511cadd5bf17cc1154eff4",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-0-2-1-1.bin",
+      "path": "seamless/1-7-0-2-1-1.bin",
+      "sha256": "c4bd55ac48035e65ae16ea36084f413c55e330ef5b511cadd5bf17cc1154eff4",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-0-2-2-1.bin",
+      "path": "seamless/1-7-0-2-2-1.bin",
+      "sha256": "585c4ed01acfbfd809fd0476d5752e74d8e63a56b2a936dadefa9a0e9f1ef28c",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-0-3-0-0.bin",
+      "path": "seamless/1-7-0-3-0-0.bin",
+      "sha256": "94bd2b0d9a28b65dd0bb82231df91afcd33d5110cb784d82b1044f234d2c70fc",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-0-3-0-1.bin",
+      "path": "seamless/1-7-0-3-0-1.bin",
+      "sha256": "94bd2b0d9a28b65dd0bb82231df91afcd33d5110cb784d82b1044f234d2c70fc",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-0-3-1-0.bin",
+      "path": "seamless/1-7-0-3-1-0.bin",
+      "sha256": "94bd2b0d9a28b65dd0bb82231df91afcd33d5110cb784d82b1044f234d2c70fc",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-0-3-1-1.bin",
+      "path": "seamless/1-7-0-3-1-1.bin",
+      "sha256": "94bd2b0d9a28b65dd0bb82231df91afcd33d5110cb784d82b1044f234d2c70fc",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-0-3-2-0.bin",
+      "path": "seamless/1-7-0-3-2-0.bin",
+      "sha256": "585c4ed01acfbfd809fd0476d5752e74d8e63a56b2a936dadefa9a0e9f1ef28c",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-0-3-2-1.bin",
+      "path": "seamless/1-7-0-3-2-1.bin",
+      "sha256": "585c4ed01acfbfd809fd0476d5752e74d8e63a56b2a936dadefa9a0e9f1ef28c",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-1-0-0-0.bin",
+      "path": "seamless/1-7-1-0-0-0.bin",
+      "sha256": "b5fdab78d8947eacc864bfeecb4d2100780e5afe1cd8efafb124887913ac49fa",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-1-0-0-1.bin",
+      "path": "seamless/1-7-1-0-0-1.bin",
+      "sha256": "b5fdab78d8947eacc864bfeecb4d2100780e5afe1cd8efafb124887913ac49fa",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-1-0-1-0.bin",
+      "path": "seamless/1-7-1-0-1-0.bin",
+      "sha256": "b5fdab78d8947eacc864bfeecb4d2100780e5afe1cd8efafb124887913ac49fa",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-1-0-1-1.bin",
+      "path": "seamless/1-7-1-0-1-1.bin",
+      "sha256": "b5fdab78d8947eacc864bfeecb4d2100780e5afe1cd8efafb124887913ac49fa",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-1-0-2-0.bin",
+      "path": "seamless/1-7-1-0-2-0.bin",
+      "sha256": "b5fdab78d8947eacc864bfeecb4d2100780e5afe1cd8efafb124887913ac49fa",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-1-0-2-1.bin",
+      "path": "seamless/1-7-1-0-2-1.bin",
+      "sha256": "b5fdab78d8947eacc864bfeecb4d2100780e5afe1cd8efafb124887913ac49fa",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-1-1-0-0.bin",
+      "path": "seamless/1-7-1-1-0-0.bin",
+      "sha256": "b5fdab78d8947eacc864bfeecb4d2100780e5afe1cd8efafb124887913ac49fa",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-1-1-0-1.bin",
+      "path": "seamless/1-7-1-1-0-1.bin",
+      "sha256": "b5fdab78d8947eacc864bfeecb4d2100780e5afe1cd8efafb124887913ac49fa",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-1-1-1-0.bin",
+      "path": "seamless/1-7-1-1-1-0.bin",
+      "sha256": "b5fdab78d8947eacc864bfeecb4d2100780e5afe1cd8efafb124887913ac49fa",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-1-1-1-1.bin",
+      "path": "seamless/1-7-1-1-1-1.bin",
+      "sha256": "b5fdab78d8947eacc864bfeecb4d2100780e5afe1cd8efafb124887913ac49fa",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-1-1-2-0.bin",
+      "path": "seamless/1-7-1-1-2-0.bin",
+      "sha256": "b5fdab78d8947eacc864bfeecb4d2100780e5afe1cd8efafb124887913ac49fa",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-1-1-2-1.bin",
+      "path": "seamless/1-7-1-1-2-1.bin",
+      "sha256": "b5fdab78d8947eacc864bfeecb4d2100780e5afe1cd8efafb124887913ac49fa",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-1-2-0-1.bin",
+      "path": "seamless/1-7-1-2-0-1.bin",
+      "sha256": "b5fdab78d8947eacc864bfeecb4d2100780e5afe1cd8efafb124887913ac49fa",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-1-2-1-1.bin",
+      "path": "seamless/1-7-1-2-1-1.bin",
+      "sha256": "b5fdab78d8947eacc864bfeecb4d2100780e5afe1cd8efafb124887913ac49fa",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-1-2-2-1.bin",
+      "path": "seamless/1-7-1-2-2-1.bin",
+      "sha256": "b5fdab78d8947eacc864bfeecb4d2100780e5afe1cd8efafb124887913ac49fa",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-1-3-0-0.bin",
+      "path": "seamless/1-7-1-3-0-0.bin",
+      "sha256": "adaea1a4c0a00ade263ae0c30fea2dd6e814181e62dfe1cc121cc3d5004d54cf",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-1-3-0-1.bin",
+      "path": "seamless/1-7-1-3-0-1.bin",
+      "sha256": "adaea1a4c0a00ade263ae0c30fea2dd6e814181e62dfe1cc121cc3d5004d54cf",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-1-3-1-0.bin",
+      "path": "seamless/1-7-1-3-1-0.bin",
+      "sha256": "adaea1a4c0a00ade263ae0c30fea2dd6e814181e62dfe1cc121cc3d5004d54cf",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-1-3-1-1.bin",
+      "path": "seamless/1-7-1-3-1-1.bin",
+      "sha256": "adaea1a4c0a00ade263ae0c30fea2dd6e814181e62dfe1cc121cc3d5004d54cf",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-1-3-2-0.bin",
+      "path": "seamless/1-7-1-3-2-0.bin",
+      "sha256": "d664016e530e339f6f42c839e8d7d231d4374290d66a4ff054fabcbf5fe0f066",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-1-3-2-1.bin",
+      "path": "seamless/1-7-1-3-2-1.bin",
+      "sha256": "d664016e530e339f6f42c839e8d7d231d4374290d66a4ff054fabcbf5fe0f066",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-2-0-0-0.bin",
+      "path": "seamless/1-7-2-0-0-0.bin",
+      "sha256": "9b3b887ac548a953a8b754ec0aae7d1df5165d02f40860bfb42311f087b16268",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-2-0-0-1.bin",
+      "path": "seamless/1-7-2-0-0-1.bin",
+      "sha256": "9b3b887ac548a953a8b754ec0aae7d1df5165d02f40860bfb42311f087b16268",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-2-0-1-0.bin",
+      "path": "seamless/1-7-2-0-1-0.bin",
+      "sha256": "9b3b887ac548a953a8b754ec0aae7d1df5165d02f40860bfb42311f087b16268",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-2-0-1-1.bin",
+      "path": "seamless/1-7-2-0-1-1.bin",
+      "sha256": "9b3b887ac548a953a8b754ec0aae7d1df5165d02f40860bfb42311f087b16268",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-2-0-2-0.bin",
+      "path": "seamless/1-7-2-0-2-0.bin",
+      "sha256": "a74340e1a3283c8037a7a4b759348bf43a1e9c49cd6ce1fd1493622c5c4da29c",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-2-0-2-1.bin",
+      "path": "seamless/1-7-2-0-2-1.bin",
+      "sha256": "a74340e1a3283c8037a7a4b759348bf43a1e9c49cd6ce1fd1493622c5c4da29c",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-2-1-0-0.bin",
+      "path": "seamless/1-7-2-1-0-0.bin",
+      "sha256": "a74340e1a3283c8037a7a4b759348bf43a1e9c49cd6ce1fd1493622c5c4da29c",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-2-1-0-1.bin",
+      "path": "seamless/1-7-2-1-0-1.bin",
+      "sha256": "a74340e1a3283c8037a7a4b759348bf43a1e9c49cd6ce1fd1493622c5c4da29c",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-2-1-1-0.bin",
+      "path": "seamless/1-7-2-1-1-0.bin",
+      "sha256": "a74340e1a3283c8037a7a4b759348bf43a1e9c49cd6ce1fd1493622c5c4da29c",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-2-1-1-1.bin",
+      "path": "seamless/1-7-2-1-1-1.bin",
+      "sha256": "a74340e1a3283c8037a7a4b759348bf43a1e9c49cd6ce1fd1493622c5c4da29c",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-2-1-2-0.bin",
+      "path": "seamless/1-7-2-1-2-0.bin",
+      "sha256": "a74340e1a3283c8037a7a4b759348bf43a1e9c49cd6ce1fd1493622c5c4da29c",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-2-1-2-1.bin",
+      "path": "seamless/1-7-2-1-2-1.bin",
+      "sha256": "a74340e1a3283c8037a7a4b759348bf43a1e9c49cd6ce1fd1493622c5c4da29c",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-2-2-0-1.bin",
+      "path": "seamless/1-7-2-2-0-1.bin",
+      "sha256": "fb4fdd2976be54e6f8cf539f46b8cec0e50112a0366d15ba8c09cbd08eef9257",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-2-2-1-1.bin",
+      "path": "seamless/1-7-2-2-1-1.bin",
+      "sha256": "fb4fdd2976be54e6f8cf539f46b8cec0e50112a0366d15ba8c09cbd08eef9257",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-2-2-2-1.bin",
+      "path": "seamless/1-7-2-2-2-1.bin",
+      "sha256": "a74340e1a3283c8037a7a4b759348bf43a1e9c49cd6ce1fd1493622c5c4da29c",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-2-3-0-0.bin",
+      "path": "seamless/1-7-2-3-0-0.bin",
+      "sha256": "e6f6595b03e8e1e41e74a001bc26ead8e5d70215047d3c876c8f29621b3b1659",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-2-3-0-1.bin",
+      "path": "seamless/1-7-2-3-0-1.bin",
+      "sha256": "e6f6595b03e8e1e41e74a001bc26ead8e5d70215047d3c876c8f29621b3b1659",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-2-3-1-0.bin",
+      "path": "seamless/1-7-2-3-1-0.bin",
+      "sha256": "e6f6595b03e8e1e41e74a001bc26ead8e5d70215047d3c876c8f29621b3b1659",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-2-3-1-1.bin",
+      "path": "seamless/1-7-2-3-1-1.bin",
+      "sha256": "e6f6595b03e8e1e41e74a001bc26ead8e5d70215047d3c876c8f29621b3b1659",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-2-3-2-0.bin",
+      "path": "seamless/1-7-2-3-2-0.bin",
+      "sha256": "e6f6595b03e8e1e41e74a001bc26ead8e5d70215047d3c876c8f29621b3b1659",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "1-7-2-3-2-1.bin",
+      "path": "seamless/1-7-2-3-2-1.bin",
+      "sha256": "e6f6595b03e8e1e41e74a001bc26ead8e5d70215047d3c876c8f29621b3b1659",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-0-0-0-0.bin",
+      "path": "seamless/17-13-0-0-0-0.bin",
+      "sha256": "6671b5e0b194b188dc5a2618a3357bd5f13c5d67f31153c2121eea016b01d294",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-0-0-0-1.bin",
+      "path": "seamless/17-13-0-0-0-1.bin",
+      "sha256": "5c598390e80e90cb69e0b3f9a4ab285f0facac7a989845912631f88dc130adac",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-0-0-1-0.bin",
+      "path": "seamless/17-13-0-0-1-0.bin",
+      "sha256": "11602424822bd0b219e33e61d322a69578e6565a9d07da173bb6baeee5a8cb4a",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-0-0-1-1.bin",
+      "path": "seamless/17-13-0-0-1-1.bin",
+      "sha256": "f825e28b47b02e7132d03093e4bcba5de1ff6818b26634952bf05c5824020693",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-0-0-2-0.bin",
+      "path": "seamless/17-13-0-0-2-0.bin",
+      "sha256": "5b37d6f12aa481b35669164f1b92da923a70596e5777b1c3b15643e6e1141dfc",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-0-0-2-1.bin",
+      "path": "seamless/17-13-0-0-2-1.bin",
+      "sha256": "dc5e093a42f3860cdd992ec4b264e2fe43ab26fbfd6aea41aaeb1496787ea577",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-0-1-0-0.bin",
+      "path": "seamless/17-13-0-1-0-0.bin",
+      "sha256": "94aea056a7edbfb5d33c086d9b5dd5db9f94ef4ac8d1252d81f3c992d7dcece9",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-0-1-0-1.bin",
+      "path": "seamless/17-13-0-1-0-1.bin",
+      "sha256": "3f3ebfcc109e19dea3968218628f344f78dfc9721272137893b3e070cc47d717",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-0-1-1-0.bin",
+      "path": "seamless/17-13-0-1-1-0.bin",
+      "sha256": "150b89830eb9da94cb302a92c81b6d03a4cad1e0cdf62f1e914a90273348418c",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-0-1-1-1.bin",
+      "path": "seamless/17-13-0-1-1-1.bin",
+      "sha256": "394d41f5360b55264420a38cad6be7fd6037607e8268b22beb6643c344b85d07",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-0-1-2-0.bin",
+      "path": "seamless/17-13-0-1-2-0.bin",
+      "sha256": "7357c2d2c50a4dcc0687ceb7912e90bee4afd3cc91247ab88928f6561a5a5c2c",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-0-1-2-1.bin",
+      "path": "seamless/17-13-0-1-2-1.bin",
+      "sha256": "6bac8002a15a5f2969d52b7d96c5b1dd25f552b8505c8ad14d4321718dd09ae7",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-0-2-0-1.bin",
+      "path": "seamless/17-13-0-2-0-1.bin",
+      "sha256": "26da54b50ced7b7b361515fd1b381b7abff952b5f92ece0deeda66df7a031366",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-0-2-1-1.bin",
+      "path": "seamless/17-13-0-2-1-1.bin",
+      "sha256": "89b37d2013086ebfc2cf14b9bae2eaa0d6e80f75291eed915fa2f0b00b47bd5f",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-0-2-2-1.bin",
+      "path": "seamless/17-13-0-2-2-1.bin",
+      "sha256": "ccd36b2d3a7cb5fa1cc88c40b89908220fd54c8bebeb7701cda1cb839bf9df61",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-0-3-0-0.bin",
+      "path": "seamless/17-13-0-3-0-0.bin",
+      "sha256": "1810845038c5d16ec560fea0ee2a354e19a1391f1192bc4694a6977f82cb46d8",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-0-3-0-1.bin",
+      "path": "seamless/17-13-0-3-0-1.bin",
+      "sha256": "0d0354ab82add6326f7c81d2b3e86a1cbfceaa4847f8de109e01aa30e0427bb4",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-0-3-1-0.bin",
+      "path": "seamless/17-13-0-3-1-0.bin",
+      "sha256": "b4506f1b51b181e7ef20a7cfd464433c3734f63b284911713c15535c9890d248",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-0-3-1-1.bin",
+      "path": "seamless/17-13-0-3-1-1.bin",
+      "sha256": "32c87a49a039b9f44f77dd2fbe3c84836f5031174820b32cca825d42b32ab02f",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-0-3-2-0.bin",
+      "path": "seamless/17-13-0-3-2-0.bin",
+      "sha256": "6e2df321e21757a490e184178312a49d323b3f2220ff91e8e0234c9c036fb3a6",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-0-3-2-1.bin",
+      "path": "seamless/17-13-0-3-2-1.bin",
+      "sha256": "c5139f0063db76696c5fe644fefd0a5a6c24cfbca82a68a3670da3bc53b90255",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-1-0-0-0.bin",
+      "path": "seamless/17-13-1-0-0-0.bin",
+      "sha256": "8eaa6479bdf4dc08f81369450c220fb82f6351512678360b66718ffc67131e02",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-1-0-0-1.bin",
+      "path": "seamless/17-13-1-0-0-1.bin",
+      "sha256": "c608b910508f08b6e8fadfb9e5a542d6afe21c3e68b957f3d47636a9189f18c6",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-1-0-1-0.bin",
+      "path": "seamless/17-13-1-0-1-0.bin",
+      "sha256": "1a536a2f3c57a9b87e5666b709573f8832ec4c3d4b0a0cc20dd5f06d41f61ba6",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-1-0-1-1.bin",
+      "path": "seamless/17-13-1-0-1-1.bin",
+      "sha256": "3ec2b7e6efe1ec213677c03ed59ce05757867dda81134ef90f948d8975e5ad9d",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-1-0-2-0.bin",
+      "path": "seamless/17-13-1-0-2-0.bin",
+      "sha256": "99ef118d910d41e434ead3c4999f8f527f7b05ea5f4c563e0895200b0b77c816",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-1-0-2-1.bin",
+      "path": "seamless/17-13-1-0-2-1.bin",
+      "sha256": "828a5180405f1a73adc5916cf418bd51739dcfb1c9c246ad10d3a4be96e67275",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-1-1-0-0.bin",
+      "path": "seamless/17-13-1-1-0-0.bin",
+      "sha256": "3bfb0a62203ff7c7171451f30c0afe813837076f2bd0db93f3b60201108cf5a1",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-1-1-0-1.bin",
+      "path": "seamless/17-13-1-1-0-1.bin",
+      "sha256": "82bb283eb1c6fd2a0f9ac9f6f2013812bedd74100116dd7329581139535acfd8",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-1-1-1-0.bin",
+      "path": "seamless/17-13-1-1-1-0.bin",
+      "sha256": "63b8e2a0dc4a711919e43d2a64d24be88545ccfce7e806f29a917f5ac27e1f5a",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-1-1-1-1.bin",
+      "path": "seamless/17-13-1-1-1-1.bin",
+      "sha256": "c106335a90c798878518636b3a09c8a67452d81901539c43872f8934cddc7583",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-1-1-2-0.bin",
+      "path": "seamless/17-13-1-1-2-0.bin",
+      "sha256": "e021b1258e713f4756d011d802122dcafb4f40dfa8cc18f8d65fd7361e7f86c4",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-1-1-2-1.bin",
+      "path": "seamless/17-13-1-1-2-1.bin",
+      "sha256": "9052e3328bffd962be09fe84df1691697bd94c6a37378c21f944ac9d7b18c44d",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-1-2-0-1.bin",
+      "path": "seamless/17-13-1-2-0-1.bin",
+      "sha256": "79d6217ed08b9836546dbaedf75d4cdac3ef510472ad4fc219507ffb8ac19f73",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-1-2-1-1.bin",
+      "path": "seamless/17-13-1-2-1-1.bin",
+      "sha256": "e80dee4ed58f6a98ef7e59aef16eeb563e9185d2abf43b46b4562457dc392cf3",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-1-2-2-1.bin",
+      "path": "seamless/17-13-1-2-2-1.bin",
+      "sha256": "fa175d071bcf94b042394339de5db98976509e02c2b3a0da8da195f3e2a8e114",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-1-3-0-0.bin",
+      "path": "seamless/17-13-1-3-0-0.bin",
+      "sha256": "f6748d2f7e87fa8dbcf198d54a396d032982b113c650ef0f8c46da880881d1bb",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-1-3-0-1.bin",
+      "path": "seamless/17-13-1-3-0-1.bin",
+      "sha256": "fed3f75037242c4b5fa3bbd564b9092702e8c55fcab00131b226b601b1c97250",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-1-3-1-0.bin",
+      "path": "seamless/17-13-1-3-1-0.bin",
+      "sha256": "8cce68ccd329113684b17949b62faa61ded4869b6c3816d7616300cc77ab1bca",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-1-3-1-1.bin",
+      "path": "seamless/17-13-1-3-1-1.bin",
+      "sha256": "e4060c0f193e323a8f8ff9e1da4fc0ff25cfdcdfcb9e47ec4ab06ee274b73d4e",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-1-3-2-0.bin",
+      "path": "seamless/17-13-1-3-2-0.bin",
+      "sha256": "9725c7738306be052edf40b7d34b2463d408183429394bd7f769a5d1459b77b2",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-1-3-2-1.bin",
+      "path": "seamless/17-13-1-3-2-1.bin",
+      "sha256": "104bb4137c3b62f66e65282f8fc45f580bc88fa9f3244f654e37ca6d3efd0a4a",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-2-0-0-0.bin",
+      "path": "seamless/17-13-2-0-0-0.bin",
+      "sha256": "e1819a7e39d6de27ff734d83bbd6dcec5a23ecbb242d2659bb6179d956dfe3c1",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-2-0-0-1.bin",
+      "path": "seamless/17-13-2-0-0-1.bin",
+      "sha256": "e1819a7e39d6de27ff734d83bbd6dcec5a23ecbb242d2659bb6179d956dfe3c1",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-2-0-1-0.bin",
+      "path": "seamless/17-13-2-0-1-0.bin",
+      "sha256": "6742bec71b2f41bf6abd66178fd726be516c9aed59bf7a574dfea1a1965873e5",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-2-0-1-1.bin",
+      "path": "seamless/17-13-2-0-1-1.bin",
+      "sha256": "6742bec71b2f41bf6abd66178fd726be516c9aed59bf7a574dfea1a1965873e5",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-2-0-2-0.bin",
+      "path": "seamless/17-13-2-0-2-0.bin",
+      "sha256": "a685acd373ff774f0bdaa64f31289393b826778a9a03f8508098a5dafc5bd60a",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-2-0-2-1.bin",
+      "path": "seamless/17-13-2-0-2-1.bin",
+      "sha256": "a685acd373ff774f0bdaa64f31289393b826778a9a03f8508098a5dafc5bd60a",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-2-1-0-0.bin",
+      "path": "seamless/17-13-2-1-0-0.bin",
+      "sha256": "0cde01334d880c11775c2f5dd71b3e09ea2f7812a6631f6ef5d5af97d919d0bf",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-2-1-0-1.bin",
+      "path": "seamless/17-13-2-1-0-1.bin",
+      "sha256": "0cde01334d880c11775c2f5dd71b3e09ea2f7812a6631f6ef5d5af97d919d0bf",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-2-1-1-0.bin",
+      "path": "seamless/17-13-2-1-1-0.bin",
+      "sha256": "072368352e061c8fb4ed594ad562b595ae2896d6d7f2be1ec428c5baa1d32b6a",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-2-1-1-1.bin",
+      "path": "seamless/17-13-2-1-1-1.bin",
+      "sha256": "072368352e061c8fb4ed594ad562b595ae2896d6d7f2be1ec428c5baa1d32b6a",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-2-1-2-0.bin",
+      "path": "seamless/17-13-2-1-2-0.bin",
+      "sha256": "072368352e061c8fb4ed594ad562b595ae2896d6d7f2be1ec428c5baa1d32b6a",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-2-1-2-1.bin",
+      "path": "seamless/17-13-2-1-2-1.bin",
+      "sha256": "072368352e061c8fb4ed594ad562b595ae2896d6d7f2be1ec428c5baa1d32b6a",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-2-2-0-1.bin",
+      "path": "seamless/17-13-2-2-0-1.bin",
+      "sha256": "be8d867087eeaee2b17d5c9efa1a32d71a685307a3f516c346983abbef49e812",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-2-2-1-1.bin",
+      "path": "seamless/17-13-2-2-1-1.bin",
+      "sha256": "302620034422804a31f4bfc294644e91554cf82f4e874a710021c1628893183b",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-2-2-2-1.bin",
+      "path": "seamless/17-13-2-2-2-1.bin",
+      "sha256": "45b6dd2bd3a22508a026fe2fe9cb82258219e757460ce849bf50e1a22bec3266",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-2-3-0-0.bin",
+      "path": "seamless/17-13-2-3-0-0.bin",
+      "sha256": "9bb0f096bc2f1aa53a949e8cebb5c0b0e38581113707fec89373b3cfbdeeae3e",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-2-3-0-1.bin",
+      "path": "seamless/17-13-2-3-0-1.bin",
+      "sha256": "9bb0f096bc2f1aa53a949e8cebb5c0b0e38581113707fec89373b3cfbdeeae3e",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-2-3-1-0.bin",
+      "path": "seamless/17-13-2-3-1-0.bin",
+      "sha256": "9bb0f096bc2f1aa53a949e8cebb5c0b0e38581113707fec89373b3cfbdeeae3e",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-2-3-1-1.bin",
+      "path": "seamless/17-13-2-3-1-1.bin",
+      "sha256": "9bb0f096bc2f1aa53a949e8cebb5c0b0e38581113707fec89373b3cfbdeeae3e",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-2-3-2-0.bin",
+      "path": "seamless/17-13-2-3-2-0.bin",
+      "sha256": "9bb0f096bc2f1aa53a949e8cebb5c0b0e38581113707fec89373b3cfbdeeae3e",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "17-13-2-3-2-1.bin",
+      "path": "seamless/17-13-2-3-2-1.bin",
+      "sha256": "9bb0f096bc2f1aa53a949e8cebb5c0b0e38581113707fec89373b3cfbdeeae3e",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-0-0-0-0.bin",
+      "path": "seamless/64-48-0-0-0-0.bin",
+      "sha256": "628a70060fae950867f93231d332495560b600030bc120384be5dcbc903266e1",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-0-0-0-1.bin",
+      "path": "seamless/64-48-0-0-0-1.bin",
+      "sha256": "ce54c77191587d1de9cdf5ca883605b028f4faee7f81e0e2c6e8b0ac5abda9d5",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-0-0-1-0.bin",
+      "path": "seamless/64-48-0-0-1-0.bin",
+      "sha256": "83330301527bf246c7bd1f02c5a63d12f05e2f5771dba302877c7b0f47982735",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-0-0-1-1.bin",
+      "path": "seamless/64-48-0-0-1-1.bin",
+      "sha256": "53bc978393d89961b01bc0b29fb7b72283aa661a34f3b45ae53cefb1a07e4964",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-0-0-2-0.bin",
+      "path": "seamless/64-48-0-0-2-0.bin",
+      "sha256": "57a3fba469570824ed4a874acd807cbd118d0fb7a44fcdd640d6d8a2a2cb7839",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-0-0-2-1.bin",
+      "path": "seamless/64-48-0-0-2-1.bin",
+      "sha256": "b9235c99a3f70f22f6f35d21b85bf89cd01ef463e5a9d44799d4eb8b43150877",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-0-1-0-0.bin",
+      "path": "seamless/64-48-0-1-0-0.bin",
+      "sha256": "b45402b2cc796f36a23f841170a3da7f43c71230989b3ef3adfb0d800a76e2c2",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-0-1-0-1.bin",
+      "path": "seamless/64-48-0-1-0-1.bin",
+      "sha256": "b2d83e4f1fa7c28992f24d9ec0fb6968e0b55fe7d77d393645d370c250c9da36",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-0-1-1-0.bin",
+      "path": "seamless/64-48-0-1-1-0.bin",
+      "sha256": "ba48b913a6cd30a1e16da9daaf71bb4e9cc867e2085119cda730df02163565c9",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-0-1-1-1.bin",
+      "path": "seamless/64-48-0-1-1-1.bin",
+      "sha256": "13aa4c66301fc3ca2fad45d34e7078276a276da1fc1b43a3a7d0376fdbb41896",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-0-1-2-0.bin",
+      "path": "seamless/64-48-0-1-2-0.bin",
+      "sha256": "f6855c11da0cbe8e3cd00f807eeac9cfc43e651a0929c2e41dd63a76a75a3d27",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-0-1-2-1.bin",
+      "path": "seamless/64-48-0-1-2-1.bin",
+      "sha256": "32113c4d5b51d4cf172d82fe9a38b961089332030e297ed70baa7beb336796f8",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-0-2-0-1.bin",
+      "path": "seamless/64-48-0-2-0-1.bin",
+      "sha256": "765565e60dc1ea4627047c42becb11a2ae66dc64e0d0a77c79394e912ec1e592",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-0-2-1-1.bin",
+      "path": "seamless/64-48-0-2-1-1.bin",
+      "sha256": "1b62c1c2420e9cb6c63db346ddebae99278c42696d23e30feeb4d6b8e64631d9",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-0-2-2-1.bin",
+      "path": "seamless/64-48-0-2-2-1.bin",
+      "sha256": "1d068853a5e89e729647f6110955be1fed37bd5b56c149daa40e06e3c45ee0dd",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-0-3-0-0.bin",
+      "path": "seamless/64-48-0-3-0-0.bin",
+      "sha256": "f25b5691d9b2e59350adcd70cf0fdc192bd212ecc60245605a9a328eb3721af2",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-0-3-0-1.bin",
+      "path": "seamless/64-48-0-3-0-1.bin",
+      "sha256": "8e938614b27f302167054bb912bc429a1d29030f6596f7e9642b2e6ff5f07871",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-0-3-1-0.bin",
+      "path": "seamless/64-48-0-3-1-0.bin",
+      "sha256": "7f312141d2ebb4a68b774ed06c637dae164b23881f115165386c446f4c3de45a",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-0-3-1-1.bin",
+      "path": "seamless/64-48-0-3-1-1.bin",
+      "sha256": "90f53bb7c0752104bdeddc1bbf1facbd0444b835196b1ce25353176531489ac5",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-0-3-2-0.bin",
+      "path": "seamless/64-48-0-3-2-0.bin",
+      "sha256": "05de85b07111b8de939e637e5b131d07bf98cb08f91e0be8a38aaa11bda679c8",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-0-3-2-1.bin",
+      "path": "seamless/64-48-0-3-2-1.bin",
+      "sha256": "e4f2f8f7f0e3be9bf8adb7a3bbd7fe5df32e107090b2917f35f893dd8ff4e734",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-1-0-0-0.bin",
+      "path": "seamless/64-48-1-0-0-0.bin",
+      "sha256": "50878f143e3b3b8db85735fab7aa42700361f54d377885776e90429aff5946a6",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-1-0-0-1.bin",
+      "path": "seamless/64-48-1-0-0-1.bin",
+      "sha256": "a54e8886c6d8c277d7f35dc1cd086de428ab9f4c4fdfe35d370ffe5baa96dc03",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-1-0-1-0.bin",
+      "path": "seamless/64-48-1-0-1-0.bin",
+      "sha256": "f2c1f6cb5b801fb97825394ba8168a94bce6726afda74cdcd04e760f3a9a4145",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-1-0-1-1.bin",
+      "path": "seamless/64-48-1-0-1-1.bin",
+      "sha256": "03f6b06de2770ddb50bcbffe42a0eec33c30b3ce468edcbfd6b8f054f4b6e550",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-1-0-2-0.bin",
+      "path": "seamless/64-48-1-0-2-0.bin",
+      "sha256": "2a38a894ef02371ab251d2b202e262ebfe3a36c84d783605c1e6b3b6ffcb1d65",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-1-0-2-1.bin",
+      "path": "seamless/64-48-1-0-2-1.bin",
+      "sha256": "63e7729b89fb7c8bc2d6b50eae087d1518443897f46683b6796c9abe228fa113",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-1-1-0-0.bin",
+      "path": "seamless/64-48-1-1-0-0.bin",
+      "sha256": "a8e27a26460f1c4baffd48be526e829681fca7507c339de5d977b4a8aa944c39",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-1-1-0-1.bin",
+      "path": "seamless/64-48-1-1-0-1.bin",
+      "sha256": "b7a03c8fb3e568bc4632d8aca3160afe9b489edc501129371a7b70c088149518",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-1-1-1-0.bin",
+      "path": "seamless/64-48-1-1-1-0.bin",
+      "sha256": "981cadd004889d9e1c84f5c67ea936046dabc4180ad420bb12b7e31408c252e5",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-1-1-1-1.bin",
+      "path": "seamless/64-48-1-1-1-1.bin",
+      "sha256": "25ee88b01e1ddeb9e83c8b6396db771a247530ba194ecd1bd25e0f0d986f8d2c",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-1-1-2-0.bin",
+      "path": "seamless/64-48-1-1-2-0.bin",
+      "sha256": "eeb796eb8c00e66fe0f20e20cb0aed5a687a59f92dd481cd6e8d931e1c36c1a0",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-1-1-2-1.bin",
+      "path": "seamless/64-48-1-1-2-1.bin",
+      "sha256": "ea6b3ea6f87a62691e035b8104823d260484b00ae4ab14c43d629cc959081f2b",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-1-2-0-1.bin",
+      "path": "seamless/64-48-1-2-0-1.bin",
+      "sha256": "5450b08c4b230ed72000ee7b843caf8c5a13e3fb8c88ae9e800e6ffdbaa7e68f",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-1-2-1-1.bin",
+      "path": "seamless/64-48-1-2-1-1.bin",
+      "sha256": "7a8b874bf13522ed96a07fcf1d0e30ebf859a5e0306ec59c0e86989dca3a592e",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-1-2-2-1.bin",
+      "path": "seamless/64-48-1-2-2-1.bin",
+      "sha256": "95874857c94d743181af2dea91570028d19b2211f27a310ff886112f14e75aff",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-1-3-0-0.bin",
+      "path": "seamless/64-48-1-3-0-0.bin",
+      "sha256": "e3eee5f4cca7709de0cfc960f63b1f0349673368d8ae9ea430439a5d8dd73113",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-1-3-0-1.bin",
+      "path": "seamless/64-48-1-3-0-1.bin",
+      "sha256": "5531ae6f393ffc748f1e30d5a1e6877253a71a45a282c50accf87e257a5b3781",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-1-3-1-0.bin",
+      "path": "seamless/64-48-1-3-1-0.bin",
+      "sha256": "18da0a662fd940a172f98731e7c7ce430b30c21559f3b888c1d73a482f02faff",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-1-3-1-1.bin",
+      "path": "seamless/64-48-1-3-1-1.bin",
+      "sha256": "0785d00c1cc049e2dac9398e913229c3fefa39e441d4c0cba7a0fe1b4a1c88ba",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-1-3-2-0.bin",
+      "path": "seamless/64-48-1-3-2-0.bin",
+      "sha256": "c1d8b1773225d8160bf4dda466fa62fc4ecd21345bd311582d60f87535d3c1ba",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-1-3-2-1.bin",
+      "path": "seamless/64-48-1-3-2-1.bin",
+      "sha256": "6038dc7502b6a3cc1e916829f5998a69d72635db7d90973b15ade3960fdd1361",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-2-0-0-0.bin",
+      "path": "seamless/64-48-2-0-0-0.bin",
+      "sha256": "38aa9b1d64787d2c620e5b91db51a2b8a06547dcc4afaa42cd6523e03bb19d08",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-2-0-0-1.bin",
+      "path": "seamless/64-48-2-0-0-1.bin",
+      "sha256": "38aa9b1d64787d2c620e5b91db51a2b8a06547dcc4afaa42cd6523e03bb19d08",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-2-0-1-0.bin",
+      "path": "seamless/64-48-2-0-1-0.bin",
+      "sha256": "6d4cd8705bf2eec9bbd37d812c1c1a6ac6b65b755ef621d0b91d65e87dcb97a9",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-2-0-1-1.bin",
+      "path": "seamless/64-48-2-0-1-1.bin",
+      "sha256": "6d4cd8705bf2eec9bbd37d812c1c1a6ac6b65b755ef621d0b91d65e87dcb97a9",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-2-0-2-0.bin",
+      "path": "seamless/64-48-2-0-2-0.bin",
+      "sha256": "f5b21d66d15e0c35e2577e09e7b0494f548a1ef07631ccb5f3624fbde8131e34",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-2-0-2-1.bin",
+      "path": "seamless/64-48-2-0-2-1.bin",
+      "sha256": "f5b21d66d15e0c35e2577e09e7b0494f548a1ef07631ccb5f3624fbde8131e34",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-2-1-0-0.bin",
+      "path": "seamless/64-48-2-1-0-0.bin",
+      "sha256": "9f7c029e819af9ca81b0198190d889d95679cfa2bae7cb9ab30514fea0b4882a",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-2-1-0-1.bin",
+      "path": "seamless/64-48-2-1-0-1.bin",
+      "sha256": "9f7c029e819af9ca81b0198190d889d95679cfa2bae7cb9ab30514fea0b4882a",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-2-1-1-0.bin",
+      "path": "seamless/64-48-2-1-1-0.bin",
+      "sha256": "8319dabd4955c630992faa13c51c55f5baaedc71ebef9fefc32aed4a9b4d427d",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-2-1-1-1.bin",
+      "path": "seamless/64-48-2-1-1-1.bin",
+      "sha256": "8319dabd4955c630992faa13c51c55f5baaedc71ebef9fefc32aed4a9b4d427d",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-2-1-2-0.bin",
+      "path": "seamless/64-48-2-1-2-0.bin",
+      "sha256": "6d4cd8705bf2eec9bbd37d812c1c1a6ac6b65b755ef621d0b91d65e87dcb97a9",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-2-1-2-1.bin",
+      "path": "seamless/64-48-2-1-2-1.bin",
+      "sha256": "6d4cd8705bf2eec9bbd37d812c1c1a6ac6b65b755ef621d0b91d65e87dcb97a9",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-2-2-0-1.bin",
+      "path": "seamless/64-48-2-2-0-1.bin",
+      "sha256": "1b8ce827e6220fb211e9a6a8dbcb58f415701b450a7da3c80910a0af73276a09",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-2-2-1-1.bin",
+      "path": "seamless/64-48-2-2-1-1.bin",
+      "sha256": "6d4cd8705bf2eec9bbd37d812c1c1a6ac6b65b755ef621d0b91d65e87dcb97a9",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-2-2-2-1.bin",
+      "path": "seamless/64-48-2-2-2-1.bin",
+      "sha256": "6d4cd8705bf2eec9bbd37d812c1c1a6ac6b65b755ef621d0b91d65e87dcb97a9",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-2-3-0-0.bin",
+      "path": "seamless/64-48-2-3-0-0.bin",
+      "sha256": "2d77ea9505b9c1f778903db30377bcb9bc6e8ffff2750e244bdfdff2cea54e38",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-2-3-0-1.bin",
+      "path": "seamless/64-48-2-3-0-1.bin",
+      "sha256": "2d77ea9505b9c1f778903db30377bcb9bc6e8ffff2750e244bdfdff2cea54e38",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-2-3-1-0.bin",
+      "path": "seamless/64-48-2-3-1-0.bin",
+      "sha256": "2d77ea9505b9c1f778903db30377bcb9bc6e8ffff2750e244bdfdff2cea54e38",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-2-3-1-1.bin",
+      "path": "seamless/64-48-2-3-1-1.bin",
+      "sha256": "2d77ea9505b9c1f778903db30377bcb9bc6e8ffff2750e244bdfdff2cea54e38",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-2-3-2-0.bin",
+      "path": "seamless/64-48-2-3-2-0.bin",
+      "sha256": "2d77ea9505b9c1f778903db30377bcb9bc6e8ffff2750e244bdfdff2cea54e38",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "64-48-2-3-2-1.bin",
+      "path": "seamless/64-48-2-3-2-1.bin",
+      "sha256": "2d77ea9505b9c1f778903db30377bcb9bc6e8ffff2750e244bdfdff2cea54e38",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-0-0-0-0.bin",
+      "path": "seamless/65-63-0-0-0-0.bin",
+      "sha256": "fa6cf307ef47272684b3d974fd4f794829fd64257887c08ab129574c682910af",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-0-0-0-1.bin",
+      "path": "seamless/65-63-0-0-0-1.bin",
+      "sha256": "c3830222b47a9a3776d417d0c5740587f326741d4c9fb4ea69447a2ff83beab2",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-0-0-1-0.bin",
+      "path": "seamless/65-63-0-0-1-0.bin",
+      "sha256": "a6fd7a803f266e1b26eab60300cdf292c111b1ba04b563dd820bc0e919672b67",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-0-0-1-1.bin",
+      "path": "seamless/65-63-0-0-1-1.bin",
+      "sha256": "d9aec72fe9a3f452a68881481cadbb0d4e5fa2808a29d60c18ff166c4de7e868",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-0-0-2-0.bin",
+      "path": "seamless/65-63-0-0-2-0.bin",
+      "sha256": "5c2a6d7c9fbb513cfa9e88bf11dd8aeec61de488aad0ec8cdf08aa6c27730673",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-0-0-2-1.bin",
+      "path": "seamless/65-63-0-0-2-1.bin",
+      "sha256": "6677ee52c07c0d1312a104a7a3acbc57867418e4baf6b8a3dc2b4b79299f8104",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-0-1-0-0.bin",
+      "path": "seamless/65-63-0-1-0-0.bin",
+      "sha256": "fc5058b010933bc323de93a1fa335217ad44254ffaedeefc9c5fbc60f0fe1f5e",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-0-1-0-1.bin",
+      "path": "seamless/65-63-0-1-0-1.bin",
+      "sha256": "1c4ce1d5bedb600cc2e7d3483bd3bc21aa772c2825cbdbeb4691bc1f67ffbc07",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-0-1-1-0.bin",
+      "path": "seamless/65-63-0-1-1-0.bin",
+      "sha256": "bfccf4464e45f1dec62cf27a5f6b95948f26ab8ebb877dffcc3dfdf30966bd89",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-0-1-1-1.bin",
+      "path": "seamless/65-63-0-1-1-1.bin",
+      "sha256": "57d8b3516da94a8df15f33a7d05a4ad17adb13efa045ae248dc445199d41c4dc",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-0-1-2-0.bin",
+      "path": "seamless/65-63-0-1-2-0.bin",
+      "sha256": "0588c0ca794f85318b1d9b18be73fe9c37b9c690266e1ed535cc5d7a790f0bbb",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-0-1-2-1.bin",
+      "path": "seamless/65-63-0-1-2-1.bin",
+      "sha256": "f8b168dd453a0ebd3bd85d49e1b1365dcc375b45c977622fbaca21f19617fdfd",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-0-2-0-1.bin",
+      "path": "seamless/65-63-0-2-0-1.bin",
+      "sha256": "bf6be23c7f0c15c34f2bf85284aa79ccd2d81116488a442e02c4a0d1fc423adb",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-0-2-1-1.bin",
+      "path": "seamless/65-63-0-2-1-1.bin",
+      "sha256": "238497229508a9d232fbb6efda472cd4b3eb0fe264aecdf5ed42d6113c218431",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-0-2-2-1.bin",
+      "path": "seamless/65-63-0-2-2-1.bin",
+      "sha256": "e4adf1ce39e65ba48518190ba439d99177f132b6e7d68c855542e5362bd3eb49",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-0-3-0-0.bin",
+      "path": "seamless/65-63-0-3-0-0.bin",
+      "sha256": "034eb338e30f368187e25735b2e4c830330697fe96629114193f57578fd7d027",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-0-3-0-1.bin",
+      "path": "seamless/65-63-0-3-0-1.bin",
+      "sha256": "cb8e3cb698d15bdc949d075732b8d18d9a3e956998c22374125d8a11ccaf4435",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-0-3-1-0.bin",
+      "path": "seamless/65-63-0-3-1-0.bin",
+      "sha256": "f52f1f755dc2d478ea056b5480978f09a8f47cb44e8152328e9b3412bc619b7b",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-0-3-1-1.bin",
+      "path": "seamless/65-63-0-3-1-1.bin",
+      "sha256": "a63c75b529443235cf3b357309f8738424e6c852af41885bf501607fe3becfd9",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-0-3-2-0.bin",
+      "path": "seamless/65-63-0-3-2-0.bin",
+      "sha256": "9cee4a8ea0f2e8a4133d4c68d2f9498ee4d980cc99c2be40e08b2c728a224cdf",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-0-3-2-1.bin",
+      "path": "seamless/65-63-0-3-2-1.bin",
+      "sha256": "e3bc99c21678ce90b901fd025a44f3bbbc5e41e2bbe179ab0152764ecbe93a90",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-1-0-0-0.bin",
+      "path": "seamless/65-63-1-0-0-0.bin",
+      "sha256": "3baf2271cbcb0db3d7d8591dc0287a343f0480598c2caf01ef49155bb30ac99b",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-1-0-0-1.bin",
+      "path": "seamless/65-63-1-0-0-1.bin",
+      "sha256": "6cb1b332ed0582e58d59426be3138bda08fbfc404a5b1c36a9dc24c4c74b35e3",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-1-0-1-0.bin",
+      "path": "seamless/65-63-1-0-1-0.bin",
+      "sha256": "ce62eb3a7c55e487da914fd7df66528bc2e1373868d720436894735d5933af11",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-1-0-1-1.bin",
+      "path": "seamless/65-63-1-0-1-1.bin",
+      "sha256": "813afad7287d85486a0d6333b4e841060a81d9472d1780e401cda231c1998b91",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-1-0-2-0.bin",
+      "path": "seamless/65-63-1-0-2-0.bin",
+      "sha256": "5903e1b62af0ab06512d70171a2b3e636012caf56f2fb41bce16242bc29270f9",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-1-0-2-1.bin",
+      "path": "seamless/65-63-1-0-2-1.bin",
+      "sha256": "b0be24607825bb3ccfe28204d4bb170bed4be9887e754ff723bb463ca5d39642",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-1-1-0-0.bin",
+      "path": "seamless/65-63-1-1-0-0.bin",
+      "sha256": "abd83a85aedc3c71612d8a4cd61b0b52ec75e4f0736c78f43a6bd0e032fc04da",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-1-1-0-1.bin",
+      "path": "seamless/65-63-1-1-0-1.bin",
+      "sha256": "c88b7eaf9c835b5948979e55db17b5ca97f9f6b32bf0ef156ebf5b251bdb32f9",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-1-1-1-0.bin",
+      "path": "seamless/65-63-1-1-1-0.bin",
+      "sha256": "39c3960bf1d5133d12e85d0f307aa66264e527f04a4b0f0af852d2fea929d13b",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-1-1-1-1.bin",
+      "path": "seamless/65-63-1-1-1-1.bin",
+      "sha256": "f9b58251ea3e57cc9fe330b215a71e980c9970675b43ea6d78907514e56b8f8d",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-1-1-2-0.bin",
+      "path": "seamless/65-63-1-1-2-0.bin",
+      "sha256": "d3be65787db0c418ff475ded6a94f6d1fec09286208f1df006e5e1317c23bbbb",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-1-1-2-1.bin",
+      "path": "seamless/65-63-1-1-2-1.bin",
+      "sha256": "d1e7150a0b2c8a1b1c2cd1b351f0d7dac540fe1d4b2d9f2d33c6f5b8636f6a7a",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-1-2-0-1.bin",
+      "path": "seamless/65-63-1-2-0-1.bin",
+      "sha256": "4b5c9c87dc323c1f8d7458f0df59b234c0d1456768d2965248d9ae0150c5d0df",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-1-2-1-1.bin",
+      "path": "seamless/65-63-1-2-1-1.bin",
+      "sha256": "1942bce820d219275f642ddc6da8526160b20289f2170664efeb2ee496d63526",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-1-2-2-1.bin",
+      "path": "seamless/65-63-1-2-2-1.bin",
+      "sha256": "367152b599591a15a31d3b68b5eccf80363f0ece0642791b1f02f46300ec68b3",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-1-3-0-0.bin",
+      "path": "seamless/65-63-1-3-0-0.bin",
+      "sha256": "20497e02eea6bb477603b87b647d1d649df59c22f496b201e82bd477cf0a4ed4",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-1-3-0-1.bin",
+      "path": "seamless/65-63-1-3-0-1.bin",
+      "sha256": "22adb4ce371b72071c96cc282690493e729d456657f0fcc1b787985a1ed23a89",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-1-3-1-0.bin",
+      "path": "seamless/65-63-1-3-1-0.bin",
+      "sha256": "c19a833373273d991c4f0a98bd452cf714b2b83ef8557d1d667b96a3d918860e",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-1-3-1-1.bin",
+      "path": "seamless/65-63-1-3-1-1.bin",
+      "sha256": "d09d5e747a5434b2d12a33d7907e03249ec0ca0b93c3145eeb52103adfdc2c35",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-1-3-2-0.bin",
+      "path": "seamless/65-63-1-3-2-0.bin",
+      "sha256": "4301016863da01d9527ba52b5b5e2315e6cb76b2bb88f3cb39fa8fe58dec1c11",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-1-3-2-1.bin",
+      "path": "seamless/65-63-1-3-2-1.bin",
+      "sha256": "ebeaca2f5eb12384316e7b28791b4536b08d6d246457615a8d341d45520ee06a",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-2-0-0-0.bin",
+      "path": "seamless/65-63-2-0-0-0.bin",
+      "sha256": "fe14ebc0ccef24e2523832ad985c957cfc35fd580c13abd5f033698383ba5c6d",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-2-0-0-1.bin",
+      "path": "seamless/65-63-2-0-0-1.bin",
+      "sha256": "fe14ebc0ccef24e2523832ad985c957cfc35fd580c13abd5f033698383ba5c6d",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-2-0-1-0.bin",
+      "path": "seamless/65-63-2-0-1-0.bin",
+      "sha256": "fd0e7cc189e2e0cbb524ec2bc2ab31610bd36754a348e84e2b8a857aa0d42692",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-2-0-1-1.bin",
+      "path": "seamless/65-63-2-0-1-1.bin",
+      "sha256": "fd0e7cc189e2e0cbb524ec2bc2ab31610bd36754a348e84e2b8a857aa0d42692",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-2-0-2-0.bin",
+      "path": "seamless/65-63-2-0-2-0.bin",
+      "sha256": "1833c26125c44bf976423120080e0d54f10c2c44588ee4e0bd90ca528a5da12a",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-2-0-2-1.bin",
+      "path": "seamless/65-63-2-0-2-1.bin",
+      "sha256": "1833c26125c44bf976423120080e0d54f10c2c44588ee4e0bd90ca528a5da12a",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-2-1-0-0.bin",
+      "path": "seamless/65-63-2-1-0-0.bin",
+      "sha256": "7b9ed74226ff4f515c784d3fa004b73fe3920439676a3338df0003487c5b36b3",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-2-1-0-1.bin",
+      "path": "seamless/65-63-2-1-0-1.bin",
+      "sha256": "7b9ed74226ff4f515c784d3fa004b73fe3920439676a3338df0003487c5b36b3",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-2-1-1-0.bin",
+      "path": "seamless/65-63-2-1-1-0.bin",
+      "sha256": "e82381330d4a3fb8c67eec739aac68cced28b7f4afaf0a659ca313efe052b9db",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-2-1-1-1.bin",
+      "path": "seamless/65-63-2-1-1-1.bin",
+      "sha256": "e82381330d4a3fb8c67eec739aac68cced28b7f4afaf0a659ca313efe052b9db",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-2-1-2-0.bin",
+      "path": "seamless/65-63-2-1-2-0.bin",
+      "sha256": "b35843b82897c4e9cf1fe2d733917783348ca343130bdde71630d5a2ba7ca5be",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-2-1-2-1.bin",
+      "path": "seamless/65-63-2-1-2-1.bin",
+      "sha256": "b35843b82897c4e9cf1fe2d733917783348ca343130bdde71630d5a2ba7ca5be",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-2-2-0-1.bin",
+      "path": "seamless/65-63-2-2-0-1.bin",
+      "sha256": "57612eecae2c7af901aa8de4f18378c6bdaccc8bdb878c04d938fdfb8c2116ab",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-2-2-1-1.bin",
+      "path": "seamless/65-63-2-2-1-1.bin",
+      "sha256": "b35843b82897c4e9cf1fe2d733917783348ca343130bdde71630d5a2ba7ca5be",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-2-2-2-1.bin",
+      "path": "seamless/65-63-2-2-2-1.bin",
+      "sha256": "b35843b82897c4e9cf1fe2d733917783348ca343130bdde71630d5a2ba7ca5be",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-2-3-0-0.bin",
+      "path": "seamless/65-63-2-3-0-0.bin",
+      "sha256": "6a28cf20410b77399b8c845de757947e47dc18d57f401491fb42e5e9e340d4ed",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-2-3-0-1.bin",
+      "path": "seamless/65-63-2-3-0-1.bin",
+      "sha256": "6a28cf20410b77399b8c845de757947e47dc18d57f401491fb42e5e9e340d4ed",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-2-3-1-0.bin",
+      "path": "seamless/65-63-2-3-1-0.bin",
+      "sha256": "6a28cf20410b77399b8c845de757947e47dc18d57f401491fb42e5e9e340d4ed",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-2-3-1-1.bin",
+      "path": "seamless/65-63-2-3-1-1.bin",
+      "sha256": "6a28cf20410b77399b8c845de757947e47dc18d57f401491fb42e5e9e340d4ed",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-2-3-2-0.bin",
+      "path": "seamless/65-63-2-3-2-0.bin",
+      "sha256": "6a28cf20410b77399b8c845de757947e47dc18d57f401491fb42e5e9e340d4ed",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    },
+    {
+      "name": "65-63-2-3-2-1.bin",
+      "path": "seamless/65-63-2-3-2-1.bin",
+      "sha256": "6a28cf20410b77399b8c845de757947e47dc18d57f401491fb42e5e9e340d4ed",
+      "provenance": "Pre-change rendered snapshot, captured 2026-09-28. See provenance.json and README.md."
+    }
+  ],
+  "images": [
+    {
+      "name": "copy-blend-source",
+      "path": "images/copy-blend-source.png",
+      "sha256": "7aaa38693f516d7ec60a7211dcb873141654f32c13cb977ad02b19e3aa0a6594",
+      "provenance": "Original source image, not an algorithm golden. See provenance.json and README.md."
+    },
+    {
+      "name": "screened-poisson-original",
+      "path": "images/screened-poisson-original.png",
+      "sha256": "7aaa38693f516d7ec60a7211dcb873141654f32c13cb977ad02b19e3aa0a6594",
+      "provenance": "Original source image, not an algorithm golden. See provenance.json and README.md."
+    }
+  ]
+}

@@ -121,14 +121,16 @@ namespace DCFApixels.WhimTex
                 type == typeof(RectInt) ? 4 :
                 type == typeof(Bounds) ? 6 : 0;
             if (dimensions == 0) return false;
-            if (!(token is JArray components) || components.Count != dimensions)
+            int minimum = type == typeof(Vector3) || type == typeof(Vector4) ? 2 : dimensions;
+            if (!(token is JArray components) || components.Count < minimum || components.Count > dimensions)
                 throw new WhimTexDocumentException("Invalid " + type.Name + " at " + token.Path);
             Type componentType = type == typeof(Color32) ? typeof(byte) :
                 type == typeof(Vector2Int) || type == typeof(Vector3Int) || type == typeof(RectInt) ? typeof(int) : typeof(float);
             foreach (var component in components) ReadScalar(component, componentType);
             if (type == typeof(Vector2)) value = new Vector2((float)components[0], (float)components[1]);
-            if (type == typeof(Vector3)) value = new Vector3((float)components[0], (float)components[1], (float)components[2]);
-            if (type == typeof(Vector4)) value = new Vector4((float)components[0], (float)components[1], (float)components[2], (float)components[3]);
+            if (type == typeof(Vector3)) value = new Vector3((float)components[0], (float)components[1], components.Count > 2 ? (float)components[2] : 0f);
+            if (type == typeof(Vector4)) value = new Vector4((float)components[0], (float)components[1],
+                components.Count > 2 ? (float)components[2] : 0f, components.Count > 3 ? (float)components[3] : 0f);
             if (type == typeof(Vector2Int)) value = new Vector2Int((int)components[0], (int)components[1]);
             if (type == typeof(Vector3Int)) value = new Vector3Int((int)components[0], (int)components[1], (int)components[2]);
             if (type == typeof(Quaternion)) value = new Quaternion((float)components[0], (float)components[1], (float)components[2], (float)components[3]);
@@ -150,7 +152,7 @@ namespace DCFApixels.WhimTex
 
         private static bool IsDefault(Type type, string field, JToken value)
         {
-            if (field == "id" || field == "behaviour" || field == "behaviourId" || field == "children" || field == "modifiers") return false;
+            if (field == "id" || field == "behaviour" || field == "behaviourId" || field == "children" || field == "fx") return false;
             return DefaultsFor(type)?[field] is JToken baseline && JToken.DeepEquals(value, baseline);
         }
 
@@ -187,7 +189,7 @@ namespace DCFApixels.WhimTex
                 if (field == "featherPosition") return shape.feather != 0;
                 if (field == "innerRadius") return shape.kind == ShapeLayerBehaviour.ShapeKind.Star;
                 if (field == "sides") return shape.kind == ShapeLayerBehaviour.ShapeKind.Polygon || shape.kind == ShapeLayerBehaviour.ShapeKind.Star;
-                if (field == "cornerRoundness" || field == "roundness" || field == "linkCorners") return shape.kind == ShapeLayerBehaviour.ShapeKind.Rectangle;
+                if (field == "cornerRoundness" || field == "linkCorners") return shape.kind == ShapeLayerBehaviour.ShapeKind.Rectangle;
             }
             if (value is ColorFillLayerBehaviour fill && field == "pattern") return fill.mode != ColorFillLayerBehaviour.FillMode.Color;
             if (value is MakeSeamlessLayerBehaviour seam)

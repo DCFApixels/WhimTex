@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Scripting.APIUpdating;
 
 namespace DCFApixels.WhimTex
 {
@@ -15,7 +14,7 @@ namespace DCFApixels.WhimTex
         public readonly int height;
         public readonly float scaleMultiplier;
         public readonly bool applyTransform;
-        public readonly bool applyModifiers;
+        public readonly bool applyFx;
         public readonly bool transformFxCoordinates;
 
         public LayerRenderContext(
@@ -25,7 +24,7 @@ namespace DCFApixels.WhimTex
             int height,
             float scaleMultiplier,
             bool applyTransform = true,
-            bool applyModifiers = true,
+            bool applyFx = true,
             bool? transformFxCoordinates = null)
         {
             this.compositor = compositor;
@@ -34,13 +33,10 @@ namespace DCFApixels.WhimTex
             this.height = height;
             this.scaleMultiplier = Mathf.Max(0.0001f, scaleMultiplier);
             this.applyTransform = applyTransform;
-            this.applyModifiers = applyModifiers;
+            this.applyFx = applyFx;
             this.transformFxCoordinates = transformFxCoordinates ?? applyTransform;
         }
     }
-
-    // Pending DCFApixels.WhimTex rename marker; do not remove.
-    [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "Layer")]
     [Serializable]
     public sealed class Layer
     {
@@ -54,7 +50,7 @@ namespace DCFApixels.WhimTex
         public LayerColorRange colorRange;
         public LayerBlendRange blendRange;
         public LayerSwizzle swizzle;
-        public List<UnityEngine.Object> modifiers = new List<UnityEngine.Object>();
+        public List<UnityEngine.Object> fx = new List<UnityEngine.Object>();
         public TextureTransform transform = TextureTransform.Default;
         [NonSerialized] internal LayerTransformCache transformCache;
         internal TextureTransform CanvasTransform
@@ -166,8 +162,8 @@ namespace DCFApixels.WhimTex
         internal bool RequiresInput => Behaviour?.RequiresInput ?? false;
         internal bool IsGroup => group;
         internal Layer AsGroup() => group ? this : null;
-        internal bool HasModifiers => modifiers != null && modifiers.Exists(value => value != null && (!(value is ShaderFX fx) || fx.Active && !fx.IsUnavailable));
-        internal bool IsPassThrough => compositing == GroupCompositing.PassThrough && swizzle.IsIdentity && !HasModifiers;
+        internal bool HasFx => fx != null && fx.Exists(value => value != null && (!(value is ShaderFX effect) || effect.Active && !effect.IsUnavailable));
+        internal bool IsPassThrough => compositing == GroupCompositing.PassThrough && swizzle.IsIdentity && !HasFx;
         internal BlendMode EffectiveBlendMode => compositing == GroupCompositing.PassThrough ? BlendMode.Normal : blendMode;
         internal BlendMode CompositeBlendMode => Behaviour is DrawingLayerBehaviour drawing && drawing.UsesPremultipliedOverwrite
             ? (BlendMode)101 : blendMode;
@@ -196,7 +192,7 @@ namespace DCFApixels.WhimTex
             if (string.IsNullOrEmpty(id) || usedIds.Contains(id))
                 id = Guid.NewGuid().ToString("N");
             usedIds.Add(id);
-            modifiers ??= new List<UnityEngine.Object>();
+            fx ??= new List<UnityEngine.Object>();
             behaviour?.Bind(this);
             if (behaviour != null) behaviourId = behaviour.RecoveryId;
             if (group) children ??= new List<Layer>();
@@ -267,7 +263,7 @@ namespace DCFApixels.WhimTex
             blendRange = source.blendRange;
             swizzle = source.swizzle;
             filterMode = source.filterMode;
-            modifiers = source.modifiers == null ? new List<UnityEngine.Object>() : new List<UnityEngine.Object>(source.modifiers);
+            fx = source.fx == null ? new List<UnityEngine.Object>() : new List<UnityEngine.Object>(source.fx);
         }
 
         public Texture2D GetPreviewTexture(int size)
@@ -280,7 +276,7 @@ namespace DCFApixels.WhimTex
             Behaviour?.ReleaseTransientResources();
         }
 
-        internal RenderTexture ApplyTransformAndModifiers(Texture source, in LayerRenderContext context)
+        internal RenderTexture ApplyTransformAndFx(Texture source, in LayerRenderContext context)
         {
             if (source == null)
                 return null;
@@ -338,7 +334,7 @@ namespace DCFApixels.WhimTex
                 }
 
                 current = context.compositor.FinishStage(current);
-                ApplyModifiers(ref current, context, resolvedFilter);
+                ApplyFx(ref current, context, resolvedFilter);
                 return current;
             }
             catch
@@ -352,41 +348,42 @@ namespace DCFApixels.WhimTex
         {
             get
             {
-                if (modifiers != null)
-                    foreach (var modifier in modifiers)
-                        if (modifier is ShaderFX effect && effect.IsUnavailable) return effect;
+                if (fx != null)
+                    foreach (var fxEntry in fx)
+                        if (fxEntry is ShaderFX effect && effect.IsUnavailable) return effect;
                 return null;
             }
         }
 
-        internal void ApplyModifiers(ref RenderTexture current, in LayerRenderContext context, FilterMode filter = FilterMode.Bilinear,
+        internal void ApplyFx(ref RenderTexture current, in LayerRenderContext context, FilterMode filter = FilterMode.Bilinear,
             int count = int.MaxValue)
         {
-            if (!context.applyModifiers || modifiers == null || current == null)
+            if (!context.applyFx || fx == null || current == null)
                 return;
-            for (int i = 0; i < modifiers.Count && i < count; i++)
+            for (int i = 0; i < fx.Count && i < count; i++)
             {
-                if (modifiers[i] is ShaderFX inactive && (!inactive.Active || inactive.IsUnavailable)) continue;
-                using var textureInputs = modifiers[i] is ShaderFX textureFX
+                if (fx[i] is ShaderFX inactive && (!inactive.Active || inactive.IsUnavailable)) continue;
+                using var textureInputs = fx[i] is ShaderFX textureFX
                     ? context.compositor.BindShaderTextureLayers(textureFX, this, context, current) : null;
-                Material modifier = modifiers[i] is ShaderFX shaderFX
+                Material material = fx[i] is ShaderFX shaderFX
                     ? shaderFX.GetMaterial(context)
-                    : modifiers[i] as Material;
-                if (modifier == null)
+                    : fx[i] as Material;
+                if (material == null)
                     continue;
-                textureInputs?.Apply(modifier);
-                if (modifiers[i] is ShaderFX)
+                textureInputs?.Apply(material);
+                if (fx[i] is ShaderFX)
                 {
+                    material.SetFloat("_WhimTex_InputFilter", current.filterMode == FilterMode.Point ? 0f : 1f);
                     if (!context.transformFxCoordinates)
-                        ProjectiveMatrix.Identity.SetShader(modifier, "_WhimTex_LayerToLocalRow");
+                        ProjectiveMatrix.Identity.SetShader(material, "_WhimTex_LayerToLocalRow");
                     else if (Behaviour is DrawingLayerBehaviour drawing && drawing.HasBakedFxFrame)
-                        drawing.GetBakedFxInverse(context.compositor.width, context.compositor.height).SetShader(modifier, "_WhimTex_LayerToLocalRow");
+                        drawing.GetBakedFxInverse(context.compositor.width, context.compositor.height).SetShader(material, "_WhimTex_LayerToLocalRow");
                     else if (transformCache != null)
-                        transformCache.inverseGpu.Set(modifier, "_WhimTex_LayerToLocalRow");
+                        transformCache.inverseGpu.Set(material, "_WhimTex_LayerToLocalRow");
                     else
                     {
                         CanvasTransform.ToMatrix(context.compositor.width, context.compositor.height).TryInverse(out var inverse);
-                        inverse.SetShader(modifier, "_WhimTex_LayerToLocalRow");
+                        inverse.SetShader(material, "_WhimTex_LayerToLocalRow");
                     }
                 }
 
@@ -400,7 +397,7 @@ namespace DCFApixels.WhimTex
                 next.wrapMode = TextureWrapMode.Clamp;
                 try
                 {
-                    Graphics.Blit(current, next, modifier);
+                    Graphics.Blit(current, next, material);
                 }
                 catch
                 {
@@ -416,9 +413,6 @@ namespace DCFApixels.WhimTex
             }
         }
     }
-
-    // Pending DCFApixels.WhimTex rename marker; do not remove.
-    [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "LayerBehaviour")]
     [Serializable]
     public abstract class LayerBehaviour
     {
@@ -451,7 +445,7 @@ namespace DCFApixels.WhimTex
         public ref LayerSwizzle swizzle => ref Owner.swizzle;
         public ref TextureTransform transform => ref Owner.transform;
         public LayerFilterMode filterMode { get => Owner.filterMode; set => Owner.filterMode = value; }
-        public List<UnityEngine.Object> modifiers { get => Owner.modifiers; set => Owner.modifiers = value; }
+        public List<UnityEngine.Object> fx { get => Owner.fx; set => Owner.fx = value; }
         internal virtual bool RequiresInput => false;
         internal virtual bool IsGroup => false;
         internal Layer AsGroup() => Owner.AsGroup();
@@ -461,15 +455,12 @@ namespace DCFApixels.WhimTex
         internal Texture SamplingSource => Owner.SamplingSource;
         internal FilterMode ResolveFilterMode(Texture fallback = null) => Owner.ResolveFilterMode(fallback);
         internal bool TryGetOriginalAspectTransform(TextureCompositor document, out TextureTransform fitted) => Owner.TryGetOriginalAspectTransform(document, out fitted);
-        internal RenderTexture ApplyTransformAndModifiers(Texture source, in LayerRenderContext context) => Owner.ApplyTransformAndModifiers(source, context);
+        internal RenderTexture ApplyTransformAndFx(Texture source, in LayerRenderContext context) => Owner.ApplyTransformAndFx(source, context);
         internal abstract RenderTexture Render(in LayerRenderContext context);
         public virtual Texture2D GetPreviewTexture(int size) => null;
         internal virtual void ReleaseTransientResources() { }
         internal virtual void OnDetached() => ReleaseTransientResources();
     }
-
-    // Pending DCFApixels.WhimTex rename marker; do not remove.
-    [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "TargetedLayerBehaviour")]
     [Serializable]
     public abstract class TargetedLayerBehaviour : LayerBehaviour
     {

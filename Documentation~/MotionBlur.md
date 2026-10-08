@@ -23,7 +23,7 @@ source pixels or convert groups to isolated mode in the main composition.
 - **Linear:** Distance is the total exposure length in original canvas pixels, 0–512, default 16.
   Angle is −180–180 degrees, default 0 (right); positive angles turn counterclockwise.
 - **Circular:** Arc is the total swept angle, 0–360 degrees, default 15. Center is normalized
-  canvas position, `[0,0]` bottom-left to `[1,1]` top-right, default `[0.5,0.5]`.
+  canvas position, `[0,0]` bottom-left to `[1,1]` top-right, default `[0.5,0.5]`; it may lie outside the canvas.
   Rotation is computed in pixel space, so nonsquare canvases do not turn circles into ellipses.
   This is rotational blur, not zoom blur. Center is independent of the layer's output Transform pivot.
 - **Direction:** Centered distributes exposure equally to both sides; Forward trails along Angle
@@ -33,7 +33,7 @@ source pixels or convert groups to isolated mode in the main composition.
   canvas boundary, independently of preview tiling and output Transform tiling.
 
 Zero Strength, zero Distance in Linear mode, or zero Arc in Circular mode bypasses filtering while still
-applying the effect's output Transform and modifiers. Both Layer Settings and separate Properties
+applying the effect's output Transform and FX. Both Layer Settings and separate Properties
 windows use the same stable controls and existing parameter Undo path.
 
 ## Filtering and quality
@@ -71,7 +71,7 @@ is shared by Normal Map, Gaussian Blur and Motion Blur so caching and source ren
 
 Output settings, targets, source changes, dimensions and interactive quality invalidate the
 existing fingerprints. Deterministic Shader FX inputs use the same cache; arbitrary Material
-modifiers and FX with unsupported time inputs still bypass caching.
+Material FX and Shader FX with unsupported time inputs still bypass caching.
 Diagnostic masks follow existing cache behavior. Undo and document changes use existing invalidation.
 
 Working buffers are temporary GPU textures, released as soon as each stage no longer needs them
@@ -83,4 +83,4 @@ memory. No CPU pixel readback, serialized derived textures or new pixel Undo sto
 ## Automation and validation
 
 - [Agent parameters](AgentAPI.md#motion-blur-settings)
-- [Tests and manual checks](https://github.com/DCFApixels/WhimTex/blob/main/Tests~/MotionBlur.md)
+- [Tests and manual checks](https://github.com/DCFApixels/WhimTex/blob/ca8603c0961ce36064280f952259f8a6142d46cc/Tests~/Legacy/MotionBlur.md)

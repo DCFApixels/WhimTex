@@ -3,13 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.Scripting.APIUpdating;
 
 namespace DCFApixels.WhimTex
 {
-    // Pending DCFApixels.WhimTex rename marker; do not remove.
-    [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "TextureCompositor")]
-    [CreateAssetMenu(fileName = "TextureCompositor", menuName = "WhimTex/Texture Compositor")]
     public sealed partial class TextureCompositor : ScriptableObject, ISerializationCallbackReceiver
     {
         private const int MinimumOutputSize = 1;
@@ -56,7 +52,7 @@ namespace DCFApixels.WhimTex
                 return false;
             foreach (Layer layer in source)
             {
-                if (layer?.modifiers != null && layer.modifiers.Contains(effect))
+                if (layer?.fx != null && layer.fx.Contains(effect))
                     return true;
                 if (layer?.AsGroup() is Layer group && ContainsShaderFX(group.layers, effect))
                     return true;
@@ -67,7 +63,6 @@ namespace DCFApixels.WhimTex
         private void OnEnable()
         {
             NormalizeModel();
-            EnsureOutputSettingsBaseline();
             undoDeserialized = Undo.isProcessing;
             CaptureNativeUndoVersions();
         }
@@ -82,7 +77,6 @@ namespace DCFApixels.WhimTex
             ForgetLayerPreviewCache();
             WhimTexDocumentSession.StopFor(this, "document disabled");
             ReleaseLayerThumbnails();
-            StopLiveOutput();
             ReleaseOriginalFileTextureCache();
             ReleaseLayerResources(layers, preserveDrawingPixels: true);
             ReleaseDiagnostics();
@@ -104,19 +98,19 @@ namespace DCFApixels.WhimTex
             ShaderFX effect = ShaderFX.CreateEmbedded(this);
             Undo.RecordObject(this, "Add Shader FX");
             embeddedShaderFX.Add(effect);
-            layer.modifiers.Add(effect);
+            layer.fx.Add(effect);
             return effect;
         }
 
         internal void EmbedShaderFX(Layer layer, int index)
         {
-            if (!(layer.modifiers[index] is ShaderFX source))
+            if (!(layer.fx[index] is ShaderFX source))
                 return;
             ShaderFX copy = source.CloneForDocument(this);
             Undo.RegisterCreatedObjectUndo(copy, "Embed Shader FX");
             Undo.RecordObject(this, "Embed Shader FX");
             embeddedShaderFX.Add(copy);
-            layer.modifiers[index] = copy;
+            layer.fx[index] = copy;
         }
 
         internal void AddCatalogShaderFX(Layer layer, ShaderFXCatalog.Entry entry)
@@ -126,14 +120,7 @@ namespace DCFApixels.WhimTex
             catch (Exception error) { Debug.LogError("WhimTex FX: " + error.Message); return; }
             Undo.RecordObject(this, "Add Catalog FX");
             AdoptAgentShaderFX(effect, "Add Catalog FX");
-            layer.modifiers.Add(effect);
-        }
-
-        internal void PersistEmbeddedShaderFX()
-        {
-            foreach (ShaderFX effect in embeddedShaderFX)
-                if (effect != null)
-                    effect.PersistEmbedded(this);
+            layer.fx.Add(effect);
         }
 
         internal void AdoptAgentShaderFX(ShaderFX effect, string undoName)
@@ -170,53 +157,22 @@ namespace DCFApixels.WhimTex
             EditorUtility.SetDirty(this);
         }
 
-        internal void CloneEmbeddedShaderFX()
-        {
-            embeddedShaderFX = new List<ShaderFX>();
-            Dictionary<ShaderFX, ShaderFX> copies = new Dictionary<ShaderFX, ShaderFX>();
-            CloneIn(layers);
-            void CloneIn(List<Layer> source)
-            {
-                if (source == null)
-                    return;
-                foreach (Layer layer in source)
-                {
-                    if (layer == null)
-                        continue;
-                    if (layer.modifiers != null)
-                        for (int i = 0; i < layer.modifiers.Count; i++)
-                            if (layer.modifiers[i] is ShaderFX effect && effect.EmbeddedOwner != null)
-                            {
-                                if (!copies.TryGetValue(effect, out ShaderFX copy))
-                                {
-                                    copy = effect.CloneForDocument(this);
-                                    copies.Add(effect, copy);
-                                    embeddedShaderFX.Add(copy);
-                                }
-                                layer.modifiers[i] = copy;
-                            }
-                    if (layer?.AsGroup() is Layer group)
-                        CloneIn(group.layers);
-                }
-            }
-        }
-
-        public Texture2D Compose()
+        public Texture2D ComposeCanvas()
         {
             NormalizeModel();
-            return ComposeAtSize(width, height, 1f);
+            return ComposeCanvasAtSize(width, height, 1f);
         }
 
-        internal Texture2D ComposePreview(int maxSize)
+        internal Texture2D ComposeCanvas(int maxSize)
         {
-            GetPreviewDimensions(maxSize, out int previewWidth, out int previewHeight, out float scaleMultiplier);
-            return ComposeAtSize(previewWidth, previewHeight, scaleMultiplier);
+            GetCanvasRenderSize(maxSize, out int renderWidth, out int renderHeight, out float scaleMultiplier);
+            return ComposeCanvasAtSize(renderWidth, renderHeight, scaleMultiplier);
         }
 
-        internal RenderTexture RenderPreview(int maxSize)
+        internal RenderTexture RenderCanvas(int maxSize)
         {
-            GetPreviewDimensions(maxSize, out int previewWidth, out int previewHeight, out float scaleMultiplier);
-            return RenderComposite(previewWidth, previewHeight, scaleMultiplier);
+            GetCanvasRenderSize(maxSize, out int renderWidth, out int renderHeight, out float scaleMultiplier);
+            return RenderCanvasCore(renderWidth, renderHeight, scaleMultiplier);
         }
 
         internal RenderTexture RenderLayerPreview(Layer layer, int maxSize) =>
@@ -243,8 +199,8 @@ namespace DCFApixels.WhimTex
 
         // Snapshot the complete visible composition for tools that need to sample
         // the final result without changing the layer being edited.
-        internal RenderTexture RenderAllLayers(int outputWidth, int outputHeight) =>
-            RenderComposite(outputWidth, outputHeight, 1f);
+        internal RenderTexture RenderCanvasAtSize(int outputWidth, int outputHeight) =>
+            RenderCanvasCore(outputWidth, outputHeight, 1f);
 
         internal RenderTexture RenderAgentLayerPreview(Layer layer, int maxSize) =>
             RenderLayerPreviewCore(layer, maxSize, true, true);
@@ -255,20 +211,20 @@ namespace DCFApixels.WhimTex
                 return null;
 
             RefreshTransformHierarchy();
-            // Unlike RenderComposite, these paths enter layer rendering directly.
+            // Unlike RenderCanvasCore, these paths enter layer rendering directly.
             // Do not leave their temporary output bound in the caller's render state.
             RenderTexture previous = RenderTexture.active;
             try
             {
-                GetPreviewDimensions(maxSize, out int previewWidth, out int previewHeight, out float scaleMultiplier);
+                GetCanvasRenderSize(maxSize, out int renderWidth, out int renderHeight, out float scaleMultiplier);
                 if (preserveGroupColor && layer?.AsGroup() is Layer group)
-                    return RenderGroupEffectInput(group, previewWidth, previewHeight, scaleMultiplier,
+                    return RenderGroupEffectInput(group, renderWidth, renderHeight, scaleMultiplier,
                         new HashSet<Layer>(), preserveColor: true, includeDisabled: includeDisabled);
                 return RenderStandalone(
                     container,
                     index,
-                    previewWidth,
-                    previewHeight,
+                    renderWidth,
+                    renderHeight,
                     scaleMultiplier,
                     new HashSet<Layer>(), includeDisabled: includeDisabled);
             }
@@ -309,7 +265,7 @@ namespace DCFApixels.WhimTex
                 else
                 {
                     rendered = RenderStandalone(container, index, width, height, 1f, new HashSet<Layer>(),
-                        applyTransform: applyTransform, applyModifiers: false, includeDisabled: true, applyClipping: false);
+                        applyTransform: applyTransform, applyFx: false, includeDisabled: true, applyClipping: false);
                     if (rendered == null)
                         rendered = GetClearRenderTexture(width, height);
                 }
@@ -597,12 +553,6 @@ namespace DCFApixels.WhimTex
             undoDeserialized = false;
             NormalizeModel();
             RemoveUnusedEmbeddedShaderFX();
-            if (AssetDatabase.Contains(this))
-            {
-                PersistEmbeddedShaderFX();
-                PersistDrawingLayerTextures();
-                EditorUtility.SetDirty(this);
-            }
             CaptureNativeUndoVersions();
             Changed?.Invoke(this);
         }
@@ -610,26 +560,6 @@ namespace DCFApixels.WhimTex
         internal void SyncDrawingLayerTextures()
         {
             VisitDrawingLayers(layers, drawing => drawing.SyncPendingSurfaceToTexture());
-        }
-
-        internal void CloneDrawingLayerTextures()
-        {
-            VisitDrawingLayers(layers, drawing => drawing.CloneStoredTexture());
-        }
-
-        internal void PersistDrawingLayerTextures(bool reimport = true)
-        {
-            if (!AssetDatabase.Contains(this))
-                return;
-
-            bool addedTexture = false;
-            VisitDrawingLayers(layers, drawing => addedTexture |= drawing.MakeTexturePersistent(this));
-            if (!addedTexture || !reimport)
-                return;
-
-            string assetPath = AssetDatabase.GetAssetPath(this);
-            if (!string.IsNullOrEmpty(assetPath))
-                AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceUpdate);
         }
 
         internal void InvalidateDrawingLayerSurfaces()
@@ -685,9 +615,9 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private Texture2D ComposeAtSize(int outputWidth, int outputHeight, float scaleMultiplier)
+        private Texture2D ComposeCanvasAtSize(int outputWidth, int outputHeight, float scaleMultiplier)
         {
-            RenderTexture composite = RenderComposite(outputWidth, outputHeight, scaleMultiplier);
+            RenderTexture composite = RenderCanvasCore(outputWidth, outputHeight, scaleMultiplier);
             try
             {
                 Texture2D result = HdrUtility.ReadLinear(composite);
@@ -700,7 +630,7 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private RenderTexture RenderComposite(int outputWidth, int outputHeight, float scaleMultiplier)
+        private RenderTexture RenderCanvasCore(int outputWidth, int outputHeight, float scaleMultiplier)
         {
             RefreshTransformHierarchy();
             EffectRenderCache localCache = null;
@@ -846,7 +776,7 @@ namespace DCFApixels.WhimTex
                         try
                         {
                             CompositeLayers(group.layers, ref result, w, h, scale, stack, included);
-                            group.ApplyModifiers(ref result, new LayerRenderContext(this, null, w, h, scale, false, true));
+                            group.ApplyFx(ref result, new LayerRenderContext(this, null, w, h, scale, false, true));
                             result = FinishStage(result, group.colorRange == LayerColorRange.Standard, group.swizzle);
                             return result;
                         }
@@ -864,7 +794,7 @@ namespace DCFApixels.WhimTex
                     CompositeLayers(group.layers, ref content, w, h, scale, stack, included, localAccumulator: !passThrough);
                     if (!passThrough)
                     {
-                        group.ApplyModifiers(ref content, new LayerRenderContext(this, null, w, h, scale, false, true));
+                        group.ApplyFx(ref content, new LayerRenderContext(this, null, w, h, scale, false, true));
                         content = FinishStage(content, group.colorRange == LayerColorRange.Standard, group.swizzle);
                     }
                 }
@@ -883,7 +813,7 @@ namespace DCFApixels.WhimTex
             float scaleMultiplier,
             HashSet<Layer> renderStack,
             bool applyTransform = true,
-            bool applyModifiers = true,
+            bool applyFx = true,
             bool includeDisabled = false,
             bool applyClipping = true,
             bool finishLayer = true, RenderTexture accumulatedInput = null)
@@ -938,12 +868,12 @@ namespace DCFApixels.WhimTex
                     outputHeight,
                     scaleMultiplier,
                     applyTransform,
-                    applyModifiers);
+                    applyFx);
                 RenderTexture raw = layer.Render(context);
                 try
                 {
                     if (finishLayer)
-                        raw = FinishStage(raw, layer.colorRange == LayerColorRange.Standard, applyModifiers ? layer.swizzle : default);
+                        raw = FinishStage(raw, layer.colorRange == LayerColorRange.Standard, applyFx ? layer.swizzle : default);
                     if (applyClipping && raw != null && layer.clippingMask)
                         ApplyClippingCoverage(ref raw, container, index, outputWidth, outputHeight, scaleMultiplier, renderStack);
                     return raw;
@@ -1064,7 +994,7 @@ namespace DCFApixels.WhimTex
                 // Render only the group's own content against transparency, never its external backdrop.
                 // This also respects nested opacity and alpha-replacing blend modes.
                 CompositeLayers(group.layers, ref mask, outputWidth, outputHeight, scaleMultiplier, renderStack);
-                group.ApplyModifiers(ref mask, new LayerRenderContext(this, null, outputWidth, outputHeight, scaleMultiplier, false, true));
+                group.ApplyFx(ref mask, new LayerRenderContext(this, null, outputWidth, outputHeight, scaleMultiplier, false, true));
                 if (preserveColor || !group.swizzle.IsIdentity)
                     mask = FinishStage(mask, group.colorRange == LayerColorRange.Standard, group.swizzle);
                 if (group.clippingMask && TryFindLayer(group, out var container, out int index))
@@ -1157,13 +1087,13 @@ namespace DCFApixels.WhimTex
             return result;
         }
 
-        private void GetPreviewDimensions(int maxSize, out int previewWidth, out int previewHeight, out float scaleMultiplier)
+        private void GetCanvasRenderSize(int maxSize, out int renderWidth, out int renderHeight, out float scaleMultiplier)
         {
             maxSize = Mathf.Max(1, maxSize);
             float scale = Mathf.Min(1f, (float)maxSize / Mathf.Max(width, height));
-            previewWidth = Mathf.Max(1, Mathf.RoundToInt(width * scale));
-            previewHeight = Mathf.Max(1, Mathf.RoundToInt(height * scale));
-            scaleMultiplier = Mathf.Max((float)width / previewWidth, (float)height / previewHeight);
+            renderWidth = Mathf.Max(1, Mathf.RoundToInt(width * scale));
+            renderHeight = Mathf.Max(1, Mathf.RoundToInt(height * scale));
+            scaleMultiplier = Mathf.Max((float)width / renderWidth, (float)height / renderHeight);
         }
 
         private void CollectEffectTargetOptions(
@@ -1217,9 +1147,9 @@ namespace DCFApixels.WhimTex
             if (!visited.Add(candidate))
                 return false;
 
-            if (candidate.modifiers != null)
-                foreach (var modifier in candidate.modifiers)
-                    if (modifier is ShaderFX fx)
+            if (candidate.fx != null)
+                foreach (var fxEntry in candidate.fx)
+                    if (fxEntry is ShaderFX fx)
                         foreach (var parameter in fx.TextureLayerParameters())
                             if (LayerDependsOn(FindLayer(parameter.textureLayerId), soughtLayer, visited)) return true;
 

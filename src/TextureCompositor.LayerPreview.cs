@@ -21,7 +21,7 @@ namespace DCFApixels.WhimTex
             if (layer == null || !layer.IsGroup) return RenderLayerPreview(layer, maxSize);
             if (!layer.enabled || !TryFindLayer(layer, out var container, out int index)) return null;
             RefreshTransformHierarchy();
-            GetPreviewDimensions(maxSize, out int w, out int h, out float scale);
+            GetCanvasRenderSize(maxSize, out int w, out int h, out float scale);
             var previous = RenderTexture.active;
             var stack = new HashSet<Layer>();
             RenderTexture result = null;
@@ -51,7 +51,7 @@ namespace DCFApixels.WhimTex
             lastLayerPreviewCache.BeginFrame(this, lastLayerPreviewPainting);
             ulong stamp = lastLayerPreviewCache.Stamp(layer);
             if (stamp == 0) return false;
-            GetPreviewDimensions(lastLayerPreviewSize, out int w, out int h, out float scale);
+            GetCanvasRenderSize(lastLayerPreviewSize, out int w, out int h, out float scale);
             string kind = layer.IsGroup ? "group-composite" : layer.Behaviour is ShaderProcessorLayerBehaviour ? "processor" : "effect";
             string key = layer.Id + "/" + kind + "/debug";
             if (lastLayerPreviewCache.TryGet(key, stamp, w, h, scale, lastLayerPreviewInteractive, true, out pixels, out _, out _)) return true;

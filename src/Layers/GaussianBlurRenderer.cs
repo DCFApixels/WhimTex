@@ -13,7 +13,7 @@ namespace DCFApixels.WhimTex
             EdgeMode edges = layer.edges;
             float amount = float.IsNaN(strength) || float.IsInfinity(strength) ? 1f : Mathf.Clamp(strength, 0f, MaximumStrength);
             float pixels = Mathf.Clamp(float.IsNaN(radius) ? 0f : radius, 0f, MaximumRadius) / context.scaleMultiplier;
-            if (amount == 0f || pixels <= .0001f) return layer.ApplyTransformAndModifiers(context.input, context);
+            if (amount == 0f || pixels <= .0001f) return layer.ApplyTransformAndFx(context.input, context);
             Material material = WhimTexMaterials.GaussianBlur;
             if (material == null) throw new InvalidOperationException("Gaussian Blur shader is unavailable.");
             RenderTexture current = null, scratch = null, straight = null;
@@ -43,17 +43,17 @@ namespace DCFApixels.WhimTex
                 float variance = reduction == 1 ? 0f : (3f * reduction * reduction - 1f) / 12f;
                 sigma = Mathf.Sqrt(Mathf.Max(.01f, sigma * sigma - variance));
                 scratch = Allocate(current.width, current.height);
-                SetKernel(material, sigma * current.width / context.width, pixels * current.width / context.width);
+                GaussianKernel.Set(material, sigma * current.width / context.width, pixels * current.width / context.width);
                 material.SetVector("_Direction", new Vector4(1f / current.width, 0f, 0f, 0f));
                 Graphics.Blit(current, scratch, material, 2);
-                SetKernel(material, sigma * current.height / context.height, pixels * current.height / context.height);
+                GaussianKernel.Set(material, sigma * current.height / context.height, pixels * current.height / context.height);
                 material.SetVector("_Direction", new Vector4(0f, 1f / current.height, 0f, 0f));
                 Graphics.Blit(scratch, current, material, 2);
                 straight = Allocate(context.width, context.height);
                 material.SetFloat("_Strength", amount);
                 material.SetTexture("_SourceTex", amount < 1f ? context.input : null);
                 Graphics.Blit(current, straight, material, 3);
-                return layer.ApplyTransformAndModifiers(straight, context);
+                return layer.ApplyTransformAndFx(straight, context);
             }
             finally
             {
@@ -66,26 +66,6 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private static readonly Vector4[] Kernel = new Vector4[128];
-        private static void SetKernel(Material material, float sigma, float support)
-        {
-            int extent = Mathf.Clamp(Mathf.CeilToInt(support), 1, 256);
-            double divisor = 2d * Math.Max(.0001d, sigma * sigma);
-            double total = 1d;
-            int count = 0;
-            for (int i = 1; i <= extent; i += 2)
-            {
-                double a = Math.Exp(-(double)i * i / divisor);
-                double b = i + 1 <= extent ? Math.Exp(-(double)(i + 1) * (i + 1) / divisor) : 0d;
-                double weight = a + b;
-                Kernel[count++] = new Vector4((float)(i + (weight > 0d ? b / weight : 0d)), (float)weight, 0f, 0f);
-                total += 2d * weight;
-            }
-            for (int i = 0; i < count; i++) Kernel[i].y /= (float)total;
-            material.SetFloat("_CenterWeight", (float)(1d / total));
-            material.SetInt("_PairCount", count);
-            material.SetVectorArray("_Kernel", Kernel);
-        }
 
         private static RenderTexture Allocate(int width, int height)
         {

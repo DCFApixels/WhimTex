@@ -67,17 +67,13 @@ namespace DCFApixels.WhimTex
             Keys(request, "apiVersion", "assetPath", "create", "width", "height", "expectedRevision", "dryRun", "save", "operations");
             Require(Int(request, "apiVersion", 0, 0, int.MaxValue) == ProtocolVersion, "apiVersion must be 1.");
             string path = DocumentPath(Text(request, "assetPath"));
-            bool tiff = IsTiffPath(path) || WhimTexDocumentJson.IsJsonPath(path);
-            Require(!tiff || !tiffLiveSessions.Values.Any(session => string.Equals(session.path, path, StringComparison.OrdinalIgnoreCase)),
+            Require(!tiffLiveSessions.Values.Any(session => string.Equals(session.path, path, StringComparison.OrdinalIgnoreCase)),
                 "This TIFF has an active independent live session. Complete or cancel it first.", "live_session_active");
             Require(!liveJobs.Values.Any(j => j.editing && j.state == "pending" && j.document != null &&
                 string.Equals(DocumentAssetPath(j.document), path, StringComparison.OrdinalIgnoreCase)), "This document has a live edit lock. Use its live job or release the lock first.", "layer_locked");
             bool create = Bool(request, "create");
             bool dryRun = Bool(request, "dryRun");
             bool save = Bool(request, "save", true);
-            Require(tiff || (!create && dryRun),
-                "Legacy .asset documents are read-only for agent batches. Use a .tiff assetPath for create/edit/save, or use whimtex_document_migrate.",
-                "legacy_read_only");
             Require(!create || save || dryRun, "Creating a document requires save=true.");
             Require(create || (request["width"] == null && request["height"] == null), "width/height are only accepted on create.");
             int width = Int(request, "width", 512, 1, 16384);
@@ -97,12 +93,8 @@ namespace DCFApixels.WhimTex
                 }
                 else
                 {
-                    if (tiff)
-                    {
-                        tiffBuild = WhimTexDocumentBuild.Open(path);
-                        document = tiffBuild.Document;
-                    }
-                    else document = Load(path);
+                    tiffBuild = WhimTexDocumentBuild.Open(path);
+                    document = tiffBuild.Document;
                     Require(!TextureCompositorWindow.IsDocumentBusyForApi(document), "Finish the current paint/transform gesture first.", "document_busy");
                     string expected = Text(request, "expectedRevision");
                     Require(!string.IsNullOrEmpty(expected), "Inspect first and supply expectedRevision when editing an existing document.", "revision_required");
@@ -118,14 +110,13 @@ namespace DCFApixels.WhimTex
                     probeBuild = WhimTexDocumentBuild.Create(width, height);
                     probe = probeBuild.Document;
                 }
-                else if (tiff)
+                else
                 {
                     // Object.Instantiate would leave a TIFF's non-serialized deferred descriptors behind
                     // and could share a materialized Drawing texture. Build.Copy owns an independent model.
                     probeBuild = WhimTexDocumentBuild.Copy(document);
                     probe = probeBuild.Document;
                 }
-                else probe = Object.Instantiate(document);
                 int operationIndex = -1;
                 try
                 {
@@ -165,19 +156,12 @@ namespace DCFApixels.WhimTex
                 }
                 finally
                 {
-                    if (probeBuild != null) probeBuild.Dispose();
-                    else
-                    {
-                        probe.layers.Clear();
-                        Object.DestroyImmediate(probe);
-                    }
+                    probeBuild.Dispose();
                 }
 
                 RequireGraphics();
                 if (create)
                 {
-                    // Creation is deliberately TIFF-only. Legacy ScriptableObject documents are
-                    // accepted for read/dry-run/migration, never as a writable API destination.
                     tiffBuild = WhimTexDocumentBuild.Create(width, height);
                     document = tiffBuild.Document;
                 }
@@ -207,14 +191,10 @@ namespace DCFApixels.WhimTex
                     {
                         saving = true;
                         EnsureAssetFolder(path);
-                        if (tiff)
-                        {
-                            tiffBuild.Save(path);
-                            tiffBuild.Dispose();
-                            tiffBuild = WhimTexDocumentBuild.Open(path);
-                            document = tiffBuild.Document;
-                        }
-                        else throw new WhimTexApiException("TIFF is required for a writable agent batch.", "legacy_read_only");
+                        tiffBuild.Save(path);
+                        tiffBuild.Dispose();
+                        tiffBuild = WhimTexDocumentBuild.Open(path);
+                        document = tiffBuild.Document;
                     }
                     JObject result = Success();
                     result["applied"] = true;
@@ -261,7 +241,6 @@ namespace DCFApixels.WhimTex
                 {
                     Undo.IncrementCurrentGroup();
                     if (document != null) document.InvalidateDrawingLayerSurfaces();
-                    if (tiffBuild == null && create && document != null && !AssetDatabase.Contains(document)) Object.DestroyImmediate(document);
                 }
             }
             finally { tiffBuild?.Dispose(); }
@@ -285,9 +264,9 @@ namespace DCFApixels.WhimTex
                 if (layer?.Behaviour is FileLayerBehaviour file && file.sourceTexture != null)
                     Require(!string.Equals(AssetDatabase.GetAssetPath(file.sourceTexture), path, StringComparison.OrdinalIgnoreCase),
                         "A document cannot sample its own saved output texture.", "invalid_target");
-                if (!string.IsNullOrEmpty(path) && layer.modifiers != null)
-                    foreach (var modifier in layer.modifiers)
-                        if (modifier is ShaderFX fx)
+                if (!string.IsNullOrEmpty(path) && layer.fx != null)
+                    foreach (var fxEntry in layer.fx)
+                        if (fxEntry is ShaderFX fx)
                             foreach (var parameter in fx.Parameters)
                                 if (parameter != null && parameter.type == ShaderFXParameterType.Texture2D &&
                                     parameter.textureSource == ShaderFXTextureSource.Texture && parameter.textureValue != null)

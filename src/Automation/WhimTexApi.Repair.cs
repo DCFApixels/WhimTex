@@ -13,7 +13,9 @@ namespace DCFApixels.WhimTex
         private static void PaintRepair(TextureCompositor document, Layer target, JObject operation, bool execute)
         {
             bool healing = Text(operation, "op") == "healStroke";
+            bool smudge = Text(operation, "op") == "smudgeStroke";
             if (healing) Keys(operation, "op", "layer", "points", "size", "hardness", "source", "tiled", "search", "quality", "seed", "transparentOnly", "maskPath");
+            else if (smudge) Keys(operation, "op", "layer", "points", "size", "hardness", "source", "tiled", "strength", "flow", "mixing");
             else Keys(operation, "op", "layer", "points", "size", "hardness", "source", "tiled", "strength", "flow");
             Require(target.Behaviour is DrawingLayerBehaviour, "Repair requires Drawing. Convert explicitly first.");
             var drawing = (DrawingLayerBehaviour)target.Behaviour;
@@ -26,7 +28,9 @@ namespace DCFApixels.WhimTex
             var quality = healing ? Enum(operation, "quality", HealingQuality.Balanced) : HealingQuality.Fast;
             int seed = healing ? Int(operation, "seed", 1, int.MinValue, int.MaxValue) : 0;
             bool transparentOnly = healing && Bool(operation, "transparentOnly");
-            float strength = healing ? 1 : Number(operation, "strength", 1, 0, 1) * Number(operation, "flow", 1, 0, 1);
+            float flow = healing ? 1 : Number(operation, "flow", 1, 0, 1);
+            float mixing = smudge ? Number(operation, "mixing", .25f, 0, 1) : 1;
+            float strength = healing ? 1 : Number(operation, "strength", smudge ? .8f : 1, 0, 1) * (smudge ? 1 : flow);
             var transform = document.GetPaintTransform(drawing);
             Require(transform.ToMatrix(width, height).TryInverse(out var inverse), "Repair needs an invertible transform.");
             Require(transform.tiling == TransformTilingMode.Clip || transform.tiling == TransformTilingMode.Unbounded,
@@ -56,29 +60,64 @@ namespace DCFApixels.WhimTex
                     if (i > 0) distance += Vector2.Distance(points[i], points[i - 1]);
                 }
                 Require(distance / Math.Max(.5f, size * .05f) + points.Length <= 32768, "Repair stroke exceeds the stamp limit.", "resource_limit");
+                float tipSize = size;
+                Require(!smudge || distance / DrawingLayerBehaviour.SmudgeSpacing(tipSize) + points.Length <= 32768,
+                    "Smudge stroke exceeds the stamp limit.", "resource_limit");
+                if (smudge)
+                {
+                    // Native Drawing detail is no longer reduced to a canvas-sized tip.
+                    // Dry run must account for the same source-space footprint as rendering.
+                    var native = drawing.StoredTexture;
+                    int sourceWidth = source == "CurrentLayer" && native != null ? native.width : width;
+                    int sourceHeight = source == "CurrentLayer" && native != null ? native.height : height;
+                    Require(mixing >= 1 || (long)sourceWidth * sourceHeight <= DrawingLayerBehaviour.SmudgeMaximumCarryPixels,
+                        "Smudge deformation snapshot exceeds the native-pixel buffer budget; use a smaller source or mixing:1.", "resource_limit");
+                    var toColor = source == "CurrentLayer" ? inverse : ProjectiveMatrix.Identity;
+                    int maximumWidth = 0, maximumHeight = 0;
+                    foreach (Vector2 point in points)
+                    {
+                        Vector2 center = new Vector2(point.x / width, point.y / height);
+                        if (tiled) center = TiledCanvasUtility.Wrap(center);
+                        Vector2Int footprint;
+                        try { footprint = DrawingLayerBehaviour.SmudgeCarrySize(toColor, sourceWidth, sourceHeight, center, tipSize, width, height); }
+                        catch (InvalidOperationException error) { throw new WhimTexApiException("resource_limit", error.Message); }
+                        maximumWidth = Math.Max(maximumWidth, footprint.x); maximumHeight = Math.Max(maximumHeight, footprint.y);
+                    }
+                    long pixels = (long)maximumWidth * maximumHeight;
+                    Require(pixels <= DrawingLayerBehaviour.SmudgeMaximumCarryPixels, "Smudge native-pixel tip exceeds the buffer budget.", "resource_limit");
+                    Require(distance / DrawingLayerBehaviour.SmudgeSpacing(tipSize) * pixels <= 268435456,
+                        "Smudge stroke exceeds the native tip-pixel budget; use a smaller tip or shorter path.", "resource_limit");
+                }
             }
             Require(!healing || (long)width * height <= HealingBrushUtility.MaximumWorkingPixels, "Healing API currently supports canvases up to 1,048,576 pixels.", "resource_limit");
-            Require(healing || (long)width * height * points.Length <= 67108864, "Blur stroke exceeds the pixel-pass budget; simplify the path.", "resource_limit");
+            Require(healing || smudge || (long)width * height * points.Length <= 67108864, "Blur stroke exceeds the pixel-pass budget; simplify the path.", "resource_limit");
             if (!execute) return;
             RenderTexture sample = null;
             RenderTexture previous = RenderTexture.active;
             try
             {
                 drawing.PrepareStroke(width, height, UndoName);
-                sample = source == "AllLayers" ? document.RenderAllLayers(width, height) :
+                sample = source == "AllLayers" ? document.RenderCanvasAtSize(width, height) :
                     source == "CurrentAndBelow" ? document.RenderLayerAndBelow(target, width, height) :
-                    healing ? target.Render(new LayerRenderContext(document, null, width, height, 1, applyModifiers: false)) : drawing.CaptureBlurSource(width, height);
-                Require(sample != null, "No repair source available.");
+                    healing ? target.Render(new LayerRenderContext(document, null, width, height, 1, applyFx: false)) :
+                    smudge ? null : drawing.CaptureBlurSource(width, height);
+                Require(smudge && source == "CurrentLayer" || sample != null, "No repair source available.");
                 if (healing) HealPixels(document, drawing, sample, points, suppliedMask, size, hardness, search, tiled, quality, seed, transparentOnly, inverse);
                 else
                 {
                     Vector2 dimensions = new Vector2(width, height);
                     Vector2 last = transform.Unmap(points[0] / dimensions, dimensions);
-                    drawing.BlurSegment(last, last, width, height, size, hardness, strength, sample, tiled);
+                    if (smudge)
+                    {
+                        drawing.BeginStroke(last);
+                        drawing.BeginSmudgeStroke(last, width, height, size, sample, tiled, mixing);
+                    }
+                    else drawing.BlurSegment(last, last, width, height, size, hardness, strength, sample, tiled);
                     for (int i = 1; i < points.Length; i++)
                     {
                         Vector2 next = transform.Unmap(points[i] / dimensions, dimensions);
-                        drawing.BlurSegment(last, next, width, height, size, hardness, strength, sample, tiled);
+                        if (smudge) drawing.SmudgeSegment(last, next, width, height, hardness, strength, flow);
+                        else drawing.BlurSegment(last, next, width, height, size, hardness, strength, sample, tiled);
                         last = next;
                     }
                 }
@@ -87,6 +126,7 @@ namespace DCFApixels.WhimTex
             finally
             {
                 RenderTexture.active = previous;
+                if (smudge) drawing.EndStroke();
                 if (sample != null) RenderTexture.ReleaseTemporary(sample);
             }
         }

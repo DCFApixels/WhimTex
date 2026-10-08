@@ -77,10 +77,6 @@ namespace DCFApixels.WhimTex
                     undoGroup = Undo.GetCurrentGroup();
                     Undo.SetCurrentGroupName(undoName);
                 }
-                foreach (DrawingLayerBehaviour drawing in drawings)
-                    drawing.MakeTexturePersistent(this);
-                foreach (ShaderFX effect in effects.Values)
-                    effect.PersistEmbedded(this);
                 if (recordUndo)
                 {
                     foreach (Texture2D texture in textures)
@@ -174,16 +170,16 @@ namespace DCFApixels.WhimTex
                     sourceDocument.TryFindLayer(source, out List<Layer> sourceContainer, out int sourceIndex))
                     previousInputs.Add((TargetedLayerBehaviour)copy,
                         sourceIndex + 1 < sourceContainer.Count ? sourceContainer[sourceIndex + 1] : null);
-                if (copy.modifiers != null)
-                    for (int i = 0; i < copy.modifiers.Count; i++)
-                        if (copy.modifiers[i] is ShaderFX effect && (effect.EmbeddedOwner != null || effect.HasLayerTextureSources))
+                if (copy.fx != null)
+                    for (int i = 0; i < copy.fx.Count; i++)
+                        if (copy.fx[i] is ShaderFX effect && (effect.EmbeddedOwner != null || effect.HasLayerTextureSources))
                         {
                             if (!effects.TryGetValue(effect, out ShaderFX effectCopy))
                             {
                                 effectCopy = effect.CloneForDocument(this);
                                 effects.Add(effect, effectCopy);
                             }
-                            copy.modifiers[i] = effectCopy;
+                            copy.fx[i] = effectCopy;
                         }
                 if (source?.AsGroup() is Layer sourceGroup && copy?.AsGroup() is Layer copyGroup)
                 {

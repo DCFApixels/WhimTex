@@ -1,12 +1,9 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Scripting.APIUpdating;
 
 namespace DCFApixels.WhimTex
 {
-    // Pending DCFApixels.WhimTex rename marker; do not remove.
-    [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "NormalMapLayerBehaviour")]
     [Serializable]
     public sealed class NormalMapLayerBehaviour : TargetedLayerBehaviour
     {
@@ -122,7 +119,7 @@ namespace DCFApixels.WhimTex
                 material.SetFloat("_Encoding", (int)encoding);
                 var result = Allocate(true);
                 Graphics.Blit(context.input, result, material, 2);
-                return ApplyTransformAndModifiers(result, context);
+                return ApplyTransformAndFx(result, context);
             }
             finally
             {

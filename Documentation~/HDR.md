@@ -42,7 +42,9 @@ imported sRGB setting. Source import settings are never changed by the composito
 ## Color compatibility
 
 Swizzle remaps straight linear RGBA after FX and before Color Range. The four selectors accept
-`R`, `G`, `B`, `A`, `1-R`, `1-G`, `1-B`, `1-A`, `0`, `1`, `R * A`, `G * A`, `B * A`;
+`R`, `G`, `B`, `A`, `1-R`, `1-G`, `1-B`, `1-A`, `0`, `1`, `R * A`, `G * A`, `B * A`,
+`Luminance`, `Luminance * A`. Luminance is `dot(RGB, (0.2126, 0.7152, 0.0722))` in linear space;
+it preserves signed/HDR values until the layer's Color Range is applied. All mappings read the original RGBA;
 products use the original input alpha, and inversion means literal `1 - channel`
 in linear space. Alpha is clamped to 0–1 after remapping. Identity is serialized as zero, so old
 documents keep `R G B A`. A nonidentity group Swizzle forces isolation; a Pass Through group
@@ -54,11 +56,10 @@ Brush uniforms and newly applied Shader FX color uniforms use vector properties 
 Color-to-linear conversion occurs once, not both in C# and Unity's material upload. Previously applied
 FX with native Color properties remain supported without reapplying their code.
 
-Legacy Color Fill layers used their stored RGB directly in linear projects. Those serialized values
-retain that interpretation; the picker, API and PSD solid-color metadata expose the corresponding
-encoded color. Editing a color switches that layer to explicit encoded storage. This is tracked in
-the serialized layer, so reopening, copying and Undo do not repeatedly convert it. In C#, `color`
-is now a property; existing serialized `color` fields are read through `FormerlySerializedAs`.
+Color Fill stores encoded RGB in `storedColor` and decodes it once for the linear render.
+The picker, API and PSD solid-color metadata use that encoded value. The C# `color` property
+accesses the same field. Files saved by 0.12.5 use this canonical representation; earlier
+Color Fill storage must be normalized in 0.12.5 before upgrading.
 
 These compatibility rules do not rewrite Drawing pixels or imported textures. Strokes already painted
 with incorrect color conversion have that color baked into their pixels; they cannot be automatically
@@ -108,7 +109,7 @@ The gradient editor's document-local History is a shared swatch/drag implementat
 
 ### Channel-adapted display
 
-`WhimTexColorField.UseCanvasChannels` explicitly opts document-color inputs into channel display; service colors remain ordinary. `WhimTexColorInputs.Bind` opts in layer/brush/FX bindings. An ancestor channel provider identifies the originating compositor window; detached Properties/gradient inputs fall back only to a unique open window for that document. Ambiguous or unavailable ownership uses ordinary display, never the focused unrelated document. Gradient sessions carry the originating provider into their detached editor and key picker. Layer Preview masks are not sources. The obsolete `UsePreviewChannels` property forwards to `UseCanvasChannels` for existing integrations.
+`WhimTexColorField.UseCanvasChannels` explicitly opts document-color inputs into channel display; service colors remain ordinary. `WhimTexColorInputs.Bind` opts in layer/brush/FX bindings. An ancestor channel provider identifies the originating compositor window; detached Properties/gradient inputs fall back only to a unique open window for that document. Ambiguous or unavailable ownership uses ordinary display, never the focused unrelated document. Gradient sessions carry the originating provider into their detached editor and key picker. Layer Preview masks are not sources.
 
 The persistent `Channels` preference changes rendering only. Two/three active RGB channels zero excluded components; one RGB component is grayscale; alpha-only is opaque grayscale alpha; no channels is black. Numeric RGB/HSV/HEX, HDR intensity, callbacks, History and serialization remain unmasked. Existing painting-channel semantics are unchanged. `Channels` is hidden for inputs without a channel source. Source changes refresh visible controls without changing their values.
 
@@ -237,7 +238,7 @@ PNG/JPEG/TGA and the current 8-bit PSD exporter receive a separate clamped, enco
 that copy never changes the source document. PSD retains folder blend modes and opacity where supported;
 extended HDR blending can differ when another application recomposites its editable 8-bit stack.
 
-C# callers: `TextureCompositor.Compose()` now returns an owned, readable **RGBAHalf** Texture2D.
+C# callers: `TextureCompositor.ComposeCanvas()` now returns an owned, readable **RGBAHalf** Texture2D.
 Do not reinterpret its raw bytes as Color32. Use `GetPixelData<Unity.Mathematics.half4>(0)` for native
 access, or the format-independent pixel APIs. The caller must destroy the returned temporary texture.
 The JSON agent API retains its existing PNG render output and adds explicit range/group settings.
@@ -248,11 +249,11 @@ This texture output is distinct from HDR monitor output.
 
 ## Verification
 
-`Tests~/HdrGroupSmoke.cs` is an opt-in live-Editor regression script, to run **after manual compilation**.
+`hdr-group-smoke-v2` is an opt-in independent live-Editor regression scenario, to run after compilation through the [test runner](https://github.com/DCFApixels/WhimTex/blob/main/Tests~/RUNNING_TESTS.md).
 It uses only transient in-memory documents. Save/reopen and native Texture2D Undo require an Editor run;
 source parsing and the standalone PSD writer tests do not replace that validation.
 
-`Tests~/ColorPipelineSmoke.cs` adds checks after manual C# compilation and shader import: brush colors
+`color-pipeline-v2` adds checks after C# compilation and shader import: brush colors
 and alpha in Standard/HDR storage, signed HDR, legacy/new Color Fill JSON round-trips, File textures,
 gradients, SDF/Outline, Standard opacity, cached/new FX color uniforms, preview, PNG, flood fill and CPU
 destination encoding, excessive paint intensity, retained half-float storage and RGB ratios.
@@ -260,6 +261,8 @@ It uses transient resources only and does not record Undo or save/import assets.
 Run it in the project's existing color space; it does not change project settings. In-memory JSON/PNG
 round-trips are not a substitute for a separate persistent-asset save/reopen test.
 
-`Tests~/ColorInputModeSmoke.cs` checks Standard/HDR display conversion, retained source values, field
+`color-input-mode-v2` checks Standard/HDR display conversion, retained source values, field
 refreshes, color swapping and gradient copies after manual compilation. It does not write preferences
 or assets. Attached picker interaction and serialized Shader FX field Undo still need an Editor check.
+Review each selected scenario and its declared effects; use the current fingerprint and an explicit
+project path. The archived scripts are historical sources, not execution entry points.

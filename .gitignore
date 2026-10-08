@@ -36,6 +36,9 @@ ExportedObj/
 .consulo/
 *.csproj
 !Tests~/PsdWriter/PsdWriter.Tests.csproj
+!Tests~/Legacy/PsdWriter/PsdWriter.Tests.csproj
+Tests~/Legacy/PsdWriter/bin/
+Tests~/Legacy/PsdWriter/obj/
 Tests~/PsdWriter/bin/
 Tests~/PsdWriter/obj/
 *.unityproj
@@ -84,3 +87,6 @@ Documentation~/.sass-cache/
 Documentation~/.bundle/
 Documentation~/vendor/
 Documentation~/assets/js/zzzz-search-data.json
+
+# Generated test-run evidence belongs in project Temp/WhimTex, not the package.
+Tests~/*.results.json

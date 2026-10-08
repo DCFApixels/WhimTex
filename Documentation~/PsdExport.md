@@ -76,8 +76,7 @@ Export does not install a layered importer or change the selected importer type.
 
 Limits: RGB, 8 bits per channel, dimensions 1–30000, at most 32767 records (a group uses two),
 and files/sections below 2 GB. An empty document receives one transparent Canvas layer so merged alpha
-remains explicit. The native WhimTex TIFF remains the authoritative, fully editable source. A legacy
-`.asset` can be migrated to TIFF, but PSD export never changes either source document.
+remains explicit. The native WhimTex TIFF remains the authoritative, fully editable source. Convert old `.asset` documents to TIFF in WhimTex 0.12.5 before upgrading; the current version does not open that format.
 
 ## Editor-side API
 
@@ -102,19 +101,24 @@ This API is separate from the Pipeline command adapter; there is no new CLI comm
 
 ## Verification
 
-The standalone tests compile **only the format writer**, without Unity assemblies or Editor interaction:
+Use the independent structured scenarios in the [test runner guide](https://github.com/DCFApixels/WhimTex/blob/main/Tests~/RUNNING_TESTS.md):
 
 ```text
-dotnet run --project Tests~/PsdWriter/PsdWriter.Tests.csproj --artifacts-path <temporary-build-folder> -- <temporary-fixture.psd>
+node Tests~/scripts/run-tests.mjs --review --id psd-writer-v2
 ```
 
-Requires .NET 10 SDK. An optional independent reader check accepts a separately installed `ag-psd`
-module; it is a test-only tool, not a package dependency:
+Run the reviewed selection with its current fingerprint and explicit Unity project. The
+format writer is compiled through the connected Editor, not an archived standalone project.
+An optional independent reader check accepts a separately installed `ag-psd` module through
+`WHIMTEX_PSD_READER`; it is a test-only tool, not a package dependency:
 
 ```text
-node Tests~/PsdWriter/read-fixture.cjs <absolute-ag-psd-module-path> <temporary-fixture.psd>
+node Tests~/scripts/run-tests.mjs --review --id psd-reader-roundtrip-v2
 ```
 
-`Tests~/PsdExportSmoke.cs` is an opt-in Editor check **after manual compilation**. It creates temporary
-in-memory documents and PSDs only under a unique `Temp/WhimTex/` folder, checking real rendering,
+The opt-in `psd-export-v2` scenario creates temporary in-memory documents and PSDs only
+under a unique `Temp/WhimTex/` folder, checking real rendering,
 source preservation, overwrite protection, cancellation and cleanup. It does not save Unity assets.
+The reader workflow generates its own GUID fixture through the native writer before decoding it.
+The reader requires existing human authority and `--allow-effects temp-files`; the export
+scenario additionally declares `user-state`. Acknowledge all effects of the selected scenario.

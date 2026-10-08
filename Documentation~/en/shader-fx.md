@@ -41,8 +41,8 @@ HLSL brush presets and files without the effect marker are not accepted.
 If a preset contains invalid code or parameters, selecting it reports an error in Console and leaves the layer unchanged.
 
 Each catalog effect has its own settings. The included **Color → Gain** adjusts brightness and tint;
-**Transform → UV Transform** repositions the incoming image within a visible frame. Everything outside the frame is transparent,
-so moving the image clips it at the frame. Distortion effects do not have this clipping.
+**Transform → UV Transform** repositions the incoming image within a visible frame. Its default
+**Input Tiling → Clip** makes the area outside the frame transparent; Repeat or Mirror fills it with tiles.
 Effects added to the project become available automatically; no preset folder setup is needed.
 
 ## Parameter controls
@@ -73,7 +73,7 @@ Texture source **Self** reads the image before the current FX, including earlier
 
 ### Points and directions
 
-Vector parameters provide two, three or four numeric components. A `point` parameter is a `float2` in normalized canvas UV (bottom-left `(0, 0)` to top-right `(1, 1)`), defaulting to `(0.5, 0.5)`; **Edit on Canvas** adds a draggable point handle. A normal parameter provides a unit direction and **Edit on Canvas**. Drag its endpoint: near the center it faces the camera; at the maximum radius it points along the canvas. Click the endpoint to switch between **+** (toward the camera) and **−** (away).
+Vector parameters provide two, three or four numeric components. A `point` parameter sets a position: bottom-left `(0, 0)`, top-right `(1, 1)`, default `(0.5, 0.5)`. Click the hand icon (**Edit on Canvas**) beside the field to drag the point. You can drag or enter coordinates outside the canvas. Dragging snaps to canvas edges and visible guides; hold Ctrl to disable snapping. The radius uses **User Settings → Guides & Snapping → Snap Radius (px)**. A normal parameter provides a unit direction and the same button. Drag its endpoint: near the center it faces the camera; at the maximum radius it points along the canvas. Click the endpoint to switch between **+** (toward the camera) and **−** (away).
 
 ### Curves and gradients
 
@@ -104,7 +104,7 @@ Position, Size and Rotation preserve the deformation; **Reset Transform** remove
 
 The frame edits the effect, not the layer transform. Its purpose depends on the effect:
 it may place an image, change a pattern's scale, or define a local area. It is not automatically a mask,
-but **UV Transform** leaves pixels outside the frame transparent.
+but **UV Transform** with **Input Tiling → Clip** leaves pixels outside the frame transparent.
 
 ## Order, copying and shared effects
 
@@ -236,6 +236,30 @@ stable noise without a visible grid. The pattern is evaluated per block, so it s
 pixelation. **Dither Strength** weakens it down to plain rounding. **Color → Quantization** uses Levels and Gamma; **Color → One Bit** uses **Low Color** and **High Color** by luminance instead. **Offset** shifts the grid without moving the layer. Alpha is preserved unless **Alpha Clip** is enabled; **Alpha Cutoff** sets the transparent/opaque boundary.
 The same pattern list works per pixel in **Stylization → Posterize**.
 
+### Edge contours
+
+Choose **FX → + Preset → Stylization → Edge Outline** to draw lines along sharp transitions.
+**Method → Boundary** creates uniform contours; **Scharr** makes weaker transitions less opaque.
+In Scharr, raise **Strength** to make these lines stronger. This control is hidden in Boundary.
+Both methods share the controls below; switching methods keeps their values.
+**Detection → Color** finds RGB changes, including between colors of equal brightness.
+**Luminance** finds only brightness changes, ignoring color changes of equal brightness.
+Raise **Threshold** to ignore weaker transitions, gentle gradients or small texture variations.
+**Hue** outlines changes in color tone rather than brightness or saturation. **Hue Threshold (°)**
+sets the minimum difference in degrees (0–180). Raise **Min Saturation** to ignore nearly gray
+colors; a boundary is ignored if either side falls below it. Gray and black are always excluded.
+
+**Thickness (px)** sets the total line width, centered on the boundary; **Softness (px)** softens its
+edges. Both use canvas pixels. Scharr also responds to the width of the image's transitions:
+broad transitions can form bands rather than a precisely uniform line. **Contour** chooses rounded (**Round**), square (**Square**) or
+diamond-shaped (**Diamond**) joins. **Color** in Output sets the tint; its alpha controls opacity.
+**Output → Overlay** keeps the image; **Outline Only** leaves just the lines on transparency.
+The Opacity field in the FX header blends the full result with the original image: 0 keeps
+the original, 1 applies the full effect. This also applies to Outline Only.
+Zero Thickness removes the contour. Source transparency is preserved: this FX does not
+outline an alpha-only silhouette or fill transparent areas. Wider lines take more time to render,
+especially with Scharr.
+
 ### Other stylization effects
 - **Step** thresholds the enabled color channels separately. Red, Green and Blue start enabled; Alpha starts disabled. Choose **Hard** for a two-value result or **Smoothstep** to soften the transition with **Hardness**. **Apply To → Color** uses RGBA as per-channel effect strengths: 0 preserves the original channel, 1 applies the full step. It does not replace the image with that color. **Threshold** instead tests luminance (or alpha) and maps the result between two colors, optionally with a soft boundary; it preserves source alpha.
 - **Halftone** turns the image into monochrome, CMYK or RGB dot screens. Set dot size and shape; CMYK/RGB modes also expose screen angles and manual or automatic plate registration.
@@ -260,16 +284,28 @@ This toggle accounts for color encoding, but does not unpack platform-specific n
 
 Choose **FX → + Preset → Distortion → Spherize**, **Twirl**, **Radial Shear** or **Displacement Map**.
 
+The numeric field in each FX header controls distortion: **Strength** for Spherize and
+Radial Shear, **Angle** for Twirl, and **Amount** for Displacement Map and Polar Coordinates.
+It changes the mapping, not the opacity of a finished result.
+
 - **Spherize / Mode:** `Classic` keeps the existing unbounded radial distortion; `Sphere` projects the image onto a sphere and clips it to a circular silhouette. The edge is antialiased by about one pixel.
 - **Spherize / Strength:** positive values bulge the center; negative values pinch it. In `Classic`, zero leaves the image unchanged. In `Sphere`, zero keeps the circular shape but removes the texture distortion.
 - **Twirl / Angle:** twists around the center; the sign reverses direction. The angle is measured in degrees at the frame's local radius 1 and grows with distance.
 - **Radial Shear:** twists sampling coordinates progressively farther from **Center**; **Strength** controls the direction and amount, while **Offset** adds a base shift.
 - **Area / Edit on Canvas:** move, resize or rotate the green coordinate frame. Stretch it to make the distortion elliptical.
 - **Displacement Map / Mode:** `VectorRG` reads R/G as a signed direction field; the `Neutral` value (0.5 by default) means no offset. Use a linear/data texture for vector and height maps. X/Y strengths are in canvas pixels. `Grayscale` reads a selected channel and moves pixels horizontally, vertically, radially, tangentially, or along an angle. `ParallaxOcclusion` treats the selected map channel as height and shifts the sample along a virtual view ray.
+- **Displacement Map / Amount:** multiplies X/Y strengths, Grayscale strength or Parallax depth. Zero keeps the original image; 1 uses the configured values, and values above 1 amplify them. **Output Mix** remains a separate image blend.
 - **Parallax / Depth and View:** **Depth** sets the height range in canvas pixels; **View Angle** sets the ray direction, and a lower **View Elevation** increases the shift. **Invert Height** swaps raised and recessed areas. **Parallax Steps** selects the quality/cost tradeoff (4–32 height samples); the default is 8.
 - **Map / Transform and Wrap:** position the map independently. `Clamp`, `Repeat`, and `Mirror` control map coordinates; they do not affect the displaced image's edges.
 - **Strength Mask:** `Constant1` is the default, so one map is enough and no strength mask is required. `MapChannel` reuses a channel of that same map, `InputAlpha` follows the input image's alpha, and `SeparateTexture` adds an optional second mask texture. Invert the mask or remap it with **Mask Profile**.
-- **Output / Mix and Input Edge:** blend the displaced sample with the original, and choose how out-of-bounds image samples are handled: `Clamp`, `Repeat`, `Mirror`, or `Transparent`.
+- **Output / Mix:** blend the displaced sample with the original.
+
+**Tiling**, below each distortion's parameters, controls samples beyond the input image:
+`Clamp` extends edge pixels, `Repeat` tiles the image, `Mirror` reflects alternate tiles,
+and `Clip` returns transparency. Distortions default to Clamp; UV Transform defaults to Clip.
+This is separate from the layer's Tiling and Displacement Map's Map Wrap. Sphere keeps its
+circular silhouette regardless of Tiling. These modes sample the existing image;
+they do not extend a procedural source beyond the raster.
 
 `Classic` Spherize, Twirl and Polar Coordinates do not mask at the frame edge, so distortion continues outside it.
 `Sphere` is the exception: it creates a circular mask with a crisp, antialiased edge. Strong settings
@@ -279,13 +315,18 @@ in unmasked modes can reveal areas beyond the input image, where its edge pixels
 
 **Distortion → Polar Coordinates** is one effect with a **Mode** selector (To Polar by default):
 
+- **Amount** in the FX header gradually changes sampling coordinates: 0 keeps the original image, 1 applies the full mapping below.
 - **To Polar** wraps a strip into a circle: horizontal runs around the center, vertical runs outward.
 - **From Polar** unwraps a circle into a strip: left to right covers one full turn, bottom to top covers distance from the center.
 
-**Area / Edit on Canvas** positions and shapes the circle: the output circle for To Polar, or the source circle for From Polar.
+**Input** selects the source frame: a strip for To Polar, a circle for From Polar.
+**Output** positions and shapes the output: a circle for To Polar, a strip for From Polar.
+Both frames have position, size and rotation, plus **Edit on Canvas** and reset buttons.
+Their default position `(0.5, 0.5)`, size `(1, 1)` and rotation `0` cover the whole image.
+Move, scale or rotate Input to choose the source pattern independently of its placement in Output.
 **Angle Offset** shifts the start of the turn in degrees; zero starts to the right of the center and runs counterclockwise.
 **Radial Offset** shifts the starting radius: positive values move the pattern outward in To Polar,
-or start sampling farther from the center in From Polar. One unit reaches from the center to the frame edge along its axes.
+or start sampling farther from the center in From Polar. One unit equals half the circle frame's width or height along its axes: Output for To Polar, Input for From Polar.
 
 Radius continues beyond the frame without a fade. Match the left and right edges of the source strip
 to avoid a visible seam around the circle. The entire strip width converges at the center,

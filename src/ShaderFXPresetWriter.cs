@@ -10,32 +10,18 @@ namespace DCFApixels.WhimTex
     internal static class ShaderFXPresetWriter
     {
         internal static string BuildSource(ShaderFX effect, string menuPath)
-            => BuildSourceCore(effect, menuPath, false);
-
-        internal static string BuildPortableSource(ShaderFX effect)
-            => BuildSourceCore(effect, "Portable Effect", true);
-
-        private static string BuildSourceCore(ShaderFX effect, string menuPath, bool portable)
         {
             if (effect == null) throw new ArgumentNullException(nameof(effect));
             if (string.IsNullOrWhiteSpace(menuPath) || menuPath.IndexOfAny(new[] { '\r', '\n' }) >= 0)
                 throw new FormatException("Choose a non-empty effect name.");
             var values = ShaderFXMetadata.Parse(effect.Code, false, out _);
-            if (effect.UsesCodeParameters)
-            {
-                ShaderFXMetadata.PreserveValues(values, effect.Parameters);
-                foreach (var old in effect.Parameters)
-                    if (old != null && !old.declaredInCode && !values.Exists(p => ShaderFXMetadata.MatchesNameOrFormerName(p, old.name, old.type)))
-                        throw new FormatException("Code declarations must include the existing parameter: " + old.name);
-            }
-            else foreach (var parameter in effect.Parameters) if (parameter != null) values.Add(parameter.Copy());
+            ShaderFXMetadata.PreserveValues(values, effect.Parameters);
             var result = new StringBuilder("// @whimtex-effect " + menuPath + "\n");
             string mainControl = ShaderFXMetadata.ReadControl(effect.Code, out _);
             if (mainControl != null) result.AppendLine("// @control(" + mainControl + ")");
             var rows = new System.Collections.Generic.List<(int order, string text, ShaderFXParameterControl control)>();
             foreach (var p in values)
             {
-                if (p.controls.Count == 0) { rows.Add((0, ExportDeclaration(p, portable), null)); continue; }
                 int defaultIndex = p.controls.FindIndex(c => c.type != ShaderFXParameterType.Bool && CanDeclareDefault(c, p.floatValue));
                 if (defaultIndex < 0) defaultIndex = p.controls.FindIndex(c => CanDeclareDefault(c, p.floatValue));
                 if (defaultIndex < 0)
@@ -54,7 +40,7 @@ namespace DCFApixels.WhimTex
                         for (int n = 0; n < control.optionNames.Length; n++) options.Add(control.optionNames[n] + ": " + Number(control.optionValues[n]));
                         declaration = "// @param enum " + p.name + " = " + Number(p.floatValue) + " { " + string.Join(", ", options) + " }";
                     }
-                    else declaration = ExportDeclaration(row, portable);
+                    else declaration = Declaration(row);
                     if (control.hidden || !string.IsNullOrWhiteSpace(control.label))
                     {
                         string modifiers = control.hidden ? "hidden " : string.Empty;
@@ -84,7 +70,7 @@ namespace DCFApixels.WhimTex
             int activeGroupId = -1;
             foreach (var row in rows)
             {
-                int groupId = row.control?.inGroup == true ? row.control.groupId : -1;
+                int groupId = row.control.inGroup ? row.control.groupId : -1;
                 if (groupId != activeGroupId)
                 {
                     if (activeGroupId >= 0) result.AppendLine("// @endgroup");
@@ -98,13 +84,13 @@ namespace DCFApixels.WhimTex
                     }
                     activeGroupId = groupId;
                 }
-                if (!string.IsNullOrEmpty(row.control?.visibleIfParameter))
+                if (!string.IsNullOrEmpty(row.control.visibleIfParameter))
                 {
                     string op = row.control.visibleIfNotEqual ? "!=" : "==";
                     result.AppendLine("// @if " + row.control.visibleIfParameter + " " + op + " " + Number(row.control.visibleIfValue));
                 }
                 result.AppendLine(row.text);
-                if (!string.IsNullOrEmpty(row.control?.visibleIfParameter)) result.AppendLine("// @endif");
+                if (!string.IsNullOrEmpty(row.control.visibleIfParameter)) result.AppendLine("// @endif");
             }
             if (activeGroupId >= 0) result.AppendLine("// @endgroup");
             result.AppendLine();
@@ -120,10 +106,8 @@ namespace DCFApixels.WhimTex
                 ShaderFXSourceBuilder.MaskComments(line, ref block);
                 if (!metadata) body.AppendLine(line);
             }
-            result.Append(portable ? ShaderFXSourceBuilder.ExportPortableIncludes(body.ToString(), effect.SourcePath)
-                : ShaderFXSourceBuilder.ExportIncludes(body.ToString(), effect.SourcePath));
+            result.Append(ShaderFXSourceBuilder.ExportIncludes(body.ToString(), effect.SourcePath));
             string source = result.ToString();
-            if (portable) ShaderFXSourceBuilder.ValidatePortableSource(source);
             if (Encoding.UTF8.GetByteCount(source) > 2 * 1024 * 1024)
                 throw new IOException("Exported HLSL exceeds 2 MiB.");
             ShaderFXMetadata.Parse(source, true, out _);
@@ -152,10 +136,6 @@ namespace DCFApixels.WhimTex
 
         private static string ColorDefault(UnityEngine.Color color) => "(" + Number(color.r) + ", " + Number(color.g) + ", " +
             Number(color.b) + ", " + Number(color.a) + ")";
-
-        // Portable JSON carries the complete gradient separately, including multi-stop ramps.
-        private static string ExportDeclaration(ShaderFXParameter p, bool portable) =>
-            portable && p.type == ShaderFXParameterType.Gradient ? "// @param gradient " + p.name : Declaration(p);
 
         internal static string Declaration(ShaderFXParameter p)
         {

@@ -18,6 +18,10 @@ stack below a position, add a **Shader Processor** layer instead.
 
 ## Shader FX: a first snippet, parameters and reusable code
 
+Parameters are authored only with `// @param` in HLSL. When reading a 0.12.5 document or
+Shader FX asset preset, saved manual uniforms are converted to declarations while retaining
+their values and references. This file conversion does not restore a manual authoring mode.
+
 Declare the parameter in the code, then click **Apply**:
 
 ```hlsl
@@ -34,9 +38,28 @@ Code and declarations stay drafts until **Apply**, including an Apply request fr
 
 `LayerToLocal(uv)` converts canvas UV to local layer UV, including parent transforms and perspective. Use it for procedural shapes that should follow the layer. It does not clamp or wrap UV; `SampleInput` still expects canvas UV.
 
-`SampleInput(uv)` reads the layer after earlier modifiers. Return straight RGBA; opacity/blending
+`SampleInput(uv)` reads the layer after earlier FX. Return straight RGBA; opacity/blending
 come later. Built-in inputs include `_MainTex`, `_MainTex_TexelSize`, `_InputSize`,
 `_CanvasSize` (width, height, 1/width, 1/height) and `_PreviewScale`. Do not redeclare generated uniforms.
+
+`SampleInput(uv, tiling)` selects input addressing: `0` Clamp, `1` Repeat, `2` Mirror,
+`3` Clip (transparent outside UV 0–1). Repeat interpolates across both image seams with
+the input's Point/Bilinear filter; intermediate FX textures have no mipmaps, so Trilinear
+uses the same base-level interpolation. This helper does not change the source texture.
+Declare an ordinary enum to expose the choice:
+
+```hlsl
+// @param enum _InputTiling = Clamp {Clamp: 0, Repeat: 1, Mirror: 2, Clip: 3}
+```
+
+The three-argument form `SampleInput(uv, tiling, filterRepeat)` uses coordinate wrapping
+without seam interpolation when `filterRepeat` is zero. Linked Displacement Map files
+written before this helper retain that behavior through a hidden `_RepeatFiltering=0`
+parameter on refresh; new instances default to 1. Its `_Tiling` parameter reads saved
+`_InputEdge` values and identities through `@formerlyserializedas(_InputEdge)`;
+the numeric values remain stable. Other Distortion presets read `_InputTiling` through
+the same metadata; UV Transform still uses `_InputTiling`. Detached source is not rewritten.
+The original one-argument helper is unchanged. `Unbounded` is not a raster addressing mode.
 WhimTex FX are deterministic: Unity time inputs such as `_Time`, `_SinTime`, `_CosTime`,
 `_TimeParameters` and `unity_DeltaTime` are not supported and are not updated by the preview cache.
 Their use is allowed for compatibility, but Apply adds a warning to Diagnostics and the result
@@ -49,6 +72,97 @@ after Save As to another folder, check relative paths. Libraries must suit the f
 **+ Reference** links an external FX shared by its users; **Embed** makes an independent document-owned
 copy. Save As and layer duplication copy embedded FX independently. FX run in order after Transform;
 changing parameter values does not regenerate shaders.
+
+## Distortion header controls
+
+All built-in Distortion presets expose a scalar through `@control`:
+
+| Preset | Header parameter | Behavior |
+| --- | --- | --- |
+| Spherize | `_Strength` | Existing signed bulge/pinch strength; Sphere clipping remains at zero. |
+| Twirl | `_Angle` | Existing signed rotation in degrees; zero is identity. |
+| Radial Shear | `_Strength` | Existing signed shear strength; Offset remains at zero. |
+| Polar Coordinates | `_Amount` | Hidden float, default 1, hard range 0–1; sample `lerp(uv, mappedUV, _Amount)`. |
+| Displacement Map | `_Amount` | Hidden float, default 1, range `[0 .. ~2]`; multiply the final strength mask before displacement and parallax tracing. |
+
+New Amount parameters return the original RGBA at zero and preserve the previous full
+mapping at their default 1. They change coordinates, not output opacity. Displacement Map
+keeps `_Mix` as an independent output crossfade. Existing signed controls and their defaults
+are unchanged. Header bindings and values survive document and HLSL preset export.
+
+Polar Coordinates uses two `transform2D` frames: `_Input` selects the source and
+`_Output` places the output in both modes. Each defaults to position `(0.5, 0.5)`,
+size `(1, 1)`, rotation `0`, and uses the shared Edit on Canvas/reset UI.
+The sampling map is `_Input_ToInput(P_or_Q(_Output_ToLocal(uv)))`: To Polar converts
+the output circle into source-strip coordinates; From Polar converts the output
+strip into source-circle coordinates. Reversing Mode and swapping the frames
+inverts the coordinate map away from the polar singularity and angular seam.
+One radial unit is half a circle-frame axis: Output in To Polar, Input in From Polar.
+Out-of-frame coordinates follow Tiling, which defaults to Clamp. UV Transform's Input Tiling defaults
+to Clip; the other built-in distortion presets default to Clamp. The field follows the
+effect's parameters, outside Transform 2D foldouts, and is independent of layer Tiling/map wrapping.
+
+On linked built-in preset refresh, 0.12.5 From Polar's saved Area moves to Input,
+and Output becomes neutral, preserving the rendered result. To Polar's saved Area
+becomes Output, with neutral Input. Presets already using Input/Area retain both
+frames, with Area renamed to Output. The provisional Source Center value becomes the
+corresponding frame's position. Detached presets keep their embedded source.
+
+## Edge Outline preset
+
+The metadata groups controls into Detection, Contour and Output, linking `_Detection`,
+`_Shape` and `_Output` to their headers. Labels show canvas-pixel units for thickness/softness
+and degrees for the hue threshold; UI grouping does not change parameter names or values.
+
+`Stylization/Edge Outline` has `_Method = 0` (Boundary, default) and `_Method = 1` (Scharr).
+`@control(_Opacity)` exposes a hidden float parameter in the FX header, default 1 with hard
+bounds 0–1. The shader blends the complete selected output with the original input RGBA;
+zero returns the input unchanged, also in Outline Only. Tint alpha remains independent.
+Boundary compares adjacent input texel centers in linear RGB.
+`_Detection = 0` (Color) uses the maximum absolute RGB channel difference; `_Detection = 1`
+(Luminance) uses the absolute difference of luminance with weights `(0.2126, 0.7152, 0.0722)`.
+A horizontal/vertical pair seeds a boundary when the difference reaches `_Threshold`
+(floored to 0.00001) and both pixels have alpha above 0.00001. Invisible RGB and alpha-only
+silhouettes do not seed boundaries.
+
+`_Detection = 2` (Hue) uses HSV hue in display-encoded, nonnegative RGB, matching the HSV
+preset and retaining HDR values. The shortest circular hue difference (0–180 degrees)
+must reach `_HueThreshold` (default 15, floored to 0.001 degrees). Both endpoints must
+reach `_MinSaturation` (default 0.1, range 0–1); undefined hues are always excluded,
+including display-space chroma/value at or below 0.00001 and saturation at or below
+0.00001. `_Threshold` is shown and used only for Color/Luminance; `_HueThreshold` and
+`_MinSaturation` only for Hue. Switching detection keeps the hidden values stored.
+
+Scharr uses the true 3×3 derivative kernels with weights 3/10/3, divided by 16 so a unit
+horizontal/vertical step has magnitude one. Color takes the largest per-channel gradient
+magnitude; Luminance differentiates the weighted linear signal. Hue unwraps each valid
+neighbor around the center via the shortest signed angle, normalized by 180 degrees;
+its threshold is `_HueThreshold / 180`. Undefined/low-saturation centers are excluded,
+and invalid neighbors contribute the center signal, as do invisible neighbors in every
+detection mode. At image edges, samples clamp to the nearest input texel center.
+Below the selected threshold the response is zero; otherwise it is
+`saturate(gradient * max(_Strength, 0))`. Strength is visible/used only in Scharr.
+
+The preset expands binary boundary segments or weighted Scharr pixel seeds using
+Euclidean (`Round`), Chebyshev (`Square`) or Manhattan (`Diamond`) distance in a dense
+local neighborhood, taking maximum coverage rather than accumulating overlapping seeds.
+Scharr's expansion radius subtracts half the largest input-texel pitch to account for its
+base derivative footprint. Its tap spacing remains one input texel, independent of Thickness.
+Broad transitions still produce wider support; this is not edge thinning. `_Thickness` is total
+centered width in canvas pixels (0–32); `_Softness` is edge transition width (0–8), with at
+least one input texel of antialiasing. Thickness does not change detection sensitivity.
+Reduced-resolution renders detect boundaries in their own raster and cannot retain details
+smaller than that raster. Neighborhood work grows with thickness/softness; this is a bounded
+single-pass FX, not a cached distance-field pass. Scharr costs more because it evaluates
+the 3×3 derivative at candidate seeds during expansion; eight neighbor reads describe
+one detector evaluation, not the complete thick-contour pass.
+
+Before the overall `_Opacity` blend, `_Output = 0` overlays `_OutlineColor.rgb`, weighted
+by contour coverage and tint alpha, while preserving input alpha. `_Output = 1` emits
+the tint with input alpha times that weight.
+Zero Thickness or zero tint alpha removes the contour. Sampling stops at the canvas edges:
+it does not add a frame or wrap to the opposite edge. Earlier FX, group input and Shader
+Processor input follow the ordinary effect input contract.
 
 ## Texture inputs and lighting
 
@@ -70,7 +184,7 @@ Layer inputs use the shared effect-render cache for deterministic sources. Shade
 results are cached when their inputs and serialized parameters are unchanged; the cache also tracks
 external texture updates and referenced layer stamps. Switching sources does not recompile HLSL.
 HLSL preset export omits document-local layer bindings. Unified document/clipboard JSON stores them
-in `modifiers[].parameters[]` as `textureSource: "Layer"` and `textureLayerId`; include the source layer
+in `fx[].parameters[]` as `textureSource: "Layer"` and `textureLayerId`; include the source layer
 in the exported tree. Copy as JSON rejects missing required dependencies, and insertion remaps their IDs.
 The live FX API instead accepts a texture parameter value `{ "layer": "layer-id" }`.
 Ordinary Ctrl+C and cross-window dragging remap copied sources and clear uncopied external sources
@@ -119,7 +233,7 @@ Missing or invalid source retains the last applied shader and reports diagnostic
 **Embed Copy** disconnects the source and enables local code editing, retaining the original include base.
 Included files remain external dependencies even after embedding.
 Standalone Shader FX assets also appear in the catalog and are copied, not shared.
-The legacy **+ Reference** workflow is unchanged. ShaderLab shaders are not auto-enrolled by this HLSL catalog.
+**+ Reference** also accepts existing Material and Shader FX assets. ShaderLab shaders are not auto-enrolled by this HLSL catalog.
 
 The user library's `ShaderFX` subfolder is also scanned recursively when opening the catalog.
 The same first-line marker is required. These external presets are embedded copies, not GUID-linked
@@ -168,7 +282,12 @@ Use `// @if _Mode == 1` or `// @if _Mode != 1` before one or more `// @param` li
 // @endif
 ```
 
-Use `// @header(Lighting)` before a `// @param` declaration to add a bold, non-collapsible heading above that control. Use `// @helpbox(Your hint text.)` to show an informational help box above the parameter instead. `// @formerlyserializedas(_OldName)` declares an old parameter name for the next declaration; when the new name is applied, compatible saved values and parameter identity migrate from the old name. Repeat the directive to support multiple previous names. This is useful when renaming a uniform: update the HLSL code to use the new name and leave the old name as migration metadata. All three directives are UI/serialization metadata, not uniforms; they are preserved when saving or exporting presets. Directives without a following parameter are ignored. HLSL brushes support these decorations and rename aliases too.
+Use `// @header(Lighting)` before a `// @param` declaration to add a bold, non-collapsible heading above that control. Use `// @helpbox(Your hint text.)` to show an informational help box above the parameter instead. `// @formerlyserializedas(_OldName)` declares an old parameter name for the next declaration; when the new name is applied, compatible saved values and parameter identity migrate from the old name. Repeat the directive to support multiple previous names. This is useful when renaming a uniform: update the HLSL code to use the new name and leave the old name as migration metadata. All three directives are UI/serialization metadata, not uniforms; they are preserved when saving or exporting presets. A rename directive must be followed by a parameter declaration; headings and help boxes without one are ignored. HLSL brushes support these decorations and rename aliases too.
+
+Built-in Color Filter, Negative, Mask, Gradient Map and HSV use `_Opacity`, as they already did in 0.12.5;
+pre-0.12.5 `_Amount`/`_Density` aliases are removed. The user-authored rename directive remains supported,
+including in saved 0.12.5 FX/brush sources. It is independent of Unity migration attributes, which are no
+longer used by the document reader.
 
 ```hlsl
 // @header(Lighting)
@@ -333,7 +452,7 @@ overwrite it. Ranges constrain edits through that control, not the shared value 
 Saving a preset writes the current value into one declaration and omits other initializers.
 Enum and linked controls are FX features; HLSL brushes currently use their existing parameter UI.
 
-`float2` and `float3` expose two and three raw components. `point` is a `float2` in normalized canvas UV (bottom-left `(0, 0)` to top-right `(1, 1)`), defaults to `(0.5, 0.5)`, and provides a draggable **Edit on Canvas** handle. `normal` generates a normalized `float3`, defaults to `(0, 0, 1)`, and uses that direction when given a zero vector. These types accept optional tuple defaults without ranges. Live API values are arrays with the corresponding component count.
+`float2` and `float3` expose two and three raw components. `point` is a `float2` in normalized canvas UV (bottom-left `(0, 0)`, top-right `(1, 1)`) and defaults to `(0.5, 0.5)`. Coordinates and tuple defaults may lie outside the canvas. The hand button (**Edit on Canvas**) beside the numeric field activates a draggable point handle. Point dragging uses the shared screen-space snapping radius for canvas edges and enabled, visible guides (including their intersections). Ctrl, or Command on macOS, bypasses snapping without restricting coordinates. `normal` generates a normalized `float3`, defaults to `(0, 0, 1)`, and uses that direction when given a zero vector. These types accept optional tuple defaults without ranges. Live API values are arrays with the corresponding component count.
 
 For `normal`, **Edit on Canvas** shows a fixed-screen-radius handle at the canvas center. The center points toward the camera; the radius edge points along the canvas. Dragging outside the radius clamps the projected direction. Clicking the handle without dragging switches the Z hemisphere: **+** faces the camera, **−** faces away. X points right and Y up in canvas coordinates; rotating the preview rotates the handle without changing the value. Changing values does not recompile the shader.
 

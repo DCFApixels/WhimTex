@@ -1,13 +1,10 @@
 using System;
-using UnityEditor;
-using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
-        [NonSerialized] private bool liveOutputEnabled;
         [NonSerialized] private Button liveOutputButton;
         [NonSerialized] private bool outputDependencyDirty;
 
@@ -19,29 +16,11 @@ namespace DCFApixels.WhimTex
             RequestCanvasRender();
         }
 
-        /// <summary>A document whose file is an imported image is updated through the document session.</summary>
         private bool HasDocumentFile => compositor != null && TryGetDocumentFile(compositor, out string path) && !WhimTexDocumentJson.IsJsonPath(path);
-
-        private bool CanPublishLiveOutput => compositor != null &&
-            (HasDocumentFile || compositor.OutputTexture != null && AssetDatabase.Contains(compositor) &&
-             compositor.OutputTexture.isReadable &&
-             !UnityEngine.Experimental.Rendering.GraphicsFormatUtility.IsCompressedFormat(compositor.OutputTexture.graphicsFormat));
 
         private Button BuildLiveOutputButton()
         {
-            liveOutputButton = new Button(() =>
-            {
-                if (HasDocumentFile)
-                {
-                    ToggleLiveUpdate(compositor);
-                    RefreshLiveOutputButton();
-                    return;
-                }
-                liveOutputEnabled = !liveOutputEnabled;
-                if (!liveOutputEnabled) compositor?.StopLiveOutput();
-                else RequestCanvasRender(true);
-                RefreshLiveOutputButton();
-            });
+            liveOutputButton = new Button(() => ToggleLiveUpdate(compositor));
             liveOutputButton.AddToClassList("whimtex-channel-button");
             liveOutputButton.AddToClassList("whimtex-live-output-button");
             var indicator = new VisualElement { pickingMode = PickingMode.Ignore };
@@ -57,62 +36,32 @@ namespace DCFApixels.WhimTex
         private void RefreshLiveOutputButton()
         {
             if (liveOutputButton == null) return;
-            liveOutputButton.SetEnabled(CanPublishLiveOutput);
-            if (WhimTexDocumentJson.IsJsonPath(WhimTexDocumentService.PathOf(compositor)))
-            {
-                liveOutputButton.tooltip = "JSON has no imported image. Save as TIFF to use Live Update.";
-                liveOutputButton.EnableInClassList("whimtex-channel-button--enabled", false);
-                return;
-            }
-            liveOutputButton.EnableInClassList("whimtex-channel-button--enabled",
-                HasDocumentFile ? WhimTexDocumentSession.IsLiveFor(compositor) : liveOutputEnabled);
-            liveOutputButton.tooltip = HasDocumentFile
-                ? (WhimTexDocumentSession.IsLiveFor(compositor)
-                    ? "Live Update edits the imported image of this document. Click to stop and restore the imported texture."
-                    : "Live Update: edit the imported document image in place, so materials show edits without re-encoding the file.")
-                : CanPublishLiveOutput
-                ? "Live Update: show edits on objects and in File layers using this compositor texture. Turning off restores the saved image. Save writes the changes; texture references stay unchanged."
-                : compositor != null && compositor.OutputTexture != null && UnityEngine.Experimental.Rendering.GraphicsFormatUtility.IsCompressedFormat(compositor.OutputTexture.graphicsFormat)
-                    ? "Live Update requires an uncompressed output. Migrate this legacy asset to TIFF, then enable Read/Write and disable compression in Unity's texture importer."
-                    : compositor != null && compositor.OutputTexture != null && !compositor.OutputTexture.isReadable
-                        ? "Live Update requires Read/Write. Enable it in Output Settings and save."
-                        : "Live Update: save the compositor first, then assign its texture to a material.";
+            liveOutputButton.SetEnabled(HasDocumentFile);
+            liveOutputButton.EnableInClassList("whimtex-channel-button--enabled", WhimTexDocumentSession.IsLiveFor(compositor));
+            liveOutputButton.tooltip = WhimTexDocumentJson.IsJsonPath(WhimTexDocumentService.PathOf(compositor))
+                ? "JSON has no imported image. Save as TIFF to use Live Update."
+                : !HasDocumentFile
+                ? "Save as TIFF first: Live Update edits the imported image of that file."
+                : WhimTexDocumentSession.IsLiveFor(compositor)
+                ? "Live Update edits the imported image of this document. Click to stop and restore the imported texture."
+                : "Live Update: edit the imported document image in place, so materials show edits without re-encoding the file.";
         }
 
         private void PublishLiveOutput()
         {
-            if (HasDocumentFile)
-            {
-                WhimTexDocumentSession.Publish(compositor, canvasTexture);
-                return;
-            }
-            if (!liveOutputEnabled || !CanPublishLiveOutput) return;
-            try
-            {
-                compositor.PublishLiveOutput(canvasTexture);
-            }
-            catch (Exception exception)
-            {
-                liveOutputEnabled = false;
-                compositor.StopLiveOutput();
-                RefreshLiveOutputButton();
-                ShowNotification(new GUIContent("Live Update unavailable. See Console for details."));
-                Debug.LogWarning("WhimTex Live Update: " + exception.Message, compositor);
-            }
+            if (HasDocumentFile) WhimTexDocumentSession.Publish(compositor, canvasTexture);
         }
 
         private void StopLiveOutput()
         {
             WhimTexDocumentSession.StopFor(compositor, "window closed or document changed");
-            compositor?.StopLiveOutput();
-            liveOutputEnabled = false;
             RefreshLiveOutputButton();
         }
 
         private void OnLiveOutputProjectChanged()
         {
-            if (!CanPublishLiveOutput) StopLiveOutput();
-            else if (liveOutputEnabled) RequestCanvasRender(true);
+            if (!HasDocumentFile) StopLiveOutput();
+            RefreshLiveOutputButton();
         }
     }
 }

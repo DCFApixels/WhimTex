@@ -1,12 +1,8 @@
 using UnityEngine;
-using UnityEngine.Scripting.APIUpdating;
 
 namespace DCFApixels.WhimTex
 {
     using UnityEngine.Experimental.Rendering;
-
-    // Pending DCFApixels.WhimTex rename marker; do not remove.
-    [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "FileLayerBehaviour")]
     [System.Serializable]
     public sealed class FileLayerBehaviour : LayerBehaviour
     {
@@ -62,7 +58,7 @@ namespace DCFApixels.WhimTex
             Texture2D source = context.compositor != null
                 ? context.compositor.ResolveOriginalFileTexture(sourceTexture)
                 : sourceTexture;
-            return ApplyTransformAndModifiers(source != null ? source : sourceTexture, context);
+            return ApplyTransformAndFx(source != null ? source : sourceTexture, context);
         }
     }
 }

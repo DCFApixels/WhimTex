@@ -14,13 +14,15 @@ namespace DCFApixels.WhimTex
         private VisualElement contextToolSeparator;
         private Button gradientToolButton, uvIslandToolButton, temporaryToolButton;
 
-        private static bool IsBaseCanvasTool(CanvasTool tool) => tool <= CanvasTool.Shape || tool == CanvasTool.HealingBrush;
+        private static bool IsBaseCanvasTool(CanvasTool tool) => tool <= CanvasTool.Shape || tool == CanvasTool.HealingBrush || tool == CanvasTool.SmudgeBrush;
         private static bool IsTemporaryCanvasTool(CanvasTool tool) =>
             tool == CanvasTool.FXTransform || tool == CanvasTool.FXPoint || tool == CanvasTool.FXNormal;
         private bool IsUvToolAvailable => compositor != null && uvEnabled;
         private bool IsContextToolAvailable(CanvasTool tool) =>
             tool == CanvasTool.GradientHandles ? IsGradientCanvasAvailable :
             tool == CanvasTool.UvIslandSelect && IsUvToolAvailable;
+
+        internal static VisualElement CreateTransformToolIcon() => new CanvasToolIcon(CanvasTool.Transform);
 
         private void BuildContextToolButtons(VisualElement toolbar)
         {
@@ -147,6 +149,10 @@ namespace DCFApixels.WhimTex
 
         private void ChangeCanvasTool(CanvasTool tool)
         {
+            CanvasTool previous = IsTemporaryCanvasTool(canvasTool) ? ResolveTemporaryReturnTool() : canvasTool;
+            if (previous != tool && !IsTemporaryCanvasTool(tool) &&
+                (IsBaseCanvasTool(previous) || IsContextToolAvailable(previous)))
+                previousCanvasTool = previous;
             StopKeyboardNudge();
             areaSelectionManipulator?.Cancel();
             shapeManipulator?.Cancel();
@@ -180,6 +186,28 @@ namespace DCFApixels.WhimTex
             normalOverlay?.MarkDirtyRepaint();
             RevealActiveCanvasTool();
             if (changePixelCanvas) RequestCanvasRender(immediate: true);
+        }
+
+        private bool HandlePreviousCanvasToolKey(KeyDownEvent evt)
+        {
+            if (evt.keyCode != CanvasToolToggleKey || evt.ctrlKey || evt.commandKey || evt.altKey || evt.shiftKey)
+                return false;
+            WhimTexUI.ConsumeEvent(evt);
+            if (canvasToolToggleKeyHeld) return true;
+            canvasToolToggleKeyHeld = true;
+            if (paintingLayer != null || healingPointer >= 0 || activeLayerDrag != null ||
+                canvasTransformManipulator?.IsDragging == true || canvasZoomManipulator?.IsDragging == true ||
+                canvasGuideManipulator?.IsDragging == true || gradientCanvasManipulator?.IsDragging == true ||
+                pointManipulator?.IsDragging == true || normalManipulator?.IsDragging == true ||
+                shapeManipulator?.IsDragging == true || areaSelectionManipulator?.HasGesture == true)
+                return true;
+            ReconcileCanvasToolContext();
+            if (IsTemporaryCanvasTool(canvasTool))
+                ExitContextTool();
+            else if (previousCanvasTool is CanvasTool previous &&
+                (IsBaseCanvasTool(previous) || IsContextToolAvailable(previous)))
+                SetCanvasTool(previous);
+            return true;
         }
     }
 }

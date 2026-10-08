@@ -33,7 +33,7 @@
       "swizzle": {
         "packed": 0
       },
-      "modifiers": [
+      "fx": [
         {
           "$type": "ShaderFX",
           "$id": "fx0",
@@ -159,7 +159,7 @@
       "swizzle": {
         "packed": 0
       },
-      "modifiers": [
+      "fx": [
         {
           "$type": "ShaderFX",
           "$id": "fx1",
@@ -285,7 +285,7 @@
       "swizzle": {
         "packed": 0
       },
-      "modifiers": [
+      "fx": [
         {
           "$type": "ShaderFX",
           "$id": "fx2",
@@ -411,7 +411,7 @@
       "swizzle": {
         "packed": 0
       },
-      "modifiers": [
+      "fx": [
         {
           "$type": "ShaderFX",
           "$id": "fx3",
@@ -537,7 +537,7 @@
       "swizzle": {
         "packed": 0
       },
-      "modifiers": [
+      "fx": [
         {
           "$type": "ShaderFX",
           "$id": "fx4",
@@ -663,7 +663,7 @@
       "swizzle": {
         "packed": 0
       },
-      "modifiers": [
+      "fx": [
         {
           "$type": "ShaderFX",
           "$id": "fx5",
@@ -789,7 +789,7 @@
       "swizzle": {
         "packed": 0
       },
-      "modifiers": [
+      "fx": [
         {
           "$type": "ShaderFX",
           "$id": "fx6",
@@ -915,7 +915,7 @@
       "swizzle": {
         "packed": 0
       },
-      "modifiers": [
+      "fx": [
         {
           "$type": "ShaderFX",
           "$id": "fx7",
@@ -1041,7 +1041,7 @@
       "swizzle": {
         "packed": 0
       },
-      "modifiers": [
+      "fx": [
         {
           "$type": "ShaderFX",
           "$id": "fx8",
@@ -1167,7 +1167,7 @@
       "swizzle": {
         "packed": 0
       },
-      "modifiers": [
+      "fx": [
         {
           "$type": "ShaderFX",
           "$id": "fx9",
@@ -1293,7 +1293,7 @@
       "swizzle": {
         "packed": 0
       },
-      "modifiers": [
+      "fx": [
         {
           "$type": "ShaderFX",
           "$id": "fx10",
@@ -1419,7 +1419,7 @@
       "swizzle": {
         "packed": 0
       },
-      "modifiers": [
+      "fx": [
         {
           "$type": "ShaderFX",
           "$id": "fx11",

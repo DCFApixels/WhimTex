@@ -72,7 +72,7 @@ texture update/dirty counters and live painting frames. Fingerprints are memoize
 Resolution, scale and interactive quality must match. Undo invalidates the window cache; changing
 documents, closing the window or reloading scripts releases it. Source-less cycles cannot hit a
 cached image. Deterministic Shader FX and Shader Processor results participate in the same cache.
-Arbitrary Material modifiers, or FX that use unsupported time inputs, bypass caching because their
+Arbitrary Material FX, or FX that use unsupported time inputs, bypass caching because their
 state is not represented safely by the layer model.
 
 Numeric-error masks are captured locally with each entry and accumulated again on cache hits.
@@ -87,4 +87,4 @@ The cache is an optimization: cold, warm and evicted results must match at the s
 ## Validation
 
 After manually compiling in Unity, run the opt-in checks described in
-[Gaussian Blur tests](https://github.com/DCFApixels/WhimTex/blob/main/Tests~/GaussianBlur.md). No build or automatic project compilation is needed.
+[Gaussian Blur tests](https://github.com/DCFApixels/WhimTex/blob/ca8603c0961ce36064280f952259f8a6142d46cc/Tests~/Legacy/GaussianBlur.md). No build or automatic project compilation is needed.

@@ -83,7 +83,7 @@ WhimTexApi.LiveJson(requestJson);
 Use the `DCFApixels.WhimTex` namespace. Check the returned JSON `success` as well as transport
 success. Read-only discovery returns `sessions`, each with `sessionId`, name, assetPath, dimensions
 and focused status, plus `focusOrder` (0 means no recorded focus). `assetPath` identifies the bound TIFF
-or legacy document, not its temporary in-memory compositor. A blank path means no saved document
+or JSON document, not its temporary in-memory compositor. A blank path means no saved document
 binding; a source image opened for editing is not necessarily a saved layered document. If multiple documents are open, use
 the user's requested document; ask when ambiguous. Do not guess from a layer name.
 
@@ -223,7 +223,7 @@ For `replacePixels`, only the original Drawing's pixel content is updated. Its i
 blend, FX, name and visibility remain. The selection is mapped into Drawing coordinates; rotation
 and scale are supported. Repeating/mirrored transforms are rejected because one stored pixel can
 appear both inside and outside the selected region. Use a new layer for such edits. A transformed
-source can still be sampled for a new-layer result. Existing modifiers and swizzles still apply after
+source can still be sampled for a new-layer result. Existing FX and swizzles still apply after
 replacement; prefer a new layer when editing their already-processed appearance.
 
 Pixel replacement checks the target's content/settings fingerprint. Independent edits to other layers,
@@ -261,8 +261,7 @@ just that layer. Reserve with `begin` first, then preview or complete with code 
 {
   "apiVersion":1,"op":"complete","jobId":"RESERVATION",
   "layer":{"type":"shaderProcessor","fx":[{
-    "code":"float4 ApplyFX(float2 uv, float4 color) { color.rgb *= _Gain; return color; }",
-    "parameters":[{"name":"_Gain","type":"Float","value":1.25}]
+    "code":"// @param float _Gain = 1.25\\nfloat4 ApplyFX(float2 uv, float4 color) { color.rgb *= _Gain; return color; }"
   }]}
 }
 ```
@@ -271,12 +270,12 @@ For generated Drawing content, `imagePath` and `fx` can be supplied together at 
 For parameter layers, put `fx` inside `layer` or at the root, never both. Pixel-replacement jobs do
 not accept FX changes; lock the existing layer for a separate FX edit instead.
 
-Each `fx` entry has `op` (`add` by default, `replace`, `remove`) and an optional modifier `index`.
+Each `fx` entry has `op` (`add` by default, `replace`, `remove`) and an optional FX `index`.
 Add appends by default, or inserts at the specified index. Replace/remove require an explicit index
-from the layer's `fx` snapshot. Indices refer to the entire modifier list, including Material references,
+from the layer's `fx` snapshot. Indices refer to the entire FX list, including Material references,
 and each operation uses the list after the preceding operation. Unmentioned entries stay unchanged.
 Replace copies the new code into a fresh embedded FX; it never edits a shared external asset.
-Remove accepts only op/index. Add/replace accept `code` and optional `parameters`.
+Remove accepts only op/index. Add/replace accept `code`; define parameters with HLSL `@param` declarations.
 
 - Code: 1..65,536 characters of HLSL with `float4 ApplyFX(float2 uv, float4 color)`.
 - `color` and `SampleInput(uv)` are straight RGBA in linear working space. Return straight RGBA;
@@ -298,8 +297,9 @@ Remove accepts only op/index. Add/replace accept `code` and optional `parameters
   FX, `"none"` for no source, or `{"layer":"EXISTING-LAYER-ID"}`. Layer references use stable IDs,
   not names or `@aliases`. Sampling the document's own saved output is rejected; use `self` instead.
   Texture uniforms include `<name>_TexelSize`.
-- `Point` accepts two numbers in `[0,1]`, normalized bottom-left-origin UV coordinates. Code declares it as
-  `// @param point _Center = (0.5, 0.5)`; its editor handle can be dragged across the selected layer's canvas.
+- `Point` accepts two finite numbers in `[-1000000,1000000]`, normalized bottom-left-origin UV coordinates.
+  `(0,0)` and `(1,1)` are canvas corners, not value limits. Code declares it as
+  `// @param point _Center = (0.5, 0.5)`; its editor handle can also be dragged outside the canvas.
   Snapshot and update values use the two-number array form, the same JSON shape as `Vector2`.
 - `Transform2D` accepts `value: {"position":[0.5,0.5],"size":[1,1],"rotation":0}`; omitted fields use these defaults, not the previous parameter value. Alternatively use `value: {"matrix":[1,0.2,0,0,1,0,0.15,0,1]}` for skew/perspective: nine row-major doubles mapping local UV to input UV. Matrix and TRS fields cannot be combined. The matrix must be invertible with no horizon crossing the unit rectangle. Inspection returns either TRS fields or `matrix`.
   Position/size are normalized to the input image, rotation is in degrees. Size components must have
@@ -325,7 +325,7 @@ Remove accepts only op/index. Add/replace accept `code` and optional `parameters
 - Inline code may instead declare parameters using [HLSL metadata](ShaderFX.md#parameter-declarations).
   If JSON values are supplied as well, every entry must match a code declaration by name and type;
   those values override defaults. The first-line catalog marker is required only for catalog files.
-- At most 16 FX operations per request and 32 resulting modifier entries. Keep GPU work bounded:
+- At most 16 FX operations per request and 32 resulting FX entries. Keep GPU work bounded:
   no unbounded loops or enormous per-pixel sampling loops. Successful compilation does not prove
   that a shader is fast or numerically stable; inspect a small preview and use HDR Debug as needed.
 

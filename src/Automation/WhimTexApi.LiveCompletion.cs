@@ -152,7 +152,7 @@ namespace DCFApixels.WhimTex
                 ApplyLiveCandidateFx(job, request, candidate, effects);
                 preview = CloneLiveDocument(job.document);
                 PutLiveCandidate(preview, job, candidate); installed = true;
-                if (view == "composite") image = preview.ComposePreview(size);
+                if (view == "composite") image = preview.ComposeCanvas(size);
                 else
                 {
                     rt = preview.RenderAgentLayerPreview(candidate, size);
@@ -222,7 +222,6 @@ namespace DCFApixels.WhimTex
                         if (candidate?.Behaviour is DrawingLayerBehaviour drawing)
                         {
                             drawing.InitializeCanvas(job.width, job.height);
-                            drawing.MakeTexturePersistent(job.document);
                             Undo.RegisterCreatedObjectUndo(drawing.StoredTexture, "Complete Agent Layer");
                         }
                         // Native object creation flushes the initial LiveChange record.

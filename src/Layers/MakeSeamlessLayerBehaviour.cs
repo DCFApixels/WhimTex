@@ -1,11 +1,8 @@
 using System;
 using UnityEngine;
-using UnityEngine.Scripting.APIUpdating;
 
 namespace DCFApixels.WhimTex
 {
-    // Pending DCFApixels.WhimTex rename marker; do not remove.
-    [MovedFrom(true, "DCFApixels.SpriteEditor", "DCFApixels.SpriteEditor", "MakeSeamlessLayerBehaviour")]
     [Serializable]
     public sealed class MakeSeamlessLayerBehaviour : TargetedLayerBehaviour
     {
@@ -74,11 +71,11 @@ namespace DCFApixels.WhimTex
         {
             if (context.input == null) return null;
             if (!processRed && !processGreen && !processBlue && !processAlpha)
-                return ApplyTransformAndModifiers(context.input, context);
+                return ApplyTransformAndFx(context.input, context);
             if (EffectiveMode == SeamlessMode.PatchQuilting)
             {
                 if (quiltingEdges == PoissonEdges.None && (!quiltingSeamCorrection || quiltingPoissonEdges == PoissonEdges.None))
-                    return ApplyTransformAndModifiers(context.input, context);
+                    return ApplyTransformAndFx(context.input, context);
                 var quilt = context.compositor.RenderQuilting(this, context,
                     Limit(quiltingWidth,.02f,.45f,.2f), Limit(quiltingFeather,0,100,50),
                     new Vector4(processRed?1:0,processGreen?1:0,processBlue?1:0,processAlpha?1:0));
@@ -95,7 +92,7 @@ namespace DCFApixels.WhimTex
                 finally { RenderTexture.ReleaseTemporary(quilt); }
             }
             if (EffectiveMode == SeamlessMode.OffsetBlend && (!offsetSeamCorrection || offsetPoissonEdges == PoissonEdges.None) && !leftEdge && !rightEdge && !bottomEdge && !topEdge)
-                return ApplyTransformAndModifiers(context.input, context);
+                return ApplyTransformAndFx(context.input, context);
             if (EffectiveMode == SeamlessMode.OffsetBlend)
             {
                 var histogram = HistogramSeamless.RenderOffset(context.input, context.width, context.height,
@@ -107,14 +104,14 @@ namespace DCFApixels.WhimTex
             }
             if (EffectiveMode == SeamlessMode.ScreenedPoisson)
             {
-                if (poissonEdges == PoissonEdges.None) return ApplyTransformAndModifiers(context.input, context);
+                if (poissonEdges == PoissonEdges.None) return ApplyTransformAndFx(context.input, context);
                 var screened = ScreenedSeamless.RenderConfigured(context.input, context.width, context.height,
                     poissonEdges, Limit(screeningRadius, .005f, .25f, .05f));
                 try { return Finish(screened, context); }
                 finally { RenderTexture.ReleaseTemporary(screened); }
             }
             if (horizontal == HorizontalDirection.Off && vertical == VerticalDirection.Off && (!mirrorSeamCorrection || mirrorPoissonEdges == PoissonEdges.None))
-                return ApplyTransformAndModifiers(context.input, context);
+                return ApplyTransformAndFx(context.input, context);
             Material material = WhimTexMaterials.MakeSeamless;
             if (material == null) throw new InvalidOperationException("Make Seamless shader is unavailable.");
             RenderTexture result = null;
@@ -163,7 +160,7 @@ namespace DCFApixels.WhimTex
         private RenderTexture Finish(RenderTexture result, in LayerRenderContext context)
         {
             if (processRed && processGreen && processBlue && processAlpha)
-                return ApplyTransformAndModifiers(result, context);
+                return ApplyTransformAndFx(result, context);
             var material = WhimTexMaterials.MakeSeamless;
             if (material == null) throw new InvalidOperationException("Make Seamless shader is unavailable.");
             var previous = RenderTexture.active;
@@ -178,7 +175,7 @@ namespace DCFApixels.WhimTex
                 masked.filterMode = FilterMode.Bilinear;
                 masked.wrapMode = TextureWrapMode.Clamp;
                 Graphics.Blit(result, masked, material, 1);
-                return ApplyTransformAndModifiers(masked, context);
+                return ApplyTransformAndFx(masked, context);
             }
             finally
             {

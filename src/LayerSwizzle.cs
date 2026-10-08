@@ -3,14 +3,14 @@ using UnityEngine;
 
 namespace DCFApixels.WhimTex
 {
-    public enum SwizzleChannel { R, G, B, A, OneMinusR, OneMinusG, OneMinusB, OneMinusA, Zero, One, RMultiplyA, GMultiplyA, BMultiplyA }
+    public enum SwizzleChannel { R, G, B, A, OneMinusR, OneMinusG, OneMinusB, OneMinusA, Zero, One, RMultiplyA, GMultiplyA, BMultiplyA, Luminance, LuminanceMultiplyA }
 
     [Serializable]
     public struct LayerSwizzle
     {
         // Identity is zero, including documents saved before this field existed.
         [SerializeField] private int packed;
-        internal static readonly string[] Labels = { "R", "G", "B", "A", "1-R", "1-G", "1-B", "1-A", "0", "1", "R * A", "G * A", "B * A" };
+        internal static readonly string[] Labels = { "R", "G", "B", "A", "1-R", "1-G", "1-B", "1-A", "0", "1", "R * A", "G * A", "B * A", "Luminance", "Luminance * A" };
 
         public SwizzleChannel this[int output]
         {

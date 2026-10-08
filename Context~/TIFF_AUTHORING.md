@@ -1,13 +1,16 @@
-# Независимая сборка TIFF-документов
+# Независимая работа с документами
 
-Статус: TIFF — основной формат документов с пикселями Drawing; path-based batch API также поддерживает
+- Назначение: жизненный цикл и владение моделью без WhimTex window.
+- Статус: реализовано; TIFF хранит пиксели Drawing, JSON — нет.
+- Источники истины: [WhimTexDocumentBuild](../src/WhimTexDocumentBuild.cs), [DocumentService](../src/WhimTexDocumentService.cs), [AgentAPI](../Documentation~/AgentAPI.md).
+
+Path-based batch API также поддерживает
 [единый JSON](../Documentation~/JSON_FORMAT.md) без этих пикселей. Этот файл описывает TIFF-пайплайн.
 Оконный Live API не смешивается с независимой
 сборкой, а `whimtex_headless_live` держит отдельную модель между запросами без окна
 (активная сессия не переживает domain reload).
-Старый `TextureCompositor` остаётся рабочей моделью и поддерживает чтение прежних `.asset`.
-UI больше не создаёт новые legacy `.asset`: выбранный старый документ переносится через
-`Assets → WhimTex → Migrate Legacy .asset to TIFF…`, оставляя исходник и его GUID без изменений.
+`TextureCompositor` — только рабочая модель в памяти. Документы `.asset` не поддерживаются;
+до обновления их нужно сохранить в TIFF через WhimTex 0.12.5.
 Это замена способа хранения и lifecycle сессии, не переписывание движка композиции.
 
 ## Реализованная граница
@@ -16,7 +19,7 @@ UI больше не создаёт новые legacy `.asset`: выбранны
 
 1. `Create(width, height)` — transient-модель, без создания файлов.
 2. `Open(path)` — загрузка модели и подготовка FX без рендера композиции; у TIFF пиксели Drawing остаются отложенными. JSON открывается тем же сервисом, но не содержит Drawing-пикселей и использует мягкую подготовку неисправных FX.
-3. `Copy(source)` — независимая копия, включая Drawing и собственные FX. Legacy-ассет не перепривязывается.
+3. `Copy(source)` — независимая копия, включая Drawing и собственные FX. Исходная модель и её привязка не меняются.
 4. Изменения — через существующие типы слоёв/трансформов/кистей. Источник истины один: `Document`.
 5. `Render()` — лениво подготовить встроенные FX, выполнить текущий движок. Возвращённой Texture2D владеет вызывающий код.
 6. `Save(path)` — подготовка FX → общий writer → staged-файл → атомарная замена. TIFF получает TextureImporter; JSON сохраняется как текстовый ассет без рендера выходного изображения.
@@ -43,19 +46,13 @@ Unity objects, ShaderUtil, композиция и AssetDatabase — тольк�
   не распределённая блокировка и не гарантия против внешнего инструмента, сохраняющего timestamp и размер.
 - Не создавать второй редактируемый root поверх открытого окна: использовать его Assistant-сессию
   с существующими locks либо вернуть конфликт. Независимый writer откажет в записи поверх открытого документа.
-- Save As оставляет прежний файл. Конвертация `.asset` не копирует его GUID и не переназначает material/sprite references.
+- Save As оставляет прежний файл. Ссылки material/sprite не переназначаются автоматически.
 - В TIFF относительные `#include` в сохраняемом коде приводятся к project/package paths без разворачивания методов
   и без изменения текста в открытом FX. Внешние зависимости остаются внешними.
 
 ## Граница агентского API
 
-Существующие `.asset` документы остаются читаемыми, а path-based batch API выбирает TIFF или JSON по пути
-без изменения версии командного протокола v1. Этот протокол не является форматом содержимого `whimtex.document`.
-Batch API принимает legacy только для `dryRun`; запись и создание `.asset`
-возвращают `legacy_read_only`. Диагностические команды `whimtex_storage_inspect`,
-`whimtex_document_validate` и `whimtex_document_status` не меняют документ и предназначены для самопроверки агента.
-Новые примеры агентов используют TIFF по умолчанию; `.asset` встречается только в примере
-явной миграции.
+Path-based Batch работает с TIFF или JSON; `.asset` отвергается с `invalid_path`.
 
 Независимый Live Update использует `WhimTexApi.TiffLiveFile`/`whimtex_headless_live`: `begin` фиксирует
 disk/model revision, непустые `operations` пересобирают рабочую копию от исходного snapshot, `render` пишет
@@ -77,14 +74,18 @@ Batch, Headless Live и Assistant.
 - После commit возвращать итоговый путь/GUID/revision, затем повторно inspect/render для проверки.
 - Живой API сохраняет нынешние lock/begin/transfer правила, независимый не меняет пользовательскую сцену.
 
-## Что ещё требует отдельных измерений
+## Ограничения
 
 Потоковая запись TIFF-полос и ленивое чтение Drawing уже реализованы. Большой TIFF всё ещё использует
 CPU/GPU-буферы композиции; эти оптимизации не ограничивают всю память Editor и не делают Save мгновенным.
 HLSL-кеш нельзя считать вечным: includes, внешние текстуры и параметры могут менять результат.
 Windows64 Player проверен: runtime получает texture artifact, не этот backend и не слои документа.
-Результаты разрешённого билда и замеров больших Drawing: [TIFF_VALIDATION.md](TIFF_VALIDATION.md).
+Методика замеров: [TIFF_SAVE_PERFORMANCE.md](TIFF_SAVE_PERFORMANCE.md).
 Замеры не заменяют проверку скорости загрузки на целевых устройствах.
 
-Проверки: `DocumentPreparationSmoke`, `DocumentReliabilitySmoke`, `DocumentPayloadCoverageSmoke`,
-`DocumentReloadSmoke`, `AgentApiSmoke` в `Tests~`. Перед запуском проверять runner и cleanup каждого файла.
+## Проверки
+
+`document-preparation-smoke-v2`, `document-reliability-smoke-v2`, `document-payload-coverage-smoke-v2`,
+`document-reload-smoke-v2`, `agent-api-v2`. Запускать через [RUNNING_TESTS.md](../Tests~/RUNNING_TESTS.md)
+после чтения выбранных исходников и проверки effects/cleanup. Reload — единый GUID workflow,
+не набор вручную вызванных фаз.

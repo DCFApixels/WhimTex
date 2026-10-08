@@ -149,11 +149,7 @@ namespace DCFApixels.WhimTex
             };
             diagnostics.AddToClassList("whimtex-shader-fx-diagnostics");
             root.Add(diagnostics);
-            // Parameter metadata is authored by the // @param declarations in the
-            // shader source.  Keep the serialized list for document compatibility,
-            // but do not expose the old raw PropertyField: it allowed editing a
-            // second, conflicting set of fields and was commonly shown disabled.
-            // The purpose-built view below is also able to display legacy values.
+            // Controls are owned by the HLSL @param declarations.
             var declaredParameters = new ShaderFXParameterView(effect);
             detach.clicked += () => { Undo.RecordObject(effect, "Embed FX Source"); effect.DetachCatalog(); EditorUtility.SetDirty(effect); effect.NotifyValuesChanged(); RefreshStatus(); };
             apply.clicked += () =>
@@ -191,9 +187,6 @@ namespace DCFApixels.WhimTex
                 code.SetEnabled(!effect.IsCatalogLinked);
                 externalCodeButtons.EnableInClassList("whimtex-shader-fx-hidden", effect.IsCatalogLinked);
                 sourceButtons.EnableInClassList("whimtex-shader-fx-hidden", !effect.IsCatalogLinked);
-                // Always use the declaration-driven view.  For an old FX without
-                // declarations it still exposes serialized values, while names,
-                // types and controls remain owned by the HLSL source.
                 declaredParameters.EnableInClassList("whimtex-shader-fx-hidden", false);
                 declaredParameters.Refresh();
                 bool pendingChanges = effect.HasPendingChanges;
@@ -238,141 +231,4 @@ namespace DCFApixels.WhimTex
         }
     }
 
-    // Retained only for older serialized/API-created entries. The Shader FX
-    // editor no longer exposes the raw list; use // @param declarations.
-    [System.Obsolete("Legacy manual ShaderFX parameter inspector. Use // @param declarations.", false)]
-    [CustomPropertyDrawer(typeof(ShaderFXParameter))]
-    public sealed class ShaderFXParameterDrawer : PropertyDrawer
-    {
-        public override VisualElement CreatePropertyGUI(SerializedProperty property)
-        {
-            VisualElement root = new VisualElement();
-            WhimTexUI.ApplyWindowStyles(root);
-            root.AddToClassList("whimtex-shader-fx-parameter");
-            root.Add(new PropertyField(property.FindPropertyRelative(nameof(ShaderFXParameter.name)), "Name"));
-            SerializedProperty type = property.FindPropertyRelative(nameof(ShaderFXParameter.type));
-            root.Add(new PropertyField(type, "Type"));
-            string[] valueNames =
-            {
-                nameof(ShaderFXParameter.floatValue), nameof(ShaderFXParameter.colorValue),
-                nameof(ShaderFXParameter.vectorValue), nameof(ShaderFXParameter.textureValue), nameof(ShaderFXParameter.transformValue),
-                nameof(ShaderFXParameter.floatValue), nameof(ShaderFXParameter.floatValue), nameof(ShaderFXParameter.gradientValue),
-                nameof(ShaderFXParameter.vectorValue), nameof(ShaderFXParameter.vectorValue), nameof(ShaderFXParameter.vectorValue),
-                nameof(ShaderFXParameter.curveValue), nameof(ShaderFXParameter.vectorValue)
-            };
-            VisualElement[] fields = new VisualElement[valueNames.Length];
-            for (int i = 0; i < fields.Length; i++)
-            {
-                SerializedProperty value = property.FindPropertyRelative(valueNames[i]);
-                if (i == (int)ShaderFXParameterType.Bool)
-                {
-                    var toggle = new Toggle("Value");
-                    toggle.AddToClassList(BaseField<bool>.alignedFieldUssClassName);
-                    toggle.SetValueWithoutNotify(value.floatValue >= 0.5f);
-                    toggle.RegisterValueChangedCallback(evt =>
-                    {
-                        value.serializedObject.Update();
-                        value.floatValue = evt.newValue ? 1f : 0f;
-                        value.serializedObject.ApplyModifiedProperties();
-                        ((ShaderFX)value.serializedObject.targetObject).NotifyValuesChanged();
-                    });
-                    toggle.TrackPropertyValue(value, p => toggle.SetValueWithoutNotify(p.floatValue >= 0.5f));
-                    fields[i] = toggle;
-                }
-                else if (i == (int)ShaderFXParameterType.Curve)
-                {
-                    var curve = new CurveField("Value");
-                    curve.SetValueWithoutNotify(value.animationCurveValue ?? WhimTexCurveTexture.Default());
-                    curve.RegisterValueChangedCallback(evt =>
-                    {
-                        var effect = (ShaderFX)value.serializedObject.targetObject;
-                        if (WhimTexApi.IsShaderFXContentLocked(effect)) return;
-                        value.serializedObject.Update();
-                        value.animationCurveValue = WhimTexCurveTexture.Copy(evt.newValue);
-                        value.serializedObject.ApplyModifiedProperties();
-                        effect.NotifyValuesChanged();
-                    });
-                    curve.TrackPropertyValue(value, p => curve.SetValueWithoutNotify(p.animationCurveValue ?? WhimTexCurveTexture.Default()));
-                    fields[i] = curve;
-                }
-                else if (i == (int)ShaderFXParameterType.Gradient)
-                {
-                    var gradient = new WhimTexGradientValueField("Value");
-                    if (type.enumValueIndex == (int)ShaderFXParameterType.Gradient)
-                        gradient.SetValueWithoutNotify(value.boxedValue as WhimTexGradient ?? new WhimTexGradient());
-                    gradient.RegisterValueChangedCallback(evt =>
-                    {
-                        var effect = (ShaderFX)value.serializedObject.targetObject;
-                        if (WhimTexApi.IsShaderFXContentLocked(effect)) return;
-                        value.serializedObject.Update();
-                        value.boxedValue = evt.newValue?.Clone() ?? new WhimTexGradient();
-                        value.serializedObject.ApplyModifiedProperties();
-                        effect.NotifyValuesChanged();
-                    });
-                    gradient.TrackPropertyValue(value, p =>
-                    {
-                        if (type.enumValueIndex == (int)ShaderFXParameterType.Gradient)
-                            gradient.SetValueWithoutNotify(p.boxedValue as WhimTexGradient ?? new WhimTexGradient());
-                    });
-                    gradient.TrackPropertyValue(type, p =>
-                    {
-                        if (p.enumValueIndex == (int)ShaderFXParameterType.Gradient)
-                            gradient.SetValueWithoutNotify(value.boxedValue as WhimTexGradient ?? new WhimTexGradient());
-                    });
-                    fields[i] = gradient;
-                }
-                else if (i == (int)ShaderFXParameterType.Vector2 || i == (int)ShaderFXParameterType.Point)
-                {
-                    var field = new Vector2Field("Value");
-                    field.SetValueWithoutNotify(value.vector4Value);
-                    field.RegisterValueChangedCallback(e => { value.serializedObject.Update(); value.vector4Value = e.newValue; value.serializedObject.ApplyModifiedProperties(); ((ShaderFX)value.serializedObject.targetObject).NotifyValuesChanged(); });
-                    field.TrackPropertyValue(value, p => field.SetValueWithoutNotify(p.vector4Value));
-                    fields[i] = field;
-                }
-                else if (i == (int)ShaderFXParameterType.Vector3 || i == (int)ShaderFXParameterType.Normal)
-                {
-                    bool normal = i == (int)ShaderFXParameterType.Normal;
-                    var field = new Vector3Field("Value");
-                    field.SetValueWithoutNotify(value.vector4Value);
-                    field.RegisterValueChangedCallback(e => { value.serializedObject.Update(); value.vector4Value = normal ? ShaderFXParameter.NormalizeNormal(e.newValue) : e.newValue; value.serializedObject.ApplyModifiedProperties(); ((ShaderFX)value.serializedObject.targetObject).NotifyValuesChanged(); });
-                    field.TrackPropertyValue(value, p => field.SetValueWithoutNotify(p.vector4Value));
-                    fields[i] = field;
-                }
-                else if (valueNames[i] == nameof(ShaderFXParameter.textureValue))
-                    fields[i] = new ShaderFXTextureField((ShaderFX)property.serializedObject.targetObject,
-                        property.FindPropertyRelative("id").stringValue, "Value");
-                else if (valueNames[i] == nameof(ShaderFXParameter.colorValue))
-                {
-                    ColorField color = WhimTexColorInputs.Bind(new ColorField("Value"), value,
-                        () => ((ShaderFX)value.serializedObject.targetObject).NotifyValuesChanged());
-                    color.AddToClassList(BaseField<UnityEngine.Color>.alignedFieldUssClassName);
-                    fields[i] = color;
-                }
-                else
-                    fields[i] = new PropertyField(value, "Value");
-                root.Add(fields[i]);
-            }
-            var editTransform = new Button(() =>
-            {
-                var current = property.FindPropertyRelative("id");
-                TextureCompositorWindow.EditFXTransform((ShaderFX)property.serializedObject.targetObject, current.stringValue);
-            }) { text = "Edit Transform on Canvas" };
-            root.Add(editTransform);
-            var editNormal = new Button(() => TextureCompositorWindow.EditFXNormal((ShaderFX)property.serializedObject.targetObject, property.FindPropertyRelative("id").stringValue)) { text = "Edit Normal on Canvas" };
-            root.Add(editNormal);
-            var editPoint = new Button(() => TextureCompositorWindow.EditFXPoint((ShaderFX)property.serializedObject.targetObject, property.FindPropertyRelative("id").stringValue)) { text = "Edit Point on Canvas" };
-            root.Add(editPoint);
-            void RefreshType(SerializedProperty current)
-            {
-                for (int i = 0; i < fields.Length; i++)
-                    fields[i].EnableInClassList("whimtex-shader-fx-hidden", i != current.enumValueIndex);
-                editNormal.EnableInClassList("whimtex-shader-fx-hidden", current.enumValueIndex != (int)ShaderFXParameterType.Normal);
-                editPoint.EnableInClassList("whimtex-shader-fx-hidden", current.enumValueIndex != (int)ShaderFXParameterType.Point);
-                editTransform.EnableInClassList("whimtex-shader-fx-hidden", current.enumValueIndex != (int)ShaderFXParameterType.Transform2D);
-            }
-            root.TrackPropertyValue(type, RefreshType);
-            RefreshType(type);
-            return root;
-        }
-    }
 }

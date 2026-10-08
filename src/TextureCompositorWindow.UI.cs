@@ -9,7 +9,6 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class TextureCompositorWindow
     {
-        private const float ToolkitCanvasViewHeaderRowHeight = 24f;
         private const float ToolkitLayerRowHeight = 26f;
         private const float ToolkitLayerIndent = 14f;
 
@@ -42,6 +41,7 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private Button toolkitSaveButton;
         [NonSerialized] private Button toolkitSaveAsButton;
         [NonSerialized] private HelpBox toolkitCanvasError;
+        [NonSerialized] private HelpBox toolkitDocumentLoadWarning;
         private readonly WhimTexUI.ValueBindings toolkitSettingsBindings = new WhimTexUI.ValueBindings();
         private readonly WhimTexUI.ValueBindings toolkitHeaderBindings = new WhimTexUI.ValueBindings();
         private readonly WhimTexUI.ValueBindings toolkitLayerBindings = new WhimTexUI.ValueBindings();
@@ -251,8 +251,9 @@ namespace DCFApixels.WhimTex
             pane.style.flexDirection = FlexDirection.Column;
             pane.style.backgroundColor = WhimTexUI.PanelColor;
 
-            toolkitCanvasToolbar = WhimTexUI.CreateToolbar();
+            toolkitCanvasToolbar = new WhimTexCanvasHeaderRow();
             toolkitCanvasToolbar.AddToClassList("whimtex-canvas-toolbar");
+            toolkitCanvasToolbar.EnableInClassList("whimtex-canvas-toolbar--light", !EditorGUIUtility.isProSkin);
             pane.Add(toolkitCanvasToolbar);
 
             var canvasBody = new VisualElement();
@@ -295,6 +296,7 @@ namespace DCFApixels.WhimTex
             toolkitCanvas.RegisterCallback<PointerEnterEvent>(OnCanvasPointerEnter);
             toolkitCanvas.RegisterCallback<PointerLeaveEvent>(OnCanvasPointerLeave);
             toolkitCanvas.RegisterCallback<PointerCaptureOutEvent>(OnCanvasPointerCaptureOut);
+            toolkitCanvas.AddManipulator(canvasGuideManipulator);
             canvasBody.Add(BuildCanvasViewWorkspace(toolkitCanvas));
 
             canvasBody.Add(BuildCanvasViewFooter());
@@ -357,7 +359,7 @@ namespace DCFApixels.WhimTex
             };
             toolkitDocumentField.style.flexGrow = 1f;
             toolkitDocumentField.style.minWidth = 140f;
-            toolkitDocumentField.tooltip = "A WhimTex document or its generated texture/sprite. Double-click the saved asset in Project to edit its layers.";
+            toolkitDocumentField.tooltip = "The imported texture of a WhimTex TIFF document. Double-click the file in Project to edit its layers.";
             toolkitSettingsBindings.Track(toolkitDocumentField,
                 () => sourceImage != null ? (UnityEngine.Object)sourceImage :
                     compositor.OutputTexture != null ? (UnityEngine.Object)compositor.OutputTexture : compositor);
@@ -368,25 +370,11 @@ namespace DCFApixels.WhimTex
                     toolkitDocumentField.SetValueWithoutNotify(sourceImage != null ? (UnityEngine.Object)sourceImage : compositor.OutputTexture != null ? (UnityEngine.Object)compositor.OutputTexture : compositor);
                     return;
                 }
-                TextureCompositor selected = TextureCompositor.FindDocument(evt.newValue);
-                if (selected == null || selected == compositor)
-                {
-                    toolkitDocumentField.SetValueWithoutNotify(sourceImage != null ? (UnityEngine.Object)sourceImage : compositor.OutputTexture != null ? (UnityEngine.Object)compositor.OutputTexture : compositor);
-                    return;
-                }
-
-                if (ResolveUnsavedTemporaryDocument())
-                {
-                    SetCompositor(selected);
-                }
-                else
-                {
-                    toolkitDocumentField.SetValueWithoutNotify(sourceImage != null ? (UnityEngine.Object)sourceImage : compositor.OutputTexture != null ? (UnityEngine.Object)compositor.OutputTexture : compositor);
-                }
+                toolkitDocumentField.SetValueWithoutNotify(sourceImage != null ? (UnityEngine.Object)sourceImage : compositor.OutputTexture != null ? (UnityEngine.Object)compositor.OutputTexture : compositor);
             });
             toolbar.Add(toolkitDocumentField);
             toolkitSaveButton = WhimTexUI.CreateToolbarButton("Save", () => SaveDocument(), 46f);
-            toolkitSaveButton.tooltip = "Save the document (Ctrl+S). Legacy .asset documents are read-only and open Save As for a TIFF copy.";
+            toolkitSaveButton.tooltip = "Save the document (Ctrl+S).";
             toolbar.Add(toolkitSaveButton);
             toolkitSaveAsButton = WhimTexUI.CreateToolbarButton("Save As", SaveDocumentAs, 82f);
             toolkitSaveAsButton.tooltip = "Save the document under another name.";
@@ -404,6 +392,11 @@ namespace DCFApixels.WhimTex
             toolbar.Add(userSettings);
             toolkitDocumentRoot.Add(toolbar);
 
+            toolkitDocumentLoadWarning = WhimTexUI.AddHelpBox(toolkitDocumentRoot, string.Empty, HelpBoxMessageType.Warning);
+            toolkitDocumentLoadWarning.name = "documentLoadWarning";
+            toolkitSettingsBindings.Add(RefreshDocumentLoadWarning);
+            RefreshDocumentLoadWarning();
+
             VisualElement separator = new VisualElement
             {
                 name = "documentHeaderSeparator",
@@ -419,26 +412,29 @@ namespace DCFApixels.WhimTex
             // A document keeps its file as an imported image, so having a file is not the same as being an asset.
             bool hasFile = compositor != null && (TryGetDocumentFile(compositor, out _) ||
                 !string.IsNullOrEmpty(sourceImagePath));
-            bool saved = compositor != null && (hasFile || AssetDatabase.Contains(compositor));
-            bool legacy = compositor != null && WhimTexLegacyMigration.IsLegacyAsset(compositor);
+            bool saved = hasFile;
             if (toolkitSaveButton != null)
-            toolkitSaveButton.tooltip = legacy
-                    ? "Legacy .asset is read-only; Ctrl+S opens Save As for a TIFF copy."
-                    : sourceImage != null
+                toolkitSaveButton.tooltip = sourceImage != null
                     ? "Save the document (Ctrl+S). With one layer, the linked image is updated in its original format."
                     : WhimTexDocumentJson.IsJsonPath(WhimTexDocumentService.PathOf(compositor))
                     ? "Save the editable JSON document (Ctrl+S). Use Save As TIFF for a Unity texture."
                     : "Save the document (Ctrl+S). The document is a WhimTex file: a TIFF that Unity imports as a texture.";
-            toolkitSaveButton?.SetEnabled(saved && (HasDocumentChanges() || paintingLayer != null ||
+            toolkitSaveButton?.SetEnabled(saved && (HasDocumentChanges() || !string.IsNullOrEmpty(compositor?.documentLoadWarning) || paintingLayer != null ||
                 canvasTransformManipulator != null && canvasTransformManipulator.IsDragging));
             if (toolkitSaveAsButton == null) return;
-            toolkitSaveAsButton.text = legacy ? "Save As TIFF" : compositor != null && !saved ? "⚠ Save As" : "Save As";
-            toolkitSaveAsButton.tooltip = legacy
-                ? "Legacy .asset documents are read-only. Save a new editable TIFF document."
-                : saved
+            toolkitSaveAsButton.text = compositor != null && !saved ? "⚠ Save As" : "Save As";
+            toolkitSaveAsButton.tooltip = saved
                 ? "Save the document under another name."
                 : "This document has no file yet. Use Save As to keep its layers.";
             RefreshLiveOutputButton();
+        }
+
+        private void RefreshDocumentLoadWarning()
+        {
+            if (toolkitDocumentLoadWarning == null) return;
+            string warning = compositor?.documentLoadWarning;
+            toolkitDocumentLoadWarning.EnableInClassList("whimtex-hidden", string.IsNullOrEmpty(warning));
+            toolkitDocumentLoadWarning.text = "Some document data could not be read. Save will ask before discarding it; save a copy to keep the original.\n" + warning;
         }
 
         private void BuildToolkitCanvasToolbar()
@@ -476,29 +472,26 @@ namespace DCFApixels.WhimTex
                     ApplyToolkitChange("Change Sprite Canvas Height", () => compositor.height = value);
             });
             toolkitCanvasToolbar.Add(height);
-            Button outputSettings = WhimTexUI.CreateToolbarButton("Output", OpenDocumentOutputSettings, 58f);
+            Button outputSettings = WhimTexUI.CreateToolbarButton("Output", OpenDocumentOutputSettings);
             outputSettings.name = "canvasOutputSettings";
-            outputSettings.tooltip = "Select the saved TIFF to edit its native texture import settings in Inspector. An unsaved document must be saved first. Legacy assets keep their Output Settings window.";
+            outputSettings.tooltip = "Select the saved TIFF to edit its native texture import settings in Inspector. An unsaved document must be saved first.";
             toolkitCanvasToolbar.Add(outputSettings);
-            if (!AssetDatabase.Contains(compositor))
-            {
-                var precision = new PopupField<string>("Precision", new List<string> { "Auto", "8-bit", "Float32" }, Mathf.Clamp((int)compositor.outputPrecision, 0, 2))
-                    { name = "canvasOutputPrecision", tooltip = "TIFF source precision, independent of GPU compression. Auto uses 8-bit unless HDR is needed; 8-bit clamps to 0–1; Float32 preserves fine values even within 0–1. Working rendering remains half-float. Drawing storage limits: 256 MiB per texture, 1 GiB total; canvas up to 16384, decoded TIFF image below 2 GiB." };
-                precision.AddToClassList("whimtex-canvas-precision");
-                TwoChoiceDropdown.Attach(precision);
-                toolkitSettingsBindings.Track(precision, () => precision.choices[Mathf.Clamp((int)compositor.outputPrecision, 0, 2)]);
-                precision.RegisterValueChangedCallback(evt => ApplyToolkitChange("Change TIFF Precision",
-                    () => compositor.outputPrecision = (WhimTexOutputPrecision)precision.choices.IndexOf(evt.newValue)));
-                toolkitCanvasToolbar.Add(precision);
-                var srgb = new Toggle("sRGB") { name = "canvasOutputSrgb",
-                    tooltip = "TIFF output encoding: on = sRGB, off = Linear. Applied when you Save; supports Undo. Layer colors and the canvas remain unchanged, apart from output quantization. Float32 / HDR output is always Linear." };
-                srgb.AddToClassList("whimtex-canvas-srgb");
-                toolkitSettingsBindings.Track(srgb, () => WhimTexDocumentFile.GetOutputSrgb(compositor));
-                toolkitSettingsBindings.Add(() => srgb.SetEnabled(compositor.outputPrecision != WhimTexOutputPrecision.Float32));
-                srgb.RegisterValueChangedCallback(evt => ApplyToolkitChange("Change Output Encoding",
-                    () => WhimTexDocumentFile.SetOutputSrgb(compositor, evt.newValue)));
-                toolkitCanvasToolbar.Add(srgb);
-            }
+            var precision = new PopupField<string>("Precision", new List<string> { "Auto", "8-bit", "Float32" }, Mathf.Clamp((int)compositor.outputPrecision, 0, 2))
+                { name = "canvasOutputPrecision", tooltip = "TIFF source precision, independent of GPU compression. Auto uses 8-bit unless HDR is needed; 8-bit clamps to 0–1; Float32 preserves fine values even within 0–1. Working rendering remains half-float. Drawing storage limits: 256 MiB per texture, 1 GiB total; canvas up to 16384, decoded TIFF image below 2 GiB." };
+            precision.AddToClassList("whimtex-canvas-precision");
+            TwoChoiceDropdown.Attach(precision);
+            toolkitSettingsBindings.Track(precision, () => precision.choices[Mathf.Clamp((int)compositor.outputPrecision, 0, 2)]);
+            precision.RegisterValueChangedCallback(evt => ApplyToolkitChange("Change TIFF Precision",
+                () => compositor.outputPrecision = (WhimTexOutputPrecision)precision.choices.IndexOf(evt.newValue)));
+            toolkitCanvasToolbar.Add(precision);
+            var srgb = new Toggle("sRGB") { name = "canvasOutputSrgb",
+                tooltip = "TIFF output encoding: on = sRGB, off = Linear. Applied when you Save; supports Undo. Layer colors and the canvas remain unchanged, apart from output quantization. Float32 / HDR output is always Linear." };
+            srgb.AddToClassList("whimtex-canvas-srgb");
+            toolkitSettingsBindings.Track(srgb, () => WhimTexDocumentFile.GetOutputSrgb(compositor));
+            toolkitSettingsBindings.Add(() => srgb.SetEnabled(compositor.outputPrecision != WhimTexOutputPrecision.Float32));
+            srgb.RegisterValueChangedCallback(evt => ApplyToolkitChange("Change Output Encoding",
+                () => WhimTexDocumentFile.SetOutputSrgb(compositor, evt.newValue)));
+            toolkitCanvasToolbar.Add(srgb);
             var filter = new EnumField("Filter", compositor.outputFilter) { name = "canvasOutputFilter" };
             TwoChoiceDropdown.Attach(filter);
             filter.AddToClassList("whimtex-canvas-filter");
@@ -1527,6 +1520,7 @@ namespace DCFApixels.WhimTex
             if (toolkitHeaderBuilt)
             {
                 toolkitHeaderBindings.Refresh(forceValues);
+                RefreshCanvasHeaderLayout();
                 return;
             }
 
@@ -1536,6 +1530,13 @@ namespace DCFApixels.WhimTex
             toolkitCanvasViewHeader.Clear();
             BuildToolkitCanvasHeader();
             toolkitHeaderBindings.Refresh(forceValues);
+            RefreshCanvasHeaderLayout();
+        }
+
+        private void RefreshCanvasHeaderLayout()
+        {
+            (toolkitCanvasToolbar as WhimTexCanvasHeaderRow)?.RefreshControls();
+            toolkitCanvasViewHeader.Query<WhimTexCanvasHeaderRow>().ForEach(row => row.RefreshControls());
         }
 
         private void BuildToolkitCanvasHeader()
@@ -1544,10 +1545,10 @@ namespace DCFApixels.WhimTex
             Button clear = WhimTexUI.CreateToolbarButton("Clear", () =>
             {
                 if (GetSelectedLayer()?.Behaviour is DrawingLayerBehaviour drawing) ClearDrawingLayer(drawing);
-            }, 46f);
+            });
             toolkitHeaderBindings.Add(() => clear.SetEnabled(GetSelectedLayer()?.Behaviour is DrawingLayerBehaviour layer && !WhimTexApi.IsLayerContentLocked(compositor, layer)));
             toolkitCanvasActions.Add(clear);
-            toolkitCanvasActions.Add(WhimTexUI.CreateToolbarButton("Refresh", () => RequestCanvasRender(true), 64f));
+            toolkitCanvasActions.Add(WhimTexUI.CreateToolbarButton("Refresh", () => RequestCanvasRender(true)));
             AddCanvasTransformSettings();
             AddCanvasZoomSettings();
             AddShapeSettings();
@@ -1596,6 +1597,7 @@ namespace DCFApixels.WhimTex
             brushRow.Add(brushPressure);
             toolkitCanvasViewHeader.Add(brushRow);
             AddBlurBrushSettings();
+            AddSmudgeBrushSettings();
             AddHealingSettings();
         }
 
@@ -1636,6 +1638,48 @@ namespace DCFApixels.WhimTex
             toolkitCanvasViewHeader.Add(row);
         }
 
+        private void AddSmudgeBrushSettings()
+        {
+            VisualElement row = CreateCanvasSettingsRow();
+            row.name = "smudgeBrushSettings";
+            BindCanvasSettingsRow(row, CanvasTool.SmudgeBrush);
+            FloatField size = CompactField(new FloatField("Size"), 88f);
+            size.name = "smudgeSize";
+            size.AddToClassList("whimtex-smudge-size");
+            toolkitHeaderBindings.Track(size, () => paintSettings.smudgeSize);
+            size.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() => paintSettings.smudgeSize = Mathf.Clamp(evt.newValue, 1, 4096)));
+            row.Add(size);
+            Slider hardness = CompactField(new Slider("Hardness", 0, 100) { showInputField = true }, 160f);
+            hardness.name = "smudgeHardness";
+            hardness.AddToClassList("whimtex-smudge-hardness");
+            toolkitHeaderBindings.Track(hardness, () => paintSettings.smudgeHardness * 100);
+            hardness.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() => paintSettings.smudgeHardness = Mathf.Clamp01(evt.newValue * .01f)));
+            row.Add(hardness);
+            AddBrushHeaderPercent(row, "Strength", () => paintSettings.smudgeStrength,
+                v => paintSettings.smudgeStrength = v, "Stretching strength and retention of picked-up pixels when Mixing is enabled.");
+            AddBrushHeaderPercent(row, "Flow", () => paintSettings.smudgeFlow,
+                v => paintSettings.smudgeFlow = v, "How strongly each step stretches and mixes existing pixels.");
+            Slider mixing = CompactField(new Slider("Mixing", 0, 100) { showInputField = true,
+                name = "smudgeMixing", tooltip = "0% stretches details; higher values add cumulative color mixing. 100% uses only color mixing." }, 150f);
+            toolkitHeaderBindings.Track(mixing, () => paintSettings.smudgeMixing * 100);
+            mixing.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() => paintSettings.smudgeMixing = Mathf.Clamp01(evt.newValue * .01f)));
+            row.Add(mixing);
+            Toggle pressure = CompactField(new Toggle("Pressure") { tooltip = "Use tablet pressure to scale Flow." }, 86f);
+            pressure.name = "smudgePressure";
+            pressure.AddToClassList("whimtex-smudge-pressure");
+            toolkitHeaderBindings.Track(pressure, () => paintSettings.smudgePressure);
+            pressure.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() => paintSettings.smudgePressure = evt.newValue));
+            row.Add(pressure);
+            EnumField mode = CompactField(new EnumField(paintSettings.smudgeSampleMode), 118f);
+            mode.name = "smudgeSampleMode";
+            mode.AddToClassList("whimtex-smudge-mode");
+            mode.tooltip = "Sample this layer, this layer and those below, or all visible layers. Only this Drawing layer is changed.";
+            toolkitHeaderBindings.Track(mode, () => (Enum)paintSettings.smudgeSampleMode);
+            mode.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() => paintSettings.smudgeSampleMode = (BlurBrushSampleMode)evt.newValue));
+            row.Add(mode);
+            toolkitCanvasViewHeader.Add(row);
+        }
+
         private void AddPencilSettings()
         {
             VisualElement row = CreateCanvasSettingsRow();
@@ -1652,8 +1696,7 @@ namespace DCFApixels.WhimTex
             size.RegisterValueChangedCallback(evt => ApplyPaintToolChange(
                 () => paintSettings.pencilSize = Mathf.Clamp(evt.newValue, 1, 4096)));
             row.Add(size);
-            row.Add(CreateCompactLabel("Shape", 42f));
-            EnumField shape = CompactField(new EnumField(paintSettings.pencilShape), 94f);
+            EnumField shape = CompactField(new EnumField("Shape", paintSettings.pencilShape), 94f);
             toolkitHeaderBindings.Track(shape, () => (Enum)paintSettings.pencilShape);
             shape.RegisterValueChangedCallback(evt => ApplyPaintToolChange(
                 () => paintSettings.pencilShape = (PencilShape)evt.newValue));
@@ -1663,20 +1706,7 @@ namespace DCFApixels.WhimTex
 
         private static T CompactField<T>(T field, float width) where T : VisualElement
         {
-            TwoChoiceDropdown.Attach(field);
-            field.style.width = width;
-            field.style.height = ToolkitCanvasViewHeaderRowHeight - 2f;
-            field.style.marginLeft = 1f;
-            field.style.marginRight = 1f;
-            return field;
-        }
-
-        private static Label CreateCompactLabel(string text, float width)
-        {
-            Label result = new Label(text);
-            result.style.width = width;
-            result.style.unityTextAlign = TextAnchor.MiddleLeft;
-            return result;
+            return WhimTexCanvasHeaderRow.ConfigureInput(field, width);
         }
 
         private void ApplyToolkitChange(
@@ -1721,10 +1751,10 @@ namespace DCFApixels.WhimTex
             toolkitCanvas.SetPencilCursor(canvasTool == CanvasTool.Pencil);
             toolkitCanvas.SetDocument(channelCanvasTexture != null ? (Texture)channelCanvasTexture : CanvasPresentationSource,
                 compositor.width, compositor.height,
-                IsCanvasBrushEnabled || IsCanvasBlurBrushEnabled ? drawing : null, transforming,
+                IsCanvasBrushEnabled || IsCanvasBlurBrushEnabled || IsCanvasSmudgeBrushEnabled ? drawing : null, transforming,
                 IsCanvasPaintTool || canvasTool == CanvasTool.HealingBrush ? paintSettings : null);
             toolkitCanvas.SetRoundCursorSize(canvasTool == CanvasTool.HealingBrush ? paintSettings.healingSize :
-                canvasTool == CanvasTool.BlurBrush ? paintSettings.blurSize : paintSettings.brushSize);
+                canvasTool == CanvasTool.BlurBrush ? paintSettings.blurSize : canvasTool == CanvasTool.SmudgeBrush ? paintSettings.smudgeSize : paintSettings.brushSize);
             RefreshCanvasPointerCursor();
             if (toolkitCanvasError != null)
             {
@@ -1769,6 +1799,10 @@ namespace DCFApixels.WhimTex
                 else if (canvasTool == CanvasTool.HealingBrush)
                 {
                     toolkitCanvasViewFooter.text = "Paint over defect • Release to heal • Esc cancel • [ ] size • Click non-Drawing layer to convert";
+                }
+                else if (canvasTool == CanvasTool.SmudgeBrush && IsCanvasToolAvailable(CanvasTool.SmudgeBrush))
+                {
+                    toolkitCanvasViewFooter.text = "LMB drag to smudge • no color added • Pressure scales Flow • [ ] size";
                 }
                 else if (canvasTool == CanvasTool.BlurBrush && IsCanvasToolAvailable(CanvasTool.BlurBrush))
                 {
@@ -1820,14 +1854,15 @@ namespace DCFApixels.WhimTex
             if (HandleHealingDown(evt)) return;
             if (HandleFillPointerDown(evt)) return;
             DrawingLayerBehaviour layer = GetSelectedLayer()?.Behaviour as DrawingLayerBehaviour;
-            if (!(IsCanvasBrushEnabled || IsCanvasBlurBrushEnabled) || paintingLayer != null || layer == null ||
+            if (!(IsCanvasBrushEnabled || IsCanvasBlurBrushEnabled || IsCanvasSmudgeBrushEnabled) || paintingLayer != null || layer == null ||
                 (evt.button != 0 && evt.button != 1) || evt.altKey)
                 return;
             if (!toolkitCanvas.contentRect.Contains(evt.localPosition)) return;
 
             Focus();
             toolkitCanvas.Focus();
-            bool erase = evt.button == 1 || paintSettings.tool == PaintToolMode.Eraser;
+            if (canvasTool == CanvasTool.SmudgeBrush && evt.button != 0) return;
+            bool erase = canvasTool != CanvasTool.SmudgeBrush && (evt.button == 1 || paintSettings.tool == PaintToolMode.Eraser);
             if (!erase && (canvasChannels & 8) == 0)
             {
                 WhimTexUI.ConsumeEvent(evt);
@@ -1868,11 +1903,16 @@ namespace DCFApixels.WhimTex
                 blurSampleTexture = paintSettings.blurSampleMode switch
                 {
                     BlurBrushSampleMode.BelowLayers => compositor.RenderLayerAndBelow(layer, compositor.width, compositor.height),
-                    BlurBrushSampleMode.AllLayers => compositor.RenderAllLayers(compositor.width, compositor.height),
+                    BlurBrushSampleMode.AllLayers => compositor.RenderCanvasAtSize(compositor.width, compositor.height),
                     _ => layer.CaptureBlurSource(compositor.width, compositor.height)
                 };
             RememberPaintingPoint(originUv);
-            if (canvasTool == CanvasTool.BlurBrush)
+            if (canvasTool == CanvasTool.SmudgeBrush)
+            {
+                BeginCanvasSmudge(layer, originUv);
+                if (connect && originUv != startUv) PaintTowardsLayerPoint(startUv);
+            }
+            else if (canvasTool == CanvasTool.BlurBrush)
                 layer.BlurSegment(startUv, startUv, compositor.width, compositor.height,
                     paintSettings.blurSize, paintSettings.blurHardness, GetBlurStrength(), blurSampleTexture);
             else if (connect && originUv != startUv)
@@ -1923,7 +1963,9 @@ namespace DCFApixels.WhimTex
                 if (hasLastPaintingUv && paintingLayer.TryClipStrokeSegmentToRepeatShape(
                         lastPaintingUv, pointUv, compositor.width, compositor.height, out Vector2 clippedUv))
                 {
-                    if (canvasTool == CanvasTool.BlurBrush)
+                    if (canvasTool == CanvasTool.SmudgeBrush)
+                        SmudgeTowardsLayerPoint(lastPaintingUv, clippedUv);
+                    else if (canvasTool == CanvasTool.BlurBrush)
                         paintingLayer.BlurSegment(lastPaintingUv, clippedUv, compositor.width, compositor.height,
                             paintSettings.blurSize, paintSettings.blurHardness, GetBlurStrength(), blurSampleTexture);
                     else
@@ -1940,7 +1982,9 @@ namespace DCFApixels.WhimTex
             {
                 if (lastPaintingUv == pointUv)
                     return;
-                if (canvasTool == CanvasTool.BlurBrush)
+                if (canvasTool == CanvasTool.SmudgeBrush)
+                    SmudgeTowardsLayerPoint(lastPaintingUv, pointUv);
+                else if (canvasTool == CanvasTool.BlurBrush)
                     paintingLayer.BlurSegment(lastPaintingUv, pointUv, compositor.width, compositor.height,
                         paintSettings.blurSize, paintSettings.blurHardness, GetBlurStrength(), blurSampleTexture);
                 else
@@ -1949,7 +1993,9 @@ namespace DCFApixels.WhimTex
             }
             else
             {
-                if (canvasTool == CanvasTool.BlurBrush)
+                if (canvasTool == CanvasTool.SmudgeBrush)
+                    BeginCanvasSmudge(paintingLayer, pointUv);
+                else if (canvasTool == CanvasTool.BlurBrush)
                     paintingLayer.BlurSegment(pointUv, pointUv, compositor.width, compositor.height,
                         paintSettings.blurSize, paintSettings.blurHardness, GetBlurStrength(), blurSampleTexture);
                 else
@@ -1958,6 +2004,34 @@ namespace DCFApixels.WhimTex
             RememberPaintingPoint(pointUv);
             hasLastPaintingUv = true;
             RefreshCanvasDuringPainting();
+        }
+
+        private void BeginCanvasSmudge(DrawingLayerBehaviour layer, Vector2 point)
+        {
+            RenderTexture sample = null;
+            RenderTexture previous = RenderTexture.active;
+            try
+            {
+                sample = paintSettings.smudgeSampleMode switch
+                {
+                    BlurBrushSampleMode.BelowLayers => compositor.RenderLayerAndBelow(layer, compositor.width, compositor.height),
+                    BlurBrushSampleMode.AllLayers => compositor.RenderCanvasAtSize(compositor.width, compositor.height),
+                    _ => null
+                };
+                layer.BeginSmudgeStroke(point, compositor.width, compositor.height, paintSettings.smudgeSize, sample, tiledCanvas, paintSettings.smudgeMixing);
+            }
+            finally
+            {
+                RenderTexture.active = previous;
+                if (sample != null) RenderTexture.ReleaseTemporary(sample);
+            }
+        }
+
+        private void SmudgeTowardsLayerPoint(Vector2 from, Vector2 to)
+        {
+            float pressure = paintSettings.smudgePressure ? Mathf.Clamp01(paintingPressure) : 1;
+            paintingLayer.SmudgeSegment(from, to, compositor.width, compositor.height, paintSettings.smudgeHardness,
+                paintSettings.smudgeStrength, paintSettings.smudgeFlow * pressure, GetAreaSelectionTexture());
         }
 
         private float GetBlurStrength()
@@ -2049,7 +2123,7 @@ namespace DCFApixels.WhimTex
             toolkitCanvas?.SetCursor(
                 visible,
                 visible ? GetCanvasPaintPosition(localPosition, paintingShiftHeld, canvasPointerControl, updateConstraint: false) : localPosition,
-                canvasTool != CanvasTool.HealingBrush && (paintingLayer != null ? paintingErase : paintSettings.tool == PaintToolMode.Eraser));
+                canvasTool != CanvasTool.HealingBrush && canvasTool != CanvasTool.SmudgeBrush && (paintingLayer != null ? paintingErase : paintSettings.tool == PaintToolMode.Eraser));
             MouseCursor transformCursor = !panning && canvasPointerInside && IsCanvasTransformEnabled
                 ? canvasTransformManipulator?.GetCursor(localPosition, alt) ?? MouseCursor.Pan
                 : MouseCursor.Pan;
@@ -2096,6 +2170,8 @@ namespace DCFApixels.WhimTex
                 ResetOpacityEntry();
                 return;
             }
+
+            if (HandlePreviousCanvasToolKey(evt)) return;
 
             if (evt.keyCode == KeyCode.Escape && canvasGuideManipulator?.IsDragging == true)
             {
@@ -2202,11 +2278,16 @@ namespace DCFApixels.WhimTex
             if (!decrease && !increase)
                 return;
 
-            float currentSize = canvasTool == CanvasTool.Pencil ? paintSettings.pencilSize : paintSettings.brushSize;
+            float currentSize = canvasTool == CanvasTool.Pencil ? paintSettings.pencilSize :
+                canvasTool == CanvasTool.BlurBrush ? paintSettings.blurSize : canvasTool == CanvasTool.SmudgeBrush ? paintSettings.smudgeSize : paintSettings.brushSize;
             float step = PaintToolSettings.GetSizeShortcutStep(currentSize);
             float nextSize = Mathf.Max(1f, Mathf.Round(currentSize + (increase ? step : -step)));
             if (canvasTool == CanvasTool.Pencil)
                 ApplyPaintToolChange(() => paintSettings.pencilSize = Mathf.Clamp(Mathf.RoundToInt(nextSize), 1, 4096));
+            else if (canvasTool == CanvasTool.BlurBrush)
+                ApplyPaintToolChange(() => paintSettings.blurSize = nextSize);
+            else if (canvasTool == CanvasTool.SmudgeBrush)
+                ApplyPaintToolChange(() => paintSettings.smudgeSize = Mathf.Clamp(nextSize, 1, 4096));
             else
                 ApplyPaintToolChange(() => paintSettings.brushSize = nextSize);
             WhimTexUI.ConsumeEvent(evt);
@@ -2214,6 +2295,7 @@ namespace DCFApixels.WhimTex
 
         private void OnToolkitKeyUp(KeyUpEvent evt)
         {
+            if (evt.keyCode == CanvasToolToggleKey) canvasToolToggleKeyHeld = false;
             if (keyboardTransform != null && evt.keyCode == nudgeKey)
             {
                 StopKeyboardNudge();
@@ -2361,6 +2443,8 @@ namespace DCFApixels.WhimTex
                     UpdateImageLayout();
                 });
             }
+
+            public void AddBelowToolOverlays(VisualElement element) => Insert(IndexOf(overlay), element);
 
             private sealed class CanvasViewInsetShadow : VisualElement
             {
@@ -2887,19 +2971,6 @@ namespace DCFApixels.WhimTex
                 }
                 if (!float.IsInfinity(forward) && !float.IsInfinity(backward))
                     StrokeLine(painter, center - direction * backward, center + direction * forward);
-            }
-
-            private static void FillRect(Painter2D painter, float x, float y, float width, float height)
-            {
-                if (width <= 0f || height <= 0f)
-                    return;
-                painter.BeginPath();
-                painter.MoveTo(new Vector2(x, y));
-                painter.LineTo(new Vector2(x + width, y));
-                painter.LineTo(new Vector2(x + width, y + height));
-                painter.LineTo(new Vector2(x, y + height));
-                painter.ClosePath();
-                painter.Fill();
             }
 
             private void StrokeLine(Painter2D painter, Vector2 from, Vector2 to)

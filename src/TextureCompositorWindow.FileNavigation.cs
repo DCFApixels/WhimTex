@@ -31,8 +31,8 @@ namespace DCFApixels.WhimTex
             RefreshToolkitInterface();
             UnityEditor.EditorApplication.delayCall += () =>
             {
-                if (this != null && source != null && !OpenWhimTexDocumentPath(UnityEditor.AssetDatabase.GetAssetPath(source)))
-                    OpenReferencedDocument(TextureCompositor.FindDocument(source));
+                if (this != null && source != null)
+                    OpenWhimTexDocumentPath(UnityEditor.AssetDatabase.GetAssetPath(source));
             };
             return true;
         }
@@ -40,6 +40,8 @@ namespace DCFApixels.WhimTex
         private static TextureCompositorWindow OpenReferencedDocument(TextureCompositor document)
         {
             if (document == null) return null;
+            if (UnityEditor.AssetDatabase.Contains(document))
+                throw new System.InvalidOperationException("Editable documents must be in-memory models, not Unity assets.");
             TextureCompositorWindow existing = null;
             foreach (var candidate in Resources.FindObjectsOfTypeAll<TextureCompositorWindow>())
                 if (candidate.compositor == document && (existing == null || candidate.agentFocusOrder > existing.agentFocusOrder))

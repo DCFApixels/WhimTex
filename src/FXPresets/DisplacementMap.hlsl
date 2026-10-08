@@ -1,4 +1,6 @@
 // @whimtex-effect Distortion/Displacement Map
+// @control(_Amount)
+// @param hidden float _Amount = 1 [0 .. ~2] // Multiply displacement and parallax depth in every mode. Zero keeps the original image; one keeps the configured strength.
 // @group(Map Wrap; _MapWrap)
 // @param texture2D _DisplacementMap = self // Source field. Vector mode reads R/G; Grayscale mode reads the selected channel.
 // @param transform2D _MapTransform = (0.5, 0.5, 1, 1, 0) // Positions and scales the map independently from the image being distorted.
@@ -57,8 +59,10 @@
 // @endgroup
 // @group(Output Mix; _Mix)
 // @param hidden float _Mix = 1 [0 .. 1] // Blend the displaced sample with the original image.
-// @param enum _InputEdge = Clamp {Clamp: 0, Repeat: 1, Mirror: 2, Transparent: 3} // Addressing for displaced image samples, independent of map wrapping.
+// @formerlyserializedas(_InputEdge)
+// @param enum _Tiling = Clamp {Clamp: 0, Repeat: 1, Mirror: 2, Clip: 3} // Sampling outside the displaced input image, independent of map wrapping.
 // @endgroup
+// @param hidden bool _RepeatFiltering = true // Interpolate across repeat seams; saved earlier presets retain their original filtering.
 
 float ReadDisplacementChannel(float4 value, float channel)
 {
@@ -89,20 +93,6 @@ float2 AddressMapUV(float2 uv, float mode, float2 texelSize)
     else
         uv = 1.0 - abs(frac(uv * 0.5) * 2.0 - 1.0);
     return uv;
-}
-
-float2 AddressInputUV(float2 uv, float mode, float2 texelSize, out float inside)
-{
-    inside = 1.0;
-    if (mode < 0.5)
-        return clamp(uv, texelSize * 0.5, 1.0 - texelSize * 0.5);
-    if (mode < 1.5)
-        return frac(uv);
-    if (mode < 2.5)
-        return 1.0 - abs(frac(uv * 0.5) * 2.0 - 1.0);
-
-    inside = step(0.0, uv.x) * step(uv.x, 1.0) * step(0.0, uv.y) * step(uv.y, 1.0);
-    return clamp(uv, texelSize * 0.5, 1.0 - texelSize * 0.5);
 }
 
 float ReadHeightAtUV(float2 uv, float2 mapDDX, float2 mapDDY)
@@ -201,6 +191,7 @@ float2 GrayscaleDirection(float2 uv)
 
 float4 ApplyFX(float2 uv, float4 color)
 {
+    if (_Amount <= 0.0) return color;
     float2 mapUV = _MapTransform_ToLocal(uv);
     float2 mapDDX = ddx(mapUV);
     float2 mapDDY = ddy(mapUV);
@@ -238,13 +229,12 @@ float4 ApplyFX(float2 uv, float4 color)
         strengthMask = saturate(_MaskProfile_Sample(saturate(maskValue)));
     }
 
+    strengthMask *= max(_Amount, 0.0);
     if (_Mode > 1.5)
         parallaxUV = TraceParallax(uv, strengthMask, mapDDX, mapDDY, parallaxHeight);
 
     float2 inputUV = _Mode > 1.5 ? parallaxUV : uv + displacementPixels * strengthMask * _CanvasSize.zw;
-    float inside;
-    inputUV = AddressInputUV(inputUV, _InputEdge, _MainTex_TexelSize.xy, inside);
-    float4 distorted = SampleInput(inputUV) * inside;
+    float4 distorted = SampleInput(inputUV, _Tiling, _RepeatFiltering);
     // if (_Mode > 1.5 && _SelfShadow > 0.5)
     // {
     //     float visibility = TraceParallaxSelfShadow(parallaxUV, parallaxHeight, strengthMask, mapDDX, mapDDY);

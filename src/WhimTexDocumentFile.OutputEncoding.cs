@@ -24,7 +24,7 @@ namespace DCFApixels.WhimTex
         {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (AssetDatabase.Contains(document))
-                throw new WhimTexDocumentException("Save this legacy document as TIFF before changing its output encoding.");
+                throw new WhimTexDocumentException("Editable documents must be in-memory models, not Unity assets.");
             if (document.outputPrecision == WhimTexOutputPrecision.Float32) srgb = false;
             if (document.outputSrgb == srgb) return;
             document.outputSrgb = srgb;
@@ -47,7 +47,7 @@ namespace DCFApixels.WhimTex
                 long previousLength = previousFile.Length, previousTicks = previousFile.LastWriteTimeUtc.Ticks;
                 ValidateEffectsForSave(saved);
                 WhimTexDocumentOperation.Report("Rendering saved layers", .25f);
-                composite = saved.Compose();
+                composite = saved.ComposeCanvas();
                 if (composite == null || !composite.isReadable)
                     throw new WhimTexDocumentException("The saved document produced no readable composite.");
                 WhimTexDocumentContainer detached;

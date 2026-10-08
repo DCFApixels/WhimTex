@@ -10,21 +10,25 @@ namespace DCFApixels.WhimTex
         private enum CanvasTool
         {
             None, Brush, BlurBrush, Transform, Fill, Zoom, Pencil, RectangleSelect, PolygonSelect, Shape,
-            GradientHandles, UvIslandSelect, FXTransform, FXPoint, FXNormal, HealingBrush
+            GradientHandles, UvIslandSelect, FXTransform, FXPoint, FXNormal, HealingBrush, SmudgeBrush
         }
 
         [NonSerialized] private CanvasTool canvasTool = CanvasTool.None;
+        [NonSerialized] private CanvasTool? previousCanvasTool;
+        [NonSerialized] private bool canvasToolToggleKeyHeld;
+        private const KeyCode CanvasToolToggleKey = KeyCode.Q;
         [NonSerialized] private CanvasTool canvasTransformReturnTool = CanvasTool.None;
         [NonSerialized] private PaintToolSettings paintSettings = new PaintToolSettings();
-        private const string PaintToolSettingsPrefKey = "DCFApixels.WhimTex.PaintToolSettings";
-        private const string CanvasToolPrefKey = "DCFApixels.WhimTex.PreviewTool";
-        private const string CanvasTransformReturnToolPrefKey = "DCFApixels.WhimTex.PreviewTransformReturnTool";
+        private const string PaintToolSettingsPrefKey = "DCFApixels.WhimTex.Canvas.PaintToolSettings";
+        private const string CanvasToolPrefKey = "DCFApixels.WhimTex.Canvas.Tool";
+        private const string CanvasTransformReturnToolPrefKey = "DCFApixels.WhimTex.Canvas.TransformReturnTool";
         [NonSerialized] private bool conversionPromptOpen;
         [NonSerialized] private RenderTexture blurSampleTexture;
         [NonSerialized] private float paintingPressure = 1f;
         [NonSerialized] private Button canvasNoneButton;
         [NonSerialized] private Button canvasBrushButton;
         [NonSerialized] private Button canvasBlurBrushButton;
+        [NonSerialized] private Button canvasSmudgeBrushButton;
         [NonSerialized] private Button canvasPencilButton;
         [NonSerialized] private Button canvasTransformButton;
         [NonSerialized] private Button canvasFillButton;
@@ -33,7 +37,7 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private Button canvasPolygonSelectButton;
         private ScrollView canvasToolScroll;
 
-        private bool IsCanvasPaintTool => canvasTool == CanvasTool.Brush || canvasTool == CanvasTool.BlurBrush || canvasTool == CanvasTool.Pencil;
+        private bool IsCanvasPaintTool => canvasTool == CanvasTool.Brush || canvasTool == CanvasTool.BlurBrush || canvasTool == CanvasTool.SmudgeBrush || canvasTool == CanvasTool.Pencil;
         private bool HasCanvasLayers
         {
             get
@@ -48,6 +52,8 @@ namespace DCFApixels.WhimTex
             (canvasTool != CanvasTool.Brush || paintSettings.dynamics.source != BrushTipSource.HLSL || paintSettings.dynamics.tip != null) &&
             GetSelectedLayer()?.Behaviour is DrawingLayerBehaviour layer && !WhimTexApi.IsLayerContentLocked(compositor, layer);
         private bool IsCanvasBlurBrushEnabled => canvasTool == CanvasTool.BlurBrush &&
+            GetSelectedLayer()?.Behaviour is DrawingLayerBehaviour layer && !WhimTexApi.IsLayerContentLocked(compositor, layer);
+        private bool IsCanvasSmudgeBrushEnabled => canvasTool == CanvasTool.SmudgeBrush &&
             GetSelectedLayer()?.Behaviour is DrawingLayerBehaviour layer && !WhimTexApi.IsLayerContentLocked(compositor, layer);
         private bool IsCanvasFillEnabled => canvasTool == CanvasTool.Fill && GetSelectedLayer()?.Behaviour is DrawingLayerBehaviour layer && !WhimTexApi.IsLayerContentLocked(compositor, layer);
 
@@ -67,6 +73,8 @@ namespace DCFApixels.WhimTex
 
         private void LoadCanvasToolSettings()
         {
+            previousCanvasTool = null;
+            canvasToolToggleKeyHeld = false;
             canvasTool = ParseCanvasTool(EditorPrefs.GetString(CanvasToolPrefKey, string.Empty));
             lastBaseCanvasTool = canvasTool;
             canvasTransformReturnTool = ParseCanvasTool(
@@ -83,11 +91,7 @@ namespace DCFApixels.WhimTex
             {
                 if (EditorPrefs.HasKey(PaintToolSettingsPrefKey))
                 {
-                    // Keep settings saved before the Blur Brush field was renamed.
-                    string saved = EditorPrefs.GetString(PaintToolSettingsPrefKey);
-                    if (saved.IndexOf("\"blurOpacity\"", StringComparison.Ordinal) >= 0)
-                        saved = saved.Replace("\"blurOpacity\"", "\"blurFlow\"");
-                    JsonUtility.FromJsonOverwrite(saved, paintSettings);
+                    JsonUtility.FromJsonOverwrite(EditorPrefs.GetString(PaintToolSettingsPrefKey), paintSettings);
                 }
             }
             catch (ArgumentException)
@@ -151,7 +155,7 @@ namespace DCFApixels.WhimTex
                 WhimTexUI.ConsumeEvent(evt);
                 return true;
             }
-            bool painting = (IsCanvasPaintTool && (evt.button == 0 || evt.button == 1)) ||
+            bool painting = (IsCanvasPaintTool && (evt.button == 0 || evt.button == 1 && canvasTool != CanvasTool.SmudgeBrush)) ||
                 canvasTool == CanvasTool.HealingBrush && evt.button == 0;
             bool filling = canvasTool == CanvasTool.Fill && evt.button == 0;
             if ((!painting && !filling) || evt.altKey || compositor == null ||
@@ -204,7 +208,8 @@ namespace DCFApixels.WhimTex
                 case CanvasTool.Brush:
                 case CanvasTool.Pencil:
                 case CanvasTool.Fill: return layer?.Behaviour is DrawingLayerBehaviour;
-                case CanvasTool.BlurBrush: return layer?.Behaviour != null;
+                case CanvasTool.BlurBrush:
+                case CanvasTool.SmudgeBrush: return layer?.Behaviour != null;
                 case CanvasTool.HealingBrush: return layer?.Behaviour != null;
                 case CanvasTool.Transform: return layer?.Behaviour != null;
                 case CanvasTool.Zoom:
@@ -217,7 +222,7 @@ namespace DCFApixels.WhimTex
 
         private static VisualElement CreateCanvasSettingsRow()
         {
-            var row = new VisualElement();
+            var row = new WhimTexCanvasHeaderRow();
             row.AddToClassList("whimtex-tool-settings-row");
             return row;
         }
@@ -244,6 +249,8 @@ namespace DCFApixels.WhimTex
                 "Brush (B). Paint on the selected Drawing layer. Choose Brush/Eraser in the header; RMB temporarily erases.");
             canvasBlurBrushButton = CreateCanvasToolButton("blurBrushTool", CanvasTool.BlurBrush,
                 "Blur Brush. Paint a soft circular blur on the selected Drawing layer. Choose the current layer or the layers below as the sample.");
+            canvasSmudgeBrushButton = CreateCanvasToolButton("smudgeBrushTool", CanvasTool.SmudgeBrush,
+                "Smudge Brush. Drag to carry existing pixels along the stroke. Writes only the selected Drawing layer; a click without movement does not paint.");
             canvasPencilButton = CreateCanvasToolButton("pencilTool", CanvasTool.Pencil,
                 "Pencil (P). Paint crisp pixels with a Circle, Square or Diamond tip. RMB temporarily erases; [ and ] change size.");
             canvasFillButton = CreateCanvasToolButton("fillTool", CanvasTool.Fill,
@@ -269,11 +276,12 @@ namespace DCFApixels.WhimTex
             canvasShapeButton.AddManipulator(shapePicker);
             toolbar.Add(canvasShapeButton);
             toolbar.Add(canvasBrushButton);
+            toolbar.Add(canvasPencilButton);
             toolbar.Add(canvasBlurBrushButton);
+            toolbar.Add(canvasSmudgeBrushButton);
             canvasHealingButton = CreateCanvasToolButton("healingBrushTool", CanvasTool.HealingBrush,
                 "Healing Brush. Paint over a defect, then release to reconstruct it from nearby pixels. Esc cancels. Writes only the selected Drawing layer.");
             toolbar.Add(canvasHealingButton);
-            toolbar.Add(canvasPencilButton);
             toolbar.Add(canvasFillButton);
             canvasZoomButton = CreateCanvasToolButton("zoomTool", CanvasTool.Zoom,
                 "Zoom (Z). Click to zoom in, drag a rectangle to frame an area, or Alt-click to zoom out. MMB-drag pans the canvas.");
@@ -357,6 +365,8 @@ namespace DCFApixels.WhimTex
                 canvasPencilButton.EnableInClassList("whimtex-tool-button--unavailable", !(selected?.Behaviour is DrawingLayerBehaviour));
                 canvasPencilButton.EnableInClassList("whimtex-tool-button--selected", displayedTool == CanvasTool.Pencil);
             }
+            canvasSmudgeBrushButton?.EnableInClassList("whimtex-tool-button--unavailable", !(selected?.Behaviour is DrawingLayerBehaviour));
+            canvasSmudgeBrushButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == CanvasTool.SmudgeBrush);
             canvasHealingButton?.EnableInClassList("whimtex-tool-button--unavailable", !(selected?.Behaviour is DrawingLayerBehaviour));
             canvasHealingButton?.EnableInClassList("whimtex-tool-button--selected", displayedTool == CanvasTool.HealingBrush);
             if (canvasTransformButton != null)
@@ -418,6 +428,8 @@ namespace DCFApixels.WhimTex
                     DrawPencil(painter);
                 else if (tool == CanvasTool.BlurBrush)
                     DrawBlurBrush(context);
+                else if (tool == CanvasTool.SmudgeBrush)
+                    DrawSmudgeBrush(painter);
                 else if (tool == CanvasTool.HealingBrush)
                     DrawHealingBrush(painter);
                 else if (tool == CanvasTool.RectangleSelect)
@@ -647,6 +659,28 @@ namespace DCFApixels.WhimTex
                 painter.BezierCurveTo(P(18.9f, 10.2f), P(13.8f, 5.1f), P(12f, 2.2f));
                 painter.ClosePath();
                 painter.Stroke();
+            }
+
+            private void DrawSmudgeBrush(Painter2D painter)
+            {
+                painter.BeginPath();
+                painter.MoveTo(P(12.27f, 2.02f));
+                painter.BezierCurveTo(P(9.35f, 2.28f), P(3.33f, 2.92f), P(3.45f, 6.96f));
+                painter.BezierCurveTo(P(3.51f, 9.06f), P(4.25f, 11.24f), P(5.42f, 12.32f));
+                painter.BezierCurveTo(P(5.75f, 12.64f), P(6.30f, 12.62f), P(6.55f, 12.75f));
+                painter.BezierCurveTo(P(6.20f, 13.25f), P(5.75f, 13.76f), P(5.31f, 14.39f));
+                painter.BezierCurveTo(P(4.48f, 15.57f), P(3.53f, 16.94f), P(2.72f, 18.18f));
+                painter.BezierCurveTo(P(2.01f, 19.26f), P(1.58f, 20.36f), P(2.29f, 21.14f));
+                painter.BezierCurveTo(P(3.00f, 21.92f), P(4.02f, 21.57f), P(4.81f, 20.80f));
+                painter.BezierCurveTo(P(6.67f, 18.98f), P(8.04f, 16.59f), P(10.54f, 14.98f));
+                painter.BezierCurveTo(P(12.76f, 13.55f), P(18.56f, 10.15f), P(16.56f, 15.12f));
+                painter.BezierCurveTo(P(15.85f, 16.89f), P(12.56f, 15.10f), P(11.79f, 16.75f));
+                painter.BezierCurveTo(P(10.03f, 20.55f), P(17.43f, 18.50f), P(18.76f, 17.75f));
+                painter.BezierCurveTo(P(21.84f, 16.01f), P(22.40f, 11.77f), P(22.35f, 8.65f));
+                painter.BezierCurveTo(P(22.33f, 7.50f), P(21.74f, 6.57f), P(20.80f, 5.91f));
+                painter.BezierCurveTo(P(18.10f, 4.02f), P(15.35f, 3.01f), P(12.27f, 2.02f));
+                painter.ClosePath();
+                painter.Fill();
             }
 
             private void DrawHealingBrush(Painter2D painter)

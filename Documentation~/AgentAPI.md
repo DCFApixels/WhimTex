@@ -62,7 +62,6 @@ Import/save commands do import the specific image or compositor asset they write
 | `whimtex_image_import` | `sourcePath`, `assetPath` | Imported texture path, GUID, dimensions |
 | `whimtex_batch_execute` | `requestPath` | Batch result, created IDs, updated document |
 | `whimtex_document_render` | `assetPath`, `outputPath`, optional `maxSize=1024`, `overwrite=false` | Absolute PNG path and dimensions |
-| `whimtex_document_migrate` | `sourcePath`, `destinationPath`, optional `overwrite=false` | Copies legacy `.asset` to TIFF without mutating the source |
 | `whimtex_storage_inspect` | `assetPath` (`.tiff`) | Metadata-only block catalog, sizes and disk revision |
 | `whimtex_document_validate` | `assetPath`, optional `render=false` | Structure, limits, references and Shader FX validation; no save |
 | `whimtex_fx_compile` | Exactly one of `presetPath` or `source`; optional `includeBasePath` | Compile a preset or raw HLSL in Unity; return diagnostics without editing a document |
@@ -119,9 +118,7 @@ unity command whimtex_fx_compile --source $fx --project-path 'D:/Projects/MyGame
 ```
 
 `whimtex_describe` also returns `agentModes` and `storagePolicy`. New documents use TIFF or unified JSON:
-`whimtex_batch_execute` creates and saves `*.tiff` or `*.json`, while an existing legacy `.asset`
-can only be inspected, rendered, validated, exported or migrated. Passing a legacy `.asset` to a
-batch is allowed only with `dryRun:true`; applying or saving it returns `legacy_read_only`.
+`whimtex_batch_execute` creates and saves `*.tiff` or `*.json`. Document paths ending in `.asset` return `invalid_path`, including read and dry-run requests. Convert old documents to TIFF in WhimTex 0.12.5 before upgrading.
 
 Direct C# entry points, all on Unity's main thread, return a JSON string:
 
@@ -132,7 +129,6 @@ WhimTexApi.ExecuteJson(requestJson);
 WhimTexApi.ExecuteFile(absoluteRequestPath);
 WhimTexApi.ImportImage(absolutePngPath, "Assets/Art/Source.png");
 WhimTexApi.Render("Assets/Art/Icon.tiff", "Temp/WhimTex/icon.png", 1024, false);
-WhimTexApi.Migrate("Assets/Legacy/Icon.asset", "Assets/Art/Icon.tiff", false);
 WhimTexApi.InspectStorage("Assets/Art/Icon.tiff");
 WhimTexApi.Validate("Assets/Art/Icon.tiff", false);
 WhimTexApi.Status("Assets/Art/Icon.tiff");
@@ -199,7 +195,7 @@ The existing `whimtex_assistant_live` remains the open-window API.
 `WhimTexApi.DocumentJsonFile(path)` and `WhimTexApi.DocumentJson(requestJson)`.
 Content uses the [shared document format](JSON_FORMAT.md); commands are only an operation envelope.
 There is no required `kind`: the same content can be opened, written, inserted or used for an explicit
-layer replacement. Earlier exports' optional string `kind` is ignored and never returned or written.
+layer replacement. Root `kind` is rejected; 0.12.5 writers already omit it.
 The `document` object and its fields are optional. Open/write use version-1 defaults for missing
 settings (512 × 512 canvas). Insert/replace use destination dimensions for each omitted source axis,
 without resizing or changing destination output settings. Standalone validate uses format defaults.
@@ -258,24 +254,24 @@ Output encoding is stored in each JSON document. The three packed-data previews 
 must be imported with sRGB disabled; generic diagnostic PNG renders instead use sRGB preview encoding.
 
 WhimTex is installed as `com.dcfapixels.whimtex`, its namespace is `DCFApixels.WhimTex` and its
-assemblies are `DCFApixels.WhimTex*` (previously `com.dcfa_pixels.sprite-editor` and
-`DCFApixels.SpriteEditor`). The 0.10.0 rename preserves documents from the preceding
-Layer/Behaviour format through `MovedFrom` markers. It does not migrate documents from before
-that redesign. Update integrations to the `WhimTexApi` type and `whimtex_*` commands;
-the JSON command contract remains v1.
-Preference keys were renamed to `DCFApixels.WhimTex.*` without migrating old values, so user
-settings revert to defaults. Presets in the old default folder remain discoverable while the
-new default folder does not exist; a custom preset-folder path must be selected again.
+assemblies are `DCFApixels.WhimTex*`. File compatibility covers TIFF/JSON documents and presets
+saved by 0.12.5, using their canonical type and field names. There is no historical-name scan through
+Unity migration attributes. Convert older files with 0.12.5 before upgrading; compositor `.asset`
+documents must be saved as TIFF. Public C#/agent aliases and old window layouts are not retained.
+Use `WhimTexApi` and the `whimtex_*` commands; the JSON command contract remains v1.
+User settings are outside file compatibility and may reset after upgrades, without migration.
+Canvas tool preferences use `DCFApixels.WhimTex.Canvas.*`; appearance preferences use
+`DCFApixels.WhimTex.CanvasView.*`. The default library is the user's local application-data
+`DCFApixels/WhimTex/Presets` folder; historical folders are not searched automatically.
+Select an existing library explicitly in User Settings. Changing/resetting the path does not move,
+rewrite or delete preset files; an existing custom folder setting is still read directly.
 
 
 The API edits the same model and uses the same renderer, brush and save path as the window.
 For reservations, generation and selected-region edits in an open (possibly unsaved) document,
 use the [live editing API](LiveAgentAPI.md). The path-based batch contract below remains unchanged.
 No WhimTex window or active selection is required. New agent documents may use a TIFF or JSON
-`assetPath`, such as `Assets/Art/Icon.tiff` or `Assets/Art/Icon.json`. A legacy `.asset` may still be inspected or
-passed to the explicit migration command, but agents should not create new `.asset` documents.
-The retired ScriptableObject writer is kept only as an internal migration/regression fixture; it is
-not reachable from the window or agent API.
+`assetPath`, such as `Assets/Art/Icon.tiff` or `Assets/Art/Icon.json`. Old `.asset` documents are unsupported; convert them in WhimTex 0.12.5 before upgrading.
 TIFF batches use a transient `WhimTexDocumentBuild` and the common TIFF writer; they do not create
 or select a WhimTex window.
 
@@ -393,9 +389,9 @@ blending; lower layers remain separate. See [baking details](ShaderFX.md#baking-
 Removed aliases cannot address detached layers. Existing dependency validation still applies:
 do not delete an input while leaving an invalid explicit target reference.
 
-### Blur and healing strokes
+### Blur, smudge and healing strokes
 
-Both require Drawing; convert explicitly when appropriate. Points are canvas pixels with a
+These tools require Drawing; convert explicitly when appropriate. Points are canvas pixels with a
 **top-left origin**. They do not implicitly use the window's area selection or brush settings.
 `tiled:true` wraps the canvas boundary; repeating layer transforms are not supported (Clip and
 Unbounded are accepted). Size is 1..512 px, hardness 0..1, up to 4096 points.
@@ -410,6 +406,47 @@ It is frozen at stroke start. Strength and flow are each 0..1, default 1. Work i
 67,108,864 canvas-pixel × input-point passes; simplify a path rather than repeating thousands of points.
 
 ```json
+{"op":"smudgeStroke","layer":"DRAWING-ID","points":[[10,20],[40,20]],
+ "size":24,"hardness":0.8,"strength":0.8,"flow":1,"mixing":0.25,"source":"CurrentLayer","tiled":true}
+```
+
+Smudge carries existing RGBA pixels along the path, without adding a painting color.
+One point alone does not paint. Strength (0..1, default 0.8) scales transport and controls
+retention of the picked-up patch; flow (0..1, default 1) scales each dab independently.
+Mixing (0..1, default 0.25) couples two mechanisms within each dab: deformation is
+scaled by `1 - mixing`, while carried-color deposition is scaled by `mixing`.
+At 0, only a coordinate map is advected; colors are reconstructed from a mipmapped,
+immutable stroke-start image, so repeated movement does not repeatedly filter RGB.
+Partial Mixing advects positive accumulated paint contributions and original-image
+weights, then deposits and picks up from their shared result. It is not interpolation
+between finished strokes. No contrast compensation or signed color residuals are used.
+At 1, only the carried-color mechanism is active.
+Below full Strength, the carry is refreshed after deposition from the painted result,
+including mask, selection and Flow: carry = lerp(paintedPatch, previousCarry, strength).
+At Strength 1, the initial captured patch remains unchanged throughout the stroke;
+Hardness and Flow affect the dab, not this retention. No foreground color is added;
+larger Mixing intentionally produces cumulative color blending.
+Sources match Blur. CurrentLayer samples
+raw Drawing pixels; visible-stack sources freeze other layers/FX at stroke start
+and feed back this stroke's deformations and deposits. Writes affect only the selected Drawing.
+Spacing is 2.5% of the tip diameter, at least one canvas pixel, and follows canvas distance
+rather than input-point frequency. Hard tips have a pixel-wide antialiased boundary. Color pickup and feedback
+stay on the source pixel grid, separately from the smoothly positioned round mask:
+CurrentLayer uses native Drawing resolution; visible-stack sources use canvas resolution.
+At full Strength, only deposition reconstructs the frozen patch at fractional pointer
+positions; the unchanged carry is never replaced by that reconstruction.
+The accumulator preserves individual pixels rather than reducing large tips to 1024×1024.
+Transformed native footprints may be rectangular and grow during a projective stroke without
+rescaling carried pixels. Up to 32,768 generated stamps are accepted, with a 268,435,456
+native tip-pixel × stamp budget. Dry run checks the padded source-space footprint at path
+vertices. Each carry buffer is limited to 18,874,368 pixels and the device's maximum texture
+dimensions; a footprint crossing the inverse projection horizon is rejected rather than
+downsampled. Use a smaller tip or adjust the layer transform if these limits are exceeded.
+Deformation snapshots and the growing stroke-history region are also limited to
+18,874,368 native pixels. History is cropped to the touched area, with tile-aligned
+growth; rendering operates on dab bounds rather than running full-canvas passes per dab.
+
+```json
 {"op":"healStroke","layer":"DRAWING-ID","points":[[10,20],[40,20]],
  "size":24,"hardness":0.8,"source":"CurrentLayer","search":64,
  "quality":"Balanced","seed":1,"transparentOnly":false,"tiled":true}
@@ -422,7 +459,7 @@ Use linear-data import settings for an exact grayscale mask. Alpha is not used a
 The API uses the same buffered stroke mask, tiled recentering and fill algorithm as the tool.
 Healing currently limits the full canvas to 1,048,576 pixels and cancels computation after
 20 seconds; cancellation fails the operation without applying a patch. It is synchronous,
-not a background job. Both tools also limit total generated stroke stamps to 32,768.
+not a background job. All three tools limit total generated stroke stamps to 32,768.
 
 ### Diagnostic rendering
 
@@ -532,7 +569,7 @@ stretches a non-square source to the full canvas; omit scale to preserve the ini
 | Request field | Meaning |
 |---|---|
 | `apiVersion` | Required integer `1` |
-| `assetPath` | Required project-relative `Assets/.../*.tiff` or `Assets/.../*.json` for new documents; legacy `.asset` is read/migrate-only |
+| `assetPath` | Required project-relative `Assets/.../*.tiff` or `Assets/.../*.json` for documents |
 | `create` | Default false. True creates a new document |
 | `width`, `height` | Create only; integers, default 512 each, 1..16384 and at most 16,777,216 total pixels |
 | `expectedRevision` | Required for existing documents; copy the latest persisted document revision from inspect/successful save. Omit entirely on create; null is rejected. Do not use a discarded save:false candidate's revision |
@@ -556,7 +593,7 @@ Persistent layer IDs are returned per operation and in `document.layers`.
 
 `document.layers` is flat, with `parent` and sibling `index`. Index zero is visually topmost.
 `settings` contains editable values; hierarchy, target and transform have separate fields/operations.
-`gradientKeys` contains separate color/alpha keys, interpolation, smoothness and midpoints. Rounded is built in; the retired transition field is ignored on input and omitted from output.
+`gradientKeys` contains separate color/alpha keys, interpolation, smoothness and midpoints. Rounded is built in; `transition` is not an accepted input field. Gradient input uses RGBA arrays and string enum names; it does not convert old color objects or numeric enums.
 `Rounded` prioritizes smooth constant-region joins at full smoothness; values at interior held-boundary stops may be approximate. See the [gradient contract](AI/README.md) for its independent RGB/alpha maps and limits.
 ### Color and gradient input
 
@@ -648,7 +685,9 @@ in linear light without gamut clipping. Alpha/opacity compositing is unchanged.
 The UI groups choices independently of their stable enum values; JSON names do not change.
 Groups default to PassThrough; set `compositing:"Isolated"` to apply their own blend mode and ranges.
 Group opacity applies to the complete result, not separately to every child. Groups support transforms and FX. Child transforms are parent-local; canvas matrices compose from parent to child. The group's frame is its own unit rectangle rather than the bounds of its children. The move operation preserves canvas placement when changing parents.
-`swizzle` accepts `R`, `G`, `B`, `A`, `1-R`, `1-G`, `1-B`, `1-A`, `0`, `1`, `R * A`, `G * A`, `B * A` as strings.
+`swizzle` accepts `R`, `G`, `B`, `A`, `1-R`, `1-G`, `1-B`, `1-A`, `0`, `1`, `R * A`, `G * A`, `B * A`,
+`Luminance`, `Luminance * A` as strings. Luminance is `0.2126 R + 0.7152 G + 0.0722 B` in linear space;
+the product uses the original alpha. `["1","1","1","Luminance"]` converts brightness to alpha with white RGB.
 Product names include spaces, matching `Describe`. All mappings read the original input RGBA:
 `["R * A","G * A","B * A","1"]` multiplies RGB by the input alpha and sets output alpha to 1.
 Selecting products does not change the compositor's blending convention or implicitly change output alpha.
@@ -785,7 +824,7 @@ and `noiseEncodings`, `noiseDimensions`, `noisePeriodicAxes`, `noiseWhiteColors`
 | `periodic1D` | Boolean, default false; UI **Seamless** checkbox in OneD, repeats along the noise axis; ignored outside OneD and for White/Blue |
 | `direction` | −180–180 degrees, default 0; OneD only; 0 varies horizontally (vertical stripes), 90 varies vertically |
 | `seed` | Signed 32-bit integer; passed to the shader as an integer, not a float |
-| `scale` | Scalar sets both axes, or `[x,y]`, each 0.01–1000 noise-space units across the shorter canvas side; inspect returns the pair |
+| `scale` | Scalar sets XY, or XYZ in active ThreeD; `[x,y]` preserves Z, `[x,y,z]` sets all axes. Each 0.01–1000; default `[8,8,1]`. XY spans the shorter canvas side; Z multiplies Offset Z. Inspect returns XYZ including inactive Z |
 | `linkScale` | Boolean, default true; proportional inspector edits, explicit API values are applied literally |
 | `offset` | `[x,y]` preserves Z, `[x,y,z]` sets all axes; each −10000–10000 noise-space units (XY canvas pixels for WhiteNoise/BlueNoise). Inspect returns three values |
 | `fractal` | None, FBm, Ridged, PingPong |
@@ -803,7 +842,7 @@ and `noiseEncodings`, `noiseDimensions`, `noisePeriodicAxes`, `noiseWhiteColors`
 
 Without gradient mapping, RGB repeats the normalized scalar, except WhiteNoise/BlueNoise with Color which generates independent RGB; alpha is 1. Gradient output supplies RGB and alpha through the same encoded LUT and linear decode as SDF. Inverted remains available and reverses values before palette sampling. Color WhiteNoise/BlueNoise supports only ColorValues/LinearData: a retained Gradient setting temporarily renders/displays ColorValues, then returns to Gradient on switching to monochrome. Changing Output preserves the palette. Random All preserves `gradient` and keeps `encoding:Gradient`; otherwise it randomizes encoding only between ColorValues and LinearData. It can vary `inverted`; for grain noise with stored Gradient output it also preserves the Color setting so effective Output cannot change. Noise operations put the palette inside `settings.noise`; unified document/clipboard JSON uses `behaviour.gradient` on `NoiseLayerBehaviour`. Noise has no `useGradient` field.
 UI **Output** maps to `encoding`, **Seamless** to `periodic` (TwoD/ThreeD) or `periodic1D` (OneD), and the Scale chain to `linkScale`.
-There is no Noise `seamless` boolean, `scaleY` or `offsetZ` API field: use `periodic`/`periodic1D`, `scale:[x,y]`
+There is no Noise `seamless` boolean, `scaleY`, `scaleZ` or `offsetZ` API field: use `periodic`/`periodic1D`, `scale:[x,y,z]`
 and `offset:[x,y,z]`. Supplying `gradient` alone does not enable it: also set `encoding:"Gradient"`.
 Gradient updates replace the whole palette, not individual keys. Omitted fields in settings retain
 their existing values. Inspection reports stored settings, even when a type/dimension temporarily
@@ -815,7 +854,7 @@ For example, this partial update combines a 3D seamless source with an explicit 
 ```json
 {"op":"set","layer":"LAYER-ID","settings":{"noise":{
   "noiseType":"Perlin","dimensions":"ThreeD","periodic":"XY",
-  "scale":[6,10],"linkScale":false,"offset":[0,0,0.5],"encoding":"Gradient",
+  "scale":[6,10,1],"linkScale":false,"offset":[0,0,0.5],"encoding":"Gradient",
   "gradient":{"colors":[{"time":0,"color":[0,0,0,1]},{"time":1,"color":[1,1,1,1]}],"mode":"Perceptual"}
 }}}
 ```
@@ -839,7 +878,7 @@ The chain only affects UI editing and Random All; enabling it retains the curren
 Random All chooses X logarithmically from 0.25–4 and scales linked Y proportionally within
 the legal range, or samples both independently when unlinked. It retains the chain state.
 Seamless fits the resulting warp lattice periods and compensates displacement only for
-period fitting. Z input frequency is unchanged in 3D and Z remains non-periodic.
+period fitting. Warp Scale adds no separate Z multiplier; Z remains non-periodic.
 Missing multipliers default to 1; no migration is performed. A serialized scalar warpScale
 is the X multiplier; absent warpScaleY follows X. The earlier unshipped absolute-scale
 prototype is superseded: its stored values now act as multipliers.
@@ -847,7 +886,9 @@ One-cell XY BasicGrid can still give uniform displacement; increase Warp Scale t
 a varying warp field at small Noise Scale. White/Blue Noise ignore these controls.
 OneD projects aspect-correct centered coordinates onto the direction axis before offset and warp.
 Offset X moves along the slice and Y selects the slice. Thus warp and fractals preserve stripe invariance.
-ThreeD exposes Z in Offset and evaluates the native 3D kernel, including 3D Fractal and Domain Warp.
+ThreeD exposes Z in Scale and Offset and evaluates the native 3D kernel, including 3D Fractal and Domain Warp.
+The sampled slice coordinate is `Offset Z × Scale Z`. Missing Scale Z defaults to 1, preserving old files;
+1D/2D editing retains inactive Z. With Offset Z = 0, changing Scale Z alone does not move the slice.
 Z is never periodic and never advances automatically. Cellular 3D slices differ visibly from 2D cells.
 White/Blue retain their 1D/2D behavior: a stored ThreeD temporarily uses TwoD; Periodic is ignored.
 OneD ignores `periodic`, retaining it for a return to TwoD/ThreeD; its separate `periodic1D`
@@ -874,14 +915,14 @@ units, or base coordinates beyond 500 million lattice units, report an error ins
 integer indices. High-frequency detail can still alias.
 Random All preserves Dimensions, Direction, both Seamless settings (`periodic`, `periodic1D`), the linked scale ratio and all Offset components (X/Y/Z).
 
-Linked main Scale samples the arithmetic mean M logarithmically from 1–64, then derives X/Y
+Linked main Scale samples the arithmetic mean M logarithmically from 1–64, then derives the active axes (XY, or XYZ in ThreeD)
 from the retained ratio; swapping axes does not change the distribution of M. Intersect this
 mean range with the means allowed by the per-axis 0.01–1000 bounds. If the intersection is empty
 for an extreme ratio, use its feasible mean range instead (8 may be unreachable without changing
 that ratio). Sampling the feasible interval directly avoids accumulating candidates at a clamp.
-Unlinked axes still sample X and Y independently, logarithmically from 1–64.
+Unlinked active axes sample independently, logarithmically from 1–64. Inactive Scale Z is retained in 1D/2D.
 Candidates are accepted with probability `(1 + exp(-0.5 * log2(M / 8)^2)) / 2`,
-where `M = (X + Y) / 2`. This reweights the candidate distribution
+where `M = (X + Y) / 2` in 1D/2D and `(X + Y + Z) / 3` in ThreeD. This reweights the candidate distribution
 by a factor in [1,2], without extra truncation or clamping at 8. For unlinked
 axes the baseline distribution of M is not log-uniform: the cap is on the relative weighting,
 not on absolute probabilities of arbitrary numeric bins. Warp Scale sampling is unchanged.
@@ -1022,7 +1063,7 @@ Enum names are case-sensitive strings; unknown fields, removed mode names and ou
 | API field | Allowed values / new-layer default | Meaning |
 | --- | --- | --- |
 | `mode` | `OffsetBlend` (default), `Mirror`, `ScreenedPoisson`, `PatchQuilting` | UI **Method**; choose the base algorithm explicitly in reusable recipes. |
-| `processRed`, `processGreen`, `processBlue`, `processAlpha` | Booleans, all `true` | UI **Channels**; unchecked channels are restored from the input after seam processing, before ordinary layer modifiers/FX/compositing. All false skips seam processing. |
+| `processRed`, `processGreen`, `processBlue`, `processAlpha` | Booleans, all `true` | UI **Channels**; unchecked channels are restored from the input after seam processing, before ordinary layer FX/compositing. All false skips seam processing. |
 
 All paired-edge fields below accept `AllEdges` (default), `TopAndBottom`, `LeftAndRight`, `None`.
 `TopAndBottom` joins the top/bottom borders for vertical tiling; `LeftAndRight` joins left/right
@@ -1369,8 +1410,8 @@ staggered grids retain complete row pairs. Changing palette colors does not chan
 - **Assistant:** edits the open document with Undo, never autosaves. After Undo/Redo, save through
   the window if persistence is wanted. An empty TIFF Batch does not save unsaved Assistant edits.
 - Internal rollback of a failed Batch is not a user Undo contract for the written TIFF.
-- A revision hashes serialized model state, materialized Drawing pixels and modifier state;
-  legacy asset-backed models also include their AssetDatabase dependency hash. It is not a complete
+- A revision hashes serialized model state, materialized Drawing pixels and FX state;
+  it is not a complete
   guarantee against changes to every external texture or include file.
   It is an opaque optimistic-concurrency token, not a portable version-control ID. Re-inspect after
   Undo, save, import or domain reload. Do not cache it across sessions.
@@ -1395,15 +1436,15 @@ appropriately and keep batches focused. The API executes on the main thread; it 
 
 ## Verification
 
-[Tests~/AgentApiSmoke.cs](https://github.com/DCFApixels/WhimTex/blob/main/Tests~/AgentApiSmoke.cs) is an opt-in C# eval-file smoke test. After the
-user compiles the plugin, run it through an available `eval_file` bridge on the intended project.
-It uses a new uniquely named folder under Assets and cleans up its own fixtures and previews in
+Select `agent-api-v2` through the [independent test runner](https://github.com/DCFApixels/WhimTex/blob/main/Tests~/RUNNING_TESTS.md), with a reviewed fingerprint and explicit intended project.
+It uses only GUID-owned fixtures under `Assets/WhimTexTestMigration` and cleans up its own fixtures and previews in
 `finally`; it does not edit existing documents. It verifies TIFF create/inspect, aspect/transform,
 preflight rejection, revision conflicts, painting, transient `save:false` isolation and save/reopen.
-`AgentEditingSmoke.cs` covers the shared editing operations and Assistant Undo separately.
+`agent-editing-v2` covers the shared editing operations and Assistant Undo separately.
 Do not run it when the project's rules prohibit creating test assets.
 
-[Tests~/DrawingPatternSmoke.cs](https://github.com/DCFApixels/WhimTex/blob/main/Tests~/DrawingPatternSmoke.cs) is a separate opt-in eval-file
-regression test for mutually exclusive Mirror/Repeat modes, legacy migration, movable mirror centers,
+`drawing-pattern-smoke-v2` is a separate opt-in structured regression
+test for mutually exclusive Mirror/Repeat modes, file-baseline normalization, movable mirror centers,
 source stamps under the cursor and JSON round-trips. It creates no assets or GPU resources; run only
-after the user has compiled the updated plugin. It does not replace visual painting checks.
+after the updated plugin is compiled. Acknowledge each selected scenario's declared effects;
+this does not grant asset or user-state authority. It does not replace visual painting checks.
