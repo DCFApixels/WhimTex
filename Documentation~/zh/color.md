@@ -194,6 +194,16 @@ Smoothness 为 0% 时，在所选工作色彩空间中进行线性插值；Fixed
 
 每个字段都可以选择原始通道、它们的反相、黑（`0`）、白（`1`），
 或颜色通道乘以透明通道（`R * A`、`G * A`、`B * A`）。
+`Luminance` 将 RGB 合成为灰度亮度；`Luminance * A` 还会计入透明度。
+
+右侧箭头按钮提供内置预设：
+
+- **Default：** 恢复 `R G B A`。
+- **Default without Alpha：** 保留 RGB，并使图像完全不透明（`R G B 1`）。
+- **R**、**G**、**B：** 将亮度写入所选颜色通道，另外两个颜色通道设为 `0`，Alpha 设为 `1`。
+- **Luminance to Alpha：** 将 RGB 设为白色，并把亮度写入 Alpha（`1 1 1 Luminance`）。
+- **Alpha to Grayscale：** 将 Alpha 显示为不透明的灰度图像（`A A A 1`）。
+
 更改某个组的 Swizzle 会把它的内容视为一张图像，因此外部混合看起来可能不同。
 
 ## 打包多个遮罩

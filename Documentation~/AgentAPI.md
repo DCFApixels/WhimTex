@@ -685,7 +685,9 @@ in linear light without gamut clipping. Alpha/opacity compositing is unchanged.
 The UI groups choices independently of their stable enum values; JSON names do not change.
 Groups default to PassThrough; set `compositing:"Isolated"` to apply their own blend mode and ranges.
 Group opacity applies to the complete result, not separately to every child. Groups support transforms and FX. Child transforms are parent-local; canvas matrices compose from parent to child. The group's frame is its own unit rectangle rather than the bounds of its children. The move operation preserves canvas placement when changing parents.
-`swizzle` accepts `R`, `G`, `B`, `A`, `1-R`, `1-G`, `1-B`, `1-A`, `0`, `1`, `R * A`, `G * A`, `B * A` as strings.
+`swizzle` accepts `R`, `G`, `B`, `A`, `1-R`, `1-G`, `1-B`, `1-A`, `0`, `1`, `R * A`, `G * A`, `B * A`,
+`Luminance`, `Luminance * A` as strings. Luminance is `0.2126 R + 0.7152 G + 0.0722 B` in linear space;
+the product uses the original alpha. `["1","1","1","Luminance"]` converts brightness to alpha with white RGB.
 Product names include spaces, matching `Describe`. All mappings read the original input RGBA:
 `["R * A","G * A","B * A","1"]` multiplies RGB by the input alpha and sets output alpha to 1.
 Selecting products does not change the compositor's blending convention or implicitly change output alpha.

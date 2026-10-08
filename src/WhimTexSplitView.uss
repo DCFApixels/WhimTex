@@ -2227,6 +2227,24 @@
     min-width: 0;
 }
 
+.whimtex-swizzle-presets {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    margin: 0 0 0 2px;
+    padding: 0;
+    align-items: center;
+    justify-content: center;
+}
+
+.whimtex-swizzle-presets > .unity-toolbar-menu__text {
+    display: none;
+}
+
+.whimtex-swizzle-presets > .unity-toolbar-menu__arrow {
+    margin: 0;
+}
+
 .whimtex-canvas-view-exposure {
     width: 88px;
     flex-shrink: 0;

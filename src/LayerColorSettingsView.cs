@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEditor;
+using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -8,6 +9,37 @@ namespace DCFApixels.WhimTex
 {
     internal static class LayerColorSettingsView
     {
+        private static readonly (string Name, LayerSwizzle Value)[] SwizzlePresets =
+        {
+            ("Default", default),
+            ("Default without Alpha", new LayerSwizzle { [3] = SwizzleChannel.One }),
+            ("R", new LayerSwizzle
+            {
+                [0] = SwizzleChannel.Luminance, [1] = SwizzleChannel.Zero, [2] = SwizzleChannel.Zero,
+                [3] = SwizzleChannel.One
+            }),
+            ("G", new LayerSwizzle
+            {
+                [0] = SwizzleChannel.Zero, [1] = SwizzleChannel.Luminance, [2] = SwizzleChannel.Zero,
+                [3] = SwizzleChannel.One
+            }),
+            ("B", new LayerSwizzle
+            {
+                [0] = SwizzleChannel.Zero, [1] = SwizzleChannel.Zero, [2] = SwizzleChannel.Luminance,
+                [3] = SwizzleChannel.One
+            }),
+            ("Luminance to Alpha", new LayerSwizzle
+            {
+                [0] = SwizzleChannel.One, [1] = SwizzleChannel.One, [2] = SwizzleChannel.One,
+                [3] = SwizzleChannel.Luminance
+            }),
+            ("Alpha to Grayscale", new LayerSwizzle
+            {
+                [0] = SwizzleChannel.A, [1] = SwizzleChannel.A, [2] = SwizzleChannel.A,
+                [3] = SwizzleChannel.One
+            })
+        };
+
         internal static DropdownField GroupBlend(Layer group, Action<BlendMode, bool> change,
             WhimTexUI.ValueBindings bindings)
         {
@@ -134,10 +166,10 @@ namespace DCFApixels.WhimTex
             {
                 int output = channel;
                 var choices = new List<string>(LayerSwizzle.Labels);
-                var field = new DropdownField(choices, (int)layer.swizzle[output]);
+                var field = new DropdownField(choices, (int)layer.swizzle[output]) { name = "swizzle" + LayerSwizzle.Labels[output] };
                 TwoChoiceDropdown.Attach(field);
                 field.AddToClassList("whimtex-swizzle-channel");
-                field.tooltip = "Output " + LayerSwizzle.Labels[output] + ": select a source channel, its inverse, or a constant. Applied after FX in linear space, before Color Range and blending.";
+                field.tooltip = "Output " + LayerSwizzle.Labels[output] + ": select a channel, inverse, constant or RGB luminance. Products use the original alpha. Applied after FX in linear space, before Color Range and blending.";
                 bindings.Track(field, () => LayerSwizzle.Labels[(int)layer.swizzle[output]]);
                 field.RegisterValueChangedCallback(evt =>
                 {
@@ -146,6 +178,13 @@ namespace DCFApixels.WhimTex
                 });
                 channels.Add(field);
             }
+            var presets = new ToolbarMenu { name = "swizzlePresets", tooltip = "Swizzle presets" };
+            presets.AddToClassList("whimtex-swizzle-presets");
+            foreach (var preset in SwizzlePresets)
+                presets.menu.AppendAction(preset.Name,
+                    _ => apply("Apply Swizzle Preset", () => layer.swizzle = preset.Value),
+                    _ => layer.swizzle.Equals(preset.Value) ? DropdownMenuAction.Status.Checked : DropdownMenuAction.Status.Normal);
+            row.Add(presets);
             container.Add(row);
             if (layer?.AsGroup() is Layer group)
             {

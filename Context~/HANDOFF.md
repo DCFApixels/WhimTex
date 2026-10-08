@@ -68,6 +68,7 @@
 | --- | --- |
 | [REFACTORING_CANDIDATES.md](REFACTORING_CANDIDATES.md) | Только R05/R09, требующие нового запроса и повторной проверки кода |
 | [ANIMATION_DESIGN.md](ANIMATION_DESIGN.md) | Предварительный дизайн времени, анимации и частиц, не спецификация |
+| [NOISE_FIELDS_DESIGN.md](NOISE_FIELDS_DESIGN.md) | Отложенный дизайн векторных шумов и distortion-карт; только внешний UI-прототип, без реализации генераторов |
 | [DOCUMENTATION_SCREENSHOTS.md](DOCUMENTATION_SCREENSHOTS.md) | План иллюстраций для пользовательской съёмки, не разрешение на правку ассетов |
 
 ## Стандарт файлов контекста

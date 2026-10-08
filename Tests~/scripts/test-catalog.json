@@ -126,6 +126,7 @@
       "reference-fixtures"
     ],
     "verify": [
+      "swizzle-ui",
       "smudge-hybrid",
       "smudge-hybrid-integration",
       "smudge-quality",
@@ -611,6 +612,7 @@
       "reference-fixtures"
     ],
     "regressions": [
+      "swizzle-ui",
       "smudge-hybrid",
       "smudge-hybrid-integration",
       "smudge-quality",
@@ -1271,6 +1273,7 @@
       "seamless-release-stress-2048-mode-4-v2"
     ],
     "rendering": [
+      "swizzle-ui",
       "smudge-hybrid-integration",
       "effect-cache-fingerprints",
       "display-channels-v2",
@@ -1594,6 +1597,7 @@
       "canvas-header-brush-layout"
     ],
     "canvas": [
+      "swizzle-ui",
       "canvas-header-layout",
       "canvas-header-paint-layout",
       "canvas-header-brush-layout",
@@ -1779,6 +1783,29 @@
     ]
   },
   "scenarios": [
+    {
+      "id": "swizzle-ui",
+      "file": "Tests~/Cases/Canvas/SwizzleUiTests.cs",
+      "runner": "run_script",
+      "entry": "SwizzleUiTests.Start",
+      "args": ["$runId"],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["windows", "user-state"],
+      "groups": ["canvas", "rendering"],
+      "prerequisites": "Connected idle Editor for the explicit project, compiled WhimTex and UI Toolkit panel.",
+      "setup": "Owned transient document and test window; no imported assets or changes to an open user document.",
+      "teardown": "Close only the test window, clear only test-document Undo, destroy the test document and restore borrowed Editor state.",
+      "result": { "kind": "structured" },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/MigrationD.cs",
+        "Tests~/Framework/Unity/AsyncD.cs"
+      ],
+      "async": { "entry": "SwizzleUiTests.Poll", "args": ["$runId"], "pollMs": 100 },
+      "cancel": { "entry": "SwizzleUiTests.Cancel", "args": ["$runId"] },
+      "cleanup": { "entry": "SwizzleUiTests.Cleanup", "args": ["$runId"] }
+    },
     {
       "id": "smudge-hybrid-performance-2048",
       "file": "Tests~/Cases/Painting/SmudgeBrushTests.cs",

@@ -207,6 +207,16 @@ For example, choose R in the R, G and B fields to make a grayscale image from th
 
 Each field offers the original channels, their inverses, black (`0`), white (`1`),
 or a color channel multiplied by transparency (`R * A`, `G * A`, `B * A`).
+`Luminance` combines RGB into grayscale brightness; `Luminance * A` also accounts for transparency.
+
+The arrow button on the right offers builtin presets:
+
+- **Default:** restore `R G B A`.
+- **Default without Alpha:** keep RGB and make the image opaque (`R G B 1`).
+- **R**, **G**, **B:** put brightness in the selected color channel, set the other two to `0` and alpha to `1`.
+- **Luminance to Alpha:** make RGB white and use brightness as alpha (`1 1 1 Luminance`).
+- **Alpha to Grayscale:** show alpha as an opaque grayscale image (`A A A 1`).
+
 Changing a group's Swizzle treats its contents as one image, so outside blending can look different.
 
 ## Pack several masks

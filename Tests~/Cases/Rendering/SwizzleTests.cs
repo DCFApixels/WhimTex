@@ -50,7 +50,8 @@ try
         var clone = UnityEngine.JsonUtility.FromJson<DCFApixels.WhimTex.Layer>(UnityEngine.JsonUtility.ToJson(layer.Owner));
         Check(clone.swizzle[output] == (DCFApixels.WhimTex.SwizzleChannel)source, "Channel serialization round-trip");
         var expected = before;
-        expected[output] = source >= 10 ? before[source - 10] * before.a : source == 8 ? 0f : source == 9 ? 1f : source >= 4 ? 1f - before[source - 4] : before[source];
+        float luminance = .2126f * before.r + .7152f * before.g + .0722f * before.b;
+        expected[output] = source == 13 ? luminance : source == 14 ? luminance * before.a : source >= 10 ? before[source - 10] * before.a : source == 8 ? 0f : source == 9 ? 1f : source >= 4 ? 1f - before[source - 4] : before[source];
         var actual = Pixel();
         if (expected.a == 0f) Check(Near(actual.a, 0f), "Zero alpha is transparent");
         else for (int c = 0; c < 4; c++) Check(Near(actual[c], expected[c]), "Swizzle output channel " + output + " source " + source);
@@ -129,11 +130,135 @@ try
     finally { UnityEngine.Object.DestroyImmediate(raw); }
     var description = DCFApixels.WhimTex.WhimTexApi.Describe();
     Check(description.Contains("swizzleChannels") && description.Contains("1-A") &&
-        description.Contains("R * A") && description.Contains("G * A") && description.Contains("B * A"), "Agent discovery includes swizzle choices");
+        description.Contains("R * A") && description.Contains("G * A") && description.Contains("B * A") &&
+        description.Contains("Luminance") && description.Contains("Luminance * A"), "Agent discovery includes swizzle choices");
+    CheckLuminance(context, document);
     return;
 }
 finally { UnityEngine.Object.DestroyImmediate(document); }
 
 }
-}
 
+private static void CheckLuminance(TestContext context, DCFApixels.WhimTex.TextureCompositor document)
+{
+    var type = document.GetType();
+    var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+    float Luminance(Color color) => .2126f * color.r + .7152f * color.g + .0722f * color.b;
+    void Same(Color expected, Color actual, string message)
+    {
+        for (int c = 0; c < 4; c++) context.Near(expected[c], actual[c], .003, message + " channel " + c);
+    }
+    Color Read(RenderTexture target)
+    {
+        context.True(target != null, "Rendered target exists");
+        var previous = RenderTexture.active;
+        var pixels = new Texture2D(target.width, target.height, TextureFormat.RGBAFloat, false, true);
+        try
+        {
+            RenderTexture.active = target;
+            pixels.ReadPixels(new Rect(0, 0, target.width, target.height), 0, 0, false);
+            return pixels.GetPixel(2, 2);
+        }
+        finally { RenderTexture.active = previous; UnityEngine.Object.DestroyImmediate(pixels); RenderTexture.ReleaseTemporary(target); }
+    }
+    DCFApixels.WhimTex.LayerSwizzle Grayscale(int source)
+    {
+        var result = new DCFApixels.WhimTex.LayerSwizzle();
+        for (int output = 0; output < 3; output++) result[output] = (DCFApixels.WhimTex.SwizzleChannel)source;
+        result[3] = DCFApixels.WhimTex.SwizzleChannel.One;
+        return result;
+    }
+    foreach (var input in new[] { new Color(.3f, .6f, .8f, 0), new Color(.3f, .6f, .8f, .25f),
+        new Color(.3f, .6f, .8f, 1), new Color(2, -3, 6, .5f) })
+    foreach (int source in new[] { 13, 14 })
+    foreach (bool clamp in new[] { false, true })
+    {
+        var raw = RenderTexture.GetTemporary(8, 8, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+        var previous = RenderTexture.active;
+        try { RenderTexture.active = raw; GL.Clear(false, true, input); }
+        finally { RenderTexture.active = previous; }
+        RenderTexture finished;
+        try { finished = (RenderTexture)type.GetMethod("FinishStage", flags).Invoke(document, new object[] { raw, clamp, Grayscale(source) }); }
+        catch { RenderTexture.ReleaseTemporary(raw); throw; }
+        float value = Luminance(input) * (source == 14 ? input.a : 1);
+        if (clamp) value = Mathf.Clamp01(value);
+        Same(new Color(value, value, value, 1), Read(finished), "Linear luminance / original alpha / Color Range");
+    }
+    var fill = new DCFApixels.WhimTex.ColorFillLayerBehaviour
+    {
+        color = new Color(.6f, .8f, .3f, 1),
+        colorRange = DCFApixels.WhimTex.LayerColorRange.HDR,
+        blendRange = DCFApixels.WhimTex.LayerBlendRange.HDR
+    };
+    var group = new DCFApixels.WhimTex.GroupLayerBehaviour();
+    group.layers.Add(fill);
+    document.layers.Clear(); document.layers.Add(group);
+    float brightness;
+    var original = document.ComposeCanvas();
+    try { brightness = Luminance(original.GetPixel(2, 2)); }
+    finally { UnityEngine.Object.DestroyImmediate(original); }
+    group.swizzle = new DCFApixels.WhimTex.LayerSwizzle
+    {
+        [0] = DCFApixels.WhimTex.SwizzleChannel.One, [1] = DCFApixels.WhimTex.SwizzleChannel.One,
+        [2] = DCFApixels.WhimTex.SwizzleChannel.One, [3] = DCFApixels.WhimTex.SwizzleChannel.Luminance
+    };
+    var expectedGroup = new Color(1, 1, 1, brightness);
+    var composite = document.ComposeCanvas();
+    try { Same(expectedGroup, composite.GetPixel(2, 2), "Group luminance to alpha composite"); }
+    finally { UnityEngine.Object.DestroyImmediate(composite); }
+    var expectedCoverage = new Color(brightness, brightness, brightness, brightness);
+    Same(expectedCoverage, Read((RenderTexture)type.GetMethod("RenderLayerPreview", flags).Invoke(document,
+        new object[] { group.Owner, 8 })), "Group coverage preview");
+    Same(expectedGroup, Read((RenderTexture)type.GetMethod("RenderAgentLayerPreview", flags).Invoke(document,
+        new object[] { group.Owner, 8 })), "Target color input");
+    var alpha = Read((RenderTexture)type.GetMethod("RenderGroupAlpha", flags).Invoke(document,
+        new object[] { group.Owner, 8, 8, 1f, new HashSet<DCFApixels.WhimTex.Layer>() }));
+    context.Near(brightness, alpha.a, .003, "Group target alpha");
+    var exported = (Texture2D)type.GetMethod("RenderPsdGroupContent", flags).Invoke(document, new object[] { group.Owner });
+    try { Same(expectedGroup, exported.GetPixel(2, 2), "PSD group pixels"); }
+    finally { UnityEngine.Object.DestroyImmediate(exported); }
+    var cacheType = type.Assembly.GetType("DCFApixels.WhimTex.EffectRenderCache");
+    using (var cache = (IDisposable)Activator.CreateInstance(cacheType, true))
+    {
+        for (int pass = 0; pass < 2; pass++)
+            Same(expectedGroup, Read((RenderTexture)type.GetMethod("RenderCanvasWithCache", flags).Invoke(document,
+                new object[] { 8, cache, false, null })), "Cached canvas");
+        Same(expectedCoverage, Read((RenderTexture)type.GetMethod("RenderLayerThumbnail", flags).Invoke(document,
+            new object[] { group.Owner, 8, cache })), "Group coverage thumbnail");
+        group.swizzle = default;
+        var restored = Read((RenderTexture)type.GetMethod("RenderCanvasWithCache", flags).Invoke(document,
+            new object[] { 8, cache, false, null }));
+        context.Near(1, restored.a, .003, "Cache invalidates changed Swizzle");
+    }
+    document.layers.Clear(); document.layers.Add(fill);
+    fill.swizzle = Grayscale(14);
+    fill.swizzle[3] = DCFApixels.WhimTex.SwizzleChannel.Luminance;
+    foreach (DCFApixels.WhimTex.WhimTexJsonWriteMode mode in Enum.GetValues(typeof(DCFApixels.WhimTex.WhimTexJsonWriteMode)))
+    {
+        var json = DCFApixels.WhimTex.WhimTexDocumentJson.Write(document,
+            new DCFApixels.WhimTex.WhimTexJsonWriteOptions { Mode = mode });
+        using var read = DCFApixels.WhimTex.WhimTexDocumentJson.Read(json.Json, false);
+        context.Equal(0, read.Warnings.Count, "JSON has no unknown field warnings");
+        context.Equal(fill.swizzle, read.Document.layers[0].swizzle, "JSON keeps both new packed channel codes");
+        var pixels = read.Document.ComposeCanvas();
+        var baseline = document.ComposeCanvas();
+        try { Same(baseline.GetPixel(2, 2), pixels.GetPixel(2, 2), "JSON render roundtrip " + mode); }
+        finally { UnityEngine.Object.DestroyImmediate(pixels); UnityEngine.Object.DestroyImmediate(baseline); }
+    }
+    var serializer = type.Assembly.GetType("DCFApixels.WhimTex.WhimTexDocumentSerializer");
+    using (var container = new DCFApixels.WhimTex.WhimTexDocumentContainer())
+    {
+        var bytes = serializer.GetMethod("Serialize").Invoke(null, new object[] { document, container });
+        var read = serializer.GetMethod("Deserialize").Invoke(null, new object[] { bytes, container, type, null, false });
+        var clone = (DCFApixels.WhimTex.TextureCompositor)read.GetType().GetProperty("Model", flags).GetValue(read);
+        try { context.Equal(fill.swizzle, clone.layers[0].swizzle, "TIFF model serialization keeps new channels"); }
+        finally { UnityEngine.Object.DestroyImmediate(clone); }
+    }
+    var clipped = new DCFApixels.WhimTex.ColorFillLayerBehaviour { color = Color.red, clippingMask = true };
+    fill.swizzle = new DCFApixels.WhimTex.LayerSwizzle { [3] = DCFApixels.WhimTex.SwizzleChannel.Luminance };
+    document.layers.Insert(0, clipped);
+    var clippedPixels = document.ComposeCanvas();
+    try { Same(new Color(1, 0, 0, brightness), clippedPixels.GetPixel(2, 2), "Clipping uses luminance alpha"); }
+    finally { UnityEngine.Object.DestroyImmediate(clippedPixels); }
+}
+}

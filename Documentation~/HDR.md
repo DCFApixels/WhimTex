@@ -42,7 +42,9 @@ imported sRGB setting. Source import settings are never changed by the composito
 ## Color compatibility
 
 Swizzle remaps straight linear RGBA after FX and before Color Range. The four selectors accept
-`R`, `G`, `B`, `A`, `1-R`, `1-G`, `1-B`, `1-A`, `0`, `1`, `R * A`, `G * A`, `B * A`;
+`R`, `G`, `B`, `A`, `1-R`, `1-G`, `1-B`, `1-A`, `0`, `1`, `R * A`, `G * A`, `B * A`,
+`Luminance`, `Luminance * A`. Luminance is `dot(RGB, (0.2126, 0.7152, 0.0722))` in linear space;
+it preserves signed/HDR values until the layer's Color Range is applied. All mappings read the original RGBA;
 products use the original input alpha, and inversion means literal `1 - channel`
 in linear space. Alpha is clamped to 0–1 after remapping. Identity is serialized as zero, so old
 documents keep `R G B A`. A nonidentity group Swizzle forces isolation; a Pass Through group
