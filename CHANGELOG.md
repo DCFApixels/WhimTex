@@ -4,6 +4,42 @@ All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-10-08
+
+### Added
+
+- Smudge Brush carries existing pixels along a stroke. Mixing couples deformation and accumulated color mixing during painting: 0 preserves transported detail, 100 uses color mixing, and the default is 25. Controls include Size, Hardness, Strength, Flow, Pressure and Current Layer/Below/All Layers sampling. It supports selections, Tiled painting, native Drawing resolution, HDR and Undo/Redo without adding a brush color.
+- Edge Outline FX detects Color, Luminance or Hue boundaries with Boundary and Scharr methods. Round, Square and Diamond contours share Thickness and Softness; Overlay and Outline Only share line color and FX Opacity. Method-specific controls appear only when applicable.
+- UV Transform and distortion FX offer Clamp, Repeat, Mirror and Clip input tiling. Displacement map tiling is independent from source-image tiling. UV Transform defaults to Clip; distortion presets default to Clamp.
+- Distortion presets expose their primary strength, amount or angle control in the FX header. Polar Coordinates has separate Input and Output transforms for source and destination frames.
+- Swizzle adds Luminance and Luminance × Alpha channels, plus built-in presets: Default, Default without Alpha, luminance packed into R/G/B, Luminance to Alpha and Alpha to Grayscale.
+- 3D noise slices have an independent Scale Z. Proportional scale linking includes X/Y/Z, and agent controls expose the same axis.
+- A previous-tool action switches between the current and last persistent Canvas tool. Pencil now sits directly below Brush in the tool list.
+
+### Changed
+
+- Canvas View headers use shared label typography, measured label widths and automatic horizontal layout. Sliders have a common minimum width; narrow rows hide slider tracks while retaining labeled numeric inputs. Dynamic dropdowns retain their contextual widths.
+- Layer FX use consistent names in source, public/agent APIs and new JSON/TIFF output. The canonical layer list is `fx`; file readers convert the previous `modifiers` name without changing FX order or shared references. Canvas rendering names and related controls follow the Canvas/Canvas View glossary.
+- Removed obsolete public API aliases, old settings migrations, manual FX-parameter editing and compositor `.asset` support. File compatibility is explicitly limited to TIFF/JSON documents and presets from 0.12.5; saved manual FX values are converted into `@param` declarations by the file reader.
+- FX Transform blocks start collapsed, with inline Edit on Canvas and Reset icon buttons. Point and Normal controls use matching inline editing buttons; Vector2 inputs use the full row instead of reserving space for Z.
+- Tests share a runner, result contract and fixture helpers, with subsystem/category profiles and exact scenario selection. The retired Legacy suite, migration tooling and generated reports are removed; frozen file/render references remain. Context documentation is consolidated around current contracts and clearly separated deferred designs.
+
+### Fixed
+
+- Incomplete documents show a warning immediately after opening. Interactive Save offers Save a Copy, Cancel or Save Anyway, so edited work can be retained with an explicit data-loss decision. Default C#/agent saves still refuse to discard unread data.
+- Restored lossless Vector2 → Vector3/Vector4 and Vector3 → Vector4 expansion when reading documents, filling new components with zero. Binary files also accept exactly representable integer-to-float vector conversion; narrowing and incompatible data remain protected.
+- Smudge preserves the initial carried patch at full Strength, avoids repeated resampling of fine details in its transport path and uses bounded positive mixing weights to prevent dark contours or invented colors during repeated circular strokes. Interactive rendering caches refresh affected FX without invalidating the entire stack for every stroke update.
+- Canvas View slider visibility no longer oscillates around the width threshold, and labels/fields do not overlap as rows wrap.
+- Guides have the lowest hit-test and drawing priority beneath tool handles, including temporary Transform/Point/Normal tools. Edit on Canvas can drag guides; points can move beyond the canvas while snapping to edges and guides, with Ctrl bypassing snapping.
+- Updated documentation build instructions to the current test paths and entry points, without requiring the removed Legacy archive.
+
+### Upgrade notes
+
+- Back up editable artwork before upgrading. TIFF/JSON documents and presets saved by 0.12.5 are supported; resave files from older versions in 0.12.5 first. New saves use current field names and explicit values rather than restoring old runtime compatibility modes.
+- Compositor `.asset` documents and the old `whimtex.layers` clipboard format are unsupported. Use 0.12.5 to convert them to TIFF or `whimtex.document` JSON first. TIFF texture import settings and sprite slicing remain supported through Unity's native Texture Importer.
+- Public C# and agent APIs are not backward compatible with 0.12.5. Update integrations to the current API references. User preferences/window state may reset; existing preset-library files are not deleted or moved.
+- Save Anyway and saving a copy of an incomplete document retain readable data and current edits, but can discard unread fields, layer types or asset references. Keep the original for recovery. JSON still omits Drawing pixels; use TIFF for painted artwork.
+
 ## [0.12.5] - 2026-10-03
 
 ### Added
