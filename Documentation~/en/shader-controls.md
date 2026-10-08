@@ -95,10 +95,10 @@ Preset aliases and automatic previous-name migration are not supported.
 
 `LayerToLocal(uv)` makes procedural shapes follow the layer transform. See the [coordinate contract](../ShaderFX.md).
 
-FX and Shader Processor cache results when their inputs and parameters are unchanged.
 Unity time inputs (`_Time`, `_SinTime`, `_CosTime`, `_TimeParameters`, `unity_DeltaTime`) are allowed and do not block **Apply**.
-However, Canvas, thumbnails and export may show different results because WhimTex does not control their updates.
-**Apply** warns in Diagnostics and Unity Console and disables result caching. The agent also receives the warning.
-This uses the same diagnostic mechanism as other FX errors and warnings. Console repeats are
-suppressed for the same source and message until scripts reload;
-Diagnostics and agent warnings remain visible. For predictable behavior, use an explicit parameter instead.
+They produce a warning: WhimTex does not control their updates, so Canvas, thumbnails and export may differ.
+For a predictable result, declare your own numeric parameter and use its value instead of Unity's clock.
+
+FX normally reuse the result until an input or parameter changes; time inputs disable that caching.
+The warning appears through the [shared FX diagnostics](shader-fx.md#compilation-warnings), including Console and agent inspection.
+See the [technical time-input policy](../ShaderFX.md#shader-fx-a-first-snippet-parameters-and-reusable-code) for reporting rules.

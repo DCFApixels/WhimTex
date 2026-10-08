@@ -80,7 +80,9 @@ context.case("ProceduralClipboard original assertion inputs and source contracts
   }
   const guide = read('Documentation~/AI/README.md');
   assert.match(guide, /reader is removed/);
-  assert.match(guide, /0\.12\.5/);
+  assert.match(guide, /Use \*\*`whimtex\.document`, version 2\*\*/, 'Authoring guide targets the current document contract');
+  assert.match(guide, /version-1 documents are unsupported/, 'Retired document versions are identified');
+  assert.match(guide, /this checkout has no automatic migration/, 'No automatic upgrade is promised');
   for (const [name, text] of [['AI/README.md', guide],
                               ['en/ai-authoring.md', read('Documentation~/en/ai-authoring.md')],
                               ['ru/ai-authoring.md', read('Documentation~/ru/ai-authoring.md')]]) {
@@ -93,4 +95,3 @@ context.case("ProceduralClipboard original assertion inputs and source contracts
 
 });
 await finish(context);
-

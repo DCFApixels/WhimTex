@@ -23,16 +23,19 @@ https://github.com/DCFApixels/WhimTex.git
 ## Make your first image
 
 1. Open **Window → WhimTex** and set the canvas **W / H**. **New** creates another empty document in a separate tab, keeping the current document open.
-2. Click **+** at the bottom of Layers and choose **Drawing Layer**. If you already have a texture, you can drag it from Project onto Canvas View instead.
+2. Click **+** at the bottom of Layers and choose **Drawing Layer**. This is the layer you can paint on.
 3. Choose **Transform** (`T`) to arrange the image, or **Brush** (`B`) to paint.
 4. Press `Ctrl+S` and choose where to save the document.
-5. The document is saved as a TIFF and can be used like any other Unity texture — in a material or as a sprite.
+5. The document is saved as a TIFF and can be used like any other Unity texture, in a material or as a sprite.
 
 Double-click the saved TIFF to continue editing. You do not need to export it first.
 It opens in its own WhimTex window without replacing your current document.
 If it is already open, Unity focuses that window instead of opening a duplicate.
 
 Each WhimTex tab shows its document's name. New documents start as **Untitled**; after saving, the tab uses the filename. An asterisk marks unsaved changes.
+
+To use an existing image, drag it from Project onto Canvas View. This adds a **File** layer linked to the texture.
+Add a Drawing layer above it for touch-ups, or accept conversion to Drawing when painting on the File layer.
 
 Dropping a texture into an empty document sets the canvas size to that texture's dimensions in Unity.
 The same happens when you add **File** as the only layer and assign its first **Source Texture**.
@@ -79,8 +82,12 @@ WhimTex TIFF documents reopen with their layers. For ordinary images, **Open As*
 | **Drawing** | You want an editable copy that you can paint on. |
 | **File** | You want a layer linked to the source texture. |
 
-**Saving over the original.** An ordinary image opens as a new document. While it has one layer, **Save** updates a PNG, JPEG, TGA, EXR or Texture2D `.asset` source.
-Use **Save As** to create a layered TIFF without changing the source or its import settings. Other formats require Save As.
+{: .warning }
+**Save can overwrite the source.** Double-clicking an ordinary PNG, JPEG, TGA, EXR or Texture2D `.asset` opens it as a new document linked to that image, even with **Open As → Drawing**.
+While there is one top-level layer (a group also counts as one), **Save** updates the original image.
+With several top-level layers, Save asks for a TIFF; returning to one layer before saving a TIFF makes source-saving possible again.
+Use **Save As** to create a TIFF without changing the source or its import settings. Other image formats require Save As.
+Dragging a texture into a new document instead adds a File layer and does not bind Save to that source image.
 
 **Source resolution.** PNG, JPEG, BMP, TGA and EXR use the original file dimensions and pixels, even if Unity imports a smaller or compressed texture.
 This applies to File rendering, opening as Drawing, and converting File to Drawing. Other formats use the imported texture.

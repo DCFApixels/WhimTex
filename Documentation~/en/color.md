@@ -189,22 +189,22 @@ New Color Fill, Gradient and Noise layers use **Unbounded** tiling by default.
 
 ### How Rounded smoothing behaves
 
-**Rounded** is built in; there is no Transition setting.
-**Rounded** prioritizes a smooth shoulder where the gradient meets a constant color.
-It spreads the compensating speed change up to the adjacent midpoint, reducing visible shoulders within the fade.
-Use **Perceptual** and **100% Smoothness** for the rounded color progression.
-The rounding extends to both sides of an interior held boundary: its key stays in place,
-but the evaluated color or opacity at that key may differ from its stored value.
-Keys at 0 and 1 and ordinary interior keys remain exact. Midpoint positions remain fixed.
-Some near-constant color remains; this is not a guarantee against every visible rim.
-At 0% Smoothness interpolation is linear in the selected working color space;
-Fixed uses hard bands. A narrow fade or a midpoint near an endpoint can still produce a visible rim.
+Rounded smoothing softens the join where a flat-color section becomes a fade.
+It reshapes the fade up to the neighboring midpoint. Use **Perceptual** and **100% Smoothness** to see it;
+there is no separate Transition setting.
+
+At such a join inside 0–1, smoothing affects both sides. The key stays in place,
+but its displayed color or opacity can differ from its stored value.
+Keys at 0 and 1, ordinary interior keys and midpoint positions remain unchanged.
+
+**Smoothness 0%** gives a linear transition in the selected color space; **Fixed** gives hard bands.
+Nearly flat sections remain, and narrow fades or midpoints near an endpoint can still show a visible rim.
 
 <a id="rearrange-channels-with-swizzle"></a>
 
 ## Rearrange channels with Channel Mapping
 
-**Mapping** chooses what goes into each output channel of a layer or group.
+In **Layer Settings → Rendering → Mapping**, choose what goes into each output channel of a layer or group.
 For example, choose R in the R, G and B fields to make a grayscale image from the red channel.
 
 Each field offers the original channels, their inverses, black (`0`), white (`1`),
@@ -220,6 +220,18 @@ The arrow button on the right offers builtin presets:
 - **Alpha to Grayscale:** show alpha as an opaque grayscale image (`A A A 1`).
 
 Changing a group's Mapping treats its contents as one image, so outside blending can look different.
+
+### Turn a grayscale image into transparency
+
+1. Select the grayscale layer. If you paint the mask yourself, keep all Canvas View channel buttons enabled and use opaque colors.
+2. In Mapping's preset menu, choose **Luminance to Alpha**. Black becomes transparent, white becomes opaque, and gray becomes partly transparent. RGB is set to white.
+3. To include the image's original transparency, set the A field to **Luminance * A** instead.
+4. Check the result with **A** alone in [Layer Preview](preview.md#layer-preview). Its channel buttons only inspect the result; they do not restrict painting.
+
+To use this layer as a mask for another layer, select the artwork layer and add **FX → + Preset → Color → Mask**.
+Set the mask texture source to **Layer**, choose your mask layer, and set **Mask Channel → Alpha**.
+Under **Apply To → Channels**, leave only **A** enabled to change transparency without changing RGB.
+The mask layer can be hidden; the FX still reads it. See [texture sources](shader-fx.md#texture-sources).
 
 ## Pack several masks
 

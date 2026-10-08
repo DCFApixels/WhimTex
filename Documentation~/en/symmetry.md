@@ -50,6 +50,17 @@ Layer transforms and export size stay unchanged. See [Effect layers](effects.md)
 
 ## Which repeat setting do I need?
 
-- **Symmetry & Repeat** makes copies of new strokes.
-- **Transform → Tiling** repeats an existing layer image.
-- **Tiled preview** shows copies of the whole canvas and lets you paint across its edges.
+| Setting | What repeats |
+| :--- | :--- |
+| Drawing: **Symmetry & Repeat** | New strokes within this layer. |
+| Layer: **Transform → Tiling** | The existing layer image outside its bounds. |
+| Canvas View: **Tiled** | The whole canvas for inspection and wrapped painting. It does not remove an existing seam. |
+| Noise: **Seamless** | The generated noise joins at opposite edges. See [Noise](noise.md). |
+| Effect Layer: **Edges / Source Edges → Repeat** | The input image across its borders, for operations such as blur. |
+| Distortion FX: **Input Tiling / Tiling** | The incoming image when distorted coordinates leave its bounds. See [Distortion](shader-fx.md#distortion-presets). |
+| Displacement Map: **Map Wrap** | The displacement map, independently of the incoming image. |
+| Gradient: **Wrap** | The palette outside its 0–1 range, not the canvas image. |
+
+For a painted seamless texture, create Noise with **Seamless** enabled, add a Drawing layer above it,
+then enable **Tiled** and paint across the borders. The Noise layer stays editable.
+To paint directly into its pixels, [convert it to Drawing](transform.md#merge-layers-or-convert-them-to-drawing) first.

@@ -16,9 +16,17 @@ Export when you need a separate image or JSON copy.
 
 ## Save a document
 
-Press `Ctrl+S`. The first save asks for a location; later saves update the same file.
-**Save As** makes a separate copy. If you close a document with changes,
-you can save, discard them or cancel closing.
+Press `Ctrl+S` to save. The destination depends on what you opened:
+
+| Document | Save does this |
+| --- | --- |
+| New document | Asks for a TIFF location inside Assets. |
+| WhimTex TIFF | Updates the same TIFF. |
+| WhimTex JSON | Updates the same JSON, without Drawing pixels. See [JSON documents](#json-documents). |
+| Ordinary image | Can overwrite its source while there is one top-level layer. See [opening images](getting-started.md#open-an-existing-image). |
+
+**Save As** always creates a TIFF. Use it to keep an opened image unchanged or to preserve Drawing pixels from a JSON document.
+When closing a changed document, you can save, discard the changes or cancel closing.
 An untouched new document closes without a prompt. Deleting the last layer is still a change and can be saved.
 
 A saved TIFF is ready to use as a **texture**. Double-click it to continue editing;

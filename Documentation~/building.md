@@ -111,4 +111,11 @@ This image-conversion helper does not start Unity or trigger a refresh.
 - `ClipboardBrokenFxTests.Run` checks soft FX failures on open/paste, parameter and texture-reference preservation, render bypass, repair and Undo/Redo across writing modes. `DocumentJsonTests.Run(start, count)` creates two current-format TIFF inputs in its GUID-owned test folder and checks JSON export/open/save/render parity without modifying those source TIFFs; frozen old documents remain negative inputs in compatibility-boundary tests; run bounded batches through the runner. Export, Drawing omission, missing assets and cancellation/source isolation have separate `ExportWindowTests`, `DocumentJsonContractTests` and `DocumentJsonSafetyTests` checks. Find their exact IDs and required effects in the [test catalog](https://github.com/DCFApixels/WhimTex/blob/main/Tests~/scripts/test-catalog.json).
 - Keep README as an introduction, installation, quick start and a map to these guides.
 - Do not duplicate API tables into every language. Explain workflows in EN/RU/ZH; link the shared contract.
+- Give each detailed rule one home page. Link to it from task pages rather than repeating its full
+  explanation. Keep a short warning beside a destructive action even when the full rule lives elsewhere.
+- Preserve existing heading anchors when renaming sections. Keep English UI labels unchanged in
+  translated guides; translate explanations, not the names readers must find in the editor.
+- Check revised workflows with a reader who has not seen the implementation: can they find the
+  starting control, finish the task and explain what will be saved or lost? Fix ambiguous steps before
+  running the source and site checks. Automated checks do not measure whether an instruction is understandable.
 - Keep dependency sources and licenses in the repository notices when updating the theme.

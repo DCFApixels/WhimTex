@@ -96,6 +96,12 @@ Layer Settings 中选择 **Cancel Agent Edit** 即可立即恢复编辑。其他
 其中说明了如何在你的 Unity 项目中使用 WhimTex。
 要访问打开的文档，项目中必须安装 WhimTex，智能体也必须通过 [Live editing API](../LiveAgentAPI.md) 连接到 Unity。
 
+请求修改前，先用只读请求检查连接：
+
+> 列出打开的 WhimTex 文档、画布尺寸和选中的图层。不要修改任何内容。
+
+如果打开了多个文档，先确认智能体应使用哪一个。
+
 命令语法和集成设置保存在单独的
 [API 参考](../AgentAPI.md)中，并附有[示例](../Examples/index.md)。
 普通编辑并不需要它们。

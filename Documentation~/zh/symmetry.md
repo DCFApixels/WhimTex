@@ -50,6 +50,17 @@ Tiled 显示重复图像并让笔触跨越边缘，但不会扩大画布。图�
 
 ## 我需要哪种重复设置？
 
-- **Symmetry & Repeat** 会为新笔触创建副本。
-- **Transform → Tiling** 会重复已有的图层图像。
-- **Tiled preview** 会显示整个画布的副本，并让你跨过其边缘绘制。
+| 设置 | 重复的内容 |
+| :--- | :--- |
+| Drawing：**Symmetry & Repeat** | 该图层中的新笔触。 |
+| 图层：**Transform → Tiling** | 超出图层边界的已有图像。 |
+| Canvas View：**Tiled** | 整个画布，用于检查和跨边缘绘制。已有接缝不会自动消失。 |
+| Noise：**Seamless** | 让噪声在相对边缘处衔接。见[噪声](noise.md)。 |
+| Effect Layer：**Edges / Source Edges → Repeat** | 跨越边界读取输入图像，例如用于模糊。 |
+| Distortion FX：**Input Tiling / Tiling** | 扭曲后的坐标超出边界时读取的输入图像。见 [FX](shader-fx.md)。 |
+| Displacement Map：**Map Wrap** | 位移贴图，与输入图像分开设置。 |
+| 渐变：**Wrap** | 超出 0–1 范围的调色板，不是画布图像。 |
+
+绘制无缝纹理时，可先创建启用 **Seamless** 的 Noise，在上方添加 Drawing 图层，
+再开启 **Tiled** 跨边缘绘制。Noise 仍可编辑。
+若要直接修改噪声的像素，先[转换为 Drawing](transform.md)。

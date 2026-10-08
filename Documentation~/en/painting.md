@@ -182,14 +182,11 @@ Choose the bandage icon, paint over a scratch, small hole or seam, then release 
 mouse button. The colored stroke marks the repair area; reconstruction runs after release.
 Cover the entire defect with a little surrounding texture. The result is one Undo step.
 
-The repair looks for similar colors and texture, preserving fine detail rather than
-blurring it away. It cannot recreate unique features missing from the surrounding image.
-Compatible smooth fragments are blended to soften patch seams; sharp details keep their original donor samples.
-Wide repairs in smooth noise can still lose contrast and leave a flatter-looking band.
-Overused source regions receive a soft penalty when similarly matching alternatives exist; this reduces repetition but does not prohibit it.
+The repair borrows similar colors and texture from the surrounding image, including fine detail.
+It softens joins between smooth patches and tries alternative patches to reduce repetition.
+It cannot recreate unique missing features: large shapes and interrupted lines may need touch-ups.
+Wide repairs in smooth noise can lose contrast and leave a flatter-looking band; repeated details are still possible.
 **Hardness** controls the blend at the stroke edge, not the sharpness of the recovered detail.
-Reconstruction starts at the known edges and works inward before refining the whole repair;
-this helps continue lines through gaps, but ambiguous large shapes can still need touch-ups.
 
 - **Size** sets the stroke diameter in canvas pixels; `[` / `]` also change it.
 - **Hardness** sets the mask edge: low values blend the repair softly; high values give a firm edge.

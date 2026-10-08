@@ -102,6 +102,12 @@ They explain how to use WhimTex in your Unity project.
 To access an open document, WhimTex must be installed in the project and the agent must be
 connected to Unity through the [Live editing API](../LiveAgentAPI.md).
 
+Before asking for edits, check the connection with a read-only request:
+
+> List the open WhimTex documents, their canvas sizes and selected layers. Do not change anything.
+
+If several documents are open, confirm which one the agent should use before it starts.
+
 Command syntax and integration setup are kept in the separate
 [API reference](../AgentAPI.md), with [examples](../Examples/index.md).
 You do not need them for ordinary editing.

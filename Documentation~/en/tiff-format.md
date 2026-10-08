@@ -11,38 +11,41 @@ next_page: "en/shortcuts.md"
 
 # TIFF document
 
-TIFF is WhimTex's main image-backed document format. Each TIFF document is one `*.tiff` file: a Unity texture
-and an editable document at the same time: the visible TIFF image is the last saved composite,
-while the layer model and Drawing data travel in an appended WhimTex container.
+Save as TIFF when you need both an editable WhimTex document and a texture for Unity.
+Double-click the same file to edit its layers; assign it to a material to use the saved image.
+You do not need a separate export for either action.
 
 ## What the file contains
 
-The TIFF image comes first, so Unity can import it with the normal Texture Importer. After the
-image, WhimTex writes a binary container with a `document` model block, separate Drawing pixel
-blocks and a small carrier block. A directory records each block's name, compression and lengths;
-the `integrity:sha256` manifest detects accidental truncation or modification. This is not a ZIP
-file and it is not a second Unity asset.
+One `.tiff` contains the last saved composition, editable layers and FX, and Drawing pixels.
+File layers still reference their source textures: keep those assets in the project.
 
-The composite uses 8-bit samples for ordinary output and can use Float32 for HDR or explicit
-`Precision → Float32`. Mipmaps, GPU compression, sprite slicing and platform overrides remain
-normal Unity importer settings rather than document-layer data.
+**Precision** controls the saved image's 8-bit or Float32 precision. Mipmaps, compression,
+sprite slicing and platform overrides are ordinary Unity import settings.
+See [saving and texture settings](saving.md) for choosing them.
 
 ## Loading and saving
 
-Opening reads the footer, block directory and model first. Drawing pixel blocks are loaded lazily
-when rendering, previewing, editing or saving needs them; the whole document is not inflated at
-once. Saving stages a sibling temporary file, validates it and atomically replaces the previous
-TIFF. If the source changed externally, WhimTex refuses to combine revisions and asks you to
-reopen or use **Save As**.
+Press **Ctrl+S** to update the document; **Save As** creates another TIFF. Unity normally
+displays the last saved image. [Live Update](preview.md#see-your-paint-on-a-model) shows unsaved edits.
+
+Large Drawing layers load as they are needed. Saving prepares and checks a temporary file
+before replacing the previous TIFF. If the source changed externally, reopen it or use
+**Save As** rather than overwriting a different revision.
+For warnings about unread data or an interrupted save, see [document protection and recovery](saving.md#protect-the-editable-document).
 
 ## Compatibility
 
-Do not resave a WhimTex TIFF in an external image editor: it may discard the appended container and
-leave only the composite image. Legacy `.asset` and version-1 documents are unsupported.
-Use a matching older checkout to edit old files; this checkout does not provide migration.
-[JSON documents](saving.md#json-documents) are an editable text alternative, without Drawing pixels or a Unity texture.
-PNG, JPEG, TGA and EXR contain the exported image without editable layers. PSD can retain some
-layers and effects, but does not replace the original WhimTex document.
+{: .warning }
+Do not resave a WhimTex TIFF in another image editor: it may leave only the image and remove
+the editable layers. Export a separate image for that workflow, and keep the original TIFF and its `.meta`.
 
-For the complete byte layout, limits and block-level rules, see the
+Old `.asset` and version-1 documents require the WhimTex version that supports them;
+the current version does not convert them automatically.
+
+[JSON](saving.md#json-documents) keeps editable settings but no Drawing pixels or Unity texture.
+PNG, JPEG, TGA and EXR keep only the exported image. PSD keeps some layers and effects;
+keep the original TIFF when you need all WhimTex settings.
+
+For the binary layout, checksums, limits and loading rules, see the
 [TIFF document format technical reference]({{ '/reference/tiff-format/' | relative_url }}).

@@ -11,31 +11,36 @@ next_page: "zh/shortcuts.md"
 
 # TIFF 文档
 
-TIFF 是 WhimTex 的主要文档格式。一个 `*.tiff` 文件同时是 Unity 可导入的普通纹理和可编辑
-文档：可见的 TIFF 图像是最后保存的合成结果，而图层模型与 Drawing 数据位于附加的 WhimTex
-容器中。
+需要可编辑的 WhimTex 文档和 Unity 纹理时，保存为 TIFF。
+双击同一个文件可以编辑图层，将它指定给材质则使用已保存的图像。
+这两种用途都不需要另行导出。
 
 ## 文件包含什么
 
-文件首先写入 TIFF 图像，因此 Unity 可以使用标准 Texture Importer 导入它。图像之后是 WhimTex
-二进制容器，其中包含 `document` 模型块、独立的 Drawing 像素块和小型 carrier 块。目录记录
-每个块的名称、压缩方式和长度；`integrity:sha256` 清单用于检测意外截断或修改。这不是 ZIP
-文件，也不是第二个 Unity 资源。
+一个 `.tiff` 包含最后保存的合成图像、可编辑图层与 FX，以及 Drawing 像素。
+File 图层仍引用源纹理，请将这些资源保留在项目中。
 
-普通输出使用每通道 8 位；HDR 或明确选择 `Precision → Float32` 时使用 Float32。Mipmaps、GPU
-压缩、精灵切片和平台覆盖仍由 Unity 标准 Texture Importer 控制，不属于图层数据。
+**Precision** 控制保存图像的 8-bit 或 Float32 精度。Mipmaps、压缩、精灵切片和平台覆盖
+仍使用 Unity 的标准导入设置。具体选择请参阅[保存与纹理设置](saving.md)。
 
 ## 加载与保存
 
-打开文件时先读取 footer、块目录和模型。Drawing 像素块会在渲染、预览、编辑或保存需要时延迟
-加载，不会一次性解压整个文档。保存会先写入旁边的临时文件、完成校验，再原子替换旧 TIFF。
-如果源文件在外部发生变化，WhimTex 不会合并两个版本，而是要求重新打开或使用 **Save As**。
+按 **Ctrl+S** 更新文档，使用 **Save As** 创建另一个 TIFF。Unity 通常显示最后保存的图像；
+[Live Update](preview.md#在模型上查看你的绘制) 可以显示未保存的修改。
+
+大型 Drawing 图层按需加载。保存时先准备并检查临时文件，再替换旧 TIFF。
+如果源文件在外部发生变化，请重新打开或使用 **Save As**，避免覆盖不同的版本。
+出现未读取数据警告或保存中断时，请参阅[文档保护与恢复](saving.md#保留文档的可编辑性)。
 
 ## 兼容性
 
-不要使用外部图像编辑器重新保存 WhimTex TIFF：它可能删除附加容器，只留下合成图像。旧版
-`.asset` 文档和版本 1 文档均不受支持。请使用匹配的旧版 checkout 编辑旧文件；当前版本不提供自动迁移。
-[JSON 文档](saving.md#json-文档)是可编辑的文本替代格式，不含 Drawing 像素，也不是 Unity 纹理。PNG、JPEG、TGA 和
-EXR 只包含导出的图像，不包含可编辑图层。PSD 可以保留部分图层和效果，但不能替代 WhimTex 原文档。
+{: .warning }
+不要在其他图像编辑器中重新保存 WhimTex TIFF：它可能只保留图像，删除可编辑图层。
+需要在其他编辑器中处理时，导出单独的图像，并保留原 TIFF 及其 `.meta`。
 
-完整的字节布局、限制和块规则请参阅 [TIFF 文档格式技术参考]({{ '/reference/tiff-format/' | relative_url }})。
+旧 `.asset` 文档和版本 1 文档需要使用支持它们的 WhimTex 版本；当前版本不会自动转换。
+
+[JSON](saving.md#json-文档) 保留可编辑设置，但没有 Drawing 像素或 Unity 纹理。
+PNG、JPEG、TGA 和 EXR 只保留导出图像。PSD 保留部分图层与效果；需要全部 WhimTex 设置时，保留原 TIFF。
+
+二进制布局、校验和、限制及加载规则请参阅 [TIFF 文档格式技术参考]({{ '/reference/tiff-format/' | relative_url }})。

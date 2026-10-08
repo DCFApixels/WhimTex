@@ -16,6 +16,15 @@ next_page: "en/blending.md"
 Effect layers create outlines, soften images or turn texture detail into surface relief.
 They keep the source editable, so you can adjust it without rebuilding the effect.
 
+Choose by where you want the result:
+
+| Kind | Where it lives | What it changes |
+| --- | --- | --- |
+| **Effect Layer** | A separate row in Layers | A chosen source: for example, Outline around a hidden Shape. |
+| **FX** | The selected layer's FX section | That layer's image. Use [Shader FX](shader-fx.md) for presets or custom HLSL. |
+| **Shader Processor** | A separate row in Layers | The combined image below it. See [its scope](shader-fx.md#affect-one-layer-or-the-image-below). |
+| **Post FX** | Canvas View's preview controls | The view only, not saved pixels. See [Post FX](post-fx.md). |
+
 ## Choose an effect
 
 Use **+** at the bottom of Layers:

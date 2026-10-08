@@ -45,6 +45,9 @@ Each catalog effect has its own settings. The included **Color → Gain** adjust
 **Input Tiling → Clip** makes the area outside the frame transparent; Repeat or Mirror fills it with tiles.
 Effects added to the project become available automatically; no preset folder setup is needed.
 
+Find settings for [color correction](#levels-contrast-and-color-balance), [masks](#mask),
+[edge outlines](#edge-contours) or [distortion](#distortion-presets) in the preset guide below.
+
 ## Parameter controls
 
 The unlabeled checkbox in each Shader FX header enables or bypasses that effect without removing its settings. External FX references share this state; use **Embed** for an independent copy.
@@ -73,7 +76,16 @@ Texture source **Self** reads the image before the current FX, including earlier
 
 ### Points and directions
 
-Vector parameters provide two, three or four numeric components. A `point` parameter sets a position: bottom-left `(0, 0)`, top-right `(1, 1)`, default `(0.5, 0.5)`. Click the hand icon (**Edit on Canvas**) beside the field to drag the point. You can drag or enter coordinates outside the canvas. Dragging snaps to canvas edges and visible guides; hold Ctrl to disable snapping. The radius uses **User Settings → Guides & Snapping → Snap Radius (px)**. A normal parameter provides a unit direction and the same button. Drag its endpoint: near the center it faces the camera; at the maximum radius it points along the canvas. Click the endpoint to switch between **+** (toward the camera) and **−** (away).
+Vector parameters provide two, three or four numeric components.
+
+A `point` parameter sets a position: bottom-left `(0, 0)`, top-right `(1, 1)`, default `(0.5, 0.5)`.
+Click the hand icon (**Edit on Canvas**) beside the field to drag the point, including outside the canvas.
+Dragging snaps to canvas edges and visible guides; hold Ctrl to disable snapping.
+Set the snap radius in **User Settings → Guides & Snapping → Snap Radius (px)**.
+
+A normal parameter sets a unit direction and offers the same button.
+Drag its endpoint: near the center it faces the camera; at the maximum radius it points along the canvas.
+Click the endpoint to switch between **+** (toward the camera) and **−** (away).
 
 ### Curves and gradients
 
@@ -157,19 +169,19 @@ Shader Processor also supports Apply. It captures its current input, including t
 
 If you have shader code, use **+ Shader FX**, paste it into the editor and click **Apply**.
 The code and settings stay with the document; no separate file is required.
-If compilation fails, the FX is skipped until a successful **Apply**; its code and settings remain available for repair.
+If Apply reports a problem, see [FX errors and warnings](#compilation-warnings).
 
 Custom HLSL effects and brushes can use the built-in noise library for grain,
 organic masks and distortion. See the [noise functions and example](../AI/README.md#built-in-noise-library).
 
 Writing an effect is optional. The [shader authoring reference](../ShaderFX.md)
 is for creating code and reusable libraries.
+
 ## Editing in an external editor
 
 - **Open Code** opens a working file in Unity's selected script editor. Saving updates the draft in WhimTex; click **Apply** to compile it.
 - **Open in VS Code** also installs WhimTex directive highlighting, completions and checks automatically in an isolated profile. Saving this working file requests **Apply** in Unity, without returning to the WhimTex window. The language mode remains **HLSL**; the bundled extension supports Restricted Mode.
 - If the VS Code button is missing, set **User Settings → External Code Editor → VS Code Command**. WhimTex checks Unity's registered editors and PATH before this fallback.
-- An invalid shader is skipped and reports diagnostics until a successful Apply; its code and parameter values remain editable. Save the document in WhimTex to keep changes in TIFF or JSON; saving the code file alone does not save the document. JSON can retain broken FX, while TIFF requires fixing them before saving. After a Unity script reload, reopen the code from WhimTex to reconnect.
 
 The VS Code extension highlights types, modifiers, parameter names, values and ranges as well as directive names. It checks defaults, tooltips, linked controls, conditions and groups; shader compilation errors still come from Unity. After an extension update, reopen code through **Open in VS Code**; an already-running window may need **Developer: Reload Window**.
 
@@ -177,18 +189,22 @@ Type `// @if` or `// @group`, then press **Tab** to create a block with its clos
 
 External working files are temporary, not backups. Inactive copies unused for more than **24 hours** are automatically removed. Save your document in WhimTex to keep the code; saving in the code editor alone does not save the document. After restarting Unity or reloading scripts, reopen code from WhimTex to reconnect it.
 
-## Compilation warnings
+<a id="compilation-warnings"></a>
+
+## FX errors and warnings
 
 A yellow **!** beside the layer and warning triangles in the **FX** section and individual effect
-headers identify FX errors and warnings, even with the panels collapsed. Hover for the reason;
-open **Code** for full diagnostics. Errors skip the FX without disabling or deleting it; warnings keep
-it working. Fix the code and click **Apply** to resume it. Indicators clear when no issues remain.
-A failed Apply does not use an older compiled version.
+headers identify problems even with the panels collapsed. Hover for the reason; open **Code** for details.
 
-JSON documents can save and reopen broken FX without losing their source or parameter values.
-UI, Console and agent inspection show the same FX messages and severity. Console reports errors as
-Error and warnings as Warning; repeats from the same source are suppressed until scripts reload.
-UI and agent diagnostics remain visible, including Unity time and parameter warnings.
+| Message | What happens | What to do |
+| :--- | :--- | :--- |
+| Warning | The FX still runs. | Read the warning and decide whether the result is suitable. For example, [Unity time inputs](shader-controls.md#coordinates-and-time) can give inconsistent previews. |
+| Error | The FX is skipped, not disabled or deleted. Its code and settings remain editable; no older compiled version is used. | Fix the problem and click **Apply**. |
+
+Indicators clear when no issues remain. TIFF saving requires all FX drafts to be applied and errors fixed.
+JSON can save and reopen broken FX without losing their code or parameter values; it does not store Drawing pixels.
+WhimTex, Console and connected agents show the same messages. Repeated Console messages are suppressed;
+diagnostics remain available in the UI and to the agent. See [the technical diagnostic rules](../ShaderFX.md#shader-fx-a-first-snippet-parameters-and-reusable-code).
 
 ## Preset guide
 

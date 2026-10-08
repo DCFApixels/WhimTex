@@ -23,7 +23,7 @@ https://github.com/DCFApixels/WhimTex.git
 ## 制作你的第一张图像
 
 1. 打开 **Window → WhimTex** 并设置画布的 **W / H**。**New** 会在单独的标签页中创建另一个空文档，并保持当前文档处于打开状态。
-2. 点击 Layers 底部的 **+**，选择 **Drawing Layer** 创建绘制图层。如果已有纹理，也可以直接从 Project 拖到画布视图中。
+2. 点击 Layers 底部的 **+**，选择 **Drawing Layer**。你可以直接在这个图层上绘制。
 3. 选择 **Transform**（`T`）来调整图像位置，或选择 **Brush**（`B`）进行绘制。
 4. 按 `Ctrl+S` 并选择文档的保存位置。
 5. 文档保存为 TIFF，可像普通 Unity 纹理一样用于材质或作为精灵使用。
@@ -33,6 +33,9 @@ https://github.com/DCFApixels/WhimTex.git
 如果它已经打开，Unity 会聚焦该窗口，而不是打开一个重复的窗口。
 
 每个 WhimTex 标签页都会显示其文档的名称。新文档以 **Untitled** 开始；保存后，标签页会使用文件名。星号标记未保存的更改。
+
+要使用已有图像，将它从 Project 拖入 Canvas View。这会添加一个引用源纹理的 **File** 图层。
+需要修整时，在上方添加 Drawing 图层，或在尝试绘制时确认将 File 转换为 Drawing。
 
 将纹理拖入空文档会把画布尺寸设置为该纹理在 Unity 中的尺寸。
 当你把 **File** 作为唯一的图层添加并指定其第一个 **Source Texture** 时，也会发生同样的情况。
@@ -79,8 +82,12 @@ WhimTex TIFF 文档恢复原有图层。对于普通图像，**Open As** 决定�
 | **Drawing** | 需要可直接绘画的独立像素副本。 |
 | **File** | 需要链接到源纹理的图层。 |
 
-**覆盖源文件。** 普通图像作为新文档打开。文档只有一个图层时，**Save** 会更新 PNG、JPEG、TGA、EXR 或 Texture2D `.asset` 源文件。
-**Save As** 创建多图层 TIFF，不修改源文件及其导入设置。其他格式需要使用 Save As。
+{: .warning }
+**Save 可能覆盖源文件。** 双击普通 PNG、JPEG、TGA、EXR 或 Texture2D `.asset` 会打开与源图像关联的新文档，即使选择 **Open As → Drawing** 也是如此。
+只有一个顶层图层时（一个组也算一个图层），**Save** 更新源图像。
+有多个顶层图层时，Save 询问 TIFF 保存位置；保存 TIFF 之前如果又只剩一个图层，仍可能更新源图像。
+**Save As** 创建 TIFF，不修改源图像及其导入设置。其他图像格式需要使用 Save As。
+将纹理拖入新文档只添加 File 图层，不会让 Save 指向源图像。
 
 **源分辨率。** PNG、JPEG、BMP、TGA 和 EXR 使用原始文件的尺寸和像素，不受 Unity 导入缩小或压缩影响。
 这适用于 File 渲染、作为 Drawing 打开，以及将 File 转为 Drawing。其他格式使用导入纹理。

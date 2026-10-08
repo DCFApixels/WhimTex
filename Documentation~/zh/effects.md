@@ -16,6 +16,15 @@ next_page: "zh/blending.md"
 效果图层可以创建描边、柔化图像，或将纹理细节转换为表面起伏。
 它们保持源可编辑，因此你无需重建效果即可调整它。
 
+根据结果的作用位置选择：
+
+| 类型 | 所在位置 | 修改对象 |
+| --- | --- | --- |
+| **Effect Layer** | Layers 中的独立行 | 所选来源，例如为隐藏的 Shape 创建 Outline。 |
+| **FX** | 所选图层的 FX 区域 | 该图层的图像。预设和 HLSL 参见 [Shader FX](shader-fx.md)。 |
+| **Shader Processor** | Layers 中的独立行 | 下方的合成图像。参见[作用范围](shader-fx.md)。 |
+| **Post FX** | Canvas View 的预览控件 | 仅改变显示，不修改保存的像素。参见 [Post FX](post-fx.md)。 |
+
 ## 选择效果
 
 使用 Layers 底部的 **+**：

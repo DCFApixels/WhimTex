@@ -13,7 +13,9 @@ next_page: "en/getting-started.md"
 # WhimTex user guide
 
 Use WhimTex to paint textures, build procedural VFX masks and combine layers into sprites, directly in Unity.
-Start with a first image, or choose a workflow below. Control names match the editor.
+Start with [your first image](getting-started.md), then follow the task you need below.
+Control names stay in English so you can find them in the editor. The [technical reference](../reference.md)
+covers file formats, integrations and full shader syntax; it is optional for ordinary editing.
 
 ## Start and arrange
 
@@ -23,7 +25,8 @@ Start with a first image, or choose a workflow below. Control names match the ed
 
 ## Paint and select
 
-- [Brush, Pencil and Fill](painting.md)
+- [Brush, Pencil and Fill](painting.md): strokes, brush tips and presets.
+- [Smudge](painting.md#smudge-brush) and [Healing Brush](painting.md#healing-brush): stretch or repair existing pixels.
 - [Area selections](selection.md)
 - [Symmetry and seamless painting](symmetry.md)
 

@@ -13,7 +13,8 @@ next_page: "zh/getting-started.md"
 # WhimTex 用户指南
 
 用 WhimTex 直接在 Unity 中绘制纹理、制作程序化 VFX 遮罩，并将图层组合为精灵。
-从第一张图像开始，或选择下方的工作流程。控件名称与编辑器一致。
+先[制作第一张图像](getting-started.md)，再选择下方需要的任务。
+控件名称保留英文，与编辑器一致。[技术参考](../reference.md)介绍文件格式、集成和完整着色器语法；普通编辑无需阅读。
 
 ## 开始与组织
 
@@ -23,7 +24,8 @@ next_page: "zh/getting-started.md"
 
 ## 绘制与选择
 
-- [画笔、铅笔与填充](painting.md)
+- [画笔、铅笔与填充](painting.md)：笔触、笔尖和预设。
+- [Smudge](painting.md#smudge-brush) 与[修复画笔](painting.md#修复画笔)：拉伸或修复已有像素。
 - [区域选择](selection.md)
 - [对称与无缝绘制](symmetry.md)
 

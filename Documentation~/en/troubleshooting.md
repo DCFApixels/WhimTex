@@ -38,6 +38,24 @@ Use **Specific** if you want to keep the same source when rearranging the list.
 
 A hidden source still works. For a group, keep the required children visible; see [Effect layers](effects.md#choose-what-the-effect-uses).
 
+## FX shows a warning or error
+
+Hover over the yellow marker beside the layer, or open the effect's **Code** section for details.
+**Warning** leaves the FX running; **Error** skips it until you fix the problem and click **Apply**.
+The same messages are available in Console and to a connected agent.
+
+Before saving TIFF, apply pending FX drafts and fix FX errors. JSON can retain broken FX code and settings,
+but not Drawing pixels. See [FX errors and warnings](shader-fx.md#compilation-warnings).
+
+## Save warns about unread document data
+
+Keep the original file. **Save a Copy…** writes the loaded parts and your edits to a new file;
+it protects the original, but the copy may lose the unread parts. **Save Anyway** overwrites the original
+with the same risk. **Cancel** returns to editing.
+
+If you need the unread data, restore the required packages, types or assets and reopen the original.
+Replacing a missing layer type is a substitution, not recovery. See [document protection](saving.md#protect-the-editable-document).
+
 ## There are seams in the repeated image
 
 Check which [repeat mode](symmetry.md) you are using.

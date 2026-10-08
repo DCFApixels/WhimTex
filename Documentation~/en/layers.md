@@ -176,6 +176,9 @@ used by your particle effect.
 
 A layer whose type is unavailable keeps its name, position, visibility and common settings.
 A group also keeps its children. Select the row to see the warning in Layer Settings.
+
+To recover the original layer, restore its package or script and reopen the original document before replacing it.
+
 Choose **Replace with**, then click **Replace Behaviour**. **Transfer saved settings** copies
 compatible settings from the previous layer type. The panel lists anything that cannot
 be transferred; check the result before saving. Groups containing children can only be restored as groups.
@@ -183,6 +186,5 @@ be transferred; check the result before saving. Groups containing children can o
 You can still move, hide or remove the unavailable layer. It does not appear on the canvas until restored.
 
 {: .warning }
-The current layer format is incompatible with documents created before the Layer/Behaviour redesign.
-There is no automatic conversion. Keep those documents with their original WhimTex version,
-or export their images there before updating.
+**Replace Behaviour** substitutes a different type; settings that cannot be transferred may be lost when you save.
+See [document protection](saving.md#protect-the-editable-document). For older unsupported formats, see [TIFF documents](tiff-format.md).

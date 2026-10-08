@@ -99,12 +99,15 @@ https://github.com/DCFApixels/WhimTex.git
 ## Make your first image
 
 1. Open **Window → WhimTex** and set the canvas size. Click **New** for another document.
-2. Click **+** at the bottom of Layers and choose **Drawing Layer**. Alternatively, drag an existing texture from Project onto the preview.
+2. Click **+** at the bottom of Layers and choose **Drawing Layer** so you can paint.
 3. Arrange it with Transform (`T`), or paint with Brush (`B`) / Pencil (`P`).
 4. Press `Ctrl+S`. The editable document and full-resolution texture are saved in one `.tiff` file.
 5. Assign the TIFF to a texture field. For sprites, set **Texture Type → Sprite (2D and UI)** in its Inspector, click **Apply** and expand the asset in Project.
 
 Double-click the saved TIFF to reopen it. **Export** offers PNG, TGA, JPEG, EXR, layered PSD, Texture2D and editable JSON without Drawing pixels.
+
+To work from an existing texture, see [opening images](Documentation~/en/getting-started.md#open-an-existing-image).
+Dragging one from Project creates a linked File layer; painting requires a Drawing layer or conversion.
 
 <a id="workspace"></a>
 <a id="layers"></a>
@@ -147,7 +150,7 @@ Thanks to the authors and maintainers of the libraries that help power WhimTex:
 - **[FastNoiseLite](https://github.com/Auburn/FastNoiseLite)** — Jordan Peck and contributors;
   the HLSL implementation powers the Noise layer. [Included MIT license](ThirdPartyNotices.md#fastnoiselite).
 - **[Newtonsoft.Json](https://github.com/JamesNK/Newtonsoft.Json)** — James Newton-King and contributors;
-  JSON serialization for document documents and the agent API, provided through Unity's package.
+  JSON serialization for documents and the agent API, provided through Unity's package.
   [Included third-party licenses](Documentation~/Licenses/Newtonsoft-ThirdPartyNotices.md).
 - **[Unity Burst](https://docs.unity3d.com/Packages/com.unity.burst@1.8/manual/index.html)** and
   **[Unity Collections](https://docs.unity3d.com/Packages/com.unity.collections@2.5/manual/index.html)** —

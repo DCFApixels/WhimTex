@@ -62,10 +62,9 @@ the detail within it and still changes in steps. Direction 0 joins left/right an
 At arbitrary angles, repetition along the noise axis does not guarantee matching canvas edges.
 The checkbox and the 2D/3D edge selection are remembered independently; it starts disabled.
 
-With 2D OpenSimplex2/2S, Scale below 1 can now produce coarser fractal detail: each octave
-fits its own period from the requested Scale. Changes remain stepped, with at least one cell
-per octave. With Fractal None, the minimum-cell limit remains. Existing 2D seamless simplex
-patterns may change, including at Scale above 1; other noise types and 3D are unchanged.
+With seamless 2D OpenSimplex2/2S, Scale below 1 can produce coarser fractal detail.
+Each octave fits its own period, with at least one cell per octave, so Scale still changes in steps.
+With **Fractal → None**, the minimum is one cell.
 
 
 Warp Scale applies in 1D, 2D and 3D; it adds no separate Z multiplier. With Seamless, each selected

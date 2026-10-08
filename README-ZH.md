@@ -99,12 +99,15 @@ https://github.com/DCFApixels/WhimTex.git
 ## 制作第一张图像
 
 1. 打开 **Window → WhimTex** 并设置画布尺寸。点击 **New** 可再创建一个文档。
-2. 点击 Layers 底部的 **+**，选择 **Drawing Layer** 创建绘制图层。也可以将已有纹理从 Project 拖到预览上。
+2. 点击 Layers 底部的 **+**，选择 **Drawing Layer**，以便开始绘制。
 3. 使用 Transform（`T`）调整位置，或使用 Brush（`B`）/ Pencil（`P`）绘制。
 4. 按 `Ctrl+S`。可编辑文档和完整分辨率纹理会保存在同一个 `.tiff` 文件中。
 5. 将 TIFF 指定给纹理字段。需要精灵时，在其 Inspector 中选择 **Texture Type → Sprite (2D and UI)**，点击 **Apply**，然后在 Project 中展开资源。
 
 双击保存的 TIFF 即可再次编辑。通过 **Export** 可导出 PNG、TGA、JPEG、EXR、多图层 PSD、Texture2D，或不含 Drawing 像素的可编辑 JSON。
+
+要使用现有纹理，见[打开图像](Documentation~/zh/getting-started.md#打开已有图像)。
+从 Project 拖入纹理会创建关联的 File 图层；绘制需要 Drawing 图层或转换。
 
 <a id="workspace"></a>
 <a id="layers"></a>
